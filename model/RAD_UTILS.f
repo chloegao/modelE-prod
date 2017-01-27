@@ -746,7 +746,7 @@ C--------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: NLAT, JALIM, JBLIM
       REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT, TAULAT
-      REAL*8, INTENT(OUT) :: TAU 
+      REAL*8, INTENT(OUT) :: TAU
       REAL*8 :: ASUM,TSUM
       REAL*8 :: ONES(NLAT)
 
@@ -1262,7 +1262,7 @@ C           REMARKS
 C                   PLANCK INTENSITY (W/m^2*STER) IS GIVEN BY PFofTK/PI
 C
 C     ------------------------------------------------------------------
-      use CONSTANT, only: stbo ! (W m-2 K-4) Stefan-Boltzmann 
+      use CONSTANT, only: stbo ! (W m-2 K-4) Stefan-Boltzmann
       IMPLICIT NONE
       REAL*8, PARAMETER, DIMENSION(21) ::
      *     BN = (/1D0, -1D0, 1D0, -1D0, 1D0, -1D0, 5D0, -691D0, 7D0,
@@ -1491,8 +1491,8 @@ C     ------------------------------------------------------------------
 C     ------------------------------------------------------------------
 C
 C     REPART/RETERP
-C              Repartitions or Interpolates FXL (a histogram-type 
-C              distribution function) where XLB depicts the NXB 
+C              Repartitions or Interpolates FXL (a histogram-type
+C              distribution function) where XLB depicts the NXB
 C              partitions that define FXL data. FXL is assumed to be
 C              constant between XLB(N) AND XLB(N+1)
 C
@@ -3258,8 +3258,8 @@ C     functions
 ! it is to prevent "losing" some ozone in the REPART interpolation
 ! if the (fixed) lowest O3 level pressure is at lower pressure than
 ! the the (fixed) lowest nominal model pressure:
-        if(plbo3(1) < psf) plbo3(1) = psf 
-        if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf 
+        if(plbo3(1) < psf) plbo3(1) = psf
+        if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf
 
 ! Initialize the timestream for the O3 data file:
         cyclic = jyearo < 0
@@ -3285,13 +3285,13 @@ C     functions
           call read_dist_data(grid,fid,'O3',o3arr)
           call par_close(grid,fid)
           do j=j_0,j_1
-          do i=i_0,i_1 
+          do i=i_0,i_1
             O3JREF(:,I,J)=O3ARR(I,J,:)
           enddo
           enddo
           deallocate(o3arr) ! note quick deallocation as will be resized below
         endif
-        
+
       endif  ! end init
 
       if(have_o3_file)then
@@ -3300,7 +3300,7 @@ C     functions
 
         call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
         do j=j_0,j_1
-        do i=i_0,i_1 
+        do i=i_0,i_1
           O3JDAY(:,I,J)=O3ARR(I,J,:)
         enddo
         enddo
@@ -3503,7 +3503,7 @@ C     functions
 
       call read_stream(grid,delta_O3stream,jyearx,jjdayo,delta_o3_now)
       do j=j_0,j_1
-      do i=i_0,i_1 
+      do i=i_0,i_1
         O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(i,j,:)
       enddo
       enddo
@@ -3515,3 +3515,38 @@ C     functions
       END SUBROUTINE UPDO3D_solar
 
       end module O3mod
+
+      SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL)
+      IMPLICIT NONE
+      INTEGER J,N,NL
+      REAL*8 PL(NL),FPXCO2(NL)
+      REAL*8 FPI,FPJ,PFI,PFJ
+! FPX CO2 scaling profile: (1.0 for P > 50mb) (linear in P for P < 50mb)
+      REAL*8, PARAMETER :: FPX(9)=(/
+     &     1.00,  0.82,  0.92,  0.75,  0.80,  0.93,  0.98,  1.45,  2.0/)
+! Pressure scale inflection points of (continuous) linear line segments
+      REAL*8, PARAMETER :: PFP(9)=(/
+     &     50.0,  10.0,   3.0,   2.0,   1.0,   0.5,   0.2,   0.1,  0.0/)
+
+      FPXCO2 = 1. ! default
+      j = 1
+      FPj = FPX(j)
+      PFj = PFP(j)
+      n = 1
+      do while (PL(N).GE.PFj)
+        FPXCO2(N)=FPj
+        N = N + 1 ; if(N > NL) return
+      end do
+
+      do j=2,9
+        FPI=FPj
+        PFI=PFj
+        FPj=FPX(j)
+        PFj=PFP(j)
+        do while (PL(N).GE.PFj)
+          FPXCO2(N)=FPI-(FPI-FPj)*(PFI-PL(N))/(PFI-PFj)
+          N = N + 1 ; if(N > NL) return
+        end do
+      end do
+      RETURN
+      END  SUBROUTINE SET_FPXCO2

@@ -429,7 +429,7 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
       REAL*8 :: WSOLAR(190),FSOLAR(190)
 
 C***  alternate sources to get WSOLAR,FSOLAR:
-      REAL*8, dimension(190) :: WS_SSI,DS_SSI,FR_SSI  
+      REAL*8, dimension(190) :: WS_SSI,DS_SSI,FR_SSI
 #ifdef USE_RAD_OFFLINE
       common/lean1950/ WS_SSI,DS_SSI,FR_SSI ! for MADLUV=0 uses block data
 #endif
@@ -833,11 +833,11 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       CONTAINS
 
       SUBROUTINE RCOMP1(NRFUN)
-      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT, grid  
+      use DOMAIN_DECOMP_ATM, only: AM_I_ROOT, grid
       use DustParam_mod, only : read_alloc_dust
-      use pario, only : par_open,par_close, variable_exists  
-     &                 ,get_dimlen,read_data  
-      use filemanager, only : file_exists    
+      use pario, only : par_open,par_close, variable_exists
+     &                 ,get_dimlen,read_data
+      use filemanager, only : file_exists
 
       IMPLICIT NONE
 C     ------------------------------------------------------------------
@@ -867,12 +867,12 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
      *     ,OCM,WCM,YQSCCB
 !@var GTAU,TGDATA temporary array to read data and pass it to RAD_UTILS
       REAL*8 :: GTAU(51,11,143),TGDATA(122,13)
-     
-      INTEGER :: N_BIN,fid 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN 
-      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN,TSI_IN  
-      logical :: have_RADN9_file 
- 
+
+      INTEGER :: N_BIN,fid
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: SSI_IN
+      REAL*8, ALLOCATABLE, DIMENSION(:) :: calyear,WS_IN,DS_IN,TSI_IN
+      logical :: have_RADN9_file
+
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
 
@@ -1364,7 +1364,7 @@ C             ----------------------------------------------------------
 
 C-----------------------------------------------------------------------
 CR(9)         Read Judith Lean Solar UV and Solar Constant Variability
-C                                                Monthly-Mean Solar UV 
+C                                                Monthly-Mean Solar UV
 C                                      ---------------------------------
       iMS0X = MS0X
 
@@ -1385,49 +1385,49 @@ C                                      ---------------------------------
 !     &    call stop_model('rcomp1: change RADN9 to monthly file',255)
 !        READ(NRFU,'(5F14.2)') WSLEAN   !  1:190
 !        READ(NRFU,'(a80)') TITLE
-!        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190  
+!        READ(NRFU,'(5E14.3)') DSLEAN   !  1:190
 
-      have_RADN9_file = file_exists('RADN9')  
+      have_RADN9_file = file_exists('RADN9')
 
       if(have_RADN9_file) then
         fid=par_open(grid,'RADN9','read')
-        iMs0X=get_dimlen(grid,fid,'time') 
+        iMs0X=get_dimlen(grid,fid,'time')
         N_BIN=get_dimlen(grid,fid,'wlen')
-        ALLOCATE (TSI_IN(iMS0X),calyear(iMS0X)) 
-        ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN),SSI_IN(N_BIN,iMS0X)) 
+        ALLOCATE (TSI_IN(iMS0X),calyear(iMS0X))
+        ALLOCATE (WS_IN(N_BIN),DS_IN(N_BIN),SSI_IN(N_BIN,iMS0X))
         if(variable_exists(grid,fid,'calyear'))then
           call read_data(grid,fid,'calyear',calyear,bcast_all=.true.)
         else
           call stop_model('missing calyear in RADN9 file',255)
-        endif 
+        endif
         if(variable_exists(grid,fid,'wlen'))then
           call read_data(grid,fid,'wlen',WS_IN,bcast_all=.true.)
         else
           call stop_model('missing the wlen variable in RADN9 file',255)
         endif
-        if(variable_exists(grid,fid,'wlenbinsize'))then  
+        if(variable_exists(grid,fid,'wlenbinsize'))then
           call read_data(grid,fid,'wlenbinsize',DS_IN,bcast_all=.true.)
         else
           call stop_model('missing wlenbinsize in RADN9 file',255)
-        endif 
-          if(variable_exists(grid,fid,'ssi'))then 
-          call read_data(grid,fid,'ssi',SSI_IN,bcast_all=.true.)  
-        else  
+        endif
+          if(variable_exists(grid,fid,'ssi'))then
+          call read_data(grid,fid,'ssi',SSI_IN,bcast_all=.true.)
+        else
           call stop_model('missing the ssi variable in RADN9 file',255)
         endif
-        if(variable_exists(grid,fid,'tsi'))then 
+        if(variable_exists(grid,fid,'tsi'))then
           call read_data(grid,fid,'tsi',TSI_IN,bcast_all=.true.)
         else
           call stop_model('missing the tsi variable in RADN9 file',255)
-        endif    
+        endif
         call par_close(grid,fid)
-      else  
+      else
         call stop_model('missing the RADN9 file',255)
-      endif 
-  
+      endif
+
       WS_SSI(:)=WS_IN(N_BIN-189:N_BIN)/1000.D0
       DS_SSI(:)=DS_IN(N_BIN-189:N_BIN)/1000.D0
-      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:) 
+      W1_SSI(:)=WS_SSI(:)-0.5D0*DS_SSI(:)
 
 !        WSLEAN(:)=WSLEAN(:)/1000.D0
 !        DSLEAN(:)=DSLEAN(:)/1000.D0
@@ -1448,7 +1448,7 @@ C                                      ---------------------------------
       TSI2(:)=TSI_IN(:)
       yr1S0=calyear(1)
       yr2S0=calyear(iMS0X)
-      DEALLOCATE(WS_IN,DS_IN,SSI_IN,TSI_IN,calyear) 
+      DEALLOCATE(WS_IN,DS_IN,SSI_IN,TSI_IN,calyear)
 !      IF(KSOLAR < 2) THEN
 C****   Read in monthly-mean data
 !        DO I=1,iMs0X
@@ -1789,7 +1789,7 @@ C--------------------------------
 #endif
 #ifdef SCM
         if(SCMopt%ozone)then
-        ! Overwrite specified SCM levels (indicated by non-zero values), 
+        ! Overwrite specified SCM levels (indicated by non-zero values),
         ! leaving climatology above those levels:
           do k = 1,lm_gcm
             if(SCMin%O3(k) > 0.) U0GAS(k,3)=SCMin%O3(k)
@@ -2260,22 +2260,6 @@ C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
       INTEGER, optional :: GETGAS_flag
-      REAL*8, PARAMETER ::
-     * P36(36) = (/
-     *  1.2000D+3, .9720D+3, .9445D+3, .9065D+3, .8515D+3, .7645D+3,
-     *   .6400D+3, .4975D+3, .3695D+3, .2795D+3, .2185D+3, .1710D+3,
-     *   .1250D+3, .8500D+2, .6000D+2, .4000D+2, .2500D+2, .1500D+2,
-     *   .7500D+1, .4000D+1, .2500D+1, .1500D+1, .7500D+0, .4000D+0,
-     *   .2500D+0, .1500D+0, .7810D-1, .4390D-1, .2470D-1, .1390D-1,
-     *   .7594D-2, .3623D-2, .1529D-2, .7030D-3, .2059D-3, .0D0/),
-     * UFAC36(36) = (/
-     *  0.800d0,0.800d0,0.800d0,0.750d0,0.750d0,0.750d0,0.700d0,
-     *  0.750d0,0.846d0,0.779d0,0.892d0,0.886d0,0.881d0,0.875d0,
-     *  0.870d0,0.846d0,0.840d0,0.902d0,0.880d0,0.775d0,0.796d0,
-     *  0.842d0,0.866d0,0.861d0,0.821d0,0.903d0,1.264d0,1.732d0,
-     *  2.000d0,1.701d0,1.609d0,1.478d0,1.253d0,1.372d0,1.571d0,
-     *  1.571d0/)
-
       REAL*8, PARAMETER :: HPCON=34.16319d0,P0=1013.25d0,
      *     PI=3.141592653589793D0
       REAL*8, SAVE :: SINLAT(46)
@@ -2304,7 +2288,8 @@ C                  -----------------------------------------------------
 !nu   HLB(L)=HLB0(L)
   100 CONTINUE
 !nu   HLB(NL0+1)=HLB0(NL0+1)
-      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
+ccc      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
+      CALL SET_FPXCO2(PL,FPXCO2,PL,NL0)
 cc    IUFAC=1
 cc    IF(IUFAC==0) FPXCO2(:)=1
 
@@ -5584,7 +5569,7 @@ cc      ALLGCB(K)=SGPG
       FACK12 = 0.09325D0*
      &     ((ZWPATH**0.97D0)/(1.D0+5.D-4*(ZWPATH**1.31D0)))*0.462D-05
       FACK13 = 0.0001982D0*
-     &     ((WVCOL**1.08D0)*(1.D0+6.D-5*(WVCOL**0.93D0)))*0.277D-05 
+     &     ((WVCOL**1.08D0)*(1.D0+6.D-5*(WVCOL**0.93D0)))*0.277D-05
 #endif
 
       K = 0
@@ -7261,7 +7246,7 @@ C
      +      ,T81,'List: SRBQEX(L,K),SRBQST(L,K),SRBQCB(L,K), TRAB Q S G'
      +      /'      KWTRAB=',I1/7X, 6I8/
      +        '   AEROSOL   SO4     SEA     ANT     OCX     BCI '
-     +        ,'    BCB'/ ! OCN     OCB     BCB     SSB   
+     +        ,'    BCB'/ ! OCN     OCB     BCB     SSB
      +        '   SIZE ', 6F8.1)
  6451 FORMAT('  K  SRBQEX - DRY')
  6452 FORMAT(I3,6X,15F8.5)
