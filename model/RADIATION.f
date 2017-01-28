@@ -610,7 +610,7 @@ C     for setbak/getbak only   1      2      3       4       5
       REAL*8 ::  TAUWC0=1d-3, TAUIC0=1d-3
 
 !@var KPFCO2,KPFOZO if > 0 scale CO2,O3 to stand. vertical profile
-      INTEGER :: KPFCO2=0,  KPFOZO=0
+      INTEGER :: KPFCO2=1,  KPFOZO=0
 
 !@var KANORM,KCNORM if > 0 renormalize aerosols,cloud albedos
       INTEGER :: KANORM=0, KCNORM=0
@@ -2289,7 +2289,7 @@ C                  -----------------------------------------------------
   100 CONTINUE
 !nu   HLB(NL0+1)=HLB0(NL0+1)
 ccc      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
-      CALL SET_FPXCO2(PL,FPXCO2,PL,NL0)
+      CALL SET_FPXCO2(PL,FPXCO2,NL0)
 cc    IUFAC=1
 cc    IF(IUFAC==0) FPXCO2(:)=1
 
