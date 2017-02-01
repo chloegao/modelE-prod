@@ -636,8 +636,9 @@ c***********************************************************************
 
 
       module soil_drv
-!@sum soil_drv contains variables and routines for the ground
-!@+   hydrology driver
+!@sum soil_drv contains variables and routines for the
+!@+   TerraE Global Land Model (code for TerraE is located
+!@+   in 'model/giss_LSM'
 !@auth I. Alienov/F. Abramopolous
       use resolution, only : im,jm
       use socpbl, only : npbl=>n
