@@ -263,9 +263,11 @@ C------------------------------------------
 !     E ,QXDUST(6,8),QSDUST(6,8),QCDUST(6,8),ATDUST(33,8),QDST55(8) !?DST   !ron
      D             ,TRAX(LX,33,5),DBLN(30),TCLMIN
 
+      logical :: dust_optics_initialized=.false.
       real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron
      *     ATDUST                                                    !ron
       real*8, dimension(  :), allocatable :: QDST55                  !ron
+      real*8, dimension(:), allocatable :: taucon_dust
 
 !@dbparam planck_tmin, planck_tmax temperature range for Planck function
 !@+       lookup table.  If the requested tmin is less than the default
@@ -391,10 +393,6 @@ C--------------------------------------   have to handle 1 point in time
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 !      REAL*4 TDUST(72,46,9,8,12)                                   !ron
 !      REAL*8 DDJDAY(9,8,72,46)                                     !ron
-      REAL*4, dimension(:,:,:,:,:), pointer :: TDUST            !ron
-      REAL*8, dimension(:,:,:,:  ), allocatable :: DDJDAY           !ron
-      integer :: imd, jmd, lmd, nsized, nmond ! dimensions of TDUST !ron
-      real*8, dimension(:), pointer :: redust, rodust, plbdust  !ron
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
       REAL*8 FDATA(80),GDATA(80)
@@ -834,7 +832,6 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 
       SUBROUTINE RCOMP1(NRFUN)
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT, grid
-      use DustParam_mod, only : read_alloc_dust
       use pario, only : par_open,par_close, variable_exists
      &                 ,get_dimlen,read_data
       use filemanager, only : file_exists
@@ -1247,26 +1244,6 @@ C                        -----------------------------------------------
  352  CONTINUE
 
 C-----------------------------------------------------------------------
-CR(6) DUST:   Monthly-Mean Desert Dust (Clay,Silt) 8-Size Optical Depths
-C                  Map: IJ=72x46,  Lay: L=1-9, Siz: S=1-8, Month: M=1-12
-C                  -----------------------------------------------------
-!     New way to read offline dust: first read in dimensions,         !ron
-!     then allocate arrays                                            !ron
-
-      IF(MADDST < 1) GO TO 699
-!      READ (NRFU) TDUST                                              !ron
-      call read_alloc_dust(imd,jmd,lmd,nsized,nmond,
-     &     plbdust,rodust,redust, tdust)
-      allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized), !ron
-     *   ATDUST(33,nsized), QDST55(nsized) )                          !ron
-c      allocate( ddjday(lmd,nsized,imd,jmd)       )                    !ron
-      allocate( ddjday(lmd,nsized,
-     &     lbound(tdust,1):ubound(tdust,1),
-     &     lbound(tdust,2):ubound(tdust,2)) )
-
-  699 CONTINUE
-
-C-----------------------------------------------------------------------
 CR(7)        Read Stratospheric Volcanic binary data
 C            (NVOLMON months (years JVOLYI to JVOLYE) x 24 latitudes)
 C            If KyearV<0 use the NVOLMON-month mean as background aerosol
@@ -1572,7 +1549,8 @@ C--------------------------------
 C
                                    CALL SETBAK
       IF(MADAER > 0.or.NTRACE > 0) CALL SETAER
-      IF(MADDST > 0) CALL SETDST
+      ! SETDST ops deferred to first call to GETDST once dust info known
+      !IF(MADDST > 0) CALL SETDST
 C--------------------------------
 
 
@@ -1599,6 +1577,7 @@ C--------------------------------
       SUBROUTINE RCOMPT
       use SURF_ALBEDO, only : UPDSUR
       use AerParam_mod, only : updateAerosol,updateAerosol2
+      use DustParam_mod, only : upddst2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
@@ -1693,9 +1672,9 @@ C----------------------------------------------
       JJDAYD=JDAY
       JYEARD=JYEAR
       IF(KJDAYD > 0)             JJDAYD=KJDAYD
-      IF(KYEARD > 0)             JYEARD=KYEARD
+      IF(KYEARD.ne.0)            JYEARD=KYEARD
 C----------------------------------------------
-      IF(MADDST > 0) CALL UPDDST(JYEARD,JJDAYD)
+      IF(MADDST > 0) CALL UPDDST2(JYEARD,JJDAYD)
 C----------------------------------------------
 
       JJDAYV=JDAY
@@ -3090,10 +3069,10 @@ C     ------------------------------------------------------------------
       RETURN
       END SUBROUTINE SETAER
 
-
-      SUBROUTINE SETDST
-      IMPLICIT NONE
-
+C-----------------
+!      ENTRY GETDST
+C-----------------
+      subroutine GETDST
 C     ---------------------------------------------------------------
 C     MONTHLY-MEAN DESERT DUST CLIMATOLOGY
 C     ---------------------------------------------------------------
@@ -3113,82 +3092,30 @@ C                        FTTAER    LW   (All-type) Aerosol Optical Depth
 C                        FSDAER    SW   Dust Aer   Aerosol Optical Depth
 C                        FTDAER    LW   Dust Aer   Aerosol Optical Depth
 C                        -----------------------------------------------
-
-C     Select Desert Dust (NA=7) Mie scattering parameters for REDUST(N)
-!nu   REAL*8 TAUCON(8),pidust(8)
-      REAL*8 TAUCON(8)                                              !ron
-      !INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
-      INTEGER I,J,K,L,N,MI,MJ
-
-!      DO 110 N=1,8     !ron
-      DO 110 N=1,nsized !ron
-      CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
-     +                    ,ATDUST(1,N),QDST55(N))
-!     now convert from concentration to AOT                       !ron
-      TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))          !ron
-      tdust(:,:,:,N,:) = tdust(:,:,:,N,:)*taucon(N)               !ron
-!nu   TAUCON(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
-!nu   PIDUST(N)=QSDUST(6,N)/(QXDUST(6,N)+1.D-10)
-  110 CONTINUE
-
-      RETURN
-      end SUBROUTINE SETDST
-
-C--------------------------------
-!      ENTRY UPDDST(JYEARD,JJDAYD)
-C--------------------------------
-      subroutine UPDDST(JYEARD,JJDAYD)
+      use DustParam_mod
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: JYEARD,JJDAYD
-!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
-      INTEGER I,J,K,L,N,MI,MJ
-C     ------------------------------------------------------------------
-C     Makes DDJDAY(9,8,72,46) from TDUST(72,46,9,8,12) read in in RCOMP1
-C
-C      DDJDAY is interpolated daily from  TDUST seasonal data via JJDAYD
-C      -----------------------------------------------------------------
-!nu   JYEARX=MIN(JYEARD,(JJDAYD+15)/366,2050)
+      REAL*8 SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
+      INTEGER K,L,N
+      real*8 :: TDUST_col(lmd)
 
-  500 CONTINUE
-      XMI=(JJDAYD+JJDAYD+31-(JJDAYD+15)/61+(JJDAYD+14)/61)/61.D0
-      MI=XMI
-      WTMJ=XMI-MI       !   Intra-year interpolation is linear in JJDAYD
-      WTMI=1.D0-WTMJ
-      IF(MI < 1) MI=12
-      IF(MI > 12) MI=1
-      MJ=MI+1
-      IF(MJ > 12) MJ=1
-!      DO 510 J=1,46    !ron
-!      DO 510 I=1,72    !ron
-!      DO 510 N=1,8     !ron
-!      DO 510 L=1,9     !ron
-      DO 510 J=lbound(ddjday,4),ubound(ddjday,4)    !ron
-      DO 510 I=lbound(ddjday,3),ubound(ddjday,3)    !ron
-      DO 510 N=1,nsized !ron
-      DO 510 L=1,lmd    !ron
-      DDJDAY(L,N,I,J)=WTMI*TDUST(I,J,L,N,MI)+WTMJ*TDUST(I,J,L,N,MJ)
- 510  CONTINUE
-      RETURN        !  DDJDAY(9,8,72,46) is used in GETDST via ILON,JLAT
-      end subroutine UPDDST
+      if(.not.dust_optics_initialized) then
+        dust_optics_initialized = .true.
+        allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized),
+     *       ATDUST(33,nsized), QDST55(nsized) )
 
-C-----------------
-!      ENTRY GETDST
-C-----------------
-      subroutine GETDST
-      IMPLICIT NONE
-!      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,8)     !ron
-      REAL*8 XMI,WTMI,WTMJ,SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
-      INTEGER I,J,K,L,N,MI,MJ
+        allocate(taucon_dust(nsized))
+        DO N=1,nsized
+          CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
+     +         ,ATDUST(1,N),QDST55(N))
+          ! save the factor for converting from concentration to AOT
+          TAUCON_dust(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
+        ENDDO
+      endif
 
-!      DO 200 N=1,8                                                      !ron
-      DO 200 N=1,nsized                                                  !ron
-!      CALL REPART(DDJDAY(1,N,ILON,JLAT),PLBA09,10,DTAULX(1,N),PLB,NL+1) !ron
-         CALL REPART(DDJDAY(1,N,IGCM,JGCM),PLBdust,lmd+1,                !ron
-     *        DTAULX(1,N),PLB,NL+1)                                      !ron
-  200 CONTINUE
+      DO N=1,nsized
+        TDUST_col(:) = DDJDAY(:,N,IGCM,JGCM)*taucon_dust(n) ! kg/m2 -> tau
+        CALL REPART(TDUST_col,PLBdust,lmd+1,DTAULX(1,N),PLB,NL+1)
+      ENDDO
 
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
 C                              Dust Aerosol  Solar   FSXD=FSTAER*FSDAER
@@ -6349,6 +6276,7 @@ c     *     WETTRA, WETSRA, ZOCSRA, ZSNSRA, ZICSRA, ZDSSRA, ZVGSRA,
 c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
+      USE DustParam_mod, only : redust
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
@@ -8025,6 +7953,7 @@ C
 
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
       use AerParam_mod, only : updateAerosol,updateAerosol2
+      use DustParam_mod, only : upddst2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
@@ -8454,7 +8383,7 @@ C
       IF(KAEROS==1.OR.KAEROS > 3)
      &       CALL updateAerosol(JYRREF,JJDAY, a6jday, plbaer)
       ENDIF
-      IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST(JYRREF,JJDAY)
+      IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST2(JYRREF,JJDAY)
       IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)
 C
       DO 650 J=1,46

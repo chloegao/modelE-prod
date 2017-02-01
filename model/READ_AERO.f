@@ -151,7 +151,7 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
       use domain_decomp_atm, only : grid
       use JulianCalendar_mod, only : jdmidofm ! for md1850 month interp
       use timestream_mod, only : init_stream,read_stream
-     &     ,reset_stream_properties,get_by_index
+     &     ,reset_stream_properties,get_by_index,getname_firstfile
       use pario, only : par_open,par_close,read_dist_data,read_data
      &     ,get_dimlen,get_dimlens
       implicit none
@@ -171,6 +171,7 @@ c
       logical, save :: init = .false.
       logical :: cyclic
       integer :: dlens(7)
+      character(len=32) :: fname1_ssa
 
       integer :: i_0,i_1,j_0,j_1
 
@@ -192,7 +193,16 @@ c
         allocate(mdpi(4,i_0:i_1,j_0:j_1))
         allocate(mdcur(5,i_0:i_1,j_0:j_1))
 
-        fid = par_open(grid,'TAero_SSA','read')
+        cyclic = jyeara < 0
+
+        ! Init the sea salt file first just to obtain lma,plbaer metadata
+        n = 2
+        call init_stream(grid,A6streams(n),
+     &       'TAero_'//trim(aernames(n)),trim(aernames(n)),
+     &       0d0,1d30,'linm2m',jyearx,jjdaya,cyclic=cyclic)
+        call getname_firstfile(A6streams(n),fname1_ssa)
+
+        fid = par_open(grid,trim(fname1_ssa),'read')
 
         !lma = get_dimlen(grid,fid,'lev')
         call get_dimlens(grid,fid,'plbaer',n,dlens)
@@ -219,8 +229,6 @@ c
      &                 grid%j_strt_halo:grid%j_stop_halo,lma,12))
         allocate(aerarr(i_0:i_1,j_0:j_1,12))
 
-        cyclic = jyeara < 0
-
         do n=1,6
           if(n.eq.2) cycle ! skip sea salt
           ! Initialize the stream to the year 1850 to extract
@@ -246,12 +254,6 @@ c
           call reset_stream_properties(grid,A6streams(n),cyclic=cyclic)
         enddo
 
-        ! No interannual variation of sea salt
-        n = 2
-        call init_stream(grid,A6streams(n),
-     &       'TAero_SSA',trim(aernames(n)),
-     &       0d0,1d30,'linm2m',1850,1,cyclic=.true.)
-        
         md1850(:,:,:,0) = md1850(:,:,:,12)
         deallocate(arr12,aerarr)
 
@@ -388,74 +390,101 @@ c
       end subroutine updBCd
 
       module DustParam_mod
-      ! persistent data remains in RADPAR.  read_alloc_dust lives
-      ! in a module to allow pointers to be passed to it
-      ! and allocated within.
+!@sum This module reads, time-interpolates, and stores fields needed
+!@+   by the radiation code in the prescribed-dust configuration
+!@+   of modelE.   The logic follows that of AerParam_mod.
+!@+   The interface routine is upddst2().
+!@auth R. Miller original version
+!@auth M. Kelley reprogrammed for new-style time-varying input
+      use timestream_mod, only : timestream
+      implicit none
+
+!@var ddjday (kg/m2/layer) dust amount for each size class, layer, and column
+!@+   for the current day
+      real*8, dimension(:,:,:,:), allocatable :: ddjday
+
+!@var {lmd,nsized} number of {layers, size classes} in DUSTaer input file
+      integer :: lmd,nsized
+
+!@var DUSTaerstream interface for reading and time-interpolating DUSTaer files
+!@+   See usage notes in timestream_mod
+      type(timestream) :: DUSTaerstream
+
+!@var is_initialized whether the DUSTaer stream has been initialized
+!@+   and various arrays allocated
+      logical :: is_initialized=.false.
+
+!@var plbdust nominal edge pressures of DUSTaer file layers
+!@var {re,ro}dust radii of DUSTaer file size classes
+      real*8, dimension(:), allocatable :: redust, rodust, plbdust
+
       contains
 
-      subroutine read_alloc_dust(imd,jmd,lmd,nsized,nmond,
-     &     plbdust,rodust,redust,
-     &     tdust
-     &     )
-!@sum This routine reads dust aerosol fields needed by the radiation
-!@+   code in the prescribed-dust configuration of modelE.  This
-!@+   is the netcdf version based on the traditional-I/O version
-!@+   above.
-!@auth R. Miller
-!@auth M. Kelley extracted from RCOMP1, updated for netcdf
-      use domain_decomp_atm, only: grid
+      subroutine upddst2(jyeard,jjdayd)
+      use domain_decomp_atm, only : grid
+      use timestream_mod, only : init_stream,read_stream,
+     &     getname_firstfile
       use pario, only : par_open,par_close
-     &     ,get_dimlens,read_data,read_dist_data
+     &     ,get_dimlens,read_data
       implicit none
-      integer :: imd,jmd,lmd,nsized,nmond
-      real*8, dimension(:), pointer :: plbdust, redust, rodust
-      real*4, dimension(:,:,:,:,:), pointer :: tdust
-c
+!@var jyeard, jjdayd year and day of the data to read into ddjday.
+!@+   Note that jyeard may be negative, which is the Model E method for
+!@+   indicating that the data for abs(jyeard) is to be used for all years.
+      integer, intent(in) :: jyeard,jjdayd
+!
+      integer :: i_0,i_1,j_0,j_1,i,j,n,jyearx
+      logical :: cyclic
+      real*8, dimension(:,:,:,:), allocatable :: ddjday_transp
       integer :: fid,ndims,dlens(7)
-      real*8, dimension(:,:,:,:,:), allocatable :: r8arr ! just for read-in
-      integer :: im_gcm,jm_gcm ! gcm domain size for checking input file dims
-      integer :: i_0,i_1,j_0,j_1 ! gcm domain bounds
-      integer :: i_0h,i_1h,j_0h,j_1h
-c
-      im_gcm = grid%im_world
-      jm_gcm = grid%jm_world
+      character(len=32) :: fname1_dust
+
       i_0 = grid%i_strt
       i_1 = grid%i_stop
       j_0 = grid%j_strt
       j_1 = grid%j_stop
-      i_0h = grid%i_strt_halo
-      i_1h = grid%i_stop_halo
-      j_0h = grid%j_strt_halo
-      j_1h = grid%j_stop_halo
 
-      fid = par_open(grid,'DUSTaer','read')
-      call get_dimlens(grid,fid,'DUST',ndims,dlens)
-      if(ndims.ne.5) call stop_model(
-     &     'incorrect ndims for DUSTaer variable DUST',255)
-      imd = dlens(1)
-      jmd = dlens(2)
-      if(imd.ne.im_gcm .or. jmd.ne.jm_gcm) call stop_model(
-     &       'incorrect im,jm in DUSTaer',255)
-      lmd    = dlens(3)
-      nsized = dlens(4)
-      nmond  = dlens(5)
+      cyclic = jyeard < 0
+      jyearx = abs(jyeard)
 
-      allocate( plbdust(lmd+1) )
-      allocate( redust(nsized), rodust(nsized) )
-      allocate( tdust(i_0:i_1,j_0:j_1,lmd,nsized,nmond) )
-      allocate( r8arr(i_0h:i_1h,j_0h:j_1h,lmd,nsized,nmond) )
+      if(.not. is_initialized) then
+        is_initialized = .true.
 
-      call read_data(grid,fid,'plbdust',plbdust,bcast_all=.true.)
-      call read_data(grid,fid,'redust',redust,bcast_all=.true.)
-      call read_data(grid,fid,'rodust',rodust,bcast_all=.true.)
+        call init_stream(grid,DUSTaerstream,
+     &       'DUSTaer','DUST',
+     &       0d0,1d30,'linm2m',jyearx,jjdayd,cyclic=cyclic)
 
-      call read_dist_data(grid,fid,'DUST',r8arr)
-      tdust = r8arr(i_0:i_1,j_0:j_1,:,:,:)
-      deallocate(r8arr)
 
-      call par_close(grid,fid)
+        ! read dust metadata
+        call getname_firstfile(DUSTaerstream,fname1_dust)
+        fid = par_open(grid,trim(fname1_dust),'read')
+        call get_dimlens(grid,fid,'DUST',ndims,dlens)
+        lmd    = dlens(3)
+        nsized = dlens(4)
+        allocate( plbdust(lmd+1), redust(nsized), rodust(nsized) )
+        call read_data(grid,fid,'plbdust',plbdust,bcast_all=.true.)
+        call read_data(grid,fid,'redust',redust,bcast_all=.true.)
+        call read_data(grid,fid,'rodust',rodust,bcast_all=.true.)
+        call par_close(grid,fid)
 
-      return
-      end subroutine read_alloc_dust
+        allocate( ddjday(lmd,nsized,i_0:i_1,j_0:j_1) )
+
+      endif
+
+      allocate( ddjday_transp(
+     &     grid%i_strt_halo:grid%i_stop_halo,
+     &     grid%j_strt_halo:grid%j_stop_halo,
+     &     lmd,nsized) )
+
+      call read_stream(grid,DUSTaerstream,jyearx,jjdayd,ddjday_transp)
+
+      do j=j_0,j_1
+      do i=i_0,i_1
+        ddjday(:,:,i,j) = ddjday_transp(i,j,:,:)
+      enddo
+      enddo
+
+      deallocate ( ddjday_transp )
+
+      end subroutine upddst2
 
       end module DustParam_mod

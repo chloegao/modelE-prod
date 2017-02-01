@@ -76,7 +76,8 @@ C****
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
-     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day
+     *     ,aero_yr,dust_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
@@ -284,6 +285,7 @@ C**** sync radiation parameters from input
         if (volc_yr==0) volc_day=0 ! else use default value
       endif
       call get_param( "aero_yr", aero_yr, default=master_yr )
+      call get_param( "dust_yr", dust_yr, default=master_yr )
       call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
       call get_param( "albsn_yr", albsn_yr, default=master_yr )
@@ -509,6 +511,8 @@ C****                                         even if the year is fixed
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
       if(file_exists('TAero_SSA')) MADAER=3   ! one of the TAero_XXX set
+      KYEARD=Dust_yr
+      if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
 #ifdef TRACERS_VOLCEXP

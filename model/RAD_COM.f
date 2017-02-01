@@ -261,6 +261,8 @@ C**** does not produce exactly the same as the default values.
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: use current yr)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
+!@dbparam dust_yr nominal year for prescribed dust climatology (if 0: use current yr)
+      INTEGER :: dust_yr = 1951    ! always use annual cycle
 !@dbparam O3_yr obs.year of Ozone (if 0: use current year)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
