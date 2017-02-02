@@ -704,6 +704,7 @@ C**************  Not Latitude-Dependant ****************************
 !@SUM  To allocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth G.Faluvegi
+      use Dictionary_mod, only : get_param
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use resolution, only: im,lm,Plbot
       use tracer_com, only: ntm
@@ -758,6 +759,11 @@ C**************  Not Latitude-Dependant ****************************
         x=nint(PLbot(L+1) * 1.E3)*1.E-3 
         if(x>=0.1d0)topLevelOfChemistry=L
       end do
+
+      ! Allow user to override this level from the rundeck:
+      call get_param('override_LM_chem',topLevelOfChemistry,
+     &               default=topLevelOfChemistry)
+
       if(topLevelOfChemistry == 0 .or. topLevelOfChemistry>LM)
      & call stop_model(
      & 'topLevelOfChemistry not determined.',255)
