@@ -3203,7 +3203,8 @@ C     functions
       use dictionary_mod
       use resolution, only : psf
       use domain_decomp_atm, only: grid, getdomainbounds
-      use timestream_mod, only : init_stream,read_stream
+      use timestream_mod, only : init_stream,read_stream,
+     &     getname_firstfile
       use pario, only : par_open,par_close,read_dist_data,
      & variable_exists,get_dimlen,read_data
       use filemanager, only : file_exists
@@ -3215,6 +3216,8 @@ C     functions
       logical, save :: init = .false.
       logical :: cyclic,exists
       real*8, allocatable :: o3arr(:,:,:)
+      character(len=6) :: method
+      character(len=32) :: fname1st
 
       integer :: j_0, j_1, i_0, i_1
 
@@ -3228,8 +3231,22 @@ C     functions
 
         have_o3_file = file_exists('O3file')
 
-        if(have_o3_file)then
-          fid = par_open(grid,'O3file','read')
+        if(have_o3_file) then
+
+          ! Initialize the timestream for the O3 data file:
+          cyclic = jyearo < 0
+
+          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
+          if(ozone_use_ppm_interp==1)then
+            method = 'ppm'
+          else
+            method = 'linm2m'
+          endif
+          call init_stream(grid,O3stream,'O3file','O3',
+     &         0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
+          ! query the layering
+          call getname_firstfile(O3stream,fname1st)
+          fid = par_open(grid,trim(fname1st),'read')
           if(variable_exists(grid,fid,'ple'))then
             nlo3=get_dimlen(grid,fid,'ple') - 1 ! coord var but one less
             if(nlo3.ne.get_dimlen(grid,fid,'plm'))call
@@ -3260,19 +3277,6 @@ C     functions
 ! the the (fixed) lowest nominal model pressure:
         if(plbo3(1) < psf) plbo3(1) = psf
         if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf
-
-! Initialize the timestream for the O3 data file:
-        cyclic = jyearo < 0
-        if(have_o3_file) then
-          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
-          if(ozone_use_ppm_interp==1)then
-            call init_stream(grid,O3stream,'O3file','O3',
-     &         0d0,1d30,'ppm',jyearx,jjdayo,cyclic=cyclic)
-          else
-            call init_stream(grid,O3stream,'O3file','O3',
-     &         0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
-          endif
-        endif
 
 ! Read the 3D field for O3 RCOMPX reference calls.
 ! (There is no need to allow for this one on flexible # of levels)
