@@ -123,7 +123,7 @@ MSU_wts=MSU.RSS.weights.data      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TomaF40clim (CLIMATOLOGICL EMISSIONS prescribed ocean atmospheric tracer model with OMA)
+E6TomaF40clim (CLIMATOLOGICAL EMISSIONS prescribed ocean atmospheric tracer model with OMA)
 
 
 &&PARAMETERS
