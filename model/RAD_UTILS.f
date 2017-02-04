@@ -3521,36 +3521,66 @@ C     functions
       end module O3mod
 
       SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL)
+      use filemanager, only : file_exists, openunit, closeunit
       IMPLICIT NONE
-      INTEGER J,N,NL
+      INTEGER J,N,NL,iu,np,ncol
       REAL*8 PL(NL),FPXCO2(NL)
       REAL*8 FPI,FPJ,PFI,PFJ
-! FPX CO2 scaling profile: (1.0 for P > 50mb) (linear in P for P < 50mb)
-      REAL*8, PARAMETER :: FPX(9)=(/
-     &     1.00,  0.82,  0.92,  0.75,  0.80,  0.93,  0.98,  1.45,  2.0/)
-! Pressure scale inflection points of (continuous) linear line segments
-      REAL*8, PARAMETER :: PFP(9)=(/
-     &     50.0,  10.0,   3.0,   2.0,   1.0,   0.5,   0.2,   0.1,  0.0/)
+      REAL*8, allocatable :: FPX(:),PFP(:)
+      character*80 title
 
       FPXCO2 = 1. ! default
-      j = 1
-      FPj = FPX(j)
-      PFj = PFP(j)
-      n = 1
-      do while (PL(N).GE.PFj)
-        FPXCO2(N)=FPj
-        N = N + 1 ; if(N > NL) return
+
+      if(.not.file_exists('CO2profile')) return
+
+      call openunit('CO2profile',iu,.false.,.true.)
+
+      read(iu,'(a)') title ; read(title,*) np
+      read(iu,'(a)') title
+      read(iu,'(a)') title
+      read(iu,'(a)') title
+
+! Find appropriate column for current layering
+      j = 20  ; ncol = 0
+      do while(title(j:80).ne.'')
+        read(title(j:80),*) N
+        if(N==NL) then  ! or N in some layer range
+          ncol = ncol + 1
+          exit
+        end if
+        j = j + 14
       end do
 
-      do j=2,9
+      if(ncol==0) call stop_model('set_FPXCO2: bad CO2profile',255)
+
+      allocate (FPX(np),PFP(np))
+      do n=1,np
+        read(iu,*) PFP(n),(FPX(n),j=1,ncol)
+      end do
+
+      call closeunit (iu)
+
+! FPX CO2 scaling profile: (1.0 for P > 50mb) (linear in P for P < 50mb)
+        j = 1
+      FPj = FPX(j)
+      PFj = PFP(j)
+        N = 1
+      do while (PL(N).GE.PFj)
+        FPXCO2(N)=FPj
+        N = N + 1 ; if(N > NL) go to 100
+      end do
+
+      do j=2,np
         FPI=FPj
         PFI=PFj
         FPj=FPX(j)
         PFj=PFP(j)
         do while (PL(N).GE.PFj)
           FPXCO2(N)=FPI-(FPI-FPj)*(PFI-PL(N))/(PFI-PFj)
-          N = N + 1 ; if(N > NL) return
+          N = N + 1 ; if(N > NL) go to 100
         end do
       end do
+
+  100 deallocate (FPX,PFP)
       RETURN
       END  SUBROUTINE SET_FPXCO2
