@@ -41,7 +41,7 @@ RVR=RD8X10.nc            ! river direction file
 NAMERVR=RD8X10.names.txt ! named river outlets
 
 #include "land36x24_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_36x24_input_files"
 
 MSU_wts=MSU.RSS.weights.data      ! MSU-diag
