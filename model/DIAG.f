@@ -5122,7 +5122,11 @@ c**** find weighted channel temperatures
       end do
       tout(1) = (1-pland)*tmsu(1)+pland*tmsu(2)  ! TLT
       tout(2) = (1-pland)*tmsu(3)+pland*tmsu(4)  ! TMT
-      tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
+      if(ncols>=5)then
+        tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
+      else
+        tout(3:)=0.d0
+      end if
 
       return
       end subroutine diag_msu

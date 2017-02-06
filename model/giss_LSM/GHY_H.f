@@ -1,4 +1,4 @@
-!@sum header file for ground hydrology
+!@sum header file for TerraE Global Land Model
       module ghy_h
 !@sum module with main parameters for GHY
       integer, parameter, public :: ngm=6, imt=5, nlsn=3

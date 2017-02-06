@@ -5,7 +5,8 @@
 #endif
 
       MODULE GHY_COM
-!@sum  GHY_COM contains the areas used by the Ground Hydrology routines
+!@sum  GHY_COM contains the areas used by the TerraE Global Land Model; 
+!@+    code for TerraE is in 'model/giss_LSM' 
 !@auth Frank Abramopolus/Igor Aleinov
       USE RESOLUTION, only : im,jm
 !!!      USE SLE001, only : ngm,imt,nlsn

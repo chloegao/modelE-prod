@@ -1,6 +1,6 @@
-!@sum  NASA GISS Land Surface Model (LSM) - module sle001
+!@sum  TerraE Global Land Model ("TerraE") - module sle001
 !@sum  See end of file for development history (1988 - 2009)
-!@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M. Puma
+!@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M.J. Puma
 !-----------------------------------------------------------------------
 
 #include "rundeck_opts.h"
