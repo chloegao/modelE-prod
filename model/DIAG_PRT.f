@@ -2053,6 +2053,7 @@ C               MLAT(J)=NINT(FLATJ)
   907 FORMAT ('1',A,I3,1X,A3,I5,' - ',I3,1X,A3,I5)
       END SUBROUTINE JKMAP
 
+
       SUBROUTINE JLMAP(LNAME,SNAME,UNITS,POW10P,
      &     PL,AX,SCALET,SCALEJ,SCALEL,LMAX,JWT,J1,
      *  ARQX,SCALER,SCALJR,SCALLR)
@@ -2105,6 +2106,7 @@ C****
       CHARACTER*4 DASH,WORD(4)
       DATA DASH/'----'/,WORD/'SUM','MEAN',' ','.1*'/
 
+      Logical :: QFINAL  !  produce final line in table
       INTEGER :: IWORD,J,JH,K,L  ,ksx,klmax
       REAL*8 :: FGLOB,GSUM,SDSIG,SUMFAC
 
@@ -2120,6 +2122,11 @@ C****
       if ( present(ARQX) ) goto 777
 
       if(sname.eq.'skip') return
+
+      QFINAL = .not. (sname(1:7).eq.'phi_amp' .or.     
+     &                sname(1:7).eq.'phi_pha' .or.
+     &                sname.eq.'wcod' .or. sname.eq.'icod')
+
 C form title string
       units_with_scale = units
       PRTFAC = 10.**(-pow10p)
@@ -2144,7 +2151,7 @@ C****
          DO 40 J=1,JM+3
    40    XJL(J,L) = -1.D30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
-  100 SDSIG=1.-SIGE(LMAX+1)
+  100 If (QFINAL)  SDSIG=1.-SIGE(LMAX+1)
          KLMAX = LMAX+KSX
       DO 110 J=1,JM
   110 ASUM(J)=0.
@@ -2165,7 +2172,7 @@ C****
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
-               ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
+               If (QFINAL)  ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
             END DO
             CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1),
      *                           FGLOB, FHEM)
@@ -2175,7 +2182,7 @@ C****
                FLAT(J)=AX(J,L)*SCALET*SCALEJ(J)*SCALEL(L)
                XJL(J,L) = FLAT(J)   *PRTFAC
                FLAT(J)=FLAT(J)*PRTFAC
-               ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
+               If (QFINAL)  ASUM(J)=ASUM(J)+FLAT(J)*DSIG(L)/SDSIG
             END DO
             CALL GLOBALSUM(GRID, FLAT(:)*WTJ(:,JWT,J1),
      *                           FGLOB, FHEM, istag=1)
@@ -2187,12 +2194,13 @@ C****
       WRITE (6,902) PL(L),FGLOB,FHEM(2),FHEM(1),
      &        (NINT(MIN(1d5,MAX(-1d5,FLAT(J)))),J=JM,J1,-INC)
          CALL KEYNRL (SNAME,L,FLAT)
-         HSUM(1)=HSUM(1)+FHEM(1)*SUMFAC*DSIG(L)/SDSIG
-         HSUM(2)=HSUM(2)+FHEM(2)*SUMFAC*DSIG(L)/SDSIG
-         GSUM=GSUM+FGLOB*SUMFAC*DSIG(L)/SDSIG
+         If (QFINAL)  HSUM(1)=HSUM(1)+FHEM(1)*SUMFAC*DSIG(L)/SDSIG
+         If (QFINAL)  HSUM(2)=HSUM(2)+FHEM(2)*SUMFAC*DSIG(L)/SDSIG
+         If (QFINAL)  GSUM=GSUM+FGLOB*SUMFAC*DSIG(L)/SDSIG
       END DO
 
       WRITE (6,905) (DASH,J=J1,JM,INC)
+      If (.not. QFINAL)  Return
 cBMP      ASUM(jmby2+1)=ASUM(jmby2+1)/J1
          DO 180 J=J1,JM
   180    XJL(J   ,LM+LM_REQ+1)=ASUM(J)
@@ -2203,9 +2211,6 @@ cBMP      ASUM(jmby2+1)=ASUM(jmby2+1)/J1
          TITLEO=TITLE//XLB
          IF(QDIAG) CALL POUT_JL(TITLEO,LNAME,SNAME,UNITS_WITH_SCALE,
      *        J1,KLMAX,XJL,PL,CLAT,CPRES)
-      if(  sname(1:7).eq.'phi_amp' .or.
-     &     sname(1:7).eq.'phi_pha' .or.
-     &     sname.eq.'wcod' .or. sname.eq.'icod' ) return
       WRITE (6,903) WORD(IWORD),GSUM,HSUM(2),HSUM(1),
      *  (NINT(MIN(1d5,MAX(-1d5,ASUM(J)*SUMFAC))),J=JM,J1,-INC)
       RETURN
