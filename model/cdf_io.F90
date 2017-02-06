@@ -1,5 +1,6 @@
 module cdf_io
 use netcdf
+use hycom_scalars, only : huge
 contains
 
    subroutine out1cdf(ncid,kdm,array,time,shortname,longname,units)
@@ -58,8 +59,10 @@ contains
    call errhandl (nf90_def_var (ncid,shortname,nf90_float,dimids(1:1),fldid))
    print 101,'attributing: ',shortname,longname
    call errhandl (nf90_put_att (ncid,fldid,'long_name',longname))
-   print 101,'attributing: ','units',units
+   print 101,'attributing: units ',units
    call errhandl (nf90_put_att (ncid,fldid,'units',units))
+   print *,'attributing: missing_value ',huge
+   call errhandl (nf90_put_att (ncid,fldid,'missing_value',huge))
 
 ! --- now store the array
 
@@ -154,6 +157,8 @@ contains
    call errhandl (nf90_put_att (ncid,fldid,'long_name',longname))
    print 101,'attributing: ','units',units
    call errhandl (nf90_put_att (ncid,fldid,'units',units))
+   print *,'attributing: missing_value ',huge
+   call errhandl (nf90_put_att (ncid,fldid,'missing_value',huge))
 
 ! --- now store the array
 
@@ -261,6 +266,8 @@ contains
    call errhandl (nf90_put_att (ncid,fldid,'long_name',longname))
    print 101,'attributing: ','units',units
    call errhandl (nf90_put_att (ncid,fldid,'units',units))
+   print *,'attributing: missing_value ',huge
+   call errhandl (nf90_put_att (ncid,fldid,'missing_value',huge))
 
 ! --- now store the array
 

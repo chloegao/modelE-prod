@@ -21,10 +21,9 @@ c
 c
       integer totlj(jdm,kdm-1),totl(kdm-1),iz,jz,ni
       character text*24,preambl(5)*79
-      real cold,temavg,vol,sst,spval,sigocn,sigstar,sofsig
+      real cold,temavg,vol,sst,sigocn,sigstar,sofsig
       real*4 real4(idm,jdm)
       external sigocn,sigstar,sofsig
-      data spval/-99.99/
       character title*80
 
 !!! not sure why I added this line ... IA
@@ -90,6 +89,16 @@ c
         write (lp,100) 'pres field read, levels 2 -',kk+1
         call zebra(p(1,1,kk+1),idm,ii1,jj)
 c
+        do i=1,ii
+        do j=1,jj
+        if (depths(i,j).le.0.) then	! set "huge" on land points
+          temp(i,j,:)=huge
+          saln(i,j,:)=huge
+             p(i,j,:)=huge
+        end if
+        end do
+        end do
+
         do 10 j=1,jj
         do 10 l=1,isp(j)
 c
@@ -189,19 +198,13 @@ c
       do 50 l=1,isp(j)
       do 50 i=ifp(j,l),ilp(j,l)
       montg(i,j,1)=0.
+      omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/(m2*C)
 c
       do 52 k=1,kk-1
  52   montg(i,j,k+1)=montg(i,j,k)-p(i,j,k+1)*(thstar(i,j,k+1)-
      .                                        thstar(i,j,k  ))*thref**2
-c
       thkk(i,j)=thstar(i,j,kk)
  50   psikk(i,j)=montg(i,j,kk)
-c
-c     do 21 j=1,jj
-c     do 21 l=1,isp(j)
-c     do 21 i=ifp(j,l),ilp(j,l)
-css   omlhc(i,j)=spcifh*p(i,j,2)/(onem *thref)           ! J/m*m C
-c21   continue
 c
       else                                !  nstep0 > 0
 c
