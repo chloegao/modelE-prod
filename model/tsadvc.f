@@ -5,7 +5,7 @@ c --- hycom version 1.0 -- cyclic in j
       USE HYCOM_SCALARS, only : wts1,onemm,wts2,delt1,lp,nstep,itest
      &     ,jtest,diagno,temdff,theta
       USE HYCOM_ARRAYS
-      USE HYCOM_ARRAYS_GLOB, only: tempGlob => temp, salnGlob => saln 
+      USE HYCOM_ARRAYS_GLOB, only: tempGlob => temp, salnGlob => saln
 
       USE HYCOM_DIM_GLOB,    only: ispGlob  => isp,  ifpGlob  => ifp
       USE HYCOM_DIM_GLOB,    only: ilpGlob  => ilp
@@ -97,7 +97,7 @@ c
         ! gather only temp,saln for kn
         call gathPrvTsadvc(temp(1,J_0H,kn),saln(1,J_0H,kn),
      &                     tempGlob(1,1,kn),salnGlob(1,1,kn))
-        
+
         if (AM_I_ROOT()) then
         do 490 j=1,jj
         do 490 l=1,ispGlob(j)
@@ -267,7 +267,7 @@ c
 c
 c --- convert mass fluxes to density coord. prior to time integration
 c
-      call reflux(uflx(1,J_0H,1) ,vflx(1,J_0H,1) ,
+      call reflux_th(uflx(1,J_0H,1) ,vflx(1,J_0H,1) ,
      .           th3d(1,J_0H,k1m),
      .            p(1,J_0H,1),
      .            uflxn(1,J_0H,1),vflxn(1,J_0H,1),
