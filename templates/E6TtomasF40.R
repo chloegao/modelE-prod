@@ -116,7 +116,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "aerosol_TOMAS_input_files_CMIP6"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

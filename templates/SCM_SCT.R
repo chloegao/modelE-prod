@@ -170,7 +170,7 @@ RADNE=topcld.trscat8
 
 ! optional files for optional diagnostics
 ISCCP=ISCCP.tautables
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 SCM_SCT (SCT case using Single Column Model)

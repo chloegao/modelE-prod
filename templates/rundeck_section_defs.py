@@ -233,7 +233,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_BCB=BCB_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 O3file=o3_2005_shindelltrop_$resijx49_1850-1997_ple.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG$resDEG                      ! special regions-diag
 """),
 parameters_text("""

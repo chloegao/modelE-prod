@@ -113,7 +113,7 @@ VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculation
 
 #include "aerosol_OMA_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
