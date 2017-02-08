@@ -2077,7 +2077,7 @@ C****
      &     LAT_DG,WTJ
       USE MDIAG_COM, only : acc_period
      &     ,sname_strlen,units_strlen,lname_strlen
-      USE DIAG_COM, only : QDIAG,LM_REQ,inc=>incj,linect,jm,lm,jmby2
+      Use DIAG_COM,  Only: JM,JMby2,LM,LM_REQ,KGZ,QDIAG,INC=>INCJ,LINECT
       IMPLICIT NONE
 
 !@var units string containing output field units
@@ -2099,8 +2099,8 @@ C****
       REAL*8, DIMENSION(JM,LMAX) :: AX
       REAL*8, DIMENSION(JM,LM_REQ) :: ARQX
       REAL*8, DIMENSION(JM) :: SCALEJ,SCALJR
-      REAL*8, DIMENSION(LM) :: SCALEL
-      REAL*8, DIMENSION(LM_REQ) :: SCALLR
+      REAL*8, DIMENSION(:) :: SCALEL
+      REAL*8, DIMENSION(:) :: SCALLR
       REAL*8, DIMENSION(:) :: PL
 
       CHARACTER*4 DASH,WORD(4)
@@ -2110,7 +2110,7 @@ C****
       INTEGER :: IWORD,J,JH,K,L  ,ksx,klmax
       REAL*8 :: FGLOB,GSUM,SDSIG,SUMFAC
 
-      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1) :: XJL ! for binary output
+      REAL*8, DIMENSION(JM+3,LM+LM_REQ+1+KGZ) :: XJL ! for binary output
       CHARACTER XLB*16,CLAT*16,CPRES*16,CBLANK*16,TITLEO*80,TPOW*8
       DATA CLAT/'LATITUDE'/,CPRES/'PRESSURE (MB)'/,CBLANK/' '/
       optional :: ARQX,SCALER,SCALJR,SCALLR
@@ -2147,9 +2147,7 @@ C****
    20 WRITE (6,901) TITLE,(DASH,J=J1,JM,INC)
       WRITE (6,904) WORD(JWT),(NINT(LAT_DG(J,J1)),J=JM,J1,-INC)
       WRITE (6,905) (DASH,J=J1,JM,INC)
-         DO 40 L=1,LM+LM_REQ+1
-         DO 40 J=1,JM+3
-   40    XJL(J,L) = -1.D30
+      XJL(:,:) = -1d30
          KSX = 0            ! KSX = LAYERS GENERATED AT ENTRY
   100 If (QFINAL)  SDSIG=1.-SIGE(LMAX+1)
          KLMAX = LMAX+KSX
