@@ -743,8 +743,9 @@ C**** Limit evaporation if lake mass is at minimum
      &     moddsf,ptype,pocean,rsi(i,j),rhosrf,tgo,dtsurf,pbl_args)
 #else
 #ifdef TRACERS_ON
-      if (gasex_index%getsize()>0)
-     &                call stop_model('gas exchange code missing', 255)
+!      if (gasex_index%getsize()>0)
+!     &                call stop_model('gas exchange code missing', 255)
+! do nothing
 #endif
 #endif
 
