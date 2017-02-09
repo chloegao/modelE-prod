@@ -5089,7 +5089,7 @@ c**** read in the MSU/SSU weights file
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
-      real*8, intent(out) :: tout(ncols-1)
+      real*8, intent(out) :: tout(ncols-2)
 
       real*8 tlmsu(nmsu),tmsu(ncols)
       real*8 plb(0:lm+2),tlb(0:lm+2)
