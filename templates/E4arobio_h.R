@@ -75,7 +75,7 @@ NAMERVR=RD_modelE_Fa_1deghycom_may10.names.txt ! named river outlets
 
 #include "ocarbon_cycle_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

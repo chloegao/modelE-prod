@@ -1773,6 +1773,7 @@ C     for GCM grid but currently limited to SCM use
 #endif  /* TRACERS_ON */
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
 !@+   radiative forcing calculations. TOA only.
 !@+   index 1=CH4, 2=N2O, 3=CFC11, 4=CFC12.
@@ -1783,6 +1784,7 @@ C     for GCM grid but currently limited to SCM use
       integer :: nf,GFrefY,GFrefD,GFnowY,GFnowD
 !@var nfghg fulgas( ) index of radf diag ghgs:
       integer, dimension(4) :: nfghg=(/7,6,8,9/)
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
 C  GHG Effective forcing relative to 1850
@@ -2082,6 +2084,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       end if                    ! kradia le 0
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! because of additional updghg calls, these factors won''t apply:
       if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
       if(N2OX.ne.1.)  call stop_model('N2Ox.ne.1 accmip diags',255)
@@ -2097,6 +2100,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
       sv_fulgas_now(1:4)=fulgas(nfghg(1:4))
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
       FCO2=FULGAS(2)*CO2R
@@ -2726,6 +2730,7 @@ C**** Ozone:
         chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)  ! Ozone
         chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM  ! Methane
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
 ! Initial calls are reference year/day:
         do nf=1,4
@@ -2741,6 +2746,7 @@ C**** Ozone:
           TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
           fulgas(nfghg(nf))=sv_fulgas_now(nf)
         enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
       end if ! moddrf=0
@@ -3667,6 +3673,7 @@ c longwave forcing at TOA
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
          do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
 c shortwave GHG forcing at TOA
            if(ij_fcghg(1,nf).gt.0)aij(i,j,ij_fcghg(1,nf))=
@@ -3676,6 +3683,7 @@ c longwave GHG forcing at TOA
            if(ij_fcghg(2,nf).gt.0)aij(i,j,ij_fcghg(2,nf))=
      &     aij(i,j,ij_fcghg(2,nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
          enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD

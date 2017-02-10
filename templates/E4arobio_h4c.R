@@ -70,7 +70,7 @@ NAMERVR=RD_modelE_Fa_1deghycom.names.txt  ! named river outlets
 
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 latlonij=latlon387x360.4bin             ! lat & lon at each i,j
 hycomtopo=depth387x360.4bin_1  ! topography used in ocean model, NO Baltic

@@ -85,7 +85,7 @@ TOP_INDEX=top_index_72x46_a.ij.ext.nc  ! only used if #define DO_TOPMODEL_RUNOFF
 #include "rad_input_files"
 #include "rad_72x46_input_files"
 !GHG=GHG.Mar2004.txt
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 
 Label and Namelist:

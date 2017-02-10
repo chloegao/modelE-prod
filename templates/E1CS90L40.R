@@ -111,7 +111,7 @@ ISCCP=ISCCP.tautables
 #include "rad_C90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E1CS90L40 (ModelE1 Cubed Sphere C32, 20 lyrs, 1880 atm/ocn;

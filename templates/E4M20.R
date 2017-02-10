@@ -75,7 +75,7 @@ GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
     ! resolution independent files
 #include "rad_input_files"
 #include "rad_72x46_input_files"
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E4M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)

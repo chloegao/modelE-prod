@@ -77,7 +77,7 @@ REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 #include "rad_input_files"
 #include "rad_C32_input_files"
 
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E4CubeTest (cubed-sphere version of E4M20 coupled to 4x5 13-layer ocean)

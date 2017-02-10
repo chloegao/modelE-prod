@@ -242,6 +242,7 @@ subroutine io_POS (iunit,it,len4,itdif)
   call stop_model('io_POS: read error',255)
 end subroutine io_POS
 
+
 subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
 !@sum  CHECK3 Checks for NaN/INF in real 3-D arrays
 !@auth Original development team
@@ -250,9 +251,9 @@ subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
 !@var IN,JN,LN size of 3-D array
   integer, intent(IN) :: IN,JN,LN
 !@var SUBR identifies where CHECK3 was called from
-  character*6, intent(IN) :: SUBR
+  character*(*), intent(IN) :: SUBR
 !@var FIELD identifies the field being tested
-  character*6, intent(IN) :: FIELD
+  character*(*), intent(IN) :: FIELD
 !@var A array being tested
   real*8, dimension(IN,JN,LN),intent(IN) :: A
   logical :: QCHECK3 = .false.
@@ -263,7 +264,7 @@ subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
       do I=1,IN
         if (.not.(A(I,J,L).gt.0..or.A(I,J,L).le.0.) .or. &
              &       abs(A(I,J,L)) .gt.huge(A(I,J,L)) ) then
-          write (6,*) trim(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
+          Write (6,9) Trim(FIELD),I,J,L,A(I,J,L),Trim(SUBR)
           if (J.lt.JN.and.J.gt.1) QCHECK3 = .true.
         end if
       end do
@@ -272,7 +273,9 @@ subroutine CHECK3(A,IN,JN,LN,SUBR,FIELD)
   call SYS_FLUSH(6)
   if (QCHECK3) call stop_model('CHECK3',255)
   return
+9 Format ('CHECK3: FIELD,I,J,L,VALUE = ',A,3I6,E16.8,'  after  ',A)
 end subroutine CHECK3
+
 
 subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
@@ -282,9 +285,9 @@ subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
 !@var IN,JN,LN size of 3-D array
   integer, intent(IN) :: I1,I2,J1,J2,NJPOL,LN
 !@var SUBR identifies where CHECK3 was called from
-  character*6, intent(IN) :: SUBR
+  character*(*), intent(IN) :: SUBR
 !@var FIELD identifies the field being tested
-  character*6, intent(IN) :: FIELD
+  character*(*), intent(IN) :: FIELD
 !@var A array being tested
   real*8, dimension(I1:I2,J1:J2,LN),intent(IN) :: A
   logical :: QCHECK3 = .false.
@@ -295,16 +298,18 @@ subroutine CHECK3B(A,I1,I2,J1,J2,NJPOL,LN,SUBR,FIELD)
       do I=I1,I2
         if (.not.(A(I,J,L).gt.0..or.A(I,J,L).le.0.) .or. &
              &       abs(A(I,J,L)) .gt.huge(A(I,J,L)) ) then
-          write (6,*) trim(FIELD),': ',I,J,L,A(I,J,L),'after ',SUBR
+          Write (6,9) Trim(FIELD),I,J,L,A(I,J,L),Trim(SUBR)
           QCHECK3 = .true.
         end if
       end do
     end do
   end do
   call SYS_FLUSH(6)
-  if (QCHECK3) call stop_model('CHECK3',255)
+  if (QCHECK3) call stop_model('CHECK3B',255)
   return
+9 Format ('CHECK3B: FIELD,I,J,L,VALUE = ',A,3I6,E16.8,'  after  ',A)
 end subroutine CHECK3B
+
 
 subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
 !@sum  CHECK3B Checks for NaN/INF in real 3-D arrays
@@ -314,9 +319,9 @@ subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
 !@var IN,JN,LN size of 3-D array
   integer, intent(IN) :: LN,I1,I2,J1,J2,NJPOL
 !@var SUBR identifies where CHECK3 was called from
-  character*6, intent(IN) :: SUBR
+  character*(*), intent(IN) :: SUBR
 !@var FIELD identifies the field being tested
-  character*6, intent(IN) :: FIELD
+  character*(*), intent(IN) :: FIELD
 !@var A array being tested
   real*8, dimension(LN,I1:I2,J1:J2),intent(IN) :: A
   logical :: QCHECK3 = .false.
@@ -327,16 +332,18 @@ subroutine CHECK3C(A,LN,I1,I2,J1,J2,NJPOL,SUBR,FIELD)
       do L=1,LN
         if (.not.(A(L,I,J).gt.0..or.A(L,I,J).le.0.) .or. &
              &       abs(A(L,I,J)) .gt.huge(A(L,I,J)) ) then
-          write (6,*) trim(FIELD),': ',L,I,J,A(L,I,J),'after ',SUBR
+          Write (6,9) Trim(FIELD),L,I,J,A(L,I,J),Trim(SUBR)
           QCHECK3 = .true.
         end if
       end do
     end do
   end do
   call SYS_FLUSH(6)
-  if (QCHECK3) call stop_model('CHECK3',255)
+  if (QCHECK3) call stop_model('CHECK3C',255)
   return
+9 Format ('CHECK3C: FIELD,L,I,J,VALUE = ',A,3I6,E16.8,'  after  ',A)
 end subroutine CHECK3C
+
 
 subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
 !@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
@@ -346,9 +353,9 @@ subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
 !@var IN,JN,KN,LN size of 4-D array
   integer, intent(IN) :: IN,JN,KN,LN
 !@var SUBR identifies where CHECK4 was called from
-  character*6, intent(IN) :: SUBR
+  character*(*), intent(IN) :: SUBR
 !@var FIELD identifies the field being tested
-  character*6, intent(IN) :: FIELD
+  character*(*), intent(IN) :: FIELD
 !@var A array being tested
   real*8, dimension(IN,JN,KN,LN),intent(IN) :: A
   logical :: QCHECK4 = .false.
@@ -360,7 +367,7 @@ subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
         do I=1,IN
           if (.not.(A(I,J,K,L).gt.0..or.A(I,J,K,L).le.0.) .or. &
                &       abs(A(I,J,K,L)) .gt.huge(A(I,J,K,L)) ) then
-            write (6,*) trim(FIELD),': ',I,J,K,L,A(I,J,K,L),'after ',SUBR
+            Write (6,*) Trim(FIELD),I,J,K,L,A(I,J,K,L),Trim(SUBR)
             if (J.lt.JN.and.J.gt.1) QCHECK4 = .true.
           end if
         end do
@@ -370,7 +377,9 @@ subroutine CHECK4(A,IN,JN,KN,LN,SUBR,FIELD)
   call SYS_FLUSH(6)
   if (QCHECK4) call stop_model('CHECK4',255)
   return
+9 Format ('CHECK4: FIELD,I,J,K,L,VALUE = ',A,3I6,E16.8,'  after  ',A)
 end subroutine CHECK4
+
 
 subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
 !@sum  CHECK4 Checks for NaN/INF in real 4-D arrays
@@ -380,9 +389,9 @@ subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
 !@var IN,JN,KN,LN size of 4-D array
   integer, intent(IN) :: I1,I2,J1,J2,NJPOL,KN,LN
 !@var SUBR identifies where CHECK4 was called from
-  character*6, intent(IN) :: SUBR
+  character*(*), intent(IN) :: SUBR
 !@var FIELD identifies the field being tested
-  character*6, intent(IN) :: FIELD
+  character*(*), intent(IN) :: FIELD
 !@var A array being tested
   real*8, dimension(I1:I2,J1:J2,KN,LN),intent(IN) :: A
   logical :: QCHECK4 = .false.
@@ -394,7 +403,7 @@ subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
         do I=I1,I2
           if (.not.(A(I,J,K,L).gt.0..or.A(I,J,K,L).le.0.) .or. &
                &       abs(A(I,J,K,L)) .gt.huge(A(I,J,K,L)) ) then
-            write (6,*) trim(FIELD),': ',I,J,K,L,A(I,J,K,L),'after ',SUBR
+            Write (6,*) Trim(FIELD),I,J,K,L,A(I,J,K,L),Trim(SUBR)
             QCHECK4 = .true.
           end if
         end do
@@ -402,9 +411,11 @@ subroutine CHECK4B(A,I1,I2,J1,J2,NJPOL,KN,LN,SUBR,FIELD)
     end do
   end do
   call SYS_FLUSH(6)
-  if (QCHECK4) call stop_model('CHECK4',255)
+  if (QCHECK4) call stop_model('CHECK4B',255)
   return
+9 Format ('CHECK4B: FIELD,I,J,L,VALUE = ',A,3I6,E16.8,'  after  ',A)
 end subroutine CHECK4B
+
 
 function unit_string (pow10,ending)
 !@sum Construct a units string with nice properties (no embedded blanks)

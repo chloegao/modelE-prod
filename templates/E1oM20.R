@@ -69,7 +69,7 @@ NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 #include "rad_input_files_noCO2profile"
 #include "rad_72x46_input_files"
 
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 REG=REG4X5                      ! special regions-diag
 
 Label and Namelist:
