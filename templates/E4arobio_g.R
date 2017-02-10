@@ -32,7 +32,7 @@ Preprocessor Options
 !!!#define restoreIRON
 !!!#define TRACERS_Alkalinity
 !!!#define Jprod_based_on_pp
-!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - don't use it - use run-time parameter instead: chl_from_seawifs=1
 !!!!#define change_PNOICE           ! adjust ice-obio interactions
 End Preprocessor Options
 

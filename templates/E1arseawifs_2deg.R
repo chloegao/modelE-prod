@@ -21,7 +21,7 @@ Preprocessor Options
 !#define TRACERS_OceanBiology
 !#define OBIO_ON_GARYocean
 !#define pCO2_ONLINE
-#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - replaced by run-time parameter
 #define OCN_LAYERING L32
 End Preprocessor Options
 
@@ -251,6 +251,7 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 !parameters that affect CO2 gas exchange
 atmCO2=368.6      !uatm for year 2000
 
+chl_from_seawifs = 1
 &&END_PARAMETERS
 
  &INPUTZ

@@ -14,7 +14,7 @@ filters:    U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define CHL_from_SeaWIFs            ! read in SeaWIFs
+!!!!!#define CHL_from_SeaWIFs            ! read in SeaWIFs - repaled by run-time parameer
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -195,6 +195,8 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 nssw=2          ! until diurnal diagn. are fixed, nssw should be even
+
+chl_from_seawifs=1
 &&END_PARAMETERS
 
  &INPUTZ

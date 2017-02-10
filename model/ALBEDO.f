@@ -294,7 +294,6 @@ C     -------------------
 !@sum GETSUR computes surface albedo for each grid box
 !@auth A. Lacis/V. Oinas (modifications by I. Aleinov/G. Schmidt)
 
-      use fluxes, only: atmocn
       use ocalbedo_mod, only: ocalbedo
 
 #ifdef SCM
@@ -420,7 +419,7 @@ C
         XOCVN(L)=XOCNIR
       END DO
 
-      if (atmocn%chl_defined) then
+      if ( LOC_CHL >= 0.d0 ) then
 C**** chlorophyl modification of albedo
 ! bocvn is the diffuse albedo (function of wind speed)
 ! xocnv is the direct albedo (function of the solar zenith angle)

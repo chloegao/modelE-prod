@@ -88,6 +88,7 @@ C****
      *     ,ntrix_aod,ntrix_rf,wttr
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef TRACERS_ON
      *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,ttausv_as,ttausv_cs
 #ifdef CACHED_SUBDD
@@ -461,6 +462,12 @@ C**** sync radiation parameters from input
         call cosz_init(cosz_const=cosz_const)
       else
         call cosz_init
+      endif
+
+      call sync_param("chl_from_obio", chl_from_obio)
+      call sync_param("chl_from_seawifs", chl_from_seawifs)
+      if ( chl_from_obio>0 .and. chl_from_seawifs>0 ) then
+        call stop_model("Make your mind which chl to use",255)
       endif
 
       if(istart==2) then ! replace with cold vs warm start logic
@@ -1170,9 +1177,8 @@ c          call par_close(grid,fid)
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-     *     ,snoage,snoage_def
+     *     ,snoage,snoage_def,chl_from_seawifs
       use DIAG_COM, only : iwrite,jwrite,itwrite,tdiurn
-      use runtimecontrols_mod, only: chl_from_seawifs
       use geom, only : imaxj
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1240,7 +1246,7 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
-      if (chl_from_seawifs) call get_chl_from_seawifs
+      if (chl_from_seawifs>0) call get_chl_from_seawifs
 
       if (end_of_day) then
 
@@ -1594,6 +1600,7 @@ C     OUTPUT DATA
      *     ,cdncl,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef mjo_subdd
      *     ,SWHR,LWHR,SWHR_cnt,LWHR_cnt,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -2175,11 +2182,16 @@ c           ICKERR=ICKERR+1
 
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
+        if( (chl_from_seawifs>0 .or. chl_from_obio>0)
+     &       .and. atmocn%chl_defined ) then
           LOC_CHL = atmocn%chl(I,J)
           if (ij_chl.gt.0)
      .       AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
+        else
+          LOC_CHL = -1.d30
+        endif
       endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation

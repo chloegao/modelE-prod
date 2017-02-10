@@ -341,6 +341,11 @@ C**** Local variables initialised in init_RAD
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
       class (AbstractOrbit), allocatable :: orbit
 
+!@dbparam chl_from_obio =1 to use chl from obio when computing ocean albedo
+      INTEGER :: chl_from_obio = 0
+!@dbparam chl_from_seawifs =1 to use chl from SeaWIFs when computing ocn albedo
+      INTEGER :: chl_from_seawifs = 0
+
       contains
 
       subroutine radiationSetOrbit(anOrbit)
