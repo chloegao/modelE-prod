@@ -4392,7 +4392,6 @@ c      enddo
 #ifdef TRACERS_ON
       ir_ijlt = ir_log2  ! default
       ia_ijlt = ia_src   ! default
-      denom_ijlt(:)=0
 #ifdef TRACERS_AMP
       ijlt_AMPm(:,:)=0
 #endif
@@ -4439,24 +4438,24 @@ C**** some tracer specific 3D arrays
             scale_ijlt(k) = 10.**(-ijlt_power(k))
           endif ! diag_aod_3d = 1 or 3
 
-          if (diag_aod_3d==2 .or. diag_aod_3d==3) then
-            k = k + 1
-            ijlt_3DtauCS(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' CS tau'
-            sname_ijlt(k) = 'tau_3D_CS_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
-            k = k + 1
-            ijlt_3DaaodCS(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' CS aaod'
-            sname_ijlt(k) = 'aaod_3D_CS_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
-          endif ! diag_aod_3d = 2 or 3
+!          if (diag_aod_3d==2 .or. diag_aod_3d==3) then
+!            k = k + 1
+!            ijlt_3DtauCS(n)=k
+!            ia_ijlt(k) = ia_rad
+!            lname_ijlt(k) = trim(trname_curr)//' CS tau'
+!            sname_ijlt(k) = 'tau_3D_CS_'//trim(trname_curr)
+!            ijlt_power(k) = -2
+!            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+!            scale_ijlt(k) = 10.**(-ijlt_power(k))
+!            k = k + 1
+!            ijlt_3DaaodCS(n)=k
+!            ia_ijlt(k) = ia_rad
+!            lname_ijlt(k) = trim(trname_curr)//' CS aaod'
+!            sname_ijlt(k) = 'aaod_3D_CS_'//trim(trname_curr)
+!            ijlt_power(k) = -2
+!            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+!            scale_ijlt(k) = 10.**(-ijlt_power(k))
+!          endif ! diag_aod_3d = 2 or 3
 
         enddo ! nraero_aod
       endif ! 0<diag_aod_3d<4
@@ -4973,29 +4972,12 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
 #endif /* TRACERS_TOMAS */
 
-c
-c Append some denominator fields if necessary
-c
-      if(any(dname_ijlt(1:k).eq.'clrsky')) then
-        k = k + 1
-        ijlt_clrsky = k
-        ia_ijlt(k) = ia_rad
-        lname_ijlt(k) = 'CLEAR SKY FRACTION'
-        sname_ijlt(k) = 'clrsky'
-        units_ijlt(k) = '%'
-        scale_ijlt(k) = 100.
-        ijlt_HasArea(k) = .false.
-      endif
-
       if (k .gt. ktaijl) then
        if (AM_I_ROOT())
      *       write (6,*)'ijlt_defs: Increase ktaijl=',ktaijl
      *       ,' to at least ',k
         call stop_model('ktaijl too small',255)
       end if
-
-c find indices of denominators
-      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,k)
 #endif /* TRACERS_ON */
 
       return
