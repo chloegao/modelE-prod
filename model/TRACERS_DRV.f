@@ -4167,7 +4167,7 @@ c      enddo
             if (trim(sascs(s))=='CS_') then
               lname_ijts(k) = trim(trname(n))//trim(sn1)//' '//
      &             trim(lascs(s))//' aerosol optical depth'
-              dname_ijts(k) = 'clrsky'
+              dname_ijts(k) = trim(dname)
             else
               lname_ijts(k) = trim(trname(n))//' aerosol optical depth'
             endif
@@ -4195,7 +4195,7 @@ c      enddo
               if (trim(sascs(s))=='CS_') then
                 lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
      &               trim(lascs(s))//' SW extinction band '//skr
-                dname_ijts(k) = 'clrsky'
+                dname_ijts(k) = trim(dname)
               else
                 lname_ijts(k)=trim(trname(n))//
      &                      ' SW extinction band '//skr
@@ -4219,7 +4219,7 @@ c      enddo
               if (trim(sascs(s))=='CS_') then
                 lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
      &               trim(lascs(s))//' SW scattering band '//skr
-                dname_ijts(k) = 'clrsky'
+                dname_ijts(k) = trim(dname)
               else
                 lname_ijts(k)=trim(trname(n))//
      &               ' SW scattering band '//skr
@@ -4243,7 +4243,7 @@ c      enddo
               if (trim(sascs(s))=='CS_') then
                 lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
      &               trim(lascs(s))//' SW assymetry factor band '//skr
-                dname_ijts(k) = 'clrsky'
+                dname_ijts(k) = trim(dname)
               else
                 lname_ijts(k)=trim(trname(n))//
      &               ' SW assymetry factor band '//skr
@@ -4342,7 +4342,7 @@ c      enddo
             if (trim(sascs(s))=='CS_') then
               lname_ijts(k) = trim(lname_ijts(k))//' '//trim(lascs(s))
               sname_ijts(k) = trim(sname_ijts(k))//trim(sascs(s))
-              dname_ijts(k) = 'clrsky'
+              dname_ijts(k) = trim(dname)
             endif
             if (trim(stoasrf(l))=='surf_') then
               lname_ijts(k) = trim(lname_ijts(k))//' '//trim(ltoasrf(l))
@@ -4369,8 +4369,9 @@ c      enddo
 !@sum init_ijlts_diag Initialise lat/lon/height tracer diags
 !@auth Gavin Schmidt
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: trname,max_len_name
       USE TRACER_COM, only: ntm
+      use rad_com, only: nraero_aod,ntrix_aod
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
@@ -4384,10 +4385,14 @@ c      enddo
       implicit none
       integer k,n,i
       character*50 :: unit_string
+      character(len=max_len_name) :: trname_curr
+      character*1 :: clay_num
+      integer :: iclay
 
 #ifdef TRACERS_ON
       ir_ijlt = ir_log2  ! default
       ia_ijlt = ia_src   ! default
+      denom_ijlt(:)=0
 #ifdef TRACERS_AMP
       ijlt_AMPm(:,:)=0
 #endif
@@ -4396,6 +4401,66 @@ c      enddo
 C**** use this routine to set 3D tracer-related diagnostics.
 
 C**** some tracer specific 3D arrays
+      if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+        allocate(ijlt_3Dtau(nraero_aod))    ; ijlt_3Dtau = 0
+        allocate(ijlt_3DtauCS(nraero_aod))  ; ijlt_3DtauCS = 0
+        allocate(ijlt_3Daaod(nraero_aod))   ; ijlt_3Daaod = 0
+        allocate(ijlt_3DaaodCS(nraero_aod)) ; ijlt_3DaaodCS = 0
+
+        iclay=0
+        do n=1,nraero_aod
+          trname_curr=trim(trname(ntrix_aod(n)))
+          select case (trname(ntrix_aod(n)))
+            case ('Clay','ClayIlli','ClayKaol','ClaySmec','ClayCalc'
+     &           ,'ClayQuar','ClayFeld','ClayHema','ClayGyps'
+     &           ,'ClayIlHe','ClayKaHe','ClaySmHe','ClayCaHe'
+     &           ,'ClayQuHe','ClayFeHe','ClayGyHe')
+              iclay=iclay+1
+              write(clay_num, '(i1)') iclay
+              trname_curr=trim(trname_curr)//trim(clay_num)
+          end select
+
+          if (diag_aod_3d==1 .or. diag_aod_3d==3) then
+            k = k + 1
+            ijlt_3Dtau(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' tau'
+            sname_ijlt(k) = 'tau_3D_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            k = k + 1
+            ijlt_3Daaod(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' aaod'
+            sname_ijlt(k) = 'aaod_3D_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+          endif ! diag_aod_3d = 1 or 3
+
+          if (diag_aod_3d==2 .or. diag_aod_3d==3) then
+            k = k + 1
+            ijlt_3DtauCS(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' CS tau'
+            sname_ijlt(k) = 'tau_3D_CS_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            k = k + 1
+            ijlt_3DaaodCS(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' CS aaod'
+            sname_ijlt(k) = 'aaod_3D_CS_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+          endif ! diag_aod_3d = 2 or 3
+
+        enddo ! nraero_aod
+      endif ! 0<diag_aod_3d<4
+
       do n=1,NTM
         select case(trname(n))
 
@@ -4416,25 +4481,6 @@ C**** some tracer specific 3D arrays
         scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif /* define io parameters for 3Dmass diagnostic (Ron) */
 
-#ifdef TRACERS_DUST
-        k = k + 1
-        ijlt_3Dtau(n)=k
-        ia_ijlt(k) = ia_rad
-        lname_ijlt(k) = trim(trname(n))//' tau'
-        sname_ijlt(k) = 'tau_3D_'//trname(n)
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),' ')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-        ijlt_3Daaod(n)=k
-        ia_ijlt(k) = ia_rad
-        lname_ijlt(k) = trim(trname(n))//' aaod'
-        sname_ijlt(k) = 'aaod_3D_'//trname(n)
-        ijlt_power(k) = -2
-        units_ijlt(k) = unit_string(ijlt_power(k),' ')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-#endif
-
 #ifdef TRACERS_AMP
 c- 3D diagnostic per mode
       CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
@@ -4454,22 +4500,6 @@ c- 3D diagnostic per mode
          sname_ijlt(k) = 'ACTI3D_'//TRIM(trname(n))
          ijlt_power(k) = -2.
          units_ijlt(k) = unit_string(ijlt_power(k),'Numb.')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-         ijlt_3Dtau(n)=k
-         ia_ijlt(k) = ia_rad
-         lname_ijlt(k) = trim(trname(n))//' tau'
-         sname_ijlt(k) = 'tau_3D_'//trname(n)
-         ijlt_power(k) = -2
-         units_ijlt(k) = unit_string(ijlt_power(k),' ')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-         ijlt_3Daaod(n)=k
-         ia_ijlt(k) = ia_rad
-         lname_ijlt(k) = trim(trname(n))//' aaod'
-         sname_ijlt(k) = 'aaod_3D_'//trname(n)
-         ijlt_power(k) = -2
-         units_ijlt(k) = unit_string(ijlt_power(k),' ')
          scale_ijlt(k) = 10.**(-ijlt_power(k))
 #endif
       end select
@@ -4943,12 +4973,29 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
 #endif /* TRACERS_TOMAS */
 
+c
+c Append some denominator fields if necessary
+c
+      if(any(dname_ijlt(1:k).eq.'clrsky')) then
+        k = k + 1
+        ijlt_clrsky = k
+        ia_ijlt(k) = ia_rad
+        lname_ijlt(k) = 'CLEAR SKY FRACTION'
+        sname_ijlt(k) = 'clrsky'
+        units_ijlt(k) = '%'
+        scale_ijlt(k) = 100.
+        ijlt_HasArea(k) = .false.
+      endif
+
       if (k .gt. ktaijl) then
        if (AM_I_ROOT())
      *       write (6,*)'ijlt_defs: Increase ktaijl=',ktaijl
      *       ,' to at least ',k
         call stop_model('ktaijl too small',255)
       end if
+
+c find indices of denominators
+      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,k)
 #endif /* TRACERS_ON */
 
       return
