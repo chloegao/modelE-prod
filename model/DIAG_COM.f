@@ -561,7 +561,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
      *     IJ_DSKIN, IJ_DSKINSNOW, IJ_MCCVTP, IJ_MCCVBS,
-     *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
+     *     IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON
      *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ
      *     ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis

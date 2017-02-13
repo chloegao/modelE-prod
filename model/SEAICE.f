@@ -2407,7 +2407,11 @@ c        Fi=min(wat,max(-hsi*bylhm-msi,0d0))
       case ("SI")               ! salinity affects only mass
         Fi=min(wat,max(-hsi*bylhm-msi+ssi,0d0))
       case ("BP")               ! brine pocket formulation
-        Fi=wat
+        if (1d3*ssi/msi.GT.1d-10) then
+           Fi=wat
+        else
+           Fi=min(wat,max(-hsi*bylhm-msi,0d0))
+        end if
       end select
 
       RETURN
