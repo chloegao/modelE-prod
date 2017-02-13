@@ -96,7 +96,7 @@ RVR=RD8X10.nc            ! river direction file
 NAMERVR=RD8X10.names.txt ! named river outlets
 
 #include "land36x24_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_36x24_input_files"
 
 #include "chemistry_input_files"
@@ -110,7 +110,7 @@ NAMERVR=RD8X10.names.txt ! named river outlets
 #include "aerosol_OMA_36x24_input_files"
 Ox_ref=o3_zeros_36x24x49.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

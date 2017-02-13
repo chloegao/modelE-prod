@@ -58,6 +58,7 @@ c
      .,th3av(:,:,:), dpav(:,:,:)
      .,pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
+     .,ufxavp(:,:,:),vfxavp(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
      .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
      .,tauxav(:,:),tauyav(:,:)
@@ -113,7 +114,7 @@ c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
 c    .,odhsi(:,:)                         ! heat borrowed from frozen
      .,odmsi(:,:)                         ! newly formed ice
-CTNL .,omlhc(:,:)
+     .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
 c
 !!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
@@ -205,6 +206,7 @@ c
      .,th3av(I_0H:I_1H,J_0H:J_1H,kdm), dpav(I_0H:I_1H,J_0H:J_1H,kdm)
      &     ,pbavav(I_0H:I_1H,J_0H:J_1H),sfhtav(I_0H:I_1H,J_0H:J_1H)
      .,uflxav(I_0H:I_1H,J_0H:J_1H,kdm),vflxav(I_0H:I_1H,J_0H:J_1H,kdm)
+     .,ufxavp(I_0H:I_1H,J_0H:J_1H,kdm),vfxavp(I_0H:I_1H,J_0H:J_1H,kdm)
      .,diaflx(I_0H:I_1H,J_0H:J_1H,kdm)
      .,salflav(I_0H:I_1H,J_0H:J_1H),brineav(I_0H:I_1H,J_0H:J_1H)
      &     ,eminpav(I_0H:I_1H,J_0H:J_1H)
@@ -252,7 +254,7 @@ c    .,covice(I_0H:I_1H,J_0H:J_1H)
 c    .,temice(I_0H:I_1H,J_0H:J_1H)
 c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,odmsi(I_0H:I_1H,J_0H:J_1H)
-CTNL .,omlhc(I_0H:I_1H,J_0H:J_1H)
+     .,omlhc(I_0H:I_1H,J_0H:J_1H)
      .,dmfz(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate( klist(I_0H:I_1H,J_0H:J_1H)
@@ -334,6 +336,8 @@ c
       sfhtav = 0
       uflxav = 0
       vflxav = 0
+      ufxavp = 0
+      vfxavp = 0
       diaflx = 0
       salflav = 0
       brineav = 0
@@ -390,7 +394,7 @@ c
       surflx = 0
       salflx = 0
       odmsi = 0
-CTNL  omlhc = 0
+      omlhc = 0
       dmfz = 0
       taux = 0
       tauy = 0

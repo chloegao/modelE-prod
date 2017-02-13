@@ -143,7 +143,7 @@ AIC=/path/to/user/directory/extractions/NCARIC.144x90.D7712010_ext.nc
 O3file=/path/to/user/directory/extractions/o3_2005_shindelltrop_144x90x49_1850-1997_ple.nc
 
 ! Optional: if absent, dust is set to zero
-DUSTaer=/path/to/user/directory/extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
+DUSTaer=/path/to/user/directory/extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12_unlim.nc
 
 ! Optional: if absent and MADAER flag not set, aerosols are zero.
 ! If these files are omitted, rundeck parameters od_cdncx and cc_cdncx
@@ -213,7 +213,7 @@ RADNE=topcld.trscat8
 
 ! optional files for optional diagnostics
 ISCCP=ISCCP.tautables
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 SCM_GABLS1 (dry stable boundary layer)

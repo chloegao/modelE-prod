@@ -261,6 +261,8 @@ C**** does not produce exactly the same as the default values.
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: use current yr)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
+!@dbparam dust_yr nominal year for prescribed dust climatology (if 0: use current yr)
+      INTEGER :: dust_yr = 1951    ! always use annual cycle
 !@dbparam O3_yr obs.year of Ozone (if 0: use current year)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
@@ -338,6 +340,11 @@ C**** Local variables initialised in init_RAD
       integer :: snoage_def = 0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
       class (AbstractOrbit), allocatable :: orbit
+
+!@dbparam chl_from_obio =1 to use chl from obio when computing ocean albedo
+      INTEGER :: chl_from_obio = 0
+!@dbparam chl_from_seawifs =1 to use chl from SeaWIFs when computing ocn albedo
+      INTEGER :: chl_from_seawifs = 0
 
       contains
 
@@ -1071,6 +1078,7 @@ C**** Local variables initialised in init_RAD
      &     ,ij_siswu=1
      &     ,ij_lwprad=1
      &     ,ij_iwprad=1
+     &     ,ij_h2och4 = 1
 
 #ifdef ACCMIP_LIKE_DIAGS
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)

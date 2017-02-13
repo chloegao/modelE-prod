@@ -32,7 +32,7 @@ Preprocessor Options
 !!!#define restoreIRON
 !!!#define TRACERS_Alkalinity
 !!!#define Jprod_based_on_pp
-!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - don't use it - use run-time parameter instead: chl_from_seawifs=1
 !!!!#define change_PNOICE           ! adjust ice-obio interactions
 End Preprocessor Options
 
@@ -82,7 +82,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "ocarbon_cycle_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 

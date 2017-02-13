@@ -746,7 +746,7 @@ C--------------------------------------------------------------------
 C
       INTEGER, INTENT(IN) :: NLAT, JALIM, JBLIM
       REAL*8, DIMENSION(NLAT), INTENT(IN) :: DEGLAT, TAULAT
-      REAL*8, INTENT(OUT) :: TAU 
+      REAL*8, INTENT(OUT) :: TAU
       REAL*8 :: ASUM,TSUM
       REAL*8 :: ONES(NLAT)
 
@@ -1262,7 +1262,7 @@ C           REMARKS
 C                   PLANCK INTENSITY (W/m^2*STER) IS GIVEN BY PFofTK/PI
 C
 C     ------------------------------------------------------------------
-      use CONSTANT, only: stbo ! (W m-2 K-4) Stefan-Boltzmann 
+      use CONSTANT, only: stbo ! (W m-2 K-4) Stefan-Boltzmann
       IMPLICIT NONE
       REAL*8, PARAMETER, DIMENSION(21) ::
      *     BN = (/1D0, -1D0, 1D0, -1D0, 1D0, -1D0, 5D0, -691D0, 7D0,
@@ -1491,8 +1491,8 @@ C     ------------------------------------------------------------------
 C     ------------------------------------------------------------------
 C
 C     REPART/RETERP
-C              Repartitions or Interpolates FXL (a histogram-type 
-C              distribution function) where XLB depicts the NXB 
+C              Repartitions or Interpolates FXL (a histogram-type
+C              distribution function) where XLB depicts the NXB
 C              partitions that define FXL data. FXL is assumed to be
 C              constant between XLB(N) AND XLB(N+1)
 C
@@ -3203,7 +3203,8 @@ C     functions
       use dictionary_mod
       use resolution, only : psf
       use domain_decomp_atm, only: grid, getdomainbounds
-      use timestream_mod, only : init_stream,read_stream
+      use timestream_mod, only : init_stream,read_stream,
+     &     getname_firstfile
       use pario, only : par_open,par_close,read_dist_data,
      & variable_exists,get_dimlen,read_data
       use filemanager, only : file_exists
@@ -3215,6 +3216,8 @@ C     functions
       logical, save :: init = .false.
       logical :: cyclic,exists
       real*8, allocatable :: o3arr(:,:,:)
+      character(len=6) :: method
+      character(len=32) :: fname1st
 
       integer :: j_0, j_1, i_0, i_1
 
@@ -3228,8 +3231,22 @@ C     functions
 
         have_o3_file = file_exists('O3file')
 
-        if(have_o3_file)then
-          fid = par_open(grid,'O3file','read')
+        if(have_o3_file) then
+
+          ! Initialize the timestream for the O3 data file:
+          cyclic = jyearo < 0
+
+          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
+          if(ozone_use_ppm_interp==1)then
+            method = 'ppm'
+          else
+            method = 'linm2m'
+          endif
+          call init_stream(grid,O3stream,'O3file','O3',
+     &         0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
+          ! query the layering
+          call getname_firstfile(O3stream,fname1st)
+          fid = par_open(grid,trim(fname1st),'read')
           if(variable_exists(grid,fid,'ple'))then
             nlo3=get_dimlen(grid,fid,'ple') - 1 ! coord var but one less
             if(nlo3.ne.get_dimlen(grid,fid,'plm'))call
@@ -3258,21 +3275,8 @@ C     functions
 ! it is to prevent "losing" some ozone in the REPART interpolation
 ! if the (fixed) lowest O3 level pressure is at lower pressure than
 ! the the (fixed) lowest nominal model pressure:
-        if(plbo3(1) < psf) plbo3(1) = psf 
-        if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf 
-
-! Initialize the timestream for the O3 data file:
-        cyclic = jyearo < 0
-        if(have_o3_file) then
-          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
-          if(ozone_use_ppm_interp==1)then
-            call init_stream(grid,O3stream,'O3file','O3',
-     &         0d0,1d30,'ppm',jyearx,jjdayo,cyclic=cyclic)
-          else
-            call init_stream(grid,O3stream,'O3file','O3',
-     &         0d0,1d30,'linm2m',jyearx,jjdayo,cyclic=cyclic)
-          endif
-        endif
+        if(plbo3(1) < psf) plbo3(1) = psf
+        if(plbo3_traditional(1) < psf) plbo3_traditional(1) = psf
 
 ! Read the 3D field for O3 RCOMPX reference calls.
 ! (There is no need to allow for this one on flexible # of levels)
@@ -3285,13 +3289,13 @@ C     functions
           call read_dist_data(grid,fid,'O3',o3arr)
           call par_close(grid,fid)
           do j=j_0,j_1
-          do i=i_0,i_1 
+          do i=i_0,i_1
             O3JREF(:,I,J)=O3ARR(I,J,:)
           enddo
           enddo
           deallocate(o3arr) ! note quick deallocation as will be resized below
         endif
-        
+
       endif  ! end init
 
       if(have_o3_file)then
@@ -3300,7 +3304,7 @@ C     functions
 
         call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
         do j=j_0,j_1
-        do i=i_0,i_1 
+        do i=i_0,i_1
           O3JDAY(:,I,J)=O3ARR(I,J,:)
         enddo
         enddo
@@ -3503,7 +3507,7 @@ C     functions
 
       call read_stream(grid,delta_O3stream,jyearx,jjdayo,delta_o3_now)
       do j=j_0,j_1
-      do i=i_0,i_1 
+      do i=i_0,i_1
         O3JDAY(:,I,J) = O3JDAY(:,I,J) + add_sol*delta_O3_now(i,j,:)
       enddo
       enddo
@@ -3515,3 +3519,68 @@ C     functions
       END SUBROUTINE UPDO3D_solar
 
       end module O3mod
+
+      SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL)
+      use filemanager, only : file_exists, openunit, closeunit
+      IMPLICIT NONE
+      INTEGER J,N,NL,iu,np,ncol
+      REAL*8 PL(NL),FPXCO2(NL)
+      REAL*8 FPI,FPJ,PFI,PFJ
+      REAL*8, allocatable :: FPX(:),PFP(:)
+      character*80 title
+
+      FPXCO2 = 1. ! default
+
+      if(.not.file_exists('CO2profile')) return
+
+      call openunit('CO2profile',iu,.false.,.true.)
+
+      read(iu,'(a)') title ; read(title,*) np
+      read(iu,'(a)') title
+      read(iu,'(a)') title
+      read(iu,'(a)') title
+
+! Find appropriate column for current layering
+      j = 20  ; ncol = 0
+      do while(title(j:80).ne.'')
+        read(title(j:80),*) N
+        if(N==NL) then  ! or N in some layer range
+          ncol = ncol + 1
+          exit
+        end if
+        j = j + 14
+      end do
+
+      if(ncol==0) call stop_model('set_FPXCO2: bad CO2profile',255)
+
+      allocate (FPX(np),PFP(np))
+      do n=1,np
+        read(iu,*) PFP(n),(FPX(n),j=1,ncol)
+      end do
+
+      call closeunit (iu)
+
+! FPX CO2 scaling profile: (1.0 for P > 50mb) (linear in P for P < 50mb)
+        j = 1
+      FPj = FPX(j)
+      PFj = PFP(j)
+        N = 1
+      do while (PL(N).GE.PFj)
+        FPXCO2(N)=FPj
+        N = N + 1 ; if(N > NL) go to 100
+      end do
+
+      do j=2,np
+        FPI=FPj
+        PFI=PFj
+        FPj=FPX(j)
+        PFj=PFP(j)
+        do while (PL(N).GE.PFj)
+          FPXCO2(N)=FPI-(FPI-FPj)*(PFI-PL(N))/(PFI-PFj)
+          N = N + 1 ; if(N > NL) go to 100
+        end do
+      end do
+
+  100 deallocate (FPX,PFP)
+      RETURN
+      END  SUBROUTINE SET_FPXCO2

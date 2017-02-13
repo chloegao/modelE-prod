@@ -52,7 +52,7 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 #include "rad_input_files"
 #include "rad_C90_input_files"
 
-MSU_wts=MSU.RSS.weights.data     ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt     ! MSU-diag
 REG=REG.txt                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

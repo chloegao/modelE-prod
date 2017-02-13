@@ -5060,30 +5060,23 @@ C****
       module msu_wts_mod
       implicit none
       save
-      integer, parameter :: nmsu=200 , ncolmax=8
-      real*8 plbmsu(nmsu),wmsu(ncolmax,nmsu)
-      integer ncols
+      integer, parameter :: nmsu=302 , ncols=8
+      real*8 plbmsu(nmsu),wmsu(ncols,nmsu)
       logical :: do_msu
       contains
       subroutine read_msu_wts
       use filemanager
       integer n,l,iu_msu
-      character, dimension(ncolmax+1) :: titles*10
 c**** read in the MSU/SSU weights file
       do_msu = file_exists('MSU_wts')
       if(.not.do_msu) return
       call openunit('MSU_wts',iu_msu,.false.,.true.)
-      read(iu_msu,*) titles(1)
-      ncols=ncolmax
-      if (titles(1) .eq. "MSU") ncols=4
-      do n=1,2
+      do n=1,4
         read(iu_msu,*)
       end do
-      read(iu_msu,*) titles(1:(ncols+1))
       do l=1,nmsu
         read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
       end do
-      if (ncols.eq.4) wmsu(ncols+1:ncolmax,1:nmsu)=0.
       call closeunit(iu_msu)
 
       end subroutine read_msu_wts
@@ -5096,9 +5089,9 @@ c**** read in the MSU/SSU weights file
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
-      real*8, intent(out) :: tout(ncolmax-1)
+      real*8, intent(out) :: tout(ncols-2)
 
-      real*8 tlmsu(nmsu),tmsu(ncolmax)
+      real*8 tlmsu(nmsu),tmsu(ncols)
       real*8 plb(0:lm+2),tlb(0:lm+2)
       integer l
 
@@ -6106,12 +6099,12 @@ C****
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
       use DIAG_COM_RAD
-      use msu_wts_mod, only : ncolmax,ncols
+      use msu_wts_mod, only : ncols
       IMPLICIT NONE
       INTEGER :: I,J,L,K,K1,K2,N,KHEM
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
-      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu(ncolmax-1)
+      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu(ncols-2)
       real*8, dimension(2,kaij) :: shnh_loc,shnh
 
       I_0 = GRID%I_STRT

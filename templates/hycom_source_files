@@ -1,28 +1,29 @@
 SparseCommunicator_mod              ! sparse gather/scatter module
-hycom_arrays|$(R8)| hycom_dim|$(R8)| kprf_arrays|$(R8)|
-kprf_arrays_loc_renamer|$(R8)| hycom_atm|$(R8)|
-hycom_arrays_glob|$(R8)| hycom_arrays_glob_renamer|$(R8)|
-hycom_scalars|$(R8)| hycom_dim_glob|$(R8)|
-hycom |$(R8)| OCEAN_hycom|$(R8)|        ! ocean model - driver
-advfct|$(R8)|                         ! advection
-archyb|$(R8)|                         ! continuity eqn.
-barotp|$(R8)|                         ! barotropic eqn.
-bigrid|$(R8)|                         ! basin grid
-blkprf|$(R8)|                         ! block data
-cnuity|$(R8)|                         ! continuity eqn.
-convec|$(R8)|                         ! convection
-cpler |$(R8)|                         ! coupler
-diapfx|$(R8)|                         ! diapycnal diffusion
-dpthuv|$(R8)| dpudpv|$(R8)|             ! off-center depth
-eice  |$(R8)|                         ! ice forming
-geopar|$(R8)|                         ! geography related parameters
-hybgn1|$(R8)|                         ! grid generator
-inicon|$(R8)| inigis|$(R8)| inikpp|$(R8)| ! initial conditions
-matinv|$(R8)| mxkprf|$(R8)| mxlayr|$(R8)| ! mixing scheme
-momtum|$(R8)|                         ! momemtum Eqn.
-prtetc|$(R8)|                         ! print routines, etc.
-reflux|$(R8)|                         ! flux conversion
-sigetc|$(R8)|                         ! eqn.of state, etc.
-thermf|$(R8)|                         ! thermal forcing
-trcadv|$(R8)|                         ! tracer advection
-tsadvc|$(R8)| advem|$(R8)|              ! advecting t/s
+hycom_arrays|-r8| hycom_dim|-r8| kprf_arrays|-r8|
+kprf_arrays_loc_renamer|-r8| hycom_atm|-r8|
+hycom_arrays_glob|-r8| hycom_arrays_glob_renamer|-r8|
+hycom_scalars|-r8| hycom_dim_glob|-r8|
+hycom |-r8| OCEAN_hycom|-r8|        ! ocean model - driver
+advfct|-r8|                         ! advection
+archyb|-r8|                         ! archiving in netcdf
+barotp|-r8|                         ! barotropic eqn.
+bigrid|-r8|                         ! basin grid
+blkprf|-r8|                         ! block data
+cdf_io|-r8|                         ! netcdf utility
+cnuity|-r8|                         ! continuity eqn.
+convec|-r8|                         ! convection
+cpler |-r8|                         ! coupler
+diapfx|-r8|                         ! diapycnal diffusion
+dpthuv|-r8| dpudpv|-r8|             ! off-center depth
+eice  |-r8|                         ! ice forming
+geopar|-r8|                         ! geography related parameters
+hybgn1|-r8|                         ! grid generator
+inicon|-r8| inigis|-r8| inikpp|-r8| ! initial conditions
+matinv|-r8| mxkprf|-r8| mxlayr|-r8| ! mixing scheme
+momtum|-r8|                         ! momemtum Eqn.
+prtetc|-r8|                         ! print routines, etc.
+reflux_pr|-r8| reflux_th|-r8|       ! flux conversion
+sigetc|-r8|                         ! eqn.of state, etc.
+thermf|-r8|                         ! thermal forcing
+trcadv|-r8|                         ! tracer advection
+tsadvc|-r8| advem|-r8|              ! advecting t/s

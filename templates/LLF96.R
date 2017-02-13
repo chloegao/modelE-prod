@@ -73,7 +73,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 ! O3file=jan2012_o3_shindell_144x90x49x12_1850-2010_ple.nc
 O3file=O3/o3_shindell_144x90x53x12_E6TomaF40clim_c12_2000_ple.nc 
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 

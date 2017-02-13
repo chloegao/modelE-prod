@@ -592,7 +592,7 @@ c
       J_H2OCH4 = k               !                                 1 GP
       name_j(k) = 'h2o_from_ch4'
       lname_j(k) = 'WATER DERIVED FROM CH4 OXIDATION IN STRATOSPHERE'
-      units_j(k) = '10^6 mm/day'
+      units_j(k) = '10^-6 mm/day'
       stitle_j(k)= ' H2O BY CH4(x1M)'
       scale_j(k) = 2d6
       ia_j(k) = ia_12hr
@@ -2457,6 +2457,14 @@ c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
 !**** Vertical Mass Fluxes
+      k=k+1
+      IJ_H2OCH4 = k  !  1 GP
+      lname_ij(k) = 'WATER DERIVED FROM CH4 OXIDATION IN STRATOSPHERE'
+      units_ij(k) = '10^-6 mm/day'
+      name_ij(k)  = 'H2O_from_CH4'
+      ia_ij(k)    = ia_12hr  !  accumulated daily, 2* in scale
+      scale_ij(k) = 2d6      
+!
       k=k+1 !
       IJ_PREC = k ! PREC (mm/day)       1 CN
       lname_ij(k) = 'PRECIPITATION'
@@ -4310,10 +4318,10 @@ c
       k=k+1
       IJ_MWLir = k
       lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
-      units_ij(k) = 'kg'
+      units_ij(k) = 'kg/s'
       name_ij(k) = 'mwl_irrigate'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
+      scale_ij(k) = 1 / DTSRC
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0
 #endif

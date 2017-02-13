@@ -113,7 +113,7 @@ ISCCP=ISCCP.tautables
 #include "rad_72x46_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 soil_textures=soil_textures_top30cm
 SOILCARB_global=soilcarb_top30cm_4x5.nc

@@ -40,6 +40,7 @@ c
      .,th3av_loc => th3av, dpav_loc =>  dpav
      .,pbavav_loc => pbavav,sfhtav_loc => sfhtav
      .,uflxav_loc => uflxav,vflxav_loc => vflxav
+     .,ufxavp_loc => ufxavp,vfxavp_loc => vfxavp
      .,diaflx_loc => diaflx
      .,salflav_loc => salflav,brineav_loc => brineav
      .,eminpav_loc => eminpav
@@ -83,7 +84,7 @@ c    .,covice_loc => covice
 c    .,temice_loc => temice
 c    .,odhsi_loc => odhsi
      .,odmsi_loc => odmsi
-CTNL .,omlhc_loc => omlhc
+     .,omlhc_loc => omlhc
      .,dmfz_loc => dmfz
 c
      &,klist_loc => klist
@@ -167,6 +168,8 @@ c
       public sfhtav_loc
       public uflxav_loc
       public vflxav_loc
+      public ufxavp_loc
+      public vfxavp_loc
       public diaflx_loc
       public salflav_loc
       public brineav_loc
@@ -223,7 +226,7 @@ c
       public surflx_loc
       public salflx_loc
       public odmsi_loc
-CTNL  public omlhc_loc
+      public omlhc_loc
       public dmfz_loc
       public taux_loc
       public tauy_loc

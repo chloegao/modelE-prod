@@ -1,6 +1,6 @@
-!@sum  NASA GISS Land Surface Model (LSM) - module sle001
+!@sum  TerraE Global Land Model ("TerraE") - module sle001
 !@sum  See end of file for development history (1988 - 2009)
-!@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M. Puma
+!@auth I. Aleinov, F. Abramopoulos, C. Rosenzweig, M.J. Puma
 !-----------------------------------------------------------------------
 
 #include "rundeck_opts.h"
@@ -534,21 +534,21 @@ c**** soils28   common block     9/25/90
       real*8, dimension(4,imt-1), parameter :: a=reshape(
      &     (/                   ! matric potential coefficients for
      &     .2514d0,  0.0136d0, -2.8319d0,  0.5958d0, ! sand
-     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0, ! loam
+     &     .1481d0,  1.8726d0,  0.1025d0, -3.6416d0, ! silt
      &     .2484d0,  2.4842d0,  0.4583d0, -3.9470d0, ! clay
      &     .8781d0, -5.1816d0, 13.2385d0,-11.9501d0/), ! peat
      &     (/4,imt-1/))
       real*8, dimension(4,imt-1), parameter :: b=reshape(
      &     (/                   ! conductivity coefficients for
      &     -0.4910d0, -9.8945d0,  9.7976d0, -3.2211d0, ! sand
-     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0, ! loam
+     &     -0.3238d0,-12.9013d0,  3.4247d0,  4.4929d0, ! silt
      &     -0.5187d0,-13.4246d0,  2.8899d0,  5.0642d0, ! clay
      &     -3.0848d0,  9.5497d0,-26.2868d0, 16.6930d0/), ! peat
      &     (/4,imt-1/))
       real*8, dimension(4,imt-1), parameter :: p=reshape(
      &     (/                   ! diffusivity coefficients for
      &     -0.1800d0, -7.9999d0,  5.5685d0, -1.8868d0, ! sand
-     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0, ! loam
+     &     -0.1000d0,-10.0085d0,  3.6752d0,  1.2304d0, ! silt
      &     -0.1951d0, -9.7055d0,  2.7418d0,  2.0054d0, ! clay
      &     -2.1220d0,  5.9983d0,-16.9824d0,  8.7615d0/), ! peat
      &     (/4,imt-1/))
@@ -3121,7 +3121,7 @@ c**** more outw outputs
      *     0pf10.4)
 1030  format(' ',5x,'theta',3x,'tp',2x,'fice',4x,'runoff'
      & ,8x,'fl',9x,'h',8x,'xk',6x,'w',5x,'ws',8x,
-     & 'shc',8x,'fh',8x,'ht',1x,'sand',1x,'loam',1x,'clay',1x,'peat')
+     & 'shc',8x,'fh',8x,'ht',1x,'sand',1x,'silt',1x,'clay',1x,'peat')
 1031  format(' ',5x,5x,2x,'(c)',2x,6x,'1e-6ms-1',2x,'1e-6ms-1',
      &     3x,'      m',2x,'1e-6ms-1',1x,'     m',1x,'     m',
      &     1x,'1e6jm-3c-1',4x,'  wm-2',3x,'1e6jm-2',4x,'%',4x,'%',4x,'%'
@@ -4251,7 +4251,7 @@ c**** changes soil crusting parameter ku/d from .05 per hour to .1d0,
 c**** to agree with morin et al.
 c**** soils36 11/12/92
 c**** calculates heat conductivity of soils using devries method.
-c**** changes loam material heat capacity and conductivity
+c**** changes silt material heat capacity and conductivity
 c**** to mineral values.
 c**** soils35 10/27/92
 c**** includes effect of soil crusting for infiltration by

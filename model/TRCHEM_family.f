@@ -26,12 +26,20 @@ C**** Local parameters and variables and arguments:
       real*8                :: az, bz, P1
 
       do L=1,Lmax
+c       P1 = [O3]/[Ox] 
+c       P2=[O]/[Ox] 
+c       P3 = [O1D]/[Ox] 
+c       bz = [O1D]/[O3] = P3/P1
+c       az = [O]/[O3] = P2/P1
+c       P1+P2+P3=1 (total Ox = sum of parts) = P1+P1az+P1bz; so P1 = 1/(1+az+bz)
+c
 c       for concentration of O(1D):
         bz=ss(rj%O3__O1D_O2,L,I,J)
      &    /(rr(rrbi%O1D_O2__O_O2,L)*y(nO2,L)
      &      +rr(rrbi%O1D_M__O_M,L)*y(nM,L)
      &      +rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
-     &      +rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L))
+     &      +rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
+     &      +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nn_CH4,L))
         ! here we USED TO tune bz with a pressure criterion
 c       for concentration of O:
         if (y(nO2,L) > 0.d0) then
@@ -244,7 +252,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +2.d0*ss(rj%HCHO__CO_HO2,L,I,J)*y(nn_HCHO,L)
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
-     &      +0.66d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
+     &      +2.d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
+     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)
      &    )*y(nCH3O2,L)
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O2 path:
@@ -255,7 +264,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0
+     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*0.94d0
      &      +rr(rrbi%ROR_M__HO2_M,L))*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
      &      *0.65d0
@@ -354,6 +363,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nCl,L)*y(nH2,L)
      &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
      &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
+     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)*y(nCH3O2,L)
      
         ! water vapor photolysis in SRBs:
         if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
@@ -536,7 +546,6 @@ c calculating Cl amount, otherwise ignore:
      &    )/y(nn_ClOx,L)
         G=rr(rrbi%ClO_OH__HCl_O2,L)*y(nOH,L)
      &    +rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nHO2,L)
-     &    +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nBrO,L)
      &    +2.d0*rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)
      &    +rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)
         Q=rr(rrbi%OClO_OH__HOCl_O2,L)*y(nOH,L)
@@ -660,7 +669,6 @@ C**** Local parameters and variables and arguments:
      &    +y(nOH,L)*rr(rrbi%BrO_OH__Br_HO2,L)
      &    +ss(rj%BrO__Br_O,L,i,j)
         c=rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nHO2,L)
-     &    +rr(rrbi%O1D_CH4__HCHO_H2,L)*y(nClO,L)
      &    +rr(rrbi%BrO_OH__HBr_O2,L)*y(nOH,L)
      &    +rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L)    
         d=rr(rrbi%Br_HO2__HBr_O2,L)*y(nHO2,L)

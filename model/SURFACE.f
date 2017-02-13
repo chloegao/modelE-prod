@@ -743,8 +743,9 @@ C**** Limit evaporation if lake mass is at minimum
      &     moddsf,ptype,pocean,rsi(i,j),rhosrf,tgo,dtsurf,pbl_args)
 #else
 #ifdef TRACERS_ON
-      if (gasex_index%getsize()>0)
-     &                call stop_model('gas exchange code missing', 255)
+!      if (gasex_index%getsize()>0)
+!     &                call stop_model('gas exchange code missing', 255)
+! do nothing
 #endif
 #endif
 
@@ -1266,6 +1267,12 @@ C
      &      + atmlnd%SNOWE(i,j)*fearth(i,j)  )
          enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('evap')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = -dtsurf*qflux1(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d) 
 C
 C
       end select

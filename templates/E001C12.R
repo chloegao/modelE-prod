@@ -91,7 +91,7 @@ ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_8x10.ij.nc
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E001C12 (modelE1 (3.0) 8x10)

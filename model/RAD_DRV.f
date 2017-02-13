@@ -76,7 +76,8 @@ C****
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
-     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day
+     *     ,aero_yr,dust_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
@@ -87,6 +88,7 @@ C****
      *     ,ntrix_aod,ntrix_rf,wttr
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef TRACERS_ON
      *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,ttausv_as,ttausv_cs
 #ifdef CACHED_SUBDD
@@ -284,6 +286,7 @@ C**** sync radiation parameters from input
         if (volc_yr==0) volc_day=0 ! else use default value
       endif
       call get_param( "aero_yr", aero_yr, default=master_yr )
+      call get_param( "dust_yr", dust_yr, default=master_yr )
       call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
       call get_param( "albsn_yr", albsn_yr, default=master_yr )
@@ -461,6 +464,12 @@ C**** sync radiation parameters from input
         call cosz_init
       endif
 
+      call sync_param("chl_from_obio", chl_from_obio)
+      call sync_param("chl_from_seawifs", chl_from_seawifs)
+      if ( chl_from_obio>0 .and. chl_from_seawifs>0 ) then
+        call stop_model("Make your mind which chl to use",255)
+      endif
+
       if(istart==2) then ! replace with cold vs warm start logic
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
         DO J=J_0,J_1
@@ -509,6 +518,8 @@ C****                                         even if the year is fixed
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
       if(file_exists('TAero_SSA')) MADAER=3   ! one of the TAero_XXX set
+      KYEARD=Dust_yr
+      if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
 #ifdef TRACERS_VOLCEXP
@@ -1166,9 +1177,8 @@ c          call par_close(grid,fid)
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-     *     ,snoage,snoage_def
+     *     ,snoage,snoage_def,chl_from_seawifs
       use DIAG_COM, only : iwrite,jwrite,itwrite,tdiurn
-      use runtimecontrols_mod, only: chl_from_seawifs
       use geom, only : imaxj
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1236,7 +1246,7 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
-      if (chl_from_seawifs) call get_chl_from_seawifs
+      if (chl_from_seawifs>0) call get_chl_from_seawifs
 
       if (end_of_day) then
 
@@ -1431,6 +1441,7 @@ C**** Update orbital parameters at start of year
       RETURN
       END SUBROUTINE DAILY_orbit
 
+
       SUBROUTINE DAILY_ch4ox(end_of_day)
 !@sum  DAILY performs daily tasks at end-of-day and maybe at (re)starts
 !@vers 2013/03/27
@@ -1448,8 +1459,8 @@ C**** Update orbital parameters at start of year
       use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
       USE TRACER_COM, only: trm,NTM
 #endif
-      USE DIAG_COM, only : ftype,ntype
-      USE DIAG_COM_RAD, only : j_h2och4
+      USE DIAG_COM, only : ftype,ntype, aij=>aij_loc
+      USE DIAG_COM_RAD, only : j_h2och4, ij_h2och4
       USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, am_I_root
       IMPLICIT NONE
       REAL*8 :: xCH4,xdH2O
@@ -1508,6 +1519,7 @@ C**** Add water to relevant tracers as well
           do it=1,ntype
             call inc_aj(i,j,it,j_h2och4,xCH4*xdH2O*ftype(it,i,j))
           end do
+          aij(i,j,ij_h2och4) = aij(i,j,ij_h2och4) + xCH4 * xdH2O
         end do
         end do
         If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
@@ -1588,6 +1600,7 @@ C     OUTPUT DATA
      *     ,cdncl,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef mjo_subdd
      *     ,SWHR,LWHR,SWHR_cnt,LWHR_cnt,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -1760,6 +1773,7 @@ C     for GCM grid but currently limited to SCM use
 #endif  /* TRACERS_ON */
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
 !@+   radiative forcing calculations. TOA only.
 !@+   index 1=CH4, 2=N2O, 3=CFC11, 4=CFC12.
@@ -1770,6 +1784,7 @@ C     for GCM grid but currently limited to SCM use
       integer :: nf,GFrefY,GFrefD,GFnowY,GFnowD
 !@var nfghg fulgas( ) index of radf diag ghgs:
       integer, dimension(4) :: nfghg=(/7,6,8,9/)
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
 C  GHG Effective forcing relative to 1850
@@ -2069,6 +2084,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       end if                    ! kradia le 0
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! because of additional updghg calls, these factors won''t apply:
       if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
       if(N2OX.ne.1.)  call stop_model('N2Ox.ne.1 accmip diags',255)
@@ -2084,6 +2100,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
       sv_fulgas_now(1:4)=fulgas(nfghg(1:4))
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
       FCO2=FULGAS(2)*CO2R
@@ -2169,11 +2186,16 @@ c           ICKERR=ICKERR+1
 
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
+        if( (chl_from_seawifs>0 .or. chl_from_obio>0)
+     &       .and. atmocn%chl_defined ) then
           LOC_CHL = atmocn%chl(I,J)
           if (ij_chl.gt.0)
      .       AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
+        else
+          LOC_CHL = -1.d30
+        endif
       endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
@@ -2708,6 +2730,7 @@ C**** Ozone:
         chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)  ! Ozone
         chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM  ! Methane
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
 ! Initial calls are reference year/day:
         do nf=1,4
@@ -2723,6 +2746,7 @@ C**** Ozone:
           TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
           fulgas(nfghg(nf))=sv_fulgas_now(nf)
         enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
       end if ! moddrf=0
@@ -3649,6 +3673,7 @@ c longwave forcing at TOA
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
          do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
 c shortwave GHG forcing at TOA
            if(ij_fcghg(1,nf).gt.0)aij(i,j,ij_fcghg(1,nf))=
@@ -3658,6 +3683,7 @@ c longwave GHG forcing at TOA
            if(ij_fcghg(2,nf).gt.0)aij(i,j,ij_fcghg(2,nf))=
      &     aij(i,j,ij_fcghg(2,nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
          enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD

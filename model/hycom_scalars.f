@@ -47,10 +47,12 @@ c --- 'acurcy' = permissible roundoff error in column integral calc.
 c --- 'nhr   ' = coupling freq. in hours
 c
       dimension theta(kdm),salmin(kdm),dplist(kdm)
+      real, dimension(kdm) :: pr1d
       real, public ::
      &     theta,thbase,baclin,batrop,veldff,temdff,viscos,
      &     vertmx,h1,slip,cbar,diagfq,wuv1,wuv2,wts1,wts2,dplist,
      &     acurcy, wbaro,thkmin,thkbot,botmin,ekman,sigjmp,salmin
+      public pr1d, init_pr1d
 c
       integer, public ::       trcfrq,ntracr,nhr,mixfrq
 c
@@ -274,5 +276,19 @@ c --- 1 = true, 0 = false
       integer, public :: bolus_biharm_constant=0
       integer, public :: bolus_laplc_constant =1
       integer, public :: bolus_laplc_exponential=0
+
+      contains
+
+      subroutine init_pr1d
+      integer :: k
+#ifdef HYCOM26layers
+! 200 m step from 0 to 5000m:
+      pr1d(:)=(/(5000.*float(k-1)/float(kdm-1)* onem,k=1,kdm)/) ! isobaric depth levels
+#endif
+#ifdef HYCOM32layers
+! 160 m step from 0 to 4960 meters (31 layers) plus last layer from 4960 until bottom
+      pr1d(:)=(/(4960.*float(k-1)/float(kdm-1)* onem,k=1,kdm)/) ! isobaric depth levels
+#endif
+      end subroutine init_pr1d
 
       end module HYCOM_SCALARS

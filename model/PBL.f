@@ -1035,7 +1035,10 @@ ccc dust emission from earth
      .          pbl_args%beta_gas(ngx),trsf,trcnst,ilong,jlat)
 #endif                         
 #else
-            call stop_model('gas exchange code missing', 255)
+            !call stop_model('gas exchange code missing', 255)
+            ! no ocean gas exchange code - assuming trivial BCs
+            trsf = 0.d0
+            trcnst = 0.d0
 #endif                         
 
 !     write(*,'(a,2i5,4e12.4,i5,7e12.4)')'PBL:', 
