@@ -5028,14 +5028,9 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       use OldTracer_mod, only: trsi0, needtrs
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, trm, trmom, rnsrc, tracers
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      USE TRACER_COM, only:
-     *     OFFLINE_DMS_SS,OFFLINE_SS
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only:
      *     n_ASO4,n_AOCOB,n_ASO4,n_ANUM,xk,nbins
-#endif
 #endif
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trw0, tr_wd_type, nWATER
@@ -6090,29 +6085,13 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c read in DMS source
-      if (OFFLINE_DMS_SS.ne.1) then !initialize interactive DMS (non-AeroCom)
       call openunit('DMS_SEA',iudms,.true.,.true.)
-        DMSinput(:,:,:)= 0.d0
-       do mm=1,12
-       call readt_parallel(grid,iudms,nameunit(iudms),
-     *                     DMSinput(:,:,mm),0)
-       end do
-       call closeunit(iudms)
-      else  ! AEROCOM DMS
-c these netcdf reads are still latlon-specific.
-c will call read_dist_data for cubed sphere compatibility
-        status=NF_OPEN('DMS_FLUX',NCNOWRIT,ncidu)
-        status=NF_INQ_VARID(ncidu,'dms',id1)
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=366
-        status=NF_GET_VARA_REAL(ncidu,id1,start,count,DMS_AER_nohalo)
-        status=NF_CLOSE(ncidu)
-        DMS_AER(I_0:I_1,J_0:J_1,:) = DMS_AER_nohalo(I_0:I_1,J_0:J_1,:)
-      endif
+      DMSinput(:,:,:)= 0.d0
+      do mm=1,12
+        call readt_parallel(grid,iudms,nameunit(iudms),
+     *                      DMSinput(:,:,mm),0)
+      end do
+      call closeunit(iudms)
  901  FORMAT(3X,3(I4),E11.3)
 
 c read in SO2 emissions
@@ -6167,36 +6146,6 @@ c NOTE: the input file specifies integrals over its gridboxes.
       deallocate(volc_lats, volc_pup, volc_emiss)
 #endif
       deallocate(psref)
-#endif
-#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-c read in DMS source
-c read in AEROCOM seasalt
-      if (OFFLINE_DMS_SS.eq.1.or.OFFLINE_SS.eq.1) then
-        status=NF_OPEN('SALT1',NCNOWRIT,ncidu)
-        status=NF_INQ_VARID(ncidu,'salt',id1)
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=366
-        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS1_AER_nohalo)
-        status=NF_CLOSE(ncidu)
-        SS1_AER(I_0:I_1,J_0:J_1,:) = SS1_AER_nohalo(I_0:I_1,J_0:J_1,:)
-
-        status=NF_OPEN('SALT2',NCNOWRIT,ncidu)
-        status=NF_INQ_VARID(ncidu,'salt',id1)
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=366
-        status=NF_GET_VARA_REAL(ncidu,id1,start,count,SS2_AER_nohalo)
-        status=NF_CLOSE(ncidu)
-        SS2_AER(I_0:I_1,J_0:J_1,:) = SS2_AER_nohalo(I_0:I_1,J_0:J_1,:)
-      endif
 #endif
 ! ---------------------------------------------------
 #ifndef TRACERS_AEROSOLS_SOA

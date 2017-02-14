@@ -23,7 +23,6 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_tr_wd_TYPE
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: nGAS, nPart
-  use TRACER_COM, only: offline_dms_ss, offline_ss
   use TRACER_COM, only: xk, nbins
   use TRACER_COM, only: n_NH4, n_H2SO4
   use TRACER_COM, only: n_ASO4, n_ANACL, n_AECIL, n_AECOB, &
