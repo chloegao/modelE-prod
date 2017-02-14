@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 #ifdef ENT_STANDALONE_DIAG
 #define  DEBUG  1
 #endif
@@ -64,7 +66,7 @@
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
       use photcondmod, only : biophysdrv_setup, calc_Pspar, pspar
-      use respauto_physio, only : Rdark, water_stress3
+      use respauto_physio, only : Rdark, water_stress3, water_stress4
       use patches, only : patch_print
       use physutil, only:  QSAT
 
@@ -193,10 +195,16 @@
 !     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
 
+#ifdef ENT_WATER_STRESS_4
+          cop%stressH2O = water_stress4(cop%pft, N_DEPTH,
+     i          pp%cellptr%Soilmoist(:),
+     &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+#else
           !KIM - water_stress3 uses Soilmoist as a satured fraction
           cop%stressH2O = water_stress3(cop%pft, N_DEPTH,  
      i          pp%cellptr%Soilmoist(:), 
      &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+#endif
 !          if ((pfpar(cop%pft)%pst.eq.C4)
 !     &          .and.(cop%stressH2O.eq.0.d0)) then
 !                print *,'pft,stressH2O',cop%pft,cop%stressH2O
