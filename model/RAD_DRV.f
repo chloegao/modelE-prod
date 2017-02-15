@@ -90,9 +90,9 @@ C****
      *     ,radiationSetOrbit
      *     ,chl_from_obio,chl_from_seawifs
 #ifdef TRACERS_ON
-     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,ttausv_as,ttausv_cs
+     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,tau_as,tau_cs
 #ifdef CACHED_SUBDD
-     *     ,tabssv_as,tabssv_cs,swfrc,lwfrc
+     *     ,abstau_as,abstau_cs,swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
@@ -640,18 +640,18 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
         allocate(wttr(nraero_aod))  ; wttr=1.
 
-        if (.not.allocated(ttausv_as)) then
-          allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          ttausv_as = 0.d0
-          ttausv_cs = 0.d0
+        if (.not.allocated(tau_as)) then
+          allocate(tau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(tau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          tau_as = 0.d0
+          tau_cs = 0.d0
 #ifdef CACHED_SUBDD
-          allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
           allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
-          tabssv_as = 0.d0
-          tabssv_cs = 0.d0
+          abstau_as = 0.d0
+          abstau_cs = 0.d0
           swfrc = 0.d0
           lwfrc = 0.d0
 #endif  /* CACHED_SUBDD */
@@ -1586,7 +1586,7 @@ C     OUTPUT DATA
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
-     &          ,BTEMPW ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
+     &          ,BTEMPW ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
      &          ,SRXNIR,SRDNIR
@@ -1615,10 +1615,10 @@ C     OUTPUT DATA
      &     ,stratO3_tracer_save
 #endif
 #ifdef TRACERS_ON
-      use rad_com, only: ttausv_as,ttausv_cs,nraero_rf
+      use rad_com, only: tau_as,tau_cs,nraero_rf
 #ifdef CACHED_SUBDD
       USE CONSTANT, only : grav,Rgas 
-      use rad_com, only: tabssv_as,tabssv_cs,swfrc,lwfrc
+      use rad_com, only: abstau_as,abstau_cs,swfrc,lwfrc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 #endif  /* CACHED_SUBDD */
 #endif
@@ -1678,10 +1678,11 @@ C     OUTPUT DATA
       use TRACERS_VBS, only: vbs_tr
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
-     *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijlt_3daaod
+     *     ,ijts_tau,ijts_tausub,ijts_fcsub
+     *     ,ijlt_3dtau,ijlt_3daaod,ijlt_3dtauCS,ijlt_3daaodCS
      *     ,ijts_sqex
      *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
-     *     ,diag_rad
+     *     ,diag_rad,diag_aod_3d
 #ifdef AUXILIARY_OX_RADF
      *     ,ijts_auxfc
 #endif /* AUXILIARY_OX_RADF */
@@ -2403,7 +2404,6 @@ C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
 #ifdef TRACERS_TOMAS
-      TTAUSV(:,:)=0.
       aesqex(:,:,:)=0.0
       aesqsc(:,:,:)=0.0
       aesqcb(:,:,:)=0.0
@@ -2441,7 +2441,7 @@ C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
       do n=1,nraero_aod
-          select case (trname(ntrix_aod(n)))
+        select case (trname(ntrix_aod(n)))
           case ("OCIA", "vbsAm2")
             TRACER(L,n)=(
 #ifdef TRACERS_AEROSOLS_VBS
@@ -2458,8 +2458,6 @@ C**** more than one tracer is lumped together for radiation purposes
            TRACER(L,n)=0.d0
 #else
            TRACER(L,n)=trm(i,j,l,n_OCB)*BYAXYP(I,J)
-           ! The only reason this is a special case is, following
-           ! how OCIA is done, it has no wttr factor like default does.
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
           case ("isopp1a")
@@ -2474,8 +2472,8 @@ C**** more than one tracer is lumped together for radiation purposes
           case default
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
-           select case (trname(ntrix_aod(n)))
-           case ("NO3p")
+          select case (trname(ntrix_aod(n)))
+          case ("NO3p")
             if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
@@ -2483,7 +2481,7 @@ C**** more than one tracer is lumped together for radiation purposes
               wttr(n)=(nh4_on_no3+trm(i,j,l,ntrix_aod(n)))/
      *                trm(i,j,l,ntrix_aod(n))
             endif
-           case ("SO4")
+          case ("SO4")
             if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
@@ -2491,10 +2489,10 @@ C**** more than one tracer is lumped together for radiation purposes
               wttr(n)=(trm(i,j,l,n_NH4)-nh4_on_no3+
      *                 trm(i,j,l,ntrix_aod(n)))/trm(i,j,l,ntrix_aod(n))
             endif
-           end select
-#endif
-           TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
           end select
+#endif
+          TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
+        end select
       end do
 #endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */
 
@@ -2875,26 +2873,38 @@ C**** Save optical depth diags
      &         ,'ClayIlHe','ClayKaHe','ClaySmHe','ClayCaHe'
      &         ,'ClayQuHe','ClayFeHe','ClayGyHe')
           nsub_ntrix(ntrix_aod(n)) = nsub_ntrix(ntrix_aod(n)) + 1
+
+! 3d aod
+          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+            if (ijlt_3Daaod(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Daaod(n))
+     *           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
+     *           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3Dtau(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(n))
+     *         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DtauCS(n))
+     *         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
+          endif ! 0<diag_aod_3d<4
+
+! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
             IF ( ijts_tausub(1,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
      &           )taijs(i,j,ijts_tausub(1,ntrix_aod(n)
      &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(1
      &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
-     &            SUM(ttausv(1:Lm,n))
+     &            SUM(aesqex(1:Lm,6,n))
             IF ( ijts_tausub(2,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
      &           )taijs(i,j,ijts_tausub(2,ntrix_aod(n)
      &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(2
      &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
-     &            SUM(ttausv(1:Lm,n)) * OPNSKY
-          END IF
-          if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
-     *         taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
-     *         =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
-     *          (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-          if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
-     *         taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
-     *       =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
-          IF (diag_rad == 1) THEN
+     &            SUM(aesqex(1:Lm,6,n)) * OPNSKY
+          ELSE
             DO kr=1,6
               IF ( ijts_sqexsub(1,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n))) > 0 ) taijs(i,j
@@ -2940,23 +2950,35 @@ C**** Save optical depth diags
           END IF
         CASE DEFAULT
 
+! 3d aod
+          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+            if (ijlt_3Daaod(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(n))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
+     &           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3Dtau(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(n))
+     &         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DtauCS(n))
+     &         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
+          endif ! 0<diag_aod_3d<4
+
+! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
             if (ijts_tau(1,ntrix_aod(n)).gt.0)
      &           taijs(i,j,ijts_tau(1,ntrix_aod(n)))
-     &         =taijs(i,j,ijts_tau(1,ntrix_aod(n)))+SUM(TTAUSV(1:lm,n))
+     &         =taijs(i,j,ijts_tau(1,ntrix_aod(n)))+
+     &          SUM(aesqex(1:lm,6,n))
             if (ijts_tau(2,ntrix_aod(n)).gt.0)
      &           taijs(i,j,ijts_tau(2,ntrix_aod(n)))
      &           =taijs(i,j,ijts_tau(2,ntrix_aod(n)))
-     &           +SUM(TTAUSV(1:lm,n))*OPNSKY
-          END IF
-            if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
-     &           =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
-     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
-     &         =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
-            IF (diag_rad == 1) THEN
+     &           +SUM(aesqex(1:lm,6,n))*OPNSKY
+          ELSE
             DO kr=1,6
 c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
               IF (ijts_sqex(1,kr,ntrix_aod(n)) > 0)
@@ -3004,22 +3026,21 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             +qcb_col(kr,n)
      &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #endif
-            END DO
-          END IF
-        END SELECT
+            END DO ! kr
+          END IF ! diag_rad
+        END SELECT ! clay or not
       end do ! nraero_aod
 
 #endif
 
 #ifdef TRACERS_ON
       if (nraero_aod>0) then
-        ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
-        ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*
-     &                                   OPNSKY
+        tau_as(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)
+        tau_cs(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)*OPNSKY
 #ifdef CACHED_SUBDD
-        tabssv_as(i,j,1:LM,1:nraero_aod)=
+        abstau_as(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
-        tabssv_cs(i,j,1:LM,1:nraero_aod)=
+        abstau_cs(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*
      &    OPNSKY
 #endif  /* CACHED_SUBDD */
@@ -3874,13 +3895,13 @@ C****
       do a=1,size(sabs)
         select case (trim(ssky(s))//trim(sabs(a)))
           case ('as')
-            sddarr4d=ttausv_as
+            sddarr4d=tau_as
           case ('cs')
-            sddarr4d=ttausv_cs
+            sddarr4d=tau_cs
           case ('asa')
-            sddarr4d=tabssv_as
+            sddarr4d=abstau_as
           case ('csa')
-            sddarr4d=tabssv_cs
+            sddarr4d=abstau_cs
           case default
             cycle ! not implemented, silently ignore
         end select

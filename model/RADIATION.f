@@ -194,7 +194,6 @@ C--------------------------------------------------------
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var chem_out column variable for exporting radiation code quantities
 !@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
-!@var TTAUSV saves special aerosol optical thickness for diagnostic
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
@@ -214,8 +213,7 @@ C--------------------------------------------------------
 !sl   REAL*8 FTAUSL(33),TAUSL(33)             ! surf.layer input data
 !nu  K      ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV  !nu = not (yet) used
 !sl  K      ,TRSLTS,TRSLTG,TRSLBS
-      REAL*8 TTAUSV(LX,ITRMAX),aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),
-     &     aesqcb(lx,6,itrmax)
+      REAL*8 aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),aesqcb(lx,6,itrmax)
       INTEGER :: LBOTCL,LTOPCL
 
 C----------------   scratch pad for temporary arrays that are passed to
@@ -3051,7 +3049,6 @@ C     ------------------------------------------------------------------
           SRBGCB(L,K)=SRBGQL/(SRBSCT(L,K)+1.D-10)
         END DO
       END IF
-      TTAUSV(L,NT)=SRTQEX(6,NRHNAN(L,NA),NT)*RHFTAU
       aesqex(L,:,nt)=srtqex(:,nrhnan(L,na),nt)*rhftau           ! 1:6
       aesqsc(L,:,nt)=srtqsc(:,nrhnan(L,na),nt)*rhftau
       aesqcb(L,:,nt)=srtqcb(:,nrhnan(L,na),nt)*aesqsc(L,:,nt)

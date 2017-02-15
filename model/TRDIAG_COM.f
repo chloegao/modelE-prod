@@ -114,6 +114,9 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       INTEGER,PARAMETER :: MaxSpec=3
 !@dbparam diag_rad switches on/off comprehensive radiative diags for tracers
       INTEGER :: diag_rad=0 ! =off (default)
+!@dbparam diag_aod_3d outputs 3d aod and aaod (band6) for all-sky (=1),
+!@+       clear-sky(=2), or both (=3).
+      INTEGER :: diag_aod_3d=0 ! =off (default)
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
@@ -201,7 +204,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=72
+      INTEGER, PARAMETER :: ktaijl=104
 #ifdef ACCMIP_LIKE_DIAGS 
      &                            + 17
 #endif
@@ -290,10 +293,14 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_AMPm tracer independent array for AMP modes
       integer, allocatable :: ijlt_AMPm(:,:)
 #endif 
-!@var ijlt_3Dtau 3D tracer independent array for hydrated opt. thick.
+!@var ijlt_3Dtau 3D tracer independent array for all-sky hydrated opt. thick.
       integer, allocatable :: ijlt_3Dtau(:)
-!@var ijlt_3Daaod 3D tracer independent array for hydrated absorption
+!@var ijlt_3DtauCS 3D tracer independent array for clear-sky hydrated opt. thick.
+      integer, allocatable :: ijlt_3DtauCS(:)
+!@var ijlt_3Daaod 3D tracer independent array for all-sky hydrated absorption
       INTEGER, allocatable :: ijlt_3Daaod(:)
+!@var ijlt_3DaaodCS 3D tracer independent array for clear-sky hydrated absorption
+      INTEGER, allocatable :: ijlt_3DaaodCS(:)
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
 !@var ijlt_3Dmass 3D tracer independent array for layer MASS (or load)
       INTEGER, allocatable :: ijlt_3Dmass(:)
@@ -1499,10 +1506,6 @@ C*** Unpack read global data into local distributed arrays
       allocate(ijlt_AMPm(2,ntm))
       ijlt_AMPm = 0
 #endif 
-      allocate(ijlt_3Dtau(ntm))
-      ijlt_3Dtau = 0
-      allocate(ijlt_3Daaod(ntm))
-      ijlt_3Daaod = 0
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
       allocate(ijlt_3Dmass(ntm))
       ijlt_3Dmass = 0

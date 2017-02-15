@@ -470,7 +470,7 @@ c want kg DMS/m2/s
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE GEOM, only: axyp
       use OldTracer_mod, only: tr_mm
-      USE TRACER_COM, only: n_DMS,OFFLINE_DMS_SS
+      USE TRACER_COM, only: n_DMS
       use resolution, only: lm
       use model_com, only: modelEclock
       USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
@@ -496,7 +496,6 @@ c want kg DMS/m2/s
 
       DMS_flux=0.d0
         erate=0.d0
-        if (OFFLINE_DMS_SS.ne.1) then
         if (itype.eq.1) then
 c       if (lm.lt.40) then 
 #ifndef old_DMS_emis
@@ -544,16 +543,6 @@ c       endif  !swind
 c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday !not sure of units
 c       endif ! lm
         endif !itype
-        else !AEROCOM run, prescribed flux
-c if after Feb 28 skip the leapyear day
-         jread=modelEclock%getDayOfYear()
-         if (modelEclock%getDayOfYear().gt.59) 
-     *        jread=modelEclock%getDayOfYear()+1
-c         if (j.eq.1.or.j.eq.46) DMS_AER(i,j,jread)
-c     *      =DMS_AER(i,j,jread)*72.d0
-         erate=DMS_AER(i,j,jread)/SECONDS_PER_DAY/axyp(i,j)*
-     &         tr_mm(n_DMS)/32.d0
-        endif
         DMS_flux=erate          ! units are kg/m2/s
 c
       return

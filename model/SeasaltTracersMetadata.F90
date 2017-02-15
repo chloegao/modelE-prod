@@ -14,7 +14,6 @@ module SeasaltTracersMetadata_mod
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
   use TRACER_COM, only:  n_seasalt1,  n_seasalt2
-  use TRACER_COM, only: offline_dms_ss, offline_ss
   use Tracer_mod, only: Tracer
 
   implicit none
@@ -62,9 +61,7 @@ module SeasaltTracersMetadata_mod
       call set_tr_mm(n, 75.d0)  !Na x 3.256
       call set_trpdens(n, 2.2d3) !kg/m3 This is for non-hydrated
       call set_trradius(n, 5.0d-6) ! This is non-hydrated
-      if (OFFLINE_DMS_SS.ne.1 .and. OFFLINE_SS.ne.1) then
-        call set_trradius(n, 1.7d-6 ) ! This is non-hydrated
-      end if
+      call set_trradius(n, 1.7d-6 ) ! This is non-hydrated
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
       call set_pm2p5fact(n, 0.5d0) ! fraction that's PM2.5

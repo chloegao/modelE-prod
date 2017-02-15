@@ -32,7 +32,7 @@ c -----------------------------------------------------------------
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       USE TRACER_COM,  only: TRM
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
 
       IMPLICIT NONE
       INTEGER, save:: Ifirstrad = 1
@@ -41,6 +41,7 @@ c -----------------------------------------------------------------
       REAL(8), INTENT(OUT) :: SCT(LM,6)       ! Single Scattering Albedo, SW
       REAL(8), INTENT(OUT) :: GCB(LM,6)       ! Asymmetry Factor, SW
       REAL(8), INTENT(OUT) :: TAB(LM,33)      ! Thermal absorption Cross section, LW
+      REAL(8), DIMENSION(LM,NMODES) :: TTAUSV
 
       ! Local
       
