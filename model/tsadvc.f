@@ -25,8 +25,7 @@ c
       real smin,smax,tmin,tmax,sminn,smaxx,tminn,tmaxx,posdef,flxdiv
      .    ,offset,factor,q,pold,pmid,pnew,snew,tnew,val
       real uflxn(idm,J_0H:J_1H,kdm),vflxn(idm,J_0H:J_1H,kdm),
-     .     sign(idm,J_0H:J_1H,kdm),
-     .     pn(idm,J_0H:J_1H,kdm+1)
+     .     sign(idm,J_0H:J_1H,kdm),pn(idm,J_0H:J_1H,kdm+1)
 
       integer kp
       real sigocn,hfharm
@@ -268,11 +267,11 @@ c
 c --- convert mass fluxes to density coord. prior to time integration
 c
       call reflux_th(uflx(1,J_0H,1) ,vflx(1,J_0H,1) ,
-     .           th3d(1,J_0H,k1m),
-     .            p(1,J_0H,1),
-     .            uflxn(1,J_0H,1),vflxn(1,J_0H,1),
-     .            sign(1,J_0H,1),
-     .            pn(1,J_0H,1),theta,kdm,kdm)
+     .               th3d(1,J_0H,k1m),
+     .               p(1,J_0H,1),
+     .               uflxn(1,J_0H,1),vflxn(1,J_0H,1),
+     .               sign(1,J_0H,1),
+     .               pn(1,J_0H,1),theta,kdm,kdm)
 
 c --- activate this loop if -reflux- is   n o t   called
 ccc      do k=1,kk
@@ -283,7 +282,6 @@ ccc      vflxn(i,j,k)=vflx(i,j,k)
 ccc      end do
 ccc      end do
 ccc      end do
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       do 155 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
@@ -300,6 +298,31 @@ c
       vflxav(i,j,k)=vflxav(i,j,k)+vflxn(i,j,k)		!  vflx time integral
      .   *.5*min(nstep,2)
  155  continue
+c
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+c --- convert mass fluxes to pressure coord. prior to time integration
+c
+      call reflux_pr(uflx(1,J_0H,1) ,vflx(1,J_0H,1) ,
+     .               p(1,J_0H,1),
+     .               uflxn(1,J_0H,1),vflxn(1,J_0H,1),
+     .               pn(1,J_0H,1),kdm,kdm)
+c
+      do 153 j=J_0,J_1
+      ja = PERIODIC_INDEX(j-1, jj)
+      do 153 k=1,kk
+c
+      do 152 l=1,isu(j)
+      do 152 i=ifu(j,l),ilu(j,l)
+      ufxavp(i,j,k)=ufxavp(i,j,k)+uflxn(i,j,k)		!  uflx time integral
+     .   *.5*min(nstep,2)
+ 152  continue
+c
+      do 153 l=1,isv(j)
+      do 153 i=ifv(j,l),ilv(j,l)
+      vfxavp(i,j,k)=vfxavp(i,j,k)+vflxn(i,j,k)		!  vflx time integral
+     .   *.5*min(nstep,2)
+ 153  continue
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       return
       end
