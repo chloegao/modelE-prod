@@ -4,7 +4,6 @@ nonProduction_E_AR5_C12  = This is a coarse resolution of E_AR5_M20.
 This is for faster testing of code functionality, not scrutinized for "science" purposes.
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -32,7 +31,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_36x24_input_files"

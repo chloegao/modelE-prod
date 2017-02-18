@@ -12,7 +12,6 @@ filters: none
 
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
-#define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
@@ -77,7 +76,6 @@ dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 

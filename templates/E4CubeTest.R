@@ -18,7 +18,6 @@ Preprocessor Options
 #define BUNDLE_INTERP
 #define NEW_IO
 !#define CALC_GWDRAG                 ! need to make ZVAR for C32 res first
-#define USE_ENT                  ! include dynamic vegetation model
 #define SET_SOILCARBON_GLOBAL_TO_ZERO
 !#define ROUGHL_HACK ! no longer needed?
 
@@ -48,7 +47,6 @@ dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 FVCUBED = YES
 
 Data input files:

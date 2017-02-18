@@ -21,7 +21,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
-#define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 !  OFF #define TRACERS_DUST             ! include dust tracers
@@ -95,7 +94,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:

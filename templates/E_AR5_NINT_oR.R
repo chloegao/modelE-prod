@@ -17,7 +17,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define NEW_IO
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
@@ -49,7 +48,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
