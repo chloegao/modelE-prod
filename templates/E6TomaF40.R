@@ -139,7 +139,7 @@ FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 ! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
 !U00a=0.58  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 ! w/ VMP clouds (comment out when model is run w/o VMP clouds):
-U00a=0.62   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.63   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 use_vmp=1
