@@ -18,7 +18,6 @@ Preprocessor Options
 !#define TRACERS_GASEXCH_CO2_Igor
 !#define TRACERS_GASEXCH_Natassa
 !#define TRACERS_GASEXCH_CO2_Natassa
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -64,7 +63,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! start up from restart file of earlier run

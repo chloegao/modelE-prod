@@ -12,7 +12,6 @@ filters: none
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define HYCOM1deg                    ! 26 layer 1deg hycom (387x360)
 #define NEW_IO
 #define CALC_GWDRAG
@@ -39,7 +38,6 @@ CS_Support
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 

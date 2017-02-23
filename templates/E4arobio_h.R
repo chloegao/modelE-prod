@@ -16,7 +16,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define ATM2x2h                      ! 2x2.5 40 layer atm
@@ -57,7 +56,6 @@ tracers Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF             /* Parallel NETCDF */
 
 Data input files:

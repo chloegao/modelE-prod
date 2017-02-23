@@ -314,7 +314,6 @@ Ndisk=480
 Surface = RundeckSection( 
     name("Surface" ),
     components("giss_LSM"),
-    component_options("OPTS_giss_LSM = USE_ENT=YES"),
     obj_files_text("""
 SURFACE SURFACE_LANDICE FLUXES      ! surface calculation and fluxes
 GHY_COM GHY_DRV    ! + giss_LSM     ! land surface and soils + snow model

@@ -1,13 +1,12 @@
-NINT_oH2.R GISS Model E  coupled version
+NINT_oH2.R GISS Model E  coupled version modelE + hycom ocean
 
-N.Tausnev 11/08/2016
+N.Tausnev 02/16/2017
 ocean H with various different horizontal/vertical resolutions activated.
 This template should be considered temporary until the
 new template system has been finalized.
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
@@ -37,16 +36,14 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-!#include "dynamic_ocn_source_files_hycom"
 #include "hycom_source_files"
 
 Components:
-#include "E4_components_nc"    /* without "Ent" */
+#include "E4_components_nc"
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES                      /* needed for "Ent" only */
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -129,5 +126,5 @@ thkdff=.01
  &INPUTZ
  YEARI=1900,MONTHI=01,DATEI=01,HOURI=00, ! pick IYEAR1=YEARI (default) or < YEARI
  YEARE=1949,MONTHE=01,DATEE=01,HOURE=00,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1900,MONTHE=01,DATEE=01,HOURE=00,
+ ISTART=2,IRANDI=0, YEARE=1900,MONTHE=01,DATEE=02,HOURE=00,
 /

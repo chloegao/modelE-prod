@@ -7,7 +7,6 @@ This is for faster testing of tracer code, not scrutinized for "science" purpose
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 ! OFF  #define MODIS_LAI
@@ -86,7 +85,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:

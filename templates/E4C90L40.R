@@ -11,7 +11,6 @@ filters: none
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define NEW_IO
 #define CALC_GWDRAG
 #define SET_SOILCARBON_GLOBAL_TO_ZERO
@@ -37,7 +36,6 @@ CS_Support
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 

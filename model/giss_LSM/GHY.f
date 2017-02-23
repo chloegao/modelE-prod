@@ -9,8 +9,6 @@
 #undef TRACERS_WATER
 #endif
 
-!!!#ifdef USE_ENT
-
 #define EVAP_VEG_GROUND
 !#define EVAP_VEG_GROUND_NEW
 #define GHY_FD_1_HACK

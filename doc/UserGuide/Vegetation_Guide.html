@@ -26,7 +26,6 @@ Ent giss_LSM
 
 <H4>Component Options:</H4>
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB  PFT_MODEL=ENT
-<br>OPTS_giss_LSM = USE_ENT=YES
 <br><br>
 Description:<br>
 OPTS_Ent:  compile options for Ent physics modules in model/Ent/
@@ -34,7 +33,6 @@ OPTS_Ent:  compile options for Ent physics modules in model/Ent/
 <br>&nbsp;&nbsp;&nbsp;PFT_MODEL (ENT):  Ent 16 plant functional types are run.  If not set, the Matthews (1983) 8 biome types are still available, but the Ent 16 PFTs have current support.
 <br>
 OPTS_giss_LSM:  compile options for land hydrology physics modules in model/giss_LSM/
-<br>&nbsp;&nbsp;&nbsp;USE_ENT:  use Ent instead of previous F&K(2005) scheme. Ent will soon be the default.
 <br>
 <H4>INPUT_FILES required include all the ground hydrology boundary conditions required for any ModelE runs:</H4>
 TOPO - Fractions of ocean, lake, ground, ice, thicknesses, topography. GISS layer format.

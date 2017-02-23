@@ -19,7 +19,6 @@ Preprocessor Options
 ! #define TRACERS_COSMO
 #define TRACERS_SPECIAL_O18         ! include water isotope code
 #define NUDGE_ON
-#define USE_ENT
 End Preprocessor Options
  
 Run Options
@@ -70,7 +69,6 @@ tracers MPI_Support shared giss_LSM Ent solvers
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 
 Data input files:
