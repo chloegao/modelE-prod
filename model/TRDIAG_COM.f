@@ -204,7 +204,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=104
+      INTEGER, PARAMETER :: ktaijl=105
 #ifdef ACCMIP_LIKE_DIAGS 
      &                            + 17
 #endif
