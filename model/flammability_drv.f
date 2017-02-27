@@ -1,8 +1,5 @@
 #include "rundeck_opts.h"
 
-! Ent now is a default vegetation model
-#define USE_ENT
-
       module flammability_com    
 !@sum for routines to calculate flammability potential of surface 
 !@+   vegetation. Optionally also altering tracer biomass sources.
@@ -53,13 +50,11 @@
      &                                        i0fl,first_prec
       real*8, allocatable, dimension(:,:,:):: HRAfl
       integer :: maxHR_prec
-#ifdef USE_ENT
       real*8, allocatable, dimension(:,:,:):: DRAlai
       real*8, allocatable, dimension(:,:):: ravg_lai,PRSlai,iHlai,iDlai,
      &                                      i0lai,first_lai
       real*8, allocatable, dimension(:,:,:):: HRAlai
       integer :: maxHR_lai
-#endif /* USE_ENT */
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       real*8, allocatable, dimension(:,:) :: populationDensity,flamPopA,
      &                                       flamPopB
@@ -85,20 +80,18 @@
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
      & nday_prec,maxHR_prec,raP_acc
-#ifdef USE_ENT
       use flammability_com, only: 
      & first_lai,iHlai,iDlai,i0lai,DRAlai,ravg_lai,PRSlai,HRAlai,
      & nday_lai,maxHR_lai
-#endif /* USE_ENT */
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use flammability_com, only: populationDensity,flamPopA,flamPopB
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
       use flammability_com, only: saveFireCount
 #endif
- 
+
       implicit none
-      
+
       real*8 :: DTsrc_LOCAL
       type (dist_grid), intent(in) :: grid
       integer :: ier, J_1H, J_0H, I_1H, I_0H
@@ -117,9 +110,7 @@
       DTsrc_LOCAL = DTsrc
       if(is_set_param("DTsrc"))call get_param("DTsrc",DTsrc_LOCAL)
       maxHR_prec = NINT(HOURS_PER_DAY*1.d0*SECONDS_PER_HOUR/DTsrc_LOCAL)
-#ifdef USE_ENT
       maxHR_lai  = NINT(HOURS_PER_DAY*1.d0*SECONDS_PER_HOUR/DTsrc_LOCAL)
-#endif /* USE_ENT */
 
       allocate( flammability(I_0H:I_1H,J_0H:J_1H) )
       allocate( veg_density (I_0H:I_1H,J_0H:J_1H) )
@@ -132,7 +123,6 @@
       allocate( PRSfl       (I_0H:I_1H,J_0H:J_1H) )
       allocate( raP_acc     (I_0H:I_1H,J_0H:J_1H) )
       allocate( HRAfl       (I_0H:I_1H,J_0H:J_1H,maxHR_prec) )
-#ifdef USE_ENT
       allocate( first_lai   (I_0H:I_1H,J_0H:J_1H) )
       allocate( iHlai       (I_0H:I_1H,J_0H:J_1H) )
       allocate( iDlai       (I_0H:I_1H,J_0H:J_1H) )
@@ -141,7 +131,6 @@
       allocate( ravg_lai    (I_0H:I_1H,J_0H:J_1H) )
       allocate( PRSlai      (I_0H:I_1H,J_0H:J_1H) )
       allocate( HRAlai      (I_0H:I_1H,J_0H:J_1H,maxHR_lai) )
-#endif /* USE_ENT */
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       allocate( populationDensity(I_0H:I_1H,J_0H:J_1H) )
       allocate( flamPopA         (I_0H:I_1H,J_0H:J_1H) )
@@ -164,10 +153,8 @@
       use flammability_com, only: flammability, veg_density, first_prec
      & ,allowFlammabilityReinit,DRAfl,hrafl,prsfl,i0fl,iDfl,iHfl
      & ,ravg_prec
-#ifdef USE_ENT
       use flammability_com, only: first_lai,DRAlai,HRAlai,PRSlai,i0lai
      & ,iDlai,iHlai,ravg_lai
-#endif /* USE_ENT */
       use domain_decomp_atm,only: grid, getDomainBounds, 
      & am_i_root, readt_parallel
       use filemanager, only: openunit, closeunit, nameunit
@@ -180,13 +167,14 @@
       call getDomainBounds(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       call getDomainBounds(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-#ifdef USE_ENT
+!! #ifdef FLAM_USE_OFFLINE_VEG_DENS
+!!    Example of reading in one's own vegetation density and not using Ent
+!!    call openunit('VEG_DENSE',iu_data,.true.,.true.)
+!!    call readt_parallel(grid,iu_data,nameunit(iu_data),veg_density,1)
+!!    call closeunit(iu_data)
+!! #else
       veg_density(:,:)=undef ! defined later
-#else
-      call openunit('VEG_DENSE',iu_data,.true.,.true.)
-      call readt_parallel(grid,iu_data,nameunit(iu_data),veg_density,1)
-      call closeunit(iu_data)
-#endif
+!! #endif
 
       call sync_param
      &("allowFlammabilityReinit",allowFlammabilityReinit)
@@ -202,7 +190,6 @@
         iDfl=0.d0
         iHfl=0.d0
         ravg_prec=0.d0
-#ifdef USE_ENT
         first_lai(:,:)=1.d0
         DRAlai=0.d0
         HRAlai=0.d0
@@ -211,7 +198,6 @@
         iDlai=0.d0
         iHlai=0.d0
         ravg_lai=0.d0
-#endif /* USE_ENT */
       end if
 
       return
@@ -228,10 +214,8 @@
      &     pack_data,unpack_data
       use flammability_com, only: iHfl,iDfl,i0fl,first_prec,PRSfl,
      & DRAfl,HRAfl,maxHR_prec,nday_prec,ravg_prec,flammability,raP_acc
-#ifdef USE_ENT
       use flammability_com, only: iHlai,iDlai,i0lai,first_lai,PRSlai,
      & DRAlai,HRAlai,maxHR_lai,nday_lai,ravg_lai
-#endif /* USE_ENT */
 
       implicit none
 
@@ -243,9 +227,7 @@
 
       real*8, dimension(:,:), allocatable:: general_glob
       real*8, dimension(:,:,:), allocatable :: DRAfl_glob,HRAfl_glob
-#ifdef USE_ENT
       real*8, dimension(:,:,:), allocatable :: DRAlai_glob,HRAlai_glob
-#endif /* USE_ENT */
       integer :: itm
       character*80 :: header
 
@@ -259,12 +241,10 @@
      &     DRAfl_glob(IM,JM,nday_prec),
      &     HRAfl_glob(IM,JM,maxHR_prec)
      &     )
-#ifdef USE_ENT
       if(am_i_root()) allocate(
      &     DRAlai_glob(IM,JM,nday_lai),
      &     HRAlai_glob(IM,JM,maxHR_lai)
      &     )
-#endif /* USE_ENT */
 
       SELECT CASE (IACTION)
 
@@ -304,7 +284,6 @@
        header='CALCULATE_FLAMMABILITY: raP_acc(i,j)'
         call pack_data(grid,raP_acc(:,:),general_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,general_glob
-#ifdef USE_ENT
        header='CALCULATE_FLAMMABILITY: DRAlai(i,j,days)'
         do itm=1,nday_lai
          call pack_data(grid,dralai(:,:,itm),dralai_glob(:,:,itm))
@@ -333,7 +312,6 @@
        header='CALCULATE_FLAMMABILITY: ravg_lai(i,j)'
         call pack_data(grid,ravg_lai(:,:),general_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,general_glob
-#endif /* USE_ENT */
 
       CASE (IOREAD:)          ! input from restart file
         SELECT CASE (IACTION)
@@ -363,7 +341,6 @@
           call unpack_data(grid,general_glob(:,:),flammability(:,:))
           if(am_i_root())read(kunit,err=10)header,general_glob
           call unpack_data(grid,general_glob(:,:),raP_acc(:,:))
-#ifdef USE_ENT
           if(am_i_root())read(kunit,err=10)header,dralai_glob
           do itm=1,nday_lai
             call unpack_data(grid,dralai_glob(:,:,itm),dralai(:,:,itm))
@@ -384,7 +361,6 @@
           call unpack_data(grid,general_glob(:,:),first_lai(:,:))
           if(am_i_root())read(kunit,err=10)header,general_glob
           call unpack_data(grid,general_glob(:,:),ravg_lai(:,:))
-#endif /* USE_ENT */
 
         END SELECT
       END SELECT
@@ -400,9 +376,7 @@
       contains
       subroutine freemem
       if(am_i_root()) deallocate(general_glob,DRAfl_glob,HRAfl_glob)
-#ifdef USE_ENT
       if(am_i_root()) deallocate(DRAlai_glob,HRAlai_glob)
-#endif /* USE_ENT */
       end subroutine freemem
 
       end subroutine io_flammability
@@ -429,7 +403,6 @@
       call defvar(grid,fid,ravg_prec,'ravg_prec(dist_im,dist_jm)')
       call defvar(grid,fid,flammability,'flammability(dist_im,dist_jm)')
       call defvar(grid,fid,raP_acc,'raP_acc(dist_im,dist_jm)')
-#ifdef USE_ENT
       call defvar(grid,fid,dralai,'dralai(dist_im,dist_jm,nday_lai)')
       call defvar(grid,fid,hralai,'hralai(dist_im,dist_jm,maxHR_lai)')
       call defvar(grid,fid,prslai,'prslai(dist_im,dist_jm)')
@@ -438,7 +411,6 @@
       call defvar(grid,fid,iHlai,'iHlai(dist_im,dist_jm)') ! real
       call defvar(grid,fid,first_lai,'first_lai(dist_im,dist_jm)')
       call defvar(grid,fid,ravg_lai,'ravg_lai(dist_im,dist_jm)')
-#endif /* USE_ENT */
 
       return
       end subroutine def_rsf_flammability
@@ -466,7 +438,6 @@
         call write_dist_data(grid, fid, 'ravg_prec', ravg_prec )
         call write_dist_data(grid, fid, 'flammability', flammability )
         call write_dist_data(grid, fid, 'raP_acc', raP_acc )
-#ifdef USE_ENT
         call write_dist_data(grid, fid, 'dralai', dralai )
         call write_dist_data(grid, fid, 'hralai', hralai )
         call write_dist_data(grid, fid, 'prslai', prslai )
@@ -475,7 +446,6 @@
         call write_dist_data(grid, fid, 'iHlai', iHlai )
         call write_dist_data(grid, fid, 'first_lai', first_lai )
         call write_dist_data(grid, fid, 'ravg_lai', ravg_lai )
-#endif /* USE_ENT */
 
       case (ioread)            ! input from restart file
         call read_dist_data(grid, fid, 'drafl', drafl )
@@ -488,7 +458,6 @@
         call read_dist_data(grid, fid, 'ravg_prec', ravg_prec )
         call read_dist_data(grid, fid, 'flammability', flammability )
         call read_dist_data(grid, fid, 'raP_acc', raP_acc )
-#ifdef USE_ENT
         call read_dist_data(grid, fid, 'dralai', dralai )
         call read_dist_data(grid, fid, 'hralai', hralai )
         call read_dist_data(grid, fid, 'prslai', prslai )
@@ -497,7 +466,6 @@
         call read_dist_data(grid, fid, 'iHlai', iHlai )
         call read_dist_data(grid, fid, 'first_lai', first_lai )
         call read_dist_data(grid, fid, 'ravg_lai', ravg_lai )
-#endif /* USE_ENT */
       end select
       return
       end subroutine new_io_flammability
@@ -519,7 +487,6 @@
       use constant, only: lhe, undef
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use diag_com, only: ij_flam,aij=>aij_loc
-#ifdef USE_ENT
       use flammability_com, only: nVtype,ravg_lai,iHlai,iDlai,i0lai,
      & first_lai,HRAlai,DRAlai,PRSlai
       use ghy_com, only: fearth
@@ -528,7 +495,6 @@
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
       use ent_drv, only: map_ent2giss  !YKIM-temp hack
-#endif
 
       implicit none
 
@@ -536,7 +502,6 @@
       logical :: have_south_pole, have_north_pole     
       real*8 :: qsat ! this is a function in UTILDBL.f
       real*8 :: tsurf,qsurf
-#ifdef USE_ENT
       ! the 7.9 here was from running a year or two under 2005 conditions
       ! and seeing what was the maximum LAI returned by Ent. Therefore,
       ! under other climate conditions, the vegetation density may reach > 1.0. 
@@ -553,8 +518,7 @@
       real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
       real*8 :: fracVegNonCrops, fracBare
       real*8, parameter :: critFracBare = 0.8d0 ! 80% of box is bare soils
-#endif
-                              
+
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &               HAVE_SOUTH_POLE = have_south_pole,
      &               HAVE_NORTH_POLE = have_north_pole)
@@ -570,8 +534,7 @@
           call prec_running_average(prec(i,j),ravg_prec(i,j), 
      &    iHfl(i,j),iDfl(i,j),i0fl(i,j),first_prec(i,j),HRAfl(i,j,:),
      &    DRAfl(i,j,:),PRSfl(i,j))
-#ifdef USE_ENT
-          ! and if using Ent, the LAI running average:
+          ! and the LAI running average from Ent:
           if(fearth(i,j)>0.d0) then
             call ent_get_exports( entcells(i,j),leaf_area_index=lai)
             ! I guess that is the lai from the last surface timestep only?
@@ -582,14 +545,14 @@
           call lai_running_average(lai,ravg_lai(i,j), 
      &    iHlai(i,j),iDlai(i,j),i0lai(i,j),first_lai(i,j),HRAlai(i,j,:),
      &    DRAlai(i,j,:),PRSlai(i,j))
-#endif /* USE_ENT */
-    
+
           ! for sub-daily diag purposes, accumulate the running avg:
           raP_acc(i,j)=raP_acc(i,j)+ravg_prec(i,j)
 
           ! if the first period has elapsed, calculate the flammability
           if(first_prec(i,j)==0.) then
-#ifdef USE_ENT
+!! #ifndef FLAM_USE_OFFLINE_VEG_DENS /* NOT */
+!! I.e. do not define/limit the veg_density here if it is prescribed...
             if(fearth(i,j)>0.d0) then
               if(first_lai(i,j)==0.) then
                 veg_density(i,j) = ravg_lai(i,j)*byLaiMax*fearth(i,j)
@@ -615,7 +578,7 @@
             else
               veg_density(i,j) = 0.d0
             end if
-#endif /* USE_ENT */
+!! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
             tsurf = atmsrf%tsavg(i,j)
             qsurf = atmsrf%qsavg(i,j)
@@ -626,9 +589,7 @@
           end if
           ! update diagnostic
           aij(i,j,ij_flam)=aij(i,j,ij_flam)+flammability(i,j)
-#ifdef USE_ENT
           aij(i,j,ij_fvden)=aij(i,j,ij_fvden)+veg_density(i,j)
-#endif
 
         end do
       end do

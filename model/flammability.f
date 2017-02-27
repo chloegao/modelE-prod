@@ -114,7 +114,6 @@
 
       end subroutine prec_running_average
 
-! #ifdef USE_ENT
       !! Could certainly be combined with prec_running_average above,
       !! but repeating now for neatness...
       subroutine lai_running_average(lai,avg,iH,iD,i0,first,HRA,DRA,PRS)
@@ -196,7 +195,7 @@
       end if
 
       end subroutine lai_running_average
-! #endif /* USE_ENT */
+
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined CALCULATE_FLAMMABILITY
 
