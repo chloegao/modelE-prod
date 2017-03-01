@@ -4,7 +4,7 @@
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
 #ifndef USE_RAD_OFFLINE
-      use constant, only: pO2
+      use constant, only: pO2, avog, mair, grav, loschmidt_constant
       use atm_com, only : lm_req
       use resolution, only : lm_gcm=>lm
 #endif
@@ -332,6 +332,17 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
 C            RADDAT_CLDCOR_TRSCAT           read from           radfileE
       REAL*8 :: RIJTPG(6,49,17,21),FDXTPG(3,49,17,21),FEMTPG(3,49,17,21)
 
+!@var ppmv_to_cm_at_stp Conversion factor for conversion from PPMV to cm at
+!                       STP. Also needs an additional factor dP for the
+!                       conversion.
+      REAL*8, PARAMETER :: ppmv_to_cm_at_stp = 1.0D-05*avog/
+     *      (grav*mair*loschmidt_constant)
+!@var h2o_mmr_to_cm_at_stp Conversion factor for conversion from mass
+!                          mixing ratio to cm at STP for water vapor.
+!                          Also needs an additional factor dP for the
+!                          conversion.
+      REAL*8, PARAMETER :: h2o_mmr_to_cm_at_stp = ppmv_to_cm_at_stp*
+     *      1.0D+06*mair/18.0153D0
 
 
 C--------------------------------------   This also should be moved out
@@ -2292,9 +2303,9 @@ C                                         ----------------------------
       FWT=3.D-06
       RHP=FWT*PLT/(EST*(FWT+0.662D0))
   110 CONTINUE
-      ULGASL=0.5D0*(FWB+FWT)*DP*1268.75D0
+      ULGASL=0.5D0*(FWB+FWT)*DP*h2o_mmr_to_cm_at_stp
       U0GAS(L,1)=ULGASL
-      SHL(L)=ULGASL/(ULGASL+1268.75D0*DP)
+      SHL(L)=ULGASL/(ULGASL+h2o_mmr_to_cm_at_stp*DP)
       EQ=0.5D0*(PLB0(L)+PLT)*SHL(L)/(0.662D0+0.378D0*SHL(L))
       ES=10.D0**(9.4051D0-2353.D0/TLM(L))
       RHL(L)=EQ/ES
@@ -2344,7 +2355,7 @@ C                            -----------------------------------------
 C     IGAS=2 and 4           (CO2,O2) Uniformly Mixed Gas Distribution
 C                            -----------------------------------------
       DO 140 K=2,4,2
-      U0GAS(1:NL0,K)=PPMV80(K)*0.8D0*DPL(1:NL0)/P0
+      U0GAS(1:NL0,K)=PPMV80(K)*ppmv_to_cm_at_stp*DPL(1:NL0)
   140 CONTINUE
 C                -----------------------------------------------------
 C     IGAS=6-12  (N20,CH4,F11,F12) Specified Vertical Gas Distribution
@@ -2354,7 +2365,7 @@ C                -----------------------------------------------------
       DO 150 N=1,NL0
       GGVDF=1.D0-(1.D0-PPMVDF(K))*(1.D0-PLB0(N)/PLB0(1))
       IF(KGGVDF < 1) GGVDF=1.D0
-      U0GAS(N,K)=PPMV80(K)*0.8D0*DPL(N)/P0*GGVDF
+      U0GAS(N,K)=PPMV80(K)*ppmv_to_cm_at_stp*DPL(N)*GGVDF
       ZT=(HLB0(N+1)-Z0(K))/ZH(K)
       IF(ZT <= 0.D0) GO TO 150
       ZB=(HLB0(N)-Z0(K))/ZH(K)
@@ -2417,7 +2428,7 @@ C                -----------------------------------------------------
         DO 251 K=6,12
         IF(K==10) GO TO 251
         DO 250 L=1,NL0
-        U0GAS(L,K)=PPMV80(K)*0.8D0*(PLB0(L)-PLB0(L+1))/P0
+        U0GAS(L,K)=PPMV80(K)*ppmv_to_cm_at_stp*(PLB0(L)-PLB0(L+1))
         IF(PLB0(1) >= PTRO) THEN ! safety check until P,H hard-coding removed
         ZT=(HLB0(L+1)-Z0LAT)/ZH(K)           ! orig. hlb not hlb0
         IF(ZT <= 0.D0) GO TO 250
@@ -2451,7 +2462,8 @@ C                -----------------------------------------------------
   312 CONTINUE
   313 CONTINUE
 
-      U0GAS(L1:NL,1)=1268.75d0*DPL(L1:NL)*SHL(L1:NL)/(1-SHL(L1:NL))
+      U0GAS(L1:NL,1)=h2o_mmr_to_cm_at_stp*DPL(L1:NL)*
+     *    SHL(L1:NL)/(1-SHL(L1:NL))
 Cc*** Adjust water vapor in ALL layers
 cc    ULGAS(L1:NL,1)=U0GAS(L1:NL,1)*FULGAS(1)
 c**** Only adjust stratospheric levels (above LS1_loc)
@@ -2561,7 +2573,7 @@ C-----------------
       IF(IFIRST==1) THEN
         NL0=NL
         DO N=1,NL0
-          ULGAS(N,4)=PPMV80(4)*0.8D0*(PLB0(N)-PLB0(N+1))/PLB0(1)
+          ULGAS(N,4)=PPMV80(4)*ppmv_to_cm_at_stp*(PLB0(N)-PLB0(N+1))
         END DO
         IFIRST=0
       ENDIF
@@ -6498,7 +6510,7 @@ C
       IF(INDEX < 11) NPAGE=KPAGE
       WRITE(KW,6101)
       WRITE(KW,6102)
-      FACTOR=P0/(PLB(L1)-PLB(L1+1))*1.25
+      FACTOR=1D0/((PLB(L1)-PLB(L1+1))*ppmv_to_cm_at_stp)
       PPMCO2=ULGAS(L1,2)*FACTOR
       PPMO2 =ULGAS(L1,4)*FACTOR
       PPMN2O=ULGAS(L1,6)*FACTOR
