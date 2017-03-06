@@ -8,7 +8,6 @@ Initial framework for truly single-column mode for Model E.
 Preprocessor Options
 #define SCM
 #define NEW_IO
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -63,7 +62,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 

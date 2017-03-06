@@ -18,7 +18,6 @@ Preprocessor Options
 #define STDHYB                  ! standard hybrid vertical coordinate
 #define ATM_LAYERING L40        ! 40 layers, top at .1 m
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define IRRIGATION_ON
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
@@ -89,7 +88,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -135,7 +133,7 @@ FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 ! w/o VMP clouds (uncomment when model is run w/o VMP clouds):
 !U00a=0.60   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 ! w/ VMP clouds (comment out when model is run w/o VMP clouds):
-U00a=0.61   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds 
+U00a=0.65   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds 
 U00b=1.00  ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 1.
 use_vmp=1

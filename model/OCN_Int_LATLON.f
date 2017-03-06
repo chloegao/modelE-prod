@@ -527,13 +527,18 @@ C**** IMAX(IB) = eastern most cell of grid A that intersects cell IB
 C**** JMIN(JB) = southern most cell of grid A that intersects cell JB
 C**** JMAX(JB) = northern most cell of grid A that intersects cell JB
 C****
-      Implicit Real*8 (A-H,O-Z)
-      Parameter (TWOPI=6.283185307179586477d0)
-      Real*8 OFFIA,DLATA, OFFIB,DLATB, DATMIS,DATMCB
+      Implicit None
+      Integer,Intent(In) :: IMA,JMA,IMB,JMB
+      Real*8, Intent(In) :: OFFIA,DLATA,OFFIB,DLATB,DATMIS
+      Real*8,Parameter :: TWOPI=6.283185307179586477d0
+      Real*8  :: FMIN,FMAX,GMIN,GMAX, SINA,SINB, DATMCB
+      Integer :: IMIN,IMAX,JMIN,JMAX, INA,JNA,INB,JNB
       Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
      *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
      *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
      *       DATMCB, INA,JNA, INB,JNB
+      Integer :: IA,IB,JA,JB, IBp1
+      Real*8  :: DIA,DIB, RIA,RIB,RJA,RJB, FJEQA,FJEQB
 C****
       INA = IMA  ;  JNA = JMA
       INB = IMB  ;  JNB = JMB
@@ -641,6 +646,7 @@ C 916 Format (/ 1X,A5 / (20F6.2))
      *  '0These arguments are invalid or out of range.')
       End Subroutine HNTR80
 
+
       Subroutine HNTR8 (WTA,A,B)
 C****
 C**** HNTR8 performs a horizontal interpolation of per unit area or per
@@ -654,12 +660,17 @@ C**** Input: WTA = weighting array for values on the A grid
 C****          A = per unit area or per unit mass quantity
 C**** Output:  B = horizontally interpolated quantity on B grid
 C****
-      Implicit Real*8 (A-H,O-Z)
-      Real*8 WTA(*), A(*), B(*), DATMIS
+      Implicit None
+      Real*8,Intent(In)  :: A(*),WTA(*)
+      Real*8,Intent(Out) :: B(*)
+      Real*8  :: FMIN,FMAX,GMIN,GMAX, SINA,SINB, DATMIS
+      Integer :: IMIN,IMAX,JMIN,JMAX, IMA,JMA,IMB,JMB
       Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
      *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
      *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
      *       DATMIS, IMA,JMA, IMB,JMB
+      Integer :: IA,IB,JA,JB, IJA,IJB, IAREV, IAMIN,IAMAX,JAMIN,JAMAX
+      Real*8  :: WEIGHT,VALUE, F,G
 C****
 C**** Interpolate the A grid onto the B grid
 C****
@@ -690,18 +701,24 @@ C****
       Return
       End Subroutine HNTR8
 
+
       Subroutine HNTR8P (WTA,A,B)
 C****
 C**** HNTR8P is similar to HNTR8 but polar values are replaced by
 C**** their longitudinal mean.
 C**** The 3 Real input values are expected to be Real*8.
 C****
-      Implicit Real*8 (A-H,O-Z)
-      Real*8 WTA(*), A(*), B(*), DATMIS
+      Implicit None
+      Real*8,Intent(In)  :: A(*),WTA(*)
+      Real*8,Intent(Out) :: B(*)
+      Real*8  :: FMIN,FMAX,GMIN,GMAX, SINA,SINB, DATMIS
+      Integer :: IMIN,IMAX,JMIN,JMAX, IMA,JMA,IMB,JMB
       Common /HNTRCB/ SINA(0:5401),SINB(0:5401),
      *       FMIN(10800),FMAX(10800),GMIN(5401),GMAX(5401),
      *       IMIN(10800),IMAX(10800),JMIN(5401),JMAX(5401),
      *       DATMIS, IMA,JMA, IMB,JMB
+      Integer :: IB,JB, IJB
+      Real*8  :: BMEAN,WEIGHT,VALUE
 C****
       Call HNTR8 (WTA,A,B)
 C****

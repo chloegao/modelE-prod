@@ -204,7 +204,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=104
+      INTEGER, PARAMETER :: ktaijl=105
 #ifdef ACCMIP_LIKE_DIAGS 
      &                            + 17
 #endif
@@ -220,6 +220,11 @@ C**** TAIJLS 3D special tracer diagnostics
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
 !@var SNAME_IJLT: Names of 3D tracer IJL diagnostics
       character(len=sname_strlen), dimension(ktaijl) :: sname_ijlt
+!@var DNAME_IJLT, DENOM_IJLT: Short names, indices of taijls denominators.
+!@+   Currently, dname is specified along with the standard metadata and
+!@+   the denom indices are looked up afterward.
+      character(len=sname_strlen), dimension(ktaijl) :: dname_ijlt=''
+      integer, dimension(ktaijl) :: denom_ijlt=0
 !@var LNAME_IJLT,UNITS_IJLT: descriptions/units of 3D tracer diagnostics
       character(len=lname_strlen), dimension(ktaijl) ::
      &     lname_ijlt = 'unused'
@@ -239,6 +244,7 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
      & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs,ijlt_O3ppbv
      & ,ijlt_O3cmatm
+     & ,ijlt_clrsky2d=0
 !@var ijlt_aH2O aerosol H2O from thermodynamics (ug/m3)
 !@var ijlt_apH aerosol pH from thermodynamics (dimensionless)
       integer :: ijlt_aH2O,ijlt_apH

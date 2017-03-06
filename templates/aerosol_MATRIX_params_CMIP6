@@ -11,6 +11,5 @@ NH3_nBBsources=1
 SO2_nBBsources=1
 M_BC1_BC_nBBsources=1
 M_OCC_OC_nBBsources=1
-OFFLINE_DMS_SS=0   ! 1= read offline DMS and dust from aerocom file
 !------------------  AMP parameters
 AMP_RAD_KEY = 1    ! 1=Volume Mixing || 2=Core-Shell || 3=Maxwell Garnett

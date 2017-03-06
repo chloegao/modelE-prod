@@ -117,7 +117,9 @@ c*
 !@auth Gary Russell
 
       Use LLvsCS
-      Implicit Integer*4 (G-N), Real*16 (A-F,O-Z)
+      Implicit None
+      Integer,External :: HofA,IofX
+      Real*16,External :: AREA
       integer :: fid,vid,intshift
       include 'netcdf.inc'
       integer, allocatable, dimension(:,:) :: ijcub,ijlatlon
@@ -125,6 +127,8 @@ c*
       real*8, allocatable, dimension(:) :: xarea
       real*8 :: areacheck
       character*200 :: ofi
+      Integer :: G,H, I,J,K, N,M, GR,HR,G2,G3,G4, IR,JR, STATUS,IN
+      Real*16 :: O,A, X,Y,Z, XSQ,YSQ, S,SGH,SIJK,SGLOB
 C****
       TWOPIQ = 8 * ATan(1q0)
       Call GEOMLL
@@ -558,6 +562,7 @@ c            write(*,*) "xarea=",SofN(in)
       status = nf_close(fid)
       End
 
+
       Subroutine GEOMLL
 C****
 C**** Calculate GEOMetry of Longitude-Latitude grid cells
@@ -565,6 +570,7 @@ C****
       Use LLvsCS, Only: GM,HM, TWOPIQ, OofG,AofH,
      *    SinOofG,CosOofG,TanOofG, CscOofG,SecOofG,CotOofG,
      *    SinAofH,TanAofH,CotAofH, AREALL
+      Implicit None
       Integer*4 :: G,H, HDLATD
 C**** Functions of Longitude
       Do 10 G=0,GM
@@ -592,11 +598,13 @@ C**** Longitude-Latitude grid cell area
       Return
       End
 
+
       Subroutine GEOMCS
 C****
 C**** Calculate GEOMetry of Cube-Sphere grid cells
 C****
       Use LLvsCS, Only: IM, XofI,AREACS
+      Implicit None
       Integer*4 :: I,J
       Real*16 ::
      *   ACOR, !  latitude of cube point (1,1,1) projected onto sphere
@@ -628,11 +636,13 @@ C**** = W(I-1,J-1) + [pi - W(I,J-1)] + [pi - W(I-1,J)] + W(I,J) - 2*pi
       Return
       End
 
+
       Function IofX (X)
 C****
 C**** IofX returns the value of I such that XofI(I-1) < X <= XofI(I)
 C****
       Use LLvsCS, Only: IM, PRECIS, XofI
+      Implicit None
       Integer*4 :: IofX, I
       Real*16   :: X
 C****
@@ -642,11 +652,13 @@ C****
       Return
       End
 
+
       Function HofA (A)
 C****
 C**** HofA returns the value of H such that AofH(H-1) < A <= AofH(H)
 C****
       Use LLvsCS, Only: HM, PRECIS, AofH
+      Implicit None
       Integer*4 :: HofA, H
       Real*16   :: A
 C****
@@ -656,11 +668,13 @@ C****
       Return
       End
 
+
       Subroutine HLINE (G,H, I,J,K, O)
 C****
 C**** Adds another intersection point to constant H (latitude) line
 C****
       Use LLvsCS, Only: GM,HM,NMX1, PRECIS, NMH,IH,JH,KH,OH
+      Implicit None
       Integer*4 :: G,H, I,J,K, NNEW,N
       Real*16   :: O
 C****
@@ -681,11 +695,13 @@ C****
       Return
       End
 
+
       Subroutine JLINE (I,J,K, G,H, O,A, Q)
 C****
 C**** Adds another intersection point to constant J lines
 C****
       Use LLvsCS, Only: IM,NMX1, PRECIS, NMJ,GJ,HJ,OJ,AJ,QJ
+      Implicit None
       Integer*4 :: I,J,K, G,H, NNEW,N
       Real*16   :: O,A, Q
 C****
@@ -708,12 +724,14 @@ C****
       Return
       End
 
+
       Function AREA (O1,O2, A1,A2)
 C****
 C**** AREA calculates the area of the spherical triangle whose
 C**** verticies are the south pole, (O1,A1) and (O2,A2).  S.W.Russell
 C****
       Use LLvsCS, Only: TWOPIQ
+      Implicit None
       Real*16 :: AREA, O1,O2, A1,A2,
      *  COSdO, SINA1,COSA1,SINA2,COSA2, COSB,COSG, ALPHA,BETA,GAMMA
 C****
@@ -732,6 +750,7 @@ C****
       Return
       End
 
+
       Subroutine EXGRID (G,H, I,J,K, M)
 C****
 C**** EXGRID organizes areas of the exchange grid
@@ -739,6 +758,7 @@ C**** Output: M = M-th exchange grid area for grid cell (G,H)
 C****
       Use LLvsCS, Only: GM,HM,IM,NMX2,
      *                  NMofGH,IofNGH,JofNGH,KofNGH, SofNGH
+      Implicit None
       Integer*4 :: G,H, I,J,K, M, N
 C**** Locate M from 1 to NMofGH(G,H)
       Do 10 N=1,NMofGH(G,H)

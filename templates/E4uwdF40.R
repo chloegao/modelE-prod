@@ -11,7 +11,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -38,7 +37,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! resolution dependent files

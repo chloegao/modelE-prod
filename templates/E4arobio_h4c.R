@@ -13,7 +13,6 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define NEW_IO
-#define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define ATM2x2h             !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define HYCOM1deg           !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
@@ -51,7 +50,6 @@ tracers Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only) ISTART=2

@@ -562,10 +562,6 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** Aerosol specific switches and arrays
 
-!!@dbparam OFFLINE_DMS_SS is 0 for standard case, 1 for offline dms, seasalt emission
-      integer :: OFFLINE_DMS_SS = 0
-!!@dbparam OFFLINE_SS is 0 for standard case, 1 for offline seasalt emission
-      integer :: OFFLINE_SS = 0
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
 #endif

@@ -23,7 +23,6 @@ Preprocessor Options
 #define NUDGE_ON                     ! nudged winds on
 ! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 End Preprocessor Options
 
 Object modules:
@@ -52,7 +51,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"

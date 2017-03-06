@@ -11,7 +11,6 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 ! #define TRACERS_GASEXCH_Natassa    ! special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
@@ -84,7 +83,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only) ISTART=2

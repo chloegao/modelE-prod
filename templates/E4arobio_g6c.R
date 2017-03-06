@@ -13,7 +13,6 @@ E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.;
 Preprocessor Options
 #define NEW_IO
 #define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
 #define OBIO_ON_GARYocean           ! obio on Russell ocean
@@ -54,7 +53,6 @@ tracers Ent shared MPI_Support solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc         ! observed init cond (atm. only) ISTART=2

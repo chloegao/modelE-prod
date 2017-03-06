@@ -4,7 +4,6 @@ EM20:  This is a major update to the old E1M20 rundeck to correspond to AR5 defa
 
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -32,7 +31,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_72x46_input_files"

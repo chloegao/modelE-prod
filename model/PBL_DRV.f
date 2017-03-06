@@ -918,7 +918,7 @@ C**** SET SURFACE SPECIFIC HUMIDITY FROM FIRST LAYER HUMIDITY
 C things to be done regardless of inipbl
 
       call sync_param( 'roughl_from_file', roughl_from_file )
-!!#if ( ! defined ROUGHL_HACK ) || ( ! defined USE_ENT )
+!!#if ( ! defined ROUGHL_HACK )
       if ( roughl_from_file .ne. 0 ) then
         allocate ( buf(I_0H:I_1H, J_0H:J_1H) )
         buf = 0.

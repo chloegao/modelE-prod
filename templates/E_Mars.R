@@ -2,7 +2,6 @@ likeMars.R M20 Desert World with selected Mars-like parameters, inputs    M. Kel
 
 Preprocessor Options
 #define PLANET_PARAMS likeMars ! parameter set selector in shared/PlanetParams_mod.F90
-#define USE_ENT
 #define NEW_IO
 #define DO_CO2_CONDENSATION
 #define DO_CO2_CONDENSATION_APPLY
@@ -59,7 +58,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    
-OPTS_giss_LSM = USE_ENT=YES           
 
 Data input files:
 

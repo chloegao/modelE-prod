@@ -15,7 +15,6 @@ Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
 #define TRAC_ADV_CPU
-#define USE_ENT                     ! include dynamic vegetation model
 #define NEW_IO
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_WATER               ! wet deposition and water tracer
@@ -86,7 +85,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 ! OPTS_dd2d = NC_IO=PNETCDF           /* an OPTION for new i/o */
 
 Data input files:

@@ -1,8 +1,7 @@
 !---------- start aerosol emissions files --------------
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
-DMS_SEA=DMS_Kettle_Andreae_2x2.5 ! needed when OFFLINE_DMS_SS=0
-!DMS_FLUX=DMS.2x2.5_AEROCOM.nc ! needed when OFFLINE_DMS_SS=1
+DMS_SEA=DMS_Kettle_Andreae_2x2.5
 NH3_AIRC=emis/CMIP6_AIR_v2016-07-26_2.0x2.5_CLIMATOLOGY
 NH3_01=emis/CMIP6_IND_v2016-07-26_2.0x2.5_CLIMATOLOGY
 NH3_02=emis/CMIP6_TRA_v2016-07-26_2.0x2.5_CLIMATOLOGY

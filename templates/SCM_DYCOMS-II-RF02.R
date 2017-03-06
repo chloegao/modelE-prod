@@ -8,7 +8,6 @@ This is a functioning rundeck, not a template (excepting the lines containing
 Preprocessor Options
 #define CACHED_SUBDD
 #define SCM
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -67,7 +66,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 
