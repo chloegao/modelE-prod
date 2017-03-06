@@ -4493,6 +4493,27 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
 #ifdef ANTHROPOGENIC_FIRE_MODEL
+      k=k+1        ! frac dynamic BB emis from non suppression
+        ij_nsuppress = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO NONSUPPRESS'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_nsuppress'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        ! frac dynamic biomass burning emis from lightning 
+        ij_cgign = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO CG LIGT IGN. ONLY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_ignCG'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        ! frac dynamic biomass burning emis from humans
+        ij_humanign = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO HUMAN IGN. ONLY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_ignHUMAN'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
       k=k+1        ! frac dynamic biomass burning emis from humans
         ij_human = k
         lname_ij(k) = 'FRAC OF DYN BIOBURN EMIS DUE TO HUMAN IGN.'
@@ -4500,6 +4521,7 @@ c
         name_ij(k) = 'fHUMAN'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
+#endif /* ANTHROPOGENIC_FIRE_MODEL */
       k=k+1        ! The Fire Count (no need to save for ubiquitous
         ij_fireC = k ! case, since it is constant factor times flammability)
         lname_ij(k) = 'FIRE COUNT FOR DYN BIOBURN USING ANTHRO MODEL'
@@ -4507,7 +4529,6 @@ c
         name_ij(k) = 'fireCount'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
-#endif /* ANTHROPOGENIC_FIRE_MODEL */
 #endif /* CALCULATE_FLAMMABILITY */
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
       k=k+1        ! lightning flash rate
