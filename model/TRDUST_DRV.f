@@ -952,7 +952,7 @@ c calcMineralRadiationParameters
 
 !@var binsKtoDustBinsRadia  transformation matrix for mapping Kandler data
 !@+     size bins to radiation dust bins
-      real(kind=8), dimension( nBinsK, nDustBinsRadia ) ::
+      real( kind=8 ), dimension( nBinsK, nDustBinsFull ) ::
      &     binsKtoDustBinsRadia
 !@var effRadiusMineralsK  effective radius of particles in Kandler data size
 !+      bins
