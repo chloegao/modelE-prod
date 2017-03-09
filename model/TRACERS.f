@@ -2099,7 +2099,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      & avg_model,avg_ncep
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) ||\
+    (defined TRACERS_AMP)
       USE AEROSOL_SOURCES, only : snosiz
 #endif
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
@@ -2298,7 +2299,8 @@ c daily_z is currently only needed for CS
 
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) ||\
+    (defined TRACERS_AMP)
       call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
 #endif
 
