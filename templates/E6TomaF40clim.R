@@ -20,6 +20,7 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
 #define SWFIX_20151201
+#define CACHED_SUBDD
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 !---> generic tracers code start
@@ -62,7 +63,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmLayering                         ! vertical resolutiontion
+AtmLayering                         ! vertical resolution
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -77,6 +78,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
 TRDIAG                              ! new i/o
+SUBDD
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
