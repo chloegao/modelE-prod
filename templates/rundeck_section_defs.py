@@ -223,7 +223,7 @@ RADNE=topcld.trscat8
 ISCCP=ISCCP.tautables
 GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
-DUSTaer=dust_mass_CakmurMillerJGR06_$resijx20x7x12.nc
+DUSTaer=dust_mass_CakmurMillerJGR06_$resijx20x7x12_unlim.nc
 ! updated aerosols need MADAER=3
 TAero_SUL=SUL_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_SSA=SSA_Koch2008_kg_m2_$resijx20h.nc
@@ -233,7 +233,7 @@ TAero_BCA=BCA_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 TAero_BCB=BCB_Koch2008_kg_m2_$resijx20_1890-2000h.nc
 O3file=o3_2005_shindelltrop_$resijx49_1850-1997_ple.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG$resDEG                      ! special regions-diag
 """),
 parameters_text("""
@@ -314,7 +314,6 @@ Ndisk=480
 Surface = RundeckSection( 
     name("Surface" ),
     components("giss_LSM"),
-    component_options("OPTS_giss_LSM = USE_ENT=YES"),
     obj_files_text("""
 SURFACE SURFACE_LANDICE FLUXES      ! surface calculation and fluxes
 GHY_COM GHY_DRV    ! + giss_LSM     ! land surface and soils + snow model

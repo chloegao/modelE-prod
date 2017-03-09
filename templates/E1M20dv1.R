@@ -18,7 +18,6 @@ Preprocessor Options
 !#define TRACERS_GASEXCH_CO2_Igor
 !#define TRACERS_GASEXCH_Natassa
 !#define TRACERS_GASEXCH_CO2_Natassa
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -64,7 +63,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! start up from restart file of earlier run
@@ -118,7 +116,7 @@ ISCCP=ISCCP.tautables
 #include "rad_72x46_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 soil_textures=soil_textures_top30cm
 SOILCARB_global=soilcarb_top30cm_4x5.nc

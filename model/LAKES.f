@@ -2373,14 +2373,16 @@ C****   Compute lake- and irrigation-related diagnostics
         AIJ(I,J,IJ_MWLir)=AIJ(I,J,IJ_MWLir)+MWL_to_irrig
         AIJ(I,J,IJ_GMLir)=AIJ(I,J,IJ_GMLir)+GML_to_irrig
 
+        END IF ! MWL_to_irrig .gt. 0
+
         AIJ(I,J,IJ_irrgw) =AIJ(I,J,IJ_irrgw) +irrig_gw
         AIJ(I,J,IJ_irrgwE)=AIJ(I,J,IJ_irrgwE)+irrig_gw_energy
 
         CALL INC_AJ(I,J,itearth, j_irgw , irrig_gw)
         CALL INC_AJ(I,J,itearth, j_irgwE, irrig_gw_energy)
 
-        END IF
-      END IF
+      END IF ! FLAND(I,J).gt.0
+
       END DO  ! i loop
       END DO  ! j loop
 

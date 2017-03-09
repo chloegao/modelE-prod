@@ -592,7 +592,7 @@ c
       J_H2OCH4 = k               !                                 1 GP
       name_j(k) = 'h2o_from_ch4'
       lname_j(k) = 'WATER DERIVED FROM CH4 OXIDATION IN STRATOSPHERE'
-      units_j(k) = '10^6 mm/day'
+      units_j(k) = '10^-6 mm/day'
       stitle_j(k)= ' H2O BY CH4(x1M)'
       scale_j(k) = 2d6
       ia_j(k) = ia_12hr
@@ -1149,6 +1149,10 @@ c
       integer :: i,k,kk,k3,k1,l,n,ngx,nq
       character(len=16) :: ijstr,string_flamV
       real*8 x_dummy(im)
+#ifdef ENT_DEBUG_DIAGS
+      integer ent_k1, ent_k2
+      character*3 :: ent_s1, ent_s2
+#endif
       logical :: set_miss
 ! The following local variables are used in the definition of groups of
 ! 2D outputs collected into output fields having a third dimension.
@@ -2453,6 +2457,14 @@ c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
 !**** Vertical Mass Fluxes
+      k=k+1
+      IJ_H2OCH4 = k  !  1 GP
+      lname_ij(k) = 'WATER DERIVED FROM CH4 OXIDATION IN STRATOSPHERE'
+      units_ij(k) = '10^-6 mm/day'
+      name_ij(k)  = 'H2O_from_CH4'
+      ia_ij(k)    = ia_12hr  !  accumulated daily, 2* in scale
+      scale_ij(k) = 2d6      
+!
       k=k+1 !
       IJ_PREC = k ! PREC (mm/day)       1 CN
       lname_ij(k) = 'PRECIPITATION'
@@ -3917,6 +3929,24 @@ c
       scale_ij(k) = 1.d-3    !scale from g/m2 to kg/m2
       denom_ij(k) = IJ_PSOIL
 c
+#ifdef ENT_DEBUG_DIAGS
+      ij_ent_debug = k+1
+      do ent_k1=1,16+11
+      do ent_k2=1,16
+        write(ent_s1,'(i3.3)') ent_k1
+        write(ent_s2,'(i3.3)') ent_k2
+      k=k+1 ! nyk 1/10/08
+      !IJ_RAUTO = k    !kg[C]/m2/s original units
+      lname_ij(k) = 'Ent diag '//ent_s1//ent_s2
+      units_ij(k) = 'g[C]/m2/day'
+      name_ij(k) = 'ra'//ent_s1//ent_s2
+      ia_ij(k) = ia_src
+      scale_ij(k) = SECONDS_PER_DAY*1000./DTsrc    !scale from kg/s to g/day
+      denom_ij(k) = IJ_PSOIL
+      enddo
+      enddo
+#endif
+c
       k=k+1 ! nyk 5/12/03
       IJ_DLEAF = k    !kg[C]/m2, IJ_DLEAF is accumulated daily.
 !      lname_ij(k) = 'LEAF MASS CHANGE'
@@ -4288,10 +4318,10 @@ c
       k=k+1
       IJ_MWLir = k
       lname_ij(k) = 'MASS OF LAKE/RIVER WATER USED FOR IRRIGATION'
-      units_ij(k) = 'kg'
+      units_ij(k) = 'kg/s'
       name_ij(k) = 'mwl_irrigate'
       ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0
+      scale_ij(k) = 1 / DTSRC
       !ir_ij(k) = ir_m1_3
       denom_ij(k) = 0
 #endif
@@ -4383,9 +4413,18 @@ c
 c
       k=k+1 !
       IJ_DSKIN   = k !
-      lname_ij(k) = 'SKIN TEMPERATURE OFFSET'
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (OCEAN)'
       units_ij(k) = '0.1 C'
       name_ij(k) = 'dskin'
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 10.
+      ir_ij(k) = ir_m9_26
+c
+      k=k+1 !
+      IJ_DSKINSNOW   = k !
+      lname_ij(k) = 'SKIN TEMPERATURE OFFSET (SNOW ON OC/LK ICE)'
+      units_ij(k) = '0.1 C'
+      name_ij(k) = 'dskinsnow'
       ia_ij(k) = ia_srf
       scale_ij(k) = 10.
       ir_ij(k) = ir_m9_26
@@ -4454,6 +4493,27 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
 #ifdef ANTHROPOGENIC_FIRE_MODEL
+      k=k+1        ! frac dynamic BB emis from non suppression
+        ij_nsuppress = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO NONSUPPRESS'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_nsuppress'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        ! frac dynamic biomass burning emis from lightning 
+        ij_cgign = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO CG LIGT IGN. ONLY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_ignCG'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        ! frac dynamic biomass burning emis from humans
+        ij_humanign = k
+        lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO HUMAN IGN. ONLY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'f_ignHUMAN'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
       k=k+1        ! frac dynamic biomass burning emis from humans
         ij_human = k
         lname_ij(k) = 'FRAC OF DYN BIOBURN EMIS DUE TO HUMAN IGN.'
@@ -4461,6 +4521,7 @@ c
         name_ij(k) = 'fHUMAN'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
+#endif /* ANTHROPOGENIC_FIRE_MODEL */
       k=k+1        ! The Fire Count (no need to save for ubiquitous
         ij_fireC = k ! case, since it is constant factor times flammability)
         lname_ij(k) = 'FIRE COUNT FOR DYN BIOBURN USING ANTHRO MODEL'
@@ -4468,7 +4529,6 @@ c
         name_ij(k) = 'fireCount'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
-#endif /* ANTHROPOGENIC_FIRE_MODEL */
 #endif /* CALCULATE_FLAMMABILITY */
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
       k=k+1        ! lightning flash rate
@@ -4665,68 +4725,58 @@ c
       ir_ij(k) = ir_0_180
       ia_ij(k) = ia_inst
 
-C**** Also include MSU radiation diagnotsics here
+C**** Also include MSU radiation diagnostics here
 
-c      k=k+1 !
-c      IJ_MSU2 = k
-c      lname_ij(k) = 'MSU CHANNEL 2'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU2R = k
-c      lname_ij(k) = 'MSU CHANNEL 2R'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU2R'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU3 = k
-c      lname_ij(k) = 'MSU CHANNEL 3'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU3'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-c      k=k+1 !
-c      IJ_MSU4 = k
-c      lname_ij(k) = 'MSU CHANNEL 4'
-c      units_ij(k) = 'C'
-c      name_ij(k) = 'MSU4'
-c      ia_ij(k) = ia_inst
-c      ir_ij(k) = ir_m80_28
-c      scale_ij(k) = 1.
-
-      k = k + 1
-      ij_msu2 = k
-      name_ij(k) = 'Tmsu_ch2'
-      lname_ij(k) = 'MSU-channel 2 TEMPERATURE'
+      k=k+1 !
+      ij_msutlt = k
+      name_ij(k) = 'Tmsu-TLT'
+      lname_ij(k) = 'MSU-TLT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu3 = k
-      name_ij(k) = 'Tmsu_ch3'
-      lname_ij(k) = 'MSU-channel 3 TEMPERATURE'
+      ij_msutmt = k
+      name_ij(k) = 'Tmsu_TMT'
+      lname_ij(k) = 'MSU-TMT TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
       k = k + 1
-      ij_msu4 = k
-      name_ij(k) = 'Tmsu_ch4'
-      lname_ij(k) = 'MSU-channel 4 TEMPERATURE'
+      ij_msutls = k
+      name_ij(k) = 'Tmsu_TLS'
+      lname_ij(k) = 'MSU-TLS TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
+C**** Add in Stratospheric Sounding Units (3 channels)
+      k = k + 1
+      ij_ssu1 = k
+      name_ij(k) = 'Tssu_ch1'
+      lname_ij(k) = 'SSU-Ch 1 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu2 = k
+      name_ij(k) = 'Tssu_ch2'
+      lname_ij(k) = 'SSU-Ch 2 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+      k = k + 1
+      ij_ssu3 = k
+      name_ij(k) = 'Tssu_ch3'
+      lname_ij(k) = 'SSU-Ch 3 TEMPERATURE'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+C****
       k = k + 1
       ij_Tatm = k
       name_ij(k) = 'Tatm'

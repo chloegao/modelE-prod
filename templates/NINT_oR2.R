@@ -7,7 +7,6 @@ new template system has been finalized.
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
@@ -42,7 +41,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -54,14 +52,14 @@ ICEDYN_MASKFAC=iceflowmask_144x90.nc
 TDISS=tdiss/TIDAL_e_v2_1QX1.nc
 TDISS_N=tdiss/Jayne2009_288x180.nc
 
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

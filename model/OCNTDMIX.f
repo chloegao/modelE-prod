@@ -1070,7 +1070,11 @@ c
       return
       end subroutine tdmix_prep
 
-      subroutine tdmix(trm,qlimit,fl3d)
+      subroutine tdmix(trm,qlimit,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &     ,fl3ds
+#endif
+     &     )
 !@sum tdmix applies mass exchange rates to the tracer field
       use tdmix_mod
       use ocean, only : im,jm,lmo
@@ -1096,6 +1100,10 @@ cons      use domain_decomp_1d, only : globalsum
 !@+   each model gridcell.  This is performed separately for each DSOE.
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo,3) ::
      &     fl3d
+#ifdef TDMIX_AUX_DIAGS
+!@var fl3ds the symmetric part of fl3d
+     &    ,fl3ds
+#endif
 c
       real*8, dimension(lmo,im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     tr0,tz0,tzz0
@@ -1104,12 +1112,14 @@ c
       integer :: j_0,j_1,j_0s,j_1s
       logical :: have_north_pole
 
-      real*8, dimension(lmo) :: fl1d
-      integer :: l1,l2,lll
+      real*8, dimension(lmo) :: fl1d,fzxl1d,fzxr1d,fzyl1d,fzyr1d
+      integer :: l1,l2
       real*8 :: dmnet
-      real*8 :: fzxl_,fzxr_,fzyl_,fzyr_
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
      &     fzxl,fzxr,fzyl,fzyr
+#ifdef TDMIX_AUX_DIAGS
+     &    ,fzxls,fzxrs,fzyls,fzyrs
+#endif
 
 cons      real*8, dimension(grid%j_strt_halo:grid%j_stop_halo) ::
 cons     &     psumbef,psumaft
@@ -1168,6 +1178,13 @@ cons      psumbef = 0.; psumaft = 0.
       fzxr = 0.
       fzyl = 0.
       fzyr = 0.
+#ifdef TDMIX_AUX_DIAGS
+      fl3ds = 0.
+      fzxls = 0.
+      fzxrs = 0.
+      fzyls = 0.
+      fzyrs = 0.
+#endif
 
       do j=j_0s,j_1s
       do n=1,nbyzm(j,1)
@@ -1213,33 +1230,27 @@ cons        psumbef(j) = psumbef(j) + sum(trm(i,j,1:lmm(i,j)))
 
           ! Flux diagnostics.  See above remarks regarding slantwise -> x-y-p
           dmnet = -(tr*facr-tl*facl)
-          l1 = min(llx(l,i,j),lrx(l,i,j))
-          l2 = max(llx(l,i,j),lrx(l,i,j))
-          if(l2.eq.l1) then
-            fl1d(l1) = dmnet
-          else ! jumping layers
-            lll = l2
-            if(l2.gt.lmu(i,j)) then
-              fl1d(lmu(i,j)+1:l2) = 0.
-              lll = lmu(i,j)
-            endif
-            !fl1d(l1:lll) = dmnet/real(lll-l1+1,kind=8)
-            fl1d(l1:lll) = dmnet*(dzo(l1:lll)/sum(dzo(l1:lll)))
-            if(lrx(l,i,j).lt.llx(l,i,j)) then
-              fzxl_ = -sum(fl1d(l1:l2-1))
-              fzxr_ = -fl1d(l2)
-            else
-              fzxr_ = sum(fl1d(l1:l2-1))
-              fzxl_ = fl1d(l2)
-            endif
-            do lll=l2-1,l1,-1
-              fzxl(i,j,lll) = fzxl(i,j,lll) + fzxl_
-              fzxr(i,j,lll) = fzxr(i,j,lll) + fzxr_
-              fzxl_ = fzxl_ + fl1d(lll)
-              fzxr_ = fzxr_ - fl1d(lll)
-            enddo
-          endif
+          call iso_to_xyp_diags(
+     &         llx(l,i,j),lrx(l,i,j),lmu(i,j),dmnet,
+     &         l1,l2,fl1d,fzxl1d,fzxr1d)
           fl3d(i,j,l1:l2,1) = fl3d(i,j,l1:l2,1) + fl1d(l1:l2)
+          if(l2.gt.l1) then
+            fzxl(i,j,l1:l2-1) = fzxl(i,j,l1:l2-1) + fzxl1d(l1:l2-1)
+            fzxr(i,j,l1:l2-1) = fzxr(i,j,l1:l2-1) + fzxr1d(l1:l2-1)
+          endif
+
+#ifdef TDMIX_AUX_DIAGS
+          dmnet = -(tr-tl)*min(facr,facl)
+          call iso_to_xyp_diags(
+     &         llx(l,i,j),lrx(l,i,j),lmu(i,j),dmnet,
+     &         l1,l2,fl1d,fzxl1d,fzxr1d)
+          fl3ds(i,j,l1:l2,1) = fl3ds(i,j,l1:l2,1) + fl1d(l1:l2)
+          if(l2.gt.l1) then
+            fzxls(i,j,l1:l2-1) = fzxls(i,j,l1:l2-1) + fzxl1d(l1:l2-1)
+            fzxrs(i,j,l1:l2-1) = fzxrs(i,j,l1:l2-1) + fzxr1d(l1:l2-1)
+          endif
+#endif
+
         enddo
 
         ! y-direction
@@ -1271,33 +1282,25 @@ cons        psumbef(j) = psumbef(j) + sum(trm(i,j,1:lmm(i,j)))
 
           ! Flux diagnostics.  See above remarks regarding slantwise -> x-y-p
           dmnet = -(tr*facr-tl*facl)
-          l1 = min(lly(l,i,j),lry(l,i,j))
-          l2 = max(lly(l,i,j),lry(l,i,j))
-          if(l2.eq.l1) then
-            fl1d(l1) = dmnet
-          else ! jumping layers
-            lll = l2
-            if(l2.gt.lmv(i,j)) then
-              fl1d(lmv(i,j)+1:l2) = 0.
-              lll = lmv(i,j)
-            endif
-            !fl1d(l1:lll) = dmnet/real(lll-l1+1,kind=8)
-            fl1d(l1:lll) = dmnet*(dzo(l1:lll)/sum(dzo(l1:lll)))
-            if(lry(l,i,j).lt.lly(l,i,j)) then
-              fzyl_ = -sum(fl1d(l1:l2-1))
-              fzyr_ = -fl1d(l2)
-            else
-              fzyr_ = sum(fl1d(l1:l2-1))
-              fzyl_ = fl1d(l2)
-            endif
-            do lll=l2-1,l1,-1
-              fzyl(i,j,lll) = fzyl(i,j,lll) + fzyl_
-              fzyr(i,j,lll) = fzyr(i,j,lll) + fzyr_
-              fzyl_ = fzyl_ + fl1d(lll)
-              fzyr_ = fzyr_ - fl1d(lll)
-            enddo
-          endif
+          call iso_to_xyp_diags(
+     &         lly(l,i,j),lry(l,i,j),lmv(i,j),dmnet,
+     &         l1,l2,fl1d,fzyl1d,fzyr1d)
           fl3d(i,j,l1:l2,2) = fl3d(i,j,l1:l2,2) + fl1d(l1:l2)
+          if(l2.gt.l1) then
+            fzyl(i,j,l1:l2-1) = fzyl(i,j,l1:l2-1) + fzyl1d(l1:l2-1)
+            fzyr(i,j,l1:l2-1) = fzyr(i,j,l1:l2-1) + fzyr1d(l1:l2-1)
+          endif
+#ifdef TDMIX_AUX_DIAGS
+          dmnet = -(tr-tl)*min(facr,facl)
+          call iso_to_xyp_diags(
+     &         lly(l,i,j),lry(l,i,j),lmv(i,j),dmnet,
+     &         l1,l2,fl1d,fzyl1d,fzyr1d)
+          fl3ds(i,j,l1:l2,2) = fl3ds(i,j,l1:l2,2) + fl1d(l1:l2)
+          if(l2.gt.l1) then
+            fzyls(i,j,l1:l2-1) = fzyls(i,j,l1:l2-1) + fzyl1d(l1:l2-1)
+            fzyrs(i,j,l1:l2-1) = fzyrs(i,j,l1:l2-1) + fzyr1d(l1:l2-1)
+          endif
+#endif
 
         enddo
 cons        psumaft(j) = psumaft(j) + sum(trm(i,j,1:lmm(i,j)))
@@ -1337,24 +1340,88 @@ cons      endif
       ! Combine x- and y-direction contributions
       ! to z-direction flux diagnostics
       call halo_update(grid,fzyr,from=south)
+#ifdef TDMIX_AUX_DIAGS
+      call halo_update(grid,fzyrs,from=south)
+#endif
       do l=1,lmo-1
         do j=j_0s,j_1s
         i=1
         if(l.lt.lmm(i,j)) then
           fl3d(i,j,l,3) =
      &         fzxr(im,j,l)+fzxl(i,j,l)+fzyr(i,j-1,l)+fzyl(i,j,l)
+#ifdef TDMIX_AUX_DIAGS
+          fl3ds(i,j,l,3) =
+     &         fzxrs(im,j,l)+fzxls(i,j,l)+fzyrs(i,j-1,l)+fzyls(i,j,l)
+#endif
         endif
         do n=1,nbyzm(j,l+1)
         do i=max(2,i1yzm(n,j,l+1)),i2yzm(n,j,l+1)
           fl3d(i,j,l,3) =
      &         fzxr(i-1,j,l)+fzxl(i,j,l)+fzyr(i,j-1,l)+fzyl(i,j,l)
+#ifdef TDMIX_AUX_DIAGS
+          fl3ds(i,j,l,3) =
+     &         fzxrs(i-1,j,l)+fzxls(i,j,l)+fzyrs(i,j-1,l)+fzyls(i,j,l)
+#endif
         enddo
         enddo
         enddo
       enddo
 
+      if(have_north_pole) then
+        byim = 1d0/real(im,kind=8)
+        j = jm
+        do l=1,lmm(1,j)-1
+          fl3d(:,j,l,3) = sum(fzyr(:,j-1,l))*byim
+#ifdef TDMIX_AUX_DIAGS
+          fl3ds(:,j,l,3) = sum(fzyrs(:,j-1,l))*byim
+#endif
+        enddo
+      endif
+
       return
       end subroutine tdmix
+
+      subroutine iso_to_xyp_diags(
+     &     llx,lrx,lmu,dmnet,l1,l2,fl,fzxl,fzxr
+     &     )
+      use ocean, only : lmo
+      use ocean, only : dzo
+      implicit none
+      integer :: llx,lrx,lmu
+      real*8 :: dmnet
+      integer :: l1,l2
+      real*8, dimension(lmo) :: fl,fzxl,fzxr
+c
+      integer :: lll
+      real*8 :: fzxl_,fzxr_
+
+      l1 = min(llx,lrx)
+      l2 = max(llx,lrx)
+      if(l2.eq.l1) then
+        fl(l1) = dmnet
+      else ! jumping layers
+        lll = l2
+        if(l2.gt.lmu) then
+          fl(lmu+1:l2) = 0.
+          lll = lmu
+        endif
+            !fl(l1:lll) = dmnet/real(lll-l1+1,kind=8)
+        fl(l1:lll) = dmnet*(dzo(l1:lll)/sum(dzo(l1:lll)))
+        if(lrx.lt.llx) then
+          fzxl_ = -sum(fl(l1:l2-1))
+          fzxr_ = -fl(l2)
+        else
+          fzxr_ = sum(fl(l1:l2-1))
+          fzxl_ = fl(l2)
+        endif
+        do lll=l2-1,l1,-1
+          fzxl(lll) = fzxl_
+          fzxr(lll) = fzxr_
+          fzxl_ = fzxl_ + fl(lll)
+          fzxr_ = fzxr_ - fl(lll)
+        enddo
+      endif
+      end subroutine iso_to_xyp_diags
 
       subroutine relax_qusmoms(mnew,trm,
      &     trxm,trym,trzm, trxxm,tryym,trzzm, trxym,tryzm,trzxm

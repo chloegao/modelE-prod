@@ -49,7 +49,7 @@
       !@param rvap  gas constant for water vapour (461.5 J/K kg)
       !**** defined as R/M_W = 1000* 8.314510 J/mol K /18.015 g/mol
       real*8,parameter :: rvap = 1d3 * gasc / mwat ! = 461.5...
-      !@param tf freezing point of water at 1 atm (273.16 K)
+      !@param tf freezing point of water at 1 atm (273.15 K)
       real*8,parameter :: tf = tfrz
 
       !************************************************************************

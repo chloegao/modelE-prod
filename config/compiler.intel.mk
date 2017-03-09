@@ -17,7 +17,7 @@ endif
 R8 = -r8
 EXTENDED_SOURCE = -extend_source
 
-SUPPORTED_RELEASES = 14.0 15.0
+SUPPORTED_RELEASES = 14.0 15.0 16.0
 
 ifneq ($(OVERWRITE),YES)
 ifeq ($(findstring $(IFORT_RELEASE),$(SUPPORTED_RELEASES)),)

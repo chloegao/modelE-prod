@@ -115,12 +115,15 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=520
+      INTEGER, PARAMETER, public :: KAIJ=540
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
 #ifdef HEALY_LM_DIAGS
      &                                   + 1
+#endif
+#ifdef ENT_DEBUG_DIAGS
+     &                                  + 5+256+16*9+2
 #endif
 
 !@param KAIJmm maximum number of AIJ min/max diagnostics
@@ -550,14 +553,14 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,
-     *     ! IJ_MSU2,IJ_MSU2R,
+     *     IJ_P850,
      *     IJ_GPP, IJ_IPP, IJ_RAUTO, IJ_CLAB, IJ_DLEAF, IJ_LAI, !VEG DIAGNOSTICS
      *     IJ_SOILRESP, IJ_SOILCPOOLSUM, !additional veg diags (soil bgc)
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP, IJ_MCCLDTP, IJ_MCCLDBS,
      *     IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
-     *     IJ_DSKIN, IJ_MCCVTP, IJ_MCCVBS,
+     *     IJ_DSKIN, IJ_DSKINSNOW, IJ_MCCVTP, IJ_MCCVBS,
      *     IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON
      *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ
@@ -569,6 +572,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
      &     ,ij_flam,ij_CtoG,ij_flash
      *     ,ij_fvden,ij_human,ij_fireC
+     *     ,ij_nsuppress,ij_cgign,ij_humanign
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
@@ -579,6 +583,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,IJ_IMPMGR,IJ_IMPHGR,IJ_IMPMKI,IJ_IMPHKI
      *     ,IJ_MLKtoGR,IJ_HLKtoGR
      *     ,ij_precli,ij_precsi,ij_precoo,ij_precgr
+     &     ,ij_ent_debug
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
 #endif
@@ -604,9 +609,9 @@ c derived/composite diagnostics
       INTEGER, public ::
      *  ij_topo, ij_jet, ij_wsmn, ij_jetdir, ij_wsdir, ij_grow,
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
-     *  ij_fland, ij_dzt1, ij_albgv, ij_msu2,ij_msu3,ij_msu4,
+     *  ij_fland, ij_dzt1, ij_albgv, ij_msutlt,ij_msutmt,ij_msutls,
+     *  ij_ssu1, ij_ssu2, ij_ssu3,
      *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
-
 
       integer, public :: ij_tsurfmin,ij_tsurfmax
 

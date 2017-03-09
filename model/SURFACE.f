@@ -58,7 +58,7 @@ C****
       USE PBL_DRV, only : pbl, t_pbl_args, xdelt
       USE DIAG_COM, only : MODD5S
       USE DIAG_COM, only : ndasf,ia_srf
-     &     ,aij=>aij_loc,ij_dskin  ! temporarily still here
+     &     ,aij=>aij_loc,ij_dskin,ij_dskinsnow  ! temporarily still here
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,solar_ice_frac
      *     ,tfrez,dEidTi,alami,dEidTiws
       USE SEAICE_COM, only : si_atm
@@ -743,8 +743,9 @@ C**** Limit evaporation if lake mass is at minimum
      &     moddsf,ptype,pocean,rsi(i,j),rhosrf,tgo,dtsurf,pbl_args)
 #else
 #ifdef TRACERS_ON
-      if (gasex_index%getsize()>0)
-     &                call stop_model('gas exchange code missing', 255)
+!      if (gasex_index%getsize()>0)
+!     &                call stop_model('gas exchange code missing', 255)
+! do nothing
 #endif
 #endif
 
@@ -804,7 +805,12 @@ C****
         IF(MODDSF.EQ.0)
      &       AIJ(I,J,IJ_DSKIN)=AIJ(I,J,IJ_DSKIN)+pbl_args%dskin
       endif
-C****
+      if ( ITYPE == ITYPE_OCEANICE ) then
+        IF(MODDSF.EQ.0)
+     &       AIJ(I,J,IJ_DSKINSNOW)=AIJ(I,J,IJ_DSKINSNOW)+pbl_args%dskin
+      endif
+
+C**** 
       END IF
       END DO   ! end of itype loop
       END DO   ! end of I loop
@@ -1261,6 +1267,12 @@ C
      &      + atmlnd%SNOWE(i,j)*fearth(i,j)  )
          enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('evap')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = -dtsurf*qflux1(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d) 
 C
 C
       end select

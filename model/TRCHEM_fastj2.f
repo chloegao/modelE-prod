@@ -532,7 +532,7 @@ c
 C**** GLOBAL parameters and variables:
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_as
+      USE RAD_COM,only: tau_as
       USE RADPAR, only : nraero_aod=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
@@ -624,7 +624,7 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
       AER2(1:NLGCM,1:nraero_aod)=
-     &  ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
+     &  tau_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
 #endif
 #endif
 

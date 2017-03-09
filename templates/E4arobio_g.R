@@ -16,7 +16,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
          sea level pressure (after every physics time step)
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
@@ -32,7 +31,7 @@ Preprocessor Options
 !!!#define restoreIRON
 !!!#define TRACERS_Alkalinity
 !!!#define Jprod_based_on_pp
-!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - don't use it - use run-time parameter instead: chl_from_seawifs=1
 !!!!#define change_PNOICE           ! adjust ice-obio interactions
 End Preprocessor Options
 
@@ -65,7 +64,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -82,7 +80,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "ocarbon_cycle_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 

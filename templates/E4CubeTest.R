@@ -18,7 +18,6 @@ Preprocessor Options
 #define BUNDLE_INTERP
 #define NEW_IO
 !#define CALC_GWDRAG                 ! need to make ZVAR for C32 res first
-#define USE_ENT                  ! include dynamic vegetation model
 #define SET_SOILCARBON_GLOBAL_TO_ZERO
 !#define ROUGHL_HACK ! no longer needed?
 
@@ -48,7 +47,6 @@ dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 FVCUBED = YES
 
 Data input files:
@@ -77,7 +75,7 @@ REMAP=remap72-46C32-32.nc            ! weights for atm-ocean coupling
 #include "rad_input_files"
 #include "rad_C32_input_files"
 
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E4CubeTest (cubed-sphere version of E4M20 coupled to 4x5 13-layer ocean)

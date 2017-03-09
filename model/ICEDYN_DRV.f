@@ -55,6 +55,9 @@ c arrays for sea ice advection
 !@var pack_a2i,pack_i2a contain info for redistributing data from
 !@+   atmos. domains to icedyn domains and vice versa.
       type(band_pack_type), target :: pack_a2i,pack_i2a
+#ifdef EXPEL_COASTAL_ICEXS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: CONNECT
+#endif
 #endif
 
 !@var aUSI,aVSI sea ice velocities (B-grid) having atmos. domain bounds,
@@ -99,6 +102,10 @@ C**** Ice dynamics diagnostics
       USE ICEDYN_COM, only : ICIJ,igice
 #ifdef CUBED_SPHERE
       USE ICEDYN_COM, only : FOA,BYFOA,CONNECT
+#else
+#ifdef EXPEL_COASTAL_ICEXS
+      USE ICEDYN_COM, only : CONNECT
+#endif
 #endif
       USE ICEDYN, only : grid_icdyn
       IMPLICIT NONE
@@ -153,6 +160,11 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
       ALLOCATE(   FOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &          BYFOA(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC),
      &        CONNECT(I_0H_MIC:I_1H_MIC, J_0H_MIC:J_1H_MIC))
+#else
+#ifdef EXPEL_COASTAL_ICEXS
+      ALLOCATE(CONNECT(grid_atm%i_strt:grid_atm%i_stop,
+     &                 grid_atm%j_strt_halo:grid_atm%j_stop_halo))
+#endif
 #endif
 
       return
@@ -1039,6 +1051,9 @@ C**** uisurf/visurf are on atm grid but are latlon oriented
       USE SEAICE, only : ntm
 #endif
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
+#ifdef EXPEL_COASTAL_ICEXS
+      USE ICEDYN_COM, only : connect
+#endif
       IMPLICIT NONE
       type(atmice_xchng_vars) :: atmice
 
@@ -1073,6 +1088,18 @@ C****         FMSI   flux of sea ice mass (kg) or heat (J) or salt (kg)
 #ifdef TRACERS_WATER
       REAL*8, DIMENSION(:,:,:,:), POINTER :: TRSI
 #endif
+
+#ifdef EXPEL_COASTAL_ICEXS
+!@var coastfac[xy]: A proportionality factor to compute the component
+!@+   of advective velocity which limits ice buildup along
+!@+   coastlines.  (At some gridcells, negative feedbacks on
+!@+   ice production are not able to assert themselves when
+!@+   sea ice does not reside on the ocean grid.)
+      real*8 :: coastfacx,coastfacy
+      real*8 :: du,dv
+      integer :: cxi,cxip1,cyj,cyjp1
+#endif
+
       INTEGER :: IM,JM
       INTEGER J_0, J_1, J_0S, J_1S, J_0H, J_1H
       LOGICAL :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE
@@ -1211,23 +1238,71 @@ C**** Update halo of RSI,FOCEAN
       CALL HALO_UPDATE(si_ocn%grid, RSI  , FROM=NORTH)
       CALL HALO_UPDATE(si_ocn%grid, RSISAVE  , FROM=NORTH)
       CALL HALO_UPDATE(si_ocn%grid,FOCEAN, FROM=NORTH+SOUTH)
+#ifdef EXPEL_COASTAL_ICEXS
+      CALL HALO_UPDATE(si_ocn%grid, MSI  , FROM=NORTH)
+#endif
 
 C**** calculate mass fluxes for the ice advection
       DO J=J_0,J_1S
+#ifdef EXPEL_COASTAL_ICEXS
+        if(j.ne.1 .and. j.ne.jm) then
+          coastfacx =
+     &         1d-3        ! kg/m2 ice mass -> ice thickness
+     &        *1d-1        ! 10 cm/s speed for 1 m thickness difference
+     &        *1d5/dxp(j)  ! over 100 km
+          coastfacy =
+     &         1d-3
+     &        *1d-1
+     &        *1d5/dyp(j)
+        else
+          coastfacx = 0.
+          coastfacy = 0.
+        endif
+#endif
         I=IM
         DO IP1=1,IM
           USIDT(I,J)=0.
           IF (FOCEAN(I,J).gt.0 .and. FOCEAN(IP1,J).gt.0. .and.
-     &         RSISAVE(I,J)+RSISAVE(IP1,J).gt.1d-4)
-     &       USIDT(I,J)=0.5*(ausi(i,j-1)+ausi(i,j))*dts
+     &         RSISAVE(I,J)+RSISAVE(IP1,J).gt.1d-4) then
+            USIDT(I,J)=0.5*(ausi(i,j-1)+ausi(i,j))*dts
+#ifdef EXPEL_COASTAL_ICEXS
+            if(connect(i,j)+connect(ip1,j) .lt. 30) then
+              cxi   = mod(int(connect(i,  j)),2)   ! nbr w of i  ?
+              cxip1 = mod(int(connect(ip1,j)),4)/2 ! nbr e of ip1?
+              du = (msi(i,j)-msi(ip1,j))*coastfacx
+              du = min(10d0,max(-10d0,du))
+              if(cxi.lt.cxip1) then
+                du = max(0d0,du)
+              elseif(cxi.gt.cxip1) then
+                du = min(0d0,du)
+              endif
+              usidt(i,j) = usidt(i,j) + dts*du
+            endif
+#endif
+          ENDIF
           I=IP1
         END DO
         IM1=IM
         DO I=1,IM
           VSIDT(I,J)=0.
           IF (FOCEAN(I,J+1).gt.0 .and. FOCEAN(I,J).gt.0. .and.
-     &         RSISAVE(I,J)+RSISAVE(I,J+1).gt.1d-4)
-     &       VSIDT(I,J)=0.5*(avsi(im1,j)+avsi(i,j))*dts
+     &         RSISAVE(I,J)+RSISAVE(I,J+1).gt.1d-4) THEN
+            VSIDT(I,J)=0.5*(avsi(im1,j)+avsi(i,j))*dts
+#ifdef EXPEL_COASTAL_ICEXS
+            if(connect(i,j)+connect(i,j+1) .lt. 30) then
+              cyj   = mod(int(connect(i,j))/4,2) ! nbr s of j  ?
+              cyjp1 = connect(i,j+1)/8           ! nbr n of j+1?
+              dv = (msi(i,j)-msi(i,j+1))*coastfacy
+              dv = min(10d0,max(-10d0,dv))
+              if(cyj.lt.cyjp1) then
+                dv = max(0d0,dv)
+              elseif(cyj.gt.cyjp1) then
+                dv = min(0d0,dv)
+              endif
+              vsidt(i,j) = vsidt(i,j) + dts*dv
+            endif
+#endif
+          ENDIF
           IM1=I
         END DO
       END DO
@@ -1761,6 +1836,7 @@ c      iA=aA
       USE MDIAG_COM, only : make_timeaxis
 #endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds,ICE_HALO=>HALO_UPDATE
+     &     ,hasSouthPole,hasNorthPole
       USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
      &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
@@ -1787,6 +1863,10 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 #else
       use domain_decomp_1d, only : init_band_pack_type,band_pack
       use icedyn_com, only : pack_a2i,pack_i2a
+#ifdef EXPEL_COASTAL_ICEXS
+      use domain_decomp_1d, only : ATM_HALO=>HALO_UPDATE
+      use icedyn_com, only : connect
+#endif
 #endif
       use Dictionary_mod
 #ifdef NEW_IO
@@ -1797,7 +1877,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
       LOGICAL, INTENT(IN) :: iniOCEAN
       type(atmice_xchng_vars) :: atmice
 c
-      INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1
+      INTEGER i,j,k,kk,J_0,J_1,J_0H,J_1H,J_1S,im1,ip1,im
       character(len=10) :: xstr,ystr
       logical :: set_miss
 #ifdef CUBED_SPHERE
@@ -1936,6 +2016,38 @@ c          endif
         enddo
       enddo
       call atm_halo(atmice%grid, connect)
+#else
+#ifdef EXPEL_COASTAL_ICEXS
+c encode the "ocean-connectedness" of gridpoint i,j using:
+c ["west:" 1] + ["east:" 2] + ["south:" 4] + ["north:" 8].
+      im = atmice%grid%i_stop
+      do j=atmice%grid%j_strt_skp,atmice%grid%j_stop_skp
+        im1 = im-1
+        i   = im
+        do ip1=1,im
+          connect(i,j) = 0
+          if(atmice%focean(i,j).gt.0.0d0) then
+            if(atmice%focean(im1,j).gt.0.0d0)
+     &           connect(i,j) = connect(i,j) + 1
+            if(atmice%focean(ip1,j).gt.0.0d0)
+     &           connect(i,j) = connect(i,j) + 2
+            if(atmice%focean(i,j-1).gt.0.0d0)
+     &           connect(i,j) = connect(i,j) + 4
+            if(atmice%focean(i,j+1).gt.0.0d0)
+     &           connect(i,j) = connect(i,j) + 8
+          endif
+          im1 = i
+          i = ip1
+        enddo
+      enddo
+      if(hasSouthPole(atmice%grid)) then
+        connect(:, 1) = 0       ! assume landlocked
+      endif
+      if(hasNorthPole(atmice%grid)) then
+        connect(:,atmice%grid%j_stop) = 1+2+4+8 ! assume ocean
+      endif
+      call atm_halo(atmice%grid, connect)
+#endif
 #endif
 
 C**** set uisurf,visurf for atmospheric drag calculations

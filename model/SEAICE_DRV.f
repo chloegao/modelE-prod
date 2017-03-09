@@ -1543,7 +1543,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
           zsi_exists = .true.
         endif
         if(zsi_exists) then
-          call init_stream(grid,ZSIstream,'ZSI','ZSI',0d0,100d0,'ppm',
+          call init_stream(grid,ZSIstream,'ZSI','ZSI',0d0,1d30,'ppm',
      &         jyear,jday,msk=atmocn%focean,cyclic=cyclic)
         endif
       endif

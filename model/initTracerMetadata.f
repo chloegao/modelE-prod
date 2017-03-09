@@ -204,10 +204,6 @@
 #ifdef TRACERS_MINERALS
       use MineralsTracersMetadata_mod
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
-      USE TRACER_COM, only: offline_dms_ss, offline_ss
-#endif
       use MiscTracersMetadata_mod
       USE CONSTANT, only: mair
       USE TRACER_COM, only: ntm
@@ -221,14 +217,6 @@
 ! call routine to read/set up sectors for emissions:
       call setup_emis_sectors()
       call initializeOldTracers(tracers, setDefaultSpec)
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-!**** DMS, seasalt from offline fields
-      call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
-!**** seasalt from offline fields
-      call sync_param("OFFLINE_SS",OFFLINE_SS)
-#endif
 
 ! ***  BEGIN TRACER METADATA INITIALIZATION
 
@@ -490,7 +478,7 @@
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-      use TRDIAG_COM, only: diag_rad
+      use TRDIAG_COM, only: diag_rad,diag_aod_3d
       use TRACER_COM, only: ntm ! should be available by this procedure call
 #ifdef TRACERS_WATER
 #ifdef TRDIAG_WETDEPO
@@ -528,7 +516,6 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
-      USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_RAD_KEY
@@ -592,6 +579,7 @@ C**** set super saturation parameter for isotopes if needed
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
+      CALL sync_param("diag_aod_3d",diag_aod_3d)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif

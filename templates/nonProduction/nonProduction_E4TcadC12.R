@@ -7,7 +7,6 @@ This is for faster testing of tracer code, not scrutinized for "science" purpose
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 ! OFF  #define MODIS_LAI
@@ -86,7 +85,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -96,7 +94,7 @@ RVR=RD8X10.nc            ! river direction file
 NAMERVR=RD8X10.names.txt ! named river outlets
 
 #include "land36x24_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_36x24_input_files"
 
 #include "chemistry_input_files"
@@ -110,7 +108,7 @@ NAMERVR=RD8X10.names.txt ! named river outlets
 #include "aerosol_OMA_36x24_input_files"
 Ox_ref=o3_zeros_36x24x49.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

@@ -19,7 +19,6 @@ Preprocessor Options
 ! #define TRACERS_COSMO
 #define TRACERS_SPECIAL_O18         ! include water isotope code
 #define NUDGE_ON
-#define USE_ENT
 End Preprocessor Options
  
 Run Options
@@ -70,7 +69,6 @@ tracers MPI_Support shared giss_LSM Ent solvers
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 
 Data input files:
@@ -126,7 +124,7 @@ RADNE=topcld.trscat8
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_72x46_a.ij.ext.nc
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
 ISCCP=ISCCP.tautables
 !         NUDGING INPUT

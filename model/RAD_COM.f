@@ -176,22 +176,22 @@ C**** does not produce exactly the same as the default values.
 !@var njaero max expected rad code tracers passed to photolysis
 !@var nraero_aod_rsf value of nraero_aod found in the rsf file
 !@var nraero_rf_rsf value of nraero_rf found in the rsf file
-!@var ttausv_as All-sky aerosol optical saved 1:nraero_aod not 1:ntm
+!@var tau_as All-sky aerosol optical saved 1:nraero_aod not 1:ntm
 !@+   This is so clays are separate. Now also used for old parameter
 !@+   mxfastj: Number of aerosol/cloud types currently active in the model
-!@var ttausv_cs Same as ttausv_as for clear-sky
+!@var tau_cs Same as tau_as for clear-sky
       integer :: njaero ! nraero_aod+2 cloud types (water/ice)
       integer :: nraero_aod_rsf=0
       integer :: nraero_rf_rsf=0
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_as
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: ttausv_cs
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tau_as
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tau_cs
 #ifdef CACHED_SUBDD
-!@var tabssv_as Same as ttausv_as for absorption
-!@var tabssv_cs Same as ttausv_cs for absorption
+!@var abstau_as Same as tau_as for absorption
+!@var abstau_cs Same as tau_cs for absorption
 !@var swfrc Shortwave aerosol radiative forcing
 !@var lwfrc Shortwave aerosol radiative forcing
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_as
-      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tabssv_cs
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: abstau_as
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: abstau_cs
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif
@@ -261,6 +261,8 @@ C**** does not produce exactly the same as the default values.
       INTEGER :: Volc_yr = 1951 , Volc_day = 182
 !@dbparam Aero_yr obs.year of troposph.Aerosols (if 0: use current yr)
       INTEGER :: Aero_yr = 1951    ! always use annual cycle
+!@dbparam dust_yr nominal year for prescribed dust climatology (if 0: use current yr)
+      INTEGER :: dust_yr = 1951    ! always use annual cycle
 !@dbparam O3_yr obs.year of Ozone (if 0: use current year)
       INTEGER :: O3_yr = 1951      ! always use annual cycle
 !@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
@@ -338,6 +340,11 @@ C**** Local variables initialised in init_RAD
       integer :: snoage_def = 0
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: SNOAGE
       class (AbstractOrbit), allocatable :: orbit
+
+!@dbparam chl_from_obio =1 to use chl from obio when computing ocean albedo
+      INTEGER :: chl_from_obio = 0
+!@dbparam chl_from_seawifs =1 to use chl from SeaWIFs when computing ocn albedo
+      INTEGER :: chl_from_seawifs = 0
 
       contains
 
@@ -766,15 +773,15 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
       if (nraero_aod > 0) then
         call defvar(grid,fid,nraero_aod,'nraero_aod')
-        call defvar(grid,fid,ttausv_as,
-     &       'ttausv_as(dist_im,dist_jm,lm,nraero_aod)')
-        call defvar(grid,fid,ttausv_cs,
-     &       'ttausv_cs(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,tau_as,
+     &       'tau_as(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,tau_cs,
+     &       'tau_cs(dist_im,dist_jm,lm,nraero_aod)')
 #ifdef CACHED_SUBDD
-        call defvar(grid,fid,tabssv_as,
-     &       'tabssv_as(dist_im,dist_jm,lm,nraero_aod)')
-        call defvar(grid,fid,tabssv_cs,
-     &       'tabssv_cs(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,abstau_as,
+     &       'abstau_as(dist_im,dist_jm,lm,nraero_aod)')
+        call defvar(grid,fid,abstau_cs,
+     &       'abstau_cs(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,nraero_rf,'nraero_rf')
         call defvar(grid,fid,swfrc,'swfrc(dist_im,dist_jm,nraero_rf)')
         call defvar(grid,fid,lwfrc,'lwfrc(dist_im,dist_jm,nraero_rf)')
@@ -859,11 +866,11 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_ON
         if (nraero_aod > 0) then
           call write_data(grid, fid,'nraero_aod', nraero_aod)
-          call write_dist_data(grid,fid,'ttausv_as',ttausv_as)
-          call write_dist_data(grid,fid,'ttausv_cs',ttausv_cs)
+          call write_dist_data(grid,fid,'tau_as',tau_as)
+          call write_dist_data(grid,fid,'tau_cs',tau_cs)
 #ifdef CACHED_SUBDD
-          call write_dist_data(grid,fid,'tabssv_as',tabssv_as)
-          call write_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+          call write_dist_data(grid,fid,'abstau_as',abstau_as)
+          call write_dist_data(grid,fid,'abstau_cs',abstau_cs)
           call write_data(grid, fid,'nraero_rf', nraero_rf)
           call write_dist_data(grid,fid,'swfrc',swfrc)
           call write_dist_data(grid,fid,'lwfrc',lwfrc)
@@ -905,15 +912,15 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,'trnflb_save',trnflb_save)
 #endif
 #ifdef TRACERS_ON
-        if (.not.allocated(ttausv_as)) then
+        if (.not.allocated(tau_as)) then
           call read_data(grid,fid,'nraero_aod',nraero_aod_rsf,
      &                   bcast_all=.true.)
           if (nraero_aod_rsf /= 0) then
-            allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
-            allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(tau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(tau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
 #ifdef CACHED_SUBDD
-            allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
-            allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
             call read_data(grid,fid,'nraero_rf',nraero_rf_rsf,
      &                     bcast_all=.true.)
             if (nraero_rf_rsf /= 0) then
@@ -923,12 +930,12 @@ C**** Local variables initialised in init_RAD
 #endif  /* CACHED_SUBDD */
           endif
         endif
-        if (allocated(ttausv_as)) then ! needs to be separate from previous if
-          call read_dist_data(grid,fid,'ttausv_as',ttausv_as)
-          call read_dist_data(grid,fid,'ttausv_cs',ttausv_cs)
+        if (allocated(tau_as)) then ! needs to be separate from previous if
+          call read_dist_data(grid,fid,'tau_as',tau_as)
+          call read_dist_data(grid,fid,'tau_cs',tau_cs)
 #ifdef CACHED_SUBDD
-          call read_dist_data(grid,fid,'tabssv_as',tabssv_as)
-          call read_dist_data(grid,fid,'tabssv_cs',tabssv_cs)
+          call read_dist_data(grid,fid,'abstau_as',abstau_as)
+          call read_dist_data(grid,fid,'abstau_cs',abstau_cs)
           call read_dist_data(grid,fid,'swfrc',swfrc)
           call read_dist_data(grid,fid,'lwfrc',lwfrc)
 #endif  /* CACHED_SUBDD */
@@ -1071,6 +1078,7 @@ C**** Local variables initialised in init_RAD
      &     ,ij_siswu=1
      &     ,ij_lwprad=1
      &     ,ij_iwprad=1
+     &     ,ij_h2och4 = 1
 
 #ifdef ACCMIP_LIKE_DIAGS
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)

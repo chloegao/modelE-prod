@@ -16,6 +16,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
      &   ,flnmbas,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+     &   ,init_pr1d
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
@@ -230,6 +231,8 @@ c
 c
 c --- initialize some arrays
 c
+      call init_pr1d()  ! TNL : isobaric depth levels
+
       ! uncommented by IA
       !if (nstep0.eq.0) then
       if (iniOCEAN) then
@@ -269,27 +272,27 @@ c
       depthv(i,j)=huge
       tprime(i,j)=huge
 c
-      srfhgt(i,j)=zero
+      srfhgt(i,j)=huge
       dpmixl(i,j,:)= 1.0  ! TNL: avoid NaN on the first step
-      oice(i,j)=zero
-      taux(i,j)=zero
-      tauy(i,j)=zero
-      oflxa2o(i,j)=zero
-      osalt(i,j)=zero
-      oemnp(i,j)=zero
-      ustar(i,j)=zero
-      sswflx(i,j)=zero
+      oice(i,j)=huge
+      taux(i,j)=huge
+      tauy(i,j)=huge
+      oflxa2o(i,j)=huge
+      osalt(i,j)=huge
+      oemnp(i,j)=huge
+      ustar(i,j)=huge
+      sswflx(i,j)=huge
 c
-      pbavav(i,j)=zero
-      sfhtav(i,j)=zero
-      dpmxav(i,j)=zero
-      oiceav(i,j)=zero
-      eminpav(i,j)=zero
-      surflav(i,j)=zero
-      salflav(i,j)=zero
-      brineav(i,j)=zero
-      tauxav(i,j)=zero
-      tauyav(i,j)=zero
+      pbavav(i,j)=huge
+      sfhtav(i,j)=huge
+      dpmxav(i,j)=huge
+      oiceav(i,j)=huge
+      eminpav(i,j)=huge
+      surflav(i,j)=huge
+      salflav(i,j)=huge
+      brineav(i,j)=huge
+      tauxav(i,j)=huge
+      tauyav(i,j)=huge
 c
       do 209 k=1,kk
       u  (i,j,k   )=huge
@@ -318,17 +321,19 @@ c
       do nt=1,ntrcr
         tracer(i,j,k,nt)=zero
       end do
-      uav(i,j,k)=zero
-      vav(i,j,k)=zero
-      dpuav(i,j,k)=zero
-      dpvav(i,j,k)=zero
-      dpav (i,j,k)=zero
-      temav(i,j,k)=zero
-      salav(i,j,k)=zero
-      th3av(i,j,k)=zero
-      uflxav(i,j,k)=zero
-      vflxav(i,j,k)=zero
-      diaflx(i,j,k)=zero
+      uav(i,j,k)=huge
+      vav(i,j,k)=huge
+      dpuav(i,j,k)=huge
+      dpvav(i,j,k)=huge
+      dpav (i,j,k)=huge
+      temav(i,j,k)=huge
+      salav(i,j,k)=huge
+      th3av(i,j,k)=huge
+      uflxav(i,j,k)=huge
+      vflxav(i,j,k)=huge
+      ufxavp(i,j,k)=huge
+      vfxavp(i,j,k)=huge
+      diaflx(i,j,k)=huge
  209  continue
 c
       do 210 j=1,jj

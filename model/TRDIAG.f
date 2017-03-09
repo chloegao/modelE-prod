@@ -1045,13 +1045,15 @@ c
       use tracer_com, only: n_h2o18, n_hdo, n_h2o17
 #endif
       use diag_com
-      use mdiag_com, only : make_timeaxis 
+      use diag_com_rad, only : ij_cldcv,ijl_cf
+      use mdiag_com, only : sname_strlen,make_timeaxis 
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
      &     ktaijl_,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
      &     ia_taijl,denom_taijl,lname_taijl,sname_taijl,units_taijl,
-     &     cdl_taijl, cdl_taijl_latlon, sname_ijlt, lname_ijlt,
+     &     cdl_taijl, cdl_taijl_latlon,sname_ijlt,lname_ijlt,dname_ijlt,
      &     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
-     &     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl
+     &     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl,
+     &     ijlt_clrsky2d
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1066,6 +1068,7 @@ c
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:,:), allocatable :: taijl_tmp
       character(len=16) :: zstr,hstr,tstr
+      character(len=sname_strlen), dimension(ktaijl_) :: dname_taijl
       logical :: set_miss
       logical :: have_south_pole, have_north_pole
       call getDomainBounds(grid, have_south_pole = have_south_pole,
@@ -1099,10 +1102,22 @@ C**** Fill in the undefined pole box duplicates
         denom_taijl(k) = 0
         ia_taijl(k) = ia_src
         sname_taijl(k) = 'unused'
+        dname_taijl(k) = ''
         lname_taijl(k) = 'unused'
         units_taijl(k) = 'unused'
         scale_taijl(k) = 1.
       enddo
+
+      if(ijlt_clrsky2d.gt.0) then
+        ! following two lines correspond to 3D weighting
+!        taijls(:,:,:,ijlt_clrsky) =
+!     &       real(idacc(ia_rad))-aijl_loc(:,:,:,ijl_cf)
+  ! but RADIA 2D variable OPNSKY is current weight for per-layer opt depths
+        do l=1,lm; do j=j_0,j_1; do i=i_0,i_1
+          taijls(i,j,l,ijlt_clrsky2d) =
+     &         real(idacc(ia_rad))-aij_loc(i,j,ij_cldcv)
+        enddo    ; enddo       ; enddo
+      endif
 
       k = 0
 
@@ -1151,6 +1166,7 @@ C**** Tracer specials
         if (index(lname_ijlt(kx),'unused').gt.0) cycle
         k = k+1
         sname_taijl(k) = sname_ijlt(kx)
+        dname_taijl(k) = dname_ijlt(kx)
         lname_taijl(k) = lname_ijlt(kx)
         units_taijl(k) = units_ijlt(kx)
         ir_taijl(k) = ir_ijlt(kx)
@@ -1221,6 +1237,11 @@ C**** water vapour
 #endif
 
       ktaijl_out = k
+
+c
+c find the indices of string-specified denominators 
+c
+      call FindStrings(dname_taijl,sname_taijl,denom_taijl,ktaijl_out)
 
 c     
 c     if necessary, reallocate taijl to be the right size

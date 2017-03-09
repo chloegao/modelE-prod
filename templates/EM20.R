@@ -4,7 +4,6 @@ EM20:  This is a major update to the old E1M20 rundeck to correspond to AR5 defa
 
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -32,7 +31,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_72x46_input_files"
@@ -42,10 +40,10 @@ RVR=RD_modelE_M.nc                ! river direction file
 NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_72x46_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG4X5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

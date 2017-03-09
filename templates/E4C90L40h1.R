@@ -12,7 +12,6 @@ filters: none
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define HYCOM1deg                    ! 26 layer 1deg hycom (387x360)
 #define NEW_IO
 #define CALC_GWDRAG
@@ -39,7 +38,6 @@ CS_Support
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 
@@ -58,7 +56,7 @@ NAMERVR=RDdistocean_C90.1deghycom.names.txt ! named river outlets
 #include "rad_input_files"
 #include "rad_C90_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG.txt                       ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

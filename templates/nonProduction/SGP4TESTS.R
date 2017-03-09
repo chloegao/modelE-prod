@@ -8,7 +8,6 @@ Initial framework for truly single-column mode for Model E.
 Preprocessor Options
 #define SCM
 #define NEW_IO
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -63,7 +62,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 
@@ -166,7 +164,7 @@ RADNE=topcld.trscat8
 
 ! optional files for optional diagnostics
 ISCCP=ISCCP.tautables
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 SGP4TESTS (SCM at SGP site for regression tests)

@@ -36,7 +36,6 @@ subroutine read_seasalt_sources(swind,itype,ibin,i,j,ss,tr)
 !@sum determines wind-speed dependent oceanic seasalt source
 !@auth Dorothy Koch
 ! want kg seasalt/m2/s, for now in 2 size bins
-USE TRACER_COM, only: OFFLINE_DMS_SS,OFFLINE_SS
 use TimeConstants_mod, only: SECONDS_PER_DAY
 USE GEOM, only: axyp
 use model_com, only: modelEclock
@@ -60,46 +59,26 @@ ss=0.
 erate=0.d0
 if (flake(i,j) /= 0.d0) return ! if there are lakes, there is no ocean
 
-#ifndef TRACERS_TOMAS
-if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
   if (itype.eq.1) then
 ! Monahan 1971, bubble source, important for small (<10um) particles
-!    swind_cap=swind !modelE
-!    if (swind.gt.10.d0) swind_cap=10.d0 !modelE
-!    erate= 1.373d0 * swind_cap**(3.41d0) !modelE
-!    erate=1.373d0*swind**3.41d0 !Monahan
-!    erate=(swind/10.d0)**2.5d0 !Lewis and Schwartz
-!    erate=(0.3d0+0.1d0*gtemp(1,1,i,j)-0.0076d0*gtemp(1,1,i,j)**2+&
-!           0.00021d0*gtemp(1,1,i,j)**3)*1.373d0*swind**3.41d0 !Jaegle
-    erate=1.373d0*swind**3.41d0 !Gong
-    if (ibin.eq.1) then ! submicron (0.1 < r_d < 1.)
-!      ss=tune_ss1*erate*2.11d-14 !modelE
-!      ss=tune_ss1*erate*1.750298d-14 !Monahan
-!      ss=tune_ss1*erate*3.431418d-11 !Lewis and Schwartz
-!      ss=tune_ss1*erate*1.336825d-14 !Jaegle
-      ss=tune_ss1*erate*1.336825d-14 !Gong
-#ifdef TRACERS_AEROSOLS_OCEAN
-      if (trim(tr).eq.'OCocean') then
-        ss=ss*OC_SS_enrich_fact(i,j)
-      else
-        ss=ss*(1.d0-OC_SS_enrich_fact(i,j))
-      endif
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-    else ! supermicron (1. < r_d < 4.)
-!      ss=tune_ss2*erate*7.78d-14 !modelE
-!      ss=tune_ss2*erate*7.097854d-14 !Monahan
-!      ss=tune_ss2*erate*1.650674d-9 !Lewis and Schwartz
-!      ss=tune_ss2*erate*8.676763d-14 !Jaegle
-      ss=tune_ss2*erate*8.676763d-14 !Gong
-    endif
+!  swind_cap=swind !modelE
+!  if (swind.gt.10.d0) swind_cap=10.d0 !modelE
+!  erate= 1.373d0 * swind_cap**(3.41d0) !modelE
+!  erate=1.373d0*swind**3.41d0 !Monahan
+!  erate=(swind/10.d0)**2.5d0 !Lewis and Schwartz
+!  erate=(0.3d0+0.1d0*gtemp(1,1,i,j)-0.0076d0*gtemp(1,1,i,j)**2+&
+!         0.00021d0*gtemp(1,1,i,j)**3)*1.373d0*swind**3.41d0 !Jaegle
+  erate=1.373d0*swind**3.41d0 !Gong
 ! units are kg salt/m2/s
-  endif
-else
-! if after Feb 28 skip the leapyear day
-  jread=modelEclock%getDayOfYear()
-  if (modelEclock%getDayOfYear().gt.59) jread=modelEclock%getDayOfYear()+1
-  if (ibin.eq.1) then
-    ss=SS1_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
+#ifdef TRACERS_TOMAS 
+  ss=tune_ss1*erate*scalesizeSalt(ibin)
+#else
+  if (ibin.eq.1) then ! submicron (0.1 < r_d < 1.)
+!    ss=tune_ss1*erate*2.11d-14 !modelE
+!    ss=tune_ss1*erate*1.750298d-14 !Monahan
+!    ss=tune_ss1*erate*3.431418d-11 !Lewis and Schwartz
+!    ss=tune_ss1*erate*1.336825d-14 !Jaegle
+    ss=tune_ss1*erate*1.336825d-14 !Gong
 #ifdef TRACERS_AEROSOLS_OCEAN
     if (trim(tr).eq.'OCocean') then
       ss=ss*OC_SS_enrich_fact(i,j)
@@ -107,30 +86,15 @@ else
       ss=ss*(1.d0-OC_SS_enrich_fact(i,j))
     endif
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-  else 
-    ss=SS2_AER(i,j,jread)/(SECONDS_PER_DAY*axyp(i,j))
+  else ! supermicron (1. < r_d < 4.)
+!    ss=tune_ss2*erate*7.78d-14 !modelE
+!    ss=tune_ss2*erate*7.097854d-14 !Monahan
+!    ss=tune_ss2*erate*1.650674d-9 !Lewis and Schwartz
+!    ss=tune_ss2*erate*8.676763d-14 !Jaegle
+    ss=tune_ss2*erate*8.676763d-14 !Gong
   endif
-endif
-#endif /* not TRACERS_TOMAS */
-
-#ifdef TRACERS_TOMAS 
-if (OFFLINE_DMS_SS.ne.1.and.OFFLINE_SS.ne.1) then
-  if (itype.eq.1) then
-    erate=1.373d0*swind**3.41d0 !Gong
-    ss=tune_ss1*erate*scalesizeSalt(ibin)
-!#ifdef TRACERS_AEROSOLS_OCEAN
-!      if (trim(tr).eq.'OCocean') then
-!        ss=ss*OC_SS_enrich_fact(i,j)
-!      else
-!        ss=ss*(1.d0-OC_SS_enrich_fact(i,j))
-!      endif
-!#endif  /* TRACERS_AEROSOLS_OCEAN */
-  endif
-else
-! TOMAS don't allow offline SS! 
-  call stop_model('TOMAS: NO offline Sea-salt emission',255)
-endif
 #endif  /* TRACERS_TOMAS */
+endif
 
 end subroutine read_seasalt_sources
 !===============================================================================

@@ -286,6 +286,8 @@ c
       call defvar(grid,fid,dpmixl,'dpmixl(idm,dist_jdm,two)')
       call defvar(grid,fid,uflxav,'uflxav'//str3d)
       call defvar(grid,fid,vflxav,'vflxav'//str3d)
+      call defvar(grid,fid,ufxavp,'ufxavp'//str3d)
+      call defvar(grid,fid,vfxavp,'vfxavp'//str3d)
       call defvar(grid,fid,diaflx,'diaflx'//str3d)
       call defvar(grid,fid,tracer,'tracer(idm,dist_jdm,kdm,ntrcr)')
       call defvar(grid,fid,dpinit,'dpinit'//str3d)
@@ -366,6 +368,8 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'dpmixl',dpmixl)
         call write_dist_data(grid,fid,'uflxav',uflxav)
         call write_dist_data(grid,fid,'vflxav',vflxav)
+        call write_dist_data(grid,fid,'ufxavp',uflxav)
+        call write_dist_data(grid,fid,'vfxavp',vflxav)
         call write_dist_data(grid,fid,'diaflx',diaflx)
         call write_dist_data(grid,fid,'tracer',tracer)
         call write_dist_data(grid,fid,'dpinit',dpinit)
@@ -411,6 +415,8 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call read_dist_data(grid,fid,'dpmixl',dpmixl)
         call read_dist_data(grid,fid,'uflxav',uflxav)
         call read_dist_data(grid,fid,'vflxav',vflxav)
+        call read_dist_data(grid,fid,'ufxavp',uflxav)
+        call read_dist_data(grid,fid,'vfxavp',vflxav)
         call read_dist_data(grid,fid,'diaflx',diaflx)
         call read_dist_data(grid,fid,'tracer',tracer)
         call read_dist_data(grid,fid,'dpinit',dpinit)
@@ -463,6 +469,8 @@ c arrays, so we have to gather
       call pack_data( ogrid,  dpmixl_loc, dpmixl )
       call pack_data( ogrid,  uflxav_loc, uflxav )
       call pack_data( ogrid,  vflxav_loc, vflxav )
+      call pack_data( ogrid,  ufxavp_loc, ufxavp )
+      call pack_data( ogrid,  vfxavp_loc, vfxavp )
       call pack_data( ogrid,  diaflx_loc, diaflx )
       call pack_data( ogrid,  tracer_loc, tracer )
       call pack_data( ogrid,  dpinit_loc, dpinit )
@@ -648,27 +656,27 @@ C     nothing to gather - ocean prescribed
       depthv(i,j)=huge
       tprime(i,j)=huge
 c
-      srfhgt(i,j)=zero
-      dpmixl(i,j,:)=zero
-      oice(i,j)=zero
-      taux(i,j)=zero
-      tauy(i,j)=zero
-      oflxa2o(i,j)=zero
-      osalt(i,j)=zero
-      oemnp(i,j)=zero
-      ustar(i,j)=zero
-      sswflx(i,j)=zero
+      srfhgt(i,j)=huge
+      dpmixl(i,j,:)=huge
+      oice(i,j)=huge
+      taux(i,j)=huge
+      tauy(i,j)=huge
+      oflxa2o(i,j)=huge
+      osalt(i,j)=huge
+      oemnp(i,j)=huge
+      ustar(i,j)=huge
+      sswflx(i,j)=huge
 c
-      pbavav(i,j)=zero
-      sfhtav(i,j)=zero
-      dpmxav(i,j)=zero
-      oiceav(i,j)=zero
-      eminpav(i,j)=zero
-      surflav(i,j)=zero
-      tauxav(i,j)=zero
-      tauyav(i,j)=zero
-      salflav(i,j)=zero
-      brineav(i,j)=zero
+      pbavav(i,j)=huge
+      sfhtav(i,j)=huge
+      dpmxav(i,j)=huge
+      oiceav(i,j)=huge
+      eminpav(i,j)=huge
+      surflav(i,j)=huge
+      tauxav(i,j)=huge
+      tauyav(i,j)=huge
+      salflav(i,j)=huge
+      brineav(i,j)=huge
 c
       u  (i,j,:   )=huge
       v  (i,j,:   )=huge
@@ -690,17 +698,19 @@ c
 !      do nt=1,ntrcr
         tracer(i,j,:,:)=zero
 !      end do
-      uav(i,j,:)=zero
-      vav(i,j,:)=zero
-      dpuav(i,j,:)=zero
-      dpvav(i,j,:)=zero
-      dpav (i,j,:)=zero
-      temav(i,j,:)=zero
-      salav(i,j,:)=zero
-      th3av(i,j,:)=zero
-      uflxav(i,j,:)=zero
-      vflxav(i,j,:)=zero
-      diaflx(i,j,:)=zero
+      uav(i,j,:)=huge
+      vav(i,j,:)=huge
+      dpuav(i,j,:)=huge
+      dpvav(i,j,:)=huge
+      dpav (i,j,:)=huge
+      temav(i,j,:)=huge
+      salav(i,j,:)=huge
+      th3av(i,j,:)=huge
+      uflxav(i,j,:)=huge
+      vflxav(i,j,:)=huge
+      ufxavp(i,j,:)=huge
+      vfxavp(i,j,:)=huge
+      diaflx(i,j,:)=huge
  209  continue
 c
       do 210 j=1,jj

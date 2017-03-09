@@ -709,7 +709,7 @@ contains
     real*8, dimension(NTM) :: THLAW,THWASH,TR_LEF,TMFAC
     real*8 CLDSAVT
     integer :: IGAS
-!@var TR_LEF limits precurser dissolution following sulfate formation
+!@var TR_LEF limits precursor dissolution following sulfate formation
 !@var THLAW Henry's Law determination of amount of tracer dissolution
 !@var TMFAC used to adjust tracer moments
     real*8 HEFF
@@ -5121,7 +5121,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       do ITER=1,ITMAX-1
         VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))* &
              (1000./PL)**.4d0
-        if(VT.ge.0..and.abs(VT-WV).lt..3) exit
+        if(VT.ge.0..and.VT.ge.WV) exit
         if(VT.gt.WMAX) exit
         DCW=DCW+DDCW
       end do
@@ -5135,7 +5135,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       do ITER=1,ITMAX-1
         VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))* &
              (1000./PL)**.4d0
-        if(VT.ge.0..and.abs(VT-WV).lt..3) exit
+        if(VT.ge.0..and.VT.ge.WV) exit
         if(VT.gt.WMAX) exit
         DCW=DCW+DDCW
       end do

@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 #ifdef ENT_STANDALONE_DIAG
 #define  DEBUG  1
 #endif
@@ -64,7 +66,7 @@
       use ent_types
       use FarquharBBpspar !pspartype, psdrvtype
       use photcondmod, only : biophysdrv_setup, calc_Pspar, pspar
-      use respauto_physio, only : Rdark, water_stress3
+      use respauto_physio, only : Rdark, water_stress3, water_stress4
       use patches, only : patch_print
       use physutil, only:  QSAT
 
@@ -193,10 +195,16 @@
 !     &         cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
 !          betad = cop%stressH2O
 
+#ifdef ENT_WATER_STRESS_4
+          cop%stressH2O = water_stress4(cop%pft, N_DEPTH,
+     i          pp%cellptr%Soilmoist(:),
+     &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+#else
           !KIM - water_stress3 uses Soilmoist as a satured fraction
           cop%stressH2O = water_stress3(cop%pft, N_DEPTH,  
      i          pp%cellptr%Soilmoist(:), 
      &          cop%fracroot, pp%cellptr%fice(:), cop%stressH2Ol(:))
+#endif
 !          if ((pfpar(cop%pft)%pst.eq.C4)
 !     &          .and.(cop%stressH2O.eq.0.d0)) then
 !                print *,'pft,stressH2O',cop%pft,cop%stressH2O
@@ -642,7 +650,11 @@
       cop%R_auto =  Resp_maint + Resp_growth + Resp_growth_1
 
 !!! trying to restrict respiration to available C_lab
+#ifdef ENT_DISABLE_RAUTO_RESTRICTION_DUE_TO_CLAB
+      continue ! do nothing
+#else
       cop%R_auto = min(cop%R_auto, cop%C_lab*cop%n/1000.d0/dtsec)
+#endif
       cop%R_auto = max(cop%R_auto, 0.d0)
 
       cop%R_root = Resp_froot

@@ -1748,8 +1748,12 @@ c
       use ocean, only : nbyzm,i1yzm,i2yzm
       use ocnmeso_com, only : use_tdmix
       use odiag, only : koijl,oijl_out,oijl=>oijl_loc,ijl_area
+     &     ,igrid_oijl,jgrid_oijl,sname_oijl
      &     ,ijl_mo,ijl_mou,ijl_mov,ijl_g0m,ijl_s0m,ijl_ptm,ijl_pdm
      &     ,ijl_mfu,ijl_mfv,ijl_mfw,ijl_mfw2,ijl_ggmfl,ijl_sgmfl
+#ifdef TDMIX_AUX_DIAGS
+     &     ,ijl_gsymmf,ijl_ssymmf
+#endif
      &     ,ijl_wgfl,ijl_wsfl,ijl_kvm,ijl_kvg,ijl_kvx,ijl_gflx,ijl_sflx
      &     ,ijl_mfub,ijl_mfvb,ijl_mfwb,ijl_isdm,ijl_pdm2
      &     ,oij=>oij_loc,ij_sf,olnst,ln_mflx
@@ -1758,6 +1762,9 @@ c
 #endif
 #ifdef OCN_GISS_SM
      &     ,ijl_fvb
+#endif
+#ifdef OCEAN_TENDENCY_DIAGS
+     &     ,olnst,ln_gflx,ln_sflx
 #endif
       use odiag, only : ia_oijl
 #ifdef TRACERS_OCEAN
@@ -1768,11 +1775,16 @@ c
 #endif
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : am_i_root,halo_update,south
+     &     ,hassouthpole,hasnorthpole
      &     ,pack_data,unpack_data ! for horz stream function
       use mdiag_com, only : ia_cpl
       use model_com, only : idacc
       use constant, only : grav
       use kpp_com, only : use_tdiss
+#ifdef OCEAN_TENDENCY_DIAGS
+      use straits, only: nmst, ist,jst,lmst
+      use domain_decomp_1d, only : broadcast
+#endif
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,volgsp,fac,facst,dpr
@@ -1789,6 +1801,12 @@ c
       integer :: ib
 #ifdef TRACERS_OCEAN
       type(ocn_tracer_entry), pointer :: entry
+#endif
+#ifdef OCEAN_TENDENCY_DIAGS
+      integer, parameter :: max_num_tends=16 ! maximum number of tendency outputs
+      integer :: flxind(max_num_tends)
+      character(len=32) :: tendname(max_num_tends)
+      real*8 :: sign_end
 #endif
 
       j_0 = grid%j_strt
@@ -1926,6 +1944,10 @@ c
      &       +dmfwb(i,j,l)*xedge !      add bolus-induced part of remap flux
 
         oijl_out(i,j,l,ijl_mfw2) = oijl(i,j,l,ijl_mfw2)/dxypo(j)
+#ifdef TDMIX_AUX_DIAGS
+        oijl_out(i,j,l,ijl_gsymmf+2) = oijl(i,j,l,ijl_gsymmf+2)
+        oijl_out(i,j,l,ijl_ssymmf+2) = oijl(i,j,l,ijl_ssymmf+2)
+#endif
 
         oijl_out(i,j,l,ijl_wgfl) = oijl(i,j,l,ijl_wgfl)
         oijl_out(i,j,l,ijl_wsfl) = oijl(i,j,l,ijl_wsfl)
@@ -1966,6 +1988,10 @@ c
           oijl_out(i,j,l,ijl_sflx) = oijl(i,j,l,ijl_sflx)
           oijl_out(i,j,l,ijl_ggmfl) = oijl(i,j,l,ijl_ggmfl)
           oijl_out(i,j,l,ijl_sgmfl) = oijl(i,j,l,ijl_sgmfl)
+#ifdef TDMIX_AUX_DIAGS
+          oijl_out(i,j,l,ijl_gsymmf) = oijl(i,j,l,ijl_gsymmf)
+          oijl_out(i,j,l,ijl_ssymmf) = oijl(i,j,l,ijl_ssymmf)
+#endif
         enddo
         do i=1,im-1
           oijl_out(i,j,l,ijl_mou) =
@@ -1985,8 +2011,77 @@ c
           oijl_out(i,j,l,ijl_sflx+1) = oijl(i,j-1,l,ijl_sflx+1)
           oijl_out(i,j,l,ijl_ggmfl+1) = oijl(i,j-1,l,ijl_ggmfl+1)
           oijl_out(i,j,l,ijl_sgmfl+1) = oijl(i,j-1,l,ijl_sgmfl+1)
+#ifdef TDMIX_AUX_DIAGS
+          oijl_out(i,j,l,ijl_gsymmf+1) = oijl(i,j-1,l,ijl_gsymmf+1)
+          oijl_out(i,j,l,ijl_ssymmf+1) = oijl(i,j-1,l,ijl_ssymmf+1)
+#endif
         enddo
         enddo ! j
+      enddo
+
+#ifdef OCEAN_TENDENCY_DIAGS
+      ! compute convergences of 3D resolved/parameterized fluxes
+      mfwb(:,:,0) = 0.
+
+      k = 0
+      k = k+1; flxind(k) = ijl_gflx; tendname(k) = 'g_advtend'
+      k = k+1; flxind(k) = ijl_sflx; tendname(k) = 's_advtend'
+      k = k+1; flxind(k) = ijl_ggmfl; tendname(k) = 'g_mesotend'
+      k = k+1; flxind(k) = ijl_sgmfl; tendname(k) = 's_mesotend'
+#ifdef TDMIX_AUX_DIAGS
+      k = k+1; flxind(k) = ijl_gsymmf; tendname(k) = 'g_mesotend_sym'
+      k = k+1; flxind(k) = ijl_ssymmf; tendname(k) = 's_mesotend_sym'
+#endif
+      kk = k
+      ! currently, convergences are in assumed positions in oijl (xflux+3)
+      do k=1,kk ! so sanity-check the names first
+        if(trim(sname_oijl(flxind(k)+3)).ne.trim(tendname(k))) then
+          call stop_model(
+     &         'oijl_prep: OCEAN_TENDENCY_DIAGS name mismatch',255)
+        endif
+      enddo
+      do k=1,kk
+        mfwb(:,:,1:lmo) = oijl_out(:,:,1:lmo,flxind(k)+2)
+        call do_fluxconv_3d(
+     &       oijl(:,:,:,flxind(k)+0),
+     &       oijl(:,:,:,flxind(k)+1),
+     &       mfwb,
+     &       oijl_out(:,:,:,flxind(k)+3) )
+      enddo
+
+      ! Deal with the straits
+      call broadcast(grid, olnst)
+      do n=1,nmst
+        sign_end = -.5 ! .5 is the scale factor for olnst
+        do k=1,2
+          i=ist(n,k)
+          j=jst(n,k)
+          if(j.ge.j_0 .and. j.le.j_1) then
+            do l=1,lmst(n)
+              oijl_out(i,j,l,ijl_gflx+3) = oijl_out(i,j,l,ijl_gflx+3)
+     &             + olnst(l,n,ln_gflx)*sign_end
+              oijl_out(i,j,l,ijl_sflx+3) = oijl_out(i,j,l,ijl_sflx+3)
+     &             + olnst(l,n,ln_sflx)*sign_end
+            enddo
+          endif
+          sign_end = -sign_end
+        enddo
+      enddo
+#endif
+
+      ! Fill poles
+      do k=1,koijl
+        if(jgrid_oijl(k).ne.1 .or. igrid_oijl(k).ne.1) cycle
+        do l=1,lmo
+          !if(hassouthpole(grid)) then
+          !  j = j_0
+          !  oijl_out(2:im,j,l,k) = oijl_out(1,j,l,k)
+          !endif
+          if(hasnorthpole(grid)) then
+            j = j_1
+            oijl_out(2:im,j,l,k) = oijl_out(1,j,l,k)
+          endif
+        enddo
       enddo
 
 C****
@@ -2067,6 +2162,48 @@ C****
 #endif
 
       return
+
+      contains
+
+      subroutine do_fluxconv_3d(mfub,mfvb,mfwb,conv_out)
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lmo) ::
+     &     mfub,mfvb,conv_out
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,0:lmo) ::
+     &     mfwb
+
+      real*8 :: byim
+
+      !call halo_update(grid,mfvb,from=south)
+      do l=1,lmo
+        do j=grid%j_strt_skp,grid%j_stop_skp
+          i=1
+          if(l.le.lmm(i,j)) then
+            conv_out(i,j,l) =
+     &         (mfub(im,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &        +(mfwb(i,j,l-1)-mfwb(i,j,l))
+          endif
+          do n=1,nbyzm(j,l)
+          do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
+            conv_out(i,j,l) =
+     &         (mfub(i-1,j,l)-mfub(i,j,l))
+     &        +(mfvb(i,j-1,l)-mfvb(i,j,l))
+     &        +(mfwb(i,j,l-1)-mfwb(i,j,l))
+          enddo
+          enddo
+        enddo
+      enddo
+      if(hasnorthpole(grid)) then
+        j = grid%j_stop
+        byim = 1d0/real(im,kind=8)
+        do l=1,lmm(1,j)
+          conv_out(:,j,l) = sum(mfvb(:,j-1,l))*byim
+     &         +(mfwb(1,j,l-1)-mfwb(1,j,l))
+        enddo
+      endif
+      end subroutine do_fluxconv_3d
+
       end subroutine oijl_prep
 
       subroutine basin_prep

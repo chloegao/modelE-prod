@@ -15,7 +15,6 @@ Preprocessor Options
 #define STDHYB                  ! standard hybrid vertical coordinate
 #define ATM_LAYERING L40        ! 40 layers, top at .1 m
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define IRRIGATION_ON
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
@@ -67,7 +66,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -84,7 +82,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

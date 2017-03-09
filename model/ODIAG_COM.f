@@ -11,8 +11,18 @@
 #endif
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: KOIJ=71
-      INTEGER, PARAMETER :: KOIJL=42,KOL=6,KOLNST=14,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJ=71,KOL=6,KOLNST=14,KOIJmm=11
+      INTEGER, PARAMETER :: KOIJL=42
+#ifdef TDMIX_AUX_DIAGS
+     &     + 2*3 ! [gs]symmf[xyz]
+#endif
+#ifdef OCEAN_TENDENCY_DIAGS
+     &     + 2  ! [gs] resolved adv tendency
+     &     + 2  ! [gs] total meso tendency
+#ifdef TDMIX_AUX_DIAGS
+     &     + 2  ! [gs] symmetric meso tendency
+#endif
+#endif
 !@var OIJ   lat-lon ocean diagnostics (on ocean grid)
 !@var OIJmm lat-lon ocean min/max diagnostics (on ocean grid)
 !@var OIJL  3-dimensional ocean diagnostics
@@ -73,6 +83,9 @@
 #endif
 #ifdef OCN_GISS_SM
      *     ,ijl_fvb
+#endif
+#ifdef TDMIX_AUX_DIAGS
+     &     ,ijl_gsymmf,ijl_ssymmf
 #endif
 
 !@var lname_oijl Long names for OIJL diagnostics
@@ -1076,9 +1089,20 @@ c      IJL_GFLX_vert = k
       lname_oijl(k) = 'VERT. HEAT FLUX'
       scale_oijl(k) = 1./dts
       lgrid_oijl(k) = 2
+
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_g_advtend = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 'g_advtend'
+      units_oijl(k) = 'J/kg/s'
+      lname_oijl(k) = 'convergence of heat flux by resolved flow'
+      scale_oijl(k) = 1./dts
+#endif
 c
       k=k+1
       IJL_SFLX = k
+      sname_oijl(k) = 'sflx_x'
       units_oijl(k) = '10^6 kg/s'
       lname_oijl(k) = 'EAST-WEST SALT FLUX'
       scale_oijl(k) = 1d-6/dts
@@ -1086,6 +1110,7 @@ c
 c
       k=k+1
 c      IJL_SFLX_ns = k
+      sname_oijl(k) = 'sflx_y'
       units_oijl(k) = '10^6 kg/s'
       lname_oijl(k) = 'NORTH-SOUTH SALT FLUX'
       scale_oijl(k) = 1d-6/dts
@@ -1093,6 +1118,21 @@ c      IJL_SFLX_ns = k
 c
       k=k+1
 c      IJL_SFLX_vert = k
+      sname_oijl(k) = 'sflx_z'
+      units_oijl(k) = 'kg/m2/s'
+      lname_oijl(k) = 'VERT. SALT FLUX'
+      scale_oijl(k) = 1./dts
+      lgrid_oijl(k) = 2
+c
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_s_advtend = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 's_advtend'
+      units_oijl(k) = 'kg/kg/s'
+      lname_oijl(k) = 'convergence of salt flux by resolved flow'
+      scale_oijl(k) = 1./dts
+#endif
 c
       k=k+1
       IJL_KVM = k
@@ -1243,6 +1283,16 @@ c      IJL_GGMFL_vert = k
       scale_oijl(k) = 1./dts
       lgrid_oijl(k) = 2
 c
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_g_mesotend = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 'g_mesotend'
+      units_oijl(k) = 'J/kg/s'
+      lname_oijl(k) = 'convergence of mesoscale heat flux'
+      scale_oijl(k) = 1./dts
+#endif
+c
       k=k+1
       IJL_SGMFL = k
       sname_oijl(k) = 'sgmflx_x'
@@ -1267,6 +1317,97 @@ c      IJL_SGMFL_vert = k
       lname_oijl(k) = 'GM/EDDY DOWNWARD VERT. SALT FLUX'
       scale_oijl(k) = 1d6/dts
       lgrid_oijl(k) = 2
+c
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_s_mesotend = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 's_mesotend'
+      units_oijl(k) = 'kg/kg/s'
+      lname_oijl(k) = 'convergence of mesoscale salt flux'
+      scale_oijl(k) = 1./dts
+#endif
+
+c
+#ifdef TDMIX_AUX_DIAGS
+      k=k+1
+      IJL_GSYMMF = k
+      sname_oijl(k) = 'gsymflx_x'
+      units_oijl(k) = '10^9 W'
+      lname_oijl(k) =
+     &     'symmetric component of mesoscale eastward heat flux'
+      scale_oijl(k) = 1d-9/dts
+      igrid_oijl(k) = 2
+c
+      k=k+1
+c      IJL_GSYMMF_ns = k
+      sname_oijl(k) = 'gsymflx_y'
+      units_oijl(k) = '10^9 W'
+      lname_oijl(k) =
+     &     'symmetric component of mesoscale northward heat flux'
+      scale_oijl(k) = 1d-9/dts
+      jgrid_oijl(k) = 2
+c
+      k=k+1
+c      IJL_GSYMMF_vert = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'gsymflx_z'
+      units_oijl(k) = 'W/m^2'
+      lname_oijl(k) = 
+     &     'symmetric component of mesoscale downward heat flux'
+      scale_oijl(k) = 1./dts
+      lgrid_oijl(k) = 2
+c
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_g_mesotend_sym = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 'g_mesotend_sym'
+      units_oijl(k) = 'J/kg/s'
+      lname_oijl(k) =
+     &     'convergence of symmetric component of mesoscale heat flux'
+      scale_oijl(k) = 1./dts
+#endif
+c
+      k=k+1
+      IJL_SSYMMF = k
+      sname_oijl(k) = 'ssymflx_x'
+      units_oijl(k) = 'kg/s'
+      lname_oijl(k) =
+     &     'symmetric component of mesoscale eastward salt flux'
+      scale_oijl(k) = 1./dts
+      igrid_oijl(k) = 2
+c
+      k=k+1
+c      IJL_SSYMMF_ns = k
+      sname_oijl(k) = 'ssymflx_y'
+      units_oijl(k) = 'kg/s'
+      lname_oijl(k) =
+     &     'symmetric component of mesoscale northward salt flux'
+      scale_oijl(k) = 1./dts
+      jgrid_oijl(k) = 2
+c
+      k=k+1
+c      IJL_SSYMMF_vert = k
+      denom_oijl(k) = IJL_AREA
+      sname_oijl(k) = 'ssymflx_z'
+      units_oijl(k) = '10^-6 kg/m^2 s'
+      lname_oijl(k) =
+     &     'symmetric component of mesoscale downward salt flux'
+      scale_oijl(k) = 1d6/dts
+      lgrid_oijl(k) = 2
+c
+#ifdef OCEAN_TENDENCY_DIAGS
+      k=k+1
+      !ijl_s_mesotend_sym = k
+      denom_oijl(k) = ijl_mo
+      sname_oijl(k) = 's_mesotend_sym'
+      units_oijl(k) = 'kg/kg/s'
+      lname_oijl(k) =
+     &     'convergence of symmetric component of mesoscale salt flux'
+      scale_oijl(k) = 1./dts
+#endif
+#endif
 c
       k=k+1
       IJL_PTM = k

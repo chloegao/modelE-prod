@@ -12,6 +12,7 @@ c
       USE TimeConstants_mod, only: SECONDS_PER_DAY
       USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
      &     ,thref,nhr,g
+     &     ,pr1d
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
@@ -35,7 +36,9 @@ c
       character what*16
       real*4 real4(idm,jdm)
      .   ,time4,watcum4,empcum4,thref4,theta4(kdm),unused
-      real utotal(idm,jdm,kdm),vtotal(idm,jdm,kdm)
+     .                                ,pr1d4(kdm)
+      real utotal(idm,jdm,kdm), vtotal(idm,jdm,kdm)
+     .       ,dpm(idm,jdm,kdm),dpmixlm(idm,jdm)
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
       logical, parameter :: smooth = .false.     ! smooth fields before saving
@@ -51,6 +54,19 @@ c
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
       print *,'stamp',Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,
      .  amon
+
+        dpm(:,:,:)=huge
+        dpmixlm(:,:)=huge
+        do k=1,kk
+        do j=1,jj
+        do l=1,isp(j)
+        do i=ifp(j,l),ilp(j,l)
+        dpm(i,j,k)=dp(i,j,k)/onem			! convert to m
+        if (k==1) dpmixlm(i,j)=dpmixl(i,j,n)/onem	! convert to m
+        end do
+        end do
+        end do
+        end do
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
@@ -59,8 +75,8 @@ c --- check if ogcm date matches agcm date
         temav(:,:,:)=temp(:,:,:)
         salav(:,:,:)=saln(:,:,:)
         th3av(:,:,:)=th3d(:,:,:)
-        dpav (:,:,:)=  dp(:,:,:)/onem    ! convert to meter
-        oiceav(:,:)= oice(:,:)
+        dpav (:,:,:)= dpm(:,:,:)
+        oiceav(:,:) =oice(:,:)
       elseif (abs((itime+1.)/nday-time).gt.1.e-5) then
 c --- check if ogcm date matches agcm date
         write(*,*) 'mismatching archive date in agcm/ogcm=',
@@ -72,14 +88,14 @@ c --- check if ogcm date matches agcm date
      .    amon,year,'.out',xlabel(1:lrunid),'.nc'
       endif
 c
-      if (date.le.999) then ! jdate = number of days in this month
+      if (date.le.999) then ! date = number of days in this month
         write (intvl,'(i4.4)') date
       else
         stop ' wrong date > 999'
       endif
 c
-      utotal(:,:,:)=0.
-      vtotal(:,:,:)=0.
+      utotal(:,:,:)=huge
+      vtotal(:,:,:)=huge
 c --- output total velocity
       do k=1,kk
        do j=1,jj
@@ -103,7 +119,7 @@ c
          do k=1,kk
           do l=1,isp(j)
            do i=ifp(j,l),ilp(j,l)
-            p(i,j,k+1)=p(i,j,k)+dp(i,j,k+nn)
+            p(i,j,k+1)=p(i,j,k)+dpm(i,j,k+nn)
            end do
           end do
         end do
@@ -146,12 +162,14 @@ c
       time4=time
       do k=1,kk
         theta4(k)=theta(k)
+        pr1d4(k) =pr1d(k)/onem     ! TNL convert in meter
       end do
       write(flnm(1:17),'(1x,2(i2.2,a),i4.4,a,i2)')
      .             month,'/',date,'/',year,' hr ',hour+nhr
       print *,' flnm(1:17)=',flnm(1:17)
       write (nop,rec=no) length4,idm4,jdm4,kdm4,nstep4,time4
-     .      ,unused,theta4,flnm(1:17)
+!TNL .      ,unused,theta4,      flnm(1:17)
+     .      ,unused,theta4,pr1d4,flnm(1:17)
 c
       no=no+1
       call r8tor4(srfhgt,real4)
@@ -159,11 +177,10 @@ c
       write (nop,rec=no) 'srfhgt (m)      ',0,real4
       write (lp,100)     'srfhgt (m)      ',0,no
       no=no+1
-      call r8tor4(dpmixl,real4)
+      call r8tor4(dpmixlm,real4)
       if (smooth) call psmoo4(real4)
-      real4(:,:)=real4(:,:)/onem	! convert to meter
-      write (nop,rec=no) 'mix_dpth        ',0,real4
-      write (lp,100)     'mix_dpth        ',0,no
+      write (nop,rec=no) 'mix_dpth(m)     ',0,real4
+      write (lp,100)     'mix_dpth(m)     ',0,no
       no=no+1
       call r8tor4(oice,real4)
       if (smooth) call psmoo4(real4)
@@ -186,11 +203,10 @@ c
       if (smooth) then
         call r8tor4(dpsmo(1,1,k),real4)
       else
-        call r8tor4(dp(1,1,kn),real4)
+        call r8tor4(dpm(1,1,kn),real4)
       endif
-      real4(:,:)=real4(:,:)/onem	! convert to meter
-      write (nop,rec=no) 'dp              ',k,real4
-      write (lp,100)     'dp              ',k,no
+      write (nop,rec=no) 'dp(m)           ',k,real4	! unit in m
+      write (lp,100)     'dp(m)           ',k,no
       no=no+1
       call r8tor4(temp(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
@@ -274,11 +290,13 @@ c
       do 591 l=1,isu(j)
       do 591 i=ifu(j,l),ilu(j,l)
       if (dpuav(i,j,k).gt.0) uav(i,j,k)=uav(i,j,k)/dpuav(i,j,k)
- 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
+      ufxavp(i,j,k)=ufxavp(i,j,k)*baclin*1.e-6/(date*86400.*onem)	! in Sv
+ 591  uflxav(i,j,k)=uflxav(i,j,k)*baclin*1.e-6/(date*86400.*onem)	! in Sv
       do 592 l=1,isv(j)
       do 592 i=ifv(j,l),ilv(j,l)
       if (dpvav(i,j,k).gt.0) vav(i,j,k)=vav(i,j,k)/dpvav(i,j,k)
- 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin*1.e-6/( date*86400.*onem)	! in Sv
+      vfxavp(i,j,k)=vfxavp(i,j,k)*baclin*1.e-6/(date*86400.*onem)	! in Sv
+ 592  vflxav(i,j,k)=vflxav(i,j,k)*baclin*1.e-6/(date*86400.*onem)	! in Sv
       do 59 l=1,isp(j)
       do 59 i=ifp(j,l),ilp(j,l)
       if (dpav(i,j,k).gt.0.) then
@@ -326,6 +344,14 @@ c
       call r8tor4(vflxav(1,1,k),real4)
       write (nop,rec=no) '     vflxav_'//intvl,k,real4
       write (lp,100)     '     vflxav_'//intvl,k,no
+      no=no+1
+      call r8tor4(ufxavp(1,1,k),real4)
+      write (nop,rec=no) '     ufxavp_'//intvl,k,real4
+      write (lp,100)     '     ufxavp_'//intvl,k,no
+      no=no+1
+      call r8tor4(vfxavp(1,1,k),real4)
+      write (nop,rec=no) '     vfxavp_'//intvl,k,real4
+      write (lp,100)     '     vfxavp_'//intvl,k,no
       no=no+1
       call r8tor4(diaflx(1,1,k),real4)
       write (nop,rec=no) '     diaflx_'//intvl,k,real4
@@ -451,20 +477,24 @@ c
      .    'lon','longitude','degrees')
         call out1cdf(ncid1,kdm,theta,0.,
      .    'theta','target pot.density, sigma1','kg/m^3')
+        call out1cdf(ncid1,kdm,pr1d/onem,0.,
+     .    'msf_lvls','z levels for overturning msf','m')
 ! snapshot
         call out2cdf(ncid1,idm,jdm,srfhgt,time,
      .    'srfht','sea surface height','m')
-        call out2cdf(ncid1,idm,jdm,dpmixl/onem,time,	! convert to m
+        call out2cdf(ncid1,idm,jdm,dpmixlm,time,	! unit in m
      .    'zmixl','mixed layer depth','m')
         call out2cdf(ncid1,idm,jdm,oice,time,
      .    'covice','ice coverage','m')
+        call out2cdf(ncid1,idm,jdm,omlhc,time,
+     .    'omlhc','omlhc','unk')
         call out3cdf(ncid1,idm,jdm,kdm,temp,time,
      .    'temp','potential temperature','deg C')
         call out3cdf(ncid1,idm,jdm,kdm,saln,time,
      .    'saln','salinity','psu')
         call out3cdf(ncid1,idm,jdm,kdm,th3d,time,
      .    'th3d','pot.density, sigma1','kg/m^3')
-        call out3cdf(ncid1,idm,jdm,kdm,dp/onem,time,	! convert to m
+        call out3cdf(ncid1,idm,jdm,kdm,dpm,time,	! unit in m
      .    'thik','layer thickness','m')
         call out3cdf(ncid1,idm,jdm,kdm,utotal,time,
      .    'utotal','southward velocity','m/sec')
@@ -479,6 +509,19 @@ c
 !    .    'temiceav','monthly ice surface temp','deg C')
         call out2cdf(ncid1,idm,jdm,oiceav,time,
      .    'coviceav','monthly ice coverage','m')
+        call out2cdf(ncid1,idm,jdm,eminpav,time,
+     .    'eminpav','monthly eminp','m/s')
+        call out2cdf(ncid1,idm,jdm,surflav,time,
+     .    'surflav','monthly net sfc htflx','W/m2')
+        call out2cdf(ncid1,idm,jdm,salflav,time,
+     .    'salflav','monthly salflx','g/m2s')
+        call out2cdf(ncid1,idm,jdm,brineav,time,
+     .    'brineav','monthly brine','g/m2s')
+        call out2cdf(ncid1,idm,jdm,tauxav,time,
+     .    'tauxav','monthly taux','N/m2')
+        call out2cdf(ncid1,idm,jdm,tauyav,time,
+     .    'tauyav','monthly tauy','N/m2')
+
         call out3cdf(ncid1,idm,jdm,kdm,temav,time,
      .    'tempav','monthly potential temperature','deg C')
         call out3cdf(ncid1,idm,jdm,kdm,salav,time,
@@ -504,10 +547,14 @@ c
      .  call out3cdf(ncid1,idm,jdm,kdm,tracer(1,1,1,4),time,
      .    'trc4','passive tracer 4',' ')
         if (ntrcr.ge.5) stop 'stop: need work for ntrcr > 4'
-        call out3cdf(ncid1,idm,jdm,kdm,uflxav,time,
-     .    'uflxav','monthly integral of southward mass flux','Sv')
-        call out3cdf(ncid1,idm,jdm,kdm,vflxav,time,
-     .    'vflxav','monthly integral of eastward mass flux','Sv')
+        call out3cdf(ncid1,idm,jdm,kdm,uflxav,time,'uflxav',
+     .    'monthly integral of southward isopycnic mass flux','Sv')
+        call out3cdf(ncid1,idm,jdm,kdm,vflxav,time,'vflxav',
+     .    'monthly integral of eastward isopycnic mass flux','Sv')
+        call out3cdf(ncid1,idm,jdm,kdm,ufxavp,time,'ufxavp',
+     .    'monthly integral of southward isobaric mass flux','Sv')
+        call out3cdf(ncid1,idm,jdm,kdm,vfxavp,time,'vfxavp',
+     .    'monthly integral of eastward isobaric mass flux','Sv')
         call out3cdf(ncid1,idm,jdm,kdm,diaflx,time,
      .    'diaflx','monthly integral of diaflx (interlayer mass flux per
      . unit area)','m')
@@ -535,14 +582,14 @@ c
 #endif
 
       do 60 j=1,jj
-c
-      do 601 i=1,ii
+      do 601 l=1,isp(j)
+      do 601 i=ifp(j,l),ilp(j,l)
       eminpav(i,j)=0.
       surflav(i,j)=0.
-       salflav(i,j)=0.
+      salflav(i,j)=0.
       brineav(i,j)=0.
-      tauxav(i,j)=0.
-      tauyav(i,j)=0.
+       tauxav(i,j)=0.
+       tauyav(i,j)=0.
 c
 #ifdef TRACERS_OceanBiology
         diag_counter =0
@@ -561,7 +608,8 @@ c
  601  oiceav(i,j)=0.
 c
       do 60 k=1,kk
-      do 602 i=1,ii
+      do 602 l=1,isp(j)
+      do 602 i=ifp(j,l),ilp(j,l)
       uav(i,j,k)=0.
       vav(i,j,k)=0.
       dpuav(i,j,k)=0.
@@ -572,6 +620,8 @@ c
       th3av(i,j,k)=0.
       uflxav(i,j,k)=0.
       vflxav(i,j,k)=0.
+      ufxavp(i,j,k)=0.
+      vfxavp(i,j,k)=0.
  602  diaflx(i,j,k)=0.
  60   continue
 c

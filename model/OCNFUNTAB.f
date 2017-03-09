@@ -405,7 +405,7 @@ C****
 ! All functions below this line were imported from the offline OIC
 ! program. Todo: remove implicit typing and gotos.
 
-      Function VOLPTS (PIN,T,SIN)
+      Real*8 Function VOLPTS (PIN,T,SIN)
 C****
 C**** VOLPTS calculates the specific volume of sea water as a
 C**** function of pressure, temperature and salinity.
@@ -425,7 +425,12 @@ C****        SIN (1)  = salinity (kg NaCl/kg sea water), from 0 to .042
 C****
 C**** Output: VOLPTS (m^3/kg) = specific volume of sea water
 C****
-      Implicit Real*8 (A-Z)
+      Implicit None
+      Real*8,Intent(In) :: PIN,T,SIN
+      Real*8 :: A0,A1,A2,A3,A4,A5, B0,B1,B2,B3,B4, C0,C1,C2, D0,
+     *          E0,E1,E2,E3,E4, F0,F1,F2,F3, G0,G1,G2, H0,H1,H2,H3,
+     *          I0,I1,I2, J0, K0,K1,K2, M0,M1,M2,
+     *          P,S,S32,KW,AW,BW,KO,A,B,K,DENSTW,DENST0
       Data A0,A1,A2,A3,A4,A5 /999.842594, 6.793952D-2,
      *  -9.095290D-3, 1.001685D-4, -1.120083D-6, 6.536332D-9/
       Data B0,B1,B2,B3,B4 /8.24493D-1, -4.0899D-3, 7.6438D-5,
@@ -460,7 +465,8 @@ C****
       Return
       End
 
-      Function SHCPTS (PIN,T,SIN)
+
+      Real*8 Function SHCPTS (PIN,T,SIN)
 C****
 C**** SHCPTS calculates the specific heat capacity of sea water as
 C**** a function of pressure, temperature and salinity.
@@ -482,7 +488,14 @@ C**** Output: SHCPTS (J/kg*C) = specific heat capacity of sea water
 C****                           with standard deviation error of
 C****                           .636 (J/C*kg)
 C****
-      Implicit Real*8 (A-Z)
+      Implicit None
+      Real*8,Intent(In) :: PIN,T,SIN
+      Real*8 :: A000,A001,A002, A010,A011,A012, A020,A021,A022, A030,
+     *          A040, A100,A101,A102, A110,A111,A112, A120,A121,A122,
+     *          A130,A131, A140,A141,
+     *          A200,A201,A202, A210,A211, A220,A221, A230,A231, A240,
+     *          A300,A301, A310,A311,A312, A320,A321, A330,
+     *          P,S,S32
       Data A000/ 4217.4    /, A001/-7.643575  /, A002/  .1770383 /,
      *     A010/-3.720283  /, A011/  .1072763 /, A012/-4.07718D-3/,
      *     A020/  .1412855 /, A021/-1.38385D-3/, A022/ 5.148D-5  /,
@@ -521,7 +534,8 @@ C****
       Return
       End
 
-      Function ATGPTS (PIN,T,SIN)
+
+      Real*8 Function ATGPTS (PIN,T,SIN)
 C****
 C**** ATGPTS calculates the adiabatic lapse rate of sea water as
 C**** a function of pressure, temperature and salinity.
@@ -538,7 +552,11 @@ C**** Output: ATGPTS (C/Pa) = adiabatic lapse tate of sea water, at
 C****                         S = .035, error < .006 (C) when used
 C****                         to calculate potential temperature
 C****
-      Implicit Real*8 (A-Z)
+      Implicit None
+      Real*8,Intent(In) :: PIN,T,SIN
+      Real*8 :: A000,A010,A020,A030, A001,A011, A100,A110,A120,A130,
+     *          A101,A111, A200,A210,A220,
+     *          P,S
       Data A000/ 3.5803D-5 /, A010/ 8.5258D-6 /, A020/-6.8360D-8 /,
      *                        A030/ 6.6228D-10/,
      *     A001/ 1.8932D-6 /, A011/-4.2393D-8 /,
@@ -558,7 +576,8 @@ C****
       Return
       End
 
-      Function PTPTS (P,T,S)
+
+      Real*8 Function PTPTS (P,T,S)
 C****
 C**** PTPTS calculates the potential temperature of sea water as
 C**** a function of pressure, temperature and salinity.
@@ -573,7 +592,12 @@ C****
 C**** Output: PTPTS (C) = potential temperature of sea water,
 C****                     with maximum error of .004 (C) ?
 C****
-      Implicit Real*8 (A-H,O-Z)
+      Implicit None
+      Real*8,Intent(In) :: P,T,S
+      Real*8,External   :: ATGPTS
+      Real*8  :: DP,T0,P0,T1
+      Integer :: N,NM
+!****
       NM = 1 + Abs(P)/2.D6
       DP = P/NM
       T0 = T
@@ -585,7 +609,8 @@ C****
       Return
       End
 
-      Function DELHTS (T,SIN)
+
+      Real*8 Function DELHTS (T,SIN)
 C****
 C**** DELHTS calculates the change of specific enthalpy of sea
 C**** water as salinity changes from 0 to an input value, as a
@@ -600,7 +625,10 @@ C****        S (1) = salinity (kg NaCl/kg sea water), from 0 to .04
 C****
 C**** Output: DELHTS (J/kg) = change of specific heat of sea water
 C****
-      Implicit Real*8 (A-Z)
+      Implicit None
+      Real*8,Intent(In) :: T,SIN
+      Real*8 :: A01,A03,A02, A11,A13,A12, A21,A23,A22, A31,A33,A32,
+     *          S
       Data A01/ 3.4086D-3/, A03/ 7.9350D-4/, A02/-4.7989D-4/,
      *     A11/-6.3798D-5/, A13/ 1.0760D-4/, A12/ 6.3787D-6/,
      *     A21/ 1.3877D-6/, A23/-6.3923D-7/, A22/-1.1647D-7/,
@@ -613,7 +641,8 @@ C****
       Return
       End
 
-      Function HETPTS (P,T,S)
+
+      Real*8 Function HETPTS (P,T,S)
 C****
 C**** HETPTS calculates the specific enthalpy of sea water as a
 C**** function of pressure, temperature and salinity.
@@ -630,7 +659,11 @@ C****        S (1)  = salinity (kg NaCl/kg sea water)
 C****
 C**** Output: HETPTS (J/kg) = specific enthalpy of sea water
 C****
-      Implicit Real*8 (A-H,O-Z)
+      Implicit None
+      Real*8,Intent(In) :: P,T,S
+      Real*8,External   :: ATGPTS,VOLPTS,DELHTS,SHCPTS
+      Real*8  :: H0,T0,DP,P1,TX,T1,DT
+      Integer :: N,NM
 C****
 C**** Calculate H(P,T,S) - H(0,T,S) by integrating  dH/dP = V  at
 C**** constant entropy and salinity
@@ -672,7 +705,8 @@ C****
       Return
       End
 
-      Function PHPTS (P,T,S)
+
+      Real*8 Function PHPTS (P,T,S)
 C****
 C**** PHPTS calculates the potential specific enthalpy of sea water
 C**** as a function of pressure, temperature and salinity.
@@ -683,7 +717,10 @@ C****        S (1)  = salinity (kg NaCl/kg sea water)
 C****
 C**** Output: PHPTS (J/kg) = potential specific enthalpy of sea water
 C****
-      Implicit Real*8 (A-H,O-Z)
+      Implicit None
+      Real*8,Intent(In) :: P,T,S
+      Real*8,External   :: PTPTS,HETPTS
+      Real*8 :: A
       A = PTPTS(P,T,S)
       PHPTS = HETPTS(0.D0,A,S)
       Return
