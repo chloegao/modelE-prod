@@ -2346,8 +2346,8 @@ c daily_z is currently only needed for CS
 ! types of PM/tracer surface amounts to be saved
 ! The name will be any combination of PM{2p5,10}{l1,s}{m,c}
 !                            I.E. {species}{location}{units}
-! and similar format for any tracer: trname(){l1,s}{m,s}.
-! In practice did not include the l1s (L=1 cocentration) case
+! and similar format for any tracer: trname(){l1,s}{m,c}.
+! In practice did not include the l1c (L=1 cocentration) case
       character(len=20), dimension(2) :: 
      &   ssiz=(/'2p5','10'/), lsiz=(/'PM2.5','PM10'/),
      &   sloc=(/'l1','s'/),   lloc=(/'L=1','Surface'/),
