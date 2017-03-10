@@ -134,7 +134,7 @@
       USE TRACER_COM, only: nother
       use OldTracer_mod, only: ntm_power, dowetdep, dodrydep
       use OldTracer_mod, only: tr_wd_type, nPart
-      use OldTracer_mod, only: nBBsources,trname
+      use OldTracer_mod, only: nBBsources,trname,do_fire
       use TRACER_COM, only: nchemloss
       use TRACER_COM, only: nchemistry
       use TRACER_COM, only: nbiomass
@@ -281,7 +281,7 @@ C**** set some defaults
         if(do_aircraft(n_src))then
           itcon_3Dsrc(nAircraft,n)=tr_con_diag('Aircraft src',T,T)
         endif
-        if (nBBsources(n_src)>0) then
+        if (nBBsources(n_src)>0 .or. do_fire(n_src)) then
           itcon_3Dsrc(nBiomass,n)=tr_con_diag('Biomass src',T,T)
         endif
         do kk=1,ntsurfsrc(n_src)
@@ -729,7 +729,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 #endif
 #endif /* TRACERS_ON */
       use OldTracer_mod, only: trname, ntm_power, src_dist_index,
-     &                         nBBsources
+     &                         nBBsources,do_fire
       implicit none
       integer k,n,kk,ltop,n_src
       character*50 :: unit_string
@@ -2292,7 +2292,7 @@ c Oxidants
       use tracer_com, only: n_N_AKK_1
 #endif
       use OldTracer_mod, only: trname, ntm_power, dodrydep,
-     &          src_dist_index,nBBsources
+     &          src_dist_index,nBBsources,do_fire
       use rad_com, only: nradfrc
       implicit none
 
@@ -2421,7 +2421,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       end if
 
 ! biomass burning emissions
-      if (nBBsources(n_src) .gt. 0) then
+      if (nBBsources(n_src) .gt. 0 .or. do_fire(n_src)) then
         k = k + 1
         ijts_3Dsource(nBiomass,n) = k
         ia_ijts(k) = ia_src
