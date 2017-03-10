@@ -18,6 +18,7 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
 #define SWFIX_20151201
+#define CACHED_SUBDD
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 !---> generic tracers code start
@@ -69,6 +70,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shindell_source_files"
 #include "tracer_AMP_source_files"
 TRDIAG                              ! new i/o
+SUBDD
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
