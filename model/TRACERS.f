@@ -2341,7 +2341,7 @@ c daily_z is currently only needed for CS
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
      &                                labs=(/'          ','absorption'/)
       character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
-     &                                lfrc=(/'shortwave','longwave'/)
+     &                                lfrc=(/'shortwave','longwave '/)
       character(len=10) :: spcname
 ! types of PM/tracer surface amounts to be saved
 ! The name will be any combination of PM{2p5,10}{l1,s}{m,c}
@@ -2349,10 +2349,11 @@ c daily_z is currently only needed for CS
 ! and similar format for any tracer: trname(){l1,s}{m,c}.
 ! In practice did not include the l1c (L=1 cocentration) case
       character(len=20), dimension(2) :: 
-     &   ssiz=(/'2p5','10'/), lsiz=(/'PM2.5','PM10'/),
-     &   sloc=(/'l1','s'/),   lloc=(/'L=1','Surface'/),
-     &   sunt=(/'m','c'/), lunt=(/'Mass Mixing Ratio','Concentration'/),
-     &   uunt=(/'kg species / kg air','kg m-3'/)
+     &   ssiz=(/'2p5','10 '/), lsiz=(/'PM2.5','PM10 '/),
+     &   sloc=(/'l1','s '/),   lloc=(/'L=1    ','Surface'/),
+     &   sunt=(/'m','c'/),
+     &   lunt=(/'Mass Mixing Ratio','Concentration    '/),
+     &   uunt=(/'kg species / kg air','kg m-3             '/)
       character*80 :: unitString,unitString2
       integer :: s,a,n,f,u,l,p
 
