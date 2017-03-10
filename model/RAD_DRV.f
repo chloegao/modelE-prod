@@ -2555,12 +2555,10 @@ C**** set up parameters for new sea ice and snow albedo
         dALBsn = 0.
       endif
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
-#if (defined BC_ALB) &&\
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS))
+#ifdef BC_ALB
       call GET_BC_DALBEDO(i,j,dALBsn1)
       if (rad_interact_aer > 0) dALBsn=dALBsn1
-#endif
+#endif  /* BC_ALB */
       if (poice.gt.0.) then
         zoice = ZSI(i,j)
         flags=flag_dsws(i,j)

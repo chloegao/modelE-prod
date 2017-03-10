@@ -1374,9 +1374,9 @@ C**** check whether air mass is conserved
       use trdust_drv, only: io_trDust
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#ifdef BC_ALB
       USE AEROSOL_SOURCES, only : snosiz
-#endif
+#endif  /* BC_ALB */
       USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 
@@ -1395,9 +1395,9 @@ C**** check whether air mass is conserved
 #endif
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
   
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#ifdef BC_ALB
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
-#endif
+#endif  /* BC_ALB */
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem
@@ -1453,9 +1453,9 @@ C**** check whether air mass is conserved
      &    ,Aijl_glob(img,jmg,LM)
      &     )
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
       allocate( snosiz_glob(img,jmg) )
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
@@ -1520,11 +1520,11 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ricntd_glob,pprec_glob,pevap_glob
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
        header='BC_albedo_effect: snosiz(i,j)'
         call pack_data(grid,snosiz(:,:),snosiz_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,snosiz_glob
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell       
        header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
@@ -1762,10 +1762,10 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           CALL unpack_data(grid,pevap_glob,pevap)
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
           if(am_i_root())read(kunit,err=10)header,snosiz_glob
           call unpack_data(grid,snosiz_glob(:,:),snosiz(:,:))
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell       
           if(am_i_root())read(kunit,err=10)header,ss_glob
@@ -1937,9 +1937,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
      &     )
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
       deallocate(snosiz_glob)
-#endif
+#endif  /* BC_ALB */
 
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2099,10 +2099,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      & avg_model,avg_ncep
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) ||\
-    (defined TRACERS_AMP)
+#ifdef BC_ALB
       USE AEROSOL_SOURCES, only : snosiz
-#endif
+#endif  /* BC_ALB */
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
@@ -2299,10 +2298,9 @@ c daily_z is currently only needed for CS
 
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) ||\
-    (defined TRACERS_AMP)
+#ifdef BC_ALB
       call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_AMP
       ! restartability hack until matrix code refactored to

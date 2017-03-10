@@ -44,7 +44,9 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       real*8, allocatable, dimension(:,:,:) :: 
      &     ohrCache, dho2rCache, perjrCache, tno3rCache
       
+#ifdef BC_ALB
       real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz
+#endif  /* BC_ALB */
 #ifdef TRACERS_RADON
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
 #endif
@@ -70,7 +72,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
      * ,o3_offline
-     * ,snosiz
      * ,off_HNO3,off_SS
 #ifdef TRACERS_RADON
      * ,rn_src
@@ -79,6 +80,9 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
      * ,VBSemifact
       use TRACERS_VBS, only: vbs_tr
 #endif
+#ifdef BC_ALB
+      use AEROSOL_SOURCES, only: snosiz
+#endif  /* BC_ALB */
 
       use RESOLUTION, only: im,lm
       
@@ -112,7 +116,9 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
      * dho2rCache(I_0H:I_1H,J_0H:J_1H,lm),
      * perjrCache(I_0H:I_1H,J_0H:J_1H,lm),
      *     tno3rCache(I_0H:I_1H,J_0H:J_1H,lm))
+#ifdef BC_ALB
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+#endif  /* BC_ALB */
 #ifdef TRACERS_RADON
       allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif
@@ -1438,6 +1444,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 
       END SUBROUTINE GET_SULFATE
 
+#ifdef BC_ALB
       SUBROUTINE GET_BC_DALBEDO(i,j,bc_dalb)
 !@sum Calculates change to albedo of snow on ice and snow on land due
 !@+     to BC within the snow.
@@ -1658,7 +1665,8 @@ c melting snow
        rads=DMAX1(rads,100.d0)
       RETURN
       END SUBROUTINE GRAINS
-      
+#endif  /* BC_ALB */
+
       SUBROUTINE read_mon_3D
      & (Ldim,iu,data1,trans_emis,yr1,yr2)
 !@sum Read in monthly sources and interpolate to current day
