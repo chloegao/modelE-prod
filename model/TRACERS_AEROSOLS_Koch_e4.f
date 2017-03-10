@@ -1445,12 +1445,17 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 !@+     or actually on Flanner et al. fig 2 r_e=500 (14 inputs)
 !@+     or Warren and Wiscombe (1985) (18 input, old vs new, then I
 !@+     continue linearly from 19-29 off the plot)
-!@+auth Dorothy Koch
-c
+!@auth Dorothy Koch, modified by Kostas Tsigaridis
+
+c gtracer(n,i,j) is tracer concentration in snow on sea ice?
+
+!@param rhow density of pure water [kg m-3]
       USE CONSTANT, only: rhow
+!@var tr_wsn_ij tracer amount in snow over land (multiplied by fr_snow) [kg m-2]
+c wsn_ij(nsl,2,i,j)
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
+!@var si_atm%snowi snow amount on sea ice [kg m-2]
       USE SEAICE_COM, only : si_atm
-      use TRACER_COM, only:
 #ifdef TRACERS_AEROSOLS_Koch
       use TRACER_COM, only: n_BCB,n_BCII,n_BCIA
 #endif
@@ -1461,8 +1466,6 @@ c
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AECIL,n_AECOB,nbins
 #endif
-      !USE VEG_COM, only: afb
-      USE RADPAR, only: agesn
       USE FLUXES, only: atmice
       IMPLICIT NONE
 c Warren and Wiscombe 1985 includes age dependence
@@ -1492,9 +1495,20 @@ c    * 3.d0,4.d0,5.d0,6.d0,7.d0,8.d0,9.d0,10.d0/)
 c     real*8, parameter :: dal(21)=(/2.d0,3.d0,4.d0,6.d0,8.d0,
 c    * 9.d0,10.d0,11.d0,12.d0,13.d0,14.d0,16.d0,18.d0,20.d0,
 c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
-      REAL*8  scon,icon,bcsnowb,bcsnowv,bcice,fv,fb,
-     * sconb,sconv,bcc,rads
-      INTEGER n,ic,ib
+
+!@var bcsnowb BC amount in snow over bare soil [kg m-2]
+!@var bcsnowv BC amount in snow over vegetation [kg m-2]
+!@var sconb BC concentration in snow over bare soil [kg kg-1]
+!@var sconv BC concentration in snow over bare soil [kg kg-1]
+!@var scon BC concentration in snow over land [ppm by mass]
+!@var icon BC concentration in snow over sea ice [ppm by mass]
+      real*8 ::  bcsnowb,bcsnowv,sconb,sconv,scon,icon
+!@var fb fraction of land with bare soil (1.-fv)
+!@var fv fraction of land with vegetation (1.-fb)
+!@var bcc BC concentration (=max(scon,icon)) to be used for albedo calculations
+!@var rads snow grain size determined in GRAINS
+      real*8 :: fv,fb,bcc,rads
+      INTEGER n,ib
       INTEGER, INTENT(IN) :: i,j
       REAL*8, INTENT(OUT) :: bc_dalb
 #ifdef TRACERS_AEROSOLS_Koch
@@ -1507,19 +1521,8 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       integer, parameter :: nspBC=nbins+nbins
 #endif
       integer, dimension(nspBC) :: spBC
-c
-c tr_wsn_ij(n,nsl,2,i,j) tracer in snow layer l multiplied by fraction snow, kg/m2
-c wsn_ij(nsl,2,i,j)
-c trsi(n,nsi,i,j) tracer in sea ice in layer l, kg/m2
-c snowi(i,j) snow amount on sea ice, kg/m2
-c afb(i,j)=fb, fraction that is bare soil
-c fv=1-fb fraction that is vegetated
-c rads is the snow grain size determined in GRAINS
-c gtracer(n,i,j) is tracer concentration in snow on sea ice?
-c Maybe I need tracer in snow on sea ice, or mass of sea ice...?
-c Does trsi accumulate for ALL tracers?
-c fractions??
-c
+
+! define indices of BC tracers
 #ifdef TRACERS_AEROSOLS_Koch
       spBC(1)=n_BCII
       spBC(2)=n_BCIA
@@ -1540,59 +1543,70 @@ c
          spBC(n+nbins)=n_AECIL(n)
       enddo
 #endif
-      bc_dalb=0.
-      scon=0.
-      sconb=0.
-      sconv=0.
-      icon=0.
-      bcsnowb=0.
-      bcsnowv=0.
-      bcice=0.
-      !fb=afb(i,j)
-      !fv=1.-fb
+
+! initialize
+      bcsnowb=0.d0
+      bcsnowv=0.d0
       sconb=0.d0
       sconv=0.d0
+      scon=0.d0
+      icon=0.d0
+      bc_dalb=0.d0
+
+! get bare soil and vegetation fractions (fb+fv=1.)
       call get_fb_fv( fb, fv, i, j )
-      if (wsn_ij(1,1,i,j).gt.0.) then
+
+! calculate BC concentration in snow layer 1 over bare soil
+      if (wsn_ij(1,1,i,j).gt.0.d0) then
         do n=1,nspBC
           bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
         enddo
         sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
       endif
-      if (wsn_ij(1,2,i,j).gt.0.) then
+
+! calculate BC concentration in snow layer 1 over vegetation
+      if (wsn_ij(1,2,i,j).gt.0.d0) then
         do n=1,nspBC
           bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
         enddo
         sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
-      scon=(fb*sconb+fv*sconv)*1.D9   !kg/kg to ppmw
-      if (si_atm%snowi(i,j).gt.0.) then
+
+! calculate mean BC concentration in total snow in layer 1
+      scon=(fb*sconb+fv*sconv)*1.d9
+
+! calculate BC concentration in snow over sea ice
+      if (si_atm%snowi(i,j).gt.0.d0) then
         do n=1,nspBC
           icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
         enddo
       endif
-      bcc=DMAX1(icon,scon)
+
+! use the maximum BC concentration between snow over land and over sea ice
+      bcc=max(icon,scon)
+
+! calculate snow grain size
       call GRAINS(i,j,rads)
 
+! calculate BC albedo effect
       do ib=1,28
         if (bcc.gt.bc(ib).and.bcc.lt.bc(ib+1)) then
           bc_dalb=-(daln(ib)
-     *       +(rads-100.d0)/900.d0*(dalo(ib)-daln(ib)))/100.
-          go to 33
+     *       +(rads-100.d0)/900.d0*(dalo(ib)-daln(ib)))/100.d0
+          exit
         endif
-      end do
- 33   continue
+      enddo
       if (bcc.ge.bc(29)) bc_dalb=-(daln(29)
-     *    + (rads-100.d0)/900.d0*(dalo(29)-daln(29)))/100.
+     *    + (rads-100.d0)/900.d0*(dalo(29)-daln(29)))/100.d0
 c     if (bc_dalb.ne.0.) write(6,*) 'alb_write',i,j,bc_dalb,bcc,rads
-      RETURN
+
       END SUBROUTINE GET_BC_DALBEDO
 
       SUBROUTINE GRAINS(i,j,rads)
 !@sum Estimates snow grain size (microns) based on air temperature
 !@+     and snow age. From Susan Marshall's PhD thesis
-!@+auth Dorothy Koch
-c
+!@auth Dorothy Koch
+
       USE CONSTANT, only: pi,gasc,tf
       USE FLUXES, only: atmsrf
       use TimeConstants_mod, only: DAYS_PER_YEAR
@@ -1601,7 +1615,6 @@ c
       IMPLICIT none
       REAL*8 E,A,age,r0,radmm,ert,
      * tfac,area,delrad
-      INTEGER n,ic,ib
       INTEGER, INTENT(IN) :: i,j
       REAL*8, INTENT(OUT) :: rads
       DATA E,A /26020.d0, 29100.d0/
