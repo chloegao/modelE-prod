@@ -22,7 +22,7 @@
 !@param scalesizeSalt :Sea-salt emissions based on Gong et al. (2004) 
 !@+      Unlike other scalesize, sum of scalesizeSalt do not added up to 1. 
 !@+      These numbers are from Kostas. 
-!@+      Seasalt emission will be computed in TRACERS_AEROSOL_KOCH_e4.f 
+!@+      Seasalt emission will be computed in TRACERS_AEROSOLS_SEASALT.F90
 
 #ifdef TOMAS_COARSER_EMISSION
 ! This is for larger emission size assumption 
