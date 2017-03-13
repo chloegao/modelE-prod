@@ -210,11 +210,11 @@
       use flammability_com, only: mfcc,flammability,first_prec,
      & saveFireCount
       use geom, only : axyp
+      use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use lightning, only : saveC2gLightning
       use flammability_com, only: populationDensity
-      use diag_com, only: ij_nsuppress,ij_cgign,ij_humanign,ij_human,
-     &ij_fireC,aij=>aij_loc
+      use diag_com, only: ij_nsuppress,ij_cgign,ij_humanign,ij_human
 #endif
       implicit none
 
@@ -292,7 +292,6 @@
             aij(i,j,ij_cgign)=aij(i,j,ij_cgign)+CtoG
             aij(i,j,ij_nsuppress)=aij(i,j,ij_nsuppress)+nonSuppressFrac
             aij(i,j,ij_human)=aij(i,j,ij_human)+humanIng/(CtoG+humanIng)
-            aij(i,j,ij_fireC)=aij(i,j,ij_fireC)+saveFireCount(i,j)
 
 #else /* ubiquitous only */
 
@@ -307,6 +306,7 @@
           else ! flammability not ready yet or undefined here:
             saveFireCount(i,j)=0.d0
           end if
+          aij(i,j,ij_fireC)=aij(i,j,ij_fireC)+saveFireCount(i,j)
         end do ! i
       end do   ! j
 
