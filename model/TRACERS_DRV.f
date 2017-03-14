@@ -892,14 +892,14 @@ C**** set defaults for some precip/wet-dep related diags
       case ('CFC11')   !!! should start April 1
         k = k + 1
         jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trname(n)
+        sname_jls(k) = 'L1_sink_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF CFC-11 BY SOURCE, L1'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Stratos_chem_change_'//trname(n)
+        sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
         jls_ltop(k) = lm
         jls_power(k) = -3
@@ -908,7 +908,7 @@ C**** set defaults for some precip/wet-dep related diags
       case ('14CO2')   !!! should start 10/16
         k = k + 1
         jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trname(n)
+        sname_jls(k) = 'L1_sink_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF 14CO2 by SINK, L1'
         jls_ltop(k) = 1
         jls_power(k) = -4
@@ -975,7 +975,7 @@ C**** set defaults for some precip/wet-dep related diags
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(1,n) = k
-        sname_jls(k) = 'Animal_source_of'//trim(trname(n))
+        sname_jls(k) = 'Animal_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//' Animal source'
         jls_ltop(k) = 1
         jls_power(k) = 0
@@ -1130,8 +1130,8 @@ C**** special one unique to HTO
 !       case ('HNO3')
 !        k = k + 1
 !        jls_3Dsource(nChemistry,n) = k
-!        sname_jls(k) = 'chemistry_nitrat_of'//trim(trname(n))
-!        lname_jls(k) = 'CHANGE OF HNO3 BY NITRAT C'
+!        sname_jls(k) = 'chemistry_nitrate_of_'//trim(trname(n))
+!        lname_jls(k) = 'CHANGE OF HNO3 BY NITRATE CHEM'
 !        jls_ltop(k) = LTOP
 !        jls_power(k) = 0
 !        units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1170,8 +1170,8 @@ C**** special one unique to HTO
      &      'AlkylNit','Ox','NOx','stratOx','Terpenes')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'chemistry_source_of'//trname(n)
-        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         select case(trname(n))
         case ('Ox','stratOx')
@@ -1193,16 +1193,16 @@ C**** special one unique to HTO
      &  'Terpenes','NOx','stratOx','BrOx','ClOx')
           k = k + 1
           jls_3Dsource(nOverwrite,n) = k
-          sname_jls(k) = 'overwrite_source_of'//trname(n)
+          sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
           lname_jls(k) =
-     &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
+     &    'CHANGE OF '//trim(trname(n))//' BY OVERWRITE'
           jls_ltop(k) = LM
           jls_power(k) = -1
           units_jls(k) = unit_string(jls_power(k),'kg/s')
         case ('CFC')  ! L=1 overwrite only.
           k = k + 1
           jls_3Dsource(nOverwrite,n) = k
-          sname_jls(k) = 'overwrite_source_of'//trname(n)
+          sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
           lname_jls(k) =
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
           jls_ltop(k) = 1 ! L=1 overwrite only
@@ -1213,8 +1213,8 @@ C**** special one unique to HTO
         case('NOx')
           k = k + 1
           jls_3Dsource(nOther,n) = k
-          sname_jls(k) = 'lightning_source_of'//trname(n)
-          lname_jls(k) = 'CHANGE OF '//trname(n)//' BY LIGHTNING'
+          sname_jls(k) = 'lightning_source_of_'//trim(trname(n))
+          lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY LIGHTNING'
           jls_ltop(k) = LM
           jls_power(k) = -2
           units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1225,8 +1225,8 @@ C**** special one unique to HTO
 c put in chemical production
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'chemistry_source_of_'//trname(n)
-        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1235,16 +1235,16 @@ c put in chemical production
 c put in chemical production
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'chemistry_source_of_'//trname(n)
-        lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+        sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
 c gravitational settling of SOA
         k = k + 1
         jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of_'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of '//trname(n)
+        sname_jls(k) = 'grav_sett_of_'//trim(trname(n))
+        lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -2
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1253,7 +1253,7 @@ c gravitational settling of SOA
       case ('DMS')
         k = k + 1
         jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_source_of'//trname(n)
+        sname_jls(k) = 'Ocean_source_of_'//trim(trname(n))
         lname_jls(k) = 'DMS ocean source'
         jls_ltop(k) = 1
         jls_power(k) =0
@@ -1261,7 +1261,7 @@ c gravitational settling of SOA
 C
         k = k + 1
         jls_isrc(2,n) = k
-        sname_jls(k) = 'TKE_Contribution'//trname(n)
+        sname_jls(k) = 'TKE_Contribution_'//trim(trname(n))
         lname_jls(k) = 'SGSWSP TKE'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
@@ -1271,7 +1271,7 @@ C
 
         k = k + 1
         jls_isrc(3,n) = k
-        sname_jls(k) = 'Wet_Conv_Contr'//trname(n)
+        sname_jls(k) = 'Wet_Conv_Contr_'//trim(trname(n))
         lname_jls(k) = 'SGSWSP Wet Conv'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
@@ -1281,7 +1281,7 @@ C
 
         k = k + 1
         jls_isrc(4,n) = k
-        sname_jls(k) = 'Dry_Conv_Contr'//trname(n)
+        sname_jls(k) = 'Dry_Conv_Contr_'//trim(trname(n))
         lname_jls(k) = 'SGSWSP Dry Conv'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
@@ -1291,7 +1291,7 @@ C
 
         k = k + 1
         jls_isrc(5,n) = k
-        sname_jls(k) = 'SGSWSP-old'//trname(n)
+        sname_jls(k) = 'SGSWSP-old_'//trim(trname(n))
         lname_jls(k) = 'DMS SGSWP-old/old'
         jwt_jls(k) = 2
         jls_ltop(k) = 1
@@ -1301,7 +1301,7 @@ C
 
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Chemical_sink_of'//trname(n)
+        sname_jls(k) = 'Chemical_sink_of_'//trim(trname(n))
         lname_jls(k) = 'DMS chemical loss'
         jls_ltop(k) =LM
         jls_power(k) =0
@@ -1311,7 +1311,7 @@ C
 c put in chemical production of MSA
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'chemistry_source_of'//trname(n)
+        sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
         lname_jls(k) = 'Chemical production of MSA'
         jls_ltop(k) = LM
         jls_power(k) = -1
@@ -1319,7 +1319,7 @@ c put in chemical production of MSA
 c gravitational settling of MSA
         k = k + 1
         jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
+        sname_jls(k) = 'grav_sett_of_'//trim(trname(n))
         lname_jls(k) = 'Gravitational Settling of MSA'
         jls_ltop(k) = LM
         jls_power(k) = -3
@@ -1337,7 +1337,7 @@ c volcanic production of SO2
 c put in chemical production of SO2
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
-        sname_jls(k) = 'dms_source_of_'//trname(n)
+        sname_jls(k) = 'dms_source_of_'//trim(trname(n))
         lname_jls(k) = 'production of SO2 from DMS'
         jls_ltop(k) = LM
         jls_power(k) =  1
@@ -1345,7 +1345,7 @@ c put in chemical production of SO2
 c put in chemical sink of SO2
         k = k + 1
         jls_3Dsource(nChemloss,n) = k
-        sname_jls(k) = 'chem_sink_of_'//trname(n)
+        sname_jls(k) = 'chem_sink_of_'//trim(trname(n))
         lname_jls(k) = 'chemical sink of SO2'
         jls_ltop(k) = LM
         jls_power(k) =  1
@@ -1380,7 +1380,7 @@ c gravitational settling of SO4
 c gas phase source
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'gas_phase_source_of'//trname(n)
+        sname_jls(k) = 'gas_phase_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//' gas phase source'
         jls_ltop(k) = LM
         jls_power(k) = 1
@@ -1388,8 +1388,8 @@ c gas phase source
 c gravitational settling
         k = k + 1
         jls_grav(n) = k
-        sname_jls(k) = 'grav_sett_of'//trname(n)
-        lname_jls(k) = 'Gravitational Settling of '//trname(n)
+        sname_jls(k) = 'grav_sett_of_'//trim(trname(n))
+        lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1398,7 +1398,7 @@ c gravitational settling
 c cosmogenic source from file
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
+        sname_jls(k) = 'Cosmogenic_src_of_'//trim(trname(n))
         lname_jls(k) = 'Be7 cosmogenic src'
         jls_ltop(k) = lm
         jls_power(k) = -28
@@ -1407,7 +1407,7 @@ c cosmogenic source from file
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
-        sname_jls(k) = 'Decay_of_'//trname(n)
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
         lname_jls(k) = 'Loss of Be7 by decay'
         jls_ltop(k) = lm
         jls_power(k) = -28
@@ -1416,7 +1416,7 @@ c radioactive decay
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
-        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        sname_jls(k) = 'Grav_Settle_of_'//trim(trname(n))
         lname_jls(k) = 'Loss of Be7 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28
@@ -1427,7 +1427,7 @@ c gravitational settling
 c cosmogenic source from file/same as Be7
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Cosmogenic_src_of'//trname(n)
+        sname_jls(k) = 'Cosmogenic_src_of_'//trim(trname(n))
         lname_jls(k) = 'Be10 cosmogenic src'
         jls_ltop(k) = lm
         jls_power(k) = -28  !may need changing around
@@ -1436,7 +1436,7 @@ c cosmogenic source from file/same as Be7
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
-        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        sname_jls(k) = 'Grav_Settle_of_'//trim(trname(n))
         lname_jls(k) = 'Loss of Be10 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28  !may need changing around
@@ -1447,7 +1447,7 @@ c gravitational settling
 c source of Pb210 from Rn222 decay
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Radioactive_src_of'//trname(n)
+        sname_jls(k) = 'Radioactive_src_of_'//trim(trname(n))
         lname_jls(k) = 'Pb210 radioactive src'
         jls_ltop(k) = lm
         jls_power(k) =-26   ! -10  !may need to be changed
@@ -1456,7 +1456,7 @@ c source of Pb210 from Rn222 decay
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
-        sname_jls(k) = 'Decay_of_'//trname(n)
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
         lname_jls(k) = 'Loss of Pb210 by decay'
         jls_ltop(k) = lm
         jls_power(k) =-26   ! -10  !may need to be changed
@@ -1465,7 +1465,7 @@ c radioactive decay
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
-        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
+        sname_jls(k) = 'Grav_Settle_of_'//trim(trname(n))
         lname_jls(k) = 'Loss of Pb210 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28
@@ -1656,14 +1656,14 @@ c industrial source
         enddo
         k = k + 1
         jls_isrc(1,n) = k
-        sname_jls(k) = 'NACL_source_of'//trim(trname(n))
+        sname_jls(k) = 'NACL_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'ANACL source'
         jls_ltop(k) = 1
         jls_power(k) =10
         units_jls(k) = unit_string(jls_power(k),'#/s')
         k = k + 1
         jls_isrc(2,n) = k
-        sname_jls(k) = 'Dust_source_of'//trname(n)
+        sname_jls(k) = 'Dust_source_of_'//trim(trname(n))
         lname_jls(k) =  trim(trname(n))//'ADUST source'
         jls_ltop(k) = 1
         jls_power(k) =1
@@ -1681,8 +1681,8 @@ c industrial source
      *    'ANACL_11','ANACL_12','ANACL_13','ANACL_14','ANACL_15')
         k = k + 1
         jls_isrc(1,n) = k
-        sname_jls(k) = 'Ocean_source_of'//trim(trname(n))
-        lname_jls(k) = 'Ocean source'//trim(trname(n))
+        sname_jls(k) = 'Ocean_source_of_'//trim(trname(n))
+        lname_jls(k) = 'Ocean source of '//trim(trname(n))
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1695,8 +1695,8 @@ c industrial source
      *    'AECIL_11','AECIL_12','AECIL_13','AECIL_14','AECIL_15')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Aging_loss_of'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//'aging loss'
+        sname_jls(k) = 'Aging_loss_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' aging loss'
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1709,8 +1709,8 @@ c industrial source
      *    'AOCIL_11','AOCIL_12','AOCIL_13','AOCIL_14','AOCIL_15')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'Aging_loss_of'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//'aging loss'
+        sname_jls(k) = 'Aging_loss_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' aging loss'
         jls_ltop(k) = LM
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -1723,8 +1723,8 @@ c industrial source
 
         k = k + 1
         jls_isrc(1,n) = k
-        sname_jls(k) = 'Dust_source_of'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//'DUST source'
+        sname_jls(k) = 'Dust_source_of_'//trim(trname(n))
+        lname_jls(k) = trim(trname(n))//' dust source'
         jls_ltop(k) = 1
         jls_power(k) =0
         units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -2130,7 +2130,7 @@ c Oxidants
       character(len=*), intent(in) :: name
       k = k + 1
       jls_source(1,n) = k
-      sname_jls(k) = 'Layer_1_source_of_'//trname(n)
+      sname_jls(k) = 'Layer_1_source_of_'//trim(trname(n))
       lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
       jls_ltop(k) = 1
       jls_power(k) = -3
@@ -2143,7 +2143,7 @@ c Oxidants
       character(len=*), intent(in) :: name
       k = k + 1
       jls_isrc(1,n) = k
-      sname_jls(k) = 'Ocean_Gas_Exchange_'//trname(n)
+      sname_jls(k) = 'Ocean_Gas_Exchange_'//trim(trname(n))
       lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
       jls_ltop(k) = 1
       jls_power(k) = 3
@@ -2156,8 +2156,8 @@ c Oxidants
       character(len=*), intent(in) :: name
       k = k + 1
       jls_decay(n) = k          ! special array for all radioactive sinks
-      sname_jls(k) = 'Decay_of_'//trname(n)
-      lname_jls(k) = 'LOSS OF RADON-222 BY DECAY'
+      sname_jls(k) = 'Decay_of_'//trim(trname(n))
+      lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
       jls_ltop(k) = lm
       jls_power(k) = -26
       units_jls(k) = unit_string(jls_power(k),'kg/s/mb/m^2')
@@ -2165,7 +2165,7 @@ c Oxidants
       
       k = k + 1
       jls_source(1,n) = k
-      sname_jls(k) = 'Ground_Source_of_'//trname(n)
+      sname_jls(k) = 'Ground_Source_of_'//trim(trname(n))
       lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
       jls_ltop(k) = 1
       jls_power(k) = -10
@@ -2178,42 +2178,42 @@ c Oxidants
       character(len=*), intent(in) :: name
         k = k + 1
         jls_source(1,n) = k
-        sname_jls(k) = 'Fossil_fuel_source_'//trname(n)
+        sname_jls(k) = 'Fossil_fuel_source_'//trim(trname(n))
         lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(2,n) = k
-        sname_jls(k) = 'fertilization_sink_'//trname(n)
+        sname_jls(k) = 'fertilization_sink_'//trim(trname(n))
         lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(3,n) = k
-        sname_jls(k) = 'Northern_forest_regrowth_'//trname(n)
+        sname_jls(k) = 'Northern_forest_regrowth_'//trim(trname(n))
         lname_jls(k) = 'CO2 Northern forest regrowth sink'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(4,n) = k
-        sname_jls(k) = 'Land_Use_Modification_'//trname(n)
+        sname_jls(k) = 'Land_Use_Modification_'//trim(trname(n))
         lname_jls(k) = 'CO2 from Land use modification (Houton)'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(5,n) = k
-        sname_jls(k) = 'Ecosystem_exchange_'//trname(n)
+        sname_jls(k) = 'Ecosystem_exchange_'//trim(trname(n))
         lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
         jls_ltop(k) = 1
         jls_power(k) = 3
         units_jls(k) = unit_string(jls_power(k),'kg/s')
         k = k + 1
         jls_source(6,n) = k
-        sname_jls(k) = 'Ocean_exchange_'//trname(n)
+        sname_jls(k) = 'Ocean_exchange_'//trim(trname(n))
         lname_jls(k) = 'CO2 Ocean exchange'
         jls_ltop(k) = 1
         jls_power(k) = 3
@@ -2228,16 +2228,16 @@ c Oxidants
 #ifdef TRACERS_SPECIAL_Shindell
       k = k + 1
       jls_3Dsource(nChemistry,n) = k
-      sname_jls(k) = 'chemistry_source_of'//trname(n)
-      lname_jls(k) = 'CHANGE OF '//trname(n)//' BY CHEMISTRY'
+      sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
+      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
       jls_ltop(k) = LM
       jls_power(k) = -1
       units_jls(k) = unit_string(jls_power(k),'kg/s')
       k = k + 1
       jls_3Dsource(nOverwrite,n) = k
-      sname_jls(k) = 'overwrite_source_of'//trname(n)
+      sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
       lname_jls(k) =
-     &     'CHANGE OF '//trname(n)//' BY OVERWRITE'
+     &     'CHANGE OF '//trim(trname(n))//' BY OVERWRITE'
       jls_ltop(k) = 1           ! really L=1 overwrite only
       jls_power(k) = -1
       units_jls(k) = unit_string(jls_power(k),'kg/s')
@@ -2245,14 +2245,14 @@ c Oxidants
 #ifdef TRACERS_SPECIAL_Lerner
       k = k + 1
       jls_source(1,n) = k
-      sname_jls(k) = 'L1_sink_'//trname(n)
+      sname_jls(k) = 'L1_sink_'//trim(trname(n))
       lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
       jls_ltop(k) = 1
       jls_power(k) = 0
       units_jls(k) = unit_string(jls_power(k),'kg/s')
       k = k + 1
       jls_3Dsource(1,n) = k
-      sname_jls(k) = 'Stratos_chem_change_'//trname(n)
+      sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
       lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
       jls_ltop(k) = lm
       jls_power(k) = -1
@@ -2546,8 +2546,8 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k+1
         ijts_source(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Rn222 L 1 SOURCE'
-        sname_ijts(k) = 'Rn222_SOURCE_Layer_1'
+        lname_ijts(k) = trim(trname(n))//' L 1 SOURCE'
+        sname_ijts(k) = trim(trname(n))//'_SOURCE_Layer_1'
         ijts_power(k) = -21
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2557,48 +2557,48 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k + 1
         ijts_source(1,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'Fossil_fuel_source_'//trname(n)
-        lname_ijts(k) = 'CO2 Fossil fuel src'
+        sname_ijts(k) = 'Fossil_fuel_source_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Fossil fuel src'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(2,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'fertilization_sink_'//trname(n)
-        lname_ijts(k) = 'CO2 fertilization'
+        sname_ijts(k) = 'fertilization_sink_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' fertilization'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(3,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'Northern_forest_regrowth_'//trname(n)
-        lname_ijts(k) = 'CO2 North forest regrowth'
+        sname_ijts(k) = 'Northern_forest_regrowth_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' North forest regrowth'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(4,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'Land_Use_Modification_'//trname(n)
-        lname_ijts(k) = 'CO2 from Land use mods'
+        sname_ijts(k) = 'Land_Use_Modification_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' from Land use mods'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(5,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'Ecosystem_exchange_'//trname(n)
-        lname_ijts(k) = 'CO2 Ecosystem exch'
+        sname_ijts(k) = 'Ecosystem_exchange_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Ecosystem exch'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_source(6,n) = k
         ia_ijts(k) = ia_src
-        sname_ijts(k) = 'Ocean_exchange_'//trname(n)
-        lname_ijts(k) = 'CO2 Ocean exchange'
+        sname_ijts(k) = 'Ocean_exchange_'//trim(trname(n))
+        lname_ijts(k) = trim(trname(n))//' Ocean exchange'
         ijts_power(k) = -11
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2616,7 +2616,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         k = k + 1
         ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' Overwrite'
+        lname_ijts(k) = trim(trname(n))//' Overwrite'
         sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -2645,16 +2645,16 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k + 1
         ijts_source(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CFC_11 L 1 SOURCE'
-        sname_ijts(k) = 'CFC_11_SOURCE_LAYER_1'
+        lname_ijts(k) = trim(trname(n))//' L 1 SOURCE'
+        sname_ijts(k) = trim(trname(n))//'_SOURCE_LAYER_1'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'CFC_11 Stratospheric Chemistry Sink'
-        sname_ijts(k) = 'CFC_11_strat_sink'
+        lname_ijts(k) = trim(trname(n))//' Stratospheric Chem Sink'
+        sname_ijts(k) = trim(trname(n))//'_strat_sink'
         ijts_power(k) = -18
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2663,8 +2663,8 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k + 1
         ijts_source(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = '14CO2 L 1 Sink'
-        sname_ijts(k) = '14CO2_L1_Sink'
+        lname_ijts(k) = trim(trname(n))//' L 1 Sink'
+        sname_ijts(k) = trim(trname(n))//'_L1_Sink'
         ijts_power(k) = -21
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2711,7 +2711,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           k = k + 1
           ijts_3Dsource(nOverwrite,n) = k
           ia_ijts(k) = ia_src
-          lname_ijts(k) = trname(n)//' Overwrite'
+          lname_ijts(k) = trim(trname(n))//' Overwrite'
           sname_ijts(k) = trim(trname(n))//'_overw'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -2721,7 +2721,7 @@ C**** This needs to be 'hand coded' depending on circumstances
           k = k + 1
           ijts_3Dsource(nOther,n) = k
           ia_ijts(k) = ia_src
-          lname_ijts(k) = trname(n)//' Lightning Source'
+          lname_ijts(k) = trim(trname(n))//' Lightning Source'
           sname_ijts(k) = trim(trname(n))//'_lightning'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -2731,7 +2731,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             k = k + 1
             ijts_fc(1,n) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trname(n)//' tropopause SW rad forc'
+            lname_ijts(k) = trim(trname(n))//' tropopause SW rad forc'
             sname_ijts(k) = 'swf_tp_'//trim(trname(n))
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -2740,7 +2740,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             k = k + 1
             ijts_fc(2,n) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trname(n)//' tropopause LW rad forc'
+            lname_ijts(k) = trim(trname(n))//' tropopause LW rad forc'
             sname_ijts(k) = 'lwf_tp_'//trim(trname(n))
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -2749,7 +2749,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             k = k + 1
             ijts_fc(3,n) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trname(n)//' TOA SW rad forc'
+            lname_ijts(k) = trim(trname(n))//' TOA SW rad forc'
             sname_ijts(k) = 'swf_toa_'//trim(trname(n))
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -2758,7 +2758,7 @@ C**** This needs to be 'hand coded' depending on circumstances
             k = k + 1
             ijts_fc(4,n) = k
             ia_ijts(k) = ia_rad_frc
-            lname_ijts(k) = trname(n)//' TOA LW rad forc'
+            lname_ijts(k) = trim(trname(n))//' TOA LW rad forc'
             sname_ijts(k) = 'lwf_toa_'//trim(trname(n))
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),'W/m2')
@@ -2840,7 +2840,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         k = k + 1
         ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//' Overwrite'
+        lname_ijts(k) = trim(trname(n))//' Overwrite'
         sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -3020,8 +3020,8 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k+1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trname(n)//'L1 overwrite source'
-        sname_ijts(k) = trim(trname(n))//'L1_overwrite'
+        lname_ijts(k) = trim(trname(n))//' L1 overwrite source'
+        sname_ijts(k) = trim(trname(n))//'_L1_overwrite'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3102,8 +3102,8 @@ c chemical loss
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'DMS Chem sink'
-        sname_ijts(k) = 'DMS_Chem_sink'
+        lname_ijts(k) = trim(trname(n))//' Chem sink'
+        sname_ijts(k) = trim(trname(n))//'_Chem_sink'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3113,8 +3113,8 @@ c put in chemical production of MSA
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'MSA Chemical source'
-        sname_ijts(k) = 'MSA_Chemical_source'
+        lname_ijts(k) = trim(trname(n))//' Chemical source'
+        sname_ijts(k) = trim(trname(n))//'_Chemical_source'
         ijts_power(k) = -17
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3124,8 +3124,8 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 gas phase source'
-        sname_ijts(k) = 'SO4_gas_phase_source'
+        lname_ijts(k) = trim(trname(n))//' gas phase source'
+        sname_ijts(k) = trim(trname(n))//'_gas_phase_source'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3277,7 +3277,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Gas phase src'//trim(trname(n))
+        lname_ijts(k) = 'Gas phase src '//trim(trname(n))
         sname_ijts(k) = 'Gas_phase_src_'//trim(trname(n))
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -3286,7 +3286,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(nOther,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Microphysics change'//trim(trname(n))
+        lname_ijts(k) = 'Microphysics change '//trim(trname(n))
         sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -3320,7 +3320,7 @@ c put in production of SO4 from gas phase
       k = k + 1
         ijts_3Dsource(nOther,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Microphysics change'//trim(trname(n))
+        lname_ijts(k) = 'Microphysics change '//trim(trname(n))
         sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -3414,7 +3414,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4 source'//trim(trname(n))
+        lname_ijts(k) = 'SO4 source '//trim(trname(n))
         sname_ijts(k) = 'SO4_src_'//trim(trname(n))
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'#/s*m^2')
@@ -3423,7 +3423,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(2,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'EC source'//trim(trname(n))
+        lname_ijts(k) = 'EC source '//trim(trname(n))
         sname_ijts(k) = 'EC_src_'//trim(trname(n))
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'#/s*m^2')
@@ -3432,7 +3432,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(4,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'OC source'//trim(trname(n))
+        lname_ijts(k) = 'OC source '//trim(trname(n))
         sname_ijts(k) = 'OC_src_'//trim(trname(n))
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'#/s*m^2')
@@ -3459,7 +3459,7 @@ c SO4 from industrial emissions
         k = k + 1
         ijts_isrc(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'NACL source'//trim(trname(n))
+        lname_ijts(k) = 'NACL source '//trim(trname(n))
         sname_ijts(k) = 'NACL_src_'//trim(trname(n))
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'#/s*m^2')
@@ -3468,7 +3468,7 @@ c SO4 from industrial emissions
         k = k + 1
         ijts_isrc(2,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'DUST source'//trim(trname(n))
+        lname_ijts(k) = 'DUST source '//trim(trname(n))
         sname_ijts(k) = 'DUST_src_'//trim(trname(n))
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'#/s*m^2')
@@ -3549,33 +3549,13 @@ c SO4 from industrial emissions
 #endif
 
 #ifdef TRACERS_HETCHEM
-      case ('SO4_d1')
+      case ('SO4_d1','SO4_d2','SO4_d3')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
-        ijts_source(1,n) = k  ! 3dsource?
+        ijts_source(nChemistry,n) = k  ! 3dsource?
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d1 Chemical source'
-        sname_ijts(k) = 'SO4d1_Chemical_source'
-        ijts_power(k) = -10
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      case ('SO4_d2')
-c chemical production of SO4 from SO2 on dust
-        k = k + 1
-        ijts_source(1,n) = k  ! 3dsource?
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d2 Chemical source'
-        sname_ijts(k) = 'SO4d2_Chemical_source'
-        ijts_power(k) = -10
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      case ('SO4_d3')
-c chemical production of SO4 from SO2 on dust
-        k = k + 1
-        ijts_source(1,n) = k  ! 3dsource?
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'SO4d3 Chemical source'
-        sname_ijts(k) = 'SO4d3_Chemical_source'
+        lname_ijts(k) = trim(trname(n))//' Chemical source'
+        sname_ijts(k) = trim(trname(n))//'_Chemical_source'
         ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3585,8 +3565,8 @@ c put in production of H2O2 from gas phase
         k = k + 1
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'H2O2 gas phase source'
-        sname_ijts(k) = 'H2O2_gas_phase_source'
+        lname_ijts(k) = trim(trname(n))//' gas phase source'
+        sname_ijts(k) = trim(trname(n))//'_gas_phase_source'
         ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3594,8 +3574,8 @@ c put in production of H2O2 from gas phase
         k = k + 1
         ijts_3Dsource(2,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'H2O2 gas phase sink'
-        sname_ijts(k) = 'H2O2_gas_phase_sink'
+        lname_ijts(k) = trim(trname(n))//' gas phase sink'
+        sname_ijts(k) = trim(trname(n))//'_gas_phase_sink'
         ijts_power(k) = -10
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3617,7 +3597,7 @@ c source of Pb210 from Rn222 decay
         ijts_3Dsource(1,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Radioactive source of '//trname(n)
-        sname_ijts(k) = 'Pb210_radio_src'
+        sname_ijts(k) = trim(trname(n))//'_radio_src'
         ijts_power(k) = -24
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
