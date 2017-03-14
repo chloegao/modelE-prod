@@ -7,22 +7,18 @@
 !@ get_O3_offline
 !@ read_mon3Dsources
 !@ READ_OFFHNO3
-!@ READ_OFFSS
 !@ read_DMS_sources
 !@ aerosol_gas_chem
 !@ SCALERAD
 !@ GET_SULFATE
 !@ GET_BC_DALBEDO
 !@ GRAINS
-!@ read_mon_3D
 !@ read_seawifs_chla
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSinput ! DMSinput(im,jm,12)
-c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
-      real*4, ALLOCATABLE, DIMENSION(:,:,:) :: DMS_AER  !(im,jm,366)
 #ifndef TRACERS_AEROSOLS_SOA
 !@var OCT_src    OC Terpene source (kg/s/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
@@ -51,7 +47,7 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
 #endif
 !var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3, off_SS
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
@@ -63,7 +59,7 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM, n_OCII
-      use AEROSOL_SOURCES, only: DMSinput,DMS_AER,
+      use AEROSOL_SOURCES, only: DMSinput,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -72,7 +68,7 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
      * ,o3_offline
-     * ,off_HNO3,off_SS
+     * ,off_HNO3
 #ifdef TRACERS_RADON
      * ,rn_src
 #endif
@@ -84,7 +80,7 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       use AEROSOL_SOURCES, only: snosiz
 #endif  /* BC_ALB */
 
-      use RESOLUTION, only: im,lm
+      use RESOLUTION, only: lm
       
       IMPLICIT NONE
       type (dist_grid), intent(in) :: grid
@@ -100,7 +96,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
       I_1H = grid%I_STOP_HALO
 
       allocate( DMSinput(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
-      allocate( DMS_AER(I_0H:I_1H,J_0H:J_1H,366) ,STAT=IER)
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -124,7 +119,6 @@ c!@var DMS_AER           DMS prescribed by AERONET (kg S/day/box)
 #endif
 c off line 
       allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
-      allocate(  off_SS(I_0H:I_1H,J_0H:J_1H,LM)     )
 #ifdef TRACERS_AEROSOLS_VBS
       allocate(VBSemifact(vbs_tr%nbins))
 #endif
@@ -136,7 +130,7 @@ c off line
 c
 C**** GLOBAL parameters and variables:
 C
-      use resolution, only: im,jm,lm
+      use resolution, only: lm
       use model_com, only: modelEclock
       use filemanager, only: openunit,closeunit
       use aerosol_sources, only: o3_offline
@@ -213,7 +207,6 @@ c
 !@+   Input: iu, the fileUnit#; jdlast
 !@+   Output: interpolated data array + two monthly data arrays
 !@auth Jean Lerner and others / Greg Faluvegi
-      use resolution, only: im,jm
       use model_com, only: modelEclock
       USE JulianCalendar_mod, only: idofm=>JDmidOfM
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
@@ -295,7 +288,7 @@ c**** Interpolate two months of data to current day
       end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
-      use resolution, only: im,jm,lm
+      use resolution, only: lm
       use model_com, only: modelEclock
       USE JulianCalendar_mod, only : JDendOFM
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
@@ -379,93 +372,6 @@ c -----------------------------------------------------------------
       END SUBROUTINE READ_OFFHNO3
 c -----------------------------------------------------------------
 
-      SUBROUTINE READ_OFFSS(OUT)
-      use resolution, only: im,jm,lm
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only : JDendOFM
-      USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
-      IMPLICIT NONE
-      include 'netcdf.inc'
-!@param  nlevnc vertical levels of off-line data  
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
-      INTEGER, PARAMETER :: nlevnc =23
-      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
-     &                  GRID%J_STRT:GRID%J_STOP,nlevnc) ::
-     &     IN1_nohalo, IN2_nohalo
-      REAL*8, DIMENSION(:,:,:), pointer, save :: IN1_ss, IN2_ss
-!@var netcdf integer
-      INTEGER :: ncid,id
-      INTEGER, save :: step_rea_ss=0, first_call_ss=1
-!@var time interpoltation
-      REAL*8 :: tau
-      integer start(4),count(4),status,l,i,j
-      integer :: i_0,i_1,j_0,j_1
-c -----------------------------------------------------------------
-c   Initialisation of the files to be read
-c ----------------------------------------------------------------     
-
-      if (first_call_ss==1) then
-        first_call_ss=0
-        allocate( IN1_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
-        allocate( IN2_ss(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc))
-      endif
-      if (step_rea_ss.ne.modelEclock%getMonth()) then 
-        step_rea_ss = modelEclock%getMonth()
-        if ( am_i_root() ) then
-          print*,'READING SEAS OFFLINE ',
-     *          modelEclock%getMonth(),step_rea_ss
-        endif
-c -----------------------------------------------------------------
-c   Opening of the files to be read
-c -----------------------------------------------------------------
-        status=NF_OPEN('OFFLINE_SEAS.nc',NCNOWRIT,ncid)
-        status=NF_INQ_VARID(ncid,'FELD',id)
-C------------------------------------------------------------------
-c -----------------------------------------------------------------
-c   read
-c   this is still latlon-specific.
-c   will call read_dist_data for cubed sphere compatibility
-c -----------------------------------------------------------------
-        i_0 = grid%i_strt
-        i_1 = grid%i_stop
-        j_0 = grid%j_strt
-        j_1 = grid%j_stop
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        start(4)=step_rea_ss
-
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=nlevnc
-        count(4)=1
-
-        status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_nohalo)
-        start(4)=step_rea_ss+1
-        if (start(4).gt.12) start(4)=1
-        status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
-
-        status=NF_CLOSE(ncid)
-
-        IN1_ss(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
-        IN2_ss(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
-
-      endif
-
-C-----------------------------------------------------------------------
-      tau = (modelEclock%getDate()-.5)/(JDendOFM(modelEclock%getMonth())
-     *     - JDendOFM(modelEclock%getMonth()-1))
-         do l=1,lm
-         OUT(:,:,l) = (1.-tau)*IN1_ss(:,:,l)+tau*IN2_ss(:,:,l)  
-         enddo
-c -----------------------------------------------------------------
-      RETURN
-      END SUBROUTINE READ_OFFSS
-c -----------------------------------------------------------------
-
       SUBROUTINE read_DMS_sources(swind,itype,i,j,DMS_flux) !!! T
 !@sum generates DMS ocean source
 !@auth Koch
@@ -477,9 +383,8 @@ c want kg DMS/m2/s
       USE GEOM, only: axyp
       use OldTracer_mod, only: tr_mm
       USE TRACER_COM, only: n_DMS
-      use resolution, only: lm
       use model_com, only: modelEclock
-      USE AEROSOL_SOURCES, only: DMSinput,DMS_AER
+      USE AEROSOL_SOURCES, only: DMSinput
 #ifdef old_DMS_emis
       USE FLUXES, only: GTEMP
 #endif
@@ -590,7 +495,7 @@ c
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
-      use resolution, only: im,jm,lm
+      use resolution, only: im,lm
       use atm_com, only : t,q
       use model_com, only: modelEclock
       USE MODEL_COM, only: dtsrc
@@ -1110,7 +1015,7 @@ c H2O2 losses:5 and 6
 
       SUBROUTINE SCALERAD
       use constant, only : pi
-      use resolution, only: im,jm,lm
+      use resolution, only: lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
@@ -1666,189 +1571,3 @@ c melting snow
       RETURN
       END SUBROUTINE GRAINS
 #endif  /* BC_ALB */
-
-      SUBROUTINE read_mon_3D
-     & (Ldim,iu,data1,trans_emis,yr1,yr2)
-!@sum Read in monthly sources and interpolate to current day
-!@auth Jean Lerner and others / Greg Faluvegi
-! taken from TRACERS_SPECIAL_Shindell, in case we
-!  we run aerosols independent of gases
-      use resolution, only: im,jm
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only: idofm=>JDmidOfM
-      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
-     &     ,REWIND_PARALLEL,write_parallel,backspace_parallel,am_i_root
-      implicit none
-!@var Ldim how many vertical levels in the read-in file?
-!@var L dummy vertical loop variable
-      integer Ldim,L,imon,iu,ipos,k,nn
-      character(len=300) :: out_line
-      real*8 :: frac, alpha
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
-     *     ,sfc_a,sfc_b
-      logical, intent(in):: trans_emis
-      integer, intent(in):: yr1,yr2
-      integer :: kstep=10 !<< please note this hard-code
-
-      integer :: J_0, J_1
-      integer :: year, dayOfYear
-
-      call modelEclock%get(year=year, dayOfYear=dayOfYear)
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-
-C No doubt this code can be combined/compressed, but I am going to
-C do the transient and non-transient cases separately for the moment:
-
-! -------------- non-transient emissions ----------------------------!
-      if(.not.trans_emis) then
-C
-      imon=1                ! imon=January
-      if (dayOfYear <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        call rewind_parallel(iu)
-      else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
-        do while(dayOfYear > idofm(imon) .AND. 
-     *    imon <= INT_MONTHS_PER_YEAR)
-          imon=imon+1
-        enddo
-        if(imon/=2)then ! avoids advancing records at start of file
-          if(am_i_root())write(6,*) 'Not using this first record:'
-          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
-        end if
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        if(imon==13) call rewind_parallel(iu)
-      end if
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
-      enddo
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
-      data1(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
-      write(out_line,*) '3D source monthly factor=',frac
-      call write_parallel(trim(out_line))
-
-! --------------- transient emissions -------------------------------!
-      else
-        ipos=1
-        alpha=0.d0 ! before start year, use start year value
-        if(year>yr2.or.(year==yr2.and.dayOfYear>=183))then
-          alpha=1.d0 ! after end year, use end year value
-          ipos=(yr2-yr1)/kstep
-        endif
-        do k=yr1,yr2-kstep,kstep
-          if(year>k .or. (year==k.and.dayOfYear>=183)) then
-            if(year<k+kstep .or. (year==k+kstep.and.dayOfYear<183))then
-              ipos=1+(k-yr1)/kstep ! (integer artithmatic)
-              alpha=real(year-k)/real(kstep)
-              exit
-            endif
-          endif
-        enddo
-!
-! read the two necessary months from the first decade:
-!
-      imon=1                ! imon=January
-      if (dayOfYear <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(dayOfYear > idofm(imon) .AND. 
-     &    imon <= INT_MONTHS_PER_YEAR)
-          imon=imon+1
-        enddo
-        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
-          if(am_i_root())write(6,*) 'Not using this first record:'
-          call readt_parallel
-     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
-        end if
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        if(imon==13)then
-          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-        endif
-      end if
-CCCCC write(6,*) 'Not using this first record:'
-CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
-      enddo
-      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
-      sfc_a(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
-      call rewind_parallel( iu )
-
-      ipos=ipos+1
-      imon=1                ! imon=January
-      if (dayOfYear <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
-        write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(dayOfYear > idofm(imon) .AND. 
-     &    imon <= INT_MONTHS_PER_YEAR)
-          imon=imon+1
-        enddo
-        write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-        enddo
-        if(imon==13)then
-          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-        endif
-      end if
-CCCCCCwrite(6,*) 'Not using this first record:'
-CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
-      enddo
-      frac = float(idofm(imon)-dayOfYear)/(idofm(imon)-idofm(imon-1))
-      sfc_b(:,J_0:J_1,:) =
-     & tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
-
-! now interpolate between the two time periods:
-
-      data1(:,J_0:J_1,:) =
-     & sfc_a(:,J_0:J_1,:)*(1.d0-alpha) + sfc_b(:,J_0:J_1,:)*alpha
-
-      write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period this day ',k,' to this day ',k+kstep,
-     &' and monthly fraction= ',frac
-      call write_parallel(trim(out_line))
-
-      endif ! transient or not
-
-      return
-      end SUBROUTINE read_mon_3D

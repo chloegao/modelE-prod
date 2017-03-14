@@ -22,7 +22,7 @@
 #endif  /* TRACERS_AEROSOLS_SEASALT */
       use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      USE AEROSOL_SOURCES, only: off_HNO3, off_SS
+      USE AEROSOL_SOURCES, only: off_HNO3
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)

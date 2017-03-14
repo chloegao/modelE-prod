@@ -6,10 +6,6 @@ implicit none
 !===============================================================================
 !@dbparam tune_ss1, tune_ss2 factors to tune seasalt sources
 real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
-!@var SS1_AER        SALT bin 1 prescribed by AERONET (kg S/day/box)
-      real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS1_AER  !(im,jm,366)
-!@var SS2_AER        SALT bin 2 prescribed by AERONET (kg S/day/box)
-      real*4, ALLOCATABLE, DIMENSION(:,:,:) :: SS2_AER  !(im,jm,366)
 #ifdef TRACERS_AEROSOLS_OCEAN
 !@var OC_SS_enrich_fact OCocean enrichment factor of seasalt1
       real*8, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact !(im,jm)
@@ -24,8 +20,6 @@ subroutine alloc_seasalt_sources
 use resolution, only: im,jm
 implicit none
 
-allocate(SS1_AER(im,jm,366))
-allocate(SS2_AER(im,jm,366))
 #ifdef TRACERS_AEROSOLS_OCEAN
 allocate(OC_SS_enrich_fact(im,jm))
 #endif  /* TRACERS_AEROSOLS_OCEAN */

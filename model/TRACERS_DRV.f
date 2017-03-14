@@ -5084,10 +5084,6 @@ c find indices of denominators
       USE TRACER_SOURCES, only:GLTic
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_AEROSOLS_SEASALT) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      use tracers_seasalt, only: SS1_AER,SS2_AER
-#endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use OldTracer_mod, only: om2oc
@@ -5095,7 +5091,7 @@ c find indices of denominators
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE AEROSOL_SOURCES, only: DMS_AER,SO2_src_3D
+      USE AEROSOL_SOURCES, only: SO2_src_3D
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
@@ -5135,12 +5131,6 @@ c find indices of denominators
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: icCFC
       REAL*8 stratm,xlat,pdn,pup
-#endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP)  ||\
-    (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
-     &                  GRID%J_STRT:GRID%J_STOP,366) ::
-     &     DMS_AER_nohalo, SS1_AER_nohalo, SS2_AER_nohalo
 #endif
       real*8 :: get_atmco2
 
