@@ -2604,8 +2604,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('N2O')
-#ifdef TRACERS_SPECIAL_Shindell
-        k = k + 1
+      k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Chemistry'
@@ -2613,7 +2612,8 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
+#ifdef TRACERS_SPECIAL_Shindell
+      k = k + 1
         ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Overwrite'
@@ -2628,14 +2628,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'N2O CHANGE IN L 1'
         sname_ijts(k) = 'N2O_CHANGE_IN_L_1'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemistry'
-        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3254,7 +3246,7 @@ c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Microphysics change'//trim(trname(n))
+        lname_ijts(k) = 'Microphysics change '//trim(trname(n))
         sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg/s*m^2')
@@ -3549,10 +3541,10 @@ c SO4 from industrial emissions
 #endif
 
 #ifdef TRACERS_HETCHEM
-      case ('SO4_d1','SO4_d2','SO4_d3')
+      case ('SO4_d1','SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
 c chemical production of SO4 from SO2 on dust
         k = k + 1
-        ijts_source(nChemistry,n) = k  ! 3dsource?
+        ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Chemical source'
         sname_ijts(k) = trim(trname(n))//'_Chemical_source'
