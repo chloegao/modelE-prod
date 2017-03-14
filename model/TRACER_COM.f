@@ -255,8 +255,7 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_soa=0
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var ntm_nitrate: Number of TRACERS_COSMO tracers.
-!@var ntm_nitrate: Number of TRACERS_RADON tracers.
+!@var ntm_cosmo: Number of TRACERS_COSMO tracers.
 #ifdef TRACERS_COSMO
 #ifdef TRACERS_RADON
       integer, parameter :: ntm_cosmo=4
