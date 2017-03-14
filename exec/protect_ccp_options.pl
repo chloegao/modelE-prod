@@ -44,7 +44,7 @@ while(<>){
 	    my $s = $_; 
 	    s/^\#/_/;
 	    $s =~ s/^(\#\s*define\s+)/$1_/;
-	    if ( $keep_copy ) { $_ .= $s; }
+	    if ( /^_define\s/ && $keep_copy ) { $_ .= $s; }
 	}
 	if ( $unprotect ) {
 	    if ( /^\s*$/ ) { next; } # remove empty lines lef by #define ...
