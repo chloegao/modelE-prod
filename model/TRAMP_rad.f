@@ -395,7 +395,7 @@ cBond + Berstroem, all wavelength
 
        ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
-         Reff_LEV(l,n) = DIAM(i,j,l,n) * 0.5e6
+         Reff_LEV(l,n) = DIAM(i,j,l,n)*CONV_DPAM_TO_DGN(n)*exp(5.*(sig0(n)**-2)/2.)* 0.5e6
        ENDDO
 
        ! + Mass and Number Concentration
