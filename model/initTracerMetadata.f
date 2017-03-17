@@ -226,7 +226,7 @@
         end if
 #endif
 
-#ifdef TRACERS_SPECIAL_LERNER
+#ifdef TRACERS_SPECIAL_Lerner
         if (tracers_special_lerner) then
           call Lerner_InitMetadata(pTracer, 1)
         end if
@@ -251,7 +251,7 @@
         call  CFCn_setSpec('CFCn')
       end if
 
-#ifdef TRACERS_SPECIAL_LERNER
+#ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
         call Lerner_InitMetadata(pTracer, 2)
         if (tracers_special_shindell) 
