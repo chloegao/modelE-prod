@@ -3,7 +3,8 @@ aer_rad_forc=0   ! if set =1, radiation is called numerous times - slow !!
 cloud_rad_forc=1 ! calls radiation twice; use =0 to save cpu time
 SUBDD=' '        ! no sub-daily frequency diags
 NSUBDD=0         ! saving sub-daily diags every NSUBDD-th physics time step (1/2 hr)
-KCOPY=2          ! saving acc + rsf
+KCOPY=1          ! 0: no output; 1: save .acc; 2: unused; 3: include ocean data
+KRSF=12          ! 0: no output; X: save rsf at the beginning of every X month
 isccp_diags=1    ! use =0 to save cpu time, but you lose some key diagnostics
 nda5d=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)
 nda5s=13         ! use =1 to get more accurate energy cons. diag (increases CPU time)

@@ -121,7 +121,6 @@ NRAD = 5            ! radiation computed NRAD times per source time step
 #include "diag_params"
 
 Nssw = 2            ! until diurnal diags are fixed, Nssw has to be even
-KRSF  = 120         ! write .rsf file at beginning of every KRSF momths
 NDISK = 480         ! write fort.1.nc or fort.2.nc every NDISK source time step
 
 do_phenology_activegrowth=0  ! set to 1 for prognostic LAI (default 0)
