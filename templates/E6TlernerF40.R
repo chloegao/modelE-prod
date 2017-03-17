@@ -1,6 +1,6 @@
-E4TlernerF40.R GISS Model E  1850 ocn/atm          Larissa     11/19/2014
+E6TlernerF40.R GISS Model E  1850 ocn/atm          Larissa     11/19/2014
 
-E4TlernerF40: E110F40pi + modifications in vegetation
+E6TlernerF40: E110F40pi + modifications in vegetation
            U00a=0.60, U00b=1.0, WMUI_multiplier=1.;
            grav.wave adjustment: CMTN=0.1, CDEF=1.6
 
@@ -84,7 +84,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E4TlernerF40
+E6TlernerF40
 
 
 &&PARAMETERS
