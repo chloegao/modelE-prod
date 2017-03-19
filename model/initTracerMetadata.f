@@ -178,7 +178,7 @@
       use OldTracer_mod, only: set_dodrydep
       use OldTracer_mod, only: set_to_volume_MixRat
       use Tracer_mod, only: Tracer
-#ifdef TRACERS_SPECIAL_Lerner
+#ifdef TRACERS_SPECIAL_LERNER
       use LernerTracersMetadata_mod
       USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 #endif
