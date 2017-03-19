@@ -178,7 +178,7 @@
       use OldTracer_mod, only: set_dodrydep
       use OldTracer_mod, only: set_to_volume_MixRat
       use Tracer_mod, only: Tracer
-#ifdef TRACERS_SPECIAL_LERNER
+#ifdef TRACERS_SPECIAL_Lerner
       use LernerTracersMetadata_mod
       USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 #endif
@@ -229,7 +229,7 @@
         end if
 #endif
 
-#ifdef TRACERS_SPECIAL_LERNER
+#ifdef TRACERS_SPECIAL_Lerner
         if (tracers_special_lerner) then
           call Lerner_InitMetadata(pTracer, 1)
         end if
@@ -254,7 +254,7 @@
         call  CFCn_setSpec('CFCn')
       end if
 
-#ifdef TRACERS_SPECIAL_LERNER
+#ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
         call Lerner_InitMetadata(pTracer, 2)
         if (tracers_special_shindell) 
