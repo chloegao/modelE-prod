@@ -98,7 +98,7 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
-#include "static_ocn_1880_144x90_input_files"
+#include "static_ocn_transient_144x90_input_files"
 ! VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculations
 RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
@@ -151,7 +151,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 
 initial_GHG_setup = 1 ! Set to 0 after initial setup.
 
-#include "atmCompos_1850_params"
+#include "atmCompos_transient_params"
 !!!!!!!!!!!!!!!!!!!!!!!
 ! Please note that making o3_yr non-zero tells the model
 ! to override the transient chemistry tracer emissions'

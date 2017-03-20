@@ -6,6 +6,7 @@ master_yr=2000
 !s0_day=182
 !ghg_yr=2000
 !ghg_day=182
+!irrig_yr=1850
 volc_yr=-1
 !volc_day=182
 !aero_yr=2000
