@@ -66,6 +66,9 @@
 !     allow some tracers to have biomass burning based on fire model:
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
+#ifdef TRACERS_AMP
+     &         'M_BC1_BC','M_OCC_OC','M_ACC_SU','M_AKK_SU',
+#endif
 #ifdef TRACERS_dCO
      &         'd13Calke', 'd13CPAR',
      &         'dC17O', 'dC18O', 'd13CO',
