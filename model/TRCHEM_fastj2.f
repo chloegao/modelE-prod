@@ -1542,7 +1542,7 @@ c Additional subdivision of first level if required:
               fz(k+1) = fz(k)*ftaulog2
               pomega(:,k+1) = pomega(:,k) + dpomega2(:) ! MFIT
               k = k+1
-              if(k > 1800)then
+              if(k > N__)then
                 write(out_line,*) 'k fault:',k,NCFASTJ2,j,jaddto(j),
      &          jadsub(j),dsubdiv,jaddlv(j)
                 call write_parallel(trim(out_line),crit=.true.)
