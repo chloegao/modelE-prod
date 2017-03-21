@@ -1204,7 +1204,7 @@ c**** Interpolate two months of data to current day
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
       return
       end subroutine read_monthly_sources
-#endif
+#endif  /* TRACERS_ON */
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
