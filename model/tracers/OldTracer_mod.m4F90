@@ -49,6 +49,7 @@ define([PROPERTIES_AND_TYPES],
   (to_volume_MixRat,integer,0, =0: print tracer conc. by vol mix ratio; =1:mass mixing ratio),
   (to_conc,integer,0, =0: print 3D tracer conc. by to_volume_MixRat; =1: kg/m3),
   (TRLI0, real*8,0.d0,default tracer conc. for land ice (kg/kg)),
+  (tcscale,real*8,0.d0,Scale factor for frequency tables),
   (src_dist_base,integer,0,source distribution base),
   (src_dist_index,integer,0,source distribution index)])dnl
 

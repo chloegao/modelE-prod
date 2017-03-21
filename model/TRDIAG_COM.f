@@ -403,6 +403,9 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 C**** TCONSRV
 !@param NTCONS Maximum Number of special tracer conservation points
       INTEGER, PARAMETER :: ntcons=20
+#ifdef TRACERS_SPECIAL_Lerner
+     &                             +10
+#endif
 #ifdef TRACERS_AMP
      &                             +4
 #endif

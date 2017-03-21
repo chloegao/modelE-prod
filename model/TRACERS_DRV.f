@@ -331,7 +331,8 @@ C**** set some defaults
           kt_power_change(n) = -13
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Chemistry',T,T)
           itcon_3Dsrc(nOverwrite,n)=tr_con_diag('Overwrite',T,T)
-#else  /* not TRACERS_SPECIAL_Shindell */
+#endif /* TRACERS_SPECIAL_Shindell */
+#ifdef TRACERS_SPECIAL_Lerner
           itcon_surf(1,N)=tr_con_diag('Animal source',T)
           itcon_surf(2,N)=tr_con_diag('Coal Mine source',T)
           itcon_surf(3,N)=tr_con_diag('Gas Leak source',T)
@@ -348,7 +349,7 @@ C**** set some defaults
           itcon_surf(14,N)=tr_con_diag('Wetlands+Tundra',T)
           itcon_3Dsrc(1,n)=tr_con_diag('Tropos. Chem.',T,T)
           itcon_3Dsrc(2,n)=tr_con_diag('Stratos. Chem.',T,T)
-#endif /* TRACERS_SPECIAL_Shindell */
+#endif /* TRACERS_SPECIAL_Lerner */
 
         case ('O3')
           itcon_surf(1,N)=tr_con_diag('Deposition',T)
@@ -6223,7 +6224,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale,STRATCHEM_SETUP
+      USE TRACERS_MPchem_COM, only: STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -6329,11 +6330,7 @@ C**** Initialize tables for linoz
       end do
 
 C**** Initialize tables for Prather StratChem tracers
-      do n=1,NTM
-        if (trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
-     *      trname(n).eq."CFC11")
-     *    call stratchem_setup(n_MPtable(n),trname(n))
-      end do
+        call stratchem_setup
       end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month
@@ -7711,12 +7708,7 @@ C****
       call Strat_chem_O3(1,n)
         call apply_tracer_3Dsource(1,n,.false.)
 C****
-      case ('N2O')
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      call Strat_chem_Prather(1,n)
-      call apply_tracer_3Dsource(1,n,.FALSE.)
-C****
-      case ('CFC11')
+      case ('N2O','CFC11')
       tr3Dsource(:,J_0:J_1,:,:,n) = 0.
       call Strat_chem_Prather(1,n)
       call apply_tracer_3Dsource(1,n,.FALSE.)

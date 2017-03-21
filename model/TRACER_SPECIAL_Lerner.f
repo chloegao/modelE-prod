@@ -82,10 +82,6 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 !@var n_MPtable_max:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
       integer, parameter :: n_MPtable_max=3
-!@var n_MPtable: Index for tracers that use the frequency tables
-      integer, allocatable, dimension(:) :: n_MPtable
-!@var tcscale: Scale factor for frequency tables
-      real*8, dimension(n_MPtable_max) :: tcscale
 !@param lz_schem Number of heights in stratchem tables
       integer, parameter :: lz_schem=20,lz_sx=lz_schem+7
 !@var tscparm: Contains mean loss prequency in grid box
@@ -97,35 +93,40 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
 
       contains
 
-      SUBROUTINE STRATCHEM_SETUP(nsc,tname)
+      SUBROUTINE STRATCHEM_SETUP
 C**** Prather stratospheric chemistry
       USE FILEMANAGER, only: openunit,closeunit
       USE PRATHER_CHEM_COM, only: set_prather_constants
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      use OldTracer_mod, only: trname,tcscale
+      use tracer_com, only: ntm
       implicit none
 
-      integer nsc,j,k,m,iu
+      integer n,j,k,m,iu
       character*80 titlch
-      character*8 tname
       character*16 filein
       integer l,nl
       real*8    XPSD,XPSLM1,XPSL
 
-      if (nsc.eq.0) call stop_model(' NSC=0 in STRATCHEM_SETUP',255)
-      filein = trim(tname)//'_TABLE'
-      call openunit(filein,iu,.false.,.true.)
-      read (iu,'(a)')   titlch
-      if (AM_I_ROOT()) write(6,'(1x,a)') titlch
-      do m=1,INT_MONTHS_PER_YEAR
-        do j=1,18
-          read(iu,'(20x,6e10.3/(8e10.3))')
-     *          (tscparm(k,j,m,nsc),k=lz_schem,1,-1)
+      do n=1,ntm
+        if (tcscale(n) == 0.d0) cycle
+        if (n>n_MPtable_max)
+     *    call stop_model('n>n_MPtable_max in STRATCHEM_SETUP',255)
+        filein = trim(trname(n))//'_TABLE'
+        call openunit(filein,iu,.false.,.true.)
+        read (iu,'(a)')   titlch
+        if (AM_I_ROOT()) write(6,'(1x,a)') titlch
+        do m=1,INT_MONTHS_PER_YEAR
+          do j=1,18
+            read(iu,'(20x,6e10.3/(8e10.3))')
+     *          (tscparm(k,j,m,n),k=lz_schem,1,-1)
+          end do
         end do
-      end do
-      call closeunit(iu)
-      if (AM_I_ROOT())
-     *     write(6,'(2A)') ' STRATCHEM TABLES READ for ',tname
+        call closeunit(iu)
+        if (AM_I_ROOT())
+     *    write(6,'(2A)') 'STRATCHEM TABLES READ for ',trim(trname(n))
+      enddo
 
       call set_prather_constants
 
@@ -166,9 +167,9 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
-      use OldTracer_mod, only: itime_tr0,trname
+      use OldTracer_mod, only: itime_tr0,trname,tcscale
       USE TRACER_COM, only: trm, trmom
-      USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm,n_MPtable,tcscale
+      USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -186,7 +187,6 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      nsc = n_MPtable(n)
       facbb = 1.
       if (trname(n).eq.'CH4') facbb = (40.d0/25.73d0)*(40.d0/35.177d0)
 C-----STRATOSPHERIC LOSS occurs in top NSTRTC layers
@@ -201,10 +201,10 @@ C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
       lr = lm+1-l
       do 140 j=J_0,J_1
 C-----TSCPARM->TLtrm contains mean loss freq in grid box:
-        f0l = max(TLtrm(j,lr,nsc),0d0)
+        f0l = max(TLtrm(j,lr,n),0d0)
         if (f0l.le.0.) go to 140
-        f1l = tltzm(j,lr,nsc)  ! FOM of loss freq from tables
-        f2l = tltzzm(j,lr,nsc)  ! SOM of loss freq from tables
+        f1l = tltzm(j,lr,n)  ! FOM of loss freq from tables
+        f2l = tltzzm(j,lr,n)  ! SOM of loss freq from tables
         do 130 i=I_0,imaxj(j)
           if (trm(i,j,l,n).le.0.) go to 130
 C------Couple the moments of the loss freq with moments of the tracer:
@@ -223,7 +223,7 @@ C---  to this change (T0L):
           g0l = t0l/trm(i,j,l,n)
           g1l = t1l/t0l
           g2l = t2l/t0l
-          t0l = (1.0 - exp(-g0l*dtsrc*tcscale(nsc)))*trm(i,j,l,n)
+          t0l = (1.0 - exp(-g0l*dtsrc*tcscale(n)))*trm(i,j,l,n)
           t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
           tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
 cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
@@ -264,7 +264,7 @@ C-----------------------------------------------------------------------
 C--tscparm(lz_schem,18,12,N) defined for 18 lats (85S, 75S, ...85N)
 C --                   & 12 months
 C----  do NOT interpolate, just pick nearest latitude
-C---assume given MONTH = month #, NTM=# tracers, JM=#lats, etc.
+C---assume given MONTH = month #, JM=#lats, etc.
       integer n,j,jj,k,lr,jmon
 
       INTEGER :: J_1, J_0
@@ -434,7 +434,7 @@ C     n_O3=tracer number for linoz O3
       USE MODEL_COM, only: dtsrc
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only: pednl00
-      USE TRACER_COM, only: ntm,tr_mm
+      USE TRACER_COM, only: tr_mm
       USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
       implicit none
       integer lmtc    !=11 for lm=23
@@ -1691,7 +1691,6 @@ c     call closeunit(iu)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
-      use TRACER_COM, only: ntm
       USE PRATHER_CHEM_COM
       USE TRACERS_MPchem_COM
       USE CO2_SOURCES
@@ -1717,10 +1716,6 @@ C****
       ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
      *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
      *           STAT=IER )
-      allocate( n_MPtable(ntm) )
-
-      n_MPtable = 0
-      tcscale = 0.
 
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 

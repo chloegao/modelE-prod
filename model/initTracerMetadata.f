@@ -229,9 +229,11 @@
 #endif
 
 #ifdef TRACERS_SPECIAL_Lerner
-        if (tracers_special_lerner) then
-          call Lerner_InitMetadata(pTracer, 1)
-        end if
+      if (tracers_special_lerner) then
+        call Lerner_InitMetadata(pTracer)
+        if (tracers_special_shindell) 
+     &    call stop_model('contradictory tracer specs')
+      end if
 #endif
 
       if ((.not. tracers_amp) .and. tracers_water) then
@@ -252,14 +254,6 @@
       if (tracers_gasexch_ocean_cfc) then
         call  CFCn_setSpec('CFCn')
       end if
-
-#ifdef TRACERS_SPECIAL_Lerner
-      if (tracers_special_lerner) then
-        call Lerner_InitMetadata(pTracer, 2)
-        if (tracers_special_shindell) 
-     &    call stop_model('contradictory tracer specs')
-      end if
-#endif
 
 #ifdef TRACERS_AEROSOLS_SEASALT
       if (tracers_aerosols_seasalt) then
