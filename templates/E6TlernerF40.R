@@ -126,10 +126,21 @@ NRAD=5           ! radiation (every NRAD'th physics time step)
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960
+
+! Settings copied from a random F40 "Lerner" rundeck in prod_decks.  The hard-coded itime_tr0
+! are for an October 1 cold start; note the MONTHI=10 in INPUTZ below instead of 12.
+! ---- Lerner/Rind tracers
+  to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
+! itime_tr0=99999999,99999999,99999999,99999999,99999999,99999999,30624,30624,99999999
+  itime_tr0=13104,13104,13104,13104,21840,13824,13104,13104,13104,13104      !Lerner/Rind
+  nstrtc=17                    ! Number of layers for Prather stratosphere chemistry
+  clim_interact_chem=1
+! ---- end Lerner/Rind tracers
+
 &&END_PARAMETERS
 
  &INPUTZ
- YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=1949,MONTHI=10,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=1949,MONTHE=10,DATEE=2,HOURE=0,     KDIAG=12*0,9,
+ ISTART=2,IRANDI=0, YEARE=1949,MONTHE=10,DATEE=1,HOURE=1,
 /
