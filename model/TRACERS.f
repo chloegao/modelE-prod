@@ -1164,6 +1164,7 @@ C****
       integer :: J_0, J_1, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
