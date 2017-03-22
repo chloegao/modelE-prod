@@ -128,6 +128,48 @@
         end if
 #endif
 
+#ifdef TRACERS_SPECIAL_Lerner
+        pTracer => tracers%getReference(trname(n))
+        select case (trname(n))
+        case ('N2O')
+          call addSurfaceSource(pTracer, "overwrite_at_surface")
+        case ('CFC11')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('CH4')
+          call addSurfaceSource(pTracer, "animal_src")
+          call addSurfaceSource(pTracer, "coal_mine_src")
+          call addSurfaceSource(pTracer, "gas_leak_src")
+          call addSurfaceSource(pTracer, "gas_vent_src")
+          call addSurfaceSource(pTracer, "city_dump_src")
+          call addSurfaceSource(pTracer, "soil_sink")
+          call addSurfaceSource(pTracer, "termite_src")
+          call addSurfaceSource(pTracer, "coal_combustion_src")
+          call addSurfaceSource(pTracer, "ocean_src")
+          call addSurfaceSource(pTracer, "lake_src")
+          call addSurfaceSource(pTracer, "misc_ground_src")
+          call addSurfaceSource(pTracer, "biomass_src")
+          call addSurfaceSource(pTracer, "rice_src")
+          call addSurfaceSource(pTracer, "wetlands_tundra_src")
+        case ('O3')
+          call addSurfaceSource(pTracer, "deposition_sink")
+        case ('SF6')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('SF6_c')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('CO2')
+          call addSurfaceSource(pTracer, "fossil_fuel_src")
+          call addSurfaceSource(pTracer, "fertilization_sink")
+          call addSurfaceSource(pTracer, "north_forest_regrowth_src")
+          call addSurfaceSource(pTracer, "land_use_modification")
+          call addSurfaceSource(pTracer, "ecosystem_exchange")
+          call addSurfaceSource(pTracer, "ocean_exchange")
+        case ('14CO2')
+          call addSurfaceSource(pTracer, "surface_sink")
+        case ('Rn222')
+          call addSurfaceSource(pTracer, "surface_src")
+        end select
+#endif  /* TRACERS_SPECIAL_Lerner */
+
       end subroutine setDefaultSpec
 
 !------------------------------------------------------------------------------

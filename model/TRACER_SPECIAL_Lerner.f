@@ -367,13 +367,14 @@ C**** Read chemical loss rate dataset (5-day frequency)
           tauy = nint(taux)+(jyear-1950)*HOURS_PER_DAY*DAYS_PER_YEAR
           IF ((itime*Dtsrc/SECONDS_PER_HOUR)+60.gt.tauy+120.) go to 510
           backspace(FRQfile)
+          IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
+            write(6,*)'PROBLEM MATCHING itime on FRQ file',
+     &                taux,tauy,jyear
+            call stop_model(
+     &        'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
+          end if
         END IF
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
-        IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
-          write(6,*)'PROBLEM MATCHING itime on FRQ file',taux,tauy,jyear
-          call stop_model(
-     &       'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
-        end if
         IF (AM_I_ROOT()) rewind FRQfile
         go to 518
 C**** FOR END OF YEAR, USE FIRST RECORD
