@@ -1,4 +1,9 @@
 #include "rundeck_opts.h"
+
+! Remove the following line and directive when the problems are fixed.
+! This directive is simply to permit running a few timesteps.
+#define TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+
 !@sum  TRACERS_DRV: tracer-dependent routines for air/water mass
 !@+    and ocean tracers
 !@+    Routines included:
@@ -170,6 +175,9 @@
           logical, intent(in), optional :: vqcon, vqsum
         end function tr_con_diag
       end interface
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+      character(len=2) :: c2
+#endif
 
 #ifdef TRACERS_ON
 
@@ -285,7 +293,12 @@ C**** set some defaults
           itcon_3Dsrc(nBiomass,n)=tr_con_diag('Biomass src',T,T)
         endif
         do kk=1,ntsurfsrc(n_src)
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+          write(c2,'(i2.2)') kk
+          itcon_surf(kk,n)=tr_con_diag('foo'//c2,T)
+#else
           itcon_surf(kk,n)=tr_con_diag(trim(sources(kk)%sourceName),T)
+#endif
         enddo
 
 !-----
@@ -739,6 +752,9 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
       type (TracerSurfaceSource), pointer :: AOCOB01sources(:)
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+      character(len=2) :: c2
+#endif
 
 C**** Please note that short names for diags i.e. sname_jls are used
 C**** in special ways and MUST NOT contain spaces, commas or % signs.
@@ -845,6 +861,10 @@ C**** set defaults for some precip/wet-dep related diags
         jls_source(kk,n) = k
         sname_jls(k) = trim(trname(n))//'_'//
      &                 trim(sources(kk)%sourceName)//'_src'
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+        write(c2,'(i2.2)') kk
+        sname_jls(k) = trim(trname(n))//'_foo'//c2
+#endif
         lname_jls(k) = trim(trname(n))//' '//
      &                 trim(sources(kk)%sourceName)//' source'
         jls_ltop(k) = 1
@@ -2317,6 +2337,9 @@ c Oxidants
       CHARACTER*17 :: cform
       class (Tracer), pointer :: pTracer
       type (TracerSurfaceSource), pointer :: sources(:) 
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+      character(len=2) :: c2
+#endif
 
 #ifdef TRACERS_ON
 C**** Defaults for ijts (sources, sinks, etc.)
@@ -2402,6 +2425,10 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = trim(trname(n))//'_'//
      &                  trim(sources(kr)%sourceName)//'_src'
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+        write(c2,'(i2.2)') kr
+        sname_ijts(k) = trim(trname(n))//'_foo'//c2
+#endif
         lname_ijts(k) = trim(trname(n))//' '//
      &                  trim(sources(kr)%sourceName)//' source'
         ijts_power(k) = -15
@@ -6803,6 +6830,9 @@ c      real*8 :: nlight, max_COSZ1, fact0
      &     GRID%J_STRT:GRID%J_STOP)
 #endif
       integer :: year, month, dayOfYear,hour,localTimeIndex
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+      integer :: n_prev
+#endif
 
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
@@ -6829,12 +6859,19 @@ C****
       call calculate_fire_count
 #endif
 C**** All sources are saved as kg s-1
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+      n_prev = -1
+#endif
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
         pa => pTracer%getReference('index')
         index = pa
         n = index
+#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
+        if(n_prev == n) exit    ! otherwise, infinite loop
+        n_prev = n
+#endif
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       if (itime.lt.itime_tr0(n)) cycle
