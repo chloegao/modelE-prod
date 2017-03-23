@@ -487,7 +487,7 @@ c
         call out2cdf(ncid1,idm,jdm,oice,time,
      .    'covice','ice coverage','m')
         call out2cdf(ncid1,idm,jdm,omlhc,time,
-     .    'omlhc','omlhc','unk')
+     .    'omlhc','omlhc','J/(m2*C)')
         call out3cdf(ncid1,idm,jdm,kdm,temp,time,
      .    'temp','potential temperature','deg C')
         call out3cdf(ncid1,idm,jdm,kdm,saln,time,
