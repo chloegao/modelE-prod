@@ -1147,7 +1147,7 @@ C**** special one unique to HTO
       case ('GLT')
         k = k + 1
         jls_3Dsource(1,n) = k
-        sname_jls(k) = 'L1_overwrite_soure_'//trim(trname(n))
+        sname_jls(k) = 'L1_overwrite_source_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//' L1 overwrite source'
         jls_ltop(k) = 1
         jls_power(k) = -5
@@ -7566,103 +7566,177 @@ c latlon grid
       return
       end subroutine get_latlon_mask
 
-      SUBROUTINE tracer_3Dsource
-!@sum tracer_3Dsource calculates interactive sources for tracers
-!@+   Please note that if the generic routine 'apply_tracer_3Dsource'
-!@+   is used, all diagnostics and moments are updated automatically.
-!@vers 2013/03/27
-!@auth Jean Lerner/Greg Faluvegi
-!@calls DIAGTCA, masterchem, apply_tracer_3Dsource
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
-     & write_parallel,AM_I_ROOT
+#ifdef TRACERS_SPECIAL_Lerner
+      subroutine calculate_and_apply_lerner
       use RESOLUTION, only: LM
-c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname, do_aircraft
-c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      USE TRACER_COM, only: aer_int_yr
-#endif
-      USE TRACER_COM, only: ntm, sfc_src, trm
-      use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
-      use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
-      use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3, n_NH3, n_NH4
-      use TRACER_COM, only: n_NOx, n_NO3p, n_OCIA, n_OCII
-      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use TRACER_COM, only: n_SO2
-      use TRACER_COM, only: ntsurfsrc
-      use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
-      use TRACER_COM, only: n_NOx, naircraft, nBiomass, nChemistry
-      use TRACER_COM, only: nVolcanic, nOverwrite, nChemloss, nOther
-      use TRACER_COM, only:  trans_emis_overr_day, trans_emis_overr_yr
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: nbins, n_AH2O
-      use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
-      use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAGAS
-      use TRACER_COM, only: nChemistry, n_AECIL, ntm_tomas
-#endif
-#ifdef TRACERS_AMP
-      use TRACER_COM, only: n_H2SO4,n_M_BC1_BC
-      use TRACER_COM, only: ntmAMPi, ntmAMPe
-#endif
-#ifdef SHINDELL_STRAT_EXTRA
-      use TRACER_COM, only: n_GLT, n_stratOx
-#endif
-      USE CONSTANT, only : mair, byavog
-#ifndef SKIP_TRACER_SRCS
-      USE FLUXES, only: tr3Dsource
-#endif
-      use model_com, only: modelEclock
+      USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
+      use TRACER_COM, only: nTropCH4, nStratCH4
+      use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
+      use TRACER_COM, only: nStratCFC11, nStratN2O
       USE MODEL_COM, only: itime,dtsrc,itimeI
-      USE ATM_COM, only: MA,byMA ! Air mass of each box (kg m-2)
-      use ATM_COM, only: phi
       USE apply3d, only : apply_tracer_3Dsource
-      USE GEOM, only : byaxyp,axyp
-      USE RAD_COM, only: o3_yr
-      USE Dictionary_mod, only : get_param, is_set_param
-      use trdiag_com, only : taijls=>taijls_loc,ijlt_prodSO4gs
-#if (defined TRACERS_COSMO)
-      USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d, be7_src_param
-#endif
-#ifdef TRACERS_AEROSOLS_SOA
-      USE TRACERS_SOA, only: n_soa_i,n_soa_e
-#endif  /* TRACERS_AEROSOLS_SOA */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      USE AEROSOL_SOURCES, only: so2_src_3d
-#endif
-      USE PBLCOM, only: dclev
-#ifdef TRACERS_AMP
-      USE AERO_SETUP, only : RECIP_PART_MASS
-      USE TRDIAG_COM, only : itcon_AMP, itcon_AMPe,itcon_AMPm
-      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_AMPe
-#endif
-#ifdef TRACERS_TOMAS
-      USE CONSTANT, only : pi
-      USE TRDIAG_COM, only : itcon_TOMAS,itcon_subcoag 
-      USE TRDIAG_COM, only : taijs=>taijs_loc,ijts_TOMAS
-      USE TOMAS_AEROSOL, only : TRM_EMIS,xk,icomp,idiag
-      USE TOMAS_EMIS, only : scalesizeCARBO100,
-     &     scalesizeCARBO30, scalesizeSO4,
-     &     scalesizeSO4_vol,scalesizeSO4_bio
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+      implicit none
+
+C****CH4
+      if(itime.ge.itime_tr0(n_CH4)) then
+        call Trop_chem_CH4(nTropCH4,n_CH4)
+        call apply_tracer_3Dsource(nTropCH4,n_CH4)
+        call Strat_chem_Prather(nStratCH4,n_CH4)
+        call apply_tracer_3Dsource(nStratCH4,n_CH4,.false.)
+      end if
+C****O3
+      if(itime.ge.itime_tr0(n_O3)) then
+        call Trop_chem_O3(nTropO3P,nTropO3L,n_O3)
+        call apply_tracer_3Dsource(nTropO3P,n_O3,.false.)
+        call apply_tracer_3Dsource(nTropO3L,n_O3,.false.)
+        call Strat_chem_O3(nStratO3,n_O3)
+        call apply_tracer_3Dsource(nStratO3,n_O3,.false.)
+      end if
+C****N2O
+      if(itime.ge.itime_tr0(n_N2O)) then
+        call Strat_chem_Prather(nStratN2O,n_N2O)
+        call apply_tracer_3Dsource(nStratN2O,n_N2O,.FALSE.)
+      end if
+C****CFC11
+      if(itime.ge.itime_tr0(n_CFC11)) then
+        call Strat_chem_Prather(nStratCFC11,n_CFC11)
+        call apply_tracer_3Dsource(nstratCFC11,n_CFC11,.FALSE.)
+      end if
+C****
+      end subroutine calculate_and_apply_lerner
 #endif
 
-#ifdef TRACERS_SPECIAL_Shindell
-      use RAD_COM, only: rad_to_chem
-      use TRCHEM_Shindell_COM, only: fact_cfc, 
-     &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
+#ifdef TRACERS_COSMO
+      subroutine calculate_and_apply_cosmo(I_0,I_1,J_0,J_1)
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      use TRACER_COM, only: n_Be7, n_Be10, nCosmo
+      USE FLUXES, only: tr3Dsource
+      use model_com, only: modelEclock
+      USE MODEL_COM, only: itime,dtsrc,itimeI
+      USE ATM_COM, only: MA ! Air mass of each box (kg/m^2)
+      USE apply3d, only : apply_tracer_3Dsource
+      USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
+      implicit none
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+      INTEGER i,j,l  ! real*8 now
+      integer :: year, dayOfYear
+
+C**** Extract model time
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
+
+C****Be7
+c cosmogenic src 
+        if (itime.ge.itime_tr0(n_Be7)) then
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+            tr3Dsource(i,j,l,nCosmo,n_Be7) = MA(l,i,j)*
+     &      be7_src_3d(i,j,l)
+          end do; end do; end do
+
+          call apply_tracer_3Dsource(nCosmo,n_Be7)
+        end if
+C****Be10
+c cosmogenic src
+        if (itime.ge.itime_tr0(n_Be10)) then
+          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+            tr3Dsource(i,j,l,nCosmo,n_Be10) = MA(l,i,j)*
+     &      be10_src_3d(i,j,l)
+          end do; end do; end do
+
+          call apply_tracer_3Dsource(nCosmo,n_Be10)
+        end if
+C****
+
+      end subroutine calculate_and_apply_cosmo
 #endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-      use TRACER_COM, only: AIRCstreams
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
+      subroutine apply_volcanic_emissions(I_0,I_1,J_0,J_1)
+      use OldTracer_mod
+      use TRACER_COM, only: nVolcanic
+      use TRACER_COM, only: n_SO2, n_SO4, n_M_ACC_SU, n_M_AKK_SU
+      USE FLUXES, only: tr3Dsource
+      USE apply3d, only : apply_tracer_3Dsource
+      USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
+
+      implicit none
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+!@var voltrn is the number of tracers with volcanic sources
+      integer, parameter :: voltrn = 4 
+!@var voltrindx is an array of the volcanic tracer indices
+      integer, dimension(voltrn) :: voltrindx
+      INTEGER n,ns,i,j,l
+!@var src_index source index for the current tracer
+!@var src_fact source factor for the current tracer
+      integer :: src_index,get_src_index,bb_i,bb_e
+      real*8 :: src_fact
+      interface
+        real*8 function get_src_fact(n,ibb)
+          integer, intent(in) :: n
+          logical, intent(in), optional :: ibb
+        end function get_src_fact
+      end interface
+
+C**** All sources are saved as kg/s
+
+C**** Set tracer indices
+
+      voltrindx(:) = (/n_SO2,n_SO4,n_M_ACC_SU,n_M_AKK_SU/)
+
+C**** Calculate and apply volcano sources
+
+      do ns=1,voltrn
+
+        n = voltrindx(ns)
+
+        if(n .gt. 0) then
+          src_fact=get_src_fact(n)                    
+
+          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
+     &    so2_src_3d(:,J_0:J_1,:,nso2src_3d)*src_fact
+
+          call apply_tracer_3Dsource(nVolcanic,n)
+        end if
+
+      end do
+
+C*****
+      end subroutine apply_volcanic_emissions
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
+      subroutine apply_biomass_burning_emissions(I_0,I_1,J_0,J_1)   
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      USE TRACER_COM, only: ntm, sfc_src
+      use TRACER_COM, only: ntsurfsrc
+      use TRACER_COM, only: nBiomass,nChemistry
+      USE FLUXES, only: tr3Dsource
+      USE MODEL_COM, only: dtsrc
+      use atm_com, only : ma
+      USE apply3d, only : apply_tracer_3Dsource
+      USE GEOM, only : axyp
+      USE PBLCOM, only: dclev
+#ifdef TRACERS_TOMAS
+      ! MK todo:  move volcanic operations to volcanosrc routine,
+      ! because bb sources may be added in a different way in future.
+      use TRACER_COM, only: nbins
+      use TRACER_COM, only: n_ANUM
+      use TRACER_COM, only: n_ASO4
+      use TRACER_COM, only: n_AECOB, n_AOCOB
+      use TRACER_COM, only: nVolcanic ! wrong place for this !!!
+      use TRACER_COM, only: nSO4anum
+      USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
+      USE TOMAS_AEROSOL, only : xk
+      USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
 
       implicit none
-      INTEGER n,ns,najl,i,j,l,blay,xday   ; real*8 now
-      INTEGER J_0, J_1, I_0, I_1
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+      INTEGER n,i,j,l,blay
 !@var src_index source index for the current tracer
 !@var src_fact source factor for the current tracer
       integer :: src_index,get_src_index,bb_i,bb_e
@@ -7677,61 +7751,21 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 !@var blsrc (m2/s) tr3Dsource (kg s-1) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
-#ifdef CUBED_SPHERE
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-     &     :: dummy3d
-#endif
 #ifdef TRACERS_TOMAS
-      integer :: k, kk,kn,jc,tracnum
-      real*8, dimension (GRID%I_STRT:GRID%I_STOP,
-     &     GRID%J_STRT:GRID%J_STOP,LM,NBINS) :: TOMAS_bio,TOMAS_air
+      integer :: k, kk
+      real*8, dimension(I_0:I_1,J_0:J_1,LM,NBINS) ::
+     &                  TOMAS_bio,TOMAS_air
 #endif
-      integer :: year, dayOfYear
-
-      call modelEclock%get(year=year, dayOfYear=dayOfYear)
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
 
 C**** All sources are saved as kg s-1
       do n=1,NTM
-      if (itime.lt.itime_tr0(n)) cycle
       src_index=get_src_index(n)
       src_fact=get_src_fact(n)
 
       select case (trname(n))
 
       case default
-#ifdef TRACERS_SPECIAL_Lerner
-C****
-      case ('CH4')
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      call Trop_chem_CH4(1,n)
-      call apply_tracer_3Dsource(1,n)
-      call Strat_chem_Prather(2,n)
-      call apply_tracer_3Dsource(2,n,.false.)
-C****
-      case ('O3')
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      call Trop_chem_O3(2,3,n)
-        call apply_tracer_3Dsource(2,n,.false.)
-        call apply_tracer_3Dsource(3,n,.false.)
-      call Strat_chem_O3(1,n)
-        call apply_tracer_3Dsource(1,n,.false.)
-C****
-      case ('N2O','CFC11')
-      tr3Dsource(:,J_0:J_1,:,:,n) = 0.
-      call Strat_chem_Prather(1,n)
-      call apply_tracer_3Dsource(1,n,.FALSE.)
-C****
-#endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
 #ifdef TRACERS_dCO
      *      'd13Calke','d13CPAR',
@@ -7744,24 +7778,7 @@ C****
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC'
      &      ,'ASO4__01','AECOB_01','AOCOB_01')
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS) 
-C**** 3D volcanic source
-        select case (trname(n))
-        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU')
-#ifdef TRACERS_VOLCEXP
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-     &      so2_src_3d(:,J_0:J_1,:,2)*src_fact
-          call apply_tracer_3Dsource(nVolcanic,n)
-#else
-          tr3Dsource(:,J_0:J_1,:,nVolcanic,n) =
-     &      so2_src_3d(:,J_0:J_1,:,1)*src_fact
-          call apply_tracer_3Dsource(nVolcanic,n)
-#endif
-        end select
-#endif
 C**** 3D biomass source
-        tr3Dsource(:,J_0:J_1,:,nBiomass,n) = 0.
         if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
           bb_i=ntsurfsrc(src_index)+1 ! index of first BB source
           if(do_fire(src_index))then
@@ -7800,13 +7817,19 @@ C**** 3D biomass source
        enddo
        
        do k=1,nbins
+#ifdef TRACERS_VOLCEXP
          tr3Dsource(:,J_0:J_1,:,nVolcanic,n_ASO4(1)+k-1)=
-     &        so2_src_3d(:,J_0:J_1,:,1)*scalesizeSO4_vol(k)*src_fact
-         
+     &        so2_src_3d(:,J_0:J_1,:,nso2src_3d-1)*
+     &        scalesizeSO4_vol(k)*src_fact
+#else
+         tr3Dsource(:,J_0:J_1,:,nVolcanic,n_ASO4(1)+k-1)=
+     &        so2_src_3d(:,J_0:J_1,:,nso2src_3d)*
+     &        scalesizeSO4_vol(k)*src_fact
+#endif         
          tr3Dsource(:,J_0:J_1,:,nBiomass,n_ASO4(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)
          
-         tr3Dsource(:,J_0:J_1,:,1,n_ANUM(1)+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nSO4anum,n_ANUM(1)+k-1)=
      &        (tr3Dsource(:,J_0:J_1,:,nVolcanic,n_ASO4(1)+k-1)
      &        +tr3Dsource(:,J_0:J_1,:,nBiomass,n_ASO4(1)+k-1))
      &        /(sqrt(xk(k)*xk(k+1)))  
@@ -7815,64 +7838,50 @@ C**** 3D biomass source
        end select
 #endif
 
-#endif /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_SPECIAL_Shindell || TRACERS_TOMAS*/
-
-#if (defined TRACERS_COSMO)
-C****
-      case ('Be7')
-c cosmogenic src
-        do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-          tr3Dsource(i,j,l,1,n) = MA(l,i,j)*be7_src_3d(i,j,l)
-        end do; end do; end do
-
-        call apply_tracer_3Dsource(1,n)
-C****
-      case ('Be10')
-c cosmogenic src
-        do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-           tr3Dsource(i,j,l,1,n) = MA(l,i,j)*be10_src_3d(i,j,l)
-        end do; end do; end do
-
-        call apply_tracer_3Dsource(1,n)
-C****
-#endif
-      case('Pb210')
-        call apply_tracer_3Dsource(1,n) !radioactive decay of Rn222
-
       end select
 
       end do
-
-#if (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-c Calculation of gas phase reaction rates for sulfur chemistry
-      CALL GET_SULF_GAS_RATES
+      end subroutine apply_biomass_burning_emissions
 #endif
-
-#ifdef TRACERS_SPECIAL_Shindell
-C Apply non-chemistry 3D sources, so they can be "seen" by chemistry:
-C (Note: using this method, tracer moments are changed just like they
-C are done for chemistry.  It might be better to do it like surface
-C sources are done? -- GSF 11/26/02)
-c
-      CALL TIMER (NOW,MTRACE)
-
-#ifdef SHINDELL_STRAT_EXTRA
-      tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_GLT) = 0.d0
-      call overwrite_GLT
-      call apply_tracer_3Dsource(1,n_GLT)
-#endif
-#endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+      subroutine apply_aircraft_emissions
+      USE DOMAIN_DECOMP_ATM, only : GRID
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      USE TRACER_COM, only: ntm, trm
+      use TRACER_COM, only: naircraft
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AECOB
+#endif
+      use model_com, only: modelEclock
+      USE ATM_COM, only: MA ! Air mass of each box (kg/m^2)
+      use ATM_COM, only: phi
+      USE apply3d, only : apply_tracer_3Dsource
+      use TRACER_COM, only: AIRCstreams
+      implicit none
+      INTEGER n,i,j,l,xday
+!@var src_index source index for the current tracer
+!@var src_fact source factor for the current tracer
+      integer :: src_index,get_src_index
+! MK todo:  check why CS was treated differently (probably in order
+! to skip every-timestep reading)
+#ifdef CUBED_SPHERE
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     &     :: dummy3d
+#endif
+      integer :: year, dayOfYear
+
+C**** Get current model time
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
+
       !  Aircraft Sources Here: All Tracers! (formerly just hardcoded set allowed)
       do n=1,ntm 
         src_index=get_src_index(n)
         if(do_aircraft(src_index)) then
           xday=dayOfYear
-          tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,n)  = 0.d0
 #ifdef CUBED_SPHERE
           call get_aircraft_tracer ! logical read from disk
      &     (n,trim(trname(src_index))//'_AIRC',year,xday,
@@ -7891,40 +7900,72 @@ c
 #endif
         end if
       end do
-#endif /* Shindell or Koch or AMP or TOMAS */
+      end subroutine apply_aircraft_emissions
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_NOx) = 0.d0
+      subroutine calculate_and_apply_chemistry(I_0,I_1,J_0,J_1)
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      USE TRACER_COM, only: trm
+      use TRACER_COM, only: n_CFC, n_CH4
+      use TRACER_COM, only: n_N2O
+      use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3
+      use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
+      use TRACER_COM, only: n_NOx, nChemistry
+      use TRACER_COM, only: nOther, nOverwrite
+      USE CONSTANT, only : byavog
+      USE FLUXES, only: tr3Dsource
+      USE MODEL_COM, only: itime,dtsrc,itimeI
+      USE apply3d, only : apply_tracer_3Dsource
+      USE GEOM, only : axyp
+      USE Dictionary_mod, only : get_param, is_set_param
+
+#ifdef TRACERS_SPECIAL_Shindell
+      use RAD_COM, only: rad_to_chem
+      use TRCHEM_Shindell_COM, only: fact_cfc, 
+     &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+      use TRACER_COM, only: n_stratOx, n_GLT, nL1overGLT
+#endif
+#ifdef TRACERS_AEROSOLS_SOA
+      USE TRACERS_SOA, only: n_soa_i,n_soa_e
+#endif  /* TRACERS_AEROSOLS_SOA */
+      implicit none
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+      INTEGER n,i,j,l
+      integer :: initial_ghg_setup
+c**** Radiation/GHG indices for specified constiuents (Move somewhere else?)
+      integer, parameter :: N2O_indx = 3
+      integer, parameter :: CH4_indx = 4
+      integer, parameter :: CFC_indx = 5
+
+#ifdef SHINDELL_STRAT_EXTRA  
+C**** Update General Linear Tracer:
+C Applying non-chemistry 3D sources, so they can be "seen" by chemistry:
+C (Note: using this method, tracer moments are changed just like they
+C are done for chemistry.  It might be better to do it like surface
+C sources are done? -- GSF 11/26/02)
+c
+      call overwrite_GLT
+      call apply_tracer_3Dsource(nL1overGLT,n_GLT)
+#endif
+
       call get_lightning_NOx
       call apply_tracer_3Dsource(nOther,n_NOx)
 
 C**** Make sure that these 3D sources for all chem tracers start at 0.:
       ! I think this zeroing is more important, now that the chemistry 
       ! may not reach the top model layers:
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,ntm_chem_beg:ntm_chem_end)
-     &  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,ntm_chem_beg:ntm_chem_end)
-     &  = 0.d0
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_stratOx)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n_stratOx) = 0.d0
-#endif
-#if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d1)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d2)  = 0.d0
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_N_d3)  = 0.d0
-#endif
-#ifdef TRACERS_AEROSOLS_SOA
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_soa_i:n_soa_e)  = 0.d0
-#endif  /* TRACERS_AEROSOLS_SOA */
-
       if (is_set_param('initial_ghg_setup')) then
         call get_param('initial_GHG_setup', initial_GHG_setup)
         if (initial_GHG_setup == 1 .and. itime == itimeI) then
 
-          if (use_rad_n2o > 0) call applyRadChem(3, n_N2O, 1.d+0)
-          if (use_rad_ch4 > 0) call applyRadChem(4, n_CH4, 1.d+0)
-          if (use_rad_cfc > 0) call applyRadChem(5, n_CFC, fact_CFC)
+          if (use_rad_n2o > 0) call applyRadChem(N2O_indx, n_N2O, 1.d+0)
+          if (use_rad_ch4 > 0) call applyRadChem(CH4_indx, n_CH4, 1.d+0)
+          if (use_rad_cfc > 0) call applyRadChem(CFC_indx, n_CFC, 
+     &                                           fact_CFC)
 
         end if
       end if
@@ -7947,46 +7988,74 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(nChemistry,n_N_d2) ! NO3 chem prod on dust
        call apply_tracer_3Dsource(nChemistry,n_N_d3) ! NO3 chem prod on dust
 #endif
-      CALL TIMER (NOW,MCHEM)
-#endif /* TRACERS_SPECIAL_Shindell */
-#ifdef TRACERS_NITRATE
-#ifdef TRACERS_SPECIAL_Shindell
-       tr3Dsource(I_0:I_1,J_0:J_1,:,3,n_HNO3) = 0.d0
-#endif
-       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NO3p) = 0.d0
-       tr3Dsource(I_0:I_1,J_0:J_1,:,1,n_NH4)  = 0.d0
-       tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0
 
-#ifdef TRACERS_SPECIAL_Shindell
-       call NITRATE_THERMO_DRV(topLevelOfChemistry)
-#else
-       call NITRATE_THERMO_DRV(LM)
-#endif
+      contains
 
-#ifdef TRACERS_SPECIAL_Shindell
-       call apply_tracer_3Dsource(3,n_HNO3) ! NO3 chem prod
-#endif
-       call apply_tracer_3Dsource(nChemistry,n_NO3p) ! NO3 chem prod
-       call apply_tracer_3Dsource(nChemistry,n_NH4)  ! NO3 chem prod
-       call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3
+      subroutine applyRadChem(index, n, factor)
+      integer, intent(in) :: index
+      integer, intent(in) :: n
+      real*8, intent(in) :: factor
+      
+      integer :: L
+      do L = 1, LM
+        tr3Dsource(I_0:I_1,J_0:J_1,L,nOverwrite,n) = 
+     &       (rad_to_chem(index,L,I_0:I_1,J_0:J_1)*2.69e20*byavog*
+     &       axyp(I_0:I_1,J_0:J_1)*tr_mm(n) * factor - 
+     &       trm(I_0:I_1,J_0:J_1,L,n)) / dtsrc
+      end do
+      call apply_tracer_3Dsource(nOverwrite,n)
+      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n) = 0.d0
 
-#endif /* TRACERS_NITRATE */
+      end subroutine applyRadChem
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
-    (defined TRACERS_TOMAS)
-       call aerosol_gas_chem
+      end subroutine calculate_and_apply_chemistry
 #endif
 
 #ifdef TRACERS_TOMAS
+      subroutine calculate_and_apply_tomas(I_0,I_1,J_0,J_1)
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      USE TRACER_COM, only: trm
+      use TRACER_COM, only: n_DMS, n_H2O2_s
+      use TRACER_COM, only: n_NH3, n_NH4
+      use TRACER_COM, only: n_SO2
+      use TRACER_COM, only: nAircraft, nBiomass
+      use TRACER_COM, only: nVolcanic, nOther
+      use TRACER_COM, only: nSO4anum, nECanum, nOCanum
+      use TRACER_COM, only: nChmH2O2sP, nChmH2O2sL
+      use TRACER_COM, only: coupled_chem
+      use TRACER_COM, only: nbins, n_AH2O
+      use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
+      use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAGAS
+      use TRACER_COM, only: nChemistry, nChemloss, n_AECIL, ntm_tomas
+      USE FLUXES, only: tr3Dsource
+      USE MODEL_COM, only: dtsrc
+      USE apply3d, only : apply_tracer_3Dsource
+      USE TOMAS_AEROSOL, only : trm_emis,xk
+      USE TOMAS_EMIS, only : scalesizeCARBO100,scalesizeCARBO30
+      implicit none
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+      INTEGER n,i,j,l
+!@var src_index source index for the current tracer
+!@var src_fact source factor for the current tracer
+      integer :: src_index,get_src_index
+      integer :: k, kk,kn,jc,tracnum
+      real*8, dimension (I_0:I_1,J_0:J_1,LM,NBINS) ::
+     &                  TOMAS_bio,TOMAS_air
+
+!**** Apply aerosol-gas chemistry sources/sinks:
 !H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
 !But it still calls to save the diagnostics. 
-       call apply_tracer_3Dsource(nChemistry,n_H2SO4) ! H2SO4 chem prod
-       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
-       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink 
-       call apply_tracer_3Dsource(nChemistry,n_H2O2_s) ! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
+       call apply_tracer_3Dsource(nChemistry,n_H2SO4)  ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nChemistry,n_DMS)    ! DMS chem sink
+       call apply_tracer_3Dsource(nChemistry,n_SO2)    ! SO2 chem source
+       call apply_tracer_3Dsource(nChemloss,n_SO2)     ! SO2 chem sink 
+       if(coupled_chem .eq. 0) then
+         call apply_tracer_3Dsource(nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+       end if
+
 ! EC/OC aging 
        
        do k=1,nbins
@@ -8037,7 +8106,7 @@ c$$$
          
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
-         tr3Dsource(:,J_0:J_1,:,2,n_ANUM(1)+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nECanum,n_ANUM(1)+k-1)=
      &      (TOMAS_bio(:,J_0:J_1,:,k)+TOMAS_air(:,J_0:J_1,:,k))
      &      /(sqrt(xk(k)*xk(k+1)))  
          
@@ -8047,11 +8116,11 @@ c$$$
          call apply_tracer_3Dsource(nBiomass, n_AECIL(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
      &    call apply_tracer_3Dsource(nAircraft,n_AECIL(1)+k-1)
-         call apply_tracer_3Dsource(2,       n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(nECanum, n_ANUM(1)+k-1)
 
          call apply_tracer_3Dsource(nVolcanic,n_ASO4(1)+k-1)
          call apply_tracer_3Dsource(nBiomass, n_ASO4(1)+k-1)
-         call apply_tracer_3Dsource(1,       n_ANUM(1)+k-1) 
+         call apply_tracer_3Dsource(nSO4anum, n_ANUM(1)+k-1) 
 
        enddo
 
@@ -8071,15 +8140,15 @@ c$$$
          tr3Dsource(:,J_0:J_1,:,nBiomass,n_AOCIL(1)+k-1)=
      *        TOMAS_bio(:,J_0:J_1,:,k)*0.5
          
-         tr3Dsource(:,J_0:J_1,:,4,n_ANUM(1)+k-1)=
+         tr3Dsource(:,J_0:J_1,:,nOCanum,n_ANUM(1)+k-1)=
      &        (TOMAS_bio(:,J_0:J_1,:,k)
      &        )/(sqrt(xk(k)*xk(k+1)))  
-         
-         
+        
+ 
          call apply_tracer_3Dsource(nBiomass, n_AOCOB(1)+k-1)
          call apply_tracer_3Dsource(nBiomass, n_AOCIL(1)+k-1)
 !     ntsurfsrc(n=3) is used for microphysics, so it is 4. 
-         call apply_tracer_3Dsource(4,       n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(nOCanum, n_ANUM(1)+k-1)
          
        enddo
        
@@ -8087,15 +8156,7 @@ c$$$
 !       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
        call subgridcoag_drv(dtsrc)
 !       end do; end do; end do
-         
-      DO n=1,ntm_TOMAS
-!         if(am_i_root()) print*,'tr3dsource',trname(n_ASO4(1)+n-1)
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_ASO4(1)+n-1) = 0.d0! Aerosol Mirophysics
-      ENDDO
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nOther,n_H2SO4) = 0.d0! Aerosol Mirophysics
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH3) = 0.d0! Aerosol Mirophysics
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_NH4) = 0.d0! Aerosol Mirophysics
-        tr3Dsource(I_0:I_1,J_0:J_1,:,nChemistry,n_SOAgas) = 0.d0! Aerosol Mirophysics
+
 c$$$#ifdef  TRACERS_SPECIAL_Shindell
 c$$$        tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
 c$$$#endif
@@ -8116,24 +8177,54 @@ c$$$       call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
 c$$$#endif
 C       stop
 
+      end subroutine calculate_and_apply_tomas
 #endif /* TRACERS_TOMAS */
 
 #ifdef TRACERS_AEROSOLS_Koch
+      subroutine calculate_and_apply_oma(I_0,I_1,J_0,J_1)
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      use TRACER_COM, only: n_BCIA, n_BCII
+      use TRACER_COM, only: n_DMS, n_H2O2_s, n_MSA
+      use TRACER_COM, only: n_OCIA, n_OCII
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: n_SO2
+      use TRACER_COM, only: nChemistry
+      use TRACER_COM, only: nChemloss
+      use TRACER_COM, only: nOther
+      use TRACER_COM, only: nChmH2O2sP
+      use TRACER_COM, only: nChmH2O2sL
+      use TRACER_COM, only: coupled_chem
+      USE FLUXES,     only: tr3Dsource
+      USE MODEL_COM,  only: dtsrc
+      USE apply3d, only : apply_tracer_3Dsource
+      USE GEOM, only : byaxyp
+      use trdiag_com, only : taijls=>taijls_loc,ijlt_prodSO4gs
+
+      implicit none
+      integer, intent(in) :: I_0,I_1,J_0,J_1
+      INTEGER i,j,l
+
+!**** Apply aerosol-gas chemistry sources/sinks:
        call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(nChemistry,n_MSA)  ! MSA chem source
        call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
+       call apply_tracer_3Dsource(nChemloss,n_SO2)   ! SO2 chem sink
+
 #ifdef ACCMIP_LIKE_DIAGS
        do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
          taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
      &   tr3Dsource(i,j,l,nChemistry,n_SO4)*dtsrc*byaxyp(i,j)
        end do; end do; end do
 #endif
-       call apply_tracer_3Dsource(nChemistry,n_SO4)  ! SO4 chem source
-       call apply_tracer_3Dsource(1,n_H2O2_s) ! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s) ! H2O2 chem sink
-       call apply_tracer_3Dsource(nChemistry,n_BCII) ! BCII aging sink
-       call apply_tracer_3Dsource(nChemistry,n_BCIA) ! BCIA aging source
+!**** Apply additional aerosol-gas chemistry sources/sinks:
+       call apply_tracer_3Dsource(nChemistry,n_SO4)    ! SO4 chem source
+       if(coupled_chem .eq. 0) then
+         call apply_tracer_3Dsource(nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+       end if
+       call apply_tracer_3Dsource(nChemistry,n_BCII)   ! BCII aging sink
+       call apply_tracer_3Dsource(nChemistry,n_BCIA)   ! BCIA aging source
 #ifdef TRACERS_AEROSOLS_VBS
        do i=1,vbs_tr%nbins
          call apply_tracer_3Dsource(nChemistry,vbs_tr%igas(i)) ! aging source
@@ -8151,35 +8242,217 @@ C       stop
        call apply_tracer_3Dsource(nChemistry,n_SO4_d2) ! SO4 chem prod on dust
        call apply_tracer_3Dsource(nChemistry,n_SO4_d3) ! SO4 chem prod on dust
 #endif
-#endif  /* TRACERS_AEROSOLS_Koch */
+      end subroutine calculate_and_apply_oma
+#endif
 
 #ifdef TRACERS_AMP
-       call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
-       call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
-       call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
-       call apply_tracer_3Dsource(nChemistry,n_H2O2_s)! H2O2 chem source
-       call apply_tracer_3Dsource(2,n_H2O2_s)! H2O2 chem sink
-      DO n=ntmAMPi,ntmAMPe
-        tr3Dsource(:,J_0:J_1,:,1,n)  = 0.d0! Aerosol Mirophysics
-      ENDDO
-        tr3Dsource(:,J_0:J_1,:,1,n_H2SO4)  = 0.d0! Aerosol Mirophysics
-        tr3Dsource(:,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0! Aerosol Mirophysics
+      subroutine calculate_and_apply_matrix
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      use TRACER_COM, only: n_DMS, n_H2O2_s, n_SO2
+      use TRACER_COM, only: n_NH3
+      use TRACER_COM, only: n_H2SO4
+      use TRACER_COM, only: nChemistry
+      use TRACER_COM, only: nChemloss
+      use TRACER_COM, only: ntmAMPi, ntmAMPe
+      use TRACER_COM, only: nPrematH2SO4
+      use TRACER_COM, only: nChmH2O2sP
+      use TRACER_COM, only: nChmH2O2sL
+      use TRACER_COM, only: coupled_chem 
+      USE apply3d, only : apply_tracer_3Dsource
 #ifdef  TRACERS_SPECIAL_Shindell
-        tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
-#endif
-        call MATRIX_DRV
+      use TRACER_COM, only: nMatHNO3, n_HNO3
+#endif 
+
+      implicit none
+      INTEGER n
+
+!**** Apply aerosol-gas chemistry sources/sinks:
+      call apply_tracer_3Dsource(nPrematH2SO4,n_H2SO4) ! H2SO4 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(nChemistry,n_DMS)     ! DMS chem sink
+      call apply_tracer_3Dsource(nChemistry,n_SO2)     ! SO2 chem source
+      call apply_tracer_3Dsource(nChemloss,n_SO2)      ! SO2 chem sink
+      if(coupled_chem .eq. 0) then
+        call apply_tracer_3Dsource(nChmH2O2sP,n_H2O2_s)  ! H2O2 chem source (gas-phase)
+        call apply_tracer_3Dsource(nChmH2O2sL,n_H2O2_s)  ! H2O2 chem sink (gas-phase)
+      end if
+
+      call MATRIX_DRV 
 
       DO n=ntmAMPi,ntmAMPe
-       call apply_tracer_3Dsource(nChemistry,n) ! Aerosol Mirophysics !kt is the index correct?
+        call apply_tracer_3Dsource(nChemistry,n) ! Aerosol Mirophysics !kt is the index correct?
       ENDDO
 
+      call apply_tracer_3Dsource(nChemistry,n_NH3)   ! NH3
+      call apply_tracer_3Dsource(nChemistry,n_H2SO4) ! H2SO4 chem prod
+#ifdef  TRACERS_SPECIAL_Shindell
+      call apply_tracer_3Dsource(nMatHNO3,n_HNO3)    ! HNO3 chem prod <-tendency not in model output?
+#endif
+
+      end subroutine calculate_and_apply_matrix
+#endif
+
+#ifdef TRACERS_NITRATE
+      subroutine calculate_and_apply_nitrate
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      use TRACER_COM, only: n_HNO3
+      use TRACER_COM, only: n_NH3,n_NH4
+      use TRACER_COM, only: n_NO3p
+      use TRACER_COM, only: nChemistry, nOther
+      USE apply3d, only : apply_tracer_3Dsource
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: topLevelOfChemistry
+      use TRACER_COM, only: nThermoHNO3
+#endif
+
+      implicit none
+
+#ifdef TRACERS_SPECIAL_Shindell
+       call NITRATE_THERMO_DRV(topLevelOfChemistry)
+#else
+       call NITRATE_THERMO_DRV(LM)
+#endif
+
+#ifdef TRACERS_SPECIAL_Shindell
+       call apply_tracer_3Dsource(nThermoHNO3,n_HNO3) ! NO3 chem prod <-tendency not in model output?
+#endif
+       call apply_tracer_3Dsource(nChemistry,n_NO3p) ! NO3 chem prod
+       call apply_tracer_3Dsource(nChemistry,n_NH4)  ! NO3 chem prod
        call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3
-       call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
-#ifdef  TRACERS_SPECIAL_Shindell
-       call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
+
+      return
+
+      end subroutine calculate_and_apply_nitrate
 #endif
-#endif /* TRACERS_AMP */
+
+      SUBROUTINE tracer_3Dsource
+!@sum tracer_3Dsource calculates interactive sources for tracers
+!@+   All sources are saved as kg/s
+!@+   Please note that if the generic routine 'apply_tracer_3Dsource'
+!@+   is used, all diagnostics and moments are updated automatically.
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      use RESOLUTION, only: LM
+      use OldTracer_mod
+      USE TRACER_COM, only: n_Pb210
+      use TRACER_COM, only: ndecayPb210
+      use TRACER_COM, only: mchem,mtrace
+      USE MODEL_COM,  only: itime,dtsrc,itimeI
+#ifndef SKIP_TRACER_SRCS
+      USE FLUXES, only: tr3Dsource
+#endif
+      USE apply3d,    only: apply_tracer_3Dsource
+   
+      implicit none
+      INTEGER J_0, J_1, I_0, I_1
+      real*8 :: now
+
+C****
+C**** Extract useful local domain parameters from "grid"
+C****
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+C****
+C**** Initialize tracer 3D source array
+C****
+#ifndef SKIP_TRACER_SRCS
+      tr3Dsource(I_0:I_1,J_0:J_1,:,:,:) = 0.d0
+#endif
+C****
+C**** Tracer gravitational settling for aerosols
+C****
+
+      call TRGRAV
+
+C****
+C**** Tracer radioactive decay (and possible source)
+C****
+
+      call TDECAY
+
+c****
+C**** Calculate tracer sources
+C****
+
+#ifdef TRACERS_SPECIAL_Lerner
+c**** Calculate and apply sources for Lerner tracers
+      call calculate_and_apply_lerner
+#endif
+
+#ifdef TRACERS_COSMO
+C**** Calculate and apply cosmogenic sources
+      call calculate_and_apply_cosmo(I_0,I_1,J_0,J_1)
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS) 
+C**** Apply volcanic sources
+      call apply_volcanic_emissions(I_0,I_1,J_0,J_1)
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
+C**** Apply biomass burning sources
+      call apply_biomass_burning_emissions(I_0,I_1,J_0,J_1)
+#endif
+
+      ! orphan Pb210 (Place into TDECAY?)
+      if(n_Pb210 .gt. 0) then
+        call apply_tracer_3Dsource(ndecayPb210,n_Pb210) !radioactive decay of Rn222
+      end if
+
+#if (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+c Calculation of gas phase reaction rates for sulfur chemistry
+      CALL GET_SULF_GAS_RATES
+#endif
+
+#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+C**** Apply aircraft sources
+      call apply_aircraft_emissions
+#endif
+
+#ifdef TRACERS_SPECIAL_Shindell
+c**** Calculate and apply sources from gas-phase chemistry
+      CALL TIMER (NOW,MTRACE)
+      call calculate_and_apply_chemistry(I_0,I_1,J_0,J_1)
+      CALL TIMER (NOW,MCHEM)
+#endif
+
+#ifdef TRACERS_NITRATE
+c**** Calculate and apply nitrate (thermo) sources
+      call calculate_and_apply_nitrate
+#endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+c**** Calculate aerosol-gas chemistry tendencies (sources/sinks)
+      call aerosol_gas_chem
+#endif
+
+#ifdef TRACERS_TOMAS
+c**** Calculate and add sources from TOMAS aerosol chemistry/physics
+      call calculate_and_apply_tomas(I_0,I_1,J_0,J_1)
+#endif
+
+#ifdef TRACERS_AEROSOLS_Koch
+c**** Calculate and apply sources from Koch/OMA aerosol chemistry/physics
+      call calculate_and_apply_oma(I_0,I_1,J_0,J_1)
+#endif
+
+#ifdef TRACERS_AMP
+c**** Calculate and apply sources from AMP/MATRIX
+      call calculate_and_apply_matrix
+#endif
+
+c*****
+c***** End tracer source calculations 
+c*****
 
 #ifdef CACHED_SUBDD
       ! Accumulate the tracer-related subdaily diagnostics
@@ -8190,27 +8463,6 @@ C       stop
 #endif
 
       return
-
-#ifdef TRACERS_SPECIAL_Shindell
-      contains
-
-      subroutine applyRadChem(index, n, factor)
-      integer, intent(in) :: index
-      integer, intent(in) :: n
-      real*8, intent(in) :: factor
-      
-      integer :: L
-      do L = 1, LM
-        tr3Dsource(I_0:I_1,J_0:J_1,L,nOverwrite,n) = 
-     &       (rad_to_chem(index,L,I_0:I_1,J_0:J_1)*2.69e20*byavog*
-     &       axyp(I_0:I_1,J_0:J_1)*tr_mm(n) * factor - 
-     &       trm(I_0:I_1,J_0:J_1,L,n)) / dtsrc
-      end do
-      call apply_tracer_3Dsource(nOverwrite,n)
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nOverwrite,n) = 0.d0
-
-      end subroutine applyRadChem
-#endif
 
       END SUBROUTINE tracer_3Dsource
 #endif /* TRACERS_ON */
