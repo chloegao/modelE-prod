@@ -6853,7 +6853,6 @@ C**** All sources are saved as kg s-1
       src_fact=get_src_fact(n)
 #endif
 
-      print*,__FILE__,__LINE__,trim(pTracer%getName())
       select case (trim(pTracer%getName()))
 
       case default
