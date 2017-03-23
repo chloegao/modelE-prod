@@ -494,14 +494,10 @@ C**** SEA LEVEL PRESSURE FILTER
 ! DIAGTCA is called every timestep for 3D sources)
       CALL DIAGCA (1) ! was not called w/ SLP filter
 #endif
-C**** 3D Tracer sources and sinks
-C**** Tracer gravitational settling for aerosols
-      CALL TRGRAV
-C**** Tracer radioactive decay (and possible source)
-      CALL TDECAY
 C**** Calculate 3D tracers sources and sinks
 
       call tracer_3Dsource
+
 C**** Accumulate tracer distribution diagnostics
       CALL TRACEA
          CALL TIMER (NOW,MTRACE)
