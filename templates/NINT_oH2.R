@@ -52,8 +52,8 @@ Data input files:
 TOPO=Z144X90N.h387x360_jan2017.nc              ! surface fractions and topography
 ICEDYN_MASKFAC=iceflowmask_144x90.nc
 
-RVR=RD_modelE_Fa.RVR_h387x360_topo2009_oct2015.nc ! river direction file
-NAMERVR=RD_Fb.names.txt                           ! named river outlets
+RVR=RD_modelE_Fa.RVR_hycom_jan2017.nc  ! river direction file
+NAMERVR=RD_Fb.names_hycom_jan2017.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
