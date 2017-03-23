@@ -79,13 +79,13 @@ C---Calculate average P(mbar) at edge of each level PLEVL(1)=Psurf
       USE RESOLUTION, only: jm,lm
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
-!@var n_MPtable_max:  Number of tracers that will use the frequency
+!@var nMPtable:  Number of tracers that will use the frequency
 !@+    tables and share strat chem code
-      integer, parameter :: n_MPtable_max=3
+      integer :: nMPtable
 !@param lz_schem Number of heights in stratchem tables
       integer, parameter :: lz_schem=20,lz_sx=lz_schem+7
 !@var tscparm: Contains mean loss prequency in grid box
-      real*4 tscparm(lz_schem,18,INT_MONTHS_PER_YEAR,n_MPtable_max)
+      real*8, allocatable, dimension(:,:,:,:) :: tscparm
 !@var TLtrm,TLtzm,TLtzzm: loss freq and moments of loss freq from tables
       real*8, ALLOCATABLE, DIMENSION (:,:,:) :: tltrm,tltzm,tltzzm
 !@var PS Used in STRT2M
@@ -99,8 +99,7 @@ C**** Prather stratospheric chemistry
       USE PRATHER_CHEM_COM, only: set_prather_constants
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
-      use OldTracer_mod, only: trname,tcscale
-      use tracer_com, only: ntm
+      use OldTracer_mod, only: trname,tcscale,iMPtable
       implicit none
 
       integer n,j,k,m,iu
@@ -109,11 +108,9 @@ C**** Prather stratospheric chemistry
       integer l,nl
       real*8    XPSD,XPSLM1,XPSL
 
-      do n=1,ntm
-        if (tcscale(n) == 0.d0) cycle
-        if (n>n_MPtable_max)
-     *    call stop_model('n>n_MPtable_max in STRATCHEM_SETUP',255)
-        filein = trim(trname(n))//'_TABLE'
+      do n=1,nMPtable
+        if (iMPtable(n) == 0) cycle
+        filein = trim(trname(iMPtable(n)))//'_TABLE'
         call openunit(filein,iu,.false.,.true.)
         read (iu,'(a)')   titlch
         if (AM_I_ROOT()) write(6,'(1x,a)') titlch
@@ -124,8 +121,8 @@ C**** Prather stratospheric chemistry
           end do
         end do
         call closeunit(iu)
-        if (AM_I_ROOT())
-     *    write(6,'(2A)') 'STRATCHEM TABLES READ for ',trim(trname(n))
+        if (AM_I_ROOT()) write(6,'(2A)') 'STRATCHEM TABLES READ for ',
+     *                                   trim(trname(iMPtable(n)))
       enddo
 
       call set_prather_constants
@@ -167,7 +164,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
-      use OldTracer_mod, only: itime_tr0,trname,tcscale
+      use OldTracer_mod, only: itime_tr0,trname,tcscale,iMPtable
       USE TRACER_COM, only: trm, trmom
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
@@ -201,10 +198,10 @@ C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
       lr = lm+1-l
       do 140 j=J_0,J_1
 C-----TSCPARM->TLtrm contains mean loss freq in grid box:
-        f0l = max(TLtrm(j,lr,n),0d0)
+        f0l = max(TLtrm(j,lr,iMPtable(n)),0d0)
         if (f0l.le.0.) go to 140
-        f1l = tltzm(j,lr,n)  ! FOM of loss freq from tables
-        f2l = tltzzm(j,lr,n)  ! SOM of loss freq from tables
+        f1l = tltzm(j,lr,iMPtable(n))  ! FOM of loss freq from tables
+        f2l = tltzzm(j,lr,iMPtable(n))  ! SOM of loss freq from tables
         do 130 i=I_0,imaxj(j)
           if (trm(i,j,l,n).le.0.) go to 130
 C------Couple the moments of the loss freq with moments of the tracer:
@@ -223,7 +220,7 @@ C---  to this change (T0L):
           g0l = t0l/trm(i,j,l,n)
           g1l = t1l/t0l
           g2l = t2l/t0l
-          t0l = (1.0 - exp(-g0l*dtsrc*tcscale(n)))*trm(i,j,l,n)
+          t0l = (1.0-exp(-g0l*dtsrc*tcscale(iMPtable(n))))*trm(i,j,l,n)
           t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
           tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
 cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
@@ -253,7 +250,7 @@ C**** Prather strat chem
       USE MODEL_COM, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
-      USE TRACERS_MPchem_COM, only: tscparm,n_MPtable_max,
+      USE TRACERS_MPchem_COM, only: tscparm,nMPtable,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
       implicit none
 C-----------------------------------------------------------------------
@@ -274,20 +271,20 @@ C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       jmon = modelEclock%getMonth()
 
-      DO 800 N=1,n_MPtable_max
+      DO 800 N=1,nMPtable
         DO 700 J=J_0,J_1
           JJ = JLATMD(J)
           DO K=1,lz_schem
-            STRTX(K) = tscparm(K,JJ,jmon,N)
+            STRTX(K) = tscparm(K,JJ,jmon,n)
           END DO
           CALL STRT2M(STRTX,lz_schem,STRT0L,STRT1L,STRT2L,P0L,NSTRTC
      *      ,ps,f,lz_sx)
 C----store loss freq & moments in TLtrm/tzm/tzzm for exact
 C---- CTM layers LM down
           DO 600 LR=1,NSTRTC
-            TLtrm(J,LR,N) = STRT0L(LR)
-            TLtzm(J,LR,N) = STRT1L(LR)
-            TLtzzm(J,LR,N) = STRT2L(LR)
+            TLtrm(J,LR,n) = STRT0L(LR)
+            TLtzm(J,LR,n) = STRT1L(LR)
+            TLtzzm(J,LR,n) = STRT2L(LR)
 600       CONTINUE
 700     CONTINUE
 800   CONTINUE
@@ -1710,13 +1707,14 @@ C****
 
       ALLOCATE( jlatmd(J_0H:J_1H),
      *          STAT=IER )
-      ALLOCATE(  tltrm(J_0H:J_1H,lm,n_MPtable_max),
-     *           tltzm(J_0H:J_1H,lm,n_MPtable_max),
-     *          tltzzm(J_0H:J_1H,lm,n_MPtable_max),
+      ALLOCATE(  tltrm(J_0H:J_1H,lm,nMPtable),
+     *           tltzm(J_0H:J_1H,lm,nMPtable),
+     *          tltzzm(J_0H:J_1H,lm,nMPtable),
      *          STAT=IER )
       ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
      *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
      *           STAT=IER )
+      allocate(tscparm(lz_schem,18,INT_MONTHS_PER_YEAR,nMPtable))
 
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM
 
