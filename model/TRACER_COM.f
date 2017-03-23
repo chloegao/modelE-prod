@@ -610,6 +610,57 @@ C**** arrays that could be general, but are only used by chemistry
      &     nOther = 3, nAircraft = 4, nBiomass = 5,
      &     nVolcanic = 6, nChemloss = 7
 
+!The list below is for non-standard tracer sources and sinks:
+!-----------------------------------------------------------
+!@param ndecayPb210 for 3D source of Pb-21O from radioactive decay
+      integer, parameter  :: ndecayPb210 = 1 
+#ifdef TRACERS_SPECIAL_Lerner
+!@param nTropCH4 for CH4 tropospheric chemistry 3D sources/sinks
+!@param nStratCH4 for CH4 stratospheric chemistry 3D sources/sinks
+!@param nTropO3P for O3 tropospheric chemistry 3D sources (production)
+!@param nTropO3L for O3 tropospheric chemistry 3D sinks (loss)
+!@param nStratO3 for O3 stratospheric chemistry 3D sources/sinks
+!@param nStratCFC11 for CFC11 stratospheric chemistry 3D sources/sinks
+!@param nStratN2O for N2O stratospheric chemistry 3D sources/sinks
+      integer, parameter ::  nTropCH4 = 1, nStratCH4 = 2,
+     &      nTropO3P = 2, nTropO3L = 3, nStratO3 = 1,
+     &      nStratCFC11 = 1, nStratN2O = 1
+#endif
+#ifdef TRACERS_COSMO
+!@param nCosmo for cosmogenic 3D sources/sinks
+      integer, parameter :: nCosmo = 1
+#endif
+#ifdef SHINDELL_STRAT_EXTRA
+!@param nL1overGLT for L1 overwrite of GLT
+      integer, parameter :: nL1overGLT = 1
+#endif
+#ifdef TRACERS_TOMAS
+!@param nSO4anum for SO4 aerosol number 3D sources/sinks
+!@param nECanum for Elemental (black) Carbon aerosol number 3D sources/sinks
+!@param nOCanum for Organic Carbon aerosol number 3D sources/sinks
+      integer, parameter ::  nSO4anum = 1, nECanum = 2,
+     &      nOCanum = 4 
+#endif
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
+!@param nChmH2O2sP for H2O2_s chemistry 3D sources (production)
+!@param nChmH2O2sL for H2O2_s chemistry 3D sinks (loss)
+      integer, parameter :: nChmH2O2sP = 1, nChmH2O2sL = 2
+#endif
+#ifdef TRACERS_AMP
+!@param nprematH2SO4 for H2SO4 pre-Matrix 3D sources/sinks 
+      integer, parameter :: nPrematH2SO4 = 2
+#ifdef  TRACERS_SPECIAL_Shindell
+!@param nmatHNO3 for HNO3 Matrix 3D sources/sinks
+      integer, parameter :: nMatHNO3 = 3
+#endif
+#endif
+#if (defined TRACERS_NITRATE) && (defined TRACERS_SPECIAL_Shindell)
+!@param nthermoHNO3 for HNO3 Thermo 3D sources/sinks
+      integer, parameter :: nThermoHNO3 = 3
+#endif
+!------------------------------------------------------------
+
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       integer, parameter :: rhet=3
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
