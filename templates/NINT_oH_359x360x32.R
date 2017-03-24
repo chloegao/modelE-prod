@@ -1,6 +1,6 @@
-NINT_oH2.R GISS Model E  coupled version modelE + hycom ocean
+NINT_oH_359x360x32.R GISS Model E  coupled version modelE + hycom ocean 359x360x32
 
-N.Tausnev 02/16/2017
+N.Tausnev 03/23/2017
 ocean H with various different horizontal/vertical resolutions activated.
 This template should be considered temporary until the
 new template system has been finalized.
@@ -13,8 +13,8 @@ Preprocessor Options
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define TRACERS_AGE_OCEAN
 #define ATM2x2h                      ! 2x2.5 40 layer atm
-#define HYCOM1degRefined             ! 1deg   refined hycom (387x360)
-! #define HYCOM1degUnrefined         ! 1deg unrefined hycom (359x360)
+! #define HYCOM1degRefined           ! 1deg   refined hycom (387x360)
+#define HYCOM1degUnrefined           ! 1deg unrefined hycom (359x360)
 ! #define HYCOM26layers              ! use 26 layers in hycom
 #define HYCOM32layers                ! use 32 layers in hycom
 #define EXPEL_COASTAL_ICEXS          ! Attempt decrease the coastal ice thicknes
@@ -48,8 +48,8 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
-#include "dynamic_ocn_input_files_AR5_hycom_02"
-TOPO=Z144X90N.h387x360_jan2017.nc              ! surface fractions and topography
+#include "dynamic_ocn_hycom_359x360x32_input_files_AR5"
+TOPO=Z144X90N.h359x360_jan2017.nc              ! surface fractions and topography
 ICEDYN_MASKFAC=iceflowmask_144x90.nc
 
 RVR=RD_modelE_Fa.RVR_hycom_jan2017.nc  ! river direction file

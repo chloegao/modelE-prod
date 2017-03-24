@@ -2,7 +2,6 @@
 
 ! Remove the following line and directive when the problems are fixed.
 ! This directive is simply to permit running a few timesteps.
-#define TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
 
 !@sum  TRACERS_DRV: tracer-dependent routines for air/water mass
 !@+    and ocean tracers
@@ -6808,9 +6807,6 @@ c      real*8 :: nlight, max_COSZ1, fact0
      &     GRID%J_STRT:GRID%J_STOP)
 #endif
       integer :: year, month, dayOfYear,hour,localTimeIndex
-#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
-      integer :: n_prev
-#endif
 
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
@@ -6837,22 +6833,20 @@ C****
       call calculate_fire_count
 #endif
 C**** All sources are saved as kg s-1
-#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
-      n_prev = -1
-#endif
       iter = tracers%begin()
       do while (iter /= tracers%last())
         pTracer => iter%value()
         pa => pTracer%getReference('index')
         index = pa
         n = index
-#ifdef TEMP_WORK_AROUND_BROKEN_LERNER_SURFACE_SOURCES
-        if(n_prev == n) exit    ! otherwise, infinite loop
-        n_prev = n
-#endif
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
-      if (itime.lt.itime_tr0(n)) cycle
+      
+        if (itime.lt.itime_tr0(n)) then
+          call iter%next()
+          cycle
+        end if
+      
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       src_index=get_src_index(n)

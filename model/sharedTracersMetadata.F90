@@ -20,7 +20,11 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: set_trdecay
   use OldTracer_mod, only: tr_RKD 
   use OldTracer_mod, only: set_needtrs
+#ifdef TRACERS_SPECIAL_Lerner
+  use TRACERS_MPchem_COM, only: nMPtable
+  use OldTracer_mod, only: set_iMPtable
   use OldTracer_mod, only: set_tcscale
+#endif  /* TRACERS_SPECIAL_Lerner */
   use OldTracer_mod, only: dodrydep
   use OldTracer_mod, only: F0
   use OldTracer_mod, only: HSTAR
@@ -186,6 +190,8 @@ contains
       if (tracers_special_lerner) then
         call set_ntsurfsrc(n,  14)
         call set_ntm_power(n, -9)
+        nMPtable=nMPtable+1
+        call set_iMPtable(n, nMPtable)
         call set_tcscale(n, 1.d0)
       end if
 #endif
@@ -226,6 +232,8 @@ contains
 #ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
         call set_ntsurfsrc(n,  1)
+        nMPtable=nMPtable+1
+        call set_iMPtable(n, nMPtable)
         call set_tcscale(n, 1.d0)
       end if
 #endif

@@ -1,6 +1,6 @@
-NINT_oH2.R GISS Model E  coupled version modelE + hycom ocean
+NINT_oH_387x360x32.R GISS Model E  coupled version modelE + hycom ocean 387x360x32
 
-N.Tausnev 02/16/2017
+N.Tausnev 03/23/2017
 ocean H with various different horizontal/vertical resolutions activated.
 This template should be considered temporary until the
 new template system has been finalized.
@@ -48,7 +48,7 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
-#include "dynamic_ocn_input_files_AR5_hycom_02"
+#include "dynamic_ocn_hycom_387x360x32_input_files_AR5"
 TOPO=Z144X90N.h387x360_jan2017.nc              ! surface fractions and topography
 ICEDYN_MASKFAC=iceflowmask_144x90.nc
 
