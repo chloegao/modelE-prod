@@ -29,8 +29,7 @@
      $                     ,q            ! saturatered pressure
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,BYAXYP
-      USE CONSTANT,   only: mair,gasc
-      USE CLOUDS_COM, only: SVLHX        ! latent heat of evaporation
+      USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
@@ -64,7 +63,7 @@
       REAL(8) :: DUST      ! fine dust(sol+insol) [ug/m^3]
       REAL(8) :: SALT      ! fine salt(sol+insol) [ug/m^3]
       REAL(8) :: TK        ! absolute temperature  [K]          
-      REAL(8) :: RH        ! relative humidity     [0-1]
+      REAL(8) :: RH        ! relative humidity     [0-1] w/r/t liquid water
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
       REAL(8) :: RHC       ! RH of crystallization [0-1]
       
@@ -163,7 +162,7 @@
       DO I=I_0,I_1
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
-      RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),SVLHX(l,i,j),pmid(l,i,j)) ! rH [0-1]
+      RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3  
       AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)    
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
