@@ -67,6 +67,9 @@
 !@var jndlev Levels at which we want J-values (centre of CTM levels)
       integer, allocatable, dimension(:) :: jndlev
 #ifdef TRACERS_ON
+!@var aerosols_affect_photolysis Set to 1 to allow fastj to take into account
+!@+                              aerosol vertical profiles. Only works with OMA.
+      integer :: aerosols_affect_photolysis=1
 !@param miedx2 choice of aerosol types for fastj2
       integer, allocatable, dimension(:,:) :: miedx2
 !@var aer2 fastj2 aerosol and cloud optical depth profiles. Aerosols are
@@ -623,8 +626,10 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:NLGCM,1:nraero_aod)=
-     &  tau_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
+      if (aerosols_affect_photolysis == 1) then
+        AER2(1:NLGCM,1:nraero_aod)=
+     &    tau_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
+      endif
 #endif
 #endif
 

@@ -304,11 +304,13 @@ C**** Local parameters and variables and arguments:
 !@+ in the photolysis module
 !@auth Kostas Tsigaridis
 
+      use Dictionary_mod, only: sync_param
       use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,n_rj
      &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
      &                     ,j_iprn,j_jprn,j_prnrts,jppj,jlabel
      &                     ,jind,ks,kss,jfacta,zj 
+     &                     ,aerosols_affect_photolysis
       ! also get things that are now allocatable based on top layer
       ! of chemistry and define here:
        use photolysis, only: NLGCM,ncfastj2,nbfastj,jpnl,jndlev,
@@ -318,6 +320,8 @@ C**** Local parameters and variables and arguments:
       implicit none 
 
       NLGCM=topLevelOfChemistry
+      call sync_param('aerosols_affect_photolysis',
+     &                 aerosols_affect_photolysis)
 
       jpnl=NLGCM
       ncfastj2=2*NLGCM+2
