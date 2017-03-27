@@ -1,0 +1,20 @@
+! Begin NINT E2.1 input files
+
+! This file is from the CMIP5 model until new BC alb file/method developed
+BC_dep=TcadiAR5_aero/144x90/BC_dep_Tcadi2012_Bauer_kg_m2_s_144x90_1850-2100.nc
+
+! These aerosol files are preliminary until aerosol tuning complete
+DUSTaer=cmip6_nint_inputs/144x90/e21_1850only_notfinal/DUST.nc
+! MADAER=3 setting required
+TAero_SUL=cmip6_nint_inputs/144x90/e21_1850only_notfinal/SUL.nc
+TAero_SSA=cmip6_nint_inputs/144x90/e21_1850only_notfinal/SSA.nc
+TAero_NIT=cmip6_nint_inputs/144x90/e21_1850only_notfinal/NIT.nc
+TAero_OCA=cmip6_nint_inputs/144x90/e21_1850only_notfinal/OCA.nc
+TAero_BCA=cmip6_nint_inputs/144x90/e21_1850only_notfinal/BCA.nc
+TAero_BCB=cmip6_nint_inputs/144x90/e21_1850only_notfinal/BCB.nc
+
+! This ozone file is preliminary until chem tuning complete
+O3file=cmip6_nint_inputs/144x90/e21_1850only_notfinal/o3_shindell_144x90x53x12_E05TomaF40pi_1850_ple.nc
+Ox_ref=o3_2010_shindell_144x90x49_April1850.nc
+
+! End NINT E2.1 input files
