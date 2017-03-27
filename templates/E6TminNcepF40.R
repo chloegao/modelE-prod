@@ -131,6 +131,7 @@ madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 #include "mineral_params"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
+#include "ch4_params_CMIP6"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
