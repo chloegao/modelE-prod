@@ -90,7 +90,7 @@ FT8OPX = 1.,1.,1.,1.,1.,1.,1.,1.
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.64 ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.   ! below 850mb and MC regions; tune this last  to get rad.balance
-WMUI_multiplier = 1.
+WMUI_multiplier = 2.
 use_vmp=1
 radius_multiplier=1.1
 
