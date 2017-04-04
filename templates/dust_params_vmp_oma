@@ -5,12 +5,13 @@
 ! OMA w/ VMP clouds:
 ! for imDust=0:
 scaleDustEmission=1.0
-fracClayPDFscheme=0.0306498344482 ! clay emission parameter from calibration
-fracSiltPDFscheme=0.0516382878835 ! silt emission parameter from calibration
-   !fracClayPDFscheme = 0.0319935641422[1] * 0.958[2]
-   !fracSiltPDFscheme = 0.0456168620879[1] * 1.132[2]
-   ![1] emission parameters used for calibration run E73TcadiF40pi_2000
-   ![2] adjustment factors calculated from the data of calibration run
+fracClayPDFscheme=0.0177771056404 ! clay emission parameter from calibration
+fracSiltPDFscheme=0.0523608361104 ! silt emission parameter from calibration
+   !fracClayPDFscheme = 0.0181021293733[1] * 0.997[2] * 0.985[3]
+   !fracSiltPDFscheme = 0.0531582092491[1] * 1.000[2] * 0.985[3]
+   ![1] emission parameters used for calibration run E20170309TomaF40climIM0_001
+   ![2] size distribution factors derived from calibration
+   ![3] total emitted mass factor derived from calibration
 ! for imDust=3-5:
 !scaleDustEmission=0.2025779939 ! scales total dust emission
   !scaleDustEmission = 0.30927938[1] * 0.655[2]
