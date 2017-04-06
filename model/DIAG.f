@@ -5091,7 +5091,7 @@ c**** read in the MSU/SSU weights file
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
       real*8, intent(out) :: tout(ncols-2)
 
-      real*8 tlmsu(nmsu),tmsu(ncols)
+      real*8 tlmsu(nmsu),tmsu(ncols),wcol(ncols)
       real*8 plb(0:lm+2),tlb(0:lm+2)
       integer l
 
@@ -5109,10 +5109,13 @@ c**** find edge temperatures (assume continuity and given means)
       tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
       call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
 c**** find weighted channel temperatures
-      tmsu(1:ncols)=0.
+      tmsu(1:ncols)=0. ; wcol(1:ncols)=0.
       do l=1,nmsu-1
         tmsu(1:ncols)=tmsu(1:ncols)+tlmsu(l)*wmsu(1:ncols,l)
+        wcol(1:ncols)=wcol(1:ncols)+wmsu(1:ncols,l)
       end do
+      tmsu(1:ncols)=tmsu(1:ncols)/wcol(1:ncols)
+
       tout(1) = (1-pland)*tmsu(1)+pland*tmsu(2)  ! TLT
       tout(2) = (1-pland)*tmsu(3)+pland*tmsu(4)  ! TMT
       tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
