@@ -5,7 +5,6 @@ BC_dep=TcadiAR5_aero/144x90/BC_dep_Tcadi2012_Bauer_kg_m2_s_144x90_1850-2100.nc
 
 ! These aerosol files are preliminary until aerosol tuning complete
 DUSTaer=cmip6_nint_inputs/144x90/e21_1850only_notfinal/DUST.nc
-! MADAER=3 setting required
 TAero_SUL=cmip6_nint_inputs/144x90/e21_1850only_notfinal/SUL.nc
 TAero_SSA=cmip6_nint_inputs/144x90/e21_1850only_notfinal/SSA.nc
 TAero_NIT=cmip6_nint_inputs/144x90/e21_1850only_notfinal/NIT.nc
