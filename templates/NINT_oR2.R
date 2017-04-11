@@ -1,4 +1,6 @@
-NINT_oR2.R GISS Model E  coupled version
+NINT_oR2.R GISS Model E  atm-ocean
+
+3/27/2017 updated to latest F40 atm (aerosol/ozone inputs etc.)
 
 M. Kelley 08/12/2016 cloned E4F40 and added 1-degree
 ocean R with various new mixing options activated.
@@ -6,9 +8,12 @@ This template should be considered temporary until the
 new template system has been finalized.
 
 Preprocessor Options
-#define NEW_IO                   ! new I/O (netcdf) on
+#define STDHYB                  ! standard hybrid vertical coordinate
+#define ATM_LAYERING L40        ! 40 layers, top at .1 mb
+#define NEW_IO                  ! new I/O (netcdf) on
+#define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
+#define NO_HDIURN               ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define SIMPLE_MESODIFF
@@ -18,7 +23,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmL40                              ! vertical resolution is 40 layers -> 0.1mb
+AtmLayering                         ! vertical resolution
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
@@ -57,7 +62,7 @@ NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files"
+#include "rad_144x90_input_files_CMIP6"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -81,8 +86,8 @@ ocean_use_tdiss=1  ! simple tidally induced diapycnal diffusivity
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
-! The following two lines are only used when aerosol/radiation interactions are off
-FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
+! No tau adjustment factors for aerosols
+FS8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA

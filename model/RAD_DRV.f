@@ -287,7 +287,6 @@ C**** sync radiation parameters from input
       endif
       call get_param( "aero_yr", aero_yr, default=master_yr )
       call get_param( "dust_yr", dust_yr, default=master_yr )
-      call sync_param( "madaer", madaer )
       call sync_param( "dALBsnX", dALBsnX )
       call get_param( "albsn_yr", albsn_yr, default=master_yr )
       call sync_param( "aermix", aermix , 13 )

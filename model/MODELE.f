@@ -1316,7 +1316,7 @@ C****
 #ifdef CALCULATE_FLAMMABILITY
       write(6,*) '...and calculating sfc veg flammability'
 #endif
-#ifdef CALCULATE_LIGHTNING
+#if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
       write(6,*) '...and calculating lightning flash rate'
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING

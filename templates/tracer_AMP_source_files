@@ -20,11 +20,10 @@ TRAMP_setup      | $(EXTENDED_SOURCE) |
 TRAMP_npf        | $(EXTENDED_SOURCE) |  
 TRAMP_rad        | $(EXTENDED_SOURCE) |
 ! When using ISORROPIA Thermodynamics
-! AMP_thermo_isorr.f
-! AMP_isocom.f          
-! AMP_isrpia.ext        
-! AMP_isofwd          
-! AMP_isorev
+!TRAMP_thermo_isorr2 | $(EXTENDED_SOURCE) |
+!TRAMP_isocom2
+!TRAMP_isofwd2
+!TRAMP_isorev2
 ! When using EQSAM Thermodynamics
 TRAMP_thermo_eqsam | $(EXTENDED_SOURCE) |  
 TRAMP_eqsam_v03d

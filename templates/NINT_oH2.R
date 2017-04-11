@@ -1,14 +1,17 @@
 NINT_oH2.R GISS Model E  coupled version modelE + hycom ocean
 
-N.Tausnev 02/16/2017
+N.Tausnev 03/27/2017
 ocean H with various different horizontal/vertical resolutions activated.
 This template should be considered temporary until the
 new template system has been finalized.
 
 Preprocessor Options
-#define NEW_IO                   ! new I/O (netcdf) on
+#define STDHYB                  ! standard hybrid vertical coordinate
+#define ATM_LAYERING L40        ! 40 layers, top at .1 mb
+#define NEW_IO                  ! new I/O (netcdf) on
+#define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
+#define NO_HDIURN               ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define TRACERS_AGE_OCEAN
@@ -23,7 +26,7 @@ End Preprocessor Options
 Object modules:
      ! resolution-specific source codes
 Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5deg
-AtmL40                              ! vertical resolution is 40 layers -> 0.1mb
+AtmLayering                         ! vertical resolution
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 
@@ -39,11 +42,11 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "hycom_source_files"
 
 Components:
-#include "E4_components_nc"
+#include "E4_components_nc"    /* without "Ent" */
 Ent
 
 Component Options:
-OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT
+OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
@@ -57,7 +60,7 @@ NAMERVR=RD_Fb.names_hycom_jan2017.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files"
+#include "rad_144x90_input_files_CMIP6"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -74,8 +77,8 @@ NINT_oH2 (E4F40 + 1-deg ocean H with new coupler and space resolutions)
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent
 
-! The following two lines are only used when aerosol/radiation interactions are off
-FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
+! No tau adjustment factors for aerosols
+FS8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA

@@ -1,7 +1,16 @@
-E6TtomasF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm TOMAS tracers
+E6TomaF40ch4.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
 
-E6TtomasF40: Same as E6F40, with TOMAS tracers and computed aerosol
-           indirect effect, including Shindell chemistry
+This deck is not quite really "E6" because CMIP6 CH4 emissions files
+are not available for non-biomass burning sources. Also note that
+the wetlands source has not yet been "balanced" (from the rundeck)
+vs. obvservations. But making deck available now for testing 
+purposes:
+
+E6TomaF40ch4 = E6TomaF40 but:
+  (1) use CH4 emissions instead of L=1 overwriting (change emis files,
+      some parameters and pre-processor settings.)
+  (2) turn on the climate-interactive CH4 wetlands source, and list 
+      its files, parameters, etc.
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -34,21 +43,24 @@ Preprocessor Options
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
-!  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
+#define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
-!  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
-!  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+#define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
+#define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
+#define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
-!---> TOMAS start
-#define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
-#define TOMAS_12_3NM    ! 15 BIN and 3nm size cutoff 
-#define One_percent_sulfate
-#define Old_DMS_emis
-#define TOMAS_COARSER_EMISSION     ! larger emission size
-!<--- TOMAS end
+!---> OMA start
+#define TRACERS_DUST             ! include dust tracers
+#define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
+#define TRACERS_AEROSOLS_SEASALT ! seasalt
+#define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
+!  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
+#define TRACERS_NITRATE
+#define TRACERS_HETCHEM
+!<--- OMA end
 #define BC_ALB                    !optional tracer BC affects snow albedo
 #define CLD_AER_CDNC              !aerosol-cloud interactions
 #define BLK_2MOM                  !aerosol-cloud interactions
@@ -76,7 +88,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
-#include "tracer_TOMAS_source_files"
+#include "tracer_OMA_source_files"
 TRDIAG                              ! new i/o
 SUBDD
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
@@ -101,18 +113,25 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "land144x90_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files_CMIP6"
-#include "chemistry_input_files_nosoa"
+#include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
 #include "chem_emiss_144x90_input_files_CMIP6"
-#include "aerosol_TOMAS_input_files_CMIP6"
+#include "ch4_emiss_144x90_input_files_CMIP6"
+! ----- for interactive wetlands -----
+PREC_NCEP=gsin/ncep_prec_w_2wk_lag_2x2.5
+TEMP_NCEP=gsin/ncep_g1temp_2x2.5
+BETA_NCEP=temp_2x2.5/beta_p_ch4_4x5_2x2.5gf
+ALPHA_NCEP=temp_2x2.5/alpha_t_ch4_4x5_2x2.5gf
+! ----- end interactive wetlands -----
+#include "aerosol_OMA_input_files_CMIP6"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TtomasF40 (prescribed ocean atmospheric tracer model with TOMAS and Shindell chemistry)
+E6TomaF40ch4 (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -126,7 +145,7 @@ FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.63   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 use_vmp=1
@@ -144,11 +163,23 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! to override the transient chemistry tracer emissions'
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
-#include "aerosol_TOMAS_params_CMIP6"
-#include "dust_params_vmp_matrix" /* THIS MUST BE REPLACED WITH A TOMAS ONE */
+#include "aerosol_OMA_params_CMIP6"
+#include "dust_params_vmp_oma"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
-#include "ch4_params_CMIP6"
+#include "ch4_params_with_emissions_CMIP6"
+! ---- for interactive wetlands -----
+nn_or_zon=0     ! int dist method 1=zonal avg, 0=nearest neighbor
+int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
+ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
+ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
+topo_lim=205.d0 ! upper limit of topographic variation for new wetlands
+sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
+gw_ulim=100.d0  ! upper limit on ground wetness for new wetlands
+gw_llim=18.d0   ! lower limit on ground wetness for new wetlands
+SW_lim=27.d0    ! lower limit on SW downward flux for new wetlands
+! -----------------------------------
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
