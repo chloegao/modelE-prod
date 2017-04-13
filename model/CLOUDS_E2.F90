@@ -2221,12 +2221,15 @@ contains
                 vsum = vsum + tm(lborrow1,n)
               enddo
               if(vsum.lt.0.) then
+	        tm(l,n) = 0.d0 !dmw
+		vsum = 0.d0 !dmw
                 write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
               else
                 if(l-lborrow1.gt.1) then
                   write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm', &
                        itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
                 else
+		  tm(l,n) = 0.d0 !dmw
                   write(6,*) trname(n),' neg: it,i,j,l,tr,cm', &
                        itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
                 endif
