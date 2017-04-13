@@ -128,8 +128,11 @@ clean_components:
 	  if [ -d $$i ] ; then $(MAKE) -C $$i clean ; fi ; done
 
 $(RUN_H): $(DECKS_DIR)/$(RUN).mk FORCE
+	echo "#ifndef _RUNDECK_OPTS_H" > rundeck_opts.tmp ; \
+	echo "#define _RUNDECK_OPTS_H" >> rundeck_opts.tmp ; \
 	perl -e '$$_="$(CPP_OPTIONS)"; s/ *\#/\n\#/g; print "$$_\n";' \
-	 > rundeck_opts.tmp
+	 >> rundeck_opts.tmp ; \
+	echo "#endif" >> rundeck_opts.tmp ; \
 	if ! cmp -s rundeck_opts.tmp $(RUN_H) ; then \
 	  mv rundeck_opts.tmp $(RUN_H) ; \
 	else \

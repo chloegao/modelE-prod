@@ -13,7 +13,6 @@ TRAMP_eqsam_v03d                           ! EQSAM module for inorganic aerosol 
 !TRAMP_isocom2              
 !TRAMP_isofwd2          
 !TRAMP_isorev2
-!isrpia.inc
 ! ----------------------------------
 SeasaltTracersMetadata
 KochTracersMetadata

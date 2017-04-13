@@ -1050,6 +1050,7 @@ C**** CLOSE SUBDAILY OUTPUT FILES
       return
       end subroutine finalize_atm
 
+
       SUBROUTINE CHECKT (SUBR)
 !@sum  CHECKT Checks arrays for NaN/INF and reasonablness
 !@auth Original Development Team
@@ -1134,7 +1135,7 @@ C**** Check all prog. arrays for Non-numbers
 C**** Check PBL arrays
         CALL CHECKPBL(SUBR)
 C**** Check Ocean arrays
-        CALL CHECKO(SUBR)
+         If (KOCEAN /= 0)  Call CHECKO (SUBR)
 C**** Check Ice arrays
         CALL CHECKI(SUBR)
 C**** Check Lake arrays
@@ -1147,7 +1148,7 @@ C**** Check Land Ice arrays
 C**** check tracers
         CALL CHECKTR(SUBR)
 #endif
-      END IF
+      EndIf  !  QCHECK
 
       RETURN
       END SUBROUTINE CHECKT

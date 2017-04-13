@@ -38,7 +38,7 @@ module CLOUDS
 #endif
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 #ifdef TRACERS_ON
-  use TRACER_COM, only: NTM, trname,t_qlimit,ntm_soa,ntm_ococean
+  use TRACER_COM, only: NTM, trname,t_qlimit
 #ifdef TRACERS_AEROSOLS_OCEAN
   use TRACER_COM, only: n_ococean,n_seasalt1,trm,trpdens
 #endif  /* TRACERS_AEROSOLS_OCEAN */

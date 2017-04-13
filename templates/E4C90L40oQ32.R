@@ -12,7 +12,6 @@ filters: none
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define NEW_IO
 #define CALC_GWDRAG
 #define SET_SOILCARBON_GLOBAL_TO_ZERO
@@ -46,7 +45,6 @@ CS_Support
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 
@@ -64,7 +62,7 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 #include "rad_input_files"
 #include "rad_C90_input_files"
 
-MSU_wts=MSU.RSS.weights.data     ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt     ! MSU-diag
 REG=REG.txt                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

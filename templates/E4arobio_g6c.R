@@ -13,7 +13,6 @@ E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.;
 Preprocessor Options
 #define NEW_IO
 #define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
 #define OBIO_ON_GARYocean           ! obio on Russell ocean
@@ -23,7 +22,7 @@ Preprocessor Options
 #define pCO2_ONLINE
 #define TRACERS_GASEXCH_ocean       ! ANY ocean: special tracers to be passed to ocean
 #define TRACERS_GASEXCH_ocean_CO2   ! ANY ocean: special tracers to be passed to ocean
-!!!!#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - don't use it - use run-time parameter instead: chl_from_seawifs=1
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -54,7 +53,6 @@ tracers Ent shared MPI_Support solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc         ! observed init cond (atm. only) ISTART=2
@@ -86,7 +84,7 @@ NAMERVR=RD_modelE_F.names.txt  ! named river outlets
 
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 ! probably need these (should convert to 144x90)
 soil_textures=soil_textures_top30cm_2x2.5

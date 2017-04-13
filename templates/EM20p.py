@@ -11,7 +11,6 @@ to correspond to AR5 defaults."""
 res="M20"
 
 GlobalCPPOptions=[
-    "#define USE_ENT",
     "#define NEW_IO"
 ]
 

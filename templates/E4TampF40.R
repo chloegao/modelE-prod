@@ -16,7 +16,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define TRAC_ADV_CPU
-#define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 !  OFF #define TRACERS_DUST             ! include dust tracers
@@ -88,7 +87,6 @@ dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -112,7 +110,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
 #include "aerosol_MATRIX_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

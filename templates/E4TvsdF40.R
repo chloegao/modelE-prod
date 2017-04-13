@@ -20,7 +20,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define USE_ENT                  ! include dynamic vegetation model
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 !---> generic tracers code start
@@ -65,7 +64,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -79,7 +77,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 src_dist_cfg=/discover/nobackup/mkelley5/bfuncs/xyztr144_144x90.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

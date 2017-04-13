@@ -1164,6 +1164,7 @@ C****
       integer :: J_0, J_1, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
         imon=1          ! imon=January
@@ -1204,7 +1205,7 @@ c**** Interpolate two months of data to current day
      & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
       return
       end subroutine read_monthly_sources
-#endif
+#endif  /* TRACERS_ON */
 
       subroutine checktr(subr)
 !@sum  CHECKTR Checks whether atmos tracer variables are reasonable
@@ -1374,9 +1375,9 @@ C**** check whether air mass is conserved
       use trdust_drv, only: io_trDust
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#ifdef BC_ALB
       USE AEROSOL_SOURCES, only : snosiz
-#endif
+#endif  /* BC_ALB */
       USE Dictionary_mod, only : sync_param
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 
@@ -1395,9 +1396,9 @@ C**** check whether air mass is conserved
 #endif
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_glob
   
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#ifdef BC_ALB
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
-#endif
+#endif  /* BC_ALB */
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem
@@ -1453,9 +1454,9 @@ C**** check whether air mass is conserved
      &    ,Aijl_glob(img,jmg,LM)
      &     )
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
       allocate( snosiz_glob(img,jmg) )
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
@@ -1520,11 +1521,11 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
      &      ricntd_glob,pprec_glob,pevap_glob
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
        header='BC_albedo_effect: snosiz(i,j)'
         call pack_data(grid,snosiz(:,:),snosiz_glob(:,:))
         if(am_i_root())write(kunit,err=10)header,snosiz_glob
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell       
        header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
@@ -1762,10 +1763,10 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           CALL unpack_data(grid,pevap_glob,pevap)
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
           if(am_i_root())read(kunit,err=10)header,snosiz_glob
           call unpack_data(grid,snosiz_glob(:,:),snosiz(:,:))
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell       
           if(am_i_root())read(kunit,err=10)header,ss_glob
@@ -1937,9 +1938,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 #endif
      &     )
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
       deallocate(snosiz_glob)
-#endif
+#endif  /* BC_ALB */
 
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2099,9 +2100,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      & avg_model,avg_ncep
 #endif
 #endif /* TRACERS_SPECIAL_Shindell */
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS) 
+#ifdef BC_ALB
       USE AEROSOL_SOURCES, only : snosiz
-#endif
+#endif  /* BC_ALB */
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
@@ -2298,9 +2299,9 @@ c daily_z is currently only needed for CS
 
 #endif
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_TOMAS)
+#ifdef BC_ALB
       call doVar(handle,action,snosiz,'snosiz(dist_im,dist_jm)')
-#endif
+#endif  /* BC_ALB */
 
 #ifdef TRACERS_AMP
       ! restartability hack until matrix code refactored to
@@ -2339,18 +2340,19 @@ c daily_z is currently only needed for CS
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
      &                                labs=(/'          ','absorption'/)
       character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
-     &                                lfrc=(/'shortwave','longwave'/)
+     &                                lfrc=(/'shortwave','longwave '/)
       character(len=10) :: spcname
 ! types of PM/tracer surface amounts to be saved
 ! The name will be any combination of PM{2p5,10}{l1,s}{m,c}
 !                            I.E. {species}{location}{units}
-! and similar format for any tracer: trname(){l1,s}{m,s}.
-! In practice did not include the l1s (L=1 cocentration) case
+! and similar format for any tracer: trname(){l1,s}{m,c}.
+! In practice did not include the l1c (L=1 cocentration) case
       character(len=20), dimension(2) :: 
-     &   ssiz=(/'2p5','10'/), lsiz=(/'PM2.5','PM10'/),
-     &   sloc=(/'l1','s'/),   lloc=(/'L=1','Surface'/),
-     &   sunt=(/'m','c'/), lunt=(/'Mass Mixing Ratio','Concentration'/),
-     &   uunt=(/'kg species / kg air','kg m-3'/)
+     &   ssiz=(/'2p5','10 '/), lsiz=(/'PM2.5','PM10 '/),
+     &   sloc=(/'l1','s '/),   lloc=(/'L=1    ','Surface'/),
+     &   sunt=(/'m','c'/),
+     &   lunt=(/'Mass Mixing Ratio','Concentration    '/),
+     &   uunt=(/'kg species / kg air','kg m-3             '/)
       character*80 :: unitString,unitString2
       integer :: s,a,n,f,u,l,p
 

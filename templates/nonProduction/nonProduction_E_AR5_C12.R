@@ -4,7 +4,6 @@ nonProduction_E_AR5_C12  = This is a coarse resolution of E_AR5_M20.
 This is for faster testing of code functionality, not scrutinized for "science" purposes.
 
 Preprocessor Options
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -32,7 +31,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_36x24_input_files"
@@ -41,10 +39,10 @@ RVR=RD8X10.nc            ! river direction file
 NAMERVR=RD8X10.names.txt ! named river outlets
 
 #include "land36x24_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_36x24_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG8X10                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

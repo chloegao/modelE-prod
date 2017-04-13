@@ -100,6 +100,8 @@ cddd      public msk
       public sfhtav
       public uflxav
       public vflxav
+      public vfxavp
+      public ufxavp
       public diaflx
       public salflav
       public brineav
@@ -156,7 +158,7 @@ cddd      public msk
       public surflx
       public salflx
       public odmsi
-CTNL  public omlhc
+      public omlhc
       public dmfz
       public taux
       public tauy
@@ -223,6 +225,7 @@ c
      .,th3av(:,:,:), dpav(:,:,:)
      .,pbavav(:,:),sfhtav(:,:)
      .,uflxav(:,:,:),vflxav(:,:,:)
+     .,ufxavp(:,:,:),vfxavp(:,:,:)
      .,diaflx(:,:,:)                    ! time integral of diapyc.flux
      .,salflav(:,:),brineav(:,:),eminpav(:,:),surflav(:,:)
      .,tauxav(:,:),tauyav(:,:)
@@ -278,7 +281,7 @@ c    .,covice(:,:)			! ice coverage (rel.units)
 c    .,temice(:,:)			! ice surf.temp.
 c    .,odhsi(:,:)			! heat borrowed from frozen
      .,odmsi(:,:)			! newly formed ice
-CTNL .,omlhc(:,:)
+     .,omlhc(:,:)
      .,dmfz(:,:)			! ice mass due to freezing
 c
 !!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
@@ -389,6 +392,8 @@ c
       call unpack_data( ogrid,  sfhtav, sfhtav_loc )
       call unpack_data( ogrid,  uflxav, uflxav_loc )
       call unpack_data( ogrid,  vflxav, vflxav_loc )
+      call unpack_data( ogrid,  ufxavp, ufxavp_loc )
+      call unpack_data( ogrid,  vfxavp, vfxavp_loc )
       call unpack_data( ogrid,  diaflx, diaflx_loc )
       call unpack_data( ogrid,  salflav, salflav_loc )
       call unpack_data( ogrid,  brineav, brineav_loc )
@@ -445,7 +450,7 @@ c
       call unpack_data( ogrid,  surflx, surflx_loc )
       call unpack_data( ogrid,  salflx, salflx_loc )
       call unpack_data( ogrid,  odmsi, odmsi_loc )
-CTNL  call unpack_data( ogrid,  omlhc, omlhc_loc )
+      call unpack_data( ogrid,  omlhc, omlhc_loc )
       call unpack_data( ogrid,  dmfz, dmfz_loc )
       call unpack_data( ogrid,  taux, taux_loc )
       call unpack_data( ogrid,  tauy, tauy_loc )
@@ -528,6 +533,8 @@ CTNL  call unpack_data( ogrid,  omlhc, omlhc_loc )
       call pack_data( ogrid,  sfhtav_loc, sfhtav )
       call pack_data( ogrid,  uflxav_loc, uflxav )
       call pack_data( ogrid,  vflxav_loc, vflxav )
+      call pack_data( ogrid,  ufxavp_loc, ufxavp )
+      call pack_data( ogrid,  vfxavp_loc, vfxavp )
       call pack_data( ogrid,  diaflx_loc, diaflx )
       call pack_data( ogrid,  salflav_loc, salflav )
       call pack_data( ogrid,  brineav_loc, brineav )
@@ -584,7 +591,7 @@ CTNL  call unpack_data( ogrid,  omlhc, omlhc_loc )
       call pack_data( ogrid,  surflx_loc, surflx )
       call pack_data( ogrid,  salflx_loc, salflx )
       call pack_data( ogrid,  odmsi_loc, odmsi )
-CTNL  call pack_data( ogrid,  omlhc_loc, omlhc )
+      call pack_data( ogrid,  omlhc_loc, omlhc )
       call pack_data( ogrid,  dmfz_loc, dmfz )
       call pack_data( ogrid,  taux_loc, taux )
       call pack_data( ogrid,  tauy_loc, tauy )
@@ -666,6 +673,7 @@ c
      .,th3av(idm,jdm,kdm), dpav(idm,jdm,kdm)
      .,pbavav(idm,jdm),sfhtav(idm,jdm)
      .,uflxav(idm,jdm,kdm),vflxav(idm,jdm,kdm)
+     .,ufxavp(idm,jdm,kdm),vfxavp(idm,jdm,kdm)
      .,diaflx(idm,jdm,kdm)
      .,salflav(idm,jdm),brineav(idm,jdm),eminpav(idm,jdm)
      .,surflav(idm,jdm),tauxav(idm,jdm),tauyav(idm,jdm)
@@ -709,7 +717,7 @@ c    .,covice(idm,jdm)
 c    .,temice(idm,jdm)
 c    .,odhsi(idm,jdm)
      .,odmsi(idm,jdm)
-CTNL .,omlhc(idm,jdm)
+     .,omlhc(idm,jdm)
      .,dmfz(idm,jdm) )
 c
       allocate( klist(idm,jdm)
@@ -793,6 +801,8 @@ c
       sfhtav = 0
       uflxav = 0
       vflxav = 0
+      ufxavp = 0
+      vfxavp = 0
       diaflx = 0
       salflav = 0
       brineav = 0
@@ -848,7 +858,7 @@ c
       surflx = 0
       salflx = 0
       odmsi = 0
-CTNL  omlhc = 0
+      omlhc = 0
       dmfz = 0
       taux = 0
       tauy = 0
@@ -927,6 +937,8 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(sfhtav(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(uflxav(:,:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(vflxav(:,:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(ufxavp(:,:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(vfxavp(:,:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(diaflx(:,:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(salflav(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(brineav(:,:))
@@ -987,7 +999,7 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(surflx(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(salflx(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odmsi(:,:))
-CTNL  write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(omlhc(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(omlhc(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dmfz(:,:))
 c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(klist(:,:))

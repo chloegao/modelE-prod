@@ -14,7 +14,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define NEW_IO
 End Preprocessor Options
 
@@ -39,7 +38,6 @@ Ent shared MPI_Support solvers giss_LSM dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! resolution dependent files
@@ -75,7 +73,7 @@ GLMELT=GLMELT_4X5.OCN.nc   ! glacial melt distribution
     ! resolution independent files
 #include "rad_input_files"
 #include "rad_72x46_input_files"
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E4M20 (ModelE1 4x5, 20 lyrs, 1850 atm/ocn)

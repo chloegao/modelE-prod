@@ -12,7 +12,6 @@ filters: none
 
 Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
-#define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
@@ -77,7 +76,6 @@ dd2d
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB  /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES         /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 FVCUBED = YES
 
@@ -111,7 +109,7 @@ NAMERVR=RDdistocean_CS90_EM.names.txt  ! named river outlets
 
 #include "aerosol_OMA_C90_input_files"
 
-MSU_wts=MSU.RSS.weights.data     ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt     ! MSU-diag
 REG=REG.txt                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
@@ -143,7 +141,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
-#include "aerosol_params"
+#include "aerosol_OMA_params"
 #include "dust_params_oma"
 #include "common_tracer_params"
 #include "chemistry_params"

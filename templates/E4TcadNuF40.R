@@ -18,7 +18,6 @@ Preprocessor Options
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define NUDGE_ON                 ! nudged winds on
 ! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
-#define USE_ENT                  ! include dynamic vegetation model
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DUST             ! include dust tracers
@@ -84,7 +83,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -108,7 +106,7 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "aerosol_OMA_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

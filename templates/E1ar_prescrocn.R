@@ -17,7 +17,7 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - replaced by run-time parameter
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -95,7 +95,7 @@ ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 !!! Seawifs Files
 CHL_DATA=CHL_WG_2x2.5
@@ -180,6 +180,8 @@ ndaa=13
 nda5k=13
 nda4=48         ! to get daily energy history use nda4=24*3600/DTsrc
 Nssw=2   ! until diurnal diags are fixed, Nssw has to be even
+
+chl_from_seawifs = 1
 &&END_PARAMETERS
 
  &INPUTZ

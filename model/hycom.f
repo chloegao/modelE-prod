@@ -167,10 +167,9 @@ c
 c
       real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
       real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
-     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm),omlhc(idm,jdm)
-
+     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
      . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
-     . ,omlhc_loc(idm,J_0H:J_1H)
+c    . ,omlhc_loc(idm,J_0H:J_1H),omlhc(idm,jdm)
       real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
      &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
@@ -1001,7 +1000,8 @@ c
             kn=k+nn
             thkchg=dp_loc(i,j,km)+dp_loc(i,j,kn)-dpini(k)
             flxdiv=(uflxav_loc(i+1,j,k)-uflxav_loc(i,j,k)
-     .      +vflxav_loc(i,jb ,k)-vflxav_loc(i,j,k))*scp2i_loc(i,j)*delt1
+     .             +vflxav_loc(i,jb ,k)-vflxav_loc(i,j,k))*
+     .             scp2i_loc(i,j)*delt1
             write (lp,102) k,thkchg,flxdiv,-diaflx_loc(i,j,k),
      .      thkchg+flxdiv-diaflx_loc(i,j,k)
  102  format (i3,4f14.1)
@@ -1252,7 +1252,7 @@ c      endif
       call fld_o2a(osst_loc,atmocn%work1)
       call tempr_o2a(osst_loc,atmocn%work2)
       call fld_o2a(osss_loc,sss_loc)
-cTNL  call fld_o2a(omlhc_loc,mlhc_loc)
+      call fld_o2a(omlhc_loc,mlhc_loc)
       call fld_o2a(oogeoza_loc,ogeoza_loc)
       call fld_o2a(osiav_loc,utila_loc)                 !kg/m*m per agcm time step
       call vec_o2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
@@ -1381,6 +1381,8 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  sfhtav_loc, sfhtav )
       call pack_data( ogrid,  uflxav_loc, uflxav )
       call pack_data( ogrid,  vflxav_loc, vflxav )
+      call pack_data( ogrid,  ufxavp_loc, ufxavp )
+      call pack_data( ogrid,  vfxavp_loc, vfxavp )
       call pack_data( ogrid,  diaflx_loc, diaflx )
       call pack_data( ogrid,  salflav_loc, salflav )
       call pack_data( ogrid,  brineav_loc, brineav )
@@ -1415,31 +1417,37 @@ c------------------------------------------------------------------
       do 60 j=J_0, J_1
 c
       do 601 i=1,ii
-      eminpav(i,j)=0.
-      surflav(i,j)=0.
-      salflav(i,j)=0.
-      brineav(i,j)=0.
-      tauxav(i,j)=0.
-      tauyav(i,j)=0.
+      if (dpav(i,j,1).gt.1.) then
+        eminpav(i,j)=0.
+        surflav(i,j)=0.
+        salflav(i,j)=0.
+        brineav(i,j)=0.
+        tauxav(i,j)=0.
+        tauyav(i,j)=0.
+        pbavav(i,j)=0.
+        dpmxav(i,j)=0.
+        sfhtav(i,j)=0.
+        oiceav(i,j)=0.
+      end if
+ 601  continue
 c
-      pbavav(i,j)=0.
-      dpmxav(i,j)=0.
-      sfhtav(i,j)=0.
- 601  oiceav(i,j)=0.
-c
-      do 60 k=1,kk
-      do 602 i=1,ii
-      uav(i,j,k)=0.
-      vav(i,j,k)=0.
-      dpuav(i,j,k)=0.
-      dpvav(i,j,k)=0.
-      dpav (i,j,k)=0.
-      temav(i,j,k)=0.
-      salav(i,j,k)=0.
-      th3av(i,j,k)=0.
-      uflxav(i,j,k)=0.
-      vflxav(i,j,k)=0.
- 602  diaflx(i,j,k)=0.
+      do 60 k=kk,1,-1
+      do 60 i=1,ii
+      if (dpav(i,j,1).gt.1.) then
+        uav(i,j,k)=0.
+        vav(i,j,k)=0.
+        dpuav(i,j,k)=0.
+        dpvav(i,j,k)=0.
+        dpav (i,j,k)=0.
+        temav(i,j,k)=0.
+        salav(i,j,k)=0.
+        th3av(i,j,k)=0.
+        uflxav(i,j,k)=0.
+        vflxav(i,j,k)=0.
+        ufxavp(i,j,k)=0.
+        vfxavp(i,j,k)=0.
+        diaflx(i,j,k)=0.
+      end if
  60   continue
 
 #ifdef TRACERS_OceanBiology
@@ -1658,6 +1666,12 @@ c
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(vflxav,dim=3), arraySum ) !sum(vflxav(:,:,:))
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
+
+      call GLOBALSUM( ogrid, sum(ufxavp,dim=3), arraySum ) !sum(ufxavp(:,:,:))
+      if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
+
+      call GLOBALSUM( ogrid, sum(vfxavp,dim=3), arraySum ) !sum(vfxavp(:,:,:))
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, sum(diaflx,dim=3), arraySum ) !sum(diaflx(:,:,:))

@@ -132,7 +132,6 @@ c
       USE pario
 
       use ocalbedo_mod, only: lam, ocalbedo_init=>init
-      use RunTimeControls_mod, only: chl_from_seawifs
 
       implicit none  
 

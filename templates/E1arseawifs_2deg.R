@@ -21,7 +21,7 @@ Preprocessor Options
 !#define TRACERS_OceanBiology
 !#define OBIO_ON_GARYocean
 !#define pCO2_ONLINE
-#define CHL_from_SeaWIFs
+!!!!#define CHL_from_SeaWIFs - replaced by run-time parameter
 #define OCN_LAYERING L32
 End Preprocessor Options
 
@@ -131,7 +131,7 @@ ISCCP=ISCCP.tautables
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 !!!!!!!!!!!!!!!!!!! obio  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 cfle1=abw25b.dat                         ! seawater spectral absorp. and
@@ -251,6 +251,7 @@ nssw=48         ! obio needs that in order to always restart from hour 0
 !parameters that affect CO2 gas exchange
 atmCO2=368.6      !uatm for year 2000
 
+chl_from_seawifs = 1
 &&END_PARAMETERS
 
  &INPUTZ

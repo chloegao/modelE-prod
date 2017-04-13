@@ -115,7 +115,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:), public :: ASJL,ASJL_loc
 
 !@param KAIJ number of AIJ diagnostics
-      INTEGER, PARAMETER, public :: KAIJ=535
+      INTEGER, PARAMETER, public :: KAIJ=550
 #ifdef ACCMIP_LIKE_DIAGS
      &                                   + 8
 #endif
@@ -561,7 +561,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_TRSDN,
      *     IJ_TRSUP, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
      *     IJ_DSKIN, IJ_DSKINSNOW, IJ_MCCVTP, IJ_MCCVBS,
-     *     IJ_P1000,IJ_P925,IJ_P700,IJ_P600,IJ_P500, IJ_LI, IJ_LK,
+     *     IJ_LI, IJ_LK,
      &     IJ_FVEG,IJ_GUSTI, IJ_MCCON
      *     ,IJ_WISUM, IJ_SLPQ, IJ_PRESQ
      *     ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis
@@ -572,6 +572,7 @@ C****      names, indices, units, idacc-numbers, etc.
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
      &     ,ij_flam,ij_CtoG,ij_flash
      *     ,ij_fvden,ij_human,ij_fireC
+     *     ,ij_nsuppress,ij_cgign,ij_humanign
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot

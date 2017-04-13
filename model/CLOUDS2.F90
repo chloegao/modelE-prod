@@ -30,7 +30,7 @@ module CLOUDS
   use QUSDEF, only : nmom,xymoms,zmoms,zdir
 
 #ifdef TRACERS_ON
-  use TRACER_COM, only: NTM, ntm_soa,ntm_ococean
+  use TRACER_COM, only: NTM
   use OldTracer_mod, only: trname, t_qlimit
 
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -5124,7 +5124,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       do ITER=1,ITMAX-1
         VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))* &
              (1000./PL)**.4d0
-        if(VT.ge.0..and.abs(VT-WV).lt..3) exit
+        if(VT.ge.0..and.VT.ge.WV) exit
         if(VT.gt.WMAX) exit
         DCW=DCW+DDCW
       end do
@@ -5138,7 +5138,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       do ITER=1,ITMAX-1
         VT=(-.267d0+DCW*(5.15D3-DCW*(1.0225D6-7.55D7*DCW)))* &
              (1000./PL)**.4d0
-        if(VT.ge.0..and.abs(VT-WV).lt..3) exit
+        if(VT.ge.0..and.VT.ge.WV) exit
         if(VT.gt.WMAX) exit
         DCW=DCW+DDCW
       end do

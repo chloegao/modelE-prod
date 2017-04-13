@@ -48,13 +48,13 @@
       real(kind=8), parameter, dimension( nSubClays+1 ) :: subClayBounds
      &     = (/ 0.1d0, 0.2d0, 0.5d0, 1.d0, 2.d0 /)
 
-!@param ndustBinsRadia  soil dust bins for radiation
-      integer, parameter :: ndustBinsRadia = nSubClays+nDustBins-1
+!@param nDustBinsFull  number of soil dust bins for radiation
+      integer, parameter :: nDustBinsFull = nSubClays+nDustBins-1
 !@param dustBoundsRadia  particle diameter bounds of soil dust aerosol bins
 !@+       for radiation [1 um]
-      real(kind=8), parameter, dimension( ndustBinsRadia + 1 ) ::
-     &     dustBoundsRadia = (/ subClayBounds, dustBounds( 3:nDustBins+1
-     &     ) /)
+      real( kind=8 ), parameter, dimension( nDustBinsFull + 1 ) ::
+     &     dustBoundsRadia = (/ subClayBounds, dustBounds( 3:nDustBins
+     &     +1 ) /)
 
 !@var subClayWeights  weights for masses in the sub bins of the clay size
 !@+     class for each soil dust tracer
@@ -167,23 +167,28 @@ c**** additional declarations for dust tracers with mineralogical composition
 !@+         effective radius of minerals from particle size distribution for
 !@+         radiation calculations (0: prescribed=default; 1:calculated)
       integer :: calcEffectiveRadius = 0
-!@param dryEffRadClay  dry effective radius of clay minerals for radiation [um]
-      real( kind=8 ), parameter, dimension( 4 ) :: dryEffRadClay = (/
-     &     0.132d0, 0.23d0, 0.416d0, 0.766d0 /)
-!@param dryEffRadSil1  dry effective radius of silt1 minerals for radiation [um]
-      real( kind=8 ), parameter :: dryEffRadSil1 = 1.386d0
-!@param dryEffRadSil2  dry effective radius of silt2 minerals for radiation [um]
-      real( kind=8 ), parameter :: dryEffRadSil2 = 2.773d0
-!@param dryEffRadSil3  dry effective radius of silt3 minerals for radiation [um]
-      real( kind=8 ), parameter :: dryEffRadSil3 = 5.545d0
-!@param dryEffRadSil4  dry effective radius of silt4 minerals for radiation [um]
-      real( kind=8 ), parameter :: dryEffRadSil4 = 11.090d0
-!@param dryEffRadSil5  dry effective radius of silt5 minerals for radiation [um]
-      real( kind=8 ), parameter :: dryEffRadSil5 = 22.0d0
+
+!@param radiusClay  dry radius of clay dust/minerals [um]
+      real( kind=8 ), parameter, dimension( nSubClays ) :: radiusClay =
+     &     (/ 0.132d0, 0.23d0, 0.416d0, 0.766d0 /)
+!@param radiusSil1  dry radius of silt1 dust/minerals [um]
+      real( kind=8 ), parameter :: radiusSil1 = 1.386d0
+!@param radiusSil2  dry radius of silt2 dust/minerals [um]
+      real( kind=8 ), parameter :: radiusSil2 = 2.773d0
+!@param radiusSil3  dry radius of silt3 dust/minerals [um]
+      real( kind=8 ), parameter :: radiusSil3 = 5.545d0
+!@param radiusSil4  dry radius of silt4 dust/minerals [um]
+      real( kind=8 ), parameter :: radiusSil4 = 11.090d0
+!@param radiusSil5  dry radius of silt5 dust/minerals [um]
+      real( kind=8 ), parameter :: radiusSil5 = 22.0d0
+!@param radiusMinerals  dry radius of all dust/minerals [um]
+      real( kind=8 ), parameter, dimension( nDustBinsFull ) ::
+     &     radiusMinerals = (/ radiusClay, radiusSil1, radiusSil2,
+     &     radiusSil3, radiusSil4, radiusSil5 /)
+
 !@param dryEffRadMinerals  dry effective radius of minerals for radiation [um]
-      real( kind=8 ), dimension( ndustBinsRadia ) :: dryEffRadMinerals =
-     &     (/ dryEffRadClay, dryEffRadSil1, dryEffRadSil2,
-     &     dryEffRadSil3, dryEffRadSil4, dryEffRadSil5 /)
+      real( kind=8 ), parameter, dimension( nDustBinsFull ) ::
+     &     dryEffRadMinerals = (/ radiusMinerals /)
 
 #ifdef TRACERS_MINERALS
 !@param densityIllite  particle density of Illite [kg/m^3]

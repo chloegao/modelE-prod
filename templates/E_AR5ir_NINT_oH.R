@@ -18,7 +18,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define IRRIGATION_ON
 #define NEW_IO
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
@@ -55,7 +54,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF             !  Parallel NETCDF
 
 Data input files:
@@ -71,7 +69,7 @@ IRRIG=IRRIG_1850_V144X90.bi
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

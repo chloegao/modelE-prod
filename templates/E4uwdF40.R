@@ -11,7 +11,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -38,7 +37,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
     ! resolution dependent files
@@ -98,7 +96,7 @@ ISCCP=ISCCP.tautables
 #include "rad_144x90_input_files"
 GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:  (next 2 lines)
 E4uwdF40 (E4F40 with alternative gravity wave drag: unresolved wave drag)

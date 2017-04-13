@@ -19,7 +19,7 @@ C
       USE MODEL_COM,   only: itime,itimeI
       use OldTracer_mod, only: trName, TRPDENS
       USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM,xk
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       ! aerosol radiative properties from lookup table
@@ -247,7 +247,6 @@ C     Determine size parameter
  500        continue   
       enddo                     !K=1,NBINS
 
-      TTAUSV(L,:)= aesqex(l,6,:)     
 !     endif !for timeI
       ENDIF
       return
@@ -270,7 +269,7 @@ C ************************************************************
       USE domain_decomp_atm,ONLY: am_i_root
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
       use RAD_COM,     only: diag_fc
 
       USE TOMAS_AEROSOL, only : icomp

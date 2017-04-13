@@ -6,20 +6,9 @@ PltOx=0.0
 Tpsc_offset_N=0.d0
 Tpsc_offset_S=0.d0
 ! -----------------------------------
-! 40-layer model with VMP clouds chemistry tuning parameters: 
+! 40-layer model CMIP6 chemistry tuning parameters: 
 windowN2Ocorr=1.0
 windowO2corr=1.0
-   ! these worked well with the older solar/FLTRAN file like 
-   ! *solar.lean2015.ann1610-2014*
-! reg1Power_SpherO2andN2Ocorr=2.0
-! reg1TopPres_SpherO2andN2Ocorr=50.
-! reg2Power_SpherO2andN2Ocorr=2.0
-! reg2TopPres_SpherO2andN2Ocorr=10.
-! reg3Power_SpherO2andN2Ocorr=1.0
-! reg3TopPres_SpherO2andN2Ocorr=5.
-! reg4Power_SpherO2andN2Ocorr=0.5
-   ! these worked better with the official CMIP6 solar file
-   ! and related photolysis input:
 reg1Power_SpherO2andN2Ocorr=1.5
 reg1TopPres_SpherO2andN2Ocorr=50.
 reg2Power_SpherO2andN2Ocorr=1.5
@@ -36,17 +25,11 @@ clim_interact_chem=1 ! 1=use calculated Ox/CH4 in radiation, 0=use climatology
                    ! if you want humidity feedback on but radiation feedback off
                    ! you could do: clim_interact_chem=1, Lmax_rad_{O3,CH4}=0...
 ! Lmax_rad_O3=0    ! Ox levels used in rad code default is LM
-! Lmax_rad_CH4=0   ! CH4 levels used in rad code default is LM
 use_rad_n2o=1      ! use the radiation code's N2O
 use_rad_cfc=1      ! use rad code cfc11+cfc12, adjusted
-use_rad_ch4=1      ! use rad code CH4, shut off sfc sources
 rad_FL=1           ! use rad code insolation getting fastj2 photon flux
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
-fix_CH4_chemistry=0    ! for setting fixed methane value for chemistry:
-ch4_init_sh=0.791      ! init cond/fixed conditions SH CH4 ppmv
-ch4_init_nh=0.791      ! init cond/fixed conditions NH CH4 ppmv
-scale_ch4_IC_file=1.d0 ! multiplicative factor on CH4 IC file (fix_CH4_chemistry=-1)
 
 ! For altering tracer initial conditions and overwriting by a factor:
 ! set PI_run=1 and change the corresponding factors below. [For altering
@@ -66,4 +49,3 @@ Alkenes_nBBsources=1
 CO_nBBsources=1
 NOx_nBBsources=1
 Paraffin_nBBsources=1
-! OFF FOR NOW: CH4_nBBsources=1

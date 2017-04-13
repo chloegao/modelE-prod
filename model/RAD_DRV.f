@@ -76,7 +76,8 @@ C****
 #endif  /* TRACERS_ON */
       USE RAD_COM, only : rqt, s0x, co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx
      *     ,o2x,no2x,n2cx,yGHGx,so2x,CH4X_RADoverCHEM,snoage_def
-     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day,aero_yr,O3_yr
+     *     ,s0_yr,s0_day,ghg_yr,ghg_day,volc_yr,volc_day
+     *     ,aero_yr,dust_yr,O3_yr
      *     ,H2ObyCH4,dH2O,h2ostratx,O3x,RHfix,CLDx,ref_mult,COSZ1
      *     ,obliq,eccn,omegt,obliq_def,eccn_def,omegt_def
      *     ,CC_cdncx,OD_cdncx,cdncl,pcdnc,vcdnc
@@ -87,10 +88,11 @@ C****
      *     ,ntrix_aod,ntrix_rf,wttr
      *     ,variable_orb_par,orb_par_year_bp,orb_par,nrad
      *     ,radiationSetOrbit
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef TRACERS_ON
-     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,ttausv_as,ttausv_cs
+     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,tau_as,tau_cs
 #ifdef CACHED_SUBDD
-     *     ,tabssv_as,tabssv_cs,swfrc,lwfrc
+     *     ,abstau_as,abstau_cs,swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
@@ -284,7 +286,7 @@ C**** sync radiation parameters from input
         if (volc_yr==0) volc_day=0 ! else use default value
       endif
       call get_param( "aero_yr", aero_yr, default=master_yr )
-      call sync_param( "madaer", madaer )
+      call get_param( "dust_yr", dust_yr, default=master_yr )
       call sync_param( "dALBsnX", dALBsnX )
       call get_param( "albsn_yr", albsn_yr, default=master_yr )
       call sync_param( "aermix", aermix , 13 )
@@ -461,6 +463,12 @@ C**** sync radiation parameters from input
         call cosz_init
       endif
 
+      call sync_param("chl_from_obio", chl_from_obio)
+      call sync_param("chl_from_seawifs", chl_from_seawifs)
+      if ( chl_from_obio>0 .and. chl_from_seawifs>0 ) then
+        call stop_model("Make your mind which chl to use",255)
+      endif
+
       if(istart==2) then ! replace with cold vs warm start logic
 C**** SET RADIATION EQUILIBRIUM TEMPERATURES FROM LAYER LM TEMPERATURE
         DO J=J_0,J_1
@@ -509,6 +517,8 @@ C****                                         even if the year is fixed
       KYEARA=Aero_yr ; KJDAYA=0 ! MADAER=1 or 3, trop.aeros (ann.cycle)
       if(KYEARA.gt.0) KYEARA=-KYEARA              ! use ONLY KYEARA-data
       if(file_exists('TAero_SSA')) MADAER=3   ! one of the TAero_XXX set
+      KYEARD=Dust_yr
+      if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
 #ifdef TRACERS_VOLCEXP
@@ -629,18 +639,18 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
         allocate(wttr(nraero_aod))  ; wttr=1.
 
-        if (.not.allocated(ttausv_as)) then
-          allocate(ttausv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          allocate(ttausv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          ttausv_as = 0.d0
-          ttausv_cs = 0.d0
+        if (.not.allocated(tau_as)) then
+          allocate(tau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(tau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          tau_as = 0.d0
+          tau_cs = 0.d0
 #ifdef CACHED_SUBDD
-          allocate(tabssv_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          allocate(tabssv_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+          allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
           allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
-          tabssv_as = 0.d0
-          tabssv_cs = 0.d0
+          abstau_as = 0.d0
+          abstau_cs = 0.d0
           swfrc = 0.d0
           lwfrc = 0.d0
 #endif  /* CACHED_SUBDD */
@@ -1166,9 +1176,8 @@ c          call par_close(grid,fid)
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
      *     ,o3x,o3_yr,ghg_yr,co2ppm,Volc_yr,albsn_yr,dalbsnX
-     *     ,snoage,snoage_def
+     *     ,snoage,snoage_def,chl_from_seawifs
       use DIAG_COM, only : iwrite,jwrite,itwrite,tdiurn
-      use runtimecontrols_mod, only: chl_from_seawifs
       use geom, only : imaxj
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: end_of_day
@@ -1236,7 +1245,7 @@ C**** Save initial rad forcing alterations:
 C**** Define CO2 (ppm) for rest of model
       co2ppm = FULGAS(2)*XREF(1)
 
-      if (chl_from_seawifs) call get_chl_from_seawifs
+      if (chl_from_seawifs>0) call get_chl_from_seawifs
 
       if (end_of_day) then
 
@@ -1576,7 +1585,7 @@ C     OUTPUT DATA
      &          ,SRDFLB ,SRNFLB ,SRUFLB, SRFHRL
      &          ,PLAVIS ,PLANIR ,ALBVIS ,ALBNIR ,FSRNFG
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
-     &          ,BTEMPW ,TTAUSV ,SRAEXT ,SRASCT ,SRAGCB
+     &          ,BTEMPW ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
      &          ,SRXNIR,SRDNIR
@@ -1590,6 +1599,7 @@ C     OUTPUT DATA
      *     ,cdncl,dALBsnX,rad_to_chem,trsurf,dirvis
      *     ,FSRDIF,DIRNIR,DIFNIR,aer_rad_forc,clim_interact_chem
      *     ,TAUSUMW,TAUSUMI
+     *     ,chl_from_obio,chl_from_seawifs
 #ifdef mjo_subdd
      *     ,SWHR,LWHR,SWHR_cnt,LWHR_cnt,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -1604,10 +1614,10 @@ C     OUTPUT DATA
      &     ,stratO3_tracer_save
 #endif
 #ifdef TRACERS_ON
-      use rad_com, only: ttausv_as,ttausv_cs,nraero_rf
+      use rad_com, only: tau_as,tau_cs,nraero_rf
 #ifdef CACHED_SUBDD
       USE CONSTANT, only : grav,Rgas 
-      use rad_com, only: tabssv_as,tabssv_cs,swfrc,lwfrc
+      use rad_com, only: abstau_as,abstau_cs,swfrc,lwfrc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 #endif  /* CACHED_SUBDD */
 #endif
@@ -1667,10 +1677,11 @@ C     OUTPUT DATA
       use TRACERS_VBS, only: vbs_tr
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
-     *     ,ijts_tau,ijts_tausub,ijts_fcsub,ijlt_3dtau,ijlt_3daaod
+     *     ,ijts_tau,ijts_tausub,ijts_fcsub
+     *     ,ijlt_3dtau,ijlt_3daaod,ijlt_3dtauCS,ijlt_3daaodCS
      *     ,ijts_sqex
      *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
-     *     ,diag_rad
+     *     ,diag_rad,diag_aod_3d
 #ifdef AUXILIARY_OX_RADF
      *     ,ijts_auxfc
 #endif /* AUXILIARY_OX_RADF */
@@ -1762,6 +1773,7 @@ C     for GCM grid but currently limited to SCM use
 #endif  /* TRACERS_ON */
 #endif
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
 !@+   radiative forcing calculations. TOA only.
 !@+   index 1=CH4, 2=N2O, 3=CFC11, 4=CFC12.
@@ -1772,6 +1784,7 @@ C     for GCM grid but currently limited to SCM use
       integer :: nf,GFrefY,GFrefD,GFnowY,GFnowD
 !@var nfghg fulgas( ) index of radf diag ghgs:
       integer, dimension(4) :: nfghg=(/7,6,8,9/)
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
 C  GHG Effective forcing relative to 1850
@@ -2071,6 +2084,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       end if                    ! kradia le 0
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! because of additional updghg calls, these factors won''t apply:
       if(CO2X.ne.1.)  call stop_model('CO2x.ne.1 accmip diags',255)
       if(N2OX.ne.1.)  call stop_model('N2Ox.ne.1 accmip diags',255)
@@ -2086,6 +2100,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
       sv_fulgas_now(1:4)=fulgas(nfghg(1:4))
+#endif
 #endif
 #ifdef HEALY_LM_DIAGS
       FCO2=FULGAS(2)*CO2R
@@ -2171,11 +2186,16 @@ c           ICKERR=ICKERR+1
 
 C**** Set Chlorophyll concentration
       if (POCEAN.gt.0) then
+        if( (chl_from_seawifs>0 .or. chl_from_obio>0)
+     &       .and. atmocn%chl_defined ) then
           LOC_CHL = atmocn%chl(I,J)
           if (ij_chl.gt.0)
      .       AIJ(I,J,IJ_CHL)=AIJ(I,J,IJ_CHL)+atmocn%CHL(I,J)*FOCEAN(I,J)
 !         write(*,'(a,3i5,e12.4)')'RAD_DRV:',
 !    .    itime,i,j,chl(i,j)
+        else
+          LOC_CHL = -1.d30
+        endif
       endif
 
       LS1_loc=LTROPO(I,J)+1  ! define stratosphere for radiation
@@ -2383,7 +2403,6 @@ C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
 #ifdef TRACERS_TOMAS
-      TTAUSV(:,:)=0.
       aesqex(:,:,:)=0.0
       aesqsc(:,:,:)=0.0
       aesqcb(:,:,:)=0.0
@@ -2421,7 +2440,7 @@ C**** loop over tracers that are passed to radiation.
 C**** Some special cases for black carbon, organic carbon, SOAs where
 C**** more than one tracer is lumped together for radiation purposes
       do n=1,nraero_aod
-          select case (trname(ntrix_aod(n)))
+        select case (trname(ntrix_aod(n)))
           case ("OCIA", "vbsAm2")
             TRACER(L,n)=(
 #ifdef TRACERS_AEROSOLS_VBS
@@ -2438,8 +2457,6 @@ C**** more than one tracer is lumped together for radiation purposes
            TRACER(L,n)=0.d0
 #else
            TRACER(L,n)=trm(i,j,l,n_OCB)*BYAXYP(I,J)
-           ! The only reason this is a special case is, following
-           ! how OCIA is done, it has no wttr factor like default does.
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
           case ("isopp1a")
@@ -2454,8 +2471,8 @@ C**** more than one tracer is lumped together for radiation purposes
           case default
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
-           select case (trname(ntrix_aod(n)))
-           case ("NO3p")
+          select case (trname(ntrix_aod(n)))
+          case ("NO3p")
             if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
@@ -2463,7 +2480,7 @@ C**** more than one tracer is lumped together for radiation purposes
               wttr(n)=(nh4_on_no3+trm(i,j,l,ntrix_aod(n)))/
      *                trm(i,j,l,ntrix_aod(n))
             endif
-           case ("SO4")
+          case ("SO4")
             if (trm(i,j,l,ntrix_aod(n)) > 0.d0) then
               nh4_on_no3=min(trm(i,j,l,n_NO3p)*(tr_mm(n_NO3p)+
      *            tr_mm(n_NH4))/tr_mm(n_NO3p)-trm(i,j,l,n_NO3p),
@@ -2471,10 +2488,10 @@ C**** more than one tracer is lumped together for radiation purposes
               wttr(n)=(trm(i,j,l,n_NH4)-nh4_on_no3+
      *                 trm(i,j,l,ntrix_aod(n)))/trm(i,j,l,ntrix_aod(n))
             endif
-           end select
-#endif
-           TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
           end select
+#endif
+          TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
+        end select
       end do
 #endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */
 
@@ -2537,12 +2554,10 @@ C**** set up parameters for new sea ice and snow albedo
         dALBsn = 0.
       endif
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
-#if (defined BC_ALB) &&\
-    ((defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS))
+#ifdef BC_ALB
       call GET_BC_DALBEDO(i,j,dALBsn1)
       if (rad_interact_aer > 0) dALBsn=dALBsn1
-#endif
+#endif  /* BC_ALB */
       if (poice.gt.0.) then
         zoice = ZSI(i,j)
         flags=flag_dsws(i,j)
@@ -2710,6 +2725,7 @@ C**** Ozone:
         chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)  ! Ozone
         chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM  ! Methane
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 ! TOA GHG rad forcing: nf=1,4 are CH4, N2O, CFC11, and CFC12:
 ! Initial calls are reference year/day:
         do nf=1,4
@@ -2725,6 +2741,7 @@ C**** Ozone:
           TNFS_ghg(nf,I,J)=TRNFLB(LM+LM_REQ+1)
           fulgas(nfghg(nf))=sv_fulgas_now(nf)
         enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
       end if ! moddrf=0
@@ -2853,26 +2870,38 @@ C**** Save optical depth diags
      &         ,'ClayIlHe','ClayKaHe','ClaySmHe','ClayCaHe'
      &         ,'ClayQuHe','ClayFeHe','ClayGyHe')
           nsub_ntrix(ntrix_aod(n)) = nsub_ntrix(ntrix_aod(n)) + 1
+
+! 3d aod
+          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+            if (ijlt_3Daaod(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Daaod(n))
+     *           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
+     *           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3Dtau(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(n))
+     *         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DtauCS(n))
+     *         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
+          endif ! 0<diag_aod_3d<4
+
+! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
             IF ( ijts_tausub(1,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
      &           )taijs(i,j,ijts_tausub(1,ntrix_aod(n)
      &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(1
      &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
-     &            SUM(ttausv(1:Lm,n))
+     &            SUM(aesqex(1:Lm,6,n))
             IF ( ijts_tausub(2,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
      &           )taijs(i,j,ijts_tausub(2,ntrix_aod(n)
      &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(2
      &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
-     &            SUM(ttausv(1:Lm,n)) * OPNSKY
-          END IF
-          if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
-     *         taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
-     *         =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
-     *          (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-          if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
-     *         taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
-     *       =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
-          IF (diag_rad == 1) THEN
+     &            SUM(aesqex(1:Lm,6,n)) * OPNSKY
+          ELSE
             DO kr=1,6
               IF ( ijts_sqexsub(1,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n))) > 0 ) taijs(i,j
@@ -2918,23 +2947,35 @@ C**** Save optical depth diags
           END IF
         CASE DEFAULT
 
+! 3d aod
+          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+            if (ijlt_3Daaod(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(n))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
+     &           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3Dtau(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(n))
+     &         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DtauCS(n))
+     &         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
+          endif ! 0<diag_aod_3d<4
+
+! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
             if (ijts_tau(1,ntrix_aod(n)).gt.0)
      &           taijs(i,j,ijts_tau(1,ntrix_aod(n)))
-     &         =taijs(i,j,ijts_tau(1,ntrix_aod(n)))+SUM(TTAUSV(1:lm,n))
+     &         =taijs(i,j,ijts_tau(1,ntrix_aod(n)))+
+     &          SUM(aesqex(1:lm,6,n))
             if (ijts_tau(2,ntrix_aod(n)).gt.0)
      &           taijs(i,j,ijts_tau(2,ntrix_aod(n)))
      &           =taijs(i,j,ijts_tau(2,ntrix_aod(n)))
-     &           +SUM(TTAUSV(1:lm,n))*OPNSKY
-          END IF
-            if (ijlt_3Daaod(ntrix_aod(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))
-     &           =taijls(i,j,1:lm,ijlt_3Daaod(ntrix_aod(n)))+
-     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
-            if (ijlt_3Dtau(ntrix_aod(n)).gt.0)
-     &           taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))
-     &         =taijls(i,j,1:lm,ijlt_3Dtau(ntrix_aod(n)))+TTAUSV(1:lm,n)
-            IF (diag_rad == 1) THEN
+     &           +SUM(aesqex(1:lm,6,n))*OPNSKY
+          ELSE
             DO kr=1,6
 c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
               IF (ijts_sqex(1,kr,ntrix_aod(n)) > 0)
@@ -2982,22 +3023,21 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             +qcb_col(kr,n)
      &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
 #endif
-            END DO
-          END IF
-        END SELECT
+            END DO ! kr
+          END IF ! diag_rad
+        END SELECT ! clay or not
       end do ! nraero_aod
 
 #endif
 
 #ifdef TRACERS_ON
       if (nraero_aod>0) then
-        ttausv_as(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)
-        ttausv_cs(i,j,1:LM,1:nraero_aod)=ttausv(1:LM,1:nraero_aod)*
-     &                                   OPNSKY
+        tau_as(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)
+        tau_cs(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)*OPNSKY
 #ifdef CACHED_SUBDD
-        tabssv_as(i,j,1:LM,1:nraero_aod)=
+        abstau_as(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
-        tabssv_cs(i,j,1:LM,1:nraero_aod)=
+        abstau_cs(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*
      &    OPNSKY
 #endif  /* CACHED_SUBDD */
@@ -3651,6 +3691,7 @@ c longwave forcing at TOA
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS
+#ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
          do nf=1,4 ! CH4, N2O, CFC11, and CFC12:
 c shortwave GHG forcing at TOA
            if(ij_fcghg(1,nf).gt.0)aij(i,j,ij_fcghg(1,nf))=
@@ -3660,6 +3701,7 @@ c longwave GHG forcing at TOA
            if(ij_fcghg(2,nf).gt.0)aij(i,j,ij_fcghg(2,nf))=
      &     aij(i,j,ij_fcghg(2,nf))+(TNFS_ghg(nf,I,J)-TNFS(3,I,J))
          enddo
+#endif /* NOT DEFINED SKIP_ACCMIP_GHG_RADF_DIAGS */
 #endif /* ACCMIP_LIKE_DIAGS */
 
 #ifdef CACHED_SUBDD
@@ -3850,13 +3892,13 @@ C****
       do a=1,size(sabs)
         select case (trim(ssky(s))//trim(sabs(a)))
           case ('as')
-            sddarr4d=ttausv_as
+            sddarr4d=tau_as
           case ('cs')
-            sddarr4d=ttausv_cs
+            sddarr4d=tau_cs
           case ('asa')
-            sddarr4d=tabssv_as
+            sddarr4d=abstau_as
           case ('csa')
-            sddarr4d=tabssv_cs
+            sddarr4d=abstau_cs
           case default
             cycle ! not implemented, silently ignore
         end select

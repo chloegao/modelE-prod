@@ -11,7 +11,6 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 ! #define TRACERS_GASEXCH_Natassa    ! special tracers to be passed to ocean
 ! #define TRACERS_HYCOM_Ventilation
@@ -84,7 +83,6 @@ Ent shared MPI_Support solvers giss_LSM
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only) ISTART=2
@@ -120,7 +118,7 @@ GHG=GHG.Mar2009.txt ! use GHG.Jul2009.txt for runs that start before 1850
 dH2O=dH2O_by_CH4_monthly
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc                       ! topographic variation for gwdrag
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc         ! glacial melt distribution
 latlonij=latlon387x360.4bin          ! lat & lon at each i,j
 hycomtopo=depth387x360.4bin          ! topography used in ocean model with Baltic Sea

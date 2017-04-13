@@ -4952,7 +4952,7 @@ c write physical variable
       USE rad_com,ONLY : cosz1,srnflb_save,trnflb_save
 #ifdef TRACERS_DUST
      &                  ,nraero_dust,nr_soildust,ntrix_aod
-     &                  ,ttausv_as,ttausv_cs
+     &                  ,tau_as,tau_cs
 #endif
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
      &     ,adiurn=>adiurn_loc
@@ -5035,10 +5035,10 @@ C****
      *             =tmp(idd_conc1:idd_conc1+lmax_dd2-1)+trm(i,j
      *             ,1:lmax_dd2,ntrix_aod(n1))*byMA(1,i,j)*byaxyp(i,j)
               tmp(idd_tau1:idd_tau1+lmax_dd2-1)=tmp(idd_tau1:idd_tau1
-     *             +lmax_dd2-1)+ttausv_as(i,j,1:lmax_dd2,n1)
+     *             +lmax_dd2-1)+tau_as(i,j,1:lmax_dd2,n1)
               tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
      *             =tmp(idd_tau_cs1:idd_tau_cs1+lmax_dd2-1)
-     *             +ttausv_cs(i,j,1:lmax_dd2,n1)
+     *             +tau_cs(i,j,1:lmax_dd2,n1)
 
             END DO
 
@@ -5060,30 +5060,23 @@ C****
       module msu_wts_mod
       implicit none
       save
-      integer, parameter :: nmsu=200 , ncolmax=8
-      real*8 plbmsu(nmsu),wmsu(ncolmax,nmsu)
-      integer ncols
+      integer, parameter :: nmsu=302 , ncols=8
+      real*8 plbmsu(nmsu),wmsu(ncols,nmsu)
       logical :: do_msu
       contains
       subroutine read_msu_wts
       use filemanager
       integer n,l,iu_msu
-      character, dimension(ncolmax+1) :: titles*10
 c**** read in the MSU/SSU weights file
       do_msu = file_exists('MSU_wts')
       if(.not.do_msu) return
       call openunit('MSU_wts',iu_msu,.false.,.true.)
-      read(iu_msu,*) titles(1)
-      ncols=ncolmax
-      if (titles(1) .eq. "MSU") ncols=4
-      do n=1,2
+      do n=1,4
         read(iu_msu,*)
       end do
-      read(iu_msu,*) titles(1:(ncols+1))
       do l=1,nmsu
         read(iu_msu,*) plbmsu(l),(wmsu(n,l),n=1,ncols)
       end do
-      if (ncols.eq.4) wmsu(ncols+1:ncolmax,1:nmsu)=0.
       call closeunit(iu_msu)
 
       end subroutine read_msu_wts
@@ -5096,9 +5089,9 @@ c**** read in the MSU/SSU weights file
       use msu_wts_mod
       implicit none
       real*8, intent(in) :: pland,ts,tlm(lm),ple(lm+1)
-      real*8, intent(out) :: tout(ncolmax-1)
+      real*8, intent(out) :: tout(ncols-2)
 
-      real*8 tlmsu(nmsu),tmsu(ncolmax)
+      real*8 tlmsu(nmsu),tmsu(ncols),wcol(ncols)
       real*8 plb(0:lm+2),tlb(0:lm+2)
       integer l
 
@@ -5116,10 +5109,13 @@ c**** find edge temperatures (assume continuity and given means)
       tlb(lm+2)=tlb(lm+1) ; plb(lm+2)=0.
       call vntrp1 (lm+2,plb,tlb, nmsu-1,plbmsu,tlmsu)
 c**** find weighted channel temperatures
-      tmsu(1:ncols)=0.
+      tmsu(1:ncols)=0. ; wcol(1:ncols)=0.
       do l=1,nmsu-1
         tmsu(1:ncols)=tmsu(1:ncols)+tlmsu(l)*wmsu(1:ncols,l)
+        wcol(1:ncols)=wcol(1:ncols)+wmsu(1:ncols,l)
       end do
+      tmsu(1:ncols)=tmsu(1:ncols)/wcol(1:ncols)
+
       tout(1) = (1-pland)*tmsu(1)+pland*tmsu(2)  ! TLT
       tout(2) = (1-pland)*tmsu(3)+pland*tmsu(4)  ! TMT
       tout(3:(ncols-2)) = tmsu(5:ncols)          ! TLS and SSU[123] 
@@ -6106,12 +6102,12 @@ C****
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
       use DIAG_COM_RAD
-      use msu_wts_mod, only : ncolmax,ncols
+      use msu_wts_mod, only : ncols
       IMPLICIT NONE
       INTEGER :: I,J,L,K,K1,K2,N,KHEM
       INTEGER :: J_0,J_1,I_0,I_1
       REAL*8 :: SCALEK
-      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu(ncolmax-1)
+      real*8 :: ts,pland,tlm(lm),ple(lm+1),dp,tmsu(ncols-2)
       real*8, dimension(2,kaij) :: shnh_loc,shnh
 
       I_0 = GRID%I_STRT

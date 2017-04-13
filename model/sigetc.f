@@ -16,24 +16,24 @@ c --- rho(t=20, s=20, 1000) = 17. 728 868 019 64
 c --- rho(t=12, s=40, 8000) = 62. 952 798 206 31
 
       real, parameter::
-     .  k01=9.9984085444849347e2, a1=7.3471625860981584, 
-     .  a2=-5.3211231792841769e-2,a3=3.6492439109814549e-4, 
+     .  k01=9.9984085444849347e2, a1=7.3471625860981584,
+     .  a2=-5.3211231792841769e-2,a3=3.6492439109814549e-4,
      .  b1=2.588057102399139, b2=-6.7168282786692355e-3,
-     .  b3=1.9203202055760151e-3, cc1=1.1798263740430364e-2, 
+     .  b3=1.9203202055760151e-3, cc1=1.1798263740430364e-2,
      .  cc2=9.8920219266399117e-8, cc3=4.699664277175473e-6,
      .  cc4=-2.5862187075154352e-8, cc5=-3.2921414007960662e-12
 
       real, parameter:: k02=1.0,
-     .  d1=7.2815210113327091e-3, d2=-4.4787265461983921e-5, 
+     .  d1=7.2815210113327091e-3, d2=-4.4787265461983921e-5,
      .  d3=3.3851002965802430e-7, d4=1.3651202389758572e-10,
      .  e1=1.7632126669040377e-3, e2=-8.8066583251206474e-6,
-     .  e3=-1.8832689434804897e-10, e4=5.7463776745432097e-6, 
+     .  e3=-1.8832689434804897e-10, e4=5.7463776745432097e-6,
      .  e5=1.4716275472242334e-9, f1=6.7103246285651894e-6,
      .  f2=-2.4461698007024582e-17, f3=-9.1534417604289062e-18
 
       real pn,pd
 
-      p=pref*1.e-4		! p in dbar
+      p=pref*1.e-4      ! p in dbar
       pn=k01+t*(a1+t*(a2+a3*t))+s*(b1+b2*t+b3*s)
      .      +p*(cc1+cc2*t*t+cc3*s+p*(cc4+cc5*t*t))
 
@@ -143,10 +143,10 @@ c
 c
 c --- coefficients for kappa^(theta) fit towards JM06 (revised Sun et al. 1999)
       real, parameter ::    ! 13 coeffi. for kappa_theta
-     . qtttt= 4.060245E-14, qttt=-6.174599E-12, qtt= 5.467461E-10, 
-     . qt=-2.982976E-08,      qs=-1.226834E-08, qts= 1.913132E-10, 
+     . qtttt= 4.060245E-14, qttt=-6.174599E-12, qtt= 5.467461E-10,
+     . qt=-2.982976E-08,      qs=-1.226834E-08, qts= 1.913132E-10,
      . qtts=-2.212339E-12,   qtp= 1.319722E-12, qsp= 4.626343E-13,
-     . qtsp=-7.456494E-15,  qttp=-2.706986E-14, qtttp= 2.315378E-16, 
+     . qtsp=-7.456494E-15,  qttp=-2.706986E-14, qtttp= 2.315378E-16,
      . qtpp= 3.677802E-18, soff=35., tmin=-3., smin=10.
 
       s=s1-soff
@@ -369,7 +369,7 @@ c
 c
 c --- transform pressure to isopycnic interface pressure
 c
-      call reflux(uflx,vflx,sig,praw,
+      call reflux_th(uflx,vflx,sig,praw,
      .            unused,unused,unused,pbfore,theta,kdm,kdm)
 c
 c --- in preparation for determining the flat reference state (i.e., the
@@ -497,7 +497,7 @@ c
 c
 c --- transform pressure to isopycnic interface pressure
 c
-      call reflux(uflx,vflx,sig,praw,
+      call reflux_th(uflx,vflx,sig,praw,
      .            unused,unused,unused,pafter,theta,kdm,kdm)
 c
 c --- in preparation for determining the flat reference state (i.e., the

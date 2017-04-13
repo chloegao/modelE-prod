@@ -13,7 +13,6 @@ filters: U,V in E-W direction (after every dynamics time step)
 
 Preprocessor Options
 #define NEW_IO
-#define USE_ENT
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define ATM2x2h             !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
 #define HYCOM1deg           !2x2.5 40 layer atm & 26 layer 1deg hycom (387x360)
@@ -51,7 +50,6 @@ tracers Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB
-OPTS_giss_LSM = USE_ENT=YES
 
 Data input files:
 AIC=AIC.RES_F40.D771201.nc      ! observed init cond (atm. only) ISTART=2
@@ -70,7 +68,7 @@ NAMERVR=RD_modelE_Fa_1deghycom.names.txt  ! named river outlets
 
 TOP_INDEX=top_index_144x90_a.ij.ext.nc
 ZVAR=ZVAR2X25A.nc             ! topographic variation for gwdrag
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 GLMELT=GLMELT_144X90_gas.OCN.nc   ! glacial melt distribution
 latlonij=latlon387x360.4bin             ! lat & lon at each i,j
 hycomtopo=depth387x360.4bin_1  ! topography used in ocean model, NO Baltic

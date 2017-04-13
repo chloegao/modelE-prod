@@ -233,7 +233,6 @@
 
       end module CMP
 
-#ifdef USE_ENT
       module ent_data_for_cmp
 
       private
@@ -251,7 +250,6 @@
       end subroutine get_ent_data_for_cmp
 
       end module ent_data_for_cmp
-#endif
 
 ! process regular array
 #define check(y,x) call store(i,y,pack(x,tt),size(x)); \
@@ -288,9 +286,6 @@
            ,evap_max_ij,fr_sat_ij,qg_ij,tsns_ij
       use ghy_com, only : w_ij,ht_ij,snowbv, &
         nsn_ij,dzsn_ij,wsn_ij,hsn_ij,fr_snow_ij
-#ifndef USE_ENT
-      use veg_com, only : Cint,Qfol,cnc_ij
-#endif
       use landice_com, only : snowli,tlandi,MdwnImp,EdwnImp
       use landice, only : accpda,accpdg, eaccpda,eaccpdg,  &
            micbimp,eicbimp
@@ -379,9 +374,7 @@
 #  endif
 
 #endif
-#ifdef USE_ENT
       use ent_data_for_cmp, only : ent_data, get_ent_data_for_cmp
-#endif
 
       implicit none
       logical, parameter :: tt=.true.
@@ -434,10 +427,8 @@
            ! stop
         endif
         print *,"read file: ", trim(file_name(i)),"  time= ",Itime(i)
-#ifdef USE_ENT
         ! get Ent data
         call get_ent_data_for_cmp
-#endif
         ! data from model_com
         check("u",u)
         check("v",v)
@@ -504,13 +495,7 @@
         check("w_ij",w_ij)
         check("ht_ij",ht_ij)
         check("snowbv",snowbv)
-#ifdef USE_ENT
         check("ent_data",ent_data)
-#else
-        check("Cint",Cint)
-        check("Qfol",Qfol)
-        check("cnc_ij",cnc_ij)
-#endif
         check("nsn_ij",nsn_ij)
         check("dzsn_ij",dzsn_ij)
         check("wsn_ij",wsn_ij)

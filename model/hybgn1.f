@@ -274,7 +274,7 @@ c
 c
 c --- optional: reduce spacing of z layers near equator, but hide transition
 c --- in a subtropical latitude band where z layers are least likely to exist
-      if (k.gt.1) dp0=dp0*max(.6,min(1.,(abs(latij(i,j,3))+5.)*.04))
+c     if (k.gt.1) dp0=dp0*max(.6,min(1.,(abs(latij(i,j,3))+5.)*.04))
 c
 c --- reduce layer thickness in shallow spots, creating sigma coord. effect
       if (4*k.lt.kk) dp0=dp0*min(1.,pbot(i,j)/(200.*onem)+.4)

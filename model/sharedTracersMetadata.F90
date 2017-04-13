@@ -20,6 +20,11 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: set_trdecay
   use OldTracer_mod, only: tr_RKD 
   use OldTracer_mod, only: set_needtrs
+#ifdef TRACERS_SPECIAL_Lerner
+  use TRACERS_MPchem_COM, only: nMPtable
+  use OldTracer_mod, only: set_iMPtable
+  use OldTracer_mod, only: set_tcscale
+#endif  /* TRACERS_SPECIAL_Lerner */
   use OldTracer_mod, only: dodrydep
   use OldTracer_mod, only: F0
   use OldTracer_mod, only: HSTAR
@@ -34,9 +39,6 @@ module sharedTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_special_lerner
   use RunTimeControls_mod, only: dynamic_biomass_burning  
-#ifdef TRACERS_SPECIAL_Lerner
-  USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
-#endif
   implicit none
   private 
 
@@ -188,8 +190,9 @@ contains
       if (tracers_special_lerner) then
         call set_ntsurfsrc(n,  14)
         call set_ntm_power(n, -9)
-        n_MPtable(n) = 3
-        tcscale(n_MPtable(n)) = 1.
+        nMPtable=nMPtable+1
+        call set_iMPtable(n, nMPtable)
+        call set_tcscale(n, 1.d0)
       end if
 #endif
       call set_ntm_power(n, -8)
@@ -229,8 +232,9 @@ contains
 #ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
         call set_ntsurfsrc(n,  1)
-        n_MPtable(n) = 1
-        tcscale(n_MPtable(n)) = 1.
+        nMPtable=nMPtable+1
+        call set_iMPtable(n, nMPtable)
+        call set_tcscale(n, 1.d0)
       end if
 #endif
     end subroutine N2O_setSpec

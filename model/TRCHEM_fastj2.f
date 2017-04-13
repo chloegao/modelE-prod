@@ -67,6 +67,9 @@
 !@var jndlev Levels at which we want J-values (centre of CTM levels)
       integer, allocatable, dimension(:) :: jndlev
 #ifdef TRACERS_ON
+!@var aerosols_affect_photolysis Set to 1 to allow fastj to take into account
+!@+                              aerosol vertical profiles. Only works with OMA.
+      integer :: aerosols_affect_photolysis=1
 !@param miedx2 choice of aerosol types for fastj2
       integer, allocatable, dimension(:,:) :: miedx2
 !@var aer2 fastj2 aerosol and cloud optical depth profiles. Aerosols are
@@ -532,7 +535,7 @@ c
 C**** GLOBAL parameters and variables:
       USE GEOM, only: lat2d_dg
       use model_com, only: modelEclock
-      USE RAD_COM,only: ttausv_as
+      USE RAD_COM,only: tau_as
       USE RADPAR, only : nraero_aod=>ntrace
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
@@ -623,8 +626,10 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      AER2(1:NLGCM,1:nraero_aod)=
-     &  ttausv_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
+      if (aerosols_affect_photolysis == 1) then
+        AER2(1:NLGCM,1:nraero_aod)=
+     &    tau_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
+      endif
 #endif
 #endif
 
@@ -1542,7 +1547,7 @@ c Additional subdivision of first level if required:
               fz(k+1) = fz(k)*ftaulog2
               pomega(:,k+1) = pomega(:,k) + dpomega2(:) ! MFIT
               k = k+1
-              if(k > 1800)then
+              if(k > N__)then
                 write(out_line,*) 'k fault:',k,NCFASTJ2,j,jaddto(j),
      &          jadsub(j),dsubdiv,jaddlv(j)
                 call write_parallel(trim(out_line),crit=.true.)

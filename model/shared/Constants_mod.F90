@@ -171,6 +171,9 @@ module constant
   real*8,parameter :: avog=6.02214129d23
   real*8,parameter :: byavog=1.d0/avog
 
+!@var loschmidt_constant Loschmidt constant (cm-3 at STP)
+  real*8,parameter :: loschmidt_constant = 2.6867805D+19
+
 !**** Astronomical constants
 !@param daysPerYear number of solar days per orbital period
   real*8, protected :: daysPerYear

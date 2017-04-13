@@ -22,7 +22,6 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_WATER      ! include water tracers code
 #define TRACERS_SPECIAL_O18
-#define USE_ENT
 #define NEW_IO
 #define TRACERS_ATM_ONLY    ! shuts off ocean land surface sea ice tracers
 #define SKIP_TRACERS_RAD    ! expedites
@@ -58,7 +57,6 @@ tracers
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_144x90_input_files"
@@ -73,7 +71,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 src_dist_cfg=xyztr144_144x90.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

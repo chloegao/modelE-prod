@@ -114,7 +114,6 @@
 
       end subroutine prec_running_average
 
-! #ifdef USE_ENT
       !! Could certainly be combined with prec_running_average above,
       !! but repeating now for neatness...
       subroutine lai_running_average(lai,avg,iH,iD,i0,first,HRA,DRA,PRS)
@@ -196,7 +195,7 @@
       end if
 
       end subroutine lai_running_average
-! #endif /* USE_ENT */
+
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined CALCULATE_FLAMMABILITY
 
@@ -211,10 +210,11 @@
       use flammability_com, only: mfcc,flammability,first_prec,
      & saveFireCount
       use geom, only : axyp
+      use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use lightning, only : saveC2gLightning
       use flammability_com, only: populationDensity
-      use diag_com, only: ij_human,ij_fireC,aij=>aij_loc
+      use diag_com, only: ij_nsuppress,ij_cgign,ij_humanign,ij_human
 #endif
       implicit none
 
@@ -288,8 +288,10 @@
             ! Save a daignostic for the portion that is human-caused. (1.0-this) is the
             ! portion that is lightning-caused, so no reason to save that. Also save the
             ! fire count:
+            aij(i,j,ij_humanign)=aij(i,j,ij_humanign)+humanIng
+            aij(i,j,ij_cgign)=aij(i,j,ij_cgign)+CtoG
+            aij(i,j,ij_nsuppress)=aij(i,j,ij_nsuppress)+nonSuppressFrac
             aij(i,j,ij_human)=aij(i,j,ij_human)+humanIng/(CtoG+humanIng)
-            aij(i,j,ij_fireC)=aij(i,j,ij_fireC)+saveFireCount(i,j)
 
 #else /* ubiquitous only */
 
@@ -304,6 +306,7 @@
           else ! flammability not ready yet or undefined here:
             saveFireCount(i,j)=0.d0
           end if
+          aij(i,j,ij_fireC)=aij(i,j,ij_fireC)+saveFireCount(i,j)
         end do ! i
       end do   ! j
 

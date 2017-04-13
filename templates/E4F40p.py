@@ -25,7 +25,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 res="F40"
 
 GlobalCPPOptions=[
-    "#define USE_ENT",
     "#define NEW_IO"
 ]
 

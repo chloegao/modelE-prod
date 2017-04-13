@@ -18,7 +18,6 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
-#define USE_ENT
 #define NEW_IO
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L13
@@ -51,7 +50,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB    /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 
 Data input files:
 #include "IC_72x46_input_files"
@@ -66,10 +64,10 @@ RVR=RD_modelE_M.nc                ! river direction file
 NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
-#include "rad_input_files"
+#include "rad_input_files_noCO2profile"
 #include "rad_72x46_input_files"
 
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 REG=REG4X5                      ! special regions-diag
 
 Label and Namelist:

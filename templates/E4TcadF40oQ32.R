@@ -16,7 +16,6 @@ Preprocessor Options
 #define CHECK_OCEAN              ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
 #define TRAC_ADV_CPU
-#define USE_ENT                  ! include dynamic vegetation model
 !  OFF #define NEW_IO
 #define TRACERS_ON               ! include tracers code
 #define TRACERS_WATER            ! wet deposition and water tracer
@@ -88,7 +87,6 @@ tracers
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 ! OPTS_dd2d = NC_IO=PNETCDF           /* an OPTION for new i/o */
 
 Data input files:
@@ -113,7 +111,7 @@ VEG_DENSE=gsin/veg_dense_2x2.5 ! vegetation density for flammability calculation
 
 #include "aerosol_OMA_input_files"
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)

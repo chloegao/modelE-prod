@@ -32,7 +32,7 @@ c -----------------------------------------------------------------
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       USE TRACER_COM,  only: TRM
-      USE RADPAR,      only: TTAUSV,aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
 
       IMPLICIT NONE
       INTEGER, save:: Ifirstrad = 1
@@ -41,6 +41,7 @@ c -----------------------------------------------------------------
       REAL(8), INTENT(OUT) :: SCT(LM,6)       ! Single Scattering Albedo, SW
       REAL(8), INTENT(OUT) :: GCB(LM,6)       ! Asymmetry Factor, SW
       REAL(8), INTENT(OUT) :: TAB(LM,33)      ! Thermal absorption Cross section, LW
+      REAL(8), DIMENSION(LM,NMODES) :: TTAUSV
 
       ! Local
       
@@ -394,7 +395,7 @@ cBond + Berstroem, all wavelength
 
        ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
-         Reff_LEV(l,n) = DIAM(i,j,l,n) * 0.5e6
+         Reff_LEV(l,n) = DIAM(i,j,l,n)*CONV_DPAM_TO_DGN(n)*exp(5.*(sig0(n)**-2)/2.)* 0.5e6
        ENDDO
 
        ! + Mass and Number Concentration

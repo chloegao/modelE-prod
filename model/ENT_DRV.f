@@ -255,9 +255,9 @@
 !        print *, "reading lai for ", pft, year, ddd
         call read_stream(grid,LAIstream(pft),year,ddd,
      &       laidata_h(pft,:,:))
-        if (pft==15) then ! i.e. crops
-          laidata_h(pft,I0:I1,J0:J1) = .1d0 ! hack to avoid 0s
-        endif
+       ! if (pft==15) then ! i.e. crops
+       !   laidata_h(pft,I0:I1,J0:J1) = .1d0 ! hack to avoid 0s
+       ! endif
         write(tilelai,*) pft, ddd
         !write(903) tilelai, real(laidata_h(pft,I0:I1,J0:J1),kind=4)
 !        call WRITET_PARALLEL(grid,903,"fort.903",
@@ -457,13 +457,13 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 !        print *, "reading lai for ", pft, year, ddd
         call read_stream(grid,LAIstream(pft),year,ddd,
      &       laidata_h(pft,:,:))
-        if (pft==15) then
-          where(lat2d(I0:I1,J0:J1) <= 0.)
-            laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,-1 )
-          elsewhere
-            laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,+1 )
-          end where
-        endif
+       ! if (pft==15) then
+       !   where(lat2d(I0:I1,J0:J1) <= 0.)
+       !     laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,-1 )
+       !   elsewhere
+       !     laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,+1 )
+       !   end where
+       ! endif
         write(tilelai,*) pft, ddd
         !write(903) tilelai, real(laidata_h(pft,I0:I1,J0:J1),kind=4)
 !         call WRITET_PARALLEL(grid,903,"fort.903",

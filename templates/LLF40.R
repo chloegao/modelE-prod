@@ -21,7 +21,6 @@ Preprocessor Options
 #define STDHYB                  ! standard hybrid vertical coordinate
 #define ATM_LAYERING L40        ! 40 layers, top at .1 mb
 #define NEW_IO                  ! new I/O (netcdf) on
-#define USE_ENT                 ! include dynamic vegetation model
 #define IRRIGATION_ON
 #define SWFIX_20151201
 #define NO_HDIURN               ! exclude hdiurn diagnostics
@@ -54,7 +53,6 @@ Ent
 
 Component Options:
 OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
-OPTS_giss_LSM = USE_ENT=YES           /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 
@@ -71,7 +69,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 ! O3file=jan2012_o3_shindell_144x90x49x12_1850-2010_ple.nc
 O3file=O3/o3_shindell_144x90x53x12_E6TomaF40clim_c12_2000_ple.nc
 
-MSU_wts=MSU.RSS.weights.data      ! MSU-diag
+MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 
@@ -112,7 +110,6 @@ NRAD = 5            ! radiation computed NRAD times per source time step
 #include "diag_params"
 
 Nssw = 2            ! until diurnal diags are fixed, Nssw has to be even
-KRSF  = 120         ! write .rsf file at beginning of every KRSF momths    
 NDISK = 960         ! write fort.1.nc or fort.2.nc every NDISK source time step        
 &&END_PARAMETERS
 

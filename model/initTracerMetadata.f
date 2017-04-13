@@ -66,6 +66,9 @@
 !     allow some tracers to have biomass burning based on fire model:
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
+#ifdef TRACERS_AMP
+     &         'M_BC1_BC','M_OCC_OC','M_ACC_SU','M_AKK_SU',
+#endif
 #ifdef TRACERS_dCO
      &         'd13Calke', 'd13CPAR',
      &         'dC17O', 'dC18O', 'd13CO',
@@ -125,6 +128,48 @@
         end if
 #endif
 
+#ifdef TRACERS_SPECIAL_Lerner
+        pTracer => tracers%getReference(trname(n))
+        select case (trname(n))
+        case ('N2O')
+          call addSurfaceSource(pTracer, "overwrite_at_surface")
+        case ('CFC11')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('CH4')
+          call addSurfaceSource(pTracer, "animal_src")
+          call addSurfaceSource(pTracer, "coal_mine_src")
+          call addSurfaceSource(pTracer, "gas_leak_src")
+          call addSurfaceSource(pTracer, "gas_vent_src")
+          call addSurfaceSource(pTracer, "city_dump_src")
+          call addSurfaceSource(pTracer, "soil_sink")
+          call addSurfaceSource(pTracer, "termite_src")
+          call addSurfaceSource(pTracer, "coal_combustion_src")
+          call addSurfaceSource(pTracer, "ocean_src")
+          call addSurfaceSource(pTracer, "lake_src")
+          call addSurfaceSource(pTracer, "misc_ground_src")
+          call addSurfaceSource(pTracer, "biomass_src")
+          call addSurfaceSource(pTracer, "rice_src")
+          call addSurfaceSource(pTracer, "wetlands_tundra_src")
+        case ('O3')
+          call addSurfaceSource(pTracer, "deposition_sink")
+        case ('SF6')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('SF6_c')
+          call addSurfaceSource(pTracer, "surface_src")
+        case ('CO2')
+          call addSurfaceSource(pTracer, "fossil_fuel_src")
+          call addSurfaceSource(pTracer, "fertilization_sink")
+          call addSurfaceSource(pTracer, "north_forest_regrowth_src")
+          call addSurfaceSource(pTracer, "land_use_modification")
+          call addSurfaceSource(pTracer, "ecosystem_exchange")
+          call addSurfaceSource(pTracer, "ocean_exchange")
+        case ('14CO2')
+          call addSurfaceSource(pTracer, "surface_sink")
+        case ('Rn222')
+          call addSurfaceSource(pTracer, "surface_src")
+        end select
+#endif  /* TRACERS_SPECIAL_Lerner */
+
       end subroutine setDefaultSpec
 
 !------------------------------------------------------------------------------
@@ -177,7 +222,6 @@
       use Tracer_mod, only: Tracer
 #ifdef TRACERS_SPECIAL_Lerner
       use LernerTracersMetadata_mod
-      USE TRACERS_MPchem_COM, only: n_MPtable,tcscale
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
@@ -204,10 +248,6 @@
 #ifdef TRACERS_MINERALS
       use MineralsTracersMetadata_mod
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
-      USE TRACER_COM, only: offline_dms_ss, offline_ss
-#endif
       use MiscTracersMetadata_mod
       USE CONSTANT, only: mair
       USE TRACER_COM, only: ntm
@@ -222,14 +262,6 @@
       call setup_emis_sectors()
       call initializeOldTracers(tracers, setDefaultSpec)
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-      (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
-!**** DMS, seasalt from offline fields
-      call sync_param("OFFLINE_DMS_SS",OFFLINE_DMS_SS)
-!**** seasalt from offline fields
-      call sync_param("OFFLINE_SS",OFFLINE_SS)
-#endif
-
 ! ***  BEGIN TRACER METADATA INITIALIZATION
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -238,10 +270,12 @@
         end if
 #endif
 
-#ifdef TRACERS_SPECIAL_LERNER
-        if (tracers_special_lerner) then
-          call Lerner_InitMetadata(pTracer, 1)
-        end if
+#ifdef TRACERS_SPECIAL_Lerner
+      if (tracers_special_lerner) then
+        call Lerner_InitMetadata(pTracer)
+        if (tracers_special_shindell) 
+     &    call stop_model('contradictory tracer specs')
+      end if
 #endif
 
       if ((.not. tracers_amp) .and. tracers_water) then
@@ -262,14 +296,6 @@
       if (tracers_gasexch_ocean_cfc) then
         call  CFCn_setSpec('CFCn')
       end if
-
-#ifdef TRACERS_SPECIAL_LERNER
-      if (tracers_special_lerner) then
-        call Lerner_InitMetadata(pTracer, 2)
-        if (tracers_special_shindell) 
-     &    call stop_model('contradictory tracer specs')
-      end if
-#endif
 
 #ifdef TRACERS_AEROSOLS_SEASALT
       if (tracers_aerosols_seasalt) then
@@ -490,7 +516,7 @@
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-      use TRDIAG_COM, only: diag_rad
+      use TRDIAG_COM, only: diag_rad,diag_aod_3d
       use TRACER_COM, only: ntm ! should be available by this procedure call
 #ifdef TRACERS_WATER
 #ifdef TRDIAG_WETDEPO
@@ -528,7 +554,6 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
-      USE TRACER_COM, only: offline_dms_ss, offline_ss
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_RAD_KEY
@@ -592,6 +617,7 @@ C**** set super saturation parameter for isotopes if needed
 #endif
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
+      CALL sync_param("diag_aod_3d",diag_aod_3d)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif

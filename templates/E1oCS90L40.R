@@ -116,7 +116,7 @@ ISCCP=ISCCP.tautables
 #include "rad_C90_input_files"
 GHG=GHG.Mar2004.txt
 dH2O=dH2O_by_CH4_monthly
-MSU_wts=MSU.RSS.weights.data
+MSU_wts=MSU_SSU_RSS_weights.txt
 
 Label and Namelist:
 E1oCS90L40 (32 ocean layers; 1850 atm.,the current modelE version)
