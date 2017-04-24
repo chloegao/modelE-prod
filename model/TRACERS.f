@@ -84,7 +84,7 @@ C**** calculate fractional loss and update tracer mass
           if(trm(i,j,l,n).gt.0.)then
           fred(i)=max(0.d0,1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
           else
-             fred(i)=100.  !It won't be used anyway (fred<1 to be used)
+             fred(i)=1.  !It won't be used anyway (fred<1 to be used)
           endif
 #else
           fred(i) = max(0.d0,
