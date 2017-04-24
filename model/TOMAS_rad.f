@@ -225,7 +225,10 @@ C     Determine size parameter
             gsca=TOMAS_gsca(ix1,irefre1,ilogrefim1) !asymmetry parameter
             burden1 = m_spec(c)*bydxyp(j) ! [kg/m2] 
 
-            
+!            print*, 'rfwet', reffwet
+!            print*, 'density', density
+!            print*, 'qext', qext
+!            print*, 'burden1',burden1
             aesqex(L,w,c)=(0.75d0/reffwet/density(c)    
      &           *qext*burden1)+aesqex(L,w,c)
             
