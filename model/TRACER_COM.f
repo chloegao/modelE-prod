@@ -491,6 +491,11 @@ C**** standard tracer and tracer moment arrays
 !@var TRMOM: Second order moments for tracers (kg)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
+!@var trm_col, trmom_col the contents of trm,trmom for the current i,j
+!@+   column within the master loop over columns in tracer_3Dsource
+      REAL*8, ALLOCATABLE, DIMENSION(:,:) :: trm_col
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trmom_col
+
 !@var TRDN1: lowest level downdraft tracer concentration (kg/kg)
        REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trdn1
 
@@ -554,7 +559,7 @@ C**** Chemistry specific 3-D arrays
 
 !@var RSULF1, RSULF2, RSULF3, RSULF4: rate coefficients
 c for gas phase sulfur chemistry used by aerosol and chemistry models
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
+      REAL*8, DIMENSION(LM) :: rsulf1,rsulf2,rsulf3,rsulf4
 #endif
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
@@ -663,9 +668,8 @@ C**** arrays that could be general, but are only used by chemistry
 
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       integer, parameter :: rhet=3
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rxts,rxts1,rxts2,rxts3
-     *                                         ,rxts4
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: krate
+      REAL*8, DIMENSION(lm) :: rxts,rxts1,rxts2,rxts3,rxts4
+      REAL*8, DIMENSION(lm,8,rhet) :: krate
 #endif
 #ifdef TRACERS_VOLCEXP
       type(timestream) :: SO2_volc_stream  ! explosive emissions
@@ -675,6 +679,7 @@ C**** arrays that could be general, but are only used by chemistry
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 !@var AIRCstreams organizes nc-reading of tracer 3D aircraft sources
       type(timestream), allocatable, dimension(:) :: AIRCstreams
+      real*8, dimension(:,:,:,:), allocatable :: AIRCsrc
 #endif
 
 !@var xyz_count,xyz_list count/list of tracers in category xyz.
@@ -896,24 +901,16 @@ C****
       ALLOCATE(  daily_z(I_0H:I_1H,J_0H:J_1H,LM) )
       daily_z = 0.
 
+      allocate(trm_col(LM,NTM))
+      allocate(trmom_col(NMOM,LM,NTM))
+
 #ifdef TRACERS_WATER
       ALLOCATE(        trwm(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
 #endif
-#ifdef TRACERS_HETCHEM
-      ALLOCATE( rxts(I_0H:I_1H,J_0H:J_1H,LM),
-     *          rxts1(I_0H:I_1H,J_0H:J_1H,LM),
-     *          rxts2(I_0H:I_1H,J_0H:J_1H,LM),
-     *          rxts3(I_0H:I_1H,J_0H:J_1H,LM),
-     *          rxts4(I_0H:I_1H,J_0H:J_1H,LM),
-     *          krate(I_0H:I_1H,J_0H:J_1H,LM,8,rhet))
-#endif
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-      ALLOCATE(  rsulf1(I_0H:I_1H,J_0H:J_1H,LM),
-     *           rsulf2(I_0H:I_1H,J_0H:J_1H,LM),
-     *           rsulf3(I_0H:I_1H,J_0H:J_1H,LM),
-     *           rsulf4(I_0H:I_1H,J_0H:J_1H,LM) )
       ALLOCATE( AIRCstreams(NTM) )
+      ALLOCATE( AIRCsrc(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM

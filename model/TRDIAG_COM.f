@@ -423,6 +423,7 @@ C**** TCONSRV
 
 !@var TCONSRV conservation diagnostics for tracers
       REAL*8, allocatable, DIMENSION(:,:,:) :: TCONSRV,TCONSRV_loc 
+      REAL*8, allocatable, DIMENSION(:,:) :: TCONSRV_1pt
 !@var SCALE_TCON scales for tracer conservation diagnostics
       REAL*8, allocatable, DIMENSION(:,:) :: SCALE_TCON
 !@var TITLE_TCON titles for tracer conservation diagnostics
@@ -1531,6 +1532,7 @@ C*** Unpack read global data into local distributed arrays
       ntmxcon = ntm + maxntmocn
       allocate(TCONSRV(JM_BUDG,ktcon,ntmxcon))
       allocate(TCONSRV_loc(JM_BUDG,ktcon,ntmxcon))
+      allocate(TCONSRV_1pt(ktcon,ntmxcon))
 
       allocate(SCALE_TCON(ktcon,ntmxcon))
       allocate(TITLE_TCON(ktcon,ntmxcon))

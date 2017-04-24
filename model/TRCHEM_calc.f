@@ -32,11 +32,11 @@ C
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
      &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,
-     &  trm,NTM,n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
+     &  trm_col,NTM,n_N2O,n_ClOx,n_BrOx,n_HCl,n_HOCl,n_ClONO2,n_HBr,
      &  n_HOBr,n_BrONO2,n_CFC
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: tr_wd_type, nWater, tr_H2ObyCH4
-      USE TRACER_COM, only: trmom 
+      USE TRACER_COM, only: trmom_col 
 #endif
 #ifdef TRACERS_HETCHEM
       USE TRACER_COM, only: krate,n_N_d1,n_N_d2,n_N_d3
@@ -361,7 +361,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #endif  /* TRACERS_dCO */
 #ifdef TRACERS_HETCHEM
         dest(nn_HNO3,l)=dest(nn_HNO3,l) -
-     &       krate(i,j,l,1,1)*y(nn_HNO3,l)*dt2
+     &       krate(l,1,1)*y(nn_HNO3,l)*dt2
 #endif
 
 c       Add parrafin prod term via isoprene and terpenes oxidation
@@ -1281,8 +1281,8 @@ C     -- water tracers --:
           select case(tr_wd_type(n))
           case(nWater)           ! water: add CH4-sourced water to tracers
             do L=1,maxL
-              trm(i,j,L,n) = trm(i,j,L,n) + tr_H2ObyCH4(n)*dQM(L)
-              if(changeH2O(L) < 0.) trmom(:,i,j,L,n) = trmom(:,i,j,L,n)
+              trm_col(L,n) = trm_col(L,n) + tr_H2ObyCH4(n)*dQM(L)
+              if(changeH2O(L) < 0.) trmom_col(:,L,n) = trmom_col(:,L,n)
      *             *fraQ2(L)
             end do
           end select
@@ -1563,7 +1563,7 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_HNO3) then
             write(out_line,'(a48,a6,e10.3)')
      &      'destruction from HNO3 +dust ','dy = ',
-     &      -y(nn_HNO3,lprn)*krate(iprn,jprn,lprn,1,1)*dt2
+     &      -y(nn_HNO3,lprn)*krate(lprn,1,1)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif
@@ -1662,13 +1662,13 @@ c Loops to calculate tracer changes:
      *          *cpd
          else if(idx == n_Ox)then
 #ifdef SHINDELL_STRAT_EXTRA
-           if(trm(i,j,L,n_Ox)==0.)call stop_model('zero ozone',255)
+           if(trm_col(L,n_Ox)==0.)call stop_model('zero ozone',255)
            changeL(L,n_stratOx)=dest(igas,L)*conc2mass*
-     &     trm(i,j,L,n_stratOx)/trm(i,j,L,n_Ox)
+     &     trm_col(L,n_stratOx)/trm_col(L,n_Ox)
            if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+
-     &     prod(igas,L)*conc2mass*trm(i,j,L,n_stratOx)/trm(i,j,L,n_Ox)
-           if((trm(i,j,L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
-     &     changeL(L,n_stratOx) = minKG - trm(i,j,L,n_stratOx)
+     &     prod(igas,L)*conc2mass*trm_col(L,n_stratOx)/trm_col(L,n_Ox)
+           if((trm_col(L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
+     &     changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
 #endif
            TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
      *          *cpd
@@ -2011,7 +2011,7 @@ c (since equilibration of short lived gases may alter this):
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_HETCHEM
         write(out_line,*) 'HNO3 loss on dust replaced for cons ',
-     &  (krate(i,j,lprn,1,1)*y(nn_HNO3,lprn)*dt2)*rMAbyM(lprn)*axyp(I,J)
+     &  (krate(lprn,1,1)*y(nn_HNO3,lprn)*dt2)*rMAbyM(lprn)*axyp(I,J)
         call write_parallel(trim(out_line),crit=jay)
 #endif
       end if
@@ -2019,36 +2019,36 @@ c (since equilibration of short lived gases may alter this):
       do L=1,maxL ! start big L-LOOP ---------------
 
 c First check for nitrogen loss > 100% :
-        if(-changeL(L,n_NOx) > trm(I,J,L,n_NOx))
-     &  changeL(L,n_NOx)=minKG-trm(I,J,L,n_NOx)
-        if(-changeL(L,n_N2O5) > trm(I,J,L,n_N2O5))
-     &  changeL(L,n_N2O5)=minKG-trm(I,J,L,n_N2O5)
-        if(-changeL(L,n_HO2NO2) > trm(I,J,L,n_HO2NO2))
-     &  changeL(L,n_HO2NO2)=minKG-trm(I,J,L,n_HO2NO2)
-        if(-changeL(L,n_HNO3) > trm(I,J,L,n_HNO3))
-     &  changeL(L,n_HNO3)=minKG-trm(I,J,L,n_HNO3)
-        if(-changeL(L,n_PAN) > trm(I,J,L,n_PAN))
-     &  changeL(L,n_PAN)=minKG-trm(I,J,L,n_PAN)
+        if(-changeL(L,n_NOx) > trm_col(L,n_NOx))
+     &  changeL(L,n_NOx)=minKG-trm_col(L,n_NOx)
+        if(-changeL(L,n_N2O5) > trm_col(L,n_N2O5))
+     &  changeL(L,n_N2O5)=minKG-trm_col(L,n_N2O5)
+        if(-changeL(L,n_HO2NO2) > trm_col(L,n_HO2NO2))
+     &  changeL(L,n_HO2NO2)=minKG-trm_col(L,n_HO2NO2)
+        if(-changeL(L,n_HNO3) > trm_col(L,n_HNO3))
+     &  changeL(L,n_HNO3)=minKG-trm_col(L,n_HNO3)
+        if(-changeL(L,n_PAN) > trm_col(L,n_PAN))
+     &  changeL(L,n_PAN)=minKG-trm_col(L,n_PAN)
 #ifdef TRACERS_dCO
-        if(-changeL(L,n_d17OPAN) > trm(I,J,L,n_d17OPAN))
-     &  changeL(L,n_d17OPAN)=minKG-trm(I,J,L,n_d17OPAN)
-        if(-changeL(L,n_d18OPAN) > trm(I,J,L,n_d18OPAN))
-     &  changeL(L,n_d18OPAN)=minKG-trm(I,J,L,n_d18OPAN)
-        if(-changeL(L,n_d13CPAN) > trm(I,J,L,n_d13CPAN))
-     &  changeL(L,n_d13CPAN)=minKG-trm(I,J,L,n_d13CPAN)
+        if(-changeL(L,n_d17OPAN) > trm_col(L,n_d17OPAN))
+     &  changeL(L,n_d17OPAN)=minKG-trm_col(L,n_d17OPAN)
+        if(-changeL(L,n_d18OPAN) > trm_col(L,n_d18OPAN))
+     &  changeL(L,n_d18OPAN)=minKG-trm_col(L,n_d18OPAN)
+        if(-changeL(L,n_d13CPAN) > trm_col(L,n_d13CPAN))
+     &  changeL(L,n_d13CPAN)=minKG-trm_col(L,n_d13CPAN)
 #endif  /* TRACERS_dCO */
-        if(-changeL(L,n_AlkylNit) > trm(I,J,L,n_AlkylNit))
-     &  changeL(L,n_AlkylNit)=minKG-trm(I,J,L,n_AlkylNit)
-        if(-changeL(L,n_ClONO2) > trm(I,J,L,n_ClONO2))
-     &  changeL(L,n_ClONO2)=minKG-trm(I,J,L,n_ClONO2)
-        if(-changeL(L,n_BrONO2) > trm(I,J,L,n_BrONO2))
-     &  changeL(L,n_BrONO2)=minKG-trm(I,J,L,n_BrONO2)
+        if(-changeL(L,n_AlkylNit) > trm_col(L,n_AlkylNit))
+     &  changeL(L,n_AlkylNit)=minKG-trm_col(L,n_AlkylNit)
+        if(-changeL(L,n_ClONO2) > trm_col(L,n_ClONO2))
+     &  changeL(L,n_ClONO2)=minKG-trm_col(L,n_ClONO2)
+        if(-changeL(L,n_BrONO2) > trm_col(L,n_BrONO2))
+     &  changeL(L,n_BrONO2)=minKG-trm_col(L,n_BrONO2)
 #ifdef TRACERS_HETCHEM
-        changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(i,j,l,1,1)
+        changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(l,1,1)
      &  *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
 !       if(prnchg .and. i == iprn .and. j == jprn) then
 !         write(out_line,*)
-!    &    changeL(L,n_HNO3),krate(i,j,l,1,1),y(nn_HNO3,l)
+!    &    changeL(L,n_HNO3),krate(l,1,1),y(nn_HNO3,l)
 !         call write_parallel(trim(out_line),crit=jay)
 !       endif   
 #endif
@@ -2196,14 +2196,14 @@ c          reduce NOx destruction to match N production:
           end if
          end if
 #ifdef TRACERS_HETCHEM
-         changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(i,j,l,1,1)
+         changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(l,1,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
 #ifdef TRACERS_NITRATE
-         changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(i,j,l,2,1)
+         changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(l,2,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
-         changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(i,j,l,3,1)
+         changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(l,3,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
-         changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(i,j,l,4,1)
+         changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(l,4,1)
      &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
 #endif  /* TRACERS_NITRATE */
 #endif  /* TRACERS_HETCHEM */
@@ -2231,11 +2231,11 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         if(L>maxT .or. NprodOx<0.)then
-          if(trm(i,j,L,n_Ox)==0.)call stop_model('zero ozone',255)
+          if(trm_col(L,n_Ox)==0.)call stop_model('zero ozone',255)
           changeL(L,n_stratOx)=changeL(L,n_stratOx)+
-     &    NprodOx*conc2mass*trm(i,j,L,n_stratOx)/trm(i,j,L,n_Ox)
-          if((trm(i,j,L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
-     &    changeL(L,n_stratOx) = minKG - trm(i,j,L,n_stratOx)
+     &    NprodOx*conc2mass*trm_col(L,n_stratOx)/trm_col(L,n_Ox)
+          if((trm_col(L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
+     &    changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
         end if
 #endif
         if(NprodOx <  0.) then ! necessary?
@@ -2415,14 +2415,14 @@ c Limit the change due to chemistry:
           call write_parallel(trim(out_line),unit=99,crit=.true.)
           changeL(L,idx) = 0.d0
         end if
-        if(-changeL(L,idx) > trm(I,J,L,idx)) THEN
+        if(-changeL(L,idx) > trm_col(L,idx)) THEN
           if(prnchg)then
             WRITE(out_line,*)
      &      'change > mass, so use 95%: I,J,L,igas,change'
      &      ,I,J,L,igas,changeL(L,idx)
             call write_parallel(trim(out_line),unit=99,crit=.true.)
           end if
-          changeL(L,idx) = -0.95d0*trm(I,J,L,idx)
+          changeL(L,idx) = -0.95d0*trm_col(L,idx)
         end if
        end do    ! L
       end do     ! igas

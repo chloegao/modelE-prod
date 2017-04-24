@@ -151,7 +151,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       end MODULE TRACERS_MPchem_COM
 
 
-      SUBROUTINE Strat_chem_Prather(ns,n)
+      SUBROUTINE Strat_chem_Prather(i,j,ns,n)
 !@sum Strat_chem_Prather calculates stratospheric chemistry for
 !@+        N2O, CFC and CH4
 !@auth Michael Prather (J.Lerner adopted code)
@@ -161,28 +161,18 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       USE CONSTANT, only: by3
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       use OldTracer_mod, only: itime_tr0,trname,tcscale,iMPtable
-      USE TRACER_COM, only: trm, trmom
+      USE TRACER_COM, only: trm_col, trmom_col
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
       USE FLUXES, only: tr3Dsource
       implicit none
-      integer i,j,l,lr,n,ns,najl,nsc,lmtc
-      real*8, parameter :: by7=1./7.d0
-      real*8 told(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &            GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm)
-      real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
+      integer, intent(in) :: i,j,ns,n
 
-      INTEGER :: J_1, J_0, I_0, I_1
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      integer l,lr,lmtc
+      real*8, parameter :: by7=1./7.d0
+      real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
 
       facbb = 1.
       if (trname(n).eq.'CH4') facbb = (40.d0/25.73d0)*(40.d0/35.177d0)
@@ -192,50 +182,45 @@ C-----uses TCSCALE for different tracers to scale loss
 C-----uses S.O.M. formulation for vertical losses
 C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
 
-      told(:,:,:) = trm(:,:,:,n)
       lmtc = lm-nstrtc
-      do 150 l=lm,lmtc+1,-1
-      lr = lm+1-l
-      do 140 j=J_0,J_1
+      do l=lm,lmtc+1,-1
+        if (trm_col(l,n).le.0.) cycle
+        lr = lm+1-l
 C-----TSCPARM->TLtrm contains mean loss freq in grid box:
         f0l = max(TLtrm(j,lr,iMPtable(n)),0d0)
-        if (f0l.le.0.) go to 140
-        f1l = tltzm(j,lr,iMPtable(n))  ! FOM of loss freq from tables
-        f2l = tltzzm(j,lr,iMPtable(n))  ! SOM of loss freq from tables
-        do 130 i=I_0,imaxj(j)
-          if (trm(i,j,l,n).le.0.) go to 130
+        if (f0l.le.0.) cycle
+        f1l = tltzm(j,lr,iMPtable(n)) ! FOM of loss freq from tables
+        f2l = tltzzm(j,lr,iMPtable(n)) ! SOM of loss freq from tables
 C------Couple the moments of the loss freq with moments of the tracer:
 C       dSo  = dt*( So*Lo + Sz*Lz/3 + Szz*Lzz/5)
 C       dSz  = dt*( Sz*Lo + So*Lz + 2(Sz*Lzz + Szz*Lz)/5)
 C       dSzz = dt*( Szz*Lo + SoLzz +2Sz*Lz/3 + 2Szz*Lzz/7)
-          t0l = f0l*trm(i,j,l,n) +
-     *           f1l*trmom(mz,i,j,l,n)*by3+f2l*trmom(mzz,i,j,l,n)*.2d0
-          if (t0l.lt.0.) go to 130
-          t1l = f0l*trmom( mz,i,j,l,n) + f1l*trm(i,j,l,n) +
-     *      0.4*(f2l*trmom(mz,i,j,l,n)    +f1l*trmom(mzz,i,j,l,n))
-          t2l = f0l*trmom(mzz,i,j,l,n) + f2l*trm(i,j,l,n) +
-     *      2.0*(f1l*trmom(mz,i,j,l,n)*by3+f2l*trmom(mzz,i,j,l,n)*by7)
+        t0l = f0l*trm_col(l,n) +
+     *       f1l*trmom_col(mz,l,n)*by3+f2l*trmom_col(mzz,l,n)*.2d0
+        if (t0l.lt.0.) cycle
+        t1l = f0l*trmom_col( mz,l,n) + f1l*trm_col(l,n) +
+     *       0.4*(f2l*trmom_col(mz,l,n)    +f1l*trmom_col(mzz,l,n))
+        t2l = f0l*trmom_col(mzz,l,n) + f2l*trm_col(l,n) +
+     *       2.0*(f1l*trmom_col(mz,l,n)*by3+f2l*trmom_col(mzz,l,n)*by7)
 C---calculate e-folding of tracer mass (trm) & scale moment losses
 C---  to this change (T0L):
-          g0l = t0l/trm(i,j,l,n)
-          g1l = t1l/t0l
-          g2l = t2l/t0l
-          t0l = (1.0-exp(-g0l*dtsrc*tcscale(iMPtable(n))))*trm(i,j,l,n)
-          t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
-          tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
-cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
+        g0l = t0l/trm_col(l,n)
+        g1l = t1l/t0l
+        g2l = t2l/t0l
+        t0l = (1.0-exp(-g0l*dtsrc*tcscale(iMPtable(n))))*trm_col(l,n)
+        t0l = t0l*facbb         ! APPLY AN AD-HOC FACTOR
+        tr3Dsource(l,ns,n)=-t0l/dtsrc
+cc          trm_col(l,n) = trm_col(l,n) - t0l
 C**** moments are modified here since they are calculated specially
 C**** moments ARE NOT modified in apply_tracer_3Dsource
-          trmom( mz,i,j,l,n) = trmom( mz,i,j,l,n) - t0l*g1l
-          trmom(mzz,i,j,l,n) = trmom(mzz,i,j,l,n) - t0l*g2l
-  130     CONTINUE
-  140     CONTINUE
-  150   CONTINUE
+        trmom_col( mz,l,n) = trmom_col( mz,l,n) - t0l*g1l
+        trmom_col(mzz,l,n) = trmom_col(mzz,l,n) - t0l*g2l
+      enddo
 cc      najl = jls_3Dsource(ns,n)
 cc      do l=1,lm
 cc      do j=J_0,J_1
 cc      do i=I_0,imaxj(j)
-cc        call inc_tajls(i,j,l,najl,trm(i,j,l,n)-told(i,j,l))
+cc        call inc_tajls(i,j,l,najl,trm_col(l,n)-told(i,j,l))
 cc      end do
 cc      end do
 cc      end do
@@ -292,7 +277,7 @@ C---- CTM layers LM down
       END SUBROUTINE STRTL
 
 
-      SUBROUTINE Trop_chem_CH4(ns,n)
+      SUBROUTINE Trop_chem_CH4_prep
 !@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
 !@+     by applying a pre-determined chemical loss rate
 !@auth Jean Lerner
@@ -303,14 +288,14 @@ C---- CTM layers LM down
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT,
      *  readt8_parallel,haveLatitude,broadcast,
      *  backspace_parallel
-      USE GEOM, only: imaxj,byim
+      USE GEOM, only: byim
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer n,ns,i,j,l,FRQfile,lmtc
+      integer i,j,l,FRQfile,lmtc
       real*8 tauy,tune
       real*8, save :: taux=0.
       parameter (tune = 445./501.)
@@ -405,15 +390,27 @@ C**** AVERAGE POLES
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
         frqlos(:,:,:) = frqlos(:,:,:)*tune
 
-C**** Apply the chemistry
   550 continue
-      do l=1,lmtc
-      do j=J_0,J_1
-        do i=I_0,imaxj(j)
-          tr3Dsource(i,j,l,ns,n) = -frqlos(i,j,l)*trm(i,j,l,n)
-        end do
-      end do
-      end do
+
+      return
+      END SUBROUTINE Trop_chem_CH4_prep
+
+      SUBROUTINE Trop_chem_CH4(i,j,ns,n)
+!@sum Trop_chem_CH4 calculates tropospheric chemistry for CH4
+!@+     by applying a pre-determined chemical loss rate
+!@auth Jean Lerner
+      USE TRACER_COM, only : trm_col
+      USE CH4_SOURCES, only : frqlos
+      USE FLUXES, only: tr3Dsource
+      implicit none
+      integer, intent(in) :: i,j,ns,n
+!
+      integer :: l
+
+C**** Apply the chemistry
+      do l=1,size(frqlos,3)
+        tr3Dsource(l,ns,n) = -frqlos(i,j,l)*trm_col(l,n)
+      enddo
       return
       END SUBROUTINE Trop_chem_CH4
 
@@ -542,7 +539,7 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       end MODULE LINOZ_CHEM_COM
 
 
-      SUBROUTINE Trop_chem_O3(nsp,nsl,n)
+      SUBROUTINE Trop_chem_O3(i,j,nsp,nsl,n)
 c
 c-----------------------------------------------------------------------
 c   Troposphere is forced by Harvard tables
@@ -550,50 +547,40 @@ c-----------------------------------------------------------------------
 c
       USE RESOLUTION, only: jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE CONSTANT, only : grav,rgas
-      USE GEOM, only: imaxj,axyp
+      USE GEOM, only: axyp
       USE ATM_COM, only: t,pmid,pk,pdsig
-      USE TRACER_COM
+      USE TRACER_COM, only : trm_col
       USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
       USE FLUXES, only: tr3Dsource
       implicit none
-      integer i,j,l,n,nsp,nsl,jmon
+      integer, intent(in) :: i,j,n,nsp,nsl
+!
+      integer :: l,jmon
       real*8 rprod,rloss,factor,tk
       real*8 dz != -dP/rhoG; rho=PRT; Deposition velocity
-      INTEGER :: J_1, J_0, I_0, I_1
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
       jmon = modelEclock%getMonth()
 
 C**** Convert from kg/cm3/s to kg
         do l=1,lmtc
-        do j=J_0,J_1
-        do i=I_0,imaxj(j)
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           factor = dtsrc*axyp(i,j)*dz*1.d6    !/cm3->/m3
           rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg
-          rloss = O3trop_Loss(i,j,l,jmon)*factor*trm(i,j,l,n)
-          if(trm(i,j,l,n) +(rprod-rloss).lt.0.) then
+          rloss = O3trop_Loss(i,j,l,jmon)*factor*trm_col(l,n)
+          if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
-     *             i,j,l,trm(i,j,l,n),rprod,rloss,itime
-            rloss = trm(i,j,l,n)+rprod
-cc          scalmom = max(1.d0-rloss/(trm(i,j,l,n)+1.d-40),0.d0)
-cc          trm(i,j,l,n) = 0.d0 !trm=0 here avoids possible roundoff
+     *             i,j,l,trm_col(l,n),rprod,rloss,itime
+            rloss = trm_col(l,n)+rprod
+cc          scalmom = max(1.d0-rloss/(trm_col(l,n)+1.d-40),0.d0)
+cc          trm_col(l,n) = 0.d0 !trm=0 here avoids possible roundoff
           else
-cc          scalmom = max(1.d0-rloss/(trm(i,j,l,n)+1.d-40),0.d0)
-cc          trm(i,j,l,n) = trm(i,j,l,n) + (rprod-rloss)
+cc          scalmom = max(1.d0-rloss/(trm_col(l,n)+1.d-40),0.d0)
+cc          trm_col(l,n) = trm_col(l,n) + (rprod-rloss)
           end if
-          tr3Dsource(i,j,l,nsp,n) = rprod/dtsrc
-          tr3Dsource(i,j,l,nsl,n) = -rloss/dtsrc
-        enddo
-        enddo
+          tr3Dsource(l,nsp,n) = rprod/dtsrc
+          tr3Dsource(l,nsl,n) = -rloss/dtsrc
         enddo
       RETURN
       END SUBROUTINE Trop_chem_O3
@@ -652,7 +639,7 @@ c           trm(i,j,l,n) = trm(i,j,l,n) + dmass
       END
 
 
-      SUBROUTINE Strat_chem_O3(ns,n)
+      SUBROUTINE Strat_chem_O3(i,j,ns,n)
 !@vers 2013/03/26
 c-----------------------------------------------------------------------
 c   Strat_chem_O3 applies linearized chemistry based on tables from
@@ -685,95 +672,83 @@ cXXXXX DSOL NOT USED XXXXX
       USE CONSTANT, only : avog
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: itime,dtsrc
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE ATM_COM, only: t,pk,MA! Air mass of each box (kg/m^2)
-      USE GEOM, only: imaxj,axyp
-      USE TRACER_COM
+      USE GEOM, only: axyp
+      USE TRACER_COM, only : trm_col,tr_mm,mass2vol
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     &     dcolo3,colo3
+      integer, intent(in) :: i,j,ns,n
+!
+      real*8, dimension(lm) :: dcolo3,colo3
       real*8
      &  dero3,scalmom,pmltot,dertmp,dtmp,derco3,dco3,sso3,
      &  climo3,climpml,dersol
       real*8 dmass,T0Mold
-      integer i,j,l,lr,n,ns,najl   ,kx
-      INTEGER :: J_1, J_0, I_0, I_1
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      integer l,lr
+
 
 cc      najl = jls_3Dsource(ns,n)
 c start at top layer and continue to lowest layer for strat. chem
-      DO 330 l = lm,lm+1-nstrtc,-1
+      DO l = lm,lm+1-nstrtc,-1
         LR = LM+1-L
-        DO 320 J=J_0,J_1
-            if (tlT0M(j,lr,5) == 0.) go to 320
-          do 310 i=I_0,imaxj(j)
-            if (trm(i,j,l,n).le.0.d0) goto 310
+        if (tlT0M(j,lr,5) == 0.) cycle
+        if (trm_col(l,n).le.0.d0) cycle
 
 c calculate ozone column above box (and save)
 c   dcolo3 = ozone column (in DU) in given layer
 c   colo3 =  ozone column above layer + half of column in layer
-            if (l.eq.lm) then           !top model layer
-              dcolo3(i,j,l) = trm(i,j,l,n) / axyp(i,j) *
-     &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
-              colo3(i,j,l) = dcolo3(i,j,l)*0.5
-            else
-              dcolo3(i,j,l) = trm(i,j,l,n)/ axyp(I,J) *
-     &          avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
-              colo3(i,j,l) = colo3(i,j,l+1) +
-     &          (dcolo3(i,j,l)+dcolo3(i,j,l+1))*0.5
-            endif
+        if (l.eq.lm) then       !top model layer
+          dcolo3(l) = trm_col(l,n) / axyp(i,j) *
+     &         avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
+          colo3(l) = dcolo3(l)*0.5
+        else
+          dcolo3(l) = trm_col(l,n)/ axyp(I,J) *
+     &         avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
+          colo3(l) = colo3(l+1) + (dcolo3(l)+dcolo3(l+1))*0.5
+        endif
 
 c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
-            T0Mold=trm(i,j,l,n)
+        T0Mold=trm_col(l,n)
 c climatological P-L:
-            climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c local ozone feedback:
-            dero3=tlT0M(j,lr,5)
-            climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        dero3=tlT0M(j,lr,5)
+        climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c column ozone feedback:
-            derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
-            dco3=(colo3(i,j,l)-tlT0M(j,lr,3))
+        derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        dco3=(colo3(l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-            dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
-            dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
+        dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
 CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
 c calulate steady-state ozone:
-            sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
+        sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
 CXXX        sso3=climo3 -
 CXXX *        (climpml+dco3*derco3+dtmp*dertmp+dsol*dersol)/dero3
 c change in ozone mass due to chemistry:
-            dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtsrc))
+        dmass=(sso3-T0Mold)*(1.0-exp(dero3*dtsrc))
 c update ozone mass
-            if (T0Mold+dmass.lt.0.) then
-               write(6,'(a,3i4,2f20.2,i9)')
-     *           ' Negative tracer in Strat_chem_O3',
-     *                i,j,l,T0Mold,dmass,itime
-               dmass = -T0Mold
-cc               trm(i,j,l,n) = 0.d0
+        if (T0Mold+dmass.lt.0.) then
+          write(6,'(a,3i4,2f20.2,i9)')
+     *         ' Negative tracer in Strat_chem_O3',
+     *         i,j,l,T0Mold,dmass,itime
+          dmass = -T0Mold
+cc               trm_col(l,n) = 0.d0
 cc            else
-cc               trm(i,j,l,n) = T0Mold + dmass
-            end if
-            tr3Dsource(i,j,l,ns,n) = dmass/dtsrc
+cc               trm_col(l,n) = T0Mold + dmass
+        end if
+        tr3Dsource(l,ns,n) = dmass/dtsrc
 cc            call inc_tajls(i,j,l,najl,dmass)
 c scale moments by fractional change in total tracer mass
 cc        if (dmass.lt.0.d0) then
-cc          scalmom = trm(i,j,l,n)/T0Mold
+cc          scalmom = trm_col(l,n)/T0Mold
 cc          trmom(1:nmom,I,J,L,n) = trmom(1:nmom,I,J,L,n) * scalmom
 cc        end if
-  310 continue
-  320 continue
-  330 continue
+      enddo
       return
       end SUBROUTINE Strat_chem_O3
 

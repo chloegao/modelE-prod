@@ -60,13 +60,13 @@ C**************  Latitude-Dependant (allocatable) *******************
 !-------------------------------------------------------------------------------------------------------------------------      
       END MODULE AMP_AEROSOL
 
-      SUBROUTINE MATRIX_DRV
+      SUBROUTINE MATRIX_DRV(i,j)
 !@vers 2013/03/27
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP,
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
-     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
+     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm_col,ntmAMPi 
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -93,14 +93,10 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
-      USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds, am_i_root
-#ifdef CACHED_SUBDD
-      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups,
-     &                      inc_subdd,find_groups
-#endif  /* CACHED_SUBDD */
 
       IMPLICIT NONE
-
+      integer, intent(in) :: i,j
+!
       REAL(8):: TK,RH,PRES,TSTEP,AQSO4RATE
       REAL(8):: AERO(NAEROBOX)     ! aerosol conc. [ug/m^3] or [#/m^3]
       REAL(8):: GAS(NGASES)        ! gas-phase conc. [ug/m^3]
@@ -110,38 +106,25 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      INTEGER:: j,l,i,n,J_0, J_1, I_0, I_1, m,nAMP
+      INTEGER:: l,n,J_0, J_1, I_0, I_1, m,nAMP
 C**** functions
       REAL(8):: QSAT
-
-#ifdef CACHED_SUBDD
-      integer :: igrp,ngroups,grpids(subdd_ngroups),k
-      type(subdd_type), pointer :: subdd
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
-     &     sddarr3d
-#endif  /* CACHED_SUBDD */
-
-      call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
 
 #ifndef  TRACERS_SPECIAL_Shindell
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
 
-      NACTV(I_0:I_1,J_0:J_1,:,:)      = 0.d0 
-      VDDEP_AERO(I_0:I_1,J_0:J_1,:,:) = 0.d0 
-      DIAM(I_0:I_1,J_0:J_1,:,:)       = 0.d0
-      AMP_dens(I_0:I_1,J_0:J_1,:,:)   = 0.d0
-      AMP_TR_MM(I_0:I_1,J_0:J_1,:,:)  = 0.d0
-
-      DO L=1,LM                            
-      DO J=J_0,J_1                          
-      DO I=I_0,I_1                 
+      NACTV(I,J,:,:)      = 0.d0 
+      VDDEP_AERO(I,J,:,:) = 0.d0 
+      DIAM(I,J,:,:)       = 0.d0
+      AMP_dens(I,J,:,:)   = 0.d0
+      AMP_TR_MM(I,J,:,:)  = 0.d0
 
       IXXX = I
       IYYY = J
+
+      DO L=1,LM                            
+
       ILAY = L
       DT_AERO(:,:) = 0.d0
       EMIS_MASS(:) = 0.d0
@@ -159,25 +142,25 @@ c avol [m3/gb] mass of air pro m3
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(1) = trm(i,j,l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
+      GAS(1) = trm_col(l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
 c conversion trm [kg/kg] -> [ug /m^3]
 #ifdef  TRACERS_SPECIAL_Shindell
-      GAS(2) = trm(i,j,l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
+      GAS(2) = trm_col(l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
 #else
       GAS(2) = off_HNO3(i,j,l)*1.d9 /AVOL !   [ug HNO3/m^3]
 #endif
 c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(3) = trm(i,j,l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
+      GAS(3) = trm_col(l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
 !  [kg/s] -> [ug/m3/s]
 
        DO n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1
 c conversion trm [kg/gb] -> AERO [ug/m3]
          if(AMP_NUMB_MAP(nAMP).eq. 0) then
-       AERO(AMP_AERO_MAP(nAMP)) =trm(i,j,l,n)*1.d9 / AVOL ! ug/m3
+       AERO(AMP_AERO_MAP(nAMP)) =trm_col(l,n)*1.d9 / AVOL ! ug/m3
           else
 
-       AERO(AMP_AERO_MAP(nAMP)) =trm(i,j,l,n)/ AVOL       !  #/m3
+       AERO(AMP_AERO_MAP(nAMP)) =trm_col(l,n)/ AVOL       !  #/m3
           endif
        ENDDO
 
@@ -217,22 +200,22 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
 #ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
+      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
+     *                                 tr3Dsource(l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
 #else
-      EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(i,j,l,nVolcanic,n_M_AKK_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(l,nVolcanic,n_M_AKK_SU)+
+     *                                 tr3Dsource(l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
+      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
+     *                                 tr3Dsource(l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
 c     Biomass BC OC is Mixed
-c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
-c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
+c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
+c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
 c     Biomass BC OC is NOT mixed
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
 #endif
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
@@ -242,22 +225,22 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        DO n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1
           if(AMP_NUMB_MAP(nAMP).eq. 0) then
-      tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL *1.d-9)
-     *        -trm(i,j,l,n)) /dtsrc 
+      tr3Dsource(l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL *1.d-9)
+     *        -trm_col(l,n)) /dtsrc 
           else
-      tr3Dsource(i,j,l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL)
-     *        -trm(i,j,l,n)) /dtsrc
+      tr3Dsource(l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL)
+     *        -trm_col(l,n)) /dtsrc
           endif   
        ENDDO
 
-      tr3Dsource(i,j,l,nChemistry,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
-     *        -trm(i,j,l,n_H2SO4)) /dtsrc 
-      tr3Dsource(i,j,l,nChemistry,n_NH3)   =((GAS(3)*AVOL *1.d-9)
-     *        -trm(i,j,l,n_NH3)) /dtsrc
+      tr3Dsource(l,nChemistry,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
+     *        -trm_col(l,n_H2SO4)) /dtsrc 
+      tr3Dsource(l,nChemistry,n_NH3)   =((GAS(3)*AVOL *1.d-9)
+     *        -trm_col(l,n_NH3)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
-      tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(2)*AVOL * 1.d-9)
-     *        -trm(i,j,l,n_HNO3))/dtsrc
+      tr3Dsource(l,3,n_HNO3)  =((GAS(2)*AVOL * 1.d-9)
+     *        -trm_col(l,n_HNO3))/dtsrc
 #endif
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
 
@@ -297,11 +280,29 @@ c - 2d PRT Diagnostic
        end select
 
       enddo !n
-      ENDDO !i
-      ENDDO !j
       ENDDO !l
 
-#ifdef CACHED_SUBDD
+      RETURN
+      END SUBROUTINE MATRIX_DRV
+c -----------------------------------------------------------------
+
+      subroutine matrix_post
+#ifdef CACHED_SUBDD /* currently, this routine is exclusively for subdd */
+      use domain_decomp_atm, only : grid
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups,
+     &                      inc_subdd,find_groups
+      use tracer_com, only : ntmAMPi,ntmAMPe
+      use OldTracer_mod, only : trname
+      use AmpTracersMetadata_mod, only: amp_modes_map
+      use amp_aerosol, only : diam
+      use resolution, only : lm
+      implicit none
+      integer :: igrp,ngroups,grpids(subdd_ngroups),k,n,nAMP
+      type(subdd_type), pointer :: subdd
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &     sddarr3d
+
       call find_groups('taijlh',grpids,ngroups)
       do igrp=1,ngroups
         subdd => subdd_groups(grpids(igrp))
@@ -314,11 +315,9 @@ c - 2d PRT Diagnostic
           enddo ! n
         enddo ! k
       enddo ! igrp
-#endif  /* CACHED_SUBDD */
+#endif
+      end subroutine matrix_post
 
-      RETURN
-      END SUBROUTINE MATRIX_DRV
-c -----------------------------------------------------------------
 
 c -----------------------------------------------------------------
       SUBROUTINE AMPtrdens(i,j,l,n)
@@ -355,6 +354,45 @@ c -----------------------------------------------------------------
 
       RETURN
       END SUBROUTINE AMPtrdens
+
+c ----------------------------------------------------------------
+      ! temporary clone of AMPtrdens which can be invoked from within
+      ! loops in which trm_col is the definitive instance of the tracer mass.
+      ! Duplication to be addressed ASAP.
+      SUBROUTINE AMPtrdens_from_column_trm(i,j,l,n)
+!----------------------------------------------------------------------------------------------------------------------
+!     Routine to calculate the actual density per mode
+!----------------------------------------------------------------------------------------------------------------------
+      USE OldTracer_mod, only: trpdens
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
+     *  AMP_trm_nm2
+      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm_col
+      USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
+      USE AERO_CONFIG, ONLY: NMODES
+
+      IMPLICIT NONE
+      Integer :: i,j,l,n,x,nAMP
+      real*8, dimension(:), allocatable :: trpdens_local
+
+      allocate(trpdens_local(NTM))
+      do x=1,NTM
+        trpdens_local(x)=trpdens(x)
+      enddo
+ 
+      nAMP=n-ntmAMPi+1
+      if(AMP_MODES_MAP(nAMP).gt.0)
+     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     & / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+      if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
+     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  trpdens_local(AMP_MODES_MAP(nAMP))
+
+      deallocate(trpdens_local)
+
+      RETURN
+      END SUBROUTINE AMPtrdens_from_column_trm
 c -----------------------------------------------------------------
 c -----------------------------------------------------------------
       SUBROUTINE AMPtrmass(i,j,l,n)

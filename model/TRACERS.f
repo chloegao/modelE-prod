@@ -15,7 +15,7 @@
       use TracerSource_mod, only: TracerSource3D
       use Tracer_mod, only: Tracer
       use OldTracer_mod, only: trname
-      USE TRACER_COM, only : NTM,trm,trmom,alter_sources,tracers
+      USE TRACER_COM, only : NTM,trm_col,trmom_col,alter_sources,tracers
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: lm
       USE MODEL_COM, only : dtsrc
@@ -33,28 +33,17 @@
 
       CONTAINS
 
-      SUBROUTINE apply_tracer_3Dsource( ns , n , momlog )
+      SUBROUTINE apply_tracer_3Dsource(i,j, ns , n , momlog )
       USE CONSTANT, only : UNDEF_VAL
 !@sum apply_tracer_3Dsource adds 3D sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
 !@var MOM true (default) if moments are to be modified
       logical, optional, intent(in) :: momlog
-      integer, intent(in) :: n,ns
-      real*8 fred(grid%i_strt:grid%i_stop),
-     &     dtrm(grid%i_strt_halo:grid%i_stop_halo,
-     &          grid%j_strt_halo:grid%j_stop_halo,lm),
-     &     dtrml(lm),eps
+      integer, intent(in) :: i,j,n,ns
+      real*8 fred,dtrm(lm),eps
 
       logical :: domom
-      integer najl,i,j,l,naij,kreg,nsect,nn
-      INTEGER :: J_0, J_1, I_0, I_1
-
-      type (TracerSource3D), pointer :: source
-      class (Tracer), pointer :: pTracer
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      integer najl,l,naij,nn
 
 C**** Ensure that this is a valid tracer and source
       if (n.eq.0 .or. ns.eq.0) then
@@ -72,54 +61,38 @@ C**** Modify tracer amount, moments, and diagnostics
       najl = jls_3Dsource(ns,n)
       naij = ijts_3Dsource(ns,n)
 
-      eps = tiny(trm(i_0,j_0,1,n))
+      eps = tiny(trm_col(1,n))
       fred = UNDEF_VAL
       dtrm = UNDEF_VAL
       do l=1,lm
-      do j=j_0,j_1
-        do i=i_0,imaxj(j)
-          dtrm(i,j,l) = tr3Dsource(i,j,l,ns,n)*dtsrc
+        dtrm(l) = tr3Dsource(l,ns,n)*dtsrc
 C**** calculate fractional loss and update tracer mass
 #ifdef TRACERS_TOMAS
-          if(trm(i,j,l,n).gt.0.)then
-          fred(i)=max(0.d0,1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
-          else
-             fred(i)=1.  !It won't be used anyway (fred<1 to be used)
-          endif
-#else
-          fred(i) = max(0.d0,
-     &         1.+min(0.d0,dtrm(i,j,l))/(trm(i,j,l,n)+eps))
-#endif
-          trm(i,j,l,n) = trm(i,j,l,n)+dtrm(i,j,l)
-          if(fred(i).le.1d-16) trm(i,j,l,n) = 0.
-        end do
-        if(domom .and. any(fred.lt.1.)) then
-          do i=i_0,imaxj(j)
-            trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fred(i)
-          enddo
+        if(trm_col(l,n).gt.0.)then
+          fred=max(0.d0,1.+min(0.d0,dtrm(l))/(trm_col(l,n)+eps))
+        else
+          fred=1.             !It won't be used anyway (fred<1 to be used)
         endif
-      end do
-      if (naij.gt.0) then
-        do j=j_0,j_1
-          do i=i_0,imaxj(j)
-            taijs(i,j,naij) = taijs(i,j,naij) + dtrm(i,j,l)
-          end do
-        end do
-      end if
-      end do ! l
+#else
+        fred = max(0.d0,1.+min(0.d0,dtrm(l))/(trm_col(l,n)+eps))
+#endif
+        trm_col(l,n) = trm_col(l,n)+dtrm(l)
+        if(fred.le.1d-16) trm_col(l,n) = 0.
+        if(domom .and. fred.lt.1.) then
+          trmom_col(:,l,n) = trmom_col(:,l,n)*fred
+        endif
+        if (naij.gt.0) then
+          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)
+        end if
+      enddo ! l
 
       if(jls_3Dsource(ns,n) > 0) then
-        do j=j_0,j_1
-          do i=i_0,imaxj(j)
-            dtrml(:) = dtrm(i,j,:)
-            call inc_tajls_column(i,j,1,lm,lm,najl,dtrml)
-          enddo
-        enddo
+        call inc_tajls_column(i,j,1,lm,lm,najl,dtrm)
       endif
 #endif
 
       if (itcon_3Dsrc(ns,n).gt.0)
-     *  call DIAGTCA(itcon_3Dsrc(ns,n),n)
+     &  call DIAGTCA_1pt(itcon_3Dsrc(ns,n),n,i,j)
 
 C****
       RETURN
@@ -812,7 +785,7 @@ C****
       RETURN
       END SUBROUTINE apply_tracer_2Dsource
 
-      SUBROUTINE TDECAY
+      SUBROUTINE TDECAY(i,j)
 !@sum TDECAY decays radioactive tracers every source time step
 !@auth Gavin Schmidt/Jean Lerner
       USE RESOLUTION, only: im,jm,lm
@@ -820,10 +793,9 @@ C****
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
 #endif
-      USE GEOM, only : imaxj
       use OldTracer_mod, only: itime_tr0, trname, trdecay
       USE TRACER_COM, only : NTM
-     &     ,trm,trmom,n_Pb210, n_Rn222
+     &     ,trm_col,trmom_col,n_Pb210, n_Rn222
 #ifdef TRACERS_WATER
      *     ,trwm
       USE SEAICE_COM, only : si_atm,si_ocn
@@ -834,18 +806,13 @@ C****
 #endif
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
+      integer, intent(in) :: i,j
+!
       real*8, dimension(ntm) :: expdec
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &                  grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told
+      real*8, dimension(lm) :: told
       logical, save :: ifirst=.true.
-      integer n,najl,j,l,i
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      integer n,najl,l
 
       if (ifirst) then
         expdec = 1.
@@ -856,27 +823,27 @@ C****
         if (trdecay(n).gt.0. .and. itime.ge.itime_tr0(n)) then
           expdec(n)=exp(-trdecay(n)*dtsrc)
 C**** Atmospheric decay
-          told(:,:,:)=trm(:,:,:,n)
+          told(:)=trm_col(:,n)
 
 #ifdef TRACERS_WATER
-     *               +trwm(:,:,:,n)
-          trwm(:,:,:,n)   = expdec(n)*trwm(:,:,:,n)
+     *               +trwm(i,j,:,n)
+          trwm(i,j,:,n)   = expdec(n)*trwm(i,j,:,n)
 #endif
 #ifndef SKIP_TRACER_SRCS
           if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
-            tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
+            tr3Dsource(:,1,n_Pb210)= trm_col(:,n)*(1-expdec(n))*210.
      *           /222./dtsrc
           end if
 #endif
 
-          trm(:,:,:,n)    = expdec(n)*trm(:,:,:,n)
-          trmom(:,:,:,:,n)= expdec(n)*trmom(:,:,:,:,n)
+          trm_col(:,n)    = expdec(n)*trm_col(:,n)
+          trmom_col(:,:,n)= expdec(n)*trmom_col(:,:,n)
 
 #ifdef TRACERS_WATER
 C**** Note that ocean tracers are dealt with by separate ocean code.
 C**** Decay sea ice tracers
 #ifndef TRACERS_ATM_ONLY
-          si_atm%trsi(n,:,:,:)   = expdec(n)*si_atm%trsi(n,:,:,:)
+          si_atm%trsi(n,:,i,j)   = expdec(n)*si_atm%trsi(n,:,i,j)
 #endif
           if(si_atm%grid%im_world .ne. si_ocn%grid%im_world) then
             call stop_model(
@@ -884,31 +851,27 @@ C**** Decay sea ice tracers
      &           'atm. grid - please move the next line',255)
           endif
 #ifndef TRACERS_ATM_ONLY
-          si_ocn%trsi(n,:,:,:)   = expdec(n)*si_ocn%trsi(n,:,:,:)
+          si_ocn%trsi(n,:,i,j)   = expdec(n)*si_ocn%trsi(n,:,i,j)
 C**** ...lake tracers
-          trlake(n,:,:,:) = expdec(n)*trlake(n,:,:,:)
+          trlake(n,:,i,j) = expdec(n)*trlake(n,:,i,j)
 C**** ...land surface tracers
-          tr_w_ij(n,:,:,:,:) = expdec(n)*tr_w_ij(n,:,:,:,:)
-          tr_wsn_ij(n,:,:,:,:)= expdec(n)*tr_wsn_ij(n,:,:,:,:)
-          trsnowli(n,:,:,:) = expdec(n)*trsnowli(n,:,:,:)
-          trlndi(n,:,:,:)   = expdec(n)*trlndi(n,:,:,:)
+          tr_w_ij(n,:,:,i,j) = expdec(n)*tr_w_ij(n,:,:,i,j)
+          tr_wsn_ij(n,:,:,i,j)= expdec(n)*tr_wsn_ij(n,:,:,i,j)
+          trsnowli(n,i,j,:) = expdec(n)*trsnowli(n,i,j,:)
+          trlndi(n,i,j,:)   = expdec(n)*trlndi(n,i,j,:)
 #endif
 #endif
 C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
-          do j=J_0,J_1
-            do i=I_0,imaxj(j)
-              call inc_tajls(i,j,l,najl,trm(i,j,l,n)
+            call inc_tajls(i,j,l,najl,trm_col(l,n)
 #ifdef TRACERS_WATER
-     *             +trwm(i,j,l,n)
+     *           +trwm(i,j,l,n)
 #endif
-     *             -told(i,j,l))
-            enddo
-          enddo
+     *           -told(l))
           enddo
 
-          call DIAGTCA(itcon_decay(n),n)
+          call DIAGTCA_1pt(itcon_decay(n),n,i,j)
         end if
       end do
 C****
@@ -916,18 +879,18 @@ C****
       end subroutine tdecay
 
 
-      SUBROUTINE TRGRAV
+      SUBROUTINE TRGRAV(i,j)
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
       USE CONSTANT, only : grav,deltx,lhe,rgas,visc_air
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
       USE ATM_COM, only : t,q
-      USE GEOM, only : imaxj,byaxyp
+      USE GEOM, only : byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       USE ATM_COM, only : gz,pmid,pk
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
-      USE TRACER_COM, only : NTM,trm,trmom
+      USE TRACER_COM, only : NTM,trm_col,trmom_col
 #ifdef TRACERS_AMP
       USE TRACER_COM, only : ntmAMPi,ntmAMPe
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP
@@ -939,25 +902,21 @@ C****
       USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       IMPLICIT NONE
+      integer, intent(in) :: i,j
+!
       real*8 :: stokevdt,press,fgrfluxd,qsat,vgs,tr_radius,tr_dens,temp
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm) :: told,airden,visc,rh
-     *     ,gbygz
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO) :: fluxd, fluxu
-      integer n,najl,i,j,l
+      real*8, dimension(lm) :: told,airden,visc,rh,gbygz
+      real*8 :: fluxd, fluxu
+      integer n,najl,l
 #ifndef TRACERS_TOMAS
      &     ,nAMP
 #endif
-      integer :: J_0, J_1, I_0, I_1
       logical :: hydrate
 #ifdef TRACERS_TOMAS
       integer binnum,k
 !@var vs : gravitational settling velocity at each bin (m s-1)
-      real*8, dimension(grid%I_STRT_HALO:grid%I_STOP_HALO,
-     &     grid%J_STRT_HALO:grid%J_STOP_HALO,lm,NBINS) :: vs !gravitational settling velocity (m s-1)
+      real*8, dimension(lm,NBINS) :: vs !gravitational settling velocity (m s-1)
 !@var Dp_gr : particle diameter (m)
       real*8 Dp_gr(nbins)         
       real*8 density_gr(nbins)  !density (kg/m3) of current size bin
@@ -965,27 +924,19 @@ C****
       real*8 mu                 !air viscosity (kg/m s)
 #endif
 
-      call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
 C**** Calculate some tracer independent arrays      
 C**** air density + relative humidity (wrt water) + air viscosity
       do l=1,lm
-        do j=J_0,J_1
-          do i=I_0,imaxj(j)
-            press=pmid(l,i,j)
-            temp=pk(l,i,j)*t(i,j,l)
-            airden(i,j,l)=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
-            rh(i,j,l)=q(i,j,l)/qsat(temp,lhe,press)
-            visc(i,j,l)=visc_air(temp)
-            if (l.eq.1) then
-              gbygz(i,j,l)=0.
-            else
-              gbygz(i,j,l)=grav/(gz(i,j,l)-gz(i,j,l-1))
-            end if
-          end do
-        end do
+        press=pmid(l,i,j)
+        temp=pk(l,i,j)*t(i,j,l)
+        airden(l)=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
+        rh(l)=q(i,j,l)/qsat(temp,lhe,press)
+        visc(l)=visc_air(temp)
+        if (l.eq.1) then
+          gbygz(l)=0.
+        else
+          gbygz(l)=grav/(gz(i,j,l)-gz(i,j,l-1))
+        end if
       end do
 
 C**** Gravitational settling
@@ -996,89 +947,81 @@ C**** need to hydrate the sea salt before determining settling
 
           fluxd=0.
           do l=lm,1,-1          ! loop down
-            do j=J_0,J_1
-              do i=I_0,imaxj(j)
 
 C*** save original tracer mass
-                told(i,j,l)=trm(i,j,l,n)
+            told(l)=trm_col(l,n)
 C**** set incoming flux from previous level
-                fluxu(i,j)=fluxd(i,j)
+            fluxu=fluxd
 
 C**** set particle properties
-                tr_dens = trpdens(n)
-                tr_radius = trradius(n)
+            tr_dens = trpdens(n)
+            tr_radius = trradius(n)
 
 #ifdef TRACERS_AMP
-       if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
-         nAMP=n-ntmAMPi+1
-        if(AMP_MODES_MAP(nAMP).gt.0) then
-        if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
-        if(AMP_NUMB_MAP(nAMP).eq. 0) then    ! Mass
-        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-        else                              ! Number
-        tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-     +            *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
-        endif
-
-        call AMPtrdens(i,j,l,n)
-        tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
-        endif   
-        endif   
-       endif 
-#endif  
+            if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
+              nAMP=n-ntmAMPi+1
+              if(AMP_MODES_MAP(nAMP).gt.0) then
+                if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
+                  if(AMP_NUMB_MAP(nAMP).eq. 0) then ! Mass
+                    tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+                  else          ! Number
+                    tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+     +                   *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
+                  endif
+                  
+                  call AMPtrdens_from_column_trm(i,j,l,n)
+                  tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
+                endif
+              endif
+            endif
+#endif
 
 #ifndef TRACERS_TOMAS
 C**** calculate stokes velocity (including possible hydration effects
 C**** and slip correction factor)
-                stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
-     *               ,tr_dens,visc(i,j,l),hydrate)
+            stokevdt=dtsrc*vgs(airden(l),rh(l),tr_radius
+     *           ,tr_dens,visc(l),hydrate)
 #else 
        
-       if(n.lt.n_ASO4(1))then
+            if(n.lt.n_ASO4(1))then
 !     no size resolved aerosol tracer (e.g. NH4)
-          stokevdt=dtsrc*vgs(airden(i,j,l),rh(i,j,l),tr_radius
-     *         ,tr_dens,visc(i,j,l),hydrate)
+              stokevdt=dtsrc*vgs(airden(l),rh(l),tr_radius
+     *             ,tr_dens,visc(l),hydrate)
           
-       elseif(n.ge.n_ASO4(1)) then
-         if(n.eq.n_ASO4(1))THEN
+            elseif(n.ge.n_ASO4(1)) then
+              if(n.eq.n_ASO4(1))THEN
 C     02/20/2012 - TOMAS trgrav is modified to be able to reproduce the model output
-           call dep_getdp(i,j,l,Dp_gr,density_gr) 
-           do k=1,nbins
+                call dep_getdp_from_column_trm(i,j,l,Dp_gr,density_gr) 
+                do k=1,nbins
 C     APR 2015 - FIX vs with slip correction factor (use vgs now)
              
 cyhl              vs(I,J,L,k)=density_gr(k)*(Dp_gr(k)**2)*grav
 cyhl     *             /18.d0/visc(i,j,l) 
 
-             vs(I,J,L,k) = 
-     *            vgs(airden(i,j,l),0.d0,Dp_gr(k)/2.,density_gr(k),
-     *            visc(i,j,l),hydrate) 
-           enddo
-         endif
-          binnum=mod(N-n_ASO4(1)+1,NBINS)
-          if (binnum.eq.0) binnum=NBINS
-          stokevdt=dtsrc*vs(i,j,l,binnum) !grav. settling velocity for TOMAS model
-       endif !size-resolved aerosols
+                  vs(L,k) = 
+     *                 vgs(airden(l),0.d0,Dp_gr(k)/2.,density_gr(k),
+     *                 visc(l),hydrate) 
+                enddo
+              endif
+              binnum=mod(N-n_ASO4(1)+1,NBINS)
+              if (binnum.eq.0) binnum=NBINS
+              stokevdt=dtsrc*vs(l,binnum) !grav. settling velocity for TOMAS model
+            endif               !size-resolved aerosols
 
 #endif
 C**** Calculate height differences using geopotential
 C**** Next line causes problems in high vertical resolution models. Limit it for now:
 C****           fgrfluxd=stokevdt*gbygz(i,j,l) 
-                fgrfluxd=min(stokevdt*gbygz(i,j,l),1.d0) 
-                fluxd(i,j) = trm(i,j,l,n)*fgrfluxd ! total flux down
-                trm(i,j,l,n) = trm(i,j,l,n)*(1.-fgrfluxd)+fluxu(i,j)
-                if (1.-fgrfluxd.le.1d-16) trm(i,j,l,n) = fluxu(i,j)
-                trmom(zmoms,i,j,l,n)=trmom(zmoms,i,j,l,n)*(1.-fgrfluxd)
-              end do
-            end do
+            fgrfluxd=min(stokevdt*gbygz(l),1.d0) 
+            fluxd = trm_col(l,n)*fgrfluxd ! total flux down
+            trm_col(l,n) = trm_col(l,n)*(1.-fgrfluxd)+fluxu
+            if (1.-fgrfluxd.le.1d-16) trm_col(l,n) = fluxu
+            trmom_col(zmoms,l,n)=trmom_col(zmoms,l,n)*(1.-fgrfluxd)
           end do
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
-              do j=J_0,J_1
-                do i=I_0,imaxj(j)
-                  call inc_tajls(i,j,l,najl,trm(i,j,l,n)-told(i,j,l))
-                enddo
-              enddo
+              call inc_tajls(i,j,l,najl,trm_col(l,n)-told(l))
             enddo
           END IF
         end if
@@ -2875,7 +2818,7 @@ C
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       subroutine get_aircraft_tracer
-     & (nTracer,fileName,year,xday,phi,need_read,AIRCstream)
+     & (nTracer,fileName,year,xday,phi,need_read,AIRCstream,airtracer)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
       use RESOLUTION, only : im,jm,lm
@@ -2883,7 +2826,7 @@ C
       use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit,is_fbsa
-      use fluxes, only: tr3Dsource
+c      use fluxes, only: tr3Dsource
       use geom, only: axyp
       use OldTracer_mod, only: itime_tr0, trname
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
@@ -2903,10 +2846,6 @@ C
 !@param aircraft_Tyr1, aircraft_Tyr2 the starting and ending years
 !@+     for transient tracer aircraft emissions (= means non transient)
       integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
-!@var airtracer 3D source of tracer from aircraft (on model levels)
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-     &     :: airtracer
 !@var fileName the name of the aircraft source file for this tracer
       character(len=*), intent(IN) :: fileName
 !@var nTracer the index of the tracer in current call in ntm arrays
@@ -2916,6 +2855,10 @@ C
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      &     intent(IN) :: phi
+!@var airtracer 3D source of tracer from aircraft (on model levels)
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+     &     :: airtracer
       logical, intent(IN) :: need_read
 
       integer :: fileUnit 
@@ -2947,6 +2890,8 @@ C
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
+      airtracer = 0.d0
+
       ! for fortran binary sequential access files, transient emissions/
       ! start/end years are determined from rundeck parameters:
       isItFbsa=is_fbsa(fileName)
@@ -2972,7 +2917,7 @@ C
         call stop_model("nTracer undefined in get_aircraft_tracer",255)
       end if
 
-      if (itime < itime_tr0(nTracer)) goto 999 ! returns w/o doing source
+      if (itime < itime_tr0(nTracer)) return !goto 999 ! returns w/o doing reading
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
@@ -3004,7 +2949,7 @@ C
       if (isItFbsa) then
         ! for old giss binary files, skip execessive reading by disallowing
         ! emissions before year 1900 (if transient emissions requested):
-        if (trans_emis .and. xyear < 1900) goto 999
+        if (trans_emis .and. xyear < 1900) return !goto 999
       end if
 
       if (need_read) then
@@ -3035,7 +2980,6 @@ C
         end if
 
 ! Place aircraft sources onto model levels:
-        airtracer = 0.d0
         do j=J_0,J_1
           do i=I_0,I_1
             zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
@@ -3054,12 +2998,15 @@ C
           end do ! I
         end do ! J
 
+        airtracer(I_0:I_1,J_0:J_1,:) =
+     &       airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
+
       end if ! read was needed
 
-      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
-     & airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
+c      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
+c     & airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
 
-999   continue
+c999   continue
       return
       end subroutine get_aircraft_tracer
  

@@ -1527,7 +1527,10 @@ C**** fluxes associated with variable lake fractions
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trflux1
 !@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
 #ifndef SKIP_TRACER_SRCS
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:):: tr3Dsource
+      ! tr3Dsource to be moved to TRACER_COM since it has nothing
+      ! to do with atmosphere-surface interaction.
+      ! And it is now for a single column.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: tr3Dsource
 #endif
 
 #ifdef TRACERS_WATER
@@ -1828,10 +1831,9 @@ C**** Ensure that no round off error effects land with ice and earth
       ALLOCATE(trflux1 ( I_0H:I_1H , J_0H:J_1H , NTM    ),
      &   STAT = IER)
 
-      !I-J-L-:-: array
+      !L-:-: array
 #ifndef SKIP_TRACER_SRCS
-      ALLOCATE( tr3Dsource(I_0H:I_1H,J_0H:J_1H,LM,nt3Dsrcmax,NTM)
-     &  ,STAT = IER)
+      ALLOCATE( tr3Dsource(LM,nt3Dsrcmax,NTM),STAT = IER)
 #endif
 
 #ifdef TRACERS_WATER

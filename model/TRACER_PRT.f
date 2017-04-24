@@ -192,6 +192,51 @@ C**** Save current value in TCONSRV(NI)
       return
       end subroutine diagtca
 
+      SUBROUTINE DIAGTCA_1pt (M,NT,I,J)
+!@sum  DIAGTCA Keeps track of the conservation properties of tracers
+!@auth Gary Russell/Gavin Schmidt/Jean Lerner
+      USE DIAG_COM, only : j_budg
+      USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,tconsrv_1pt,nofmt
+      use oldtracer_mod, only: src_dist_index
+      IMPLICIT NONE
+!@var M index denoting which process changed the tracer
+      INTEGER, INTENT(IN) :: m
+!@var NT index denoting tracer number
+      INTEGER, INTENT(IN) :: nt,I,J
+!@var TOTAL amount of conserved quantity at this time
+      REAL*8 :: total
+      INTEGER :: nm,ni,jb
+
+      if (src_dist_index(nt)/=0) return
+
+C****
+C**** THE PARAMETER M INDICATES WHEN DIAGCA IS BEING CALLED
+C**** M=1,2...12:  See DIAGCA in DIAG.f
+C****   13+ AFTER Sources and Sinks
+C****
+C**** NOFMT contains the indexes of the TCONSRV array where each
+C**** change is to be stored for each quantity. If NOFMT(M,NT)=0,
+C**** no calculation is done.
+C**** NOFMT(1,NT) is the index for the instantaneous value.
+      if (nofmt(m,nt).gt.0) then
+C**** Calculate current value TOTAL
+        call consrv_tr_1pt(nt,total,i,j)
+
+        nm=nofmt(m,nt)
+        ni=nofmt(1,nt)
+        jb = j_budg(i,j)
+
+c**** Accumulate difference from last time in TCONSRV(NM)
+        if (m.gt.1) then
+          tconsrv(jb,nm,nt) = tconsrv(jb,nm,nt) +
+     &         (total-tconsrv_1pt(ni,nt))
+        end if
+C**** Save current value in TCONSRV(NI)
+        tconsrv_1pt(ni,nt) = total
+      end if
+      return
+      end subroutine diagtca_1pt
+
       subroutine consrv_tr(nt,total)
 !@sum consrv_tr calculate total zonal tracer amount (kg)
 !@auth Gavin Schmidt
@@ -245,6 +290,43 @@ C****
       IF (HAVE_NORTH_POLE) total(2:im,jm)= total(1,jm)
       return
       end subroutine consrv_tr
+
+      subroutine consrv_tr_1pt(nt,total,i,j)
+!@sum consrv_tr calculate total column tracer amount (kg)
+!@auth Gavin Schmidt
+      USE DOMAIN_DECOMP_ATM, only : GRID, hassouthpole, hasnorthpole
+      use resolution, only : ls1=>ls1_nominal
+      use resolution, only : lm,jm,im
+      use geom, only : imaxj
+      use OldTracer_mod, only: trname
+      use tracer_com, only : trm_col
+#ifdef TRACERS_WATER
+     *     ,trwm
+#endif
+      implicit none
+      integer, intent(in) :: nt,i,j
+!@var total = zonal total of tracer (kg)
+      real*8, intent(out) :: total
+!
+      integer :: l,ltop
+
+      ltop=lm
+#ifdef TRACERS_SPECIAL_Shindell
+      if(trname(nt).eq.'Ox'.or.trname(nt).eq.'NOx') ltop=LS1-1
+#endif
+
+      total = 0.
+      do l=1,ltop
+        total = total + trm_col(l,nt)
+#ifdef TRACERS_WATER
+     *           +trwm(i,j,l,nt)
+#endif
+      enddo
+
+      if(j.eq.1  .and. hassouthpole(grid)) total = total*im ! mimic pole-filling
+      if(j.eq.jm .and. hasnorthpole(grid)) total = total*im ! mimic pole-filling
+      return
+      end subroutine consrv_tr_1pt
 
       SUBROUTINE INC_DIAGTCB(I,J,DTRACER,M,NT)
 !@sum  INC_DIAGTCB Keeps track of the conservation properties of tracers

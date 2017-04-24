@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
 #ifdef TRACERS_SPECIAL_Shindell
-      SUBROUTINE HETCDUST
+      SUBROUTINE HETCDUST(i,j)
 !
 ! Version 1.
 !
@@ -14,7 +14,7 @@
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
-      USE TRACER_COM, only: trm, krate, rhet
+      USE TRACER_COM, only: trm_col, krate, rhet
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, ntm_clay,
      &     ntm_sil1, ntm_sil2, ntm_sil3
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
@@ -22,26 +22,21 @@
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, byavog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
       use SpecialFunctions_mod, only: erf
       use OldTracer_mod, only: trpdens
       use trdust_mod, only : imDust, nSubClays, subClayWeights,
      &     nDustBinsFull, radiusMinerals
       use trdust_drv, only : calcSubClayWeights
       IMPLICIT NONE
-
+      integer, intent(in) :: i,j
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
 
       integer, parameter    :: ndtr = 7  ! # dust bins for heterogenous chem.
-      REAL*8,
-     * DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     *           GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr,rhet) ::
-     * rxtnox
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) :: dusttx
-     &     ,dustnc
+      REAL*8, DIMENSION(lm,ndtr,rhet) :: rxtnox
+      REAL*8, DIMENSION(lm,ndtr) :: dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
 !-----------------------------------------------------------------------
@@ -53,8 +48,7 @@ c                                          and pk is t mess up factor
 !       ... Local variables
 !-----------------------------------------------------------------------
 
-      INTEGER :: J_0, J_1, I_0, I_1
-      integer :: i, j, k, nd, l ,ll, il
+      integer :: k, nd, l ,ll, il, ii
       integer, parameter :: ktoa = 300
 ! 1-SO2
 !@param alph  uptake coeff for HNO3,N2O5,NO3 (only the one for HNO3 used)
@@ -91,13 +85,6 @@ C**** functions
 !@var wttr_dust  weighting array for mass in dust bins
       real( kind=8 ), dimension( ndtr ) :: wttr_dust
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = GRID%I_STRT
-      I_1 = GRID%I_STOP
-
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
 !-----------------------------------------------------------------
@@ -110,8 +97,8 @@ C****
       enteredb = .true.
       if (am_i_root())
      &  PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
-      DO i   = 2, ktoa
-      rada(i) = rada(i-1) + drada
+      DO ii   = 2, ktoa
+      rada(ii) = rada(ii-1) + drada
       END DO
 
 c      enteredb = .true.
@@ -132,8 +119,8 @@ c      enteredb = .true.
        md_look(1) = 1.d-10       ! smallest md
        Rrange=5.d-8
 
-       DO i   = 2, klo
-       md_look(i) = md_look(i-1) +  Rrange
+       DO ii   = 2, klo
+       md_look(ii) = md_look(ii-1) +  Rrange
        END DO
 
       DO il  = 1,1 ! rhet  ! no loop over rhet, only HNO3 uptake
@@ -195,10 +182,10 @@ c  Or use online dust
       wttr_dust = (/ ( ( subClayWeights( i, j ), i = 1,nSubClays ), j =
      &     1,ntm_clay ), ( 1.d0, i=1,ntm_sil1 + ntm_sil2 + ntm_sil3 ) /)
 
-      do nd = 1,ndtr ; do l  = 1,lm ; do j  = j_0,j_1
-        dusttx( :, j, l, nd )= wttr_dust( nd ) * trm( :, j, l,
-     &       ntix_dust( nd ) ) * byMA( l, :, j ) * byaxyp( :, j )
-      end do ; end do ; end do
+      do nd = 1,ndtr ; do l  = 1,lm
+        dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
+     &       ntix_dust( nd ) ) * byMA( l, i, j ) * byaxyp( i, j )
+      end do ; end do
 
 c--------------------------------------------------------------
 c--------------------------------------------------------------
@@ -206,19 +193,16 @@ c--------------------------------------------------------------
 c INTERPOLATION FROM LOOK UP TABLES
 
 C Net removal rates [s-1]
-        krate(:,:,:,:,:) = 0.d0
-        rxtnox(:,:,:,:,:)=0.d0
+        krate(:,:,:) = 0.d0
+        rxtnox(:,:,:)=0.d0
       DO il = 1,1 !rhet ! Loop over het reactions
       DO nd = 1,ndtr    ! Loop over dust tracers
       DO l  = 1,lm
-      DO j  = J_0,J_1
-      DO i  = I_0,I_1
 
-       if(dusttx(i,j,l,nd).GT.0.d0) then
+       if(dusttx(l,nd).GT.0.d0) then
 c number concentration
-        dustnc(i,j,l,nd) = dusttx(i,j,l,nd)/pi*0.75d0/rop(nd)/
-     .                     Dradi(nd)**3
-       if(dustnc(i,j,l,nd).GT.0.d0) then
+        dustnc(l,nd) = dusttx(l,nd)/pi*0.75d0/rop(nd)/Dradi(nd)**3
+       if(dustnc(l,nd).GT.0.d0) then
 c pressure
         phelp = Min (99999d0, pmid(l,i,j)*100d0)
 c potential temperature, temperature
@@ -237,34 +221,30 @@ c radii interpolation
         hp2=px*lookS(np2,nh2,il)+(1.d0-px)*lookS(np1,nh2,il)
         klook=hx*hp1+(1.d0-hx)*hp2
 
-        if  (dustnc(i,j,l,nd).gt.1000.d0.and.dustnc(i,j,l
-     &       ,nd).lt.(1.d30))then
-        rxtnox(i,j,l,nd,il) = klook* dustnc(i,j,l,nd)
+        if  (dustnc(l,nd).gt.1000.d0.and.dustnc(l,nd).lt.(1.d30))then
+        rxtnox(l,nd,il) = klook* dustnc(l,nd)
      .              / (287.054d0 * te / (pmid(l,i,j)*100.d0))
         else
-        rxtnox(i,j,l,nd,il) = 0.d0
+        rxtnox(l,nd,il) = 0.d0
         endif
 
         else
-        rxtnox(i,j,l,nd,il) = 0.d0
+        rxtnox(l,nd,il) = 0.d0
         endif
         ENDIF
-      ENDDO ! i
-      ENDDO ! j
+
       ENDDO ! l
       ENDDO ! nd
 
       DO nd = 1,ndtr-1  !1,ndtr
-        krate(:,J_0:J_1,:,1,il) = krate(:,J_0:J_1,:,1,il)
-     & + rxtnox(:,J_0:J_1,:,nd,il)
+        krate(:,1,il) = krate(:,1,il) + rxtnox(:,nd,il)
       ENDDO
       do nd = 1,nSubClays
-        krate( :, J_0:J_1, :, 2, il ) = krate( :, J_0:J_1, :, 2, il ) +
-     &       rxtnox( :, J_0:J_1, :, nd, il )
+        krate( :, 2, il ) = krate( :, 2, il ) + rxtnox( :, nd, il )
       end do
-        krate(:,J_0:J_1,:,3,il) = rxtnox(:,J_0:J_1,:,5,il)
-        krate(:,J_0:J_1,:,4,il) = rxtnox(:,J_0:J_1,:,6,il)
-!        krate(:,J_0:J_1,:,5,il) = rxtnox(:,J_0:J_1,:,8,il)
+        krate(:,3,il) = rxtnox(:,5,il)
+        krate(:,4,il) = rxtnox(:,6,il)
+!        krate(:,5,il) = rxtnox(:,8,il)
       ENDDO ! il
 
       return
@@ -273,7 +253,7 @@ c radii interpolation
 
 
 #if (defined TRACERS_AEROSOLS_Koch)  || (defined TRACERS_TOMAS)
-      SUBROUTINE SULFDUST
+      SUBROUTINE SULFDUST(i,j)
 !
 ! Version 1.   (version 2 needs to be written... without integration over ndr)
 !
@@ -286,7 +266,7 @@ c radii interpolation
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
 
-      USE TRACER_COM, only: trm, rxts, rhet
+      USE TRACER_COM, only: trm_col, rxts, rhet
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, ntm_clay,
      &     ntm_sil1, ntm_sil2, ntm_sil3
       use TRACER_COM, only: rxts1, rxts2, rxts3, rxts4
@@ -294,21 +274,19 @@ c radii interpolation
       USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, byavog, gasc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
+      USE DOMAIN_DECOMP_ATM, only : am_i_root
       use SpecialFunctions_mod, only: erf
       use OldTracer_mod, only: trpdens
       use trdust_mod, only : imDust, nSubClays, subClayWeights,
      &     nDustBinsFull, radiusMinerals
       use trdust_drv, only : calcSubClayWeights
       IMPLICIT NONE
-
+      integer, intent(in) :: i,j
 !-----------------------------------------------------------------------
 !       ... Dummy arguments
 !-----------------------------------------------------------------------
       integer, parameter     :: ndtr = 7  ! # dust bins for sulfate on dust
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &     GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm,ndtr) :: rxt,dusttx
-     &     ,dustnc
+      REAL*8, DIMENSION(lm,ndtr) :: rxt,dusttx,dustnc
 !-----------------------------------------------------------------------
 !       ... Look up variables
 !-----------------------------------------------------------------------
@@ -319,8 +297,7 @@ c radii interpolation
 !-----------------------------------------------------------------------
 !       ... Local variables
 !-----------------------------------------------------------------------
-      integer :: i, j, k, nd, l ,ll
-      INTEGER :: J_0, J_1, I_0, I_1
+      integer :: k, nd, l ,ll, ii
       integer, parameter :: ktoa = 300
 ! 1-SO2
 c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independent of humidity)
@@ -357,12 +334,8 @@ C**** functions
 !@var wttr_dust weighting array for mass in dust bins
       real( kind=8 ), dimension( ndtr ) :: wttr_dust
 
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = GRID%I_STRT
-      I_1 = GRID%I_STOP
+
+      if (.not. entereda) then
 
 !-----------------------------------------------------------------
 !    1000 Intervals for Radius = 0.01ym ->10ym
@@ -372,12 +345,11 @@ C****
        drada   = 0.1d-6     ! delta radius
 
 
-      if (.not. entereda) then
       entereda = .true.
       if (am_i_root())
      &  PRINT*, 'CALCULATING LOOK UP TABLE FOR HETEROGENEOUS CHEMISTY'
-      DO i   = 2, ktoa
-      rada(i) = rada(i-1) + drada
+      DO ii   = 2, ktoa
+      rada(ii) = rada(ii-1) + drada
       END DO
 
 c      entereda = .true.
@@ -399,8 +371,8 @@ c      entereda = .true.
        md_look(1) = 1.d-10       ! smallest md
        Rrange=5.d-8
 
-       DO i   = 2, klo
-       md_look(i) = md_look(i-1) +  Rrange
+       DO ii   = 2, klo
+       md_look(ii) = md_look(ii-1) +  Rrange
        END DO
 
       DO ip  = 1, 11  !pressure from 1000 to 0 hPa
@@ -471,10 +443,10 @@ c  Or use online dust
       wttr_dust = (/ ( ( subClayWeights( i, j ), i = 1,nSubClays ), j =
      &     1,ntm_clay ), ( 1.d0, i=1,ntm_sil1 + ntm_sil2 + ntm_sil3 ) /)
 
-      do nd = 1,ndtr ; do l  = 1,lm ; do j  = j_0,j_1
-        dusttx( :, j, l, nd )= wttr_dust( nd ) * trm( :, j, l,
-     &       ntix_dust( nd ) ) * byMA( l, :, j ) * byaxyp( :, j )
-      end do ; end do ; end do
+      do nd = 1,ndtr ; do l  = 1,lm
+        dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
+     &       ntix_dust( nd ) ) * byMA( l, i, j ) * byaxyp( i, j )
+      end do ; end do
 
 c--------------------------------------------------------------
 c--------------------------------------------------------------
@@ -485,13 +457,10 @@ C Net removal rate for SO2 [s-1]
 
       DO nd = 1,ndtr    ! Loop over dust tracers
       DO l  = 1,lm
-      DO j  = J_0,J_1
-      DO i  = I_0,I_1
 
 c number concentration
-        dustnc(i,j,l,nd) = dusttx(i,j,l,nd)/pi*0.75d0/rop(nd)/
-     .                     Dradi(nd)**3
-        if(dustnc(i,j,l,nd).GT.0.d0) then
+        dustnc(l,nd) = dusttx(l,nd)/pi*0.75d0/rop(nd)/Dradi(nd)**3
+        if(dustnc(l,nd).GT.0.d0) then
 c pressure
         phelp = Min (99999d0, pmid(l,i,j)*100d0)
 c potential temperature, temperature
@@ -514,37 +483,32 @@ c radii interpolation
         hp2=px*look(np2,nh2,ll)+(1.d0-px)*look(np1,nh2,ll)
         klook=hx*hp1+(1.d0-hx)*hp2
 
-        if  (dustnc(i,j,l,nd).gt.1000.d0.and.dustnc(i,j,l
-     &       ,nd).lt.(1.d30))
+        if  (dustnc(l,nd).gt.1000.d0.and.dustnc(l,nd).lt.(1.d30)) then
 c        if  (dustnc(i,j,l,nd).gt.1000.)
-     *       then
-        rxt(i,j,l,nd) = klook* dustnc(i,j,l,nd)
+          rxt(l,nd) = klook* dustnc(l,nd)
      .              / (287.054d0 * te / (pmid(l,i,j)*100.d0))
         else
-        rxt(i,j,l,nd) = 0.d0
+          rxt(l,nd) = 0.d0
         endif
 
         else
-        rxt(i,j,l,nd) = 0.d0
-        endif
-      ENDDO ! i
-      ENDDO ! j
+        rxt(l,nd) = 0.d0
+      endif
       ENDDO ! l
       ENDDO ! nd
 
-         rxts(:,:,:) = 0.d0
-         rxts1( :, :, : ) = 0.d0
+      rxts(:) = 0.d0
+      rxts1(: ) = 0.d0
 
       DO nd = 1,ndtr-1  !1,ndtr
-        rxts(:,j_0:J_1,:) = rxts(:,j_0:J_1,:) + rxt(:,j_0:J_1,:,nd)
+        rxts(:) = rxts(:) + rxt(:,nd)
       ENDDO
       do nd = 1,nSubClays
-        rxts1( :, j_0:j_1, : ) = rxts1( :, j_0:j_1, : ) + rxt( :,
-     &       j_0:j_1, :, nd )
+        rxts1(: ) = rxts1(: ) + rxt(:, nd )
       end do
-        rxts2(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,5)
-        rxts3(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,6)
-!        rxts4(:,j_0:J_1,:) = rxt(:,j_0:J_1,:,8)
+      rxts2(:) = rxt(:,5)
+      rxts3(:) = rxt(:,6)
+!        rxts4(:) = rxt(:,8)
 
 
       end subroutine sulfdust

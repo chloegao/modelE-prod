@@ -159,7 +159,7 @@
             
       
 #ifdef SHINDELL_STRAT_EXTRA
-      subroutine overwrite_GLT
+      subroutine overwrite_GLT(i,j)
 !@sum L=1 overwriting of generic linear tracer    
 !@vers 2013/03/26
 !@auth Greg Faluvegi
@@ -169,28 +169,21 @@ C**** linearly in time (at 1% increase per year)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: itime,itimei,DTsrc
       use TimeConstants_mod, only: SECONDS_PER_YEAR
-      USE GEOM, only: axyp,IMAXJ  
+      USE GEOM, only: axyp
       USE ATM_COM, only: MA
       use OldTracer_mod, only: trname, vol2mass, itime_tr0
-      USE TRACER_COM, only: trm,n_GLT
+      USE TRACER_COM, only: trm_col,n_GLT
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
-      USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds,grid,write_parallel
       
       IMPLICIT NONE
+      integer, intent(in) :: i,j
       
-      INTEGER :: J_0, J_1, I_0, I_1
-           
 !@var by_s_in_yr recip. of # seconds in a year
 !@var new_mr mixing ratio to overwrite in L=1 this time step
 !@var new_mass mass to overwrite in L=1 this time step
 
       REAL*8 bydtsrc, by_s_in_yr, new_mr, new_mass
-      integer i,j
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
 
       bydtsrc=1.d0/DTsrc
       by_s_in_yr = 1.d0/SECONDS_PER_YEAR
@@ -201,11 +194,9 @@ C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
       new_mr = GLTic * (1.d0 +
      &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
-      do j=J_0,J_1; do i=I_0,imaxj(j)
-        new_mass=new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
-        tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
-        !i.e. tr3Dsource in kg/s 
-      end do   ; end do
+      new_mass=new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
+      tr3Dsource(1,1,n_GLT)=(new_mass-trm_col(1,n_GLT))*bydtsrc
+      !i.e. tr3Dsource in kg/s 
 
       return
       end subroutine overwrite_GLT
@@ -290,28 +281,42 @@ C====
   
       return
       END SUBROUTINE read_aero
- 
 
       subroutine get_CH4_IC(icall)
+      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
+      implicit none
+      integer, intent(in) :: icall
+!
+      integer :: I,J, J_0, J_1, I_0, I_1
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+
+      do j=j_0,j_1
+      do i=i_0,i_1
+        call get_CH4_IC_column(icall,i,j)
+      enddo
+      enddo
+      end subroutine get_CH4_IC
+
+      subroutine get_CH4_IC_column(icall,i,j)
 !@sum get_CH4_IC to generate initial conditions for methane.
 !@vers 2013/03/26
 !@auth Greg Faluvegi/Drew Shindell
       USE RESOLUTION, only : ls1=>ls1_nominal
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : DTsrc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds,
-     *     write_parallel,am_i_root
       USE GEOM, only       : axyp,lat2d_dg
       USE ATM_COM, only: MA
       USE CONSTANT, only: mair
       use OldTracer_mod, only: vol2mass
-      USE TRACER_COM, only : trm, n_CH4, nOverwrite
+      USE TRACER_COM, only : trm, trm_col, n_CH4, nOverwrite
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
      *     ch4_init_nh,fix_CH4_chemistry
  
       IMPLICIT NONE
-      integer, intent(in) :: icall
+      integer, intent(in) :: icall,i,j
  
 !@var CH4INIT temp variable for ch4 initial conditions
 !@var I,J,L dummy loop variables
@@ -319,40 +324,30 @@ C====
 !@var icall =1 (during run) =0 (first time)
       REAL*8, PARAMETER :: bymair = 1.d0/mair
       REAL*8 CH4INIT,bydtsrc
-      INTEGER I, J, L
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
+      INTEGER L
 
       bydtsrc=1.d0/DTsrc
 C     First, the troposphere:
-      DO J=J_0,J_1
-      DO I=I_0,I_1
 C       Initial latitudinal gradient for CH4:
-        IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
-          CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
-        ELSE                        ! Northern Hemisphere
-          CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
-        ENDIF
-        select case(icall)
-        case(0) ! initial conditions
-          DO L=1,LS1-1
-            trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT*AXYP(I,J)
-          END DO
-        case(1) ! overwriting
-          DO L=1,LS1-1
-            tr3Dsource(i,j,l,nOverwrite,n_CH4) = (MA(L,I,J)*
-     &           CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
-          END DO
-        end select
-      END DO
-      END DO
+      IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
+        CH4INIT=ch4_init_sh*vol2mass(n_CH4)*1.d-6
+      ELSE                      ! Northern Hemisphere
+        CH4INIT=ch4_init_nh*vol2mass(n_CH4)*1.d-6
+      ENDIF
+      select case(icall)
+      case(0)                   ! initial conditions
+        DO L=1,LS1-1
+          trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT*AXYP(I,J)
+        END DO
+      case(1)                   ! overwriting
+        DO L=1,LS1-1
+          tr3Dsource(l,nOverwrite,n_CH4) = (MA(L,I,J)*
+     &         CH4INIT*AXYP(I,J)-trm_col(l,n_CH4))*bydtsrc
+        END DO
+      end select
  
 C     Now, the stratosphere:
       do L=LS1,LM
-      do j=J_0,J_1
-      do i=I_0,I_1
  
 c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
@@ -371,15 +366,13 @@ c     mixing ratios to 1.79 (observed):
         case(0) ! initial conditions
           trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT*AXYP(I,J)
         case(1) ! overwriting
-          tr3Dsource(i,j,l,nOverwrite,n_CH4) = (MA(L,I,J)*
-     &    CH4INIT*AXYP(I,J)-trm(i,j,l,n_CH4))*bydtsrc
+          tr3Dsource(l,nOverwrite,n_CH4) = (MA(L,I,J)*
+     &    CH4INIT*AXYP(I,J)-trm_col(l,n_CH4))*bydtsrc
         end select
-      end do   ! i
-      end do   ! j
-      end do   ! l
- 
+      end do ! l
+      
       RETURN
-      end subroutine get_CH4_IC
+      end subroutine get_CH4_IC_column
    
       
       SUBROUTINE get_sza(I,J,tempsza)

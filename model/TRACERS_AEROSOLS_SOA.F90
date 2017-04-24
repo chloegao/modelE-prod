@@ -410,7 +410,7 @@ end subroutine soa_apart
 
 subroutine soa_aerosolphase(III,JJJ,L,changeL,bypfactor)
 use OldTracer_mod, only: mass2vol
-use TRACER_COM, only: trm,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
+use TRACER_COM, only: trm_col,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,&
 #ifdef TRACERS_NITRATE
                       n_nh4,n_no3p,&
 #endif
@@ -513,8 +513,8 @@ DO JL=L,L
 #endif  /* TRACERS_TERP */
 #endif  /* SOA_DIAGS */
   do i=1,ntm
-    y0_ug(i)=trm(III,JJJ,jl,i)*bypfactor*mass2vol(i)*molec2ug(i)
-    y_ug(i)=(trm(III,JJJ,jl,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
+    y0_ug(i)=trm_col(jl,i)*bypfactor*mass2vol(i)*molec2ug(i)
+    y_ug(i)=(trm_col(jl,i)+changeL(jl,i))*bypfactor*mass2vol(i)*molec2ug(i)
   enddo
 #ifdef SOA_DIAGS
   do i=1,nsoa

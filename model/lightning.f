@@ -187,25 +187,24 @@
              
 
 #ifdef TRACERS_SPECIAL_Shindell
-      subroutine get_lightning_NOx
+      subroutine get_lightning_NOx(i,j)
 !@sum  get_lightning_NOx to define the 3D source of NOx from lightning
 !@auth Colin Price / Greg Faluvegi
  
       use TimeConstants_mod, only: SECONDS_PER_MINUTE
-      use geom, only       : lat2d_dg,byaxyp,imaxj
+      use geom, only       : lat2d_dg,byaxyp
       use fluxes, only     : tr3Dsource,fland
       use tracer_com, only : n_NOx,nOther
       use lightning, only  : HGT_lgt,JSlight,JNlight,srclight,RNOx_lgt
       use constant, only   : bygrav
       use resolution, only  : LM
       use atm_com, only    : ltropo, phi
-      use domain_decomp_atm, only : GRID, getDomainBounds
 #ifdef ACCMIP_LIKE_DIAGS
       use trdiag_com, only : taijls=>taijls_loc,ijlt_NOxLgt
 #endif
  
       implicit none
- 
+      integer, intent(in) :: i,j
 !@var latindx Pickering latitude index
 !@var landindx Pickering surface type index
 !@var ih Pickering altitude index
@@ -215,17 +214,10 @@
 !@var alttop altitude at the top of ?
 !@param pmin2psec to convert from min-1 to sec-1
       real*8, parameter :: pmin2psec = 1.d0/SECONDS_PER_MINUTE
-      integer:: latindx,landindx,ih,levtrop,i,j,L
+      integer:: latindx,landindx,ih,levtrop,L
       real*8, dimension(16):: height
       real*8:: alttrop,alttop
       
-      integer :: J_1, J_0, J_0H, J_1H, I_0, I_1
-
-      I_0 = grid%I_STRT; J_0 = grid%J_STRT
-      I_1 = grid%I_STOP; J_1 = grid%J_STOP
- 
-      do j=J_0,J_1
-      do i=I_0,imaxj(j)
 ! Lightning source function altitude dependence:
 ! Determine if latitude is tropical:
          latindx=2
@@ -262,22 +254,20 @@
 
 ! Save tracer 3D source. Convert from gN/min to kgN/s:
          do L=1,levtrop
-           tr3Dsource(i,j,L,nOther,n_NOx) = 
+           tr3Dsource(L,nOther,n_NOx) = 
      &     srclight(L)*pmin2psec*1.d-3
          enddo 
          do L=levtrop+1,LM
-           tr3Dsource(i,j,levtrop,nOther,n_NOx) = 
-     &     tr3Dsource(i,j,levtrop,nOther,n_NOx) + 
+           tr3Dsource(levtrop,nOther,n_NOx) = 
+     &     tr3Dsource(levtrop,nOther,n_NOx) + 
      &     srclight(L)*pmin2psec*1.d-3
          enddo  
 #ifdef ACCMIP_LIKE_DIAGS
          do L=1,LM
            taijls(i,j,L,ijlt_NOxLgt)=taijls(i,j,L,ijlt_NOxLgt) +
-     &     tr3Dsource(i,j,L,nOther,n_NOx)*byaxyp(i,j)
+     &     tr3Dsource(L,nOther,n_NOx)*byaxyp(i,j)
          enddo
 #endif
-      enddo  ! I
-      enddo  ! J
          
       end subroutine get_lightning_NOx
 #endif

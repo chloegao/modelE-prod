@@ -598,7 +598,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var HClalt altitude dependence HCl (unitless,LM levels)
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
-!@var BYFJM = 1/JM
 !@var TX temperature variable for master chem
 !@var ta local array to hold temperature
 !@var rh local array to hold relative humidity
@@ -671,9 +670,21 @@ C**************  Latitude-Dependant (allocatable) *******************
      &                                       ,N2OICIN,CFCICIN
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
+
+#ifdef CACHED_SUBDD
+      ! declaring the following arrays here until masterchem
+      ! migration to inc_subdd(...,i,j) interface possible
+      real*8, dimension(:,:,:), allocatable ::
+     &     mrno,mrno2,mro3,OH_conc,HO2_conc
+#endif
 
 C**************  Not Latitude-Dependant ****************************      
-      REAL*8 :: XLTAU,BYFJM,
+!@var avgTT_CH4 Itime avg CH4 # density at LTROPO between 20N and 20S
+!@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
+!@var countTT # of points between 20N and 20S on LTROPO plane
+      real*8 :: avgTT_H2O,avgTT_CH4,countTT
+      REAL*8 :: XLTAU,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y
@@ -723,11 +734,15 @@ C**************  Not Latitude-Dependant ****************************
      & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & N2OICIN,CFCICIN,y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
-     & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero
+     & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
+     & zonalIsop
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
       use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 
+#ifdef CACHED_SUBDD
+      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc
+#endif
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
@@ -863,7 +878,17 @@ C**************  Not Latitude-Dependant ****************************
 
       allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
       mostRecentNonZeroAlbedo=0.d0
-      
+
+      allocate(   zonalIsop(I_0H:I_1H,J_0H:J_1H) )
+
+#ifdef CACHED_SUBDD
+      allocate( MRNO(I_0H:I_1H,J_0H:J_1H,LM) ) 
+      allocate( MRNO2(I_0H:I_1H,J_0H:J_1H,LM) ) 
+      allocate( MRO3(I_0H:I_1H,J_0H:J_1H,LM) ) 
+      allocate( OH_conc(I_0H:I_1H,J_0H:J_1H,LM) ) 
+      allocate( HO2_conc(I_0H:I_1H,J_0H:J_1H,LM) ) 
+#endif
+
       return
       end subroutine alloc_trchem_shindell_com
       

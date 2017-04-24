@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE NITRATE_THERMO_DRV(LTOP)
+      SUBROUTINE NITRATE_THERMO_DRV(I,J,LTOP)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -25,7 +25,7 @@
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
 !     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM, only: ntm, trm
+      USE TRACER_COM, only: ntm, trm_col
       use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
 #ifdef TRACERS_AEROSOLS_SEASALT
       use TRACER_COM, only: n_seasalt1, n_seasalt2
@@ -43,12 +43,12 @@
       USE FLUXES, only: tr3Dsource
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
-      USE DOMAIN_DECOMP_ATM,only: GRID, getDomainBounds
       use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
 
       IMPLICIT NONE
+      INTEGER, INTENT(IN) :: I,J,LTOP
 
-      INTEGER:: j,l,i,J_0, J_1,n,I_0,I_1,LTOP
+      INTEGER:: l,n
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
       INTEGER, PARAMETER :: NCO  = 37    ! fixed number of output variables
       INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
@@ -127,31 +127,27 @@
 
       REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
 
-      call getDomainBounds(grid, J_STRT =J_0, J_STOP =J_1)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
 #ifndef  TRACERS_SPECIAL_Shindell
+      call stop_model('move read_offhno3 to a prep step',255)
       CALL READ_OFFHNO3(OFF_HNO3)
 #endif
       YI(1,:) = 0.d0
       YO(1,:) = 0.d0
 
       DO L=1,LTOP                        
-      DO J=J_0,J_1                               
-      DO I=I_0,I_1
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
       RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3     
       AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0) 
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
-      GNH3 = trm(i,j,l,n_NH3)       *1.d9 /AVOL
-      ANH4 = trm(i,j,l,n_NH4)       *1.d9 /AVOL
-      ASO4 = trm(i,j,l,n_SO4)       *1.d9 /AVOL
-      ANO3 = trm(i,j,l,n_NO3p)      *1.d9 /AVOL
-      GHNO3= trm(i,j,l,n_HNO3)      *1.d9 /AVOL
-      DUST = trm(i,j,l,n_Clay)      *1.d9 /AVOL
-      SALT = trm(i,j,l,n_seasalt1)  *1.d9 /AVOL
+      GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
+      ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
+      ASO4 = trm_col(l,n_SO4)       *1.d9 /AVOL
+      ANO3 = trm_col(l,n_NO3p)      *1.d9 /AVOL
+      GHNO3= trm_col(l,n_HNO3)      *1.d9 /AVOL
+      DUST = trm_col(l,n_Clay)      *1.d9 /AVOL
+      SALT = trm_col(l,n_seasalt1)  *1.d9 /AVOL
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
       
@@ -189,29 +185,23 @@ c avol [m3/gb] mass of air pro m3
       taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)+tiny(1.e0)))
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
-      tr3Dsource(i,j,l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm(i,j,l,n_NO3p)) /dtsrc
+      tr3Dsource(l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p)) /dtsrc
 ! Ammonia residual
-      tr3Dsource(i,j,l,1,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm(i,j,l,n_NH3)) /dtsrc
+      tr3Dsource(l,1,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
 ! Ammonium production
-      tr3Dsource(i,j,l,1,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm(i,j,l,n_NH4)) /dtsrc
+      tr3Dsource(l,1,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
 ! Nitric Acid residual
-      tr3Dsource(i,j,l,3,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm(i,j,l,n_HNO3)) /dtsrc
+      tr3Dsource(l,3,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm_col(l,n_HNO3)) /dtsrc
 
 
-      ENDDO
-      ENDDO
       ENDDO
 
  ! Set source to zero above the chemistry:
       DO L=LTOP+1,LM
-      DO J=J_0,J_1
-      DO I=I_0,I_1
-      tr3Dsource(i,j,l,1,n_NO3p)= 0.d0
-      tr3Dsource(i,j,l,3,n_HNO3)= 0.d0
-      tr3Dsource(i,j,l,1,n_NH3)= 0.d0
-      tr3Dsource(i,j,l,1,n_NH4)= 0.d0
-      ENDDO
-      ENDDO
+      tr3Dsource(l,1,n_NO3p)= 0.d0
+      tr3Dsource(l,3,n_HNO3)= 0.d0
+      tr3Dsource(l,1,n_NH3)= 0.d0
+      tr3Dsource(l,1,n_NH4)= 0.d0
       ENDDO
 
       END SUBROUTINE NITRATE_THERMO_DRV

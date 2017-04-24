@@ -459,39 +459,18 @@ c
       return
       end SUBROUTINE read_DMS_sources
 
-      SUBROUTINE aerosol_gas_chem
-!@sum aerosol gas phase chemistry
-!@vers 2013/03/27
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+
+      SUBROUTINE aerosol_gas_chem_prep
+!@sum prepare info for aerosol gas phase chemistry
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
       use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
-      use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-#ifdef TRACERS_AEROSOLS_VBS
-      use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
-     &                      n_apinp2a, n_NH4, n_NO3p
-#endif  /* TRACERS_AEROSOLS_VBS */
       use TRACER_COM, only: nChemistry, nChemLoss, nOther
-#if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
-      use TRACER_COM, only: rxts1, rxts2, rxts3
-#endif
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
-      use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
-#endif
-#ifdef TRACERS_AMP
-      use TRACER_COM, only: n_H2SO4
-#endif
-      USE TRDIAG_COM, only : 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-     *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-     &     ,jls_OHcon
-#endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
@@ -509,25 +488,13 @@ c
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
-#ifdef TRACERS_TOMAS
-      USE TOMAS_AEROSOL, only : h2so4_chem
-#endif
-#ifdef TRACERS_AEROSOLS_VBS
-      use CONSTANT, only : gasc
-      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
-     &                       vbs_calc, vbs_tr
-#endif /* TRACERS_AEROSOLS_VBS */
 c Aerosol chemistry
       implicit none
-      logical :: ifirst=.true.
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink,bdy
-#ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,o3mc,rsulfo3
-#endif
       real*8 bciage,ociage
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
@@ -537,19 +504,8 @@ c Aerosol chemistry
 #ifdef TRACERS_SPECIAL_Shindell
 !@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
 #endif
-#ifdef TRACERS_AEROSOLS_VBS
-      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
-      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
-!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
-      real*8 :: kg2ugm3
-#endif /* TRACERS_AEROSOLS_VBS */
       integer maxl,nrecs_skip
       logical :: newMonth
-      save ifirst
-#ifdef TRACERS_TOMAS
-      REAL*8 TAU_hydro
-      integer k
-#endif
 
       call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1,
      *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
@@ -557,60 +513,6 @@ c Aerosol chemistry
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-C**** initialise source arrays
-        tr3Dsource(:,j_0:j_1,:,1,n_DMS)=0. ! DMS chem sink
-#ifndef TRACERS_AMP
-#ifndef TRACERS_TOMAS
-        tr3Dsource(:,j_0:j_1,:,1,n_MSA)=0. ! MSA chem sink
-        tr3Dsource(:,j_0:j_1,:,1,n_SO4)=0. ! SO4 chem source
-#endif
-#endif
-        tr3Dsource(:,j_0:j_1,:,nChemistry,n_SO2)=0. ! SO2 chem source
-        tr3Dsource(:,j_0:j_1,:,nChemloss,n_SO2)=0. ! SO2 chem sink
-        if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,1,n_H2O2_s)=0. ! H2O2 chem source
-        if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#ifdef TRACERS_AMP
-        tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2O2 chem sink
-#endif
-#ifdef TRACERS_TOMAS
-        tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2SO4)=0. ! H2O2 chem sink
-        H2SO4_chem(:,j_0:j_1,:)=0.0
-        do k=1,nbins
-           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECOB(k))=0.
-           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AECIL(k))=0.
-           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCOB(k))=0.
-           tr3Dsource(:,j_0:j_1,:,nChemistry,n_AOCIL(k))=0.
-        enddo
-#endif
-#ifdef TRACERS_HETCHEM
-        tr3Dsource(:,j_0:j_1,:,1,n_SO4_d1) =0. ! SO4 on dust
-        tr3Dsource(:,j_0:j_1,:,1,n_SO4_d2) =0. ! SO4 on dust
-        tr3Dsource(:,j_0:j_1,:,1,n_SO4_d3) =0. ! SO4 on dust
-#endif
-        if (n_BCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCII)=0. ! BCII sink
-          tr3Dsource(:,j_0:j_1,:,nChemistry,n_BCIA)=0. ! BCIA source
-        end if
-        if (n_OCII.gt.0) then
-          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCII)=0. ! OCII sink
-          tr3Dsource(:,j_0:j_1,:,nChemistry,n_OCIA)=0. ! OCIA source
-        end if
-#ifdef TRACERS_AEROSOLS_VBS
-        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%igas)=0.
-        tr3Dsource(:,j_0:j_1,:,nChemloss,vbs_tr%igas)=0.
-        tr3Dsource(:,j_0:j_1,:,nOther,vbs_tr%igas)=0.
-        tr3Dsource(:,j_0:j_1,:,nChemistry,vbs_tr%iaer)=0.
-#endif
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-C Coupled mode: use on-line radical concentrations
-      if (coupled_chem.eq.1) then
-        oh(:,j_0:j_1,:)=oh_live(:,j_0:j_1,:)
-        tno3(:,j_0:j_1,:)=no3_live(:,j_0:j_1,:)
-c Set h2o2_s =0 and use on-line h2o2 from chemistry
-        if(n_H2O2_s>0) trm(:,j_0:j_1,:,n_h2o2_s)=0.0
-      endif
 
       if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
@@ -666,49 +568,176 @@ c       write(6,*) ' RRR OXID2 ',ohr(10,45,1),
 c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
        endif   !coupled_chem.eq.0
 
-C Calculation of gas phase reaction rates
-C Now called from tracer_3Dsource
-c#ifndef  TRACERS_SPECIAL_Shindell  
-c        CALL GET_SULF_GAS_RATES
-c#endif
+      end subroutine aerosol_gas_chem_prep
+
+      SUBROUTINE aerosol_gas_chem(i,j)
+!@sum aerosol gas phase chemistry
+!@vers 2013/03/27
+!@auth Dorothy Koch
+      use OldTracer_mod, only: trname, tr_mm
+      use TRACER_COM, only: ntm, oh_live, no3_live, trm_col
+      use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
+      use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
+      use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
+     &                      n_apinp2a, n_NH4, n_NO3p
+#endif  /* TRACERS_AEROSOLS_VBS */
+      use TRACER_COM, only: nChemistry, nChemLoss, nOther
+#if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
+      use TRACER_COM, only: rxts1, rxts2, rxts3
+#endif
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
+      use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
+#endif
+#ifdef TRACERS_AMP
+      use TRACER_COM, only: n_H2SO4
+#endif
+      USE TRDIAG_COM, only : 
+     *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
+#ifdef TRACERS_SPECIAL_Shindell
+     &     ,jls_OHcon
+#endif
+      use resolution, only: im,lm
+      use atm_com, only : t,q
+      USE MODEL_COM, only: dtsrc
+      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
+      USE PBLCOM, only : dclev
+      USE GEOM, only: axyp,BYAXYP
+      USE FLUXES, only: tr3Dsource
+      USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
+     & dho2,perj,tno3,ohsr,o3_offline
+      USE CONSTANT, only : mair
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+#ifdef TRACERS_TOMAS
+      USE TOMAS_AEROSOL, only : h2so4_chem
+#endif
+#ifdef TRACERS_AEROSOLS_VBS
+      use CONSTANT, only : gasc
+      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
+     &                       vbs_calc, vbs_tr
+#endif /* TRACERS_AEROSOLS_VBS */
+c Aerosol chemistry
+      implicit none
+      integer, intent(in) :: i,j
+!
+      real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
+     * ddno3,dddms,ddno3a,fmom,dtt
+      real*8 rk4,ek4,r4,d4
+      real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
+     * r5,d5,dmssink,bdy
+#ifdef TRACERS_HETCHEM
+     *       ,d41,d42,d43,o3mc,rsulfo3
+#endif
+      real*8 bciage,ociage
+      integer l,n,iuc,iun,itau,ichemi,itt,
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,mmm
+#ifdef TRACERS_AEROSOLS_VBS
+      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
+      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
+!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
+      real*8 :: kg2ugm3
+#endif /* TRACERS_AEROSOLS_VBS */
+#ifdef TRACERS_TOMAS
+      REAL*8 TAU_hydro
+      integer k
+#endif
+
+
+C**** initialise source arrays
+      tr3Dsource(:,1,n_DMS)=0. ! DMS chem sink
+#ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
+      tr3Dsource(:,1,n_MSA)=0. ! MSA chem sink
+      tr3Dsource(:,1,n_SO4)=0. ! SO4 chem source
+#endif
+#endif
+      tr3Dsource(:,nChemistry,n_SO2)=0. ! SO2 chem source
+      tr3Dsource(:,nChemloss,n_SO2)=0. ! SO2 chem sink
+      if(n_H2O2_s>0) tr3Dsource(:,1,n_H2O2_s)=0. ! H2O2 chem source
+      if(n_H2O2_s>0) tr3Dsource(:,2,n_H2O2_s)=0. ! H2O2 chem sink
+#ifdef TRACERS_AMP
+      tr3Dsource(:,2,n_H2SO4)=0. ! H2O2 chem sink
+#endif
+#ifdef TRACERS_TOMAS
+      tr3Dsource(:,nChemistry,n_H2SO4)=0. ! H2O2 chem sink
+      H2SO4_chem(i,j,:)=0.0
+      do k=1,nbins
+        tr3Dsource(:,nChemistry,n_AECOB(k))=0.
+        tr3Dsource(:,nChemistry,n_AECIL(k))=0.
+        tr3Dsource(:,nChemistry,n_AOCOB(k))=0.
+        tr3Dsource(:,nChemistry,n_AOCIL(k))=0.
+      enddo
+#endif
+#ifdef TRACERS_HETCHEM
+      tr3Dsource(:,1,n_SO4_d1) =0. ! SO4 on dust
+      tr3Dsource(:,1,n_SO4_d2) =0. ! SO4 on dust
+      tr3Dsource(:,1,n_SO4_d3) =0. ! SO4 on dust
+#endif
+      if (n_BCII.gt.0) then
+        tr3Dsource(:,nChemistry,n_BCII)=0. ! BCII sink
+        tr3Dsource(:,nChemistry,n_BCIA)=0. ! BCIA source
+      end if
+      if (n_OCII.gt.0) then
+        tr3Dsource(:,nChemistry,n_OCII)=0. ! OCII sink
+        tr3Dsource(:,nChemistry,n_OCIA)=0. ! OCIA source
+      end if
+#ifdef TRACERS_AEROSOLS_VBS
+      tr3Dsource(:,nChemistry,vbs_tr%igas)=0.
+      tr3Dsource(:,nChemloss,vbs_tr%igas)=0.
+      tr3Dsource(:,nOther,vbs_tr%igas)=0.
+      tr3Dsource(:,nChemistry,vbs_tr%iaer)=0.
+#endif
+
+C Coupled mode: use on-line radical concentrations
+      if (coupled_chem.eq.1) then
+        oh(i,j,:)=oh_live(i,j,:)
+        tno3(i,j,:)=no3_live(i,j,:)
+c Set h2o2_s =0 and use on-line h2o2 from chemistry
+        if(n_H2O2_s>0) trm_col(:,n_h2o2_s)=0.0
+      else
+        ! above species were already read in
+      endif
 
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
-      CALL SULFDUST
+      CALL SULFDUST(i,j)
 c calculation of heterogeneous reaction rates: SO2 on seasalt
 c      CALL SULFSEAS 
 c     if (COUPLED_CHEM.ne.1) then
 c     CALL GET_O3_OFFLINE
 c     endif
 #endif
-#endif
+
+
       dtt=dtsrc
       !efold time of 1 days
       bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
       !efold time of 1.6 days
       ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
-C**** THIS LOOP SHOULD BE PARALLELISED
-      do 20 l=1,lm
-      do 21 j=j_0,j_1
-      do 22 i=i_0,imaxj(j)
+
+      do l=1,lm
 C Initialise       
         bdy = dclev(i,j) 
-      ppres=pmid(l,i,j)*9.869d-4 !in atm
-      te=pk(l,i,j)*t(i,j,l)
-      mm = MA(l,i,j)*axyp(i,j)
-      tt = 1.d0/te
+        ppres=pmid(l,i,j)*9.869d-4 !in atm
+        te=pk(l,i,j)*t(i,j,l)
+        mm = MA(l,i,j)*axyp(i,j)
+        tt = 1.d0/te
 
+        dmm=ppres/(.082d0*te)*6.02d20
+        ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
+
+! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
 c DMM is number density of air in molecules/cm3
-      dmm=ppres/(.082d0*te)*6.02d20
-      ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
-
-      do 23 n=1,NTM ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
+        do n=1,NTM
 
         select case (trname(n))
 c    Aging of industrial carbonaceous aerosols 
         case ('BCII')
-          tr3Dsource(i,j,l,nChemistry,n)=-bciage*trm(i,j,l,n)
-          tr3Dsource(i,j,l,nChemistry,n_BCIA)=bciage*trm(i,j,l,n)
+          tr3Dsource(l,nChemistry,n)=-bciage*trm_col(l,n)
+          tr3Dsource(l,nChemistry,n_BCIA)=bciage*trm_col(l,n)
 
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
@@ -717,37 +746,37 @@ c    Aging of industrial carbonaceous aerosols
           vbs_cond%dt=dtsrc
           vbs_cond%OH=ohmc
           vbs_cond%temp=te
-          vbs_cond%nvoa=(trm(i,j,l,n_BCII)
-     &                  +trm(i,j,l,n_BCIA)
-     &                  +trm(i,j,l,n_BCB)
+          vbs_cond%nvoa=(trm_col(l,n_BCII)
+     &                  +trm_col(l,n_BCIA)
+     &                  +trm_col(l,n_BCB)
 #ifdef TRACERS_AEROSOLS_SOA
-     &                  +trm(i,j,l,n_isopp1a)
-     &                  +trm(i,j,l,n_isopp2a)
-     &                  +trm(i,j,l,n_apinp1a)
-     &                  +trm(i,j,l,n_apinp2a)
+     &                  +trm_col(l,n_isopp1a)
+     &                  +trm_col(l,n_isopp2a)
+     &                  +trm_col(l,n_apinp1a)
+     &                  +trm_col(l,n_apinp2a)
 #endif /* TRACERS_AEROSOLS_SOA */
 #ifdef TRACERS_AEROSOLS_OCEAN
-     &                  +trm(i,j,l,n_ococean)
+     &                  +trm_col(l,n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     &                  +trm(i,j,l,n_msa)
-     &                  +trm(i,j,l,n_so4)
+     &                  +trm_col(l,n_msa)
+     &                  +trm_col(l,n_so4)
 #ifdef TRACERS_NITRATE
-     &                  +trm(i,j,l,n_nh4)
-     &                  +trm(i,j,l,n_no3p)
+     &                  +trm_col(l,n_nh4)
+     &                  +trm_col(l,n_no3p)
 #endif
      &                  )*kg2ugm3
-          vbs_tr_old%gas=trm(i,j,l,vbs_tr%igas)*kg2ugm3
-          vbs_tr_old%aer=trm(i,j,l,vbs_tr%iaer)*kg2ugm3
+          vbs_tr_old%gas=trm_col(l,vbs_tr%igas)*kg2ugm3
+          vbs_tr_old%aer=trm_col(l,vbs_tr%iaer)*kg2ugm3
 
           call vbs_calc(vbs_tr_old,vbs_cond)
 
-          tr3Dsource(i,j,l,nChemistry,vbs_tr%igas)=
+          tr3Dsource(l,nChemistry,vbs_tr%igas)=
      &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
-          tr3Dsource(i,j,l,nChemloss,vbs_tr%igas)=
+          tr3Dsource(l,nChemloss,vbs_tr%igas)=
      &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
-          tr3Dsource(i,j,l,nOther,vbs_tr%igas)=
+          tr3Dsource(l,nOther,vbs_tr%igas)=
      &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
-          tr3Dsource(i,j,l,nChemistry,vbs_tr%iaer)=
+          tr3Dsource(l,nChemistry,vbs_tr%iaer)=
      &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
 !     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
 !      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
@@ -766,58 +795,56 @@ c    Aging of industrial carbonaceous aerosols
 !      endif
 #else
         case ('OCII')
-          tr3Dsource(i,j,l,nChemistry,n)=-ociage*trm(i,j,l,n)
-          tr3Dsource(i,j,l,nChemistry,n_OCIA)=ociage*trm(i,j,l,n)
+          tr3Dsource(l,nChemistry,n)=-ociage*trm_col(l,n)
+          tr3Dsource(l,nChemistry,n_OCIA)=ociage*trm_col(l,n)
 #endif /* TRACERS_AEROSOLS_VBS */
 
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
 
-          r1=rsulf1(i,j,l)*ohmc 
+          r1=rsulf1(l)*ohmc 
           d1 = exp(-r1*dtsrc)
-          r2=rsulf2(i,j,l)*ohmc
+          r2=rsulf2(l)*ohmc
           d2 = exp(-r2*dtsrc)
 
 c     NO3 is in mixing ratio: convert to molecules/cm3
 c - not necessary for Shindell source
           if (l.gt.bdy) then
             ttno3=0.d0
-            go to 87
+          else
+            ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
           endif
-          ttno3 = tno3(i,j,l)   !*6.02d20*ppres/(.082056d0*te)
- 87       r3=rsulf3(i,j,l)*ttno3
+          r3=rsulf3(l)*ttno3
           d3= exp(-r3*dtsrc)
-          ddno3=r3*trm(i,j,l,n)/tr_mm(n)*1000.d0*dtsrc
-          dddms=trm(i,j,l,n)/tr_mm(n)*1000.d0
+          ddno3=r3*trm_col(l,n)/tr_mm(n)*1000.d0*dtsrc
+          dddms=trm_col(l,n)/tr_mm(n)*1000.d0
           if (ddno3.gt.dddms) ddno3=dddms
 
           ddno3=ddno3*0.9
 C DMS losses: eqns 1, 2 ,3
 
-          tr3Dsource(i,j,l,1,n) = trm(i,j,l,n)*(d1*d2-1.)/dtsrc
+          tr3Dsource(l,1,n) = trm_col(l,n)*(d1*d2-1.)/dtsrc
 
           dmssink=ddno3*tr_mm(n)/1000.d0
 
-          if (dmssink.gt.trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc)
-     *         dmssink=trm(i,j,l,n)+tr3Dsource(i,j,l,1,n)*dtsrc
-          tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) - dmssink/dtsrc
+          if (dmssink.gt.trm_col(l,n)+tr3Dsource(l,1,n)*dtsrc)
+     *         dmssink=trm_col(l,n)+tr3Dsource(l,1,n)*dtsrc
+          tr3Dsource(l,1,n) = tr3Dsource(l,1,n) - dmssink/dtsrc
           
         case ('MSA')
 C MSA gain: eqn 1
 
-          tr3Dsource(i,j,l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*trm(i,j
-     *         ,l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
+          tr3Dsource(l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*
+     *         trm_col(l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
           
         case ('SO2')
 c SO2 production from DMS
-          tr3Dsource(i,j,l,nChemistry,n) = (0.75*tr_mm(n)/tr_mm(n_dms)
-     *         *trm(i,j,l
-     *         ,n_dms)*(1.d0 - d1)*sqrt(d2)+ tr_mm(n)/tr_mm(n_dms)*trm(i
-     *         ,j,l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
+          tr3Dsource(l,nChemistry,n) = (0.75*tr_mm(n)/tr_mm(n_dms)
+     *         *trm_col(l,n_dms)*(1.d0 - d1)*sqrt(d2)+
+     *         tr_mm(n)/tr_mm(n_dms)*
+     *         trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
      *         /tr_mm(n_dms))/dtsrc
 #ifdef TRACERS_TOMAS 
 ! EC/OC aging 
@@ -825,34 +852,34 @@ c SO2 production from DMS
            TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
 
            DO K=1,nbins
-              tr3Dsource(i,j,l,nChemistry,n_AECIL(K))=
-     &             trm(i,j,l,n_AECOB(K))*
+              tr3Dsource(l,nChemistry,n_AECIL(K))=
+     &             trm_col(l,n_AECOB(K))*
      &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 
-              tr3Dsource(i,j,l,nChemistry,n_AECOB(K))=
-     &             -trm(i,j,l,n_AECOB(K))*
+              tr3Dsource(l,nChemistry,n_AECOB(K))=
+     &             -trm_col(l,n_AECOB(K))*
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 
 !              IF(am_i_root())
 !         print*,'ECOB aging',k,n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
-!     &  , trm(i,j,l,n_AECOB(K))
+!     &  , trm_col(l,n_AECOB(K))
            ENDDO
            
         case ('AOCIL_01')
            TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
 
            DO K=1,nbins
-              tr3Dsource(i,j,l,nChemistry,n_AOCIL(K))
-     &             =trm(i,j,l,n_AOCOB(K))*
+              tr3Dsource(l,nChemistry,n_AOCIL(K))
+     &             =trm_col(l,n_AOCOB(K))*
      &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
 !     &             4.3D-6
-              tr3Dsource(i,j,l,nChemistry,n_AOCOB(K))
-     &             =-trm(i,j,l,n_AOCOB(K))*
+              tr3Dsource(l,nChemistry,n_AOCOB(K))
+     &             =-trm_col(l,n_AOCOB(K))*
      &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
 !     &             4.3D-6
 !              IF(am_i_root())
 !         print*,'OCOB aging',k,n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
-!     &  , trm(i,j,l,n_AOCOB(K))
+!     &  , trm_col(l,n_AOCOB(K))
 
            ENDDO   
 
@@ -861,59 +888,50 @@ c SO2 production from DMS
           najl = jls_NO3
           call inc_tajls2(i,j,l,najl,ttno3)
 #endif
-#endif
         end select
         
- 23   CONTINUE ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
- 22   CONTINUE
- 21   CONTINUE
- 20   CONTINUE
+        enddo                     ! tracer loop
 
-      do 30 l=1,lm
-      do 31 j=j_0,j_1
-      do 32 i=i_0,imaxj(j)
+! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
 
-      ppres=pmid(l,i,j)*9.869d-4 !in atm
-      te=pk(l,i,j)*t(i,j,l)
-      mm = MA(l,i,j)*axyp(i,j)
-      tt = 1.d0/te
-      dmm=ppres/(.082d0*te)*6.02d20
-      ohmc = oh(i,j,l)          !oh is alread in units of molecules/cm3
+
+        ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
+
 #ifdef TRACERS_HETCHEM
-      if (COUPLED_CHEM.ne.1) then
-      o3mc=o3_offline(i,j,l)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
-      else
-        o3mc=trm(i,j,l,n_Ox)*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
-      endif
+        if (COUPLED_CHEM.ne.1) then
+          o3mc=o3_offline(i,j,l)
+        else
+          o3mc=trm_col(l,n_Ox)
+        endif
+        o3mc = o3mc*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      do 33 n=1,NTM
+
+        do n=1,NTM
         select case (trname(n))
         case ('SO2')
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 
-          r4=rsulf4(i,j,l)*ohmc
+          r4=rsulf4(l)*ohmc
           d4 = exp(-r4*dtsrc)
 
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
       rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te)) * 10.d5 !assuming pH=5
       rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
-       d41 = exp(-rxts1(i,j,l)*dtsrc)     
-       d42 = exp(-rxts2(i,j,l)*dtsrc)     
-       d43 = exp(-rxts3(i,j,l)*dtsrc)     
-       tr3Dsource(i,j,l,nChemloss,n) = (-trm(i,j,l,n)*(1.d0-d41)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d4)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d42)/dtsrc)
-     .                       + ( -trm(i,j,l,n)*(1.d0-d43)/dtsrc)
+       d41 = exp(-rxts1(l)*dtsrc)     
+       d42 = exp(-rxts2(l)*dtsrc)     
+       d43 = exp(-rxts3(l)*dtsrc)     
+       tr3Dsource(l,nChemloss,n) = (-trm_col(l,n)*(1.d0-d41)/dtsrc)
+     .                       + ( -trm_col(l,n)*(1.d0-d4)/dtsrc)
+     .                       + ( -trm_col(l,n)*(1.d0-d42)/dtsrc)
+     .                       + ( -trm_col(l,n)*(1.d0-d43)/dtsrc)
 #else
-       tr3Dsource(i,j,l,nChemloss,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(l,nChemloss,n) = -trm_col(l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
-       tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(l,2,n_H2SO4)=trm_col(l,n)*(1.d0-d4)/dtsrc 
 #endif  
 #ifdef TRACERS_TOMAS
-       H2SO4_chem(i,j,l)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
+       H2SO4_chem(i,j,l)=trm_col(l,n)*(1.d0-d4)/dtsrc 
      &      *tr_mm(n_H2SO4)/tr_mm(n) 
 #endif      
 #endif        
@@ -933,31 +951,31 @@ c#endif
        case ('SO4_d1')
 c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
 
-       tr3Dsource(i,j,l,1,n)=tr3Dsource(i,j,l,1,n)+tr_mm(n)/tr_mm(n_so2)
-     *         *(1.d0-d41)*trm(i,j,l,n_so2)            !  SO2
+       tr3Dsource(l,1,n)=tr3Dsource(l,1,n)+tr_mm(n)/tr_mm(n_so2)
+     *         *(1.d0-d41)*trm_col(l,n_so2)            !  SO2
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
        case ('SO4_d2')
 c sulfate production from SO2 on mineral dust aerosol
 
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d42)*trm(i,j,l,n_so2)
+       tr3Dsource(l,1,n) = tr3Dsource(l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d42)*trm_col(l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
        case ('SO4_d3')
 c sulfate production from SO2 on mineral dust aerosol
 
-       tr3Dsource(i,j,l,1,n) = tr3Dsource(i,j,l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d43)*trm(i,j,l,n_so2)
+       tr3Dsource(l,1,n) = tr3Dsource(l,1,n) +  tr_mm(n)/
+     *             tr_mm(n_so2)*(1.d0-d43)*trm_col(l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
 #endif
         case('SO4')
 C SO4 production
-          tr3Dsource(i,j,l,nChemistry,n) = 
-     *         tr3Dsource(i,j,l,nChemistry,n)+tr_mm(n)
-     *         /tr_mm(n_so2)*trm(i,j,l,n_so2)*(1.d0 -d4)/dtsrc
+          tr3Dsource(l,nChemistry,n) = 
+     *         tr3Dsource(l,nChemistry,n)+tr_mm(n)
+     *         /tr_mm(n_so2)*trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
         case('H2O2_s')
 
           if (coupled_chem.ne.1) then
@@ -988,7 +1006,7 @@ c         if (i.eq.72.and.l.eq.1.and.j.le.46) write(6,*)
 c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
 c H2O2 production: eqn 9
          
-          tr3Dsource(i,j,l,1,n) = tr_mm(n)*xk9/dtsrc
+          tr3Dsource(l,1,n) = tr_mm(n)*xk9/dtsrc
 c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
 c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
 c         endif
@@ -996,22 +1014,21 @@ c H2O2 losses:5 and 6
           r5 = perj(i,j,l)
           d5 = exp(-r5*dtsrc)
 
-          tr3Dsource(i,j,l,2,n)=(trm(i,j,l,n))*(d5*d6-1.d0)
+          tr3Dsource(l,2,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
           
           najl = jls_phot
           if (najl > 0) call inc_tajls(i,j,l,najl,perj(i,j,l))
           endif
         end select
+        enddo ! tracer loop
 
- 33   CONTINUE
-#endif
- 32   CONTINUE
- 31   CONTINUE
- 30   CONTINUE
+      enddo ! level loop
 
       RETURN
       END SUBROUTINE aerosol_gas_chem
+
+#endif /* oma or matrix or tomas */
 
       SUBROUTINE SCALERAD
       use constant, only : pi
