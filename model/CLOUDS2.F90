@@ -2440,23 +2440,25 @@ DOWNDRAFT: do L=LDRAFT,1,-1
               if(vsum.lt.0.) then
 #ifdef TRACERS_TOMAS
 	        tm(l,n) = 0.d0  !dmw 2/1/2017 set neg tracer to zero
-#endif
                 write(6,*) trname(n)," neg cannot be fixed, setting to zero!",L,TM(1:L,N)
+#else
+                write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
+#endif
               else
                 if(l-lborrow1.gt.1) then
                   write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
                 else
+		  write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
 #ifdef TRACERS_TOMAS
 		  tm(l,n)=0.d0 !dmw 2/1/2017 set neg tracer to zero
+                  ! setting tm=0 here means tm multiplier below is 1
+                  write(6,*) 'TOMAS setting tm=0, not taking tm from below'
 #endif                 
-		  write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
 	        endif
                 ! note: borrowing from more than one layer is done by
                 ! multiplication rather than subtraction
                 tm(lborrow1:l-1,n)=tm(lborrow1:l-1,n)*(vsum/(vsum-tm(l,n)))
-#ifdef TRACERS_TOMAS
-                tm(l,n)=0.d0   !dmw 2/1/2017 set neg tracer to zero
-#endif
+                tm(l,n)=0.
               endif
             endif
           end do
