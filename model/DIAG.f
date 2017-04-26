@@ -1807,8 +1807,11 @@ c get_subdd
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only : mNO2,save_NO2column
 #endif
-#if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
-      USE LIGHTNING, only : saveC2gLightning,saveLightning
+#if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)      
+      USE LIGHTNING, only : CG_DENS, FLASH_DENS
+#ifdef AUTOTUNE_LIGHTNING
+      USE LIGHTNING, only : FLASH_UNC
+#endif
 #endif
       USE SEAICE_COM, only : si_atm
       USE LAKES_COM, only : flake
@@ -2472,13 +2475,19 @@ C**** accumulating/averaging mode ***
           long_name = 'ice cloud optical depth, vertical sum'
 #if (defined TRACERS_SPECIAL_Shindell) || (defined CALCULATE_LIGHTNING)
         case ("LGTN")  ! lightning flash rate (flash/m2/s)
-          datar8 = saveLightning
+          datar8 = FLASH_DENS
           units_of_data = 'flash/m^2/s'
-          long_name = 'Lightning Flash Rate'
+          long_name = 'Lightning Flash Density'
+#ifdef AUTOTUNE_LIGHTNING
+        case ("LGTNU")  ! Unconstrained lightning flash density (flash/m2/s)
+          datar8 = FLASH_UNC
+          units_of_data = 'flash/m^2/s'
+          long_name = 'Unconstrained Lightning Flash Density'
+#endif
         case ("c2gLGTN")!cloud-to-ground lightning flash rate(flash/m2/s)
-          datar8 = saveC2gLightning
+          datar8 = CG_DENS
           units_of_data = 'flash/m^2/s'
-          long_name = 'Cloud to Ground Lightning Flash Rate'
+          long_name = 'Cloud to Ground Lightning Flash Density'
 #endif /* TRACERS_SPECIAL_Shindell or CALCULATE_LIGHTNING*/
 
 #ifdef TRACERS_AEROSOLS_Koch

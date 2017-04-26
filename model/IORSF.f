@@ -78,6 +78,9 @@ C**** Calls to individual i/o routines
         call io_bldat  (kunit,iact,ioerr)
         call io_pbl    (kunit,iact,ioerr)
         call io_clouds (kunit,iact,ioerr)
+#ifdef AUTOTUNE_LIGHTNING
+        call io_lightning(kunit,iact,ioerr)
+#endif
         call io_somtq  (kunit,iact,ioerr)
         call io_rad    (kunit,iact,ioerr)
         call io_icedyn (kunit,iact,ioerr)
