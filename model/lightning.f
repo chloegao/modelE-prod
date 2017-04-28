@@ -22,9 +22,10 @@
       REAL*8, ALLOCATABLE, PUBLIC :: LNOX_CDF(:,:)  ! Ott et al. [2010] CDFs
 
       ! NOx yields per flash type (moles N/flash)
-	  ! Initialize with multi-model and observational mean [Murray, 2016]
-      REAL*8,              PUBLIC  :: FLASH_YIELD_MIDLAT = 260d0 ! moles N/fl
-      REAL*8,              PUBLIC  :: FLASH_YIELD_TROPIC = 260d0 ! moles N/fl
+      ! Initialize with value that reproduces methane lifetime in present-day
+      ! and minimizes tropospheric ozone bias (160 molN/flash)
+      REAL*8,              PUBLIC  :: FLASH_YIELD_MIDLAT = 160d0 ! moles N/fl
+      REAL*8,              PUBLIC  :: FLASH_YIELD_TROPIC = 160d0 ! moles N/fl
 
 #endif
 
