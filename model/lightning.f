@@ -224,6 +224,7 @@
       cgun    = 0d0
 
       call sync_param("lightning_param",lightning_param)
+#ifdef TRACERS_SPECIAL_Shindell
       call sync_param("FLASH_YIELD_MIDLAT",FLASH_YIELD_MIDLAT)
       call sync_param("FLASH_YIELD_TROPIC",FLASH_YIELD_TROPIC)
 #ifndef AUTOTUNE_LIGHTNING
@@ -234,6 +235,7 @@
          WRITE(6,*) FLASH_YIELD_MIDLAT, FLASH_YIELD_TROPIC
          WRITE(6,*) tune_lt_land, tune_lt_sea
       end if
+#endif
 #endif
 
       ! Level of highest convective activity
