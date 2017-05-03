@@ -6106,6 +6106,7 @@ C****
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
      &     IJ_MSUTLT,IJ_MSUTMT,IJ_MSUTLS,KGZ_MAX,GHT,PMB,
      &     IJ_SSU1,IJ_SSU2,IJ_SSU3,
+     &     ij_LOTI, ij_popocn, ij_tg1,
      &     KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerabs,
@@ -6189,6 +6190,14 @@ C****
 
         k = ij_tatm
         aij(i,j,k) = sum(aijl(i,j,:,ijk_tx))
+
+!***** Land-Ocean Temperature Index is Tsurf or (over steady open ocean) SST
+        k = ij_LOTI
+        if(aij(i,j,ij_popocn)>.999d0*idacc(ia_src)) then
+          aij(i,j,ij_LOTI) = aij(i,j,ij_tg1)
+        else
+          aij(i,j,ij_LOTI) = aij(i,j,ij_ts)
+        end if
 
         if (aer_rad_forc.gt.0) then
         k = ij_swaerabs

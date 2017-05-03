@@ -4776,6 +4776,15 @@ C**** Add in Stratospheric Sounding Units (3 channels)
       ia_ij(k) = ia_inst
       ir_ij(k) = ir_m80_28
 
+C**** Also include Land-Ocean Temperature Index
+      k = k + 1
+      ij_LOTI = k
+      name_ij(k) = 'L-O_TI'
+      lname_ij(k) = 'Land-Ocean TEMPERATURE Index'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
+      ir_ij(k) = ir_m80_28
+
 C****
       k = k + 1
       ij_Tatm = k
