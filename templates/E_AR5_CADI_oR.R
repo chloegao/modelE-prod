@@ -72,7 +72,6 @@ CLD_AER_CDNC            ! aerosol-cloud interactions wrapper
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
 #include "dynamic_ocn_source_files"
