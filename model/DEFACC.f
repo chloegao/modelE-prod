@@ -2006,8 +2006,8 @@ c
       lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
       units_ij(k) = 'C'
       name_ij(k) = 'tsurf_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
       denom_ij(k) = IJ_LI
 c
