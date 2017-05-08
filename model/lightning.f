@@ -250,6 +250,11 @@
          ! (1) Calculate the CG/IC ratio
          !===============================================
 
+         ! Geopotential (gz) is relative to mean sea level,
+         ! so subtract surface elevation (zatmo/g).
+         htcon=max((gz(i,j,ltop)-zatmo(i,j))*bygrav,0d0)*1d-3
+         htfrz=max((gz(i,j,lfrz)-zatmo(i,j))*bygrav,0d0)*1d-3
+
          ! Calculate the fraction of total lightning that is cloud-to-ground
          ! using Price and Rind [GRL, 1993]. This uses the thickness of the
          ! cold sector of the cloud (Hmax-Hzero) as the determining
@@ -269,10 +274,10 @@
          ! (2) Calculate the flash rate (flashes/s)
          !===============================================
 
-		 ! Which parameterization are we using?
-		 select case ( lightning_param ) 
+         ! Which parameterization are we using?
+         select case ( lightning_param ) 
 
-		 case ( 2 ) ! Cconvective mass flux
+         case ( 2 ) ! Convective mass flux
 
          !===============================================
          ! (2a) Convective Mass Flux Scheme
@@ -302,40 +307,40 @@
          !    a=-2.34e-2, b=3.08e-1, c=-7.19e-1, d=5.23e-1, e=-3.71e-2
          !==============================================================
 
-         ! Convert from hPa/m2 to kg/m2/min
-         mf = mflux * ( 100 * bygrav ) * ( 60d0 / DTsrc )
+            ! Convert from hPa/m2 to kg/m2/min
+            mf = mflux * ( 100 * bygrav ) * ( 60d0 / DTsrc )
          
-         ! The first equation is a unified equation for all surface types
-         ! The second two equations follow the general land/sea dichotomy
+            ! The first equation is a unified equation for all surface types
+            ! The second two equations follow the general land/sea dichotomy
 
-         ! Limit mass flux range from 0.9-9.6 [kg/m2/min]
-         mf=min(max(mf,0.096d0),9.6d0)
+            ! Limit mass flux range from 0.9-9.6 [kg/m2/min]
+            mf=min(max(mf,0.096d0),9.6d0)
 
-         ! Calculate cloud-to-ground flash rate
-         cgun = -2.34d-02 + mf * (  3.08d-01 +
-     &                      mf * ( -7.19d-01 +
-     &                      mf * (  5.23d-01 +
-     &                      mf * ( -3.71d-02 ) ) ) )
+            ! Calculate cloud-to-ground flash rate
+            cgun = -2.34d-02 + mf * (  3.08d-01 +
+     &                         mf * ( -7.19d-01 +
+     &                         mf * (  5.23d-01 +
+     &                         mf * ( -3.71d-02 ) ) ) )
 
-         ! Disallow negative values that the polynomial can produce 
-         cgun = max( cgun, 0d0 )
+            ! Disallow negative values that the polynomial can produce 
+            cgun = max( cgun, 0d0 )
 
-         ! Normalize by the area of a grid box at 30N
-         area_ref = 5.3528d10 ! avg 2x2.5 box at 30N
-         cgun = cgun * ( axyp(i,j) / area_ref )
+            ! Normalize by the area of a grid box at 30N
+            area_ref = 5.3528d10 ! avg 2x2.5 box at 30N
+            cgun = cgun * ( axyp(i,j) / area_ref )
+         
+            ! Convert from flashes/min to flashes/s
+            cgun = cgun / 60d0
 
-         ! Convert from flashes/min to flashes/s
-         cgun = cgun / 60d0
+            ! Calculate total flash rate from cloud-to-ground rate
+            flashun = cgun * (1.+zlt)
 
-         ! Calculate total flash rate from cloud-to-ground rate
-         flashun = cgun * (1.+zlt)
+            ! Apply tuning parameter
+            flash = (      focean(i,j)  * tune_lt_sea  + 
+     &                (1d0-focean(i,j)) * tune_lt_land   ) * flashun
+            cg    = flash / (1.+zlt)
 
-         ! Apply tuning parameter
-         flash = (      focean(i,j)  * tune_lt_sea  + 
-     &             (1d0-focean(i,j)) * tune_lt_land   ) * flashun
-         cg    = flash / (1.+zlt)
-
-		 case ( 3 ) ! Convective Precipitation Scheme
+         case ( 3 ) ! Convective Precipitation Scheme
 
          !===============================================
          ! (2b) Convective Precipitation
@@ -369,73 +374,68 @@
          ! precipitation rates exceeding 90 [mm/day].
          !=================================================================
 
-         ! Convert from hPa/m2 to mm/day, Note: 1kg(H2O)/m2 = 1mm H2O
-         pr = precon * ( 100 * bygrav ) * ( SECONDS_PER_DAY / DTsrc )
+            ! Convert from hPa/m2 to mm/day, Note: 1kg(H2O)/m2 = 1mm H2O
+            pr = precon * ( 100 * bygrav ) * ( SECONDS_PER_DAY / DTsrc )
 
-         ! Limit pr range to 5.74-90 mm/day
-         pr=min(max(pr,5.74d0),90d0) 
+            ! Limit pr range to 5.74-90 mm/day
+            pr=min(max(pr,5.74d0),90d0) 
          
-         cgun = focean(i,j) *
-     &           5.23d-02 + pr * ( -4.80d-02 +
-     &                      pr * (  5.45d-03 +
-     &                      pr * (  3.68d-05 +
-     &                      pr * ( -2.42d-07 ) ) ) ) + 
-     &   (1d0 - focean(i,j)) *
-     &           3.75d-02 + pr * ( -4.76d-02 +
-     &                      pr * (  5.41d-03 +
-     &                      pr * (  3.21d-04 +
-     &                      pr * ( -2.93d-06 ) ) ) )
+            cgun = focean(i,j) *
+     &              5.23d-02 + pr * ( -4.80d-02 +
+     &                         pr * (  5.45d-03 +
+     &                         pr * (  3.68d-05 +
+     &                         pr * ( -2.42d-07 ) ) ) ) + 
+     &      (1d0 - focean(i,j)) *
+     &              3.75d-02 + pr * ( -4.76d-02 +
+     &                         pr * (  5.41d-03 +
+     &                         pr * (  3.21d-04 +
+     &                         pr * ( -2.93d-06 ) ) ) )
 
-         ! Disallow negative values
-         cgun = max( cgun, 0d0 )
+            ! Disallow negative values
+            cgun = max( cgun, 0d0 )
 
-         ! Normalize by the area of a grid box at 30N
-         area_ref = 5.3528d10 ! avg 2x2.5 box at 30N
-         cgun = cgun * ( axyp(i,j) / area_ref )
+            ! Normalize by the area of a grid box at 30N
+            area_ref = 5.3528d10 ! avg 2x2.5 box at 30N
+            cgun = cgun * ( axyp(i,j) / area_ref )
 
-         ! Convert from flashes/min to flashes/s
-         cgun = cgun / 60d0
+            ! Convert from flashes/min to flashes/s
+            cgun = cgun / 60d0
 
-         ! Calculate total flash rate from cloud-to-ground rate
-         flashun = cgun * (1.+zlt)
+            ! Calculate total flash rate from cloud-to-ground rate
+            flashun = cgun * (1.+zlt)
+         
+            ! Apply tuning parameter
+            flash = (      focean(i,j)  * tune_lt_sea  + 
+     &                (1d0-focean(i,j)) * tune_lt_land   ) * flashun
+            cg    = flash / (1.+zlt)
 
-         ! Apply tuning parameter
-         flash = (      focean(i,j)  * tune_lt_sea  + 
-     &             (1d0-focean(i,j)) * tune_lt_land   ) * flashun
-         cg    = flash / (1.+zlt)
-
-		 case default ! Cloud-top height scheme (default)
+         case default ! Cloud-top height scheme (default)
 
          !===============================================
          ! (2c) Cloud-Top Height scheme
          !===============================================
          ! Refs: Price and Rind [1992, 1993, 1994]
 
-         ! Geopotential (gz) is relative to mean sea level,
-         ! so subtract surface elevation (zatmo/g).
-         htcon=max((gz(i,j,ltop)-zatmo(i,j))*bygrav,0d0)*1d-3
-         htfrz=max((gz(i,j,lfrz)-zatmo(i,j))*bygrav,0d0)*1d-3
-
-         flashun = (focean(i,j)) * 6.40d-4*(htcon**1.73d0) +          ! ocean
-     &         (1d0-focean(i,j)) * 3.44d-5*(htcon**4.92d0)            ! land
+            flashun = (focean(i,j)) * 6.40d-4*(htcon**1.73d0) + ! ocean
+     &            (1d0-focean(i,j)) * 3.44d-5*(htcon**4.92d0)   ! land
 
 #ifdef CUBED_SPHERE
-         ! rescale flash rate by gridbox area
-         area_ref = 6d10        ! avg 2x2.5 tropical area for reference
-         flashun  = flashun * axyp(i,j)/area_ref
+            ! rescale flash rate by gridbox area
+            area_ref = 6d10     ! avg 2x2.5 tropical area for reference
+            flashun  = flashun * axyp(i,j)/area_ref
 #endif
 
-         ! Apply tuning parameter
-         flash = (      focean(i,j)  * tune_lt_sea  + 
-     &             (1d0-focean(i,j)) * tune_lt_land   ) * flashun
+            ! Apply tuning parameter
+            flash = (      focean(i,j)  * tune_lt_sea  + 
+     &                (1d0-focean(i,j)) * tune_lt_land   ) * flashun
 
-         ! Convert from flashes/min to flashes/s
-         flashun = flashun / 60d0
-         flash   = flash   / 60d0
+            ! Convert from flashes/min to flashes/s
+            flashun = flashun / 60d0
+            flash   = flash   / 60d0
 
-         ! Calculate cloud-to-ground flash rate from total flash rate
-         cg    = flash / (1.+zlt)
-
+            ! Calculate cloud-to-ground flash rate from total flash rate
+            cg    = flash / (1.+zlt)
+            
          end select
 
 ! End of different flash rate parameterization options
