@@ -4,6 +4,8 @@
 # in different ocean basins, Pacific and Atlantic
 
 ###### ---------Script--------- ########
+do 'user_input.s';
+
 chdir $DataDir;
 
 if (index($variable_obs, "_mon") != -1) {
@@ -17,7 +19,7 @@ if (defined($depth)){
   $ObsFilename = "$variable_obs.map_lev1.$RUN2.nc";
 }
 print "extract the variable_obs \n";
-system "ncks -O -v $variable_obs $ObsFilename dummy.nc";
+system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
 print "$ObsFilename\n";
 
 $OutputFileName = "$variable_obs.Basin.$RUN2.nc";
@@ -28,6 +30,7 @@ if ($RUN2 eq "Takahashi_onEgrid"){
  $lat_obs = lata;
  $lon_obs = lona;
 }
+
 
 ###### ---------Atlantic Basin
 
@@ -42,9 +45,11 @@ if ($RUN2 eq "Takahashi_onEgrid"){
 }
 
 if (defined($depth)){
-  system "ncbo --op_typ=multiply AtlMaskO.nc dummy.nc dummy1.nc";
+  $mask = "AtlMaskO.nc";
+  system "ncbo --op_typ=multiply $ObsDir$mask dummy.nc dummy1.nc";
 }else{
-  system "ncbo --op_typ=multiply AtlMaskA.nc dummy.nc dummy1.nc";
+  $mask = "AtlMaskA.nc";
+  system "ncbo --op_typ=multiply $ObsDir$mask dummy.nc dummy1.nc";
 }
 
 system "ncwa -v AtlMask -a lon dummy1.nc dummy2.nc";
@@ -70,7 +75,7 @@ if (defined($depth)){
   $ObsFilename = "$variable_obs.map_lev1.$RUN2.nc";
 }
 print "extract the variable_obs \n";
-system "ncks -O -v $variable_obs $ObsFilename dummy.nc";
+system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
 print "$ObsFilename\n";
 system "ncrename -v $variable_obs,PacMask dummy.nc";
 
@@ -81,9 +86,11 @@ if ($RUN2 eq "Takahashi_onEgrid"){
 }
 
 if (defined($depth)){
-  system "ncbo --op_typ=multiply PacMaskO.nc dummy.nc dummy1.nc";
+  $mask = "PacMaskO.nc";
+  system "ncbo --op_typ=multiply $ObsDir$mask dummy.nc dummy1.nc";
 }else{
-  system "ncbo --op_typ=multiply PacMaskA.nc dummy.nc dummy1.nc";
+  $mask = "PacMaskA.nc";
+  system "ncbo --op_typ=multiply $ObsDir$mask dummy.nc dummy1.nc";
 }
 
 system "ncwa -v PacMask -a lon dummy1.nc dummy2.nc";
@@ -95,3 +102,4 @@ system "ncks -O -x -v lon dummy2.nc dummyPac.nc";
 
 system "ncks -A -v $variable_obs_new dummyPac.nc $OutputFileName";
 system "rm -R -f dummy*";
+

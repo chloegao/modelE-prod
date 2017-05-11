@@ -5,6 +5,8 @@
 
 ###### ---------Script--------- ########
 
+do 'user_input.s';
+
 chdir $DataDir;
 $OutputFileName = "$variable.$yrini-$yrend.glbAvg_lev$ilev.$RUN.nc";
 print "Output Name $OutputFileName\n";

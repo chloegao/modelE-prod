@@ -21,6 +21,7 @@ chdir $myDir;
 print "Doing avgACC.s \n";
 do 'avgACC.s';
 print "\n";
+=cut
 
 ##### -------- mean annual cycle at a certain level  ------- #####
 chdir $myDir;
@@ -37,21 +38,26 @@ print "$ObsDir$ObsFilename \n";
 do 'seasonalCycleObs.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
-
-chdir $myDir;
-print "Doing diff_seasons.s \n";
-do 'diff_seasons.s';
-print "\n";
+$new_variablename1 = "$new_variablename";
 
 print "datadir =  $DataDir \n";
+print "new_variablename = $new_variablename1 \n";
 print "outputfilename1 =  $OutputFileName1 \n";
 print "outputfilename2 =  $OutputFileName2 \n";
 
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script to plot model seasonal cycle
 chdir $myDir;
-system "python3 plot_line.py $DataDir$OutputFileName1 $DataDir$OutputFileName2";
+system "python3 plot_line.py $new_variablename1 $DataDir$OutputFileName1 $DataDir$OutputFileName2";
 ###### ------------------------------- ########
+
+
+chdir $myDir;
+print "Doing diff_seasons.s \n";
+do 'diff_seasons.s';
+print "\n";
+
+
 
 
 ##### -------- climatology maps at certain level  ------- #####
@@ -67,6 +73,7 @@ print "Doing obs_map.s \n";
 do 'obs_map.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
+
 
 chdir $myDir;
 print "Doing diff_maps.s \n";
@@ -116,10 +123,10 @@ chdir $myDir;
 system "python3 plot_section.py $DataDir$OutputFileName";
 ###### ------------------------------- ########
 
-##### -------- AMOC vertical sections                  ------- #####
+##### -------- MOC vertical sections, all basins      ------- #####
   chdir $myDir;
-  print "Doing basinAvg_AMOC.s \n";
-  do 'basinAvg_AMOC.s';
+  print "Doing basinAvg_MOC.s \n";
+  do 'basinAvg_MOC.s';
   print "\n";
 
 ###### ---------PYTHON Script--------- ########
@@ -143,12 +150,11 @@ system "python3 plot_linets.py sf_Atl $DataDir$OutputFileName";
 
 ###### ------------------------------- ########
 
-=cut
 ##### -------- Current Transport timeseries ------- #####
 ## transports for Kuroshio, Gulf Stream and ACC
   chdir $myDir;
-  print "Doing currentTrasp.s \n";
-  do 'currentTrasp.s';
+  print "Doing currentTransp.s \n";
+  do 'currentTransp.s';
   print "\n";
 
 ###### ---------PYTHON Script--------- ########
@@ -160,4 +166,3 @@ $KS = Kuroshio;
 $DP = DrakesPassage;
 system "python3 plot_text.py $DataDir$GS$yrini-$yrend.txt $DataDir$KS$yrini-$yrend.txt $DataDir$DP$yrini-$yrend.txt";
 ###### ------------------------------- ########
-

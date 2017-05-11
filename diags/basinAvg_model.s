@@ -6,6 +6,8 @@
 
 ###### ---------Script--------- ########
 
+do 'user_input.s';
+
 chdir $DataDir; 
 
 $InputFileName = "ANN$yrini-$yrend.$variable$RUN.nc";
@@ -38,10 +40,12 @@ $basin = "Atl";
 # Rename variable in model so we can multiply the two files
 system "ncrename -v $variable,AtlMask modDummy.nc";
 if (defined($depth)){
-  system "ncbo --op_typ=multiply AtlMaskO.nc modDummy.nc dummy.nc";
-}else{
-  system "ncbo --op_typ=multiply AtlMaskA.nc modDummy.nc dummy.nc";
+  $mask = "AtlMaskO.nc";
+  }else{
+  $mask = "AtlMaskA.nc";
 }
+  system "ncbo --op_typ=multiply $ObsDir$mask modDummy.nc dummy.nc";
+
 # Average over longitude
 system "ncwa -v AtlMask -a lon dummy.nc dummy1.nc";
 
@@ -64,10 +68,11 @@ $basin = "Pac";
 system "ncrename -v AtlMask,PacMask modDummy.nc";
 
 if (defined($depth)) {
-  system "ncbo --op_typ=multiply PacMaskO.nc modDummy.nc dummy.nc";
-}else{
-  system "ncbo --op_typ=multiply PacMaskA.nc modDummy.nc dummy.nc";
-}
+   $mask = "PacMaskO.nc";
+   }else{
+   $mask = "PacMaskA.nc";
+   }
+  system "ncbo --op_typ=multiply $ObsDir$mask modDummy.nc dummy.nc";
 
 system "ncwa -v PacMask -a lon dummy.nc dummy1.nc";
 

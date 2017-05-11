@@ -5,6 +5,7 @@
 
 ###### ------------------------------------------ ########
 ###### --------- copy acc files --------- ########
+do 'user_input.s';
 
 print "Copying acc files, $RUN years from $yrini to $yrend \n";
 print " \n";

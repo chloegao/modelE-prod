@@ -3,31 +3,31 @@
 # creates a 2D plot difference of model - gridded observations
 # from a specified level
 
+do 'user_input.s';
 
-$var = "seasonalCycle_ts";
+$diff = "diff";
+$computes = "seasonalCycle_ts";
+$old_variablename = "$variable$underscore$computes";
+$new_variablename = "$old_variablename$underscore$diff";
 
-$FirstFileName = "$variable.$yrini-$yrend.seasonalCycle_lev$ilev.$RUN.nc";
+$FirstFileName = "$variable.$yrini-$yrend.$computes.lev$ilev.$RUN.nc";
 print "First file $FirstFileName \n";
 
-$SecondFileName = "$variable_obs.seasonalCycle_lev$ilev.$RUN2.nc";
+$SecondFileName = "$variable_obs.$computes.lev$ilev.$RUN2.nc";
 print "Second file $SecondFileName \n";
 
 ###### ---------Script--------- ########
 chdir $DataDir;
 
-$OutputFileName = "$variable.$yrini-$yrend.seasonalCycleDiff_lev$ilev$RUN$underscore$RUN2.nc";
+$OutputFileName = "$variable.$yrini-$yrend.$computes.Diff_lev$ilev$RUN$underscore$RUN2.nc";
 
 # Make all variables have the same name to use ncdiff
-system "ncrename -v $var,diff $SecondFileName dummy2.nc";  
-system "ncrename -v $var,diff $FirstFileName dummy.nc";                      
+system "ncrename -v $old_variablename,$new_variablename $SecondFileName dummy2.nc";  
+system "ncrename -v $old_variablename,$new_variablename $FirstFileName dummy1.nc";                      
 
-# Need to add month dimension to model
-system "ncrename -d record,mon dummy.nc dummy1.nc";
-system "ncks -v mon dummy2.nc dummy_month.nc";
-system "ncks -A -a -v mon dummy_month.nc dummy1.nc";
+# Add mon variable to model
+system "ncks -A -a -v mon dummy2.nc dummy1.nc";
 
-
-system "ncdiff -v diff dummy1.nc dummy2.nc $OutputFileName";
-#system "ncatted -O -a long_name,V,o,c,$variable 'DIFFERENCE MODEL MINUS WOA13' $OutputFileName";
+system "ncdiff -v $new_variablename dummy1.nc dummy2.nc $OutputFileName";
 system "rm dummy*";
 

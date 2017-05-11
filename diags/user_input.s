@@ -7,11 +7,11 @@ $myDir = getcwd;
 
 ##### ----------Model-------- #####
 
-$ACCDataDir = "/discover/nobackup/aromanou/TEST2/";      #TO BE CHANGED BY USER
+$ACCDataDir = "/discover/nobackup/kflynn2/NCO_E190Test/";      #TO BE CHANGED BY USER
 $DataDir = "/discover/nobackup/aromanou/TESTNCO/";       #TO BE CHANGED BY USER
-$RUN = E186f9aF40oQ32cc_2;                               #TO BE CHANGED BY USER
-$yrini = 1995;                                           #TO BE CHANGED BY USER
-$yrend = 2004;                                           #TO BE CHANGED BY USER
+$RUN = E190F40oQ32;                               #TO BE CHANGED BY USER
+$yrini = 2191;                                           #TO BE CHANGED BY USER
+$yrend = 2200;                                           #TO BE CHANGED BY USER
 
 #### pot_temp
 $variable = pot_temp;                                  #TO BE CHANGED BY USER
@@ -35,7 +35,7 @@ $depth = zoc;                                          #TO BE CHANGED BY USER
 ##### -------Observations/Another Run----- #####
 
 #### potential temperature
-$ObsDir = $DataDir;                                    #TO BE CHANGED BY USER
+$ObsDir = "/discover/nobackup/projects/giss/OBS/";                                    #TO BE CHANGED BY USER
 $RUN2 = "WOA13_AnnMon_onEgrid";                        #TO BE CHANGED BY USER
 $ObsFilename = "$RUN2.nc";
 $variable_obs = "temp_mon";                            #TO BE CHANGED BY USER

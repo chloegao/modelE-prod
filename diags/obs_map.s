@@ -3,30 +3,59 @@
 # creates one 2D map  at specified level
 
 ###### ---------Script--------- ########
+do 'user_input.s';
 
 chdir $DataDir;
+
+print "obs: $ObsDir$ObsFilename \n";
+
+@data_array = ("DJF","JJA");
+for my $months (@data_array){
+
+  $OutputFileName = "$variable_obs.$months.map_lev$ilev.$RUN2.nc";
+  print "$OutputFileName.\n";
+
+  if (defined($depth)){
+    print "Extracting depth at level $ilev \n";
+    system "ncks -O -F -d $depth,$ilev,$ilev,1 -v $variable_obs $ObsDir$ObsFilename dummy.nc";
+  }else{
+    system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
+  }
+  if ($months eq "DJF"){
+    system "ncks -O -F -d mon,1,2 -v $variable_obs dummy.nc dummy1.nc";
+    system "ncks -A -F -d mon,11,11 -v $variable_obs dummy.nc dummy1.nc";
+    system "ncwa -O -v $variable_obs -a mon dummy1.nc $OutputFileName";
+  }
+  if ($months eq "JJA"){
+    system "ncks -O -F -d mon,6,8 -v $variable_obs dummy.nc dummy1.nc";
+    system "ncwa -O -a mon -v $variable_obs dummy1.nc $OutputFileName";
+}
+system "rm -R -f dummy*.nc";
+}
+
+
+#####
+$months = "ANN";
 
 if (index($variable_obs, "_mon") != -1) {
    print "'$variable_obs' contains mon.\n";
   $variable_obs =~ s/mon/ann/g; 
 }
 
-$InputFileName = "$RUN2.nc";
-print "$InputFileName \n";
-
-$OutputFileName = "$variable_obs.map_lev$ilev.$RUN2.nc";
+$OutputFileName = "$variable_obs.$months.map_lev$ilev.$RUN2.nc";
 print "$OutputFileName.\n";
 
 if (defined($depth)){
   # extract $depth at srf
   print "Extracting depth at level $ilev \n";
-  system "ncks -O -F -d $depth,$ilev,$ilev,1 -v $variable_obs $ObsDir$InputFileName $OutputFileName";
+  system "ncks -O -F -d $depth,$ilev,$ilev,1 -v $variable_obs $ObsDir$ObsFilename $OutputFileName";
 }elsif (defined($mon)){
-  system "ncks -O -v $variable_obs $ObsDir$InputFileName dummy.nc";
+  system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
   system "ncwa -O -v $variable_obs -a mon dummy.nc dummy1.nc";
   system "ncks -O -x -v mon dummy1.nc $OutputFileName";
 }else{
-  system "ncks -O -v $variable_obs $ObsDir$InputFileName $OutputFileName";
+  system "ncks -O -v $variable_obs $ObsDir$ObsFilename $OutputFileName";
 }
 
+system "rm -R -f dummy*.nc";
 
