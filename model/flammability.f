@@ -212,7 +212,7 @@
       use geom, only : axyp
       use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
-      use lightning, only : saveC2gLightning
+      use lightning, only : CG_DENS 
       use flammability_com, only: populationDensity
       use diag_com, only: ij_nsuppress,ij_cgign,ij_humanign,ij_human
 #endif
@@ -255,8 +255,8 @@
             ! First, the lightning-induced portion, where CtoG is the total 
             ! cloud-to-ground lightning flashes in the box per second, so that the
             ! fire count will also be in units of #fire. Starting with 
-            ! saveC2gLightning in flashes/m2/s:
-            CtoG=saveC2gLightning(i,j)*axyp(i,j) ! #/s/box
+            ! CG_DENS in flashes/m2/s:
+            CtoG=CG_DENS(i,j)*axyp(i,j) ! #/s/box
 
             ! Human ingition portion: The population density units are humans/km2, 
             ! and the formula then puts the human ingition rate in #/km2/month. Thus
