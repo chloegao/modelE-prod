@@ -96,7 +96,7 @@ subroutine CONDSE
 #endif
 #endif
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell) 
-      USE LIGHTNING,  only : FLASH_DENS, CG_DENS, FLASH_PERTURB
+      USE LIGHTNING,  only : FLASH_DENS, CG_DENS, FLASH_PERTURB,L440mbM1
 #ifdef AUTOTUNE_LIGHTNING
       USE LIGHTNING,  only : TUNE_LT_LAND, TUNE_LT_SEA
       USE LIGHTNING,  only : LAND_FR_LIS, SEA_FR_LIS
@@ -830,8 +830,7 @@ subroutine CONDSE
             exit
           endif
         enddo
-        ! Note: MCFLX(14) is hard-wired for the 40-layer version
-        call calc_lightning(i,j,LMCMAX,Lfreeze,MCFLX(14),PRCPMC)
+        call calc_lightning(i,j,LMCMAX,Lfreeze,MCFLX(L440mbM1),PRCPMC)
       endif
 #endif
 

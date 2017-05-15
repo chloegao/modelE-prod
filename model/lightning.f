@@ -7,12 +7,12 @@
 
       implicit none
       save
-      
-	  ! Set default parameterization for lightning flash rate
-	  INTEGER,             PUBLIC :: lightning_param = 1
-	  ! 1 = Cloud Top Height Scheme (default) [Price and Rind, 1992, 1993, 1994]
-	  ! 2 = Convective Mass Flux Scheme [Allen et al., 2001]
-	  ! 3 = Convectiev Precipitation Scheme [Allen and Pickering, 2002]
+
+      ! Set default parameterization for lightning flash rate
+      INTEGER,             PUBLIC :: lightning_param = 1
+      ! 1 = Cloud Top Height Scheme (default) [Price and Rind, 1992, 1993, 1994]
+      ! 2 = Convective Mass Flux Scheme [Allen et al., 2001]
+      ! 3 = Convectiev Precipitation Scheme [Allen and Pickering, 2002]
 
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, ALLOCATABLE, PUBLIC :: CLDTOPL(:,:)   ! Cloud-top level
@@ -81,8 +81,12 @@
       ! Set pertubations to flash rate in rundeck, ratio
       REAL*8,             PUBLIC  :: FLASH_PERTURB = 1d0
 
-      end module lightning       
-      
+      ! model level one below the one closest to nominal mid-level
+      ! pressure 440 hPa:
+      INTEGER :: L440mbM1=0
+
+      end module lightning
+
       subroutine alloc_lightning(grid)
 
 !@SUM  alllocate lightning arrays for current grid
@@ -90,8 +94,11 @@
 !@ver  1.0
 
       USE DOMAIN_DECOMP_ATM, ONLY : dist_grid, getDomainBounds
+      USE RESOLUTION,        ONLY : LM
+      USE ATM_COM,           ONLY : PMIDL00
       USE LIGHTNING,         ONLY : CG_DENS
       USE LIGHTNING,         ONLY : FLASH_DENS
+      USE LIGHTNING,         ONLY : L440mbM1
 #ifdef TRACERS_SPECIAL_Shindell
       USE FILEMANAGER,       ONLY : OPENUNIT, CLOSEUNIT
       USE LIGHTNING,         ONLY : ENOx_lgt, CLDTOPL
@@ -107,7 +114,7 @@
       type (dist_grid), intent(in) :: grid
 
       INTEGER             :: J_1H, J_0H, I_0H, I_1H
-      INTEGER             :: AS, III, IOS, JJJ, IU_FILE
+      INTEGER             :: AS, III, IOS, JJJ, IU_FILE, L
       REAL*8              :: Y0, Y1
       CHARACTER(LEN=255)  :: FILENAME
 
@@ -119,7 +126,7 @@
       call getDomainBounds(grid, 
      &               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      
+
       !------------------------------------
       ! Allocate arrays for lightning
       !------------------------------------
@@ -134,6 +141,12 @@
       allocate( FLASH_UNC(I_0H:I_1H,J_0H:J_1H) )
       FLASH_UNC = 0d0
 #endif
+      !---------------------------------------------
+      ! Define nominal model level one below the one
+      ! closest to 440 hPa
+      !---------------------------------------------
+      L440mbM1=minloc(abs(PMIDL00-440.d0),1)-1
+      if(L440mbM1.lt.1.or.L440mbM1.gt.LM)call stop_model('L440mbM1',255)
 
 #ifdef TRACERS_SPECIAL_Shindell
  
@@ -161,12 +174,12 @@
          READ( IU_FILE, '(a)', IOSTAT=IOS ) 
          !IF ( IOS /= 0 ) CALL IOERROR( IOS, IU_FILE, 'lightdist:2' )
       ENDDO
-         
+
       ! Read NNLIGHT types of lightning profiles
       DO III = 1, NNLIGHT
          READ( IU_FILE,*,IOSTAT=IOS) (LNOx_CDF(III,JJJ),JJJ=1,NLTYPE)
       ENDDO
-         
+
       ! Close file
       CALL CLOSEUNIT( IU_FILE )
 
