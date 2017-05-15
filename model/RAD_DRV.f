@@ -62,7 +62,7 @@ C****
      *     ,ITR,nraero_aod=>NTRACE ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX, TRRDRY,KRHTRA,TRADEN,REFDRY
      *     ,rcomp1, writer, writet
-     *     ,FSTASC
+     *     ,FSTASC,FTTASC
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
@@ -917,6 +917,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         itr(n+1:n+nraero_dust) = 7 ! all dust cases, outside ifdefs
         krhtra(n+1:n+nraero_dust) = 0 ! no deliq for dust or minerals
+        fttasc(n+1:n+nraero_dust)=1.3d0 ! increase dust AOD by 1.3 in LW
       endif
       n=n+nraero_dust
 #endif  /* (defined TRACERS_DUST) || (defined TRACERS_MINERALS) */
