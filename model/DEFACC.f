@@ -4503,14 +4503,14 @@ c
       k=k+1        ! frac dynamic biomass burning emis from lightning 
         ij_cgign = k
         lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO CG LIGT IGN. ONLY'
-        units_ij(k) = 'none'
+        units_ij(k) = 'm-2 s-1'
         name_ij(k) = 'f_ignCG'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
       k=k+1        ! frac dynamic biomass burning emis from humans
         ij_humanign = k
         lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO HUMAN IGN. ONLY'
-        units_ij(k) = 'none'
+        units_ij(k) = 'm-2 s-1'
         name_ij(k) = 'f_ignHUMAN'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
@@ -4525,7 +4525,7 @@ c
       k=k+1        ! The Fire Count (no need to save for ubiquitous
         ij_fireC = k ! case, since it is constant factor times flammability)
         lname_ij(k) = 'FIRE COUNT FOR DYN BIOBURN USING ANTHRO MODEL'
-        units_ij(k) = 'fires/s/box'
+        units_ij(k) = 'm-2 s-1'
         name_ij(k) = 'fireCount'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.

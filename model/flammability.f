@@ -209,7 +209,6 @@
       use constant, only: undef
       use flammability_com, only: mfcc,flammability,first_prec,
      & saveFireCount
-      use geom, only : axyp
       use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use lightning, only : CG_DENS 
@@ -222,9 +221,8 @@
       real*8 :: CtoG, humanIgn, nonSuppressFrac, tuneToMODIS, conv,
      & monthPerSecond,yearsPerSecond
 !@var CtoG local copy of cloud-to-ground lightning strikes
-!@+ converted to #/box/sec
 !@var humanIgn the human-induced fire ignition rate (before 
-!@+ supression in units of #/box/sec)
+!@+ supression in units of #/m2/sec)
 !@var nonSuppressFrac the fraction of fire ignitions not supressed 
 !@var tuneToMODIS a tuning factor of the fire count to MODIS obs.
 
@@ -253,18 +251,18 @@
             ! Anthropogenic/lightning fire model ignition/supression, based on Olga's  
             ! document: "Anthropogenic ignitions and supression.docx" Nov 2012.
             ! First, the lightning-induced portion, where CtoG is the total 
-            ! cloud-to-ground lightning flashes in the box per second, so that the
+            ! cloud-to-ground lightning flashes per m2 per second, so that the
             ! fire count will also be in units of #fire. Starting with 
             ! CG_DENS in flashes/m2/s:
-            CtoG=CG_DENS(i,j)*axyp(i,j) ! #/s/box
+            CtoG=CG_DENS(i,j) ! #/m2/s
 
             ! Human ingition portion: The population density units are humans/km2, 
             ! and the formula then puts the human ingition rate in #/km2/month. Thus
-            ! we need a conversion factor (conv) to go to #/box/s:
-            ! axyp*3.80518d-13 = axyp m2/box * 1km/1000m * 1km/1000m * 1mon/30.417day
+            ! we need a conversion factor (conv) to go to #/m2/s:
+            ! 3.80518d-13 = 1km/1000m * 1km/1000m * 1mon/30.417day
             !                    * 1day/24hr * 1hr/60min * 1min/60sec
-            conv=axyp(i,j)*1.d-6*monthPerSecond 
-            humanIgn=conv*0.2d0*populationDensity(i,j)**(0.4) ! #/box/s
+            conv=1.d-6*monthPerSecond 
+            humanIgn=conv*0.2d0*populationDensity(i,j)**(0.4) ! #/m2/s
 
             ! Fraction not supressed by humans (unitless):
             nonSuppressFrac=
@@ -281,7 +279,7 @@
             ! absolute values." The following is that tuning parameter:
             tuneToMODIS=7.7d0
 
-            ! Putting that all together to get the fire count rate (fire/s/box):
+            ! Putting that all together to get the fire count rate (fire/m2/s):
             saveFireCount(i,j)=tuneToMODIS*
      &       flammability(i,j)*(CtoG+humanIgn)*nonSuppressFrac
 
@@ -298,10 +296,9 @@
             ! Ubiquitous fire model. Note on units:
             ! flammability*mfcc = [#fire/m2/yr]
             ! yearsPerSecond = [yr/s]
-            ! axyp = [m2/box]
-            ! saveFireCount = [#fire/s/box]
+            ! saveFireCount = [#fire/m2/s]
             saveFireCount(i,j)=
-     &      flammability(i,j)*mfcc*axyp(i,j)*yearsPerSecond
+     &      flammability(i,j)*mfcc*yearsPerSecond
 #endif /* anthro vs ubiquitous */
           else ! flammability not ready yet or undefined here:
             saveFireCount(i,j)=0.d0
@@ -328,6 +325,7 @@
       use tracer_com, only: sfc_src
       use OldTracer_mod, only: emisPerFireByVegType
       use ghy_com, only: fearth
+      use geom, only : axyp
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
@@ -370,7 +368,7 @@
             ! sfc_src = [kg/m2/s]
             ! emisPerFire = [kg/m2/#fire]
             ! EPFBVT = [kg/m2/#fire/wholebox_vegtype_frac]
-            ! saveFireCount = [#fire/sec (in box)]
+            ! saveFireCount = [#fire/m2/sec]
     
             ! construct emisPerFire from emisPerFireByVegType:
             emisPerFire = 0.d0
@@ -378,7 +376,7 @@
               emisPerFire = emisPerFire + pvt(nv)*EPFBVT(nv)*fearth(i,j)
             end do
 
-            sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)
+            sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)*axyp(i,j)
 
           else
             sfc_src(i,j,n,ns)=0.d0
