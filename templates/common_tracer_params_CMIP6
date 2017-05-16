@@ -22,6 +22,10 @@ SECTORS_ARE='WET'
 !-fit-here--|                                                              |---
 !-----
 
-! Colin Price lightning model needs resolution-dependant tuning:
-tune_lt_land=2.4920d0 ! =2.2d0*2.17d0, *0.5*1.2*0.5 for 2x2.5, * 2 for bugfix, *0.87
-tune_lt_sea= 5.5221d0 ! =3.9d0*2.17d0, *0.25*1.5 for 2x2.5, * 2 for bugfix, *0.87
+! Lightning parameterization
+lightning_param=1          ! 1 = Cloud Top Height; 2 = Upward Convective Mass Flux; 3 = Convective Precipitation
+! Lightning tuning parameters
+tune_lt_land=2.5d0
+tune_lt_sea= 5.8d0
+FLASH_PERTURB=1.0d0        ! 1.1 = 10% increase in lightning flash rate globally
+

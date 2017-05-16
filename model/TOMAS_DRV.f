@@ -66,9 +66,9 @@ C Physical properties of aerosol components
       real molwt(icomp)
       data molwt/96., 58.45, 200., 200., 200., 200., 100.,18.,18./
 
-!@param bin_nuc/tern_nuc//actv_nuc : Flag for which nucleation parameterizations to use (1=on)
-      integer bin_nuc, tern_nuc, actv_nuc   
-      parameter(bin_nuc=1, tern_nuc=0, actv_nuc=0) 
+!@param bin_nuc/tern_nuc/ion_nuc/actv_nuc : Flag for which nucleation parameterizations to use (1=on)
+      integer bin_nuc, tern_nuc, ion_nuc, actv_nuc   
+      parameter(bin_nuc=1, tern_nuc=0, ion_nuc=0, actv_nuc=0) 
 
 !@var soa_amp : mass growth amplification factor (determined by the 
 !@+             amount of soa that needs to be condensed
@@ -83,6 +83,8 @@ C Physical properties of aerosol components
       real*8  SOArate
 !@var surf_area : aerosol surface area [micon^2 cm^-3]
       real*8 surf_area 
+!@var ionrate : ion pair formation rate [ion pairs cm^-3 s^-1]
+      real*8 ionrate 
 !@var binact10/binact02 : lookup table of activated size bin at supersatuaration of 1.0% and 0.2%
       integer, dimension(101,101,101) :: binact10,binact02
 !@var fraction10/fraction02 : lookup table of chemical composition fraction in the activated size bin at supersatuaration of 1.0% and 0.2%

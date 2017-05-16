@@ -36,6 +36,8 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
+!  OFF #define CALCULATE_LIGHTNING ! Calculate lightning flash rates when NOx is not needed
+!  OFF #define AUTOTUNE_LIGHTNING  ! Automatically generate lightning tuning parameters (present-day only)
 !<--- generic tracers code end
 !---> chemistry start
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
@@ -46,7 +48,6 @@ Preprocessor Options
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
-!  OFF #define CALCULATE_LIGHTNING ! turn on Colin Price lightning when TRACERS_SPECIAL_Shindell off
 #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project

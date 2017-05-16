@@ -2423,7 +2423,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 !              !**** reduce subsidence post hoc.
 !              LM1=max(1,L-1)
 !              if (TM(LM1,N)+TM(L,N).lt.0) then
-!              	 TM(L,N) = 0.d0 !dmw 2/1/2017 set neg tracer to zero 
+!              	 TM(L,N) = 0.d0 
 !	         write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
 !              else
 !                TM(L-1,N)=TM(L-1,N)+TM(L,N)
@@ -2438,19 +2438,27 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 vsum = vsum + tm(lborrow1,n)
               enddo
               if(vsum.lt.0.) then
+#ifdef TRACERS_TOMAS
 	        tm(l,n) = 0.d0  !dmw 2/1/2017 set neg tracer to zero
                 write(6,*) trname(n)," neg cannot be fixed, setting to zero!",L,TM(1:L,N)
+#else
+                write(6,*) trname(n)," neg cannot be fixed!",L,TM(1:L,N)
+#endif
               else
                 if(l-lborrow1.gt.1) then
                   write(6,*) trname(n),' nonlocal borrow: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(lborrow1:l,n),cmneg(l)
                 else
+		  write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+#ifdef TRACERS_TOMAS
 		  tm(l,n)=0.d0 !dmw 2/1/2017 set neg tracer to zero
-                  write(6,*) trname(n),' neg: it,i,j,l,tr,cm',itime,i_debug,j_debug,l,tm(l,n),cmneg(l)
+                  ! setting tm=0 here means tm multiplier below is 1
+                  write(6,*) 'TOMAS setting tm=0, not taking tm from below'
+#endif                 
 	        endif
                 ! note: borrowing from more than one layer is done by
                 ! multiplication rather than subtraction
                 tm(lborrow1:l-1,n)=tm(lborrow1:l-1,n)*(vsum/(vsum-tm(l,n)))
-                tm(l,n)=0.d0
+                tm(l,n)=0.
               endif
             endif
           end do

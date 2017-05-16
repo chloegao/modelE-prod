@@ -95,6 +95,18 @@ subroutine CONDSE
   use AMP_AEROSOL, only: NACTV
 #endif
 #endif
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell) 
+      USE LIGHTNING,  only : FLASH_DENS, CG_DENS, FLASH_PERTURB,L440mbM1
+#ifdef AUTOTUNE_LIGHTNING
+      USE LIGHTNING,  only : TUNE_LT_LAND, TUNE_LT_SEA
+      USE LIGHTNING,  only : LAND_FR_LIS, SEA_FR_LIS
+      USE LIGHTNING,  only : LAND_FR_UNC, SEA_FR_UNC, FLASH_UNC
+      USE LIGHTNING,  only : CNT_FR, NHISTLI
+#endif
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE LIGHTNING, only : ENOx_lgt
+#endif
 #ifdef TRACERS_ON
   use TRACER_COM, only: TRM,TRMOM,NTM,trdn1
   use OldTracer_mod, only: itime_tr0, trname
@@ -111,9 +123,6 @@ subroutine CONDSE
 #endif
 #ifdef TRACERS_COSMO
   use COSMO_SOURCES, only : BE7W_acc
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-  use LIGHTNING, only : RNOx_lgt,saveLightning,saveC2gLightning
 #endif
   use trdiag_com, only: taijn=>taijn_loc, tij_prec
 #ifndef SKIP_TRACER_DIAGS
@@ -410,7 +419,7 @@ subroutine CONDSE
   call startTimer('CONDSE()')
   !**** Initialize
 #ifdef TRACERS_SPECIAL_Shindell
-  RNOx_lgt(:,:)=0.d0
+  ENOx_lgt(:,:)=0.d0
 #endif
   idx1 = (/ IDD_PR, IDD_ECND, IDD_MCP, IDD_DMC, IDD_SMC /)
   idx2 = (/ IDD_PR, IDD_ECND, IDD_SSP /)
@@ -514,6 +523,27 @@ subroutine CONDSE
 
 
   numThreads = 1 ! no openmp
+
+#ifdef AUTOTUNE_LIGHTNING
+      IF ( SUM(CNT_FR) .gt. 0 ) THEN
+         TUNE_LT_LAND = LAND_FR_LIS*SUM(CNT_FR)/SUM(LAND_FR_UNC)
+         TUNE_LT_SEA  =  SEA_FR_LIS*SUM(CNT_FR)/SUM(SEA_FR_UNC)
+      ENDIF
+      ! Shift in anticipation
+      LAND_FR_UNC(2:NHISTLI) = LAND_FR_UNC(1:(NHISTLI-1))
+      SEA_FR_UNC(2:NHISTLI)  = SEA_FR_UNC(1:(NHISTLI-1))
+      CNT_FR(2:NHISTLI)      = CNT_FR(1:(NHISTLI-1))
+      LAND_FR_UNC(1) = 0d0
+      SEA_FR_UNC(1) = 0d0
+      CNT_FR(1) = 0d0
+      IF ( Am_I_Root() )  WRITE(6,'(A50,F15.10,F15.10)') &
+               'CLOUDS2_DRV: Calculating land/sea tuning parameters:', &
+     	       TUNE_LT_LAND, TUNE_LT_SEA
+      !CALL STOP_MODEL( 'LTM Testing',17)
+      FLASH_DENS = 0d0
+      CG_DENS    = 0d0
+      FLASH_UNC  = 0d0
+#endif
 
   !****
   !**** MAIN J LOOP
@@ -785,20 +815,23 @@ subroutine CONDSE
         end if
 
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
-        saveLightning(i,j)=0.d0    ! default for subdaily diag
-        saveC2gLightning(i,j)=0.d0 ! default for subdaily diag
-        ! Execute Colin Price Lightning parameterization:
-        !     first, need the local freezing level:
-        if(LMCMAX>0)then
-          Lfreeze=1
-          do L=1,LMCMAX
-            if(T(i,j,L)*plk(L)<TF) then
-              Lfreeze=L
-              exit
-            endif
-          enddo
-          call calc_lightning(i,j,LMCMAX,Lfreeze)
-        endif
+      FLASH_DENS(i,j) = 0.d0 ! default for subdaily diag
+      CG_DENS(i,j)    = 0.d0 ! default for subdaily diag
+#ifdef AUTOTUNE_LIGHTNING
+      FLASH_UNC(i,j)  = 0.d0 ! default
+#endif
+      ! Execute lightning parameterization:
+      ! first, need the local freezing level:
+      if(LMCMAX>0)then
+        Lfreeze=1
+        do L=1,LMCMAX
+          if(T(i,j,L)*plk(L)<TF) then
+            Lfreeze=L
+            exit
+          endif
+        enddo
+        call calc_lightning(i,j,LMCMAX,Lfreeze,MCFLX(L440mbM1),PRCPMC)
+      endif
 #endif
 
         !**** ACCUMULATE MOIST CONVECTION DIAGNOSTICS
@@ -2045,6 +2078,14 @@ subroutine CONDSE
 
 #endif
 
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
+#ifdef AUTOTUNE_LIGHTNING
+      CALL GLOBALSUM( grid, FLASH_UNC*(FOCEAN), SEA_FR_UNC(1), ALL=.true. ) 
+      CALL GLOBALSUM( grid, FLASH_UNC*(1d0-FOCEAN), LAND_FR_UNC(1), ALL=.true. )
+      CNT_FR(1) = 1
+#endif
+#endif
+
   call stopTimer('CONDSE()')
 
   return
@@ -2064,7 +2105,10 @@ subroutine init_CLD(istart)
   use GEOM, only : kmaxj
 #endif
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
-  use LIGHTNING, only : tune_lt_land, tune_lt_sea
+  use LIGHTNING, only : tune_lt_land, tune_lt_sea, FLASH_PERTURB
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+      USE LIGHTNING, only : FLASH_YIELD_MIDLAT, FLASH_YIELD_TROPIC
 #endif
   use CLOUDS, only : lmcm,bydtsrc,xmass,brcld,bybr,U00wtrX,U00ice &
        ,U00a,U00b       & ! tuning knobs to replace U00ice and U00wtrX
@@ -2244,8 +2288,15 @@ subroutine init_CLD(istart)
   call sync_param( "entrainment_cont1",entrainment_cont1)
   call sync_param( "entrainment_cont2",entrainment_cont2)
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
+#ifndef AUTOTUNE_LIGHTNING
   call sync_param( "tune_lt_land", tune_lt_land)
   call sync_param( "tune_lt_sea" , tune_lt_sea )
+#endif
+#ifdef TRACERS_SPECIAL_Shindell
+  call sync_param( "FLASH_YIELD_MIDLAT", flash_yield_midlat )
+  call sync_param( "FLASH_YIELD_TROPIC", flash_yield_tropic )
+#endif
+  call sync_param( "FLASH_PERTURB", flash_perturb )
 #endif
 
   if(LMCM.lt.0) LMCM = LS1-1

@@ -154,7 +154,7 @@ C----------------
 !@var TRACER array to add up to ITRMAX additional aerosol species
       REAL*8    :: TRACER(LX,ITRMAX)
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
-!@var FSTASC,FTASC scales optional aerosols (solar,thermal component)
+!@var FSTASC,FTTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
 !@var chem_IN column variable for importing ozone(1) and methane(2)
 !@+   fields from rest of model

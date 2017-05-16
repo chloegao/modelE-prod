@@ -99,7 +99,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijs_XXX index for diags not specific to a certain tracer
       INTEGER :: ijs_isoprene,ijs_NO2_1030,ijs_NO2_1030c,
      &ijs_NO2_1330,ijs_NO2_1330c,ijts_Sdrydep,ijs_O3mass,
-     &ijts_clrsky=0,ijts_pocean=0
+     &ijts_clrsky=0,ijts_pocean=0,ijts_sunlit_snow=0
 
 !@param KTAIJS number of special lat/lon tracer diagnostics
 !@+   please just increase this if needed - don't bother with pp options

@@ -53,8 +53,6 @@ TRDIAG                              ! new i/o
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-lightning                           ! Colin Price lightning model
-
 #include "static_ocn_source_files"
 
 Components:

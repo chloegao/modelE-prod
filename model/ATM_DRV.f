@@ -859,10 +859,12 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_special_lerner_com(grid)
       call alloc_linoz_chem_com(grid)
 #endif
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
+      call alloc_lightning(grid)
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       call alloc_trchem_shindell_com(grid)
       call alloc_tracer_sources(grid)
-      call alloc_lightning(grid)
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
       call alloc_seasalt_sources()
@@ -926,6 +928,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call def_rsf_bldat  (fid)
       call def_rsf_pbl    (fid)
       call def_rsf_clouds (fid)
+#ifdef AUTOTUNE_LIGHTNING
+      call def_rsf_lightning(fid)
+#endif
       call def_rsf_somtq  (fid)
       call def_rsf_rad    (fid)
 #ifdef CALCULATE_FLAMMABILITY
@@ -958,6 +963,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_bldat  (fid,iorw)
       call new_io_pbl    (fid,iorw)
       call new_io_clouds (fid,iorw)
+#ifdef AUTOTUNE_LIGHTNING
+      call new_io_lightning(fid,iorw)
+#endif
       call new_io_somtq  (fid,iorw)
       call new_io_rad    (fid,iorw)
       call new_io_icedyn (fid,iorw)

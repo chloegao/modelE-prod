@@ -2006,8 +2006,8 @@ c
       lname_ij(k) = 'SURF AIR TEMP OVER LAND ICE'
       units_ij(k) = 'C'
       name_ij(k) = 'tsurf_lndice'
-      ia_ij(k) = ia_src
-      scale_ij(k) = 1.d0/NIsurf
+      ia_ij(k) = ia_srf
+      scale_ij(k) = 1.
       ir_ij(k) = ir_m80_28
       denom_ij(k) = IJ_LI
 c
@@ -4533,14 +4533,14 @@ c
 #if(defined CALCULATE_LIGHTNING)||(defined TRACERS_SPECIAL_Shindell)
       k=k+1        ! lightning flash rate
         ij_flash = k
-        lname_ij(k) = 'LIGHTNING FLASH RATE'
+        lname_ij(k) = 'LIGHTNING FLASH DENSITY'
         units_ij(k) = '1.e-10 flashes/m2/s'
         name_ij(k) = 'FLASH'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
       k=k+1        ! lightning cloud-to-ground flash rate
         ij_CtoG = k
-        lname_ij(k) = 'LIGHTNING CLOUD TO GROUND FLASH RATE'
+        lname_ij(k) = 'LIGHTNING CLOUD TO GROUND FLASH DENSITY'
         units_ij(k) = '1.e-10 flashes/m2/s'
         name_ij(k) = 'CtoG'
         ia_ij(k) = ia_src
@@ -4774,6 +4774,15 @@ C**** Add in Stratospheric Sounding Units (3 channels)
       lname_ij(k) = 'SSU-Ch 3 TEMPERATURE'
       units_ij(k) = 'C'
       ia_ij(k) = ia_inst
+      ir_ij(k) = ir_m80_28
+
+C**** Also include Land-Ocean Temperature Index
+      k = k + 1
+      ij_LOTI = k
+      name_ij(k) = 'L-O_TI'
+      lname_ij(k) = 'Land-Ocean TEMPERATURE Index'
+      units_ij(k) = 'C'
+      ia_ij(k) = ia_srf
       ir_ij(k) = ir_m80_28
 
 C****

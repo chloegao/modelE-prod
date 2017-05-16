@@ -62,7 +62,7 @@ C****
      *     ,ITR,nraero_aod=>NTRACE ! turning on options for extra aerosols
      *     ,FS8OPX,FT8OPX, TRRDRY,KRHTRA,TRADEN,REFDRY
      *     ,rcomp1, writer, writet
-     *     ,FSTASC
+     *     ,FSTASC,FTTASC
 #ifdef ALTER_RADF_BY_LAT
      *     ,FS8OPX_orig,FT8OPX_orig
 #endif
@@ -917,6 +917,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
         itr(n+1:n+nraero_dust) = 7 ! all dust cases, outside ifdefs
         krhtra(n+1:n+nraero_dust) = 0 ! no deliq for dust or minerals
+        fttasc(n+1:n+nraero_dust)=1.3d0 ! increase dust AOD by 1.3 in LW
       endif
       n=n+nraero_dust
 #endif  /* (defined TRACERS_DUST) || (defined TRACERS_MINERALS) */
@@ -1686,7 +1687,7 @@ C     OUTPUT DATA
      *     ,ijts_auxfc
 #endif /* AUXILIARY_OX_RADF */
 #ifdef BC_ALB
-     *     ,ijts_alb
+     *     ,ijts_alb,ijts_sunlit_snow
 #endif  /* BC_ALB */
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: Lmax_rad_O3,Lmax_rad_CH4
@@ -1812,7 +1813,10 @@ C  GHG Effective forcing relative to 1850
 #ifdef BC_ALB
       REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                 grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     ALBNBC,NFSNBC
+     *     ALBNBC,NFSNBC,dALBsnBC
+      LOGICAL,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     &     bc_snow_present
 #endif /* BC_ALB */
 #endif /* TRACERS_ON */
       REAL*8, DIMENSION(LM_REQ,grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -2555,8 +2559,9 @@ C**** set up parameters for new sea ice and snow albedo
       endif
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #ifdef BC_ALB
-      call GET_BC_DALBEDO(i,j,dALBsn1)
+      call GET_BC_DALBEDO(i,j,dALBsn1,bc_snow_present(i,j))
       if (rad_interact_aer > 0) dALBsn=dALBsn1
+      dALBsnBC(I,J)=dALBsn1
 #endif  /* BC_ALB */
       if (poice.gt.0.) then
         zoice = ZSI(i,j)
@@ -3471,9 +3476,11 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
          LFRC=3                 ! TOA
          if (rad_forc_lev.gt.0) LFRC=4 ! TROPOPAUSE
 #ifdef BC_ALB
-      if (ijts_alb(1).gt.0)
-     * TAIJS(I,J,ijts_alb(1))=TAIJS(I,J,ijts_alb(1))
-     *   + 100.d0*(ALBNBC(I,J)-ALB(I,J,1))
+      if(ijts_alb(1).gt.0 .and. bc_snow_present(i,j) .and. csz2>0.) then
+        TAIJS(I,J,ijts_sunlit_snow) = TAIJS(I,J,ijts_sunlit_snow) + 1.
+        TAIJS(I,J,ijts_alb(1)) = TAIJS(I,J,ijts_alb(1)) + dALBsnBC(I,J)
+!     &       + 100.d0*(ALBNBC(I,J)-ALB(I,J,1))
+      endif
       if (ijts_alb(2).gt.0)
      & taijs(i,j,ijts_alb(2))
      &     =taijs(i,j,ijts_alb(2))

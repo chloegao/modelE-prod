@@ -61,7 +61,6 @@ TRDIAG                              ! for offline postprocessing
 
 STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "modelE4_source_files"
-lightning                           ! Colin Price lightning model
 ! flammability_drv flammability       ! Olga's fire model
 
 #include "static_ocn_source_files"

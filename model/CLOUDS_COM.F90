@@ -358,6 +358,10 @@ subroutine io_clouds(kunit,iaction,ioerr)
 !@auth Gavin Schmidt
   use RESOLUTION, only : IM,JM,LM
   use MODEL_COM, only : ioread,iowrite,lhead
+#ifdef AUTOTUNE_LIGHTNING
+      use filemanager, only : openunit, closeunit
+      use lightning, only : LAND_FR_UNC, SEA_FR_UNC, CNT_FR, NHISTLI
+#endif
   use DOMAIN_DECOMP_ATM, only : GRID
   use DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_COLUMN, UNPACK_COLUMN
   use CLOUDS_COM

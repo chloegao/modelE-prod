@@ -611,7 +611,7 @@ c derived/composite diagnostics
      *  ij_netrdp, ij_albp, ij_albg, ij_albv, ij_ntdsese, ij_ntdsete,
      *  ij_fland, ij_dzt1, ij_albgv, ij_msutlt,ij_msutmt,ij_msutls,
      *  ij_ssu1, ij_ssu2, ij_ssu3,
-     *  ij_Tatm, ij_RTSE, ij_HWV, ij_PVS
+     *  ij_Tatm, ij_LOTI, ij_RTSE, ij_HWV, ij_PVS
 
       integer, public :: ij_tsurfmin,ij_tsurfmax
 
