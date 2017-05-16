@@ -219,11 +219,11 @@
       implicit none
 
       integer :: J_0S, J_1S, I_0H, I_1H, i, j
-      real*8 :: CtoG, humanIng, nonSuppressFrac, tuneToMODIS, conv,
+      real*8 :: CtoG, humanIgn, nonSuppressFrac, tuneToMODIS, conv,
      & monthPerSecond,yearsPerSecond
 !@var CtoG local copy of cloud-to-ground lightning strikes
 !@+ converted to #/box/sec
-!@var humanIng the human-induced fire ignition rate (before 
+!@var humanIgn the human-induced fire ignition rate (before 
 !@+ supression in units of #/box/sec)
 !@var nonSuppressFrac the fraction of fire ignitions not supressed 
 !@var tuneToMODIS a tuning factor of the fire count to MODIS obs.
@@ -264,7 +264,7 @@
             ! axyp*3.80518d-13 = axyp m2/box * 1km/1000m * 1km/1000m * 1mon/30.417day
             !                    * 1day/24hr * 1hr/60min * 1min/60sec
             conv=axyp(i,j)*1.d-6*monthPerSecond 
-            humanIng=conv*0.2d0*populationDensity(i,j)**(0.4) ! #/box/s
+            humanIgn=conv*0.2d0*populationDensity(i,j)**(0.4) ! #/box/s
 
             ! Fraction not supressed by humans (unitless):
             nonSuppressFrac=
@@ -283,15 +283,15 @@
 
             ! Putting that all together to get the fire count rate (fire/s/box):
             saveFireCount(i,j)=tuneToMODIS*
-     &       flammability(i,j)*(CtoG+humanIng)*nonSuppressFrac
+     &       flammability(i,j)*(CtoG+humanIgn)*nonSuppressFrac
 
             ! Save a daignostic for the portion that is human-caused. (1.0-this) is the
             ! portion that is lightning-caused, so no reason to save that. Also save the
             ! fire count:
-            aij(i,j,ij_humanign)=aij(i,j,ij_humanign)+humanIng
+            aij(i,j,ij_humanign)=aij(i,j,ij_humanign)+humanIgn
             aij(i,j,ij_cgign)=aij(i,j,ij_cgign)+CtoG
             aij(i,j,ij_nsuppress)=aij(i,j,ij_nsuppress)+nonSuppressFrac
-            aij(i,j,ij_human)=aij(i,j,ij_human)+humanIng/(CtoG+humanIng)
+            aij(i,j,ij_human)=aij(i,j,ij_human)+humanIgn/(CtoG+humanIgn)
 
 #else /* ubiquitous only */
 
