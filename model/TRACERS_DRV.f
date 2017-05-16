@@ -3835,11 +3835,13 @@ c BC impact on albedo
           k = k + 1
           ijts_alb(1) = k
           ia_ijts(k) = ia_rad_frc
-          lname_ijts(k) = 'BC impact on albedo (%)'
+          lname_ijts(k) = 'BC impact on snow albedo of land/seaice'
           sname_ijts(k) = 'alb_BC'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),' ')
-          scale_ijts(k) = 10.**(-ijts_power(k))
+          ijts_power(k) = 0
+          units_ijts(k) = unit_string(ijts_power(k),'%')
+          scale_ijts(k) = 100.
+          ijts_HasArea(k) = .false.
+          dname_ijts(k) = 'sunlit_snow_freq'
 
 c SW forcing from albedo change
           k = k + 1
@@ -4019,6 +4021,17 @@ c
         units_ijts(k) = '%'
         sname_ijts(k) = 'ocnfr'
         ia_ijts(k) = ia_src     ! ia_ij(ij_pocean) is not initialized yet :(
+        scale_ijts(k) = 100.
+        ijts_HasArea(k) = .false.
+      endif
+
+      if(any(dname_ijts(1:k).eq.'sunlit_snow_freq')) then ! snow albedo weight
+        k = k + 1
+        ijts_sunlit_snow = k
+        ia_ijts(k) = ia_rad_frc
+        lname_ijts(k) = 'SUNLIT SNOW FREQUENCY'
+        sname_ijts(k) = 'sunlit_snow_freq'
+        units_ijts(k) = '%'
         scale_ijts(k) = 100.
         ijts_HasArea(k) = .false.
       endif

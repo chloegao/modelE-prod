@@ -1350,7 +1350,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       END SUBROUTINE GET_SULFATE
 
 #ifdef BC_ALB
-      SUBROUTINE GET_BC_DALBEDO(i,j,bc_dalb)
+      SUBROUTINE GET_BC_DALBEDO(i,j,bc_dalb,snow_present)
 !@sum Calculates change to albedo of snow on ice and snow on land due
 !@+     to BC within the snow.
 !@+     Parameterization based on Warren and Wiscombe (1980) (21 inputs)
@@ -1423,6 +1423,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       INTEGER n,ib
       INTEGER, INTENT(IN) :: i,j
       REAL*8, INTENT(OUT) :: bc_dalb
+      logical, intent(out) :: snow_present
 #ifdef TRACERS_AEROSOLS_Koch
       integer, parameter :: nspBC=3
 #endif
@@ -1464,12 +1465,14 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       scon=0.d0
       icon=0.d0
       bc_dalb=0.d0
+      snow_present = .false.
 
 ! get bare soil and vegetation fractions (fb+fv=1.)
       call get_fb_fv( fb, fv, i, j )
 
 ! calculate BC concentration in snow layer 1 over bare soil
       if (wsn_ij(1,1,i,j).gt.0.d0) then
+        snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
           bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
         enddo
@@ -1478,6 +1481,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 
 ! calculate BC concentration in snow layer 1 over vegetation
       if (wsn_ij(1,2,i,j).gt.0.d0) then
+        snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
           bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
         enddo
@@ -1489,6 +1493,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 
 ! calculate BC concentration in snow over sea ice
       if (si_atm%snowi(i,j).gt.0.d0) then
+        snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
           icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
         enddo
