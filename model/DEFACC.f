@@ -2456,6 +2456,22 @@ c     igrid_ij(k) = 2
 c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
+      IJ_OMEGAPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k)='DOWNWARD PRESSURE FLUX at '//Trim(PMNAME(L))//'mb'
+         units_ij(k) = 'Pa/s'
+         name_ij(k) = 'omega_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+!        ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_OMEGAPMB1
+      EndDo
+      name3(IJ_OMEGAPMB1) = 'omegacp'
+      lname3(IJ_OMEGAPMB1) = 'DOWNWARD PRESSURE FLUX'
+      dim3info_index(IJ_OMEGAPMB1) = ij_cp_diminfo
+
 !**** Vertical Mass Fluxes
       k=k+1
       IJ_H2OCH4 = k  !  1 GP

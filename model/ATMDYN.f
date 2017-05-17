@@ -313,7 +313,7 @@ C**** Leap-frog re-initialization: IF (NS.LT.NIdyn)
       Call ADVECV (DTLF, UT,VT,MODD1, MEVEN,U,V,MA)
        PU(:,:,:) = MU(:,:,:)*kg2mb
        PV(:,:,:) = MV(:,:,:)*kg2mb
-       SD(:,:,:) = MW(:,:,:)*kg2mb
+       SD(:,:,:) = MW(:,:,:)*kg2mb  !  (mb*m^2/s) from (kg/s)
 !       P(:,:)   = (MASUM(:,:) - MFIXs)*kg2mb
             MODDA = Mod (NSTEP+4-NS + NDAA*NIDYN, NDAA*NIDYN+2)  ! strat
          IF(MODDA.LT.MRCH) CALL DIAGA0   ! strat
@@ -362,10 +362,10 @@ C**** Restart after 8 steps due to divergence of solutions
          U(:,:,:) = U(:,:,:) + UNRDRAG_x(:,:,:) * DTsrc
          V(:,:,:) = V(:,:,:) + UNRDRAG_y(:,:,:) * DTsrc  ;  EndIf
 
-!**** Convert summed mass fluxes from (kg/s) to (kg)
+!**** Convert summed mass fluxes from (mb*m^2/s) to (mb*m^2)
       MUs(:,:,:) = MUs(:,:,:) * DTLF
       MVs(:,:,:) = MVs(:,:,:) * DTLF
-      MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) * DTLF
+      MWs(:,:,1:LM-1) = MWs(:,:,1:LM-1) * DTLF  !  positive downward
 
 c apply east-west filter to U and V once per physics timestep
       Call FLTRUV
