@@ -101,10 +101,10 @@ c Shortwave: -------------------------------------------------------------------
          enddo
  100      continue  
           if (MD.gt.1) then
+            MD = min(23,MD)
           b = Size(md) - Reff_LEV(l,n)
           a = Reff_LEV(l,n) - Size(md-1)
           endif
-            MD = min(23,MD)
 c---- INTERNAL MIXTURE ---------------------------------------------        
             do MA = 1,15
             if ( real    (RindexAMP(l,n,w)) .le. Mie_RE(MA)) goto 200
@@ -175,10 +175,10 @@ c Shortwave: -------------------------------------------------------------------
          enddo
  500      continue  
           if (MD.gt.1) then
+            MD = min(23,MD)
           b = Size(md) - Reff_LEV(l,n)
           a = Reff_LEV(l,n) - Size(md-1)
           endif
-            MD = min(23,MD)
 
        select case (MODE_NAME(n))
 c---- INTERNAL MIXTURE ---------------------------------------------        
