@@ -2326,6 +2326,29 @@ c
       scale_ij(k) = 1./RHOI
       ir_ij(k) = ir_0_4
       denom_ij(k) = IJ_RSOI
+
+      k=k+1 !
+      atmice%IJ_SITF = k
+      lname_ij(k) = 'OCEAN ICE TIME FRACTION'
+      units_ij(k) = '1.0'
+      name_ij(k) = 'sitimefrac'
+      scale_ij(k) = 1.
+
+      k=k+1 !
+      atmice%IJ_SIMASS = k
+      lname_ij(k) = 'OCEAN ICE MASS PER AREA'
+      units_ij(k) = 'kg/m2'
+      name_ij(k) = 'simass'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1 !
+      atmice%IJ_SIVOL = k
+      lname_ij(k) = 'OCEAN ICE VOLUME PER AREA'
+      units_ij(k) = 'm'
+      name_ij(k) = 'sivol'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./RHOI
 c
 !**** Velocity and Momentum
       k=k+1 !
