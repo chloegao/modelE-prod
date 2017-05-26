@@ -65,9 +65,9 @@ c arrays for sea ice advection
       !REAL*8, ALLOCATABLE, DIMENSION(:,:) :: aUSI,aVSI
 
 C**** Ice dynamics diagnostics
-      INTEGER, PARAMETER :: KICIJ=6
+      INTEGER, PARAMETER :: KICIJ=7
 !@var IJ_xxx Names for ICIJ diagnostics
-      INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_RSI
+      INTEGER IJ_USI,IJ_VSI,IJ_DMUI,IJ_DMVI,IJ_PICE,IJ_RSI,IJ_SISPEED
 !@var ICIJ lat-lon ice dynamic diagnostics (on ice dyn. grid)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: ICIJ!,ICIJg
 !@var lname_icij Long names for ICIJ diagnostics
@@ -506,7 +506,7 @@ c temporarily empty.
      *     ,gwatx,gwaty,pgfub,pgfvb,amass,dmu,dmv
      *     ,usi,vsi,iFOCEAN=>FOCEAN
       USE ICEDYN_COM, only : icij,ij_usi
-     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,igice
+     *     ,ij_vsi,ij_dmui,ij_dmvi,ij_pice,ij_rsi,igice,ij_sispeed
       USE SEAICE, only : ace1i
 #ifdef CUBED_SPHERE
       use icedyn_com, only : CS2ICEint_a,CS2ICEint_b,ICE2CSint
@@ -541,7 +541,7 @@ C****
       REAL*8, PARAMETER :: BYRHOI=1D0/RHOI
       REAL*8 :: hemi
       INTEGER :: I,J,ip1,im1
-      REAL*8 :: DMUINP,duA,dvA,rsib
+      REAL*8 :: DMUINP,duA,dvA,rsib,USISPEED,VSISPEED
       INTEGER :: aIM, aJM
       INTEGER :: iJ_1   , iJ_0
       INTEGER :: iJ_1S  , iJ_0S
@@ -947,19 +947,28 @@ c*** diagnostics
       DO J=iJ_0,iJ_1S
         DO I=1,imicdyn
          ip1=i+1
+         USISPEED=0.; VSISPEED=0.
          if (ip1 .eq. IMICDYN+1) ip1=1
           IF (iFOCEAN(I,J).gt.0 .and. iFOCEAN(IP1,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(IP1,J).gt.1d-4) THEN
             ICIJ(I,J,IJ_USI) =ICIJ(I,J,IJ_USI) +(iRSI(I,J)+iRSI(IP1,J))
      *           *0.5*(uice(i+1,j-1,1)+uice(i+1,j,1))
             ICIJ(I,J,IJ_DMUI)=ICIJ(I,J,IJ_DMUI)+DMUI(i,j)
+            USISPEED=(iRSI(I,J)+iRSI(IP1,J))*0.5
+     *              *(uice(i+1,j-1,1)+uice(i+1,j,1))
           END IF
           IF (iFOCEAN(I,J+1).gt.0 .and. iFOCEAN(I,J).gt.0. .and.
      *         iRSI(I,J)+iRSI(I,J+1).gt.1d-4) THEN
             ICIJ(I,J,IJ_VSI) =ICIJ(I,J,IJ_VSI) +(iRSI(I,J)+iRSI(I,J+1))
      *           *0.5*(vice(i,j,1)+vice(i+1,j,1))
             ICIJ(I,J,IJ_DMVI)=ICIJ(I,J,IJ_DMVI)+DMVI(i,j)
+            VSISPEED=(iRSI(I,J)+iRSI(I,J+1))
+     *           *0.5*(vice(i,j,1)+vice(i+1,j,1))
           END IF
+C**** SISPEED: Speed of ice (i.e. mean absolute velocity)
+C**** to account for back-and-forth movement of the ice
+          ICIJ(I,J,IJ_SISPEED)=ICIJ(I,J,IJ_SISPEED)
+     *      +sqrt(USISPEED**2+VSISPEED**2)
           ICIJ(I,J,IJ_PICE)=ICIJ(I,J,IJ_PICE)+ iRSI(I,J)*press(i+1,j)
           ICIJ(I,J,IJ_RSI) =ICIJ(I,J,IJ_RSI) + iRSI(I,J)
         END DO
@@ -1840,7 +1849,7 @@ c      iA=aA
       USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
      &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
-     &     ,ij_dmvi,ij_rsi,ij_pice
+     &     ,ij_dmvi,ij_rsi,ij_pice,ij_sispeed
 #ifdef NEW_IO
      &     ,cdl_icij
 #endif
@@ -2086,6 +2095,13 @@ c      denom_icij(k)=IJ_RSIV ! need to add IJ_RSIV
       units_icij(k)="m/s"
       scale_icij(k)=1.
       jgrid_icij(k)=2
+
+      k=k+1
+      IJ_SISPEED=k
+      lname_icij(k)="Sea ice speed x POICE"
+      sname_icij(k)="icij_sispeed"
+      units_icij(k)="m/s"
+      scale_icij(k)=1.
 
       k=k+1
       IJ_DMUI=k

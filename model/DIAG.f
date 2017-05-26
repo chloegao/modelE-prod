@@ -101,8 +101,9 @@ C**** Some local constants
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
       Use Resolution, Only: IM,JM,LM, LS1=>LS1_NOMINAL
-      Use MODEL_COM,  Only: IDACC,MDYN,MDIAG
+      Use MODEL_COM,  Only: IDACC,MDYN,MDIAG, DTSRC
       Use ATM_COM,    Only: U,V,T,Q,QCL,QCI, ZATMO, LM_REQ,REQ_FAC_M
+     *                     ,MWs
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
      &     lon2d_dg,byaxyp
 #ifndef SCM
@@ -115,6 +116,7 @@ C**** Some local constants
      *     ,aij=>aij_loc,ij_dtdp,ij_pres,ij_slpq,ij_presq
      *     ,ij_slp
      *  ,ij_pmb1,ij_tpmb1,ij_qpmb1,ij_zpmb1,ij_rhpmb1,ij_upmb1,ij_vpmb1
+     *  ,ij_omegapmb1
      *     ,ij_RH1,ij_qm,ij_ujet
      *     ,ij_vjet,j_tx1,j_tx,j_qp,j_dtdjt,j_dtdjs,j_dtdgtr,j_dtsgst
      &     ,ijl_dp,ijk_dp,ijl_u,ijl_v,ijl_w,ijk_tx,ijk_q,ijk_rh
@@ -162,13 +164,13 @@ C**** Some local constants
      &     BBYGV,DLNP01,DLNP12,DLNP23,MAzMASUM,
      &     DXYPJ,
      *     ESEPS,GAMC,GAMM,GAMX,
-     *     PDN,TDN,QDN,ZDN,UDN,VDN,
-     *     PUP,TUP,QUP,ZUP,UUP,VUP, PE,PHI_REQ,pfact,chemL,chemLm1,
+     *     PDN,TDN,QDN,ZDN,UDN,VDN,ODN,OFACTOR,
+     *     PUP,TUP,QUP,ZUP,UUP,VUP,OUP, PE,PHI_REQ,pfact,chemL,chemLm1,
      *     PL,PRT,W2MAX,RICHN,
      *     ROSSN,ROSSL,BYFCOR,BYBETA,BYBETAFAC,NH,SS,THETA,
-     *     TZL,X, TIJK,QIJK,ZIJK,RHIJK,UIJK,VIJK, DTXDY
+     *     TZL,X, TIJK,QIJK,ZIJK,RHIJK,UIJK,VIJK,OIJK, DTXDY
       Logical :: qabove
-      Integer :: NP,NT,NQ,NZ,NRH,NU,NV
+      Integer :: NP,NT,NQ,NZ,NRH,NU,NV,NO
       REAL*8, PARAMETER :: EPSLON=1.
 
       REAL*8 QSAT, SLP, PS, ZS, TS_SLP, QLH, begin
@@ -372,7 +374,7 @@ C**** Follows logic for geopotential section following this...
          n_inst(K,i,j) = undef  ;  m_inst(K,i,j) = undef
 #endif
          GoTo 10  ;  EndIf
-   20 If (L == LM)  GoTo 50
+   20 If (L == LM)  GoTo 40
       L = L+1  ;  PUP = PMID(L,I,J)        ;  TUP = TX(I,J,L) - TF
                   ZUP = PHI(I,J,L)*byGRAV  ;  QUP = Q(I,J,L)
                   UUP = UA(L,I,J)          ;  VUP = VA(L,I,J)
@@ -441,6 +443,27 @@ C**** Follows logic for geopotential section following this...
                       NZ = NZ+1  ;  NU = NU+1  ;  NV = NV+1
                      NRH = NRH+1
           GoTo 30  ;  EndIf
+
+!**** Compute omega = dP/dt from model edge to constant pressure levels
+!**** omega(Pa/s) = MWs(mb*m^2) * byAXYP(1/m^2) * 100(Pa/mb) / DTSRC(s)
+   40 OFACTOR = byAXYP(I,J) * 100 / DTSRC
+      L = 0  ;  PDN = PEDN(1,I,J)  ;  ODN = 0
+      K = 0  ;  NP = IJ_ PMB1-1  ;  NO = IJ_OMEGAPMB1-1
+   41 K = K+1  ;  NP = NP+1  ;  NO = NO+1
+      If (PDN < PMB(K))  GoTo 41
+   42 If (L == LM)  GoTo 50
+      L = L+1  ;  PUP = PEDN(L+1,I,J)  ;  OUP = MWs(I,J,L)*OFACTOR
+   43 If (PMB(K) < PUP)  Then
+          PDN = PUP  ;  ODN = OUP
+          GoTo 42  ;  EndIf
+!**** PUP <= PMB(K) <= PDN, interpolate model data to constant pressure
+      OIJK = ODN + (OUP - ODN) * (PMB(K) - PDN) / (PUP - PDN)
+!     AIJ(I,J,NP)  = AIJ(I,J,NP)  + 1
+      AIJ(I,J,NO)  = AIJ(I,J,NO)  + OIJK
+      If (K < KGZ)  Then  
+          K = K+1  ;  NP = NP+1  ;  NO = NO+1
+          GoTo 43  ;  EndIf
+
    50 Continue  !  From  Do 50 I=I_0,IMAXJ(J)
       EndDo     !  From  DO J=J_0,J_1
 

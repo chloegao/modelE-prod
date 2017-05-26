@@ -1265,7 +1265,15 @@ c     &       (tr_wd_TYPE(n).eq.nWater .or. tr_wd_TYPE(n).eq.nPART)) then
           AIJ(I,J,ATMICE%IJ_SISNWF) = AIJ(I,J,ATMICE%IJ_SISNWF)
      &         -MIN(EPREC(I,J)*BYLHM,0d0)*POICE
           AIJ(I,J,ATMICE%IJ_RSOI) =AIJ(I,J,ATMICE%IJ_RSOI) +POICE
+          IF(POICE.GT.0d0)
+C**** SITF: Fraction of time steps of the averaging period during which
+c**** sea ice is present (siconc >0 ) in a grid cell
+     &    AIJ(I,J,ATMICE%IJ_SITF) =AIJ(I,J,ATMICE%IJ_SITF) + 1
           AIJ(I,J,ATMICE%IJ_MSI) =AIJ(I,J,ATMICE%IJ_MSI) + MSIsave(I,J)
+          AIJ(I,J,ATMICE%IJ_SIMASS) =AIJ(I,J,ATMICE%IJ_SIMASS)
+     *         + MSIsave(I,J)
+          AIJ(I,J,ATMICE%IJ_SIVOL) =AIJ(I,J,ATMICE%IJ_SIVOL)
+     *         + MSIsave(I,J)
 
           AIJ(I,J,ATMICE%IJ_SITOPMLT)=AIJ(I,J,ATMICE%IJ_SITOPMLT)
      &         +RUNPSI(I,J)*POICE

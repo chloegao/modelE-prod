@@ -881,10 +881,10 @@ C****
           td1 = (asflx(ipatch)%trsrfflx(n,i,j)
      &          +asflx(ipatch)%trflux_prescr(n,i,j)
      &         )*dtsurf         ! kg/m2
-          if (trm(i,j,1,n)+td1+tdd.le.0.and.tdd.lt.0) then
+          if (trm(i,j,1,n)*byaxyp(i,j)+(td1+tdd).lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-            tdd= -max(trm(i,j,1,n)+td1,0d0)*byaxyp(i,j)
+            tdd= -max(trm(i,j,1,n)*byaxyp(i,j)+td1,0d0)
             tdryd=tdd
           end if
           asflx(ipatch)%trsrfflx(n,i,j)=

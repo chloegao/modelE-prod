@@ -2326,6 +2326,29 @@ c
       scale_ij(k) = 1./RHOI
       ir_ij(k) = ir_0_4
       denom_ij(k) = IJ_RSOI
+
+      k=k+1 !
+      atmice%IJ_SITF = k
+      lname_ij(k) = 'OCEAN ICE TIME FRACTION'
+      units_ij(k) = '1.0'
+      name_ij(k) = 'sitimefrac'
+      scale_ij(k) = 1.
+
+      k=k+1 !
+      atmice%IJ_SIMASS = k
+      lname_ij(k) = 'OCEAN ICE MASS PER AREA'
+      units_ij(k) = 'kg/m2'
+      name_ij(k) = 'simass'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1.
+
+      k=k+1 !
+      atmice%IJ_SIVOL = k
+      lname_ij(k) = 'OCEAN ICE VOLUME PER AREA'
+      units_ij(k) = 'm'
+      name_ij(k) = 'sivol'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 1./RHOI
 c
 !**** Velocity and Momentum
       k=k+1 !
@@ -2456,6 +2479,22 @@ c     igrid_ij(k) = 2
 c     jgrid_ij(k) = 2
 c     ir_ij(k) = ir_0_26_150
 c
+      IJ_OMEGAPMB1 = k+1
+      Do L=1,KGZ
+         k=k+1
+         lname_ij(k)='DOWNWARD PRESSURE FLUX at '//Trim(PMNAME(L))//'mb'
+         units_ij(k) = 'Pa/s'
+         name_ij(k) = 'omega_' // PMNAME(L)
+         ia_ij(k) = ia_dga
+         scale_ij(k) = 1       
+!        ir_ij(k) = ir_m38_106
+         denom_ij(k) = IJ_PMB1 + L - 1
+         index1(k) = IJ_OMEGAPMB1
+      EndDo
+      name3(IJ_OMEGAPMB1) = 'omegacp'
+      lname3(IJ_OMEGAPMB1) = 'DOWNWARD PRESSURE FLUX'
+      dim3info_index(IJ_OMEGAPMB1) = ij_cp_diminfo
+
 !**** Vertical Mass Fluxes
       k=k+1
       IJ_H2OCH4 = k  !  1 GP
