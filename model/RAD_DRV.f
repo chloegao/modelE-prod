@@ -180,7 +180,7 @@ C****
      &    srvext,srvsct,srvgcb,
      &    srbext,srbsct,srbgcb,
      &    traalk,trdalk,trvalk,trbalk
-      use radpar, only: keepal,srbalb,srxalb
+      use radpar, only: keepal,srbalb,srxalb,FSTOPX,FTTOPX
       use pario, only : par_open,par_close,read_data,read_dist_data
       use fluxes, only : atmsrf,asflx4,focean,fland,flice
       use fluxes, only : atmocn,atmice,atmgla,atmlnd
@@ -983,6 +983,13 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !=======================================================================
 !=======================================================================
 #endif  /* TRACERS_ON */
+
+! set default FSTOPX and FTTOPX values
+      if (rad_interact_aer > 0) then
+        FSTOPX(:)=1.d0 ; FTTOPX(:)=1.d0
+      else
+        FSTOPX(:)=0.d0 ; FTTOPX(:)=0.d0
+      endif
 
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
@@ -2648,7 +2655,6 @@ C**** or not.
       if (rad_interact_aer > 0) onoff_aer=1
       if (clim_interact_chem > 0) onoff_chem=1
       use_o3_ref=0
-      FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
 
 C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
