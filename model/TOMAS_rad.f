@@ -19,7 +19,7 @@ C
       USE MODEL_COM,   only: itime,itimeI
       use OldTracer_mod, only: trName, TRPDENS
       USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM,xk
-      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX !Diagnostics
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       ! aerosol radiative properties from lookup table
