@@ -46,10 +46,10 @@ c -----------------------------------------------------------------
       ! Local
       
       INTEGER l,n,w,MA,MB,MC,MD,NA,NS
-      REAL*8 Size(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33) 
+      REAL*8 sizebins(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33) 
       REAL*8 CORE_CLASS(nmodes), SHELL_CLASS(nmodes),Reff_mode(nmodes),Vf(6),CS_Mix(26)
       REAL*8 a,b,AMPEXT,AMPSCA,AMPASY
-      DATA Size/0.002, 0.005,0.01,0.05,0.08,0.1,0.13,0.17,0.2,0.25,0.3,0.4,0.5,0.6,0.7,0.8,1.0,1.2,1.5,2.,3.,5.,10./
+      DATA sizebins/0.002, 0.005,0.01,0.05,0.08,0.1,0.13,0.17,0.2,0.25,0.3,0.4,0.5,0.6,0.7,0.8,1.0,1.2,1.5,2.,3.,5.,10./
       DATA CS_Mix/0.,0.04,0.08,0.12,0.16,0.2,0.24,0.28
      +          ,0.32,0.36,0.4,0.44,0.48,0.52,0.56,0.6
      +          ,0.64,0.68,0.72,0.76,0.8,0.84,0.88,0.92,0.96,1.0/
@@ -97,13 +97,13 @@ c Shortwave: -------------------------------------------------------------------
 
          w = 6    ! aot at 550
          do MD = 1,23
-            if (Reff_LEV(l,n) .le. Size(md)) goto 100            
+            if (Reff_LEV(l,n) .le. sizebins(md)) goto 100            
          enddo
  100      continue  
           if (MD.gt.1) then
             MD = min(23,MD)
-          b = Size(md) - Reff_LEV(l,n)
-          a = Reff_LEV(l,n) - Size(md-1)
+          b = sizebins(md) - Reff_LEV(l,n)
+          a = Reff_LEV(l,n) - sizebins(md-1)
           endif
 c---- INTERNAL MIXTURE ---------------------------------------------        
             do MA = 1,15
@@ -171,13 +171,13 @@ c Shortwave: -------------------------------------------------------------------
 
          w = 6    ! aot at 550
          do MD = 1,23
-            if (Reff_LEV(l,n) .le. Size(md)) goto 500            
+            if (Reff_LEV(l,n) .le. sizebins(md)) goto 500            
          enddo
  500      continue  
           if (MD.gt.1) then
             MD = min(23,MD)
-          b = Size(md) - Reff_LEV(l,n)
-          a = Reff_LEV(l,n) - Size(md-1)
+          b = sizebins(md) - Reff_LEV(l,n)
+          a = Reff_LEV(l,n) - sizebins(md-1)
           endif
 
        select case (MODE_NAME(n))
@@ -395,7 +395,7 @@ cBond + Berstroem, all wavelength
 
        ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
-         Reff_LEV(l,n) = DIAM(i,j,l,n)*CONV_DPAM_TO_DGN(n)*exp(5.*(sig0(n)**-2)/2.)* 0.5e6
+         Reff_LEV(l,n) = DIAM(i,j,l,n)*CONV_DPAM_TO_DGN(n)*exp(5.*(sig0(n)**(-2))/2.)* 0.5e6
        ENDDO
 
        ! + Mass and Number Concentration

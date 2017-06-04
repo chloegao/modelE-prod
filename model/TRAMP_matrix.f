@@ -55,7 +55,7 @@
       USE AERO_SUBS  
       USE AERO_COAG,   ONLY: SETUP_KIJ_DIAMETERS, SETUP_KIJ_TABLES, GET_KBARNIJ
       USE AERO_NPF,    ONLY: DNU, NPFRATE, SETUP_NPFMASS, STEADY_STATE_H2SO4   
-      USE AERO_DIAM,   ONLY: DIAM, DIAM_HISTOGRAM
+      USE AERO_DIAM,   ONLY: DIAM!, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
       USE AMP_AEROSOL, ONLY: NACTV  
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV, VDDEP_AERO  
@@ -77,7 +77,7 @@
       ! Local variables.
 
       INTEGER :: I,J,K,L,Q,QQ              ! indices
-      INTEGER :: INDEX_DP, INDEX_DP_DRY    ! index for condensation factor lookup table
+      INTEGER :: INDEX_DP!, INDEX_DP_DRY    ! index for condensation factor lookup table
       INTEGER :: IBRANCH                   ! scratch debugging variable [1]
       REAL(8) :: BI(NWEIGHTS)              ! number conc. coefficients [1/s]
       REAL(8) :: CI(NWEIGHTS)              ! number conc. coefficients [#/m^3/s]
@@ -201,7 +201,7 @@
       REAL(8) :: AEROTMP1(NAEROBOX)                     ! input   aerosol concentrations [ug/m^3] or [#/m^3]
       REAL(8) :: AEROTMP2(NAEROBOX)                     ! scratch aerosol concentrations [ug/m^3] or [#/m^3]
       REAL(8) :: PIQTMP(NWEIGHTS,NMASS_SPCS)            ! scratch work array for mass production terms [ug/m^3/s]
-      REAL(8), PARAMETER :: N_MIN_DIAM_HISTOGRAM = 1.0D+04  ! min. # conc. for count in DIAM_HISTOGRAM [#/m^3] 
+!      REAL(8), PARAMETER :: N_MIN_DIAM_HISTOGRAM = 1.0D+04  ! min. # conc. for count in DIAM_HISTOGRAM [#/m^3] 
 
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
@@ -509,16 +509,16 @@
           !------------------------------------------------------------------------------------------------------------
           INDEX_DP = NINT( LOG( DP(I) / DP_CONDTABLE_MIN ) / XLN_SCALE_DP ) + 1
           INDEX_DP = MAX( MIN( INDEX_DP, N_DP_CONDTABLE ), 1 )
-          IF( NI(I) .GT. N_MIN_DIAM_HISTOGRAM ) THEN
-            INDEX_DP_DRY = NINT( LOG( DP_DRY(I) / DP_CONDTABLE_MIN ) / XLN_SCALE_DP ) + 1
-            INDEX_DP_DRY = MAX( MIN( INDEX_DP_DRY, N_DP_CONDTABLE ), 1 )
-            DIAM_HISTOGRAM(I,INDEX_DP,    1) = DIAM_HISTOGRAM(I,INDEX_DP,    1) + 1.0D+00 
-            DIAM_HISTOGRAM(I,INDEX_DP_DRY,2) = DIAM_HISTOGRAM(I,INDEX_DP_DRY,2) + 1.0D+00 
-            !----------------------------------------------------------------------------------------------------------
-            ! IF (I.EQ.5.OR.I.EQ.6) WRITE(*,'(8F13.5)') 1D-6*NI(5),TOT_MASS(5),1D6*DP(5),1D6*DP_DRY(5),
-            ! &                                                1D-6*NI(6),TOT_MASS(6),1D6*DP(6),1D6*DP_DRY(6)
-            !----------------------------------------------------------------------------------------------------------
-          ENDIF
+!          IF( NI(I) .GT. N_MIN_DIAM_HISTOGRAM ) THEN
+!            INDEX_DP_DRY = NINT( LOG( DP_DRY(I) / DP_CONDTABLE_MIN ) / XLN_SCALE_DP ) + 1
+!            INDEX_DP_DRY = MAX( MIN( INDEX_DP_DRY, N_DP_CONDTABLE ), 1 )
+!            DIAM_HISTOGRAM(I,INDEX_DP,    1) = DIAM_HISTOGRAM(I,INDEX_DP,    1) + 1.0D+00 
+!            DIAM_HISTOGRAM(I,INDEX_DP_DRY,2) = DIAM_HISTOGRAM(I,INDEX_DP_DRY,2) + 1.0D+00 
+!            !----------------------------------------------------------------------------------------------------------
+!            ! IF (I.EQ.5.OR.I.EQ.6) WRITE(*,'(8F13.5)') 1D-6*NI(5),TOT_MASS(5),1D6*DP(5),1D6*DP_DRY(5),
+!            ! &                                                1D-6*NI(6),TOT_MASS(6),1D6*DP(6),1D6*DP_DRY(6)
+!            !----------------------------------------------------------------------------------------------------------
+!          ENDIF
           KCI_COEF_DP     (I,ILAY) = THETA_POLY(I) * KCI_DP_CONDTABLE     (INDEX_DP,ILAY)
           KCI_COEF_DP_AEQ1(I,ILAY) = THETA_POLY(I) * KCI_DP_CONDTABLE_AEQ1(INDEX_DP,ILAY)
           !------------------------------------------------------------------------------------------------------------

@@ -158,7 +158,9 @@ C****
       USE TOMAS_AEROSOL, only: icomp
 #endif
       use AerParam_mod, only : aermix
+#ifndef NEW_BCdalbsn
       use AerParam_mod, only: depoBC,depoBC_1990
+#endif
 
       use AbstractOrbit_mod, only: AbstractOrbit
       ! begin section for radiation-only SCM
@@ -178,7 +180,7 @@ C****
      &    srvext,srvsct,srvgcb,
      &    srbext,srbsct,srbgcb,
      &    traalk,trdalk,trvalk,trbalk
-      use radpar, only: keepal,srbalb,srxalb
+      use radpar, only: keepal,srbalb,srxalb,FSTOPX,FTTOPX
       use pario, only : par_open,par_close,read_data,read_dist_data
       use fluxes, only : atmsrf,asflx4,focean,fland,flice
       use fluxes, only : atmocn,atmice,atmgla,atmlnd
@@ -982,6 +984,13 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 !=======================================================================
 #endif  /* TRACERS_ON */
 
+! set default FSTOPX and FTTOPX values
+      if (rad_interact_aer > 0) then
+        FSTOPX(:)=1.d0 ; FTTOPX(:)=1.d0
+      else
+        FSTOPX(:)=0.d0 ; FTTOPX(:)=0.d0
+      endif
+
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
@@ -1000,9 +1009,11 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           H2ObyCH4 = 0.
         end if
       end if
+#ifndef NEW_BCdalbsn
       if(dalbsnX.ne.0.) then
         call updBCd(1990) ; depoBC_1990 = depoBC
       endif
+#endif
 C**** set up unit numbers for 14 more radiation input files
       donotread = -9999
       nrfun(:) = 0 ! green light
@@ -1192,9 +1203,17 @@ C**** Update time dependent radiative parameters each day
 !     (does nothing except at a restart or the beginning of a new year)
       if(dalbsnX.ne.0.) then
         if (albsn_yr.eq.0) then
+#ifdef NEW_BCdalbsn
+          call updBCdalbsn (year    ,dayofyear)
+#else
           call updBCd (year)
+#endif
         else
+#ifdef NEW_BCdalbsn
+          call updBCdalbsn (albsn_yr,dayofyear)
+#else
           call updBCd (albsn_yr)
+#endif
         end if
       endif
 !     Hack: 2 specific volc. eruption scenarios for 2000-2100 period
@@ -1697,7 +1716,11 @@ C     OUTPUT DATA
 #endif
 #endif /* TRACERS_ON */
       use AerParam_mod, only: dCDNC_est
+#ifdef NEW_BCdalbsn
+      use AerParam_mod, only: BCdalbsn
+#else
       use AerParam_mod, only: depoBC,depoBC_1990
+#endif
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef CACHED_SUBDD
@@ -1716,11 +1739,13 @@ C
       real*8 q_above(LM+1),q_below(LM+1),Frad(LM+1)
 #endif
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,taulim, xdalbs,sumda,tauda,fsnow
+      REAL*8 U0GAS,taulim
+#ifndef NEW_BCdalbsn
+      REAL*8 xdalbs,sumda,tauda,fsnow
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     sumda_psum,tauda_psum
-
+#endif
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     COSZ2,COSZA,TRINCG,BTMPW,WSOIL,fmp_com
@@ -1813,7 +1838,8 @@ C  GHG Effective forcing relative to 1850
 #ifdef BC_ALB
       REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                 grid%J_STRT_HALO:grid%J_STOP_HALO) ::
-     *     ALBNBC,NFSNBC,dALBsnBC
+     *     ALBNBC,NFSNBC,
+     &     dALBsnBC ! not to be confused with BCdalbsn from an input file
       LOGICAL,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     bc_snow_present
@@ -1993,6 +2019,7 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
         S0=S0X*S00WM2*RATLS0/RSDIST
       endif
 
+#ifndef NEW_BCdalbsn
 c**** find scaling factors for surface albedo reduction
       if(dalbsnX.ne.0.) then
       IF (HAVE_SOUTH_POLE) THEN
@@ -2022,6 +2049,7 @@ c      ILON72=INT(.5+(I-.5)*72./IM+.5)
       xdalbs=-dalbsnX*sumda/tauda
       IF(QCHECK) write(6,*) 'coeff. for snow alb reduction',xdalbs
       endif ! dalbsnX not zero
+#endif
 
       if(kradia.le.0) then
       IF (QCHECK) THEN
@@ -2553,10 +2581,15 @@ c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=atmice%ZSNOWI(I,J)
       if(dalbsnX.ne.0.) then
+#ifdef NEW_BCdalbsn
+        dALBsn = dalbsnX*BCdalbsn(i,j)
+#else
         dALBsn = xdalbs*depobc(i,j)
+#endif
       else
         dALBsn = 0.
       endif
+
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #ifdef BC_ALB
       call GET_BC_DALBEDO(i,j,dALBsn1,bc_snow_present(i,j))
@@ -2622,7 +2655,6 @@ C**** or not.
       if (rad_interact_aer > 0) onoff_aer=1
       if (clim_interact_chem > 0) onoff_chem=1
       use_o3_ref=0
-      FSTOPX(:)=onoff_aer ; FTTOPX(:)=onoff_aer
 
 C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
