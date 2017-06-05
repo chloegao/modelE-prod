@@ -1503,12 +1503,14 @@ C -- CO --
         if(changeL(L,n_CO) >= 0.) then  
           CALL INC_TAJLS(I,J,L,jls_COp,changeL(L,n_CO))
 #ifdef ACCMIP_LIKE_DIAGS
-          taijls(i,j,L,ijlt_COp)=taijls(i,j,L,ijlt_COp)+changeCO*cpd
+          taijls(i,j,L,ijlt_COp)=taijls(i,j,L,ijlt_COp)+changeCO
+     *         *cpd/DTsrc
 #endif
         else
           CALL INC_TAJLS(I,J,L,jls_COd,changeL(L,n_CO))
 #ifdef ACCMIP_LIKE_DIAGS
-          taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO*cpd
+          taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
+     *         *cpd/DTsrc
 #endif
         end if       
 #ifdef TRACERS_dCO
@@ -1686,13 +1688,15 @@ c --  Ox --   ( Ox from gas phase rxns)
           CALL INC_TAJLS(I,J,L,jls_Oxp,changeL(L,n_Ox))
           if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
 #ifdef ACCMIP_LIKE_DIAGS
-          taijls(i,j,L,ijlt_Oxp)=taijls(i,j,L,ijlt_Oxp)+changeOx*cpd
+          taijls(i,j,L,ijlt_Oxp)=taijls(i,j,L,ijlt_Oxp)+changeOx
+     *         *cpd/DTsrc
 #endif
         else
           CALL INC_TAJLS(I,J,L,jls_Oxd,changeL(L,n_Ox))
           if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
 #ifdef ACCMIP_LIKE_DIAGS
-          taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx*cpd
+          taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx
+     *         *cpd/DTsrc
 #endif
         end if
 c -- ClONO2 --   (ClONO2 from gas and het phase rxns)

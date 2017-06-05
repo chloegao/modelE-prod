@@ -209,17 +209,13 @@ C**** TAIJLS 3D special tracer diagnostics
      &                            + 17
 #endif
 #ifdef SOA_DIAGS
-     &                            + 12
-#ifdef TRACERS_TERP
-     &                            + 1
-#endif  /* TRACERS_TERP */
-     &                            + 16*nsoa
+     &                            + 13 + 16*nsoa
 #endif  /* SOA_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
 !@var SNAME_IJLT: Names of 3D tracer IJL diagnostics
-      character(len=sname_strlen), dimension(ktaijl) :: sname_ijlt
+      character(len=sname_strlen), dimension(ktaijl) :: sname_ijlt=''
 !@var DNAME_IJLT, DENOM_IJLT: Short names, indices of taijls denominators.
 !@+   Currently, dname is specified along with the standard metadata and
 !@+   the denom indices are looked up afterward.
@@ -235,8 +231,6 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, dimension(ktaijl) :: ir_ijlt
 !@var IA_IJLT: accumulation index for IJL diagnostics
       integer, dimension(ktaijl) :: ia_ijlt
-!@var ijlt_power: power of 10 used for tracer IJL 3D diags
-      INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
       INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_COp,ijlt_COd,
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2

@@ -91,6 +91,9 @@ C
 
       USE DIAG_COM_RAD, only : j_h2och4
       use photolysis, only: rj,ks,kss
+#ifdef ACCMIP_LIKE_DIAGS
+      use MODEL_COM, only: DTsrc
+#endif  /* ACCMIP_LIKE_DIAGS */
 c
       IMPLICIT NONE
 c
@@ -1657,9 +1660,9 @@ c Loops to calculate tracer changes:
 #ifdef ACCMIP_LIKE_DIAGS
          if(idx == n_CO)then
            TAIJLS(I,J,L,ijlt_COp)=TAIJLS(I,J,L,ijlt_COp)+prod(igas,L)
-     *          *cpd
+     *          *cpd/DTsrc
            TAIJLS(I,J,L,ijlt_COd)=TAIJLS(I,J,L,ijlt_COd)+dest(igas,L)
-     *          *cpd
+     *          *cpd/DTsrc
          else if(idx == n_Ox)then
 #ifdef SHINDELL_STRAT_EXTRA
            if(trm_col(L,n_Ox)==0.)call stop_model('zero ozone',255)
@@ -1671,13 +1674,13 @@ c Loops to calculate tracer changes:
      &     changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
 #endif
            TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
-     *          *cpd
+     *          *cpd/DTsrc
            TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+dest(igas,L)
-     *          *cpd
+     *          *cpd/DTsrc
          else if(idx==n_CH4)then
            ! destruction only
            TAIJLS(I,J,L,ijlt_CH4d)=
-     &          TAIJLS(I,J,L,ijlt_CH4d)+dest(igas,L)*cpd
+     &          TAIJLS(I,J,L,ijlt_CH4d)+dest(igas,L)*cpd/DTsrc
          end if
 #endif
          
@@ -2242,13 +2245,15 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
           NprodOx_pos(l) = 0.
           NprodOx_neg(l) = NprodOx*conc2mass
 #ifdef ACCMIP_LIKE_DIAGS
-          TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+NprodOx*cpd
+          TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+NprodOx
+     *         *cpd/DTsrc
 #endif
         else 
           NprodOx_neg(l) = 0.
           NprodOx_pos(l) = NprodOx*conc2mass
 #ifdef ACCMIP_LIKE_DIAGS
-          TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+NprodOx*cpd
+          TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+NprodOx
+     *         *cpd/DTsrc
 #endif
         end if 
         if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then

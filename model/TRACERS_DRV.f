@@ -118,6 +118,54 @@
 
       end function tr_con_diag
 !=======================================================================
+      integer function ijlt_diag(sname,lname,units,ia,power,denom)
+!@sum ijlt_diag populate tracer 3d diagnostics
+!@auth Kostas Tsigaridis
+      use TRDIAG_COM, only: ktaijl,ia_ijlt,sname_ijlt,lname_ijlt,
+     &                      units_ijlt,scale_ijlt,
+     &                      dname_ijlt
+      implicit none
+      character(len=*), intent(in) :: sname, lname, units
+      integer, intent(in), optional :: ia
+      integer, intent(in), optional :: power
+      character(len=*), intent(in), optional :: denom
+      character*50 :: unit_string
+!@var sname short name
+!@var lname long name
+!@var units units string
+!@var ia accumulation index
+!@var power exponent to scale the diagnostic (10**(-power))
+!@var denom denominator to be applied
+!@var k index to be assigned to the current diagnostic
+!@var i local loop index
+!@var pow local copy of power (as defined, or 0 by default)
+      integer :: k,i,pow
+
+      k=0
+      do i=1,ktaijl ! brute force, but only happens during initialization
+        if (trim(sname_ijlt(i))=='') then
+          k=i
+          exit
+        endif
+      enddo
+      if (k==0) call stop_model('ktaijl too small to fit '//sname,255)
+
+      if (present(power)) then
+        pow=power
+      else
+        pow=0
+      endif
+
+      ijlt_diag=k
+      if (present(ia)) ia_ijlt(k)=ia
+      sname_ijlt(k)=sname
+      lname_ijlt(k)=lname
+      units_ijlt(k)=unit_string(pow, units)
+      scale_ijlt(k)=10.d0**(-pow)
+      if (present(denom)) dname_ijlt(k)=denom
+
+      end function ijlt_diag
+!=======================================================================
       subroutine init_tracer_cons_diag
 !@sum init_tracer_cons_diag Initialize tracer conservation diagnostics
 !@auth Gavin Schmidt
@@ -4377,6 +4425,15 @@ c      enddo
       integer :: iclay
       integer :: ktaijlt_out
 
+      interface
+        integer function ijlt_diag(sname,lname,units,ia,power,denom)
+          character(len=*), intent(in) :: sname, lname, units
+          integer, intent(in), optional :: ia
+          integer, intent(in), optional :: power
+          character(len=*), intent(in), optional :: denom
+        end function ijlt_diag
+      end interface
+
 #ifdef TRACERS_ON
       ir_ijlt = ir_log2  ! default
       ia_ijlt = ia_src   ! default
@@ -4409,43 +4466,31 @@ C**** some tracer specific 3D arrays
           end select
 
           if (diag_aod_3d==1 .or. diag_aod_3d==3) then
-            k = k + 1
-            ijlt_3Dtau(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' tau'
-            sname_ijlt(k) = 'tau_3D_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
-            k = k + 1
-            ijlt_3Daaod(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' aaod'
-            sname_ijlt(k) = 'aaod_3D_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            ijlt_3Dtau(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='tau_3D_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' tau',
+     &                  units=' ', power=-2)
+            ijlt_3Daaod(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='aaod_3D_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' aaod',
+     &                  units=' ', power=-2)
           endif ! diag_aod_3d = 1 or 3
 
           if (diag_aod_3d==2 .or. diag_aod_3d==3) then
-            k = k + 1
-            ijlt_3DtauCS(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' CS tau'
-            sname_ijlt(k) = 'tau_3D_CS_'//trim(trname_curr)
-            dname_ijlt(k) = 'clrsky2d'
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
-            k = k + 1
-            ijlt_3DaaodCS(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' CS aaod'
-            sname_ijlt(k) = 'aaod_3D_CS_'//trim(trname_curr)
-            dname_ijlt(k) = 'clrsky2d'
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            ijlt_3DtauCS(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='tau_3D_CS_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' CS tau',
+     &                  units=' ', power=-2,
+     &                  denom='clrsky2d')
+            ijlt_3DaaodCS(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='aaod_3D_CS_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' CS aaod',
+     &                  units=' ', power=-2,
+     &                  denom='clrsky2d')
           endif ! diag_aod_3d = 2 or 3
 
         enddo ! nraero_aod
@@ -4454,512 +4499,317 @@ C**** some tracer specific 3D arrays
       do n=1,NTM
         select case(trname(n))
 
+#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
         CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5', 'isopp1a'
      $       ,'isopp2a','apinp1a','apinp2a','OCB','OCII','OCIA','BCB'
      $       ,'BCII' ,'BCIA', 'SO4','MSA','NO3p','NH4','seasalt1'
      $       ,'seasalt2','SO4_d1','SO4_d2','SO4_d3','N_d1','N_d2'
      $       ,'N_d3')
-
-#ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
-        k = k + 1
-        ijlt_3Dmass(n)=k
-        ia_ijlt(k) = ia_src     ! just guessing
-        lname_ijlt(k) = trim(trname(n))//' Mass'
-        sname_ijlt(k) = 'Mass_3D_'//trname(n)
-        ijlt_power(k) = -5
-        units_ijlt(k) = unit_string(ijlt_power(k),' kg m-2')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_3Dmass(n)=
+     &    ijlt_diag(sname='Mass_3D_'//trim(trname(n)),
+     &              lname=trim(trname(n))//' mass',
+     &              units='kg m-2', power=-5)
 #endif /* define io parameters for 3Dmass diagnostic (Ron) */
 
 #ifdef TRACERS_AMP
 c- 3D diagnostic per mode
-      CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
-     *     'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 ',
-     *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
-     *     'N_MXX_1 ','N_OCS_1 ')
-        k = k + 1
-         ijlt_AMPm(1,n)=k
-         lname_ijlt(k) = TRIM(trname(n))//' DIAM'
-         sname_ijlt(k) = 'DIAM_'//TRIM(trname(n))
-         ijlt_power(k) = -2.
-         units_ijlt(k) = unit_string(ijlt_power(k),'m')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-         ijlt_AMPm(2,n)=k
-         lname_ijlt(k) = TRIM(trname(n))//' ACTI'
-         sname_ijlt(k) = 'ACTI3D_'//TRIM(trname(n))
-         ijlt_power(k) = -2.
-         units_ijlt(k) = unit_string(ijlt_power(k),'#')
-         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        CASE('N_AKK_1 ','N_ACC_1 ','N_DD1_1 ','N_DS1_1 ','N_DD2_1 ',
+     *       'N_DS2_1 ','N_SSA_1 ','N_SSC_1 ','N_OCC_1 ','N_BC1_1 ',
+     *       'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ',
+     *       'N_MXX_1 ','N_OCS_1 ')
+          ijlt_AMPm(1,n)=
+     &      ijlt_diag(sname='DIAM_'//trim(trname(n)),
+     &                lname=trim(trname(n))//' DIAM',
+     &                units='m', power=-2)
+          ijlt_AMPm(2,n)=
+     &      ijlt_diag(sname='ACTI3D_'//trim(trname(n)),
+     &                lname=trim(trname(n))//' ACTI',
+     &                units='#', power=-2)
 #endif
-      end select
+        end select
       end do
 
 C**** 3D tracer-related arrays but not attached to any one tracer
 
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef ACCMIP_LIKE_DIAGS
-      k = k + 1
-        ijlt_OH=k
-        lname_ijlt(k) = 'OH mixing ratio'
-        sname_ijlt(k) = 'OH_vmr'
-        ijlt_power(k) = -10
-        units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_OH=
+     &    ijlt_diag(sname='OH_vmr',
+     &              lname='OH mixing ratio',
+     &              units='V/V air', power=-10)
 #else
-      k = k + 1
-        ijlt_OH=k
-        lname_ijlt(k) = 'OH concentration'
-        sname_ijlt(k) = 'OH_con'
-        ijlt_power(k) = 5
-        units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_OH=
+     &    ijlt_diag(sname='OH_con',
+     &              lname='OH concentration',
+     &              units='molecules cm-3', power=5)
 #endif
-      k = k + 1
-        ijlt_NO3=k
-        lname_ijlt(k) = 'NO3 concentration'
-        sname_ijlt(k) = 'NO3_con'
-        ijlt_power(k) = 5
-        units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_HO2=k
-        lname_ijlt(k) = 'HO2 concentration'
-        sname_ijlt(k) = 'HO2_con'
-        ijlt_power(k) = 7
-        units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_JO1D=k
-        lname_ijlt(k) = 'Ox to O1D photolysis rate'
-        sname_ijlt(k) = 'JO1D'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_JNO2=k
-        lname_ijlt(k) = 'NO2 photolysis rate'
-        sname_ijlt(k) = 'JNO2'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_JH2O2=k
-        lname_ijlt(k) = 'H2O2 photolysis rate'
-        sname_ijlt(k) = 'JH2O2'
-        ijlt_power(k) = 2
-        units_ijlt(k) = unit_string(ijlt_power(k),'s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_O3ppbv=k
-        lname_ijlt(k) = 'O3 not Ox volume mixing ratio'
-        sname_ijlt(k) = 'O3_vmr'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ppbv')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_O3cmatm=k
-        lname_ijlt(k) = 'O3 not Ox in cm-atm units'
-        sname_ijlt(k) = 'O3_cm_atm'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'cm-atm')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_NO3=
+     &    ijlt_diag(sname='NO3_con',
+     &              lname='NO3 concentration',
+     &              units='molecules cm-3', power=5)
+        ijlt_HO2=
+     &    ijlt_diag(sname='HO2_con',
+     &              lname='HO2 concentration',
+     &              units='molecules cm-3', power=7)
+        ijlt_JO1D=
+     &    ijlt_diag(sname='JO1D',
+     &              lname='Ox to O1D photolysis rate',
+     &              units='s-1')
+        ijlt_JNO2=
+     &    ijlt_diag(sname='JNO2',
+     &              lname='NO2 photolysis rate',
+     &              units='s-1')
+        ijlt_JH2O2=
+     &    ijlt_diag(sname='JH2O2',
+     &              lname='H2O2 photolysis rate',
+     &              units='s-1', power=2)
+        ijlt_O3ppbv=
+     &    ijlt_diag(sname='O3_vmr',
+     &              lname='O3 not Ox volume mixing ratio',
+     &              units='ppbv')
+        ijlt_O3cmatm=
+     &    ijlt_diag(sname='O3_cm_atm',
+     &              lname='O3 not Ox in cm-atm units',
+     &              units='cm-atm')
 #ifdef ACCMIP_LIKE_DIAGS
-      k = k + 1
-        ijlt_COp=k
-        lname_ijlt(k) = 'CO production rate'
-        sname_ijlt(k) = 'COprod'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_COd=k
-        lname_ijlt(k) = 'CO destruction rate'
-        sname_ijlt(k) = 'COdest'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_Oxp=k
-        lname_ijlt(k) = 'Ox production rate'
-        sname_ijlt(k) = 'Oxprod'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_Oxd=k
-        lname_ijlt(k) = 'Ox destruction rate'
-        sname_ijlt(k) = 'Oxdest'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_CH4d=k
-        lname_ijlt(k) = 'CH4 destruction rate'
-        sname_ijlt(k) = 'CH4dest'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_OxpHO2=k
-        lname_ijlt(k) = 'Ox prod rate via HO2+NO'
-        sname_ijlt(k) = 'OxpHO2'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_OxpCH3O2=k
-        lname_ijlt(k) = 'Ox prod rate via CH3O2+NO'
-        sname_ijlt(k) = 'OxpCH3O2'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_OxpRO2=k
-        lname_ijlt(k) = 'Ox prod rate via RO2+NO'
-        sname_ijlt(k) = 'OxpRO2'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_OxlOH=k
-        lname_ijlt(k) = 'Ox loss rate via OH'
-        sname_ijlt(k) = 'OxlOH'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_OxlHO2=k
-        lname_ijlt(k) = 'Ox loss rate via HO2'
-        sname_ijlt(k) = 'OxlHO2'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_OxlALK=k
-        lname_ijlt(k) = 'Ox loss rate via Alkenes'
-        sname_ijlt(k) = 'OxlALK'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_pO1D=k
-        lname_ijlt(k) = 'O1D production from ozone'
-        sname_ijlt(k) = 'pO1d'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_pOH=k
-        lname_ijlt(k) = 'OH production from O1D+H2O'
-        sname_ijlt(k) = 'pOH'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'mole m-3 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_NOxLgt=k
-        lname_ijlt(k) = 'NOx production from Lightning'
-        sname_ijlt(k) = 'NOx_Lightn'
-        ijlt_power(k) = -15
-        units_ijlt(k) = unit_string(ijlt_power(k),'kg(N) m-2 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_NOvmr=k
-        lname_ijlt(k) = 'NO mixing ratio'
-        sname_ijlt(k) = 'NO_vmr'
-        ijlt_power(k) = -10 ! to match NOx
-        units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_NO2vmr=k
-        lname_ijlt(k) = 'NO2 mixing ratio'
-        sname_ijlt(k) = 'NO2_vmr'
-        ijlt_power(k) = -10 ! to match NOx
-        units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_COp=
+     &    ijlt_diag(sname='COprod',
+     &              lname='CO production rate',
+     &              units='mole m-3 s-1')
+        ijlt_COd=
+     &    ijlt_diag(sname='COdest',
+     &              lname='CO destruction rate',
+     &              units='mole m-3 s-1')
+        ijlt_Oxp=
+     &    ijlt_diag(sname='Oxprod',
+     &              lname='Ox production rate',
+     &              units='mole m-3 s-1')
+        ijlt_Oxd=
+     &    ijlt_diag(sname='Oxdest',
+     &              lname='Ox destruction rate',
+     &              units='mole m-3 s-1')
+        ijlt_CH4d=
+     &    ijlt_diag(sname='CH4dest',
+     &              lname='CH4 destruction rate',
+     &              units='mole m-3 s-1')
+        ijlt_OxpHO2=
+     &    ijlt_diag(sname='OxpHO2',
+     &              lname='Ox prod rate via HO2+NO',
+     &              units='mole m-3 s-1')
+        ijlt_OxpCH3O2=
+     &    ijlt_diag(sname='OxpCH3O2',
+     &              lname='Ox prod rate via CH3O2+NO',
+     &              units='mole m-3 s-1')
+        ijlt_OxpRO2=
+     &    ijlt_diag(sname='OxpRO2',
+     &              lname='Ox prod rate via RO2+NO',
+     &              units='mole m-3 s-1')
+        ijlt_OxlOH=
+     &    ijlt_diag(sname='OxlOH',
+     &              lname='Ox loss rate via OH',
+     &              units='mole m-3 s-1')
+        ijlt_OxlHO2=
+     &    ijlt_diag(sname='OxlHO2',
+     &              lname='Ox loss rate via HO2',
+     &              units='mole m-3 s-1')
+        ijlt_OxlALK=
+     &    ijlt_diag(sname='OxlALK',
+     &              lname='Ox loss rate via Alkenes',
+     &              units='mole m-3 s-1')
+        ijlt_pO1D=
+     &    ijlt_diag(sname='pO1d',
+     &              lname='O1D production from ozone',
+     &              units='mole m-3 s-1')
+        ijlt_pOH=
+     &    ijlt_diag(sname='pOH',
+     &              lname='OH production from O1D+H2O',
+     &              units='mole m-3 s-1')
+        ijlt_NOxLgt=
+     &    ijlt_diag(sname='NOx_Lightn',
+     &              lname='NOx production from Lightning',
+     &              units='kg(N) m-2 s-1', power=-15)
+        ijlt_NOvmr=
+     &    ijlt_diag(sname='NO_vmr',
+     &              lname='NO mixing ratio',
+     &              units='V/V air', power=-10) ! to match NOx
+        ijlt_NO2vmr=
+     &    ijlt_diag(sname='NO2_vmr',
+     &              lname='NO2 mixing ratio',
+     &              units='V/V air', power=-10) ! to match NOx
 #ifdef TRACERS_AEROSOLS_Koch
-      k = k + 1
-        ijlt_prodSO4aq=k
-        lname_ijlt(k) = 'SO4 aqueous chem source 3D'
-        sname_ijlt(k) = 'SO4aqSrc3D'
-        ijlt_power(k) = -15 ! to match ijts 2D
-        units_ijlt(k) = unit_string(ijlt_power(k),'kg m-2 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-      k = k + 1
-        ijlt_prodSO4gs=k
-        lname_ijlt(k) = 'SO4 gas phase source 3D'
-        sname_ijlt(k) = 'SO4gasSrc3D'
-        ijlt_power(k) = -15 ! to match ijts 2D
-        units_ijlt(k) = unit_string(ijlt_power(k),'kg m-2 s-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
+        ijlt_prodSO4aq=
+     &    ijlt_diag(sname='SO4aqSrc3D',
+     &              lname='SO4 aqueous chem source 3D',
+     &              units='kg m-2 s-1', power=-15) ! to match ijts 2D
+        ijlt_prodSO4gs=
+     &    ijlt_diag(sname='SO4gasSrc3D',
+     &              lname='SO4 gas phase source 3D',
+     &              units='kg m-2 s-1', power=-15) ! to match ijts 2D
 #endif /* TRACERS_AEROSOLS_Koch */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_NITRATE
-      k = k + 1
-        ijlt_aH2O=k
-        lname_ijlt(k) = 'aerosol H2O'
-        sname_ijlt(k) = 'aerosol_H2O'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_apH=k
-        lname_ijlt(k) = 'aerosol pH'
-        sname_ijlt(k) = 'aerosol_pH'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_aH2O=
+     &    ijlt_diag(sname='aerosol_H2O',
+     &              lname='aerosol H2O',
+     &              units='ug m-3')
+        ijlt_apH=
+     &    ijlt_diag(sname='aerosol_pH',
+     &              lname='aerosol pH',
+     &              units=' ')
 #endif  /* TRACERS_NITRATE */
 
 #ifdef SOA_DIAGS
-      k = k + 1
-        ijlt_soa_changeL_isoprene=k
-        lname_ijlt(k) = 'changeL of isoprene'
-        sname_ijlt(k) = 'SOA_changeL_isoprene'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_changeL_terpenes=k
-        lname_ijlt(k) = 'changeL of terpenes'
-        sname_ijlt(k) = 'SOA_changeL_terpenes'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_voc2nox=k
-        lname_ijlt(k) = 'VOC/NOx ratio'
-        sname_ijlt(k) = 'SOA_voc2nox'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ppbC/ppb')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_pcp=k
-        lname_ijlt(k) = 'Total non-volatile SOA-absorbing mass'
-        sname_ijlt(k) = 'SOA_pcp'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_aerotot=k
-        lname_ijlt(k) = 'PCP plus SOA'
-        sname_ijlt(k) = 'SOA_aerotot'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3 per MW')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_aerotot_gas=k
-        lname_ijlt(k) = 'Gas-phase semivolatile potential SOA'
-        sname_ijlt(k) = 'SOA_aerotot_gas'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3 per MW')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_xmf_isop=k
-        lname_ijlt(k) = 'Molar fraction of isoprene SOA'
-        sname_ijlt(k) = 'SOA_xmf_isop'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'fraction')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_xmf_apin=k
-        lname_ijlt(k) = 'Molar fraction of a-pinene SOA'
-        sname_ijlt(k) = 'SOA_xmf_apin'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'fraction')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_zcoef_isop=k
-        lname_ijlt(k) = 'Activity coefficient for isoprene SOA'
-        sname_ijlt(k) = 'SOA_zcoef_isop'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_zcoef_apin=k
-        lname_ijlt(k) = 'Activity coefficient for a-pinene SOA'
-        sname_ijlt(k) = 'SOA_zcoef_apin'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_meanmw=k
-        lname_ijlt(k) = 'Mean organic aerosol molecular weight'
-        sname_ijlt(k) = 'SOA_meanmw'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'g mol-1')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_iternum=k
-        lname_ijlt(k) = 'Total iterations for SOA calculations'
-        sname_ijlt(k) = 'SOA_iternum'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'count')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_soa_m0=k
-        lname_ijlt(k) = 'Final M0 value'
-        sname_ijlt(k) = 'SOA_M0'
-        ijlt_power(k) = 0
-        units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_soa_changeL_isoprene=
+     &    ijlt_diag(sname='SOA_changeL_isoprene',
+     &              lname='changeL of isoprene',
+     &              units='ug m-3')
+        ijlt_soa_changeL_terpenes=
+     &    ijlt_diag(sname='SOA_changeL_terpenes',
+     &              lname='changeL of terpenes',
+     &              units='ug m-3')
+        ijlt_soa_voc2nox=
+     &    ijlt_diag(sname='SOA_voc2nox',
+     &              lname='VOC/NOx ratio',
+     &              units='ppbC ppb-1')
+        ijlt_soa_pcp=
+     &    ijlt_diag(sname='SOA_pcp',
+     &              lname='Total non-volatile SOA-absorbing mass',
+     &              units='ug m-3')
+        ijlt_soa_aerotot=
+     &    ijlt_diag(sname='SOA_aerotot',
+     &              lname='PCP plus SOA',
+     &              units='ug m-3 per MW')
+        ijlt_soa_aerotot_gas=
+     &    ijlt_diag(sname='SOA_aerotot_gas',
+     &              lname='Gas-phase semivolatile potential SOA',
+     &              units='ug m-3 per MW')
+        ijlt_soa_xmf_isop=
+     &    ijlt_diag(sname='SOA_xmf_isop',
+     &              lname='Molar fraction of isoprene SOA',
+     &              units='fraction')
+        ijlt_soa_xmf_apin=
+     &    ijlt_diag(sname='SOA_xmf_apin',
+     &              lname='Molar fraction of a-pinene SOA',
+     &              units='fraction')
+        ijlt_soa_zcoef_isop=
+     &    ijlt_diag(sname='SOA_zcoef_isop',
+     &              lname='Activity coefficient for isoprene SOA',
+     &              units=' ')
+        ijlt_soa_zcoef_apin=
+     &    ijlt_diag(sname='SOA_zcoef_apin',
+     &              lname='Activity coefficient for a-pinene SOA',
+     &              units=' ')
+        ijlt_soa_meanmw=
+     &    ijlt_diag(sname='SOA_meanmw',
+     &              lname='Mean organic aerosol molecular weight',
+     &              units='g mol-1')
+        ijlt_soa_iternum=
+     &    ijlt_diag(sname='SOA_iternum',
+     &              lname='Total iterations for SOA calculations',
+     &              units='count')
+        ijlt_soa_m0=
+     &    ijlt_diag(sname='SOA_M0',
+     &              lname='Final M0 value',
+     &              units='ug m-3')
       do i=1,nsoa
-        k = k + 1
-          ijlt_soa_y0_ug_g(i)=k
-          lname_ijlt(k) = 'y0_ug of '//trim(trname(issoa(i)-1))
-          sname_ijlt(k) = 'SOA_y0_ug_'//trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_y0_ug_a(i)=k
-          lname_ijlt(k) = 'y0_ug of '//trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_y0_ug_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_y_ug_g(i)=k
-          lname_ijlt(k) = 'y_ug of '//trim(trname(issoa(i)-1))
-          sname_ijlt(k) = 'SOA_y_ug_'//trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_y_ug_a(i)=k
-          lname_ijlt(k) = 'y_ug of '//trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_y_ug_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_changeL_g_before(i)=k
-          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)-1))//
-     &                    ' before SOA'
-          sname_ijlt(k) = 'SOA_changeL_before_'//
-     &                    trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_changeL_a_before(i)=k
-          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)))//
-     &                    ' before SOA'
-          sname_ijlt(k) = 'SOA_changeL_before_'//
-     &                    trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_changeL_g_after(i)=k
-          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)-1))//
-     &                    ' after SOA'
-          sname_ijlt(k) = 'SOA_changeL_after_'//
-     &                    trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_changeL_a_after(i)=k
-          lname_ijlt(k) = 'changeL of '//trim(trname(issoa(i)))//
-     &                    ' after SOA'
-          sname_ijlt(k) = 'SOA_changeL_after_'//
-     &                    trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_apartmass(i)=k
-          lname_ijlt(k) = 'Effective apartmass of '//
-     &                     trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_apartmass_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_kpart(i)=k
-          lname_ijlt(k) = 'Partitioning coefficient of '//
-     &                    trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_kpart_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'m3 ug-1')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_kp(i)=k
-          lname_ijlt(k) = 'Final partitioning coefficient of '//
-     &                    trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_kp_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'m3 ug-1')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_soamass(i)=k
-          lname_ijlt(k) = 'Potential SOA mass of '//
-     &                    trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_soamass_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_partfact(i)=k
-          lname_ijlt(k) = 'Final partfact value of '//
-     &                    trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_partfact_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'dimensionless')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_evap(i)=k
-          lname_ijlt(k) = 'Evaporation of '//
-     &                    trim(trname(issoa(i)))
-          sname_ijlt(k) = 'SOA_evap_'//trim(trname(issoa(i)))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_cond(i)=k
-          lname_ijlt(k) = 'Condensation of pre-existing '//
-     &                    trim(trname(issoa(i)-1))
-          sname_ijlt(k) = 'SOA_cond_'//trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
-        k = k + 1
-          ijlt_soa_chem(i)=k
-          lname_ijlt(k) = 'Condensation of same-step produced '//
-     &                    trim(trname(issoa(i)-1))
-          sname_ijlt(k) = 'SOA_chem_'//trim(trname(issoa(i)-1))
-          ijlt_power(k) = 0
-          units_ijlt(k) = unit_string(ijlt_power(k),'ug m-3')
-          scale_ijlt(k) = 10.**(-ijlt_power(k))
+          ijlt_soa_y0_ug_g(i)=
+     &      ijlt_diag(sname='SOA_y0_ug_'//trim(trname(issoa(i)-1)),
+     &                lname='y0_ug of '//trim(trname(issoa(i)-1)),
+     &                units='ug m-3')
+          ijlt_soa_y0_ug_a(i)=
+     &      ijlt_diag(sname='SOA_y0_ug_'//trim(trname(issoa(i))),
+     &                lname='y0_ug of '//trim(trname(issoa(i))),
+     &                units='ug m-3')
+          ijlt_soa_y_ug_g(i)=
+     &      ijlt_diag(sname='SOA_y_ug_'//trim(trname(issoa(i)-1)),
+     &                lname='y_ug of '//trim(trname(issoa(i)-1)),
+     &                units='ug m-3')
+          ijlt_soa_y_ug_a(i)=
+     &      ijlt_diag(sname='SOA_y_ug_'//trim(trname(issoa(i))),
+     &                lname='y_ug of '//trim(trname(issoa(i))),
+     &                units='ug m-3')
+          ijlt_soa_changeL_g_before(i)=
+     &      ijlt_diag(sname='SOA_changeL_before_'//
+     &                      trim(trname(issoa(i)-1)),
+     &                lname='changeL of '//trim(trname(issoa(i)-1))//
+     &                      ' before SOA',
+     &                units='ug m-3')
+          ijlt_soa_changeL_a_before(i)=
+     &      ijlt_diag(sname='SOA_changeL_before_'//
+     &                      trim(trname(issoa(i))),
+     &                lname='changeL of '//trim(trname(issoa(i)))//
+     &                      ' before SOA',
+     &                units='ug m-3')
+          ijlt_soa_changeL_g_after(i)=
+     &      ijlt_diag(sname='SOA_changeL_after_'//
+     &                      trim(trname(issoa(i)-1)),
+     &                lname='changeL of '//trim(trname(issoa(i)-1))//
+     &                      ' after SOA',
+     &                units='ug m-3')
+          ijlt_soa_changeL_a_after(i)=
+     &      ijlt_diag(sname='SOA_changeL_after_'//
+     &                      trim(trname(issoa(i))),
+     &                lname='changeL of '//trim(trname(issoa(i)))//
+     &                      ' after SOA',
+     &                units='ug m-3')
+          ijlt_soa_apartmass(i)=
+     &      ijlt_diag(sname='SOA_apartmass_'//trim(trname(issoa(i))),
+     &                lname='Effective apartmass of '//
+     &                       trim(trname(issoa(i))),
+     &                units=' ')
+          ijlt_soa_kpart(i)=
+     &      ijlt_diag(sname='SOA_kpart_'//trim(trname(issoa(i))),
+     &                lname='Partitioning coefficient of '//
+     &                      trim(trname(issoa(i))),
+     &                units='m3 ug-1')
+          ijlt_soa_kp(i)=
+     &      ijlt_diag(sname='SOA_kp_'//trim(trname(issoa(i))),
+     &                lname='Final partitioning coefficient of '//
+     &                      trim(trname(issoa(i))),
+     &                units='m3 ug-1')
+          ijlt_soa_soamass(i)=
+     &      ijlt_diag(sname='SOA_soamass_'//trim(trname(issoa(i))),
+     &                lname='Potential SOA mass of '//
+     &                      trim(trname(issoa(i))),
+     &                units='ug m-3')
+          ijlt_soa_partfact(i)=
+     &      ijlt_diag(sname='SOA_partfact_'//trim(trname(issoa(i))),
+     &                lname='Final partfact value of '//
+     &                      trim(trname(issoa(i))),
+     &                units=' ')
+          ijlt_soa_evap(i)=
+     &      ijlt_diag(sname='SOA_evap_'//trim(trname(issoa(i))),
+     &                lname='Evaporation of '//trim(trname(issoa(i))),
+     &                units='ug m-3')
+          ijlt_soa_cond(i)=
+     &      ijlt_diag(sname='SOA_cond_'//trim(trname(issoa(i)-1)),
+     &                lname='Condensation of pre-existing '//
+     &                      trim(trname(issoa(i)-1)),
+     &                units='ug m-3')
+          ijlt_soa_chem(i)=
+     &      ijlt_diag(sname='SOA_chem_'//trim(trname(issoa(i)-1)),
+     &                lname='Condensation of same-step produced '//
+     &                      trim(trname(issoa(i)-1)),
+     &                units='ug m-3')
       enddo
 #endif  /* SOA_DIAGS */
 
 #ifdef TRACERS_TOMAS 
 
-      k = k + 1
-        ijlt_ccn_01=k
-        lname_ijlt(k) = 'CCN 0.1% '
-        sname_ijlt(k) = 'CCN_01_SS'
-        ijlt_power(k) = 0 ! to match ijts 2D
-        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_ccn_02=k
-        lname_ijlt(k) = 'CCN 0.2%'
-        sname_ijlt(k) = 'CCN_02_SS'
-        ijlt_power(k) = 0 ! to match ijts 2D
-        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
-      k = k + 1
-        ijlt_ccn_03=k
-        lname_ijlt(k) = 'CCN 0.3%'
-        sname_ijlt(k) = 'CCN_03_SS'
-        ijlt_power(k) = 0 ! to match ijts 2D
-        units_ijlt(k) = unit_string(ijlt_power(k),'cm-3')
-        scale_ijlt(k) = 10.**(-ijlt_power(k))
+        ijlt_ccn_01=
+     &    ijlt_diag(sname='CCN_01_SS',
+     &              lname='CCN 0.1%',
+     &              units='cm-3')
+        ijlt_ccn_02=
+     &    ijlt_diag(sname='CCN_02_SS',
+     &              lname='CCN 0.2%',
+     &              units='cm-3')
+        ijlt_ccn_03=
+     &    ijlt_diag(sname='CCN_03_SS',
+     &              lname='CCN 0.3%',
+     &              units='cm-3')
 
 #endif /* TRACERS_TOMAS */
 
@@ -4967,25 +4817,15 @@ c
 c Append some denominator fields if necessary
 c
       if(any(dname_ijlt(1:k).eq.'clrsky2d')) then
-        k = k + 1
-        ijlt_clrsky2d = k
-        ia_ijlt(k) = ia_rad
-        lname_ijlt(k) = 'CLEAR SKY FRACTION'
-        sname_ijlt(k) = 'clrsky2d'
-        units_ijlt(k) = '%'
-        scale_ijlt(k) = 100.
+        ijlt_clrsky2d=
+     &    ijlt_diag(ia=ia_rad,
+     &              sname='clrsky2d',
+     &              lname='CLEAR SKY FRACTION',
+     &              units='%', power=2)
       endif
 
-      ktaijlt_out = k
-      if (k .gt. ktaijl) then
-       if (AM_I_ROOT())
-     *       write (6,*)'ijlt_defs: Increase ktaijl=',ktaijl
-     *       ,' to at least ',k
-        call stop_model('ktaijl too small',255)
-      end if
-
 c find indices of denominators
-      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,ktaijlt_out)
+      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,ktaijl)
 
 #endif /* TRACERS_ON */
 
@@ -8213,7 +8053,7 @@ c$$$#endif
 #ifdef ACCMIP_LIKE_DIAGS
        do l=1,lm
          taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
-     &   tr3Dsource(l,nChemistry,n_SO4)*dtsrc*byaxyp(i,j)
+     &   tr3Dsource(l,nChemistry,n_SO4)*byaxyp(i,j)
        end do
 #endif
 !**** Apply additional aerosol-gas chemistry sources/sinks:
