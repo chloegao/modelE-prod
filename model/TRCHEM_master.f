@@ -1684,7 +1684,7 @@ c --  Ox --   ( Ox from gas phase rxns)
 #endif
         else
           CALL INC_TAJLS(I,J,L,jls_Oxd,changeL(L,n_Ox))
-          if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
+          if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxdT,changeL(L,n_Ox))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx*cpd
 #endif

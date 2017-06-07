@@ -2297,19 +2297,11 @@ c Print chemical changes in a particular grid box if desired:
             call write_parallel(trim(out_line),crit=jay)
           end if
         end do ! igas
-
-        if(LPRN > maxT)then
-          write(out_line,155) ay(nH2O),': ',
-     &    changeH2O(lprn),' molecules produced; ',
-     &    (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
-     &    y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
-          call write_parallel(trim(out_line),crit=jay)
-        else
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
-     &    y(nM,LPRN))*1.d6,' ppmv'
-          call write_parallel(trim(out_line),crit=jay)
-        end if
+        write(out_line,155) ay(nH2O),': ',
+     &  changeH2O(lprn),' molecules produced; ',
+     &  (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
+     &  y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
+        call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &  ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'
