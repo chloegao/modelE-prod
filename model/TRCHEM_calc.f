@@ -1570,14 +1570,14 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_Paraffin) then
             write(out_line,'(a48,a6,e10.3)')'destruction from RXPAR ',
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_Paraffin,lprn)
-     &        *rr(rrbi%Paraffin_RXPAR__M_M,L)*dt2
+     &        *rr(rrbi%Paraffin_RXPAR__M_M,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #ifdef TRACERS_dCO
           if(igas == nn_d13CPAR) then
             write(out_line,'(a48,a6,e10.3)')'destruction from d13CXPAR',
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_d13CPAR,lprn)
-     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,L)*dt2
+     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
@@ -2706,7 +2706,9 @@ c INDIVIDUAL SPECIES:
           label=' phot reaction # '
         end if
 c       skip same reaction if written twice:
-        if ((ireac > 1) .and. (npdnrs(ireac) == npdnrs(ireac-1))) CYCLE
+        if (ireac > 1) then
+          if (npdnrs(ireac) == npdnrs(ireac-1)) CYCLE
+        end if
         if(nn(1,npdnrs(ireac)) == igas)then
           per=0.d0
           if(y(igas,lprn) /= 0.d0) per=100.d0*multip*

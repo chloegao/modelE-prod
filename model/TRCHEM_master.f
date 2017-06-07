@@ -1994,8 +1994,6 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &    (I,J,L,jls_O3vmr,pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
         end if
 
-        call printSS27x2Etc()
-
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C Save chemistry changes for applying in apply_tracer_3Dsource.  C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -2039,6 +2037,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       END DO ! end current altitude loop
 
+      call printSS27x2Etc()
 
 #ifdef CACHED_SUBDD
       ! I guess set these to 0 above the chemistry... though that is
@@ -2294,6 +2293,7 @@ c (radiation code wants atm-cm units):
 
 
       subroutine printSS27x2Etc()
+      integer :: LPRINT
       if(prnchg .and. J == jprn .and. I == iprn) then
         jay = (J >= J_0 .and. J <= J_1)
         write(out_line,*)'O3pO2 means O3prof from O2 Herz & SRB:'
@@ -2301,23 +2301,23 @@ c (radiation code wants atm-cm units):
         write(out_line,*)
      &  'L, O3pO2, O3pO2*C, OHpptv, HO2pptv, O/O3, NO2/NO, Cl/ClO:'
         call write_parallel(trim(out_line),crit=jay)
-        do L=LS1,topLevelOfChemistry
+        do LPRINT=LS1,topLevelOfChemistry
           if(daylight)then
-            ss27x2=2.d0*ss(rj%O2__O_O,L,i,j)*y(nO2,L)
-     &        *(rr(rrtri%O_O2__O3_M,L)*y(nO2,L))
-     &        /(rr(rrtri%O_O2__O3_M,L)*y(nO2,L)
-     &          +rr(rrbi%O_O3__O2_O2,L)*y(nO3,L))
+            ss27x2=2.d0*ss(rj%O2__O_O,LPRINT,i,j)*y(nO2,LPRINT)
+     &        *(rr(rrtri%O_O2__O3_M,LPRINT)*y(nO2,LPRINT))
+     &        /(rr(rrtri%O_O2__O3_M,LPRINT)*y(nO2,LPRINT)
+     &          +rr(rrbi%O_O3__O2_O2,LPRINT)*y(nO3,LPRINT))
           else
             ss27x2=0.d0
           end if
           ss27x2_c=ss27x2*DCOS(SZA*radian) ! prob. no longer wanted
-          OHpptv=1.d12*y(nOH,L)/y(nM,L)
-          HO2pptv=1.d12*y(nHO2,L)/y(nM,L)
-          ObyO3=y(nO,L)/y(nO3,L)
-          NO2byNO=y(nNO2,L)/y(nNO,L)
-          ClbyClO=y(nCl,l)/y(nClO,L)
+          OHpptv=1.d12*y(nOH,LPRINT)/y(nM,LPRINT)
+          HO2pptv=1.d12*y(nHO2,LPRINT)/y(nM,LPRINT)
+          ObyO3=y(nO,LPRINT)/y(nO3,LPRINT)
+          NO2byNO=y(nNO2,LPRINT)/y(nNO,LPRINT)
+          ClbyClO=y(nCl,LPRINT)/y(nClO,LPRINT)
           write(out_line,'(I3,7(1X,E20.5))')
-     &    L,ss27x2,ss27x2_c,OHpptv,HO2pptv,ObyO3,NO2byNO,ClbyClO
+     &    LPRINT,ss27x2,ss27x2_c,OHpptv,HO2pptv,ObyO3,NO2byNO,ClbyClO
           call write_parallel(trim(out_line),crit=jay)
         end do
       end if

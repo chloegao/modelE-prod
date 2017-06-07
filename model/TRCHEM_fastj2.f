@@ -835,6 +835,7 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: nslon, nslat, nfastjq
       INTEGER             :: I, K, M, L
       character(len=300)  :: out_line
+      character(len=600)  :: out_line2
       logical             :: jay
       REAL*8, allocatable, dimension(:)   :: COLO2,COLO3
 #ifdef TRACERS_ON
@@ -866,7 +867,7 @@ C---Calculate columns, for diagnostic output only:
       write(out_line,1200) ' O3-column(DU)=',COLO3(1)/2.687d16
       call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_ON
-      write(out_line,1200) 'column aerosol @1000nm=',
+      write(out_line,1202) 'column aerosol @1000nm=',
      &                     (COLAX(K,1),K=1,njaero)
       call write_parallel(trim(out_line),crit=jay)
 #endif
@@ -874,19 +875,19 @@ C---Calculate columns, for diagnostic output only:
 C---Print out atmosphere:
       if(NFASTJq > 1) then
 #ifdef TRACERS_ON
-        write(out_line,1000) (' AER-X ','col-AER',k=1,njaero)
-        call write_parallel(trim(out_line),crit=jay)
+        write(out_line2,1001) (' AER-X ','col-AER',k=1,njaero)
+        call write_parallel(trim(out_line2),crit=jay)
 #endif
         do I=NBFASTJ,1,-1
           PJC = PFASTJ2(I)
           ZKM =1.d-5*ZFASTJ2(I)
           ZSTAR = 16.d0*DLOG10(1000.d0/PJC)
-          write(out_line,1100) I,ZKM,ZSTAR,DMFASTJ2(I),DO32(I),
+          write(out_line2,1100) I,ZKM,ZSTAR,DMFASTJ2(I),DO32(I),
      &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I)
 #ifdef TRACERS_ON
      &   ,(AER2(I,K),COLAX(K,I),K=1,njaero)
 #endif
-          call write_parallel(trim(out_line),crit=jay)
+          call write_parallel(trim(out_line2),crit=jay)
         enddo
       endif            
 
@@ -926,9 +927,12 @@ C---Print out climatology:
 #endif
 
  1000 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',6x,
-     &    'col-O3',3X,'col-O2',2X,10(a7,2x))
- 1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,10E9.2)
+     &    'col-O3',3X,'col-O2',2X,20(a7,2x))
+ 1001 format(5X,'Zkm',3X,'Z*',8X,'M',8X,'O3',6X,'f-O3',5X,'T',7X,'P',6x,
+     &    'col-O3',3X,'col-O2',2X,40(a7,2x))
+ 1100 format(1X,I2,0P,2F6.2,1P,2E10.3,0P,F7.3,F8.2,F10.4,1P,40E9.2)
  1200 format(A,F8.1,A,20(1pE10.3))
+ 1202 format(A,20(1pE10.3))
       return
       end SUBROUTINE PRTATM
 
