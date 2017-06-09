@@ -501,10 +501,7 @@ c Aerosol chemistry
       integer i,j,l,n,iuc,iun,itau,ichemi,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
-#ifdef TRACERS_SPECIAL_Shindell
-!@var maxl chosen tropopause 0=LTROPO(I,J), 1=LS1-1
-#endif
-      integer maxl,nrecs_skip
+      integer nrecs_skip
       logical :: newMonth
 
       call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1,
@@ -546,8 +543,7 @@ c      if (ifirst) then
 c skip poles because there was a bug in the input file over the pole
         do j=j_0s,j_1s   
         do i=i_0,i_1
-          maxl=ltropo(i,j)
-        do l=maxl,lm
+        do l=ltropo(i,j),lm
           ohr(i,j,l)=ohsr(i,j,l)
         end do
         end do
