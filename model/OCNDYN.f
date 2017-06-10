@@ -5887,6 +5887,10 @@ C****
       integer :: i,j,l,n,nt
       integer :: j_0,j_1,j_0s,j_1s
 
+#if defined (TRACERS_OCEAN) && defined (TRACERS_WATER)
+      type(ocn_tracer_entry), pointer :: entry
+#endif
+
       call getDomainBounds(grid, J_STRT = J_0, J_STOP = J_1)
       call getDomainBounds(grid, J_STRT_SKP = J_0S, J_STOP_SKP = J_1S)
 

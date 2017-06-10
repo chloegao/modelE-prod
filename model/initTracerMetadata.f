@@ -744,6 +744,9 @@ C**** get rundeck parameter for cosmogenic source factor
         entry%conc_from_fw = conc_from_fw(n) 
         entry%trdecay      = trdecay(n)
         entry%trw0         = trw0(n)
+#ifdef TRACERS_WATER
+        entry%need_ic      = .true.
+#endif
       enddo
 #endif
 

@@ -4,10 +4,11 @@
       implicit none
       type ocn_tracer_entry
        character*10 :: trname
-       integer :: trw0=0, trdecay=0, ntrocn=0, to_per_mil=0
+       integer :: ntrocn=0, to_per_mil=0
        integer :: itime_tr0=0, ntrocn_delta=0
        logical :: conc_from_fw=.false., t_qlimit=.true., need_ic=.false.
        logical :: from_file=.false.
+       real*8  :: trw0=0.0, trdecay=0.0 
        integer, dimension(:), allocatable :: con_point_idx
        character(len=10), dimension(:), allocatable :: con_point_str
       end type ocn_tracer_entry
