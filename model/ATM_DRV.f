@@ -538,7 +538,7 @@ C****
       USE Dictionary_mod
       USE CONSTANT, only : grav
       USE FLUXES, only : nisurf,atmocn,atmice
-      USE RESOLUTION, only : ls1=>ls1_nominal,plbot
+      USE RESOLUTION, only : ls1=>ls1_nominal,plbot, MFIX,MFRAC
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
@@ -624,6 +624,8 @@ C****
       call set_param("LM",LM,'o')
       call set_param("LS1",LS1,'o')
       call set_param("PLBOT",Plbot,LM+1,'o')
+      call set_param("MFIX" ,MFIX ,LM  ,'o')
+      call set_param("MFRAC",MFRAC,LM  ,'o')
 
       if(istart.eq.2) then
         call read_aic()

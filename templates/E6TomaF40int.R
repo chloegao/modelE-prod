@@ -1,16 +1,14 @@
-E6TomaF40ch4.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
+E6TomaF40int.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
 
-This deck is not quite really "E6" because CMIP6 CH4 emissions files
+This rundeck is not set up for any particular science but serves as an
+example that has additional tracer "int"eractions on like fire model,
+interactive biomass burning, CH4 sources (instead of rad code synchronizing)
+and climate-sensitive CH4 wetland emissions.
+This deck also is not quite really "E6" because CMIP6 CH4 emissions files
 are not available for non-biomass burning sources. Also note that
 the wetlands source has not yet been "balanced" (from the rundeck)
 vs. obvservations. But making deck available now for testing 
-purposes:
-
-E6TomaF40ch4 = E6TomaF40 but:
-  (1) use CH4 emissions instead of L=1 overwriting (change emis files,
-      some parameters and pre-processor settings.)
-  (2) turn on the climate-interactive CH4 wetlands source, and list 
-      its files, parameters, etc.
+purposes.
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -46,8 +44,11 @@ Preprocessor Options
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
-!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
-!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
+#define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+#define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
+#define DETAILED_FIRE_OUTPUT
+#define LIMIT_BARREN_FLAMMABILITY
+#define ANTHROPOGENIC_FIRE_MODEL
 #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
@@ -94,7 +95,7 @@ TRDIAG                              ! new i/o
 SUBDD
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
-! flammability_drv flammability       ! Olga's fire model
+flammability_drv flammability       ! Olga''s fire model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -108,31 +109,33 @@ OPTS_dd2d = NC_IO=PNETCDF
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_transient_144x90_input_files"
+FLAMPOPDEN=gsin/fire/RCP8.5_PopDens_2000-2100.dat ! for fire model
 RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files"
 #include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
-#include "chem_emiss_144x90_input_files_CMIP6"
-#include "ch4_emiss_144x90_input_files_CMIP6"
+#include "chem_emiss_144x90_input_files_CMIP6_noBBURN"
+#include "ch4_emiss_144x90_input_files_CMIP6_noBBURN"
 ! ----- for interactive wetlands -----
 PREC_NCEP=gsin/ncep_prec_w_2wk_lag_2x2.5
 TEMP_NCEP=gsin/ncep_g1temp_2x2.5
 BETA_NCEP=temp_2x2.5/beta_p_ch4_4x5_2x2.5gf
 ALPHA_NCEP=temp_2x2.5/alpha_t_ch4_4x5_2x2.5gf
 ! ----- end interactive wetlands -----
-#include "aerosol_OMA_input_files_CMIP6"
+#include "aerosol_OMA_input_files_CMIP6_noBBURN"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TomaF40ch4 (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry)
+E6TomaF40int (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry 
+ some interactive sources)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -164,11 +167,11 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! to override the transient chemistry tracer emissions'
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
-#include "aerosol_OMA_params_CMIP6"
+#include "aerosol_OMA_params_CMIP6_noBBURN"
 #include "dust_params_vmp_oma"
 #include "common_tracer_params_CMIP6"
-#include "chemistry_params_CMIP6"
-#include "ch4_params_with_emissions_CMIP6"
+#include "chemistry_params_CMIP6_noBBURN"
+#include "ch4_params_with_emissions_CMIP6_noBBURN"
 ! ---- for interactive wetlands -----
 nn_or_zon=0     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands

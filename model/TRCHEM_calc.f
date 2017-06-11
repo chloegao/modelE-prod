@@ -1573,14 +1573,14 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_Paraffin) then
             write(out_line,'(a48,a6,e10.3)')'destruction from RXPAR ',
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_Paraffin,lprn)
-     &        *rr(rrbi%Paraffin_RXPAR__M_M,L)*dt2
+     &        *rr(rrbi%Paraffin_RXPAR__M_M,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #ifdef TRACERS_dCO
           if(igas == nn_d13CPAR) then
             write(out_line,'(a48,a6,e10.3)')'destruction from d13CXPAR',
      &      'dy = ',-y(nRXPAR,lprn)*y(nn_d13CPAR,lprn)
-     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,L)*dt2
+     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,lprn)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
@@ -2302,19 +2302,11 @@ c Print chemical changes in a particular grid box if desired:
             call write_parallel(trim(out_line),crit=jay)
           end if
         end do ! igas
-
-        if(LPRN > maxT)then
-          write(out_line,155) ay(nH2O),': ',
-     &    changeH2O(lprn),' molecules produced; ',
-     &    (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
-     &    y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
-          call write_parallel(trim(out_line),crit=jay)
-        else
-          write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &    ' H2O     :',y(nH2O,LPRN),(y(nH2O,LPRN)/
-     &    y(nM,LPRN))*1.d6,' ppmv'
-          call write_parallel(trim(out_line),crit=jay)
-        end if
+        write(out_line,155) ay(nH2O),': ',
+     &  changeH2O(lprn),' molecules produced; ',
+     &  (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
+     &  y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
+        call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
      &  ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
      &  y(nM,LPRN))*1.d9,' ppbv'
@@ -2719,7 +2711,9 @@ c INDIVIDUAL SPECIES:
           label=' phot reaction # '
         end if
 c       skip same reaction if written twice:
-        if ((ireac > 1) .and. (npdnrs(ireac) == npdnrs(ireac-1))) CYCLE
+        if (ireac > 1) then
+          if (npdnrs(ireac) == npdnrs(ireac-1)) CYCLE
+        end if
         if(nn(1,npdnrs(ireac)) == igas)then
           per=0.d0
           if(y(igas,lprn) /= 0.d0) per=100.d0*multip*

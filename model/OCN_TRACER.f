@@ -263,13 +263,13 @@ C**** Multiply ratios by freshwater mass
 C**** Initiallise strait values based on adjacent ocean boxes
           !call gather_ocean(1)  ! mo,g0m,gx-zmo,s0m,sx-zmo,trmo,tx-zmo
 
-          if(am_I_root()) then
           call pack_data(grid,trmo(:,:,:,n),trmo_glob)
           if (.not.glob_used) then
             call pack_data(grid,mo,mo_glob)
             call pack_data(grid,s0m,s0m_glob)
             glob_used=.true.
           endif
+          if(am_I_root()) then 
           do nst=1,nmst
             i1=ist(nst,1)
             j1=jst(nst,1)
