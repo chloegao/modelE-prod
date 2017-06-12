@@ -444,7 +444,7 @@
 !@auth Greg Faluvegi
       use domain_decomp_atm, only: GRID,getDomainBounds,readt_parallel, 
      & write_parallel,rewind_parallel
-      use filemanager, only: openunit,closeunit,nameunit,is_fbsa
+      use filemanager, only: openunit,closeunit,nameunit !,is_fbsa
       use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
       use timestream_mod, only : init_stream,read_stream
       use flammability_com, only: populationDensity,flamPopB,flamPopA,
@@ -466,9 +466,9 @@
 
       half=NINT((EARTH_DAYS_PER_YEAR+1.)/2.)
 
-      if(.not.is_fbsa(fname)) then
-        call stop_model('population netCDF input not implemented.',255) 
-      else
+!     if(.not.is_fbsa(fname)) then
+!       call stop_model('population netCDF input not implemented.',255) 
+!     else
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
@@ -534,7 +534,7 @@
         call write_parallel(trim(out_line))
       end if ! tras/non-trans
 
-      endif ! giss format or not
+!     endif ! fbsa format or not
       return
       ! this keeps transient files open. maybe study TracerSurfaceSource.F90/
       ! subroutine readSurfaceSource on how to not do that. 
