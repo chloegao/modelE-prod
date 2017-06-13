@@ -2335,8 +2335,10 @@ C**** save 3D cloud fraction as seen by radiation
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
               aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLss(l,i,j)*rhodz
+     &                          /cldss(l,i,j)
               aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
      &                             +QLss(l,i,j)*pdsig(l,i,j)
+     &                             /cldss(l,i,j)
               if(tausslip.gt.0.) then
                 SIZEIC(L)=CSIZSSIP(L,I,J)
                 TAUIC(L)=cldx*TAUSSLIP
@@ -2344,8 +2346,10 @@ C**** save 3D cloud fraction as seen by radiation
                 call inc_ajl(i,j,l,jl_icld,1d0)
                 call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
                 aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+     &                            /cldss(l,i,j)
                 aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                               +QIss(l,i,j)*pdsig(l,i,j)
+     &                               /cldss(l,i,j)
               endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
@@ -2353,8 +2357,10 @@ C**** save 3D cloud fraction as seen by radiation
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
               aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
+     &                          /cldss(l,i,j)
               aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                             +QIss(l,i,j)*pdsig(l,i,j)
+     &                             /cldss(l,i,j)
             END IF
           END IF
           call inc_ajl(i,j,l,jl_wcod,tauwc(l))
