@@ -973,13 +973,11 @@
 
   ! find closest match from season and latitude options
   call modelEclock%get(month=month)
-  if( SCMopt%lat > 33. .and. SCMopt%lat <= 58. )then
+  if( abs(SCMopt%lat) <= 25. ) then
     INDLAT = 1
-  else if( SCMopt%lat > 20. .and. SCMopt%lat <= 33. )then
+  else if( abs(SCMopt%lat) <= 50. ) then
     INDLAT = 2
-  else if( SCMopt%lat > 58. .and. SCMopt%lat <= 70. )then
-    INDLAT = 2
-  else if( SCMopt%lat <= 20. .or. SCMopt%lat > 70. )then
+  else
     INDLAT = 3
   endif
   NATM = INDATM(month,INDLAT)
