@@ -24,8 +24,6 @@
          MWs(:,:,L) = 0.
       ENDDO
 
-      call update_SCM_inputs
-
       CALL CALC_AMPK(LM)
 
       call SCM_FORCN

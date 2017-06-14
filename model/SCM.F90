@@ -469,7 +469,7 @@
   type(SCMreadXscalar), intent(inout) :: SCMreadXt
   type(SCMin_tScalar), intent(inout) :: SCMin_tS
   real*8, allocatable :: SCMin_time(:),SCMread_time(:)
-  real*8 ft1,ft2
+  real*8 ft1,ft2,dt
   integer day,it_SCM,it_read
 
   ! allocate scalar size to total number of simulation time steps,
@@ -480,9 +480,10 @@
   ! SCM times to interpolate to, using fractional years as common unit
   allocate(SCMin_time(SCMin_tS%ntime))
   call modelEclock%get(dayOfYear=day)
-  SCMin_time(1) = Iyear1 + (day+hourI/24.)/365.
+  SCMin_time(1) = Iyear1 + (day+hourI*1d0/24.)/365.
+  dt = DTsrc*1d0/3600./24./365.
   do it_SCM = 2,SCMin_tS%ntime
-    SCMin_time(it_SCM) = SCMin_time(it_SCM-1) + DTsrc/SECONDS_PER_YEAR
+    SCMin_time(it_SCM) = SCMin_time(1) + dt*(it_SCM-1)
   enddo
 
   ! input times to interpolate from, fractional years as common unit
@@ -490,10 +491,10 @@
   do it_read = 1,SCMreadXt%ntime
     if( SCMreadXt%month(it_read) == 2 .and. SCMreadXt%day(it_read) > 28 ) &
       call stop_model('SCM: no leap years in ModelE',255)
-    SCMread_time(it_read) = SCMreadXt%year(it_read) + &
+    SCMread_time(it_read) = SCMreadXt%year(it_read)*1d0 + &
                           ( JDendOfM(SCMreadXt%month(it_read)-1) + &
                           SCMreadXt%day(it_read) + &
-                          SCMreadXt%hour(it_read)/24. )/365.
+                          SCMreadXt%hour(it_read)*1d0/24. )/365.
   enddo
 
   ! interpolate from read times to input times, extrapolate if needed
@@ -668,7 +669,7 @@
   type(SCMreadZprofile), intent(inout) :: SCMreadZt
   type(SCMin_tProfile), intent(inout) :: SCMin_tP
   real*8, allocatable :: SCMin_time(:),SCMread_time(:)
-  real*8 ft1,ft2
+  real*8 ft1,ft2,dt
   integer day,it_SCM,it_read
 
   ! number of levels and times for output
@@ -687,18 +688,19 @@
   ! SCM times to interpolate to, using fractional years as common unit
   allocate(SCMin_time(SCMin_tP%ntime))
   call modelEclock%get(dayOfYear=day)
-  SCMin_time(1) = Iyear1 + (day+hourI/24.)/365.
+  SCMin_time(1) = Iyear1 + (day+hourI*1d0/24.)/365.
+  dt = DTsrc*1d0/3600./24./365.
   do it_SCM = 2,SCMin_tP%ntime
-    SCMin_time(it_SCM) = SCMin_time(it_SCM-1) + DTsrc/SECONDS_PER_YEAR
+    SCMin_time(it_SCM) = SCMin_time(1) + dt*(it_SCM-1)
   enddo
 
   ! input times to interpolate from, fractional years as common unit
   allocate(SCMread_time(SCMreadZt%ntime))
   do it_read = 1,SCMreadZt%ntime
-    SCMread_time(it_read) = SCMreadZt%year(it_read) + &
+    SCMread_time(it_read) = SCMreadZt%year(it_read)*1d0 + &
       ( JDendOfM(SCMreadZt%month(it_read)-1) + &
                  SCMreadZt%day(it_read) + &
-                 SCMreadZt%hour(it_read)/24. )/365.
+                 SCMreadZt%hour(it_read)*1d0/24. )/365.
   enddo
 
   ! interpolate from read times to input times, extrapolate if needed
