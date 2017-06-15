@@ -2315,16 +2315,20 @@ C**** save 3D cloud fraction as seen by radiation
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
               aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLmc(l,i,j)*rhodz
+     &                          /cldmc(l,i,j)
               aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
      &                             +QLmc(l,i,j)*pdsig(l,i,j)
+     &                             /cldmc(l,i,j)
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
               aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QImc(l,i,j)*rhodz
+     &                          /cldmc(l,i,j)
               aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                             +QImc(l,i,j)*pdsig(l,i,j)
+     &                             /cldmc(l,i,j)
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
