@@ -822,6 +822,7 @@ C****
 #endif
       USE GEOM, only : imaxj
       use OldTracer_mod, only: itime_tr0, trname, trdecay
+      use TRACER_COM, only: nChemistry
       USE TRACER_COM, only : NTM
      &     ,trm,trmom,n_Pb210, n_Rn222
 #ifdef TRACERS_WATER
@@ -864,8 +865,8 @@ C**** Atmospheric decay
 #endif
 #ifndef SKIP_TRACER_SRCS
           if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
-            tr3Dsource(:,:,:,1,n_Pb210)= trm(:,:,:,n)*(1-expdec(n))*210.
-     *           /222./dtsrc
+            tr3Dsource(:,:,:,nChemistry,n_Pb210)=
+     *        trm(:,:,:,n)*(1-expdec(n))*210./222./dtsrc
           end if
 #endif
 

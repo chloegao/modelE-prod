@@ -159,15 +159,15 @@ c avol [m3/gb] mass of air pro m3
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(1) = trm(i,j,l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
+      GAS(GAS_H2SO4) = trm(i,j,l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
 c conversion trm [kg/kg] -> [ug /m^3]
 #ifdef  TRACERS_SPECIAL_Shindell
-      GAS(2) = trm(i,j,l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
+      GAS(GAS_HNO3) = trm(i,j,l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
 #else
-      GAS(2) = off_HNO3(i,j,l)*1.d9 /AVOL !   [ug HNO3/m^3]
+      GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL !   [ug HNO3/m^3]
 #endif
 c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(3) = trm(i,j,l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
+      GAS(GAS_NH3) = trm(i,j,l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
 !  [kg/s] -> [ug/m3/s]
 
        DO n=ntmAMPi,ntmAMPe
@@ -250,13 +250,13 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
           endif   
        ENDDO
 
-      tr3Dsource(i,j,l,nChemistry,n_H2SO4) =((GAS(1)*AVOL *1.d-9)
+      tr3Dsource(i,j,l,nChemistry,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
      *        -trm(i,j,l,n_H2SO4)) /dtsrc 
-      tr3Dsource(i,j,l,nChemistry,n_NH3)   =((GAS(3)*AVOL *1.d-9)
+      tr3Dsource(i,j,l,nChemistry,n_NH3)   =((GAS(GAS_NH3)*AVOL *1.d-9)
      *        -trm(i,j,l,n_NH3)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
-      tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(2)*AVOL * 1.d-9)
+      tr3Dsource(i,j,l,3,n_HNO3)  =((GAS(GAS_HNO3)*AVOL * 1.d-9)
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]

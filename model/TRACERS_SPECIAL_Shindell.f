@@ -173,6 +173,7 @@ C**** linearly in time (at 1% increase per year)
       USE ATM_COM, only: MA
       use OldTracer_mod, only: trname, vol2mass, itime_tr0
       USE TRACER_COM, only: trm,n_GLT
+      USE TRACER_COM, only: nOverwrite
       USE TRACER_SOURCES, only: GLTic
       USE FLUXES, only : tr3Dsource
       USE DOMAIN_DECOMP_ATM, ONLY : getDomainBounds,grid,write_parallel
@@ -203,7 +204,8 @@ C we change that.)
      &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
       do j=J_0,J_1; do i=I_0,imaxj(j)
         new_mass=new_mr*vol2mass(n_GLT)*MA(1,i,j)*AXYP(i,j) ! kg
-        tr3Dsource(i,j,1,1,n_GLT)=(new_mass-trm(i,j,1,n_GLT))*bydtsrc
+        tr3Dsource(i,j,1,nOverwrite,n_GLT)=
+     &    (new_mass-trm(i,j,1,n_GLT))*bydtsrc
         !i.e. tr3Dsource in kg/s 
       end do   ; end do
 
