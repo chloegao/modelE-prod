@@ -617,27 +617,16 @@ C**** arrays that could be general, but are only used by chemistry
 
 !The list below is for non-standard tracer sources and sinks:
 !-----------------------------------------------------------
-!@param ndecayPb210 for 3D source of Pb-21O from radioactive decay
-      integer, parameter  :: ndecayPb210 = 1 
 #ifdef TRACERS_SPECIAL_Lerner
 !@param nTropCH4 for CH4 tropospheric chemistry 3D sources/sinks
 !@param nStratCH4 for CH4 stratospheric chemistry 3D sources/sinks
 !@param nTropO3P for O3 tropospheric chemistry 3D sources (production)
 !@param nTropO3L for O3 tropospheric chemistry 3D sinks (loss)
 !@param nStratO3 for O3 stratospheric chemistry 3D sources/sinks
-!@param nStratCFC11 for CFC11 stratospheric chemistry 3D sources/sinks
 !@param nStratN2O for N2O stratospheric chemistry 3D sources/sinks
       integer, parameter ::  nTropCH4 = 1, nStratCH4 = 2,
      &      nTropO3P = 2, nTropO3L = 3, nStratO3 = 1,
-     &      nStratCFC11 = 1, nStratN2O = 1
-#endif
-#ifdef TRACERS_COSMO
-!@param nCosmo for cosmogenic 3D sources/sinks
-      integer, parameter :: nCosmo = 1
-#endif
-#ifdef SHINDELL_STRAT_EXTRA
-!@param nL1overGLT for L1 overwrite of GLT
-      integer, parameter :: nL1overGLT = 1
+     &      nStratN2O = 1
 #endif
 #ifdef TRACERS_TOMAS
 !@param nSO4anum for SO4 aerosol number 3D sources/sinks

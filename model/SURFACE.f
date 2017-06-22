@@ -2110,6 +2110,7 @@ C**** accumulate implicit fluxes for setting ocean balance
       use constant, only : teeny
       use landice, only : snmin
       use pbl_drv, only : t_pbl_args
+      use itype_enum, only : ITYPE_OCEAN, ITYPE_LANDICE
       implicit none
       integer :: itype,i,j,n
       real*8 :: tg1
@@ -2146,7 +2147,7 @@ c
 C****
 C**** Calculate Water Tracer Evaporation
 C****
-      IF (ITYPE.EQ.1) THEN      ! OCEAN
+      IF (ITYPE.EQ.ITYPE_OCEAN) THEN      ! OCEAN
 #ifdef TRACERS_SPECIAL_O18
         TEV=-(RCDQWS*(trs-trgrnd*QG_SAT*fracvl(tg1,n))
      *       +RCDQDWS*trprime)*pbl_args%frack(nx)
@@ -2171,7 +2172,8 @@ c     *           ,N,TREVAPOR+TEVAP,TEVAPLIM
       ELSE                      ! ICE AND LAND ICE
 C**** tracer flux is set by source tracer concentration
         IF (EVAP.GE.0) THEN     ! EVAPORATION
-          IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or. ITYPE.ne.3) THEN
+          IF (EVAP.le.SNOW .or. SNOW.lt.SNMIN .or.
+     &        ITYPE.ne.ITYPE_LANDICE) THEN
             TEVAP=EVAP*trgrnd
           ELSE                  ! special treatment for landice when EVAP>SNOW>SNMIN
             TEVAP=SNOW*(trgrnd-trgrnd2)+EVAP*trgrnd2

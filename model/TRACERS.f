@@ -792,8 +792,10 @@ C****
       USE MODEL_COM, only : itime,dtsrc
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
+      USE apply3d, only: apply_tracer_3Dsource
 #endif
       use OldTracer_mod, only: itime_tr0, trname, trdecay
+      use TRACER_COM, only: nChemistry
       USE TRACER_COM, only : NTM
      &     ,trm_col,trmom_col,n_Pb210, n_Rn222
 #ifdef TRACERS_WATER
@@ -831,8 +833,9 @@ C**** Atmospheric decay
 #endif
 #ifndef SKIP_TRACER_SRCS
           if (trname(n) .eq. "Rn222" .and. n_Pb210.gt.0) then
-            tr3Dsource(:,1,n_Pb210)= trm_col(:,n)*(1-expdec(n))*210.
-     *           /222./dtsrc
+            tr3Dsource(:,nChemistry,n_Pb210)=
+     *        trm_col(:,n)*(1-expdec(n))*210./222./dtsrc
+            call apply_tracer_3Dsource(i,j,nChemistry,n_Pb210) !radioactive decay of Rn222
           end if
 #endif
 

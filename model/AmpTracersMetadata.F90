@@ -52,6 +52,7 @@ module AmpTracersMetadata_mod
   use OldTracer_mod, only: set_trradius
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_tr_wd_type
+  use OldTracer_mod, only: set_has_chemistry
   use OldTracer_mod, only: oldAddTracer
   use Tracer_mod, only: Tracer
 
@@ -560,6 +561,7 @@ contains
       call set_trradius(n, DG_ACC * .5d-6)
       call set_fq_aer(n, SOLU_ACC)
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end subroutine H2SO4_setSpec
 
     subroutine M_NO3_setSpec(name)
@@ -573,6 +575,7 @@ contains
       call set_trradius(n, 3.d-7 ) !m
       call set_fq_aer(n, 1.d0)  !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end subroutine M_NO3_setSpec
 
     subroutine M_NH4_setSpec(name)
@@ -585,6 +588,7 @@ contains
       call set_trradius(n, 3.d-7)
       call set_fq_aer(n, 1.d+0)
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end subroutine M_NH4_setSpec
 
     subroutine M_H2O_setSpec(name)

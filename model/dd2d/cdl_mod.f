@@ -149,7 +149,8 @@
      &     units,long_name,auxvar_string
       logical, intent(in), optional :: set_miss,make_timeaxis
       character(len=cdl_strlen) :: varname,tmpstr
-      integer :: k,n1,n2
+      character(len=1024) :: thisline
+      integer :: k,n1,n2,l,lmax
       logical :: make_timeaxis_
       make_timeaxis_ = .false.
       if(present(make_timeaxis)) make_timeaxis_ = make_timeaxis
@@ -167,9 +168,19 @@
         endif
       endif
       if(present(long_name)) then
-        k = k + 1
-        cdl%vars(k) = indent2//trim(varname)//':long_name = "'//
+        thisline = indent2//trim(varname)//':long_name = "'//
      &     trim(long_name)//'" ;'
+        ! Break this line into parts if necessary.  No
+        ! attempt yet made to break at whitespaces or punctuation.
+        ! Should put the line-breaking into a routine.
+        lmax = len(cdl%vars(1))
+        l = len_trim(thisline)
+        do while(l.gt.0)
+          k = k + 1
+          cdl%vars(k) = thisline(1:min(l,lmax))
+          if(l.gt.lmax) thisline = thisline(lmax+1:l)
+          l = l - lmax
+        enddo
       endif
       if(present(set_miss)) then
         if(set_miss) then

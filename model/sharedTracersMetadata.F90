@@ -32,6 +32,7 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
+  use OldTracer_mod, only: set_has_chemistry
   use TRACER_COM, only : set_ntsurfsrc, whichEPFCs, seasonalNH3src
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
@@ -72,7 +73,7 @@ contains
     ! not count for ntsurfsrc....
     call set_tr_mm(n, 62.d+0)
     call set_needtrs(n, .true.)
-
+    call set_has_chemistry(n, .true.)
   end subroutine DMS_setSpec
 
   subroutine SO2_setSpec(name)
@@ -111,6 +112,7 @@ contains
       end select
     end if
 #endif
+    call set_has_chemistry(n, .true.)
   end subroutine SO2_setSpec
 
   subroutine H2O2_setSpec(name)
@@ -124,7 +126,7 @@ contains
     call set_tr_DHD(n, -5.52288d4 ) ! in J/mole = -13.2 kcal/mole.
     if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
     call set_F0(n,  1.d0)
-
+    call set_has_chemistry(n, .true.)
   end subroutine H2O2_setSpec
 
   subroutine NH3_setSpec(name)
@@ -163,6 +165,7 @@ contains
       end select
     end if
 #endif
+    call set_has_chemistry(n, .true.)
   end subroutine NH3_setSpec
 
   subroutine H2O2_s_setSpec(name)
@@ -177,7 +180,7 @@ contains
     call set_tr_wd_type(n, ngas)
     if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
     call set_F0(n,  1.d0)
-
+    call set_has_chemistry(n, .true.)
   end subroutine H2O2_s_setSpec
 
     subroutine CH4_setSpec(name)
@@ -220,6 +223,7 @@ contains
       end select
     end if
 #endif
+    call set_has_chemistry(n, .true.)
     end subroutine CH4_setSpec
 
     subroutine N2O_setSpec(name)
@@ -237,6 +241,7 @@ contains
         call set_tcscale(n, 1.d0)
       end if
 #endif
+      call set_has_chemistry(n, .true.)
     end subroutine N2O_setSpec
 
     subroutine Rn222_setSpec(name)
@@ -247,6 +252,7 @@ contains
       call set_tr_mm(n, 222.d0)
       call set_trdecay(n,  2.1d-6)
       call set_ntsurfsrc(n,  1)  
+      call set_has_chemistry(n, .true.)
     end subroutine Rn222_setSpec
 
     subroutine NH4_setSpec(name)
@@ -261,6 +267,7 @@ contains
       call set_tr_wd_type(n, npart)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      call set_has_chemistry(n, .true.)
     end subroutine NH4_setSpec
 
 

@@ -58,7 +58,7 @@
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
-      use TRACER_COM, only: NTM, n_OCII
+      use TRACER_COM, only: NTM
       use AEROSOL_SOURCES, only: DMSinput,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
@@ -418,7 +418,7 @@ c Nightingale et al
 #endif
 
 #ifdef old_DMS_emis
-c YUNHA - Liss and Merlivat (1986) code is from GISS GCM II'. 
+c YUNHA - Liss and Merlivat (1986) code is from GISS GCM II-prime. 
 c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
 
        Tc=GTEMP(1,1,I,J) ! YUNHA GTEMP is already Celcius. 
@@ -546,7 +546,7 @@ c skip poles because there was a bug in the input file over the pole
         end do
         end do
         end do
-cdmk turning these off because I don't have 2x2.5
+cdmk turning these off because I do not have 2x2.5
 c       ifirst=.false.
         else    !need to scale inputs (10^5 mol/cm3)
         ohr(:,:,:)=ohr(:,:,:)*1.D5
@@ -818,18 +818,19 @@ c - not necessary for Shindell source
           ddno3=ddno3*0.9
 C DMS losses: eqns 1, 2 ,3
 
-          tr3Dsource(l,1,n) = trm_col(l,n)*(d1*d2-1.)/dtsrc
+          tr3Dsource(l,nChemistry,n) = trm_col(l,n)*(d1*d2-1.)/dtsrc
 
           dmssink=ddno3*tr_mm(n)/1000.d0
 
-          if (dmssink.gt.trm_col(l,n)+tr3Dsource(l,1,n)*dtsrc)
-     *         dmssink=trm_col(l,n)+tr3Dsource(l,1,n)*dtsrc
-          tr3Dsource(l,1,n) = tr3Dsource(l,1,n) - dmssink/dtsrc
+          if (dmssink.gt.trm_col(l,n)+tr3Dsource(l,nChemistry,n)*dtsrc)
+     *      dmssink=trm_col(l,n)+tr3Dsource(l,nChemistry,n)*dtsrc
+          tr3Dsource(l,nChemistry,n)=
+     *      tr3Dsource(l,nChemistry,n)-dmssink/dtsrc
           
         case ('MSA')
 C MSA gain: eqn 1
 
-          tr3Dsource(l,1,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*
+          tr3Dsource(l,nChemistry,n) = 0.25d0*Tr_mm(n)/Tr_mm(n_dms)*
      *         trm_col(l,n_dms)*(1.d0 -D1)*SQRT(D2)/dtsrc
           
         case ('SO2')
@@ -922,12 +923,12 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        tr3Dsource(l,nChemloss,n) = -trm_col(l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
        tr3Dsource(l,2,n_H2SO4)=trm_col(l,n)*(1.d0-d4)/dtsrc 
-#endif  
+#endif  /* TRACERS_AMP */
 #ifdef TRACERS_TOMAS
        H2SO4_chem(i,j,l)=trm_col(l,n)*(1.d0-d4)/dtsrc 
      &      *tr_mm(n_H2SO4)/tr_mm(n) 
-#endif      
-#endif        
+#endif  /* TRACERS_TOMAS */
+#endif  /* TRACERS_HETCHEM */
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
@@ -944,22 +945,23 @@ c#endif
        case ('SO4_d1')
 c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
 
-       tr3Dsource(l,1,n)=tr3Dsource(l,1,n)+tr_mm(n)/tr_mm(n_so2)
+       tr3Dsource(l,nChemistry,n)=tr3Dsource(l,nChemistry,n)
+     *         +tr_mm(n)/tr_mm(n_so2)
      *         *(1.d0-d41)*trm_col(l,n_so2)            !  SO2
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
        case ('SO4_d2')
 c sulfate production from SO2 on mineral dust aerosol
 
-       tr3Dsource(l,1,n) = tr3Dsource(l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d42)*trm_col(l,n_so2)
+       tr3Dsource(l,nChemistry,n) = tr3Dsource(l,nChemistry,n)+
+     *   tr_mm(n)/tr_mm(n_so2)*(1.d0-d42)*trm_col(l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
        case ('SO4_d3')
 c sulfate production from SO2 on mineral dust aerosol
 
-       tr3Dsource(l,1,n) = tr3Dsource(l,1,n) +  tr_mm(n)/
-     *             tr_mm(n_so2)*(1.d0-d43)*trm_col(l,n_so2)
+       tr3Dsource(l,nChemistry,n) = tr3Dsource(l,nChemistry,n)+
+     *   tr_mm(n)/tr_mm(n_so2)*(1.d0-d43)*trm_col(l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
@@ -999,7 +1001,7 @@ c         if (i.eq.72.and.l.eq.1.and.j.le.46) write(6,*)
 c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
 c H2O2 production: eqn 9
          
-          tr3Dsource(l,1,n) = tr_mm(n)*xk9/dtsrc
+          tr3Dsource(l,nChemistry,n) = tr_mm(n)*xk9/dtsrc
 c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
 c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
 c         endif
@@ -1007,7 +1009,7 @@ c H2O2 losses:5 and 6
           r5 = perj(i,j,l)
           d5 = exp(-r5*dtsrc)
 
-          tr3Dsource(l,2,n)=(trm_col(l,n))*(d5*d6-1.d0)
+          tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
           
           najl = jls_phot

@@ -152,6 +152,212 @@ c         may specify ocean temperature for SCM
 
       end module sstmod
 
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+
+      module owiso_mod
+
+      use timestream_mod, only : timestream
+      implicit none
+      save
+
+!@var O18stream interface for reading and time-interpolating 
+!@+   ocean surface d18O files.
+!@+   This is structurally the same as SSTstream, just with
+!@+   different data.
+!@var HDOstream is the same as O18stream, but for dD instead
+!@+   of d18O.
+      type(timestream) :: O18stream
+      type(timestream) :: HDOstream 
+
+!@var wisocn_O18 sea surface d18O (permil)
+!@var wisocn_HDO sea surface dD (permil)
+      real*8, dimension(:,:), allocatable :: wisocn_O18
+      real*8, dimension(:,:), allocatable :: wisocn_HDO
+
+!@var owiso_XXX_exists are logicals to check for the presence of
+!water isotope ocean surface files.
+      logical :: owiso_O18_exists = .true.
+      logical :: owiso_HDO_exists = .true.
+
+      contains
+
+      subroutine alloc_owiso
+!@sum alloc_owiso allocates needed sea surface water isotope array
+!@auth:  Jesse Nusbaumer
+      use domain_decomp_atm, only : grid,getDomainBounds
+      implicit none
+      integer :: i_0h,i_1h,j_0h,j_1h,ier
+      call getDomainBounds(grid,j_strt_halo=j_0h,j_stop_halo=j_1h)
+      i_0h = grid%i_strt_halo
+      i_1h = grid%i_stop_halo
+      allocate(wisocn_O18(i_0h:i_1h,j_0h:j_1h))
+      allocate(wisocn_HDO(i_0h:i_1h,j_0h:j_1h))
+      wisocn_O18 = 0. !0 permil -> trw0 value
+      wisocn_HDO = 0. 
+      end subroutine alloc_owiso
+
+      subroutine init_owiso(atmocn)
+!@sum init_sstmod initializes the WISOstream object
+!@auth:  Jesse Nusbaumer
+      use domain_decomp_atm, only : grid
+      use timestream_mod, only : init_stream
+      use model_com, only :  modelEclock, master_yr
+      use exchange_types, only : atmocn_xchng_vars
+      use dictionary_mod, only : get_param,is_set_param
+      use filemanager, only : file_exists
+      implicit none
+      type(atmocn_xchng_vars) :: atmocn
+      integer :: jyear,jday,sst_yr
+      logical :: cyclic
+
+      !Check if files exist
+      owiso_O18_exists = file_exists('OWISO_O18')
+      owiso_HDO_exists = file_exists('OWISO_HDO')
+
+      !If only one of the files is missing, then there was most
+      !likely a user error, so kill the model and throw out
+      !a helpful error message
+      if(owiso_O18_exists) then
+        if(.not.owiso_HDO_exists) then
+          call stop_model("Missing OWISO_HDO file!",255)
+        end if
+      else
+        if(owiso_HDO_exists) then
+          call stop_model("Missing OWISO_O18 file!",255)
+        end if
+      end if
+
+      !If the files are missing, quit this subroutine      
+      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+
+      !For now, have the water isotope values match up temporally with SST
+      if(is_set_param('sst_yr')) then
+        ! If parameter sst_yr exists, SST data from that year is
+        ! selected (only relevant if OSST is a multi-year dataset).
+        call get_param( 'sst_yr', sst_yr )
+      else
+        ! Otherwise, sst_yr is set to ocean_yr or master_yr.
+        call get_param( 'ocean_yr', sst_yr, default=master_yr )
+      endif
+      cyclic = sst_yr /= 0 ! sst_yr==0 implies transient mode.
+      sst_yr = abs(sst_yr)
+      call modelEclock%get(year=jyear, dayOfYear=jday)
+      if(cyclic) jyear = sst_yr
+      !d18O ocean surface data
+      call init_stream(grid,O18stream,'OWISO_O18','d18O_ocn',-100d0,
+     &       100d0,'ppm',jyear,jday,msk=atmocn%focean,cyclic=cyclic)
+      !dD ocean surface data
+      call init_stream(grid,HDOstream,'OWISO_HDO','dD_ocn',-100d0,
+     &       100d0,'ppm',jyear,jday,msk=atmocn%focean,cyclic=cyclic)
+ 
+      end subroutine init_owiso
+
+      subroutine read_owiso(end_of_day,atmocn)
+!@sum read_owiso invokes procedures to read water isotope
+!@+   ocean surface ratios from input files and perform
+!@+   time interpolation
+!@auth:  Jesse Nusbaumer
+      use domain_decomp_atm, only : getDomainBounds,grid
+      use model_com, only : itime,itimei
+      use model_com, only :  modelEclock
+      use resolution, only : im,jm
+!      use seaice, only : tfrez
+      use timestream_mod, only : read_stream
+!      use sstmod, only : SSTstream,SST,osst_exists
+      use exchange_types, only : atmocn_xchng_vars
+      implicit none
+      logical, intent(in) :: end_of_day
+      type(atmocn_xchng_vars) :: atmocn
+c
+      real*8 :: tfo
+      integer i,j
+      integer :: jyear,jday
+
+      integer :: j_0,j_1, i_0,i_1
+      logical :: have_north_pole, have_south_pole
+
+      !If the files are missing, quit this subroutine      
+      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+
+      call modelEclock%get(year=jyear, dayOfYear=jday)
+
+      call getDomainBounds(grid,
+     &         i_strt=i_0,i_stop=i_1,j_strt=j_0,j_stop=j_1,
+     &         have_south_pole=have_south_pole,
+     &         have_north_pole=have_north_pole)
+
+      if(.not.(end_of_day.or.itime.eq.itimei)) return
+
+C**** read and time-interpolate
+      call read_stream(grid,O18stream,jyear,jday,wisocn_O18)
+      call read_stream(grid,HDOstream,jyear,jday,wisocn_HDO)
+
+c**** replicate values at pole
+      if(have_north_pole) then
+        if (atmocn%focean(1,jm).gt.0) then
+          do i=2,im
+            wisocn_O18(i,jm)=wisocn_O18(1,jm)
+            wisocn_HDO(i,jm)=wisocn_HDO(1,jm)
+          end do
+        end if
+      end if
+      if(have_south_pole) then
+        if (atmocn%focean(1,1).gt.0) then
+          do i=2,im
+            wisocn_O18(i,1)=wisocn_O18(1,1)
+            wisocn_HDO(i,1)=wisocn_HDO(1,1)
+          end do
+        end if
+      end if
+
+      return
+      end subroutine read_owiso
+
+      subroutine set_gtracer_owiso(atmocn)
+!@sum set_gtracer_wiso copies wisocn into atmocn%gtracer
+!@+   Currently only works for H218O and HDO (assuming a
+!@+   particular d-excess value).  However, it could be
+!@+   expanded to other water isotope species (such as
+!@+   H217O and HTO) if need be.
+!@auth:  Jesse Nusbaumer
+      use domain_decomp_atm, only : grid,getDomainBounds
+      use exchange_types, only : atmocn_xchng_vars
+      use OldTracer_mod, only : trw0
+      use TRACER_COM, only : n_H2O18, n_HDO
+      implicit none
+      type(atmocn_xchng_vars) :: atmocn
+c
+      real*8 :: ratio_O18,ratio_HDO !water isotope ratios
+      integer :: i,j,j_0,j_1, i_0,i_1
+
+      !If the files are missing, quit this subroutine      
+      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+ 
+      call getDomainBounds(grid,i_strt=i_0,i_stop=i_1)
+      call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
+
+      do j=j_0,j_1
+      do i=i_0,atmocn%imaxj(j)
+        if (atmocn%focean(i,j).gt.0) then
+          !Convert delta values to ratios before applying to gtracer
+          ratio_O18=wisocn_O18(i,j)*1d-3+1.
+          ratio_HDO=wisocn_HDO(i,j)*1d-3+1.
+          !H218O
+          atmocn%gtracer(n_H2O18,i,j)=trw0(n_H2O18)*ratio_O18
+          !HDO
+          atmocn%gtracer(n_HDO,i,j)=trw0(n_HDO)*ratio_HDO
+        endif
+      enddo
+      enddo
+
+      return
+      end subroutine set_gtracer_owiso
+
+      end module owiso_mod
+
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
+
+
       subroutine read_sst(end_of_day,atmocn)
 !@sum read_sst invokes procedures to read sea surface temperature from
 !@+   input files and perform time interpolation
@@ -239,6 +445,9 @@ c**** replicate values at pole
       use seaice, only : qsfix, osurf_tilt
       use ocnml, only : init_ocnml,set_gtemp_ocnml
       use sstmod, only : init_sstmod,set_gtemp_sst
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+      use owiso_mod, only : init_owiso
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       use pario, only : par_open, par_close
       use exchange_types, only : atmocn_xchng_vars,iceocn_xchng_vars
       use filemanager, only : file_exists
@@ -298,6 +507,9 @@ C****
       if (kocean.eq.0) then
         call set_gtemp_sst(atmocn)
         call init_sstmod(atmocn)
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+        call init_owiso(atmocn)
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       else
         call set_gtemp_ocnml(atmocn)
         ! read ML depths and OHT
@@ -313,6 +525,9 @@ C****
 !@+     (2) mixed-layer ocean module (kocean=1)
       use domain_decomp_atm, only : grid
       use sstmod, only  : alloc_sstmod
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+      use owiso_mod, only : alloc_owiso
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       use ocnml, only : alloc_ocnml
       use dictionary_mod, only : get_param
       use model_com, only : kocean
@@ -320,6 +535,9 @@ C****
       call get_param('kocean',kocean)
       if(kocean.eq.0) then
         call alloc_sstmod
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+        call alloc_owiso
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       else
         call alloc_ocnml
         call alloc_odeep(grid)
@@ -332,6 +550,9 @@ C****
 !@+     (2) mixed-layer ocean module (kocean=1)
       use model_com, only : kocean
       use sstmod, only : set_gtemp_sst
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+      use owiso_mod, only : set_gtracer_owiso, read_owiso
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       use ocnml, only : daily_ocnml,set_gtemp_ocnml
       use exchange_types, only : atmocn_xchng_vars
       use fluxes, only : atmice
@@ -348,6 +569,10 @@ C****
         call read_sst(end_of_day,atmocn)
         call set_gtemp_sst(atmocn)
         call daily_seaice(end_of_day,atmocn,atmice)
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
+        call read_owiso(end_of_day,atmocn)
+        call set_gtracer_owiso(atmocn)
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
       end if
 
       return
@@ -483,28 +708,3 @@ C****
       RETURN
       END SUBROUTINE DIAGCO
 
-#ifdef TRACERS_WATER
-      subroutine tracer_ic_ocean(atmocn)
-!@sum tracer_ic_ocean initialise ocean tracer concentration
-!@+   called only when tracers turn on
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : itime
-      USE OldTracer_mod, only : trw0,itime_tr0
-      USE EXCHANGE_TYPES, only : atmocn_xchng_vars
-      IMPLICIT NONE
-      type(atmocn_xchng_vars) :: atmocn
-      INTEGER i,j,n
-      do n=1,atmocn%ntm
-        if (itime.eq.itime_tr0(n)) then
-          do j=atmocn%j_0,atmocn%j_1
-          do i=atmocn%i_0,atmocn%imaxj(j)
-            if(atmocn%focean(i,j).gt.0) then
-              atmocn%gtracer(n,i,j)=trw0(n)
-            end if
-          end do
-          end do
-        end if
-      end do
-      return
-      end subroutine tracer_ic_ocean
-#endif

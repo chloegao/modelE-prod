@@ -396,6 +396,9 @@ print RUNID <<EOF;
         -cold-restart)
             opts="\$opts -cold-restart" ; touch_ifile=1
             ;;
+        --time)
+            opts="\$opts --time \$1" ; shift
+            ;;
          *)
             echo "Warning: wrong option ignored: \$OPT"
             ;;

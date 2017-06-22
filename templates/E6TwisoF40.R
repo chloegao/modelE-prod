@@ -84,7 +84,7 @@ E6TwisoF40 (prescribed ocean atmospheric tracer model with water isotope tracers
 supsatfac=0.004          ! factor that controls supersaturation as seen by the water isotope fractionation physics (S = 1-fac*TdegC)
 to_volume_MixRat=1,0,0   ! for tracer printout (Output as volume mixing ratio? 1 = yes, 0 = no)
 to_per_mil=0,1,1         ! for tracer printout (Output as permil? 1 = yes, 0 = no)
-water_tracer_ic=2        ! Initialize ocean isotope values from file?  (1 = yes, 0 = no, set to VSMOW)
+water_tracer_ic=2        ! Initialize ocean isotope values from file?  (1 = yes, otherwise set to VSMOW)
 oc_tracer_mean=0.,0.,0.  ! Amount to enrich or deplete ocean isotope values (in permil)
 
 ! cond_scheme=2   ! newer conductance scheme (N. Kiang) ! not used with Ent

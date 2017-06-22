@@ -17,6 +17,7 @@ module LernerTracersMetadata_mod
   use TRACERS_MPchem_COM, only: nMPtable
   use OldTracer_mod, only: set_iMPtable
   use OldTracer_mod, only: set_tcscale
+  use OldTracer_mod, only: set_has_chemistry
   use RunTimeControls_mod, only: tracers_special_lerner
   use Tracer_mod, only: Tracer
   implicit none
@@ -56,6 +57,7 @@ contains
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 146.01d0)
       call set_ntsurfsrc(n,  1)
+      call set_has_chemistry(n, .true.)
     end subroutine SF6_setSpec
 
     subroutine CO2_setSpec(name)
@@ -66,6 +68,7 @@ contains
       call set_tr_mm(n, 44.d0)
       call set_t_qlimit(n,  .false.)
       call set_ntsurfsrc(n,  6)
+      call set_has_chemistry(n, .true.)
     end subroutine CO2_setSpec
 
     subroutine CFC11_setSpec(name)
@@ -80,6 +83,7 @@ contains
         call set_iMPtable(n, nMPtable)
         call set_tcscale(n, 1.d0)
       endif
+      call set_has_chemistry(n, .true.)
     end subroutine CFC11_setSpec
 
     subroutine C_14O2_setSpec(name)
@@ -89,6 +93,7 @@ contains
       call set_ntm_power(n, -18)
       call set_tr_mm(n, 46.d0)
       call set_ntsurfsrc(n,  1)
+      call set_has_chemistry(n, .true.)
     end subroutine C_14O2_setSpec
 
     subroutine O3_setSpec(name)
@@ -103,6 +108,7 @@ contains
         dsol = 0.
         call sync_param("dsol",dsol)
       end if
+      call set_has_chemistry(n, .true.)
     end subroutine O3_setSpec
 
     subroutine SF6_c_setSpec(name)
@@ -112,6 +118,7 @@ contains
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 146.01d0)
       call set_ntsurfsrc(n,  1)
+      call set_has_chemistry(n, .true.)
     end subroutine SF6_c_setSpec
 
   end subroutine Lerner_InitMetadata
