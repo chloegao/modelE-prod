@@ -7542,7 +7542,6 @@ C**** 3D biomass source
       end subroutine apply_biomass_burning_emissions
 #endif
 
-#if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       subroutine aircraft_emissions_prep
       use OldTracer_mod
