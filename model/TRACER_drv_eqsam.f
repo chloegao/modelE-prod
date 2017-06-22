@@ -41,6 +41,7 @@
       USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
+      USE TRACER_COM, only: nChemistry
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
       use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
@@ -74,7 +75,7 @@
       REAL(8) :: RH        ! relative humidity     [0-1] w/r/t liquid water
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
       REAL(8) :: RHC       ! RH of crystallization [0-1]
-       
+
       !------------------------------------------------------------------------------------------------------
       ! Input/Output to/from EQSAM
       !------------------------------------------------------------------------------------------------------
@@ -134,12 +135,12 @@
       YI(1,:) = 0.d0
       YO(1,:) = 0.d0
 
-      DO L=1,LTOP                        
+      DO L=1,LTOP
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
       RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
-c avol [m3/gb] mass of air pro m3     
-      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0) 
+c avol [m3/gb] mass of air pro m3
+      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
       ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
@@ -179,31 +180,21 @@ c avol [m3/gb] mass of air pro m3
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
- 
+
 ! save aerosol water (ug/m3) and aerosol pH (dimensionless)
       taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
       taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)+tiny(1.e0)))
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
-      tr3Dsource(l,1,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p)) /dtsrc
+      tr3Dsource(l,nChemistry,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p)) /dtsrc
 ! Ammonia residual
-      tr3Dsource(l,1,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
+      tr3Dsource(l,nChemistry,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
 ! Ammonium production
-      tr3Dsource(l,1,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
+      tr3Dsource(l,nChemistry,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
 ! Nitric Acid residual
       tr3Dsource(l,3,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm_col(l,n_HNO3)) /dtsrc
 
 
       ENDDO
 
- ! Set source to zero above the chemistry:
-      DO L=LTOP+1,LM
-      tr3Dsource(l,1,n_NO3p)= 0.d0
-      tr3Dsource(l,3,n_HNO3)= 0.d0
-      tr3Dsource(l,1,n_NH3)= 0.d0
-      tr3Dsource(l,1,n_NH4)= 0.d0
-      ENDDO
-
       END SUBROUTINE NITRATE_THERMO_DRV
-
-   

@@ -2829,7 +2829,6 @@ C
       use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit,is_fbsa
-c      use fluxes, only: tr3Dsource
       use geom, only: axyp
       use OldTracer_mod, only: itime_tr0, trname
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
@@ -2920,7 +2919,7 @@ c      use fluxes, only: tr3Dsource
         call stop_model("nTracer undefined in get_aircraft_tracer",255)
       end if
 
-      if (itime < itime_tr0(nTracer)) return !goto 999 ! returns w/o doing reading
+      if (itime < itime_tr0(nTracer)) return ! returns w/o doing reading
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
@@ -2952,7 +2951,7 @@ c      use fluxes, only: tr3Dsource
       if (isItFbsa) then
         ! for old giss binary files, skip execessive reading by disallowing
         ! emissions before year 1900 (if transient emissions requested):
-        if (trans_emis .and. xyear < 1900) return !goto 999
+        if (trans_emis .and. xyear < 1900) return
       end if
 
       if (need_read) then
@@ -3006,10 +3005,6 @@ c      use fluxes, only: tr3Dsource
 
       end if ! read was needed
 
-c      tr3Dsource(I_0:I_1,J_0:J_1,:,nAircraft,nTracer) =
-c     & airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
-
-c999   continue
       return
       end subroutine get_aircraft_tracer
  

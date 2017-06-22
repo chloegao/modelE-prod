@@ -2079,7 +2079,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C If fix_CH4_chemistry is turned on, reset the CH4 tracer everywhere
 C to initial conditions and set the chemistry change to zero...
       if(fix_CH4_chemistry == 1)then
-        tr3Dsource(:,nChemistry,n_CH4) = 0.d0 
         call get_CH4_IC_column(1,i,j)
       end if 
 

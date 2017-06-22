@@ -5947,7 +5947,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only:
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
       use photolysis, only: rad_FL,read_FL
@@ -6272,8 +6271,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             case ('NOx')
 !           (lightning and aircraft called from tracer_3Dsource)
             case ('N2O5')
-! is following line needed given that tr3Dsource is zeroed out every timestep?
-!              tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
               if (COUPLED_CHEM.ne.1)
      &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
             end select
@@ -7265,7 +7262,6 @@ c latlon grid
       USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
       use TRACER_COM, only: nTropCH4, nStratCH4
       use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
-      use TRACER_COM, only: nStratN2O
       USE MODEL_COM, only: itime,dtsrc,itimeI
       implicit none
 
@@ -7281,7 +7277,7 @@ C****CH4
       USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
       use TRACER_COM, only: nTropCH4, nStratCH4
       use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
-      use TRACER_COM, only: nStratN2O
+      use TRACER_COM, only: nChemistry
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE apply3d, only : apply_tracer_3Dsource
       implicit none
@@ -7304,8 +7300,8 @@ C****O3
       end if
 C****N2O
       if(itime.ge.itime_tr0(n_N2O)) then
-        call Strat_chem_Prather(i,j,nStratN2O,n_N2O)
-        call apply_tracer_3Dsource(i,j,nStratN2O,n_N2O,.FALSE.)
+        call Strat_chem_Prather(i,j,nChemistry,n_N2O)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_N2O,.FALSE.)
       end if
 C****CFC11
       if(itime.ge.itime_tr0(n_CFC11)) then
@@ -7715,7 +7711,6 @@ C**** Apply chemistry and overwrite changes:
      &       trm_col(L,n)) / dtsrc
       end do
       call apply_tracer_3Dsource(i,j,nOverwrite,n)
-      tr3Dsource(:,nOverwrite,n) = 0.d0
 
       end subroutine applyRadChem
 

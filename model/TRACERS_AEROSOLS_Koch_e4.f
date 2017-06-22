@@ -481,7 +481,6 @@ c
       USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
-      USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
      & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
@@ -638,52 +637,6 @@ c Aerosol chemistry
       integer k
 #endif
 
-
-C**** initialise source arrays
-      tr3Dsource(:,1,n_DMS)=0. ! DMS chem sink
-#ifndef TRACERS_AMP
-#ifndef TRACERS_TOMAS
-      tr3Dsource(:,1,n_MSA)=0. ! MSA chem sink
-      tr3Dsource(:,1,n_SO4)=0. ! SO4 chem source
-#endif
-#endif
-      tr3Dsource(:,nChemistry,n_SO2)=0. ! SO2 chem source
-      tr3Dsource(:,nChemloss,n_SO2)=0. ! SO2 chem sink
-      if(n_H2O2_s>0) tr3Dsource(:,1,n_H2O2_s)=0. ! H2O2 chem source
-      if(n_H2O2_s>0) tr3Dsource(:,2,n_H2O2_s)=0. ! H2O2 chem sink
-#ifdef TRACERS_AMP
-      tr3Dsource(:,2,n_H2SO4)=0. ! H2O2 chem sink
-#endif
-#ifdef TRACERS_TOMAS
-      tr3Dsource(:,nChemistry,n_H2SO4)=0. ! H2O2 chem sink
-      H2SO4_chem(i,j,:)=0.0
-      do k=1,nbins
-        tr3Dsource(:,nChemistry,n_AECOB(k))=0.
-        tr3Dsource(:,nChemistry,n_AECIL(k))=0.
-        tr3Dsource(:,nChemistry,n_AOCOB(k))=0.
-        tr3Dsource(:,nChemistry,n_AOCIL(k))=0.
-      enddo
-#endif
-#ifdef TRACERS_HETCHEM
-      tr3Dsource(:,1,n_SO4_d1) =0. ! SO4 on dust
-      tr3Dsource(:,1,n_SO4_d2) =0. ! SO4 on dust
-      tr3Dsource(:,1,n_SO4_d3) =0. ! SO4 on dust
-#endif
-      if (n_BCII.gt.0) then
-        tr3Dsource(:,nChemistry,n_BCII)=0. ! BCII sink
-        tr3Dsource(:,nChemistry,n_BCIA)=0. ! BCIA source
-      end if
-      if (n_OCII.gt.0) then
-        tr3Dsource(:,nChemistry,n_OCII)=0. ! OCII sink
-        tr3Dsource(:,nChemistry,n_OCIA)=0. ! OCIA source
-      end if
-#ifdef TRACERS_AEROSOLS_VBS
-      tr3Dsource(:,nChemistry,vbs_tr%igas)=0.
-      tr3Dsource(:,nChemloss,vbs_tr%igas)=0.
-      tr3Dsource(:,nOther,vbs_tr%igas)=0.
-      tr3Dsource(:,nChemistry,vbs_tr%iaer)=0.
-#endif
-
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
         oh(i,j,:)=oh_live(i,j,:)
@@ -835,11 +788,11 @@ C MSA gain: eqn 1
           
         case ('SO2')
 c SO2 production from DMS
-          tr3Dsource(l,nChemistry,n) = (0.75*tr_mm(n)/tr_mm(n_dms)
-     *         *trm_col(l,n_dms)*(1.d0 - d1)*sqrt(d2)+
-     *         tr_mm(n)/tr_mm(n_dms)*
-     *         trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+dmssink*tr_mm(n)
-     *         /tr_mm(n_dms))/dtsrc
+          tr3Dsource(l,nChemistry,n) = (
+     * 0.75*tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d1)*sqrt(d2)+
+     *      tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+
+     *      dmssink*tr_mm(n)/tr_mm(n_dms)
+     *                                 )/dtsrc
 #ifdef TRACERS_TOMAS 
 ! EC/OC aging 
         case ('AECIL_01')

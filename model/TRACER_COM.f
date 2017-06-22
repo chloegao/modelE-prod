@@ -623,10 +623,8 @@ C**** arrays that could be general, but are only used by chemistry
 !@param nTropO3P for O3 tropospheric chemistry 3D sources (production)
 !@param nTropO3L for O3 tropospheric chemistry 3D sinks (loss)
 !@param nStratO3 for O3 stratospheric chemistry 3D sources/sinks
-!@param nStratN2O for N2O stratospheric chemistry 3D sources/sinks
       integer, parameter ::  nTropCH4 = 1, nStratCH4 = 2,
-     &      nTropO3P = 2, nTropO3L = 3, nStratO3 = 1,
-     &      nStratN2O = 1
+     &      nTropO3P = 2, nTropO3L = 3, nStratO3 = 1
 #endif
 #ifdef TRACERS_TOMAS
 !@param nSO4anum for SO4 aerosol number 3D sources/sinks
