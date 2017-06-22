@@ -8182,6 +8182,7 @@ c$$$#endif
       USE TRACER_COM, only: ntm,n_Pb210
       use TRACER_COM, only: ndecayPb210
       use TRACER_COM, only: mchem,mtrace
+      use TRACER_COM, only: coupled_chem
       USE MODEL_COM,  only: itime,dtsrc,itimeI
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
@@ -8208,7 +8209,7 @@ C****
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
-      call aerosol_gas_chem_prep ! testing moving it to beginning of tr3dsrc
+      if (coupled_chem==0) call aerosol_gas_chem_prep ! testing moving it to beginning of tr3dsrc
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell

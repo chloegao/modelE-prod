@@ -467,7 +467,7 @@ c
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
-      use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
+      use TRACER_COM, only: n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
       use TRACER_COM, only: nChemistry, nChemLoss, nOther
@@ -510,8 +510,6 @@ c Aerosol chemistry
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-
-      if (coupled_chem.eq.0) then
 c Use this for chem inputs from B4360C0M23, from Drew
 c      if (ifirst) then
         newMonth = jMonthCache /= modelEclock%getMonth()
@@ -562,7 +560,6 @@ c impose diurnal variability
         CALL SCALERAD
 c       write(6,*) ' RRR OXID2 ',ohr(10,45,1),
 c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
-       endif   !coupled_chem.eq.0
 
       end subroutine aerosol_gas_chem_prep
 
