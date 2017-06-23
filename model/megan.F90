@@ -3,13 +3,10 @@
 ! Please see ../doc/megan_suggested_todo.txt for further notes and suggestions
 ! for improvement that have been extracted from this program's comments.
 
-!TODO: call this from the model in an I,J loop ; Make sure source set to 0
-!      at NP and SP if appropriate
-
+!TODO: I need to set up the 2D emissions diag for this, based on do_megan
+!
 !TODO: save at *least* some running average stuff to the rsf files 
 !      (see flammability code for guide)
-
-!TODO: call alloc_megan from the allocation driver
 
 !TODO: For the interfacing with Ent to work, I think Ent/ent_mod.m4f needs to be
 !      modified to export: 
@@ -129,7 +126,7 @@ subroutine biogenicEmissions_drv(i,j)
 !@auth Greg Faluvegi (intial modelE implementation)
 
 use resolution, only: IM
-use model_com, only: modelEclock
+use model_com, only: modelEclock,itime
 use fluxes, only: atmsrf
 use ghy_com, only: fearth
 use ent_com, only: entcells,n_covertypes
@@ -138,6 +135,8 @@ use rad_com, only: cosz1
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage
+use OldTracer_mod, only: nBBsources,trname,do_fire,do_megan,itime_tr0
+use tracer_com, only: ntm, ntsurfsrcmax, ntsurfsrc, sfc_src
 
 implicit none
 
@@ -164,11 +163,12 @@ real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 real*8, parameter :: CCE=1.d0
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
-integer, intent(IN) :: i,j 
-integer :: n, localTimeIndex, hour, dayOfYear
+integer, intent(IN) :: i,j
+integer :: n, localTimeIndex, hour, dayOfYear, nTracer, nSource
 integer :: ipft
 type(biogenicSpecies) :: Isoprene ! Example. Put others here and in next line?, Terpene, ...
 type(biogenicSpecies), dimension(1) :: species=(/Isoprene/) ! ,Terpene/)
+character*80 :: message
 
 call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 
@@ -359,63 +359,88 @@ call gamma_CO2(CO2_megan, gamma_CO2)
 call gamma_s(gamma_SM)
 
 ! begin loop over species objects. I.e. below gammas are species-dependant:
-species_loop: do n=1,size(species)
+tracers_loop: do nTracer=1,ntm
 
-  ! But G 2012 says only for Isoprene should the CO2 gamma
-  ! be non-unity. And same for soil moisture. So, here, overwrite then in
-  ! non-Isoprene cases:
-  if (trim(species(n)%itsname) .ne. 'Isoprene')then
-    gamma_CO2=1.d0
-    gamma_SM=1.d0
-  end if
+  ! skip if tracer not turned on yet or not intended for megan use:
+  if(itime < itime_tr0(nTracer) .or. .not.do_megan(nTracer)) cycle
 
-  ! Gamma for Aging (species-dependant):
-  !   TODO: Potentially-important: the hammoz model noted that the algorithm here is
-  !   questionalbe because it assumes the timestep of a month (see TSTLEN parameter set to
-  !   30 days) is the same as the timestep used for LAI. This is the reason I set the "previous"
-  !   LAI in the call below to be the 30-day lagged value of the Ent LAI. Someone needs to look
-  !   into it to see, e.g., if we can use the previous model timestep's LAI instead and then change
-  !   TSTLEN (=t) in gamma_a routine to DTsrc (or whatever).
+  ! try to match tracer with megan-defined species, otherwise skip:
+  species_loop: do n=1,size(species)
+    if(trim(trname(nTracer))==trim(species(n)%itsname)) then
 
-  call gamma_a( LAI_previous_megan, LAI_current_megan, T_daily_megan, species(n), gamma_AGE)
-  ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
-  ! instantaneous one and month-old one)...
+      ! figure out the index of the source in sfc_src( ) array
+      ! (we could move this so that it is not done each i,j,time)
+      if(do_fire(nTracer)) then
+        nSource=ntsurfsrc(nTracer)+         1         +1
+      else
+        nSource=ntsurfsrc(nTracer)+nBBsources(nTracer)+1
+      end if
+      if(nSource>ntsurfsrcmax) &
+      & call stop_model('megan source index > ntsurfsrcmax',255)
 
-  ! Light-dependant temperature gamma: (only one used for Isoprene):
-  call gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
-  ! Light-independant temperature gamma:
-  call gamma_tli(SAT_megan, species(n), gamma_tli)
+      ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
+      ! only for Isoprene. So overwrite here for non-Isoprene species:
+      if (trim(species(n)%itsname) .ne. 'Isoprene')then
+        gamma_CO2=1.d0
+        gamma_SM=1.d0
+      end if
 
-  ! Calculate the emissions flux, to be exported and applied elsewhere:
+      ! Gamma for Aging (species-dependant):
+      !   TODO: Potentially-important: the hammoz model noted that the algorithm here is
+      !   questionalbe because it assumes the timestep of a month (see TSTLEN parameter set to
+      !   30 days) is the same as the timestep used for LAI. This is the reason I set the "previous"
+      !   LAI in the call below to be the 30-day lagged value of the Ent LAI. Someone needs to look
+      !   into it to see, e.g., if we can use the previous model timestep's LAI instead and then change
+      !   TSTLEN (=t) in gamma_a routine to DTsrc (or whatever).
 
-  ! I believe that with the following check, we don't have to treat Isoprene as a
-  ! special case of the emissions formula a few lines down -- because the light-
-  ! independent portion will drop out! But it does worry me why the hammoz model at least
-  ! treated Isoprene separately...
-  if (trim(species(n)%itsname) == 'Isoprene') then
-    if(species(n)%ldf .ne. 1.d0) call stop_model( &
-    & 'Isoprene MEGAN LDF .ne. 1.',255)
-  end if
+      call gamma_a( LAI_previous_megan, LAI_current_megan, T_daily_megan, species(n), gamma_AGE)
+      ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
+      ! instantaneous one and month-old one)...
 
-  ! Calculate the bulk emission factor for this species in a loop over fractions
-  ! of *MEGAN* (not Ent) plant functional types:
-  ! TODO: Confirm by printing that pvt( ) are fractions, not percentages.
-  bulk_EF=0.d0
-  do ipft=1,nMeganPFT
-    bulk_EF=bulk_EF+species(n)%EF(ipft)*pvt(ipft)
-  end do
+      ! Light-dependant temperature gamma: (only one used for Isoprene):
+      call gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
+      ! Light-independant temperature gamma:
+      call gamma_tli(SAT_megan, species(n), gamma_tli)
 
-  ! Calculate the Emissions:
+      ! Calculate the emissions flux, to be exported and applied elsewhere:
 
-  ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
-  ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
-  ! convertUnits param):
-  species(n)%source(I,J)=convertUnits * CCE * bulk_EF * &
-  & gamma_LAI * gamma_AGE * gamma_SM * gamma_CO2 * &
-  & ( (1.d0-species(n)%ldf) * gamma_tli + &
-  & species(n)%ldf * gamma_PPFD*gamma_tld)
+      ! I believe that with the following check, we don't have to treat Isoprene as a
+      ! special case of the emissions formula a few lines down -- because the light-
+      ! independent portion will drop out! But it does worry me why the hammoz model at least
+      ! treated Isoprene separately...
+      if (trim(species(n)%itsname) == 'Isoprene') then
+        if(species(n)%ldf .ne. 1.d0) call stop_model( &
+        & 'Isoprene MEGAN LDF .ne. 1.',255)
+      end if
 
-end do species_loop
+      ! Calculate the bulk emission factor for this species in a loop over fractions
+      ! of *MEGAN* (not Ent) plant functional types:
+      ! TODO: Confirm by printing that pvt( ) are fractions, not percentages.
+      bulk_EF=0.d0
+      do ipft=1,nMeganPFT
+        bulk_EF=bulk_EF+species(n)%EF(ipft)*pvt(ipft)
+      end do
+
+      ! Calculate the Emissions:
+
+      ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
+      ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
+      ! convertUnits param):
+      sfc_src(i,j,nTracer,nSource)= & 
+      & convertUnits*CCE*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2&
+      & * ( (1.d0-species(n)%ldf) * gamma_tli + &
+      & species(n)%ldf * gamma_PPFD*gamma_tld)
+
+      cycle tracers_loop ! done with this tracer
+
+    end if ! matching megan species to tracer name
+
+  end do species_loop
+
+  write(message,*)'MEGAN species '//trim(trname(nTracer))// 'not found.'
+  call stop_model(trim(message),255)
+
+end do tracers_loop
 
 
 end subroutine biogenicEmissions_drv
@@ -486,10 +511,6 @@ allocate( T%runningAverage(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%periodRunningSum(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%marker(I_0H:I_1H,J_0H:J_1H) )
 
-! Allocate biogenic species stuff:
-
-allocate( isoprene%source(I_0H:I_1H,J_0H:J_1H) )
-
 ! Initializing running average stuff (values may be overwritten by reading from restart files):
 
 SAT%stepsPerDay=nday ! e.g. DTsrc timesteps in a day
@@ -536,15 +557,14 @@ T%runningAverage = undef
 T%periodRunningSum = undef ! starts at 0 end of first averaging period
 T%marker = 0
 
-! Initializing biogenic species stuff:
+! Initializing biogenic species stuff (nothing to allocate currently):
 
-isoprene%itsname='Isoprene' ! .le. 8 characters and matchine trname please.
+isoprene%itsname='Isoprene' ! .le. 8 characters and matching trname please.
 isoprene%cceo=2.0d0 ! Coefficient for temperature activity factor in gamma_tld routine
 isoprene%ct1=95.0d0 ! A temperature needed for the gamma_tld routine
 isoprene%tdf_prm=0.13d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
 isoprene%ldf=1.0d0 ! light dependant fraction, used for relative weighting gammas
 isoprene%aindx=5 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
-isoprene%source(:,:)=0.d0 ! holds kg m-2 s-1 emissions source for exporting
 isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission factors by MEGAN PFT from ...
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
@@ -553,6 +573,13 @@ isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission facto
 !TODO: if a species we are using in the model doesn't happen to line up with
 ! one of the 20 megan categories, then we'll have to run a mechanism translation to get it
 ! and this is a major task not yet programmed. E.g. see stuff in the MGN2MECH/ megan dir.
+
+#ifdef PS_BVOC
+call stop_model('DO_MEGAN + PS_BVOC conflict',255)
+#endif
+#ifdef BIOGENIC_EMISSIONS
+call stop_model('DO_MEGAN + BIOGENIC_EMISSIONS conflict',255)
+#endif
 
 end subroutine alloc_megan
 

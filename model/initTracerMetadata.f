@@ -9,6 +9,7 @@
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
+      use OldTracer_mod, only: do_megan, set_do_megan
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -112,6 +113,12 @@
         end if
 
 !     other special cases:
+#ifdef DO_MEGAN
+        select case (trname(n))
+        case ('Isoprene')
+          call set_do_megan(n, .true.)
+        end select
+#endif
 #ifndef TRACERS_AEROSOLS_SOA
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
         (defined TRACERS_TOMAS)

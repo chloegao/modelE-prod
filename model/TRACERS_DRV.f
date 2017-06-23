@@ -7294,8 +7294,8 @@ c$$$      end do
           end if
           do j=J_0,J_1                        ! loop horizontal space
             do i=I_0,imaxj(j)
-              ! intendinf here for localTimeIndex an integer index ranging from 1 to INT_HOURS_PER_DAY
-              localTimeIndex=(hour+1) 
+              ! intending here for localTimeIndex an integer index ranging from 1 to INT_HOURS_PER_DAY
+              localTimeIndex=(hour+1)
      &            +NINT((i-(IM+1)/2.)*HOURS_PER_DAY/float(IM))
               if(localTimeIndex>HOURS_PER_DAY)
      &            localTimeIndex=localTimeIndex-HOURS_PER_DAY
@@ -7321,6 +7321,18 @@ c$$$      end do
 
       call iter%next()
       end do ! n - main tracer loop
+
+#ifdef DO_MEGAN
+      ! Outside of tracer loop, call MEGAN-based biogenic emissions.
+      ! Emissions will be experienced by any tracers with do_megan()=.true.
+      ! .and. with a trname() that matches a MEGAN-defined species.
+      do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          ! Do we have to zero the polar boxes for 2:IM ??
+          call biogenicEmissions_drv(i,j)
+        end do
+      end do
+#endif /* DO_MEGAN */
 
 #if defined(DYNAMIC_BIOMASS_BURNING) && (defined DETAILED_FIRE_OUTPUT)
       call accumulateVegTypesDiag
