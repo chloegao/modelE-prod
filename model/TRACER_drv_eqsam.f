@@ -41,7 +41,7 @@
       USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
-      USE TRACER_COM, only: nChemistry
+      USE TRACER_COM, only: nChemistry, nOther
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
       use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
@@ -192,7 +192,7 @@ c avol [m3/gb] mass of air pro m3
 ! Ammonium production
       tr3Dsource(l,nChemistry,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
 ! Nitric Acid residual
-      tr3Dsource(l,3,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm_col(l,n_HNO3)) /dtsrc
+      tr3Dsource(l,nOther,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm_col(l,n_HNO3)) /dtsrc
 
 
       ENDDO

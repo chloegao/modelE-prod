@@ -633,24 +633,6 @@ C**** arrays that could be general, but are only used by chemistry
       integer, parameter ::  nSO4anum = 1, nECanum = 2,
      &      nOCanum = 4 
 #endif
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
-    (defined TRACERS_TOMAS)
-!@param nChmH2O2sP for H2O2_s chemistry 3D sources (production)
-!@param nChmH2O2sL for H2O2_s chemistry 3D sinks (loss)
-      integer, parameter :: nChmH2O2sP = 1, nChmH2O2sL = 2
-#endif
-#ifdef TRACERS_AMP
-!@param nprematH2SO4 for H2SO4 pre-Matrix 3D sources/sinks 
-      integer, parameter :: nPrematH2SO4 = 2
-#ifdef  TRACERS_SPECIAL_Shindell
-!@param nmatHNO3 for HNO3 Matrix 3D sources/sinks
-      integer, parameter :: nMatHNO3 = 3
-#endif
-#endif
-#if (defined TRACERS_NITRATE) && (defined TRACERS_SPECIAL_Shindell)
-!@param nthermoHNO3 for HNO3 Thermo 3D sources/sinks
-      integer, parameter :: nThermoHNO3 = 3
-#endif
 !------------------------------------------------------------
 
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)

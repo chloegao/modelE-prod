@@ -2759,6 +2759,15 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        case('HNO3')
+          k = k + 1
+          ijts_3Dsource(nOther,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' aerosol thermodynamics'
+          sname_ijts(k) = trim(trname(n))//'_thermo'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         case('Ox','stratOx')
           if (nradfrc>0) then
             k = k + 1
@@ -6435,7 +6444,6 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) || \
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
-      USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1,cosz_day
       use tracer_com, only: seasonalNH3src
 #endif
@@ -7729,7 +7737,6 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nAircraft, nBiomass
       use TRACER_COM, only: nVolcanic, nOther
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
-      use TRACER_COM, only: nChmH2O2sP, nChmH2O2sL
       use TRACER_COM, only: coupled_chem
       use TRACER_COM, only: nbins, n_AH2O
       use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
@@ -7758,8 +7765,8 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(i,j,nChemistry,n_SO2)    ! SO2 chem source
        call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)     ! SO2 chem sink 
        if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+         call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)  ! H2O2 chem sink
        end if
 
 ! EC/OC aging 
@@ -7890,8 +7897,6 @@ c$$$#endif
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss
       use TRACER_COM, only: nOther
-      use TRACER_COM, only: nChmH2O2sP
-      use TRACER_COM, only: nChmH2O2sL
       use TRACER_COM, only: coupled_chem
       USE FLUXES,     only: tr3Dsource
       USE MODEL_COM,  only: dtsrc
@@ -7919,8 +7924,8 @@ c$$$#endif
 !**** Apply additional aerosol-gas chemistry sources/sinks:
        call apply_tracer_3Dsource(i,j,nChemistry,n_SO4)    ! SO4 chem source
        if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+         call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)  ! H2O2 chem sink
        end if
        call apply_tracer_3Dsource(i,j,nChemistry,n_BCII)   ! BCII aging sink
        call apply_tracer_3Dsource(i,j,nChemistry,n_BCIA)   ! BCIA aging source
@@ -7954,13 +7959,10 @@ c$$$#endif
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss
       use TRACER_COM, only: ntmAMPi, ntmAMPe
-      use TRACER_COM, only: nPrematH2SO4
-      use TRACER_COM, only: nChmH2O2sP
-      use TRACER_COM, only: nChmH2O2sL
       use TRACER_COM, only: coupled_chem 
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef  TRACERS_SPECIAL_Shindell
-      use TRACER_COM, only: nMatHNO3, n_HNO3
+      use TRACER_COM, only: n_HNO3
 #endif 
 
       implicit none
@@ -7969,13 +7971,13 @@ c$$$#endif
       INTEGER n
 
 !**** Apply aerosol-gas chemistry sources/sinks:
-      call apply_tracer_3Dsource(i,j,nPrematH2SO4,n_H2SO4) ! H2SO4 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_H2SO4)       ! H2SO4 chem prod <-tendency not in model output?
       call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)     ! DMS chem sink
       call apply_tracer_3Dsource(i,j,nChemistry,n_SO2)     ! SO2 chem source
       call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)      ! SO2 chem sink
       if(coupled_chem .eq. 0) then
-        call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s)  ! H2O2 chem source (gas-phase)
-        call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s)  ! H2O2 chem sink (gas-phase)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s)  ! H2O2 chem source (gas-phase)
+        call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)   ! H2O2 chem sink (gas-phase)
       end if
 
       call MATRIX_DRV(i,j)
@@ -7987,7 +7989,7 @@ c$$$#endif
       call apply_tracer_3Dsource(i,j,nChemistry,n_NH3)   ! NH3
       call apply_tracer_3Dsource(i,j,nChemistry,n_H2SO4) ! H2SO4 chem prod
 #ifdef  TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nMatHNO3,n_HNO3)    ! HNO3 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_HNO3)    ! HNO3 change due to thermodynamics
 #endif
 
       end subroutine calculate_and_apply_matrix
@@ -8004,7 +8006,6 @@ c$$$#endif
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry
-      use TRACER_COM, only: nThermoHNO3
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -8018,7 +8019,7 @@ c$$$#endif
 #endif
       call NITRATE_THERMO_DRV(i,j,lm_nitrate)
 #ifdef TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nThermoHNO3,n_HNO3) ! NO3 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_HNO3) ! NO3 change due to thermodynamics
 #endif
       call apply_tracer_3Dsource(i,j,nChemistry,n_NO3p) ! NO3 chem prod
       call apply_tracer_3Dsource(i,j,nChemistry,n_NH4) ! NO3 chem prod
@@ -8046,7 +8047,6 @@ c$$$#endif
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
 #endif
-      USE apply3d,    only: apply_tracer_3Dsource
       use geom, only : imaxj
       implicit none
       INTEGER J_0, J_1, I_0, I_1
