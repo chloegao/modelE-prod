@@ -7958,6 +7958,7 @@ c$$$#endif
       use TRACER_COM, only: n_H2SO4
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss
+      use TRACER_COM, only: nOther
       use TRACER_COM, only: ntmAMPi, ntmAMPe
       use TRACER_COM, only: coupled_chem 
       USE apply3d, only : apply_tracer_3Dsource
