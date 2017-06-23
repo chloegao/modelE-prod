@@ -684,7 +684,6 @@
 
       ! Reset arrays
       srclight(:)                = 0d0
-      tr3Dsource(:,nOther,n_NOx) = 0d0 ! possibly can remove this line now.
 
       ! Skip rest of routine if this location has no lightning emissions in
       ! its column:

@@ -305,6 +305,7 @@ C**** Local parameters and variables and arguments:
 !@auth Kostas Tsigaridis
 
       use Dictionary_mod, only: sync_param
+      use resolution, only: plbot, LM
       use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,n_rj
      &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
@@ -324,6 +325,16 @@ C**** Local parameters and variables and arguments:
      &                 aerosols_affect_photolysis)
 
       jpnl=NLGCM
+      ! Stop the model if the pressure at the top of the top level of
+      ! chemistry (or JPNL if someone someday sets that lower) would be
+      ! 1 mb or greater (encroaching on the ozone layer). For example,
+      ! see notes on the setting of colmO2 and colmO3 variables as a linear
+      ! function of pressure in masterchem routine. (Exempt models with
+      ! tops lower than that so that 12L models can still run):
+      if(plbot(min(jpnl,topLevelOfChemistry)+1) >= 1.d0)then
+        if(plbot(LM+1) < 1.d0)call stop_model
+     &   ('jpnl or topLevelOfChemistry should be higher',255)
+      end if
       ncfastj2=2*NLGCM+2
       nbfastj=NLGCM+1
       j_iprn=iprn

@@ -22,6 +22,7 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_trradius
   use OldTracer_mod, only: set_tr_wd_TYPE
   use OldTracer_mod, only: set_fq_aer
+  use OldTracer_mod, only: set_has_chemistry
   use OldTracer_mod, only: nGAS, nPart
   use TRACER_COM, only: xk, nbins
   use TRACER_COM, only: n_NH4, n_H2SO4
@@ -197,6 +198,7 @@ contains
       call set_trradius(n, TOMAS_radius) !m
       call set_fq_aer(n, 1.d0   ) !not used in wet deposition
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end function TOMAS_AECOB_setSpec
 
     integer function TOMAS_AECIL_setSpec(name, bin) result(n_AECIL)
@@ -213,6 +215,7 @@ contains
       call set_trradius(n, TOMAS_radius) !m
       call set_fq_aer(n, 1.d0   ) !not used in wet deposition
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end function TOMAS_AECIL_setSpec
 
     integer function TOMAS_AOCOB_setSpec(name, bin) result(n_AOCOB)
@@ -238,6 +241,7 @@ contains
         call sync_param("OCB_om2oc",tmp)
         call set_om2oc(n_AOCOB, tmp)
       end if
+      call set_has_chemistry(n, .true.)
     end function TOMAS_AOCOB_setSpec
 
     integer function TOMAS_AOCIL_setSpec(name, bin) result(n_AOCIL)
@@ -254,6 +258,7 @@ contains
       call set_trradius(n, TOMAS_radius) !m
       call set_fq_aer(n, 1.d0   ) !not used in wet deposition
       call set_tr_wd_type(n, npart)        
+      call set_has_chemistry(n, .true.)
     end function TOMAS_AOCIL_setSpec
 
     integer function TOMAS_ADUST_setSpec(name, bin) result(n_ADUST)
@@ -303,6 +308,7 @@ contains
       call set_trradius(n, 3.d-7)
       call set_fq_aer(n, 1.0d0   ) !fraction of aerosol that dissolves
       call set_tr_wd_type(n, npart)
+      call set_has_chemistry(n, .true.)
     end subroutine NH4_setSpec
 
     subroutine TOMAS_H2SO4_setSpec(name)
@@ -315,6 +321,7 @@ contains
       call set_trpdens(n, 1.78d0)
       call set_fq_aer(n, 1.d0)
       call set_tr_wd_type(n, nGas)
+      call set_has_chemistry(n, .true.)
     end subroutine TOMAS_H2SO4_setSpec
 
     subroutine TOMAS_SOAgas_setSpec(name)
@@ -325,6 +332,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 120.10d0) ! i.e. 10 carbons
       if (tracers_drydep) call set_HSTAR(n,  0.D0)  !no dry dep
+      call set_has_chemistry(n, .true.)
     end subroutine TOMAS_SOAgas_setSpec
 
   end subroutine TOMAS_initMetadata

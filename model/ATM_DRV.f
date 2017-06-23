@@ -97,6 +97,7 @@ C**** Save MA and PMID before dynamics for Q advection and clouds
 #ifdef SCM
       nstepSCM = ITIME-ITIMEI
       write(0,*) 'nstepSCM ',nstepSCM
+      if( nstepSCM > 0 ) call update_SCM_inputs
 #endif
 
 #if !defined(USE_FVCORE)

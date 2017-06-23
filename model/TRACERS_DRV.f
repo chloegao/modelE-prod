@@ -2341,6 +2341,7 @@ c Oxidants
 #ifdef TRACERS_AMP
       use tracer_com, only: n_N_AKK_1
 #endif
+      use OldTracer_mod, only: has_chemistry
       use OldTracer_mod, only: trname, ntm_power, dodrydep,
      &          src_dist_index,nBBsources,do_fire
       use rad_com, only: nradfrc
@@ -2477,6 +2478,20 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         sname_ijts(k) = trim(trname(n))//'_biomass_src'
         lname_ijts(k) = trim(trname(n))//' biomass source'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      endif
+
+!============================================!
+! Chemical source (+) or sink (-) of tracers !
+!============================================!
+      if (has_chemistry(n)) then
+        k = k + 1
+        ijts_3Dsource(nChemistry,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trim(trname(n))//' Chemistry'
+        sname_ijts(k) = trim(trname(n))//'_chem'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2654,14 +2669,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('N2O')
-      k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemistry'
-        sname_ijts(k) = trim(trname(n))//'_chem'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #ifdef TRACERS_SPECIAL_Shindell
       k = k + 1
         ijts_3Dsource(nOverwrite,n) = k
@@ -2692,14 +2699,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-      k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Stratospheric Chem Sink'
-        sname_ijts(k) = trim(trname(n))//'_strat_sink'
-        ijts_power(k) = -18
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('14CO2')
       k = k + 1
@@ -2725,14 +2724,6 @@ C**** This needs to be 'hand coded' depending on circumstances
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
      &'HO2NO2','PAN','AlkylNit','stratOx')
 
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemistry'
-        sname_ijts(k) = trim(trname(n))//'_chem'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         select case(trname(n))
         case('isopp1a')
           ! In the radiation code the RCOMPX call for isopp1a
@@ -2765,6 +2756,15 @@ C**** This needs to be 'hand coded' depending on circumstances
           ia_ijts(k) = ia_src
           lname_ijts(k) = trim(trname(n))//' Lightning Source'
           sname_ijts(k) = trim(trname(n))//'_lightning'
+          ijts_power(k) = -12
+          units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+        case('HNO3')
+          k = k + 1
+          ijts_3Dsource(nOther,n) = k
+          ia_ijts(k) = ia_src
+          lname_ijts(k) = trim(trname(n))//' aerosol thermodynamics'
+          sname_ijts(k) = trim(trname(n))//'_thermo'
           ijts_power(k) = -12
           units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
           scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2871,14 +2871,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemistry'
-        sname_ijts(k) = trim(trname(n))//'_chem'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         k = k + 1
         ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
@@ -3060,10 +3052,10 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef SHINDELL_STRAT_EXTRA
       case ('GLT')
       k = k+1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nOverwrite,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' L1 overwrite source'
-        sname_ijts(k) = trim(trname(n))//'_L1_overwrite'
+        lname_ijts(k) = trim(trname(n))//' overwrite'
+        sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -15
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -3072,18 +3064,6 @@ C**** This needs to be 'hand coded' depending on circumstances
       case ('BCB', 'OCB', 'BCIA', 'OCIA', 'NO3p')
         call set_diag_aod(n,k)
         if (diag_fc==2) call set_diag_rf(n,k)
-
-        select case (trname(n))
-        case ('BCIA', 'OCIA')
-          k = k + 1
-          ijts_3Dsource(nChemistry,n) = k
-          ia_ijts(k) = ia_src
-          lname_ijts(k) = trim(trname(n))//' Aging source'
-          sname_ijts(k) = trim(trname(n))//'_Aging_Source'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        end select
 
       case ('SO2')
 c production from volcanic emissions
@@ -3141,27 +3121,7 @@ c chemical loss
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chem sink'
-        sname_ijts(k) = trim(trname(n))//'_Chem_sink'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-      case ('MSA')
-c put in chemical production of MSA
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemical source'
-        sname_ijts(k) = trim(trname(n))//'_Chemical_source'
-        ijts_power(k) = -17
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-        case ('SO4')
+      case ('SO4')
 c put in production of SO4 from gas phase
         k = k + 1
         ijts_3Dsource(nChemistry,n) = k
@@ -3211,7 +3171,7 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 #ifdef TRACERS_AMP
-        case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
+      case ('M_NO3   ','M_NH4   ','M_H2O   ','M_AKK_SU','N_AKK_1 ',!AKK
      *    'M_ACC_SU','N_ACC_1 ','M_DD1_SU','M_DD1_DU','N_DD1_1 ',!ACC,DD1
      *    'M_DS1_SU','M_DS1_DU','N_DS1_1 ','M_DD2_SU','M_DD2_DU',!DS1,DD2
      *    'N_DD2_1 ','M_DS2_SU','M_DS2_DU','N_DS2_1 ','M_SSA_SU',!DD2,DS2,SSA
@@ -3290,18 +3250,9 @@ c put in production of SO4 from gas phase
 #endif
 #ifdef TRACERS_TOMAS
 
-        case ('SOAgas')
+      case ('SOAgas')
 
 c put in production of SO4 from gas phase
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Microphysics change '//trim(trname(n))
-        sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
         do kr=1,ntsurfsrc(n)
           k = k + 1
           ijts_source(kr,n) = k
@@ -3317,15 +3268,6 @@ c put in production of SO4 from gas phase
 
 c put in production of SO4 from gas phase
         k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Gas phase src '//trim(trname(n))
-        sname_ijts(k) = 'Gas_phase_src_'//trim(trname(n))
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-        k = k + 1
         ijts_3Dsource(nOther,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'Microphysics change '//trim(trname(n))
@@ -3334,7 +3276,7 @@ c put in production of SO4 from gas phase
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-       case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
+      case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
      *    'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
      *    'ASO4__11','ASO4__12','ASO4__13','ASO4__14','ASO4__15',
      *    'ANACL_01','ANACL_02','ANACL_03','ANACL_04','ANACL_05',
@@ -3359,14 +3301,14 @@ c put in production of SO4 from gas phase
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
 
-      k = k + 1
-        ijts_3Dsource(nOther,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Microphysics change '//trim(trname(n))
-        sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+       k = k + 1
+         ijts_3Dsource(nOther,n) = k
+         ia_ijts(k) = ia_src
+         lname_ijts(k) = 'Microphysics change '//trim(trname(n))
+         sname_ijts(k) = 'Microphysics_chg_'//trim(trname(n))
+         ijts_power(k) = -15
+         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
 
        k = k + 1
@@ -3530,39 +3472,6 @@ c SO4 from industrial emissions
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
-
-        case ('AECIL_01','AECIL_02','AECIL_03','AECIL_04','AECIL_05',
-     *    'AECIL_06','AECIL_07','AECIL_08','AECIL_09','AECIL_10',
-     *    'AECIL_11','AECIL_12','AECIL_13','AECIL_14','AECIL_15',
-     *    'AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
-     *    'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10',
-     *    'AECOB_11','AECOB_12','AECOB_13','AECOB_14','AECOB_15')
-
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =  trim(trname(n))//' Aging source'
-        sname_ijts(k) =  trim(trname(n))//'_Aging_src'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-      case ('AOCIL_01','AOCIL_02','AOCIL_03','AOCIL_04','AOCIL_05',
-     *    'AOCIL_06','AOCIL_07','AOCIL_08','AOCIL_09','AOCIL_10',
-     *    'AOCIL_11','AOCIL_12','AOCIL_13','AOCIL_14','AOCIL_15',
-     *    'AOCOB_01','AOCOB_02','AOCOB_03','AOCOB_04','AOCOB_05',
-     *    'AOCOB_06','AOCOB_07','AOCOB_08','AOCOB_09','AOCOB_10',
-     *    'AOCOB_11','AOCOB_12','AOCOB_13','AOCOB_14','AOCOB_15')
-
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) =  trim(trname(n))//' Aging source'
-        sname_ijts(k) =  trim(trname(n))//'_Aging_Source'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
         case('ADUST_01','ADUST_02','ADUST_03','ADUST_04','ADUST_05',
      *    'ADUST_06','ADUST_07','ADUST_08','ADUST_09','ADUST_10',
      *    'ADUST_11','ADUST_12','ADUST_13','ADUST_14','ADUST_15')
@@ -3589,23 +3498,10 @@ c SO4 from industrial emissions
       end select      
 
 #endif
-
-#ifdef TRACERS_HETCHEM
-      case ('SO4_d1','SO4_d2','SO4_d3','N_d1','N_d2','N_d3')
-c chemical production of SO4 from SO2 on dust
-        k = k + 1
-        ijts_3Dsource(nChemistry,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Chemical source'
-        sname_ijts(k) = trim(trname(n))//'_Chemical_source'
-        ijts_power(k) = -10
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
       case ('H2O2_s')
 c put in production of H2O2 from gas phase
         k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nChemistry,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' gas phase source'
         sname_ijts(k) = trim(trname(n))//'_gas_phase_source'
@@ -3614,33 +3510,11 @@ c put in production of H2O2 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 c put in production of H2O2 from gas phase
         k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nChemLoss,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' gas phase sink'
         sname_ijts(k) = trim(trname(n))//'_gas_phase_sink'
         ijts_power(k) = -10
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-      case ('Be7','Be10')
-c cosmogenic source from file
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Cosmogenic source of '//trname(n)
-        sname_ijts(k) = trim(trname(n))//'_cosmo_src'
-        ijts_power(k) = -25
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-      case ('Pb210')
-c source of Pb210 from Rn222 decay
-        k = k + 1
-        ijts_3Dsource(1,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = 'Radioactive source of '//trname(n)
-        sname_ijts(k) = trim(trname(n))//'_radio_src'
-        ijts_power(k) = -24
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
@@ -6082,7 +5956,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only:
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
       use photolysis, only: rad_FL,read_FL
@@ -6407,8 +6280,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             case ('NOx')
 !           (lightning and aircraft called from tracer_3Dsource)
             case ('N2O5')
-! is following line needed given that tr3Dsource is zeroed out every timestep?
-!              tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
               if (COUPLED_CHEM.ne.1)
      &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
             end select
@@ -6573,7 +6444,6 @@ C**** at the start of any day
 #endif
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) || \
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
-      USE apply3d, only : apply_tracer_3Dsource
       USE RAD_COM,  only : cosz1,cosz_day
       use tracer_com, only: seasonalNH3src
 #endif
@@ -7412,7 +7282,6 @@ c latlon grid
       USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
       use TRACER_COM, only: nTropCH4, nStratCH4
       use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
-      use TRACER_COM, only: nStratCFC11, nStratN2O
       USE MODEL_COM, only: itime,dtsrc,itimeI
       implicit none
 
@@ -7428,7 +7297,7 @@ C****CH4
       USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
       use TRACER_COM, only: nTropCH4, nStratCH4
       use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
-      use TRACER_COM, only: nStratCFC11, nStratN2O
+      use TRACER_COM, only: nChemistry
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE apply3d, only : apply_tracer_3Dsource
       implicit none
@@ -7451,13 +7320,13 @@ C****O3
       end if
 C****N2O
       if(itime.ge.itime_tr0(n_N2O)) then
-        call Strat_chem_Prather(i,j,nStratN2O,n_N2O)
-        call apply_tracer_3Dsource(i,j,nStratN2O,n_N2O,.FALSE.)
+        call Strat_chem_Prather(i,j,nChemistry,n_N2O)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_N2O,.FALSE.)
       end if
 C****CFC11
       if(itime.ge.itime_tr0(n_CFC11)) then
-        call Strat_chem_Prather(i,j,nStratCFC11,n_CFC11)
-        call apply_tracer_3Dsource(i,j,nstratCFC11,n_CFC11,.FALSE.)
+        call Strat_chem_Prather(i,j,nChemistry,n_CFC11)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_CFC11,.FALSE.)
       end if
 C****
       end subroutine calculate_and_apply_lerner
@@ -7467,7 +7336,7 @@ C****
       subroutine calculate_and_apply_cosmo(i,j)
       use RESOLUTION, only: LM
       use OldTracer_mod
-      use TRACER_COM, only: n_Be7, n_Be10, nCosmo
+      use TRACER_COM, only: n_Be7, n_Be10
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime
       USE ATM_COM, only: MA ! Air mass of each box (kg/m^2)
@@ -7481,20 +7350,20 @@ C****Be7
 c cosmogenic src 
       if (itime.ge.itime_tr0(n_Be7)) then
         do l=1,lm
-          tr3Dsource(l,nCosmo,n_Be7) = MA(l,i,j)*
+          tr3Dsource(l,nChemistry,n_Be7) = MA(l,i,j)*
      &         be7_src_3d(i,j,l)
         enddo
-        call apply_tracer_3Dsource(i,j,nCosmo,n_Be7)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_Be7)
       endif
 
 C****Be10
 c cosmogenic src
       if (itime.ge.itime_tr0(n_Be10)) then
         do l=1,lm
-          tr3Dsource(l,nCosmo,n_Be10) = MA(l,i,j)*
+          tr3Dsource(l,nChemistry,n_Be10) = MA(l,i,j)*
      &         be10_src_3d(i,j,l)
         enddo
-        call apply_tracer_3Dsource(i,j,nCosmo,n_Be10)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_Be10)
       endif
 C****
 
@@ -7781,7 +7650,7 @@ C**** Get current model time
      &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
 #endif
 #ifdef SHINDELL_STRAT_EXTRA
-      use TRACER_COM, only: n_stratOx, n_GLT, nL1overGLT
+      use TRACER_COM, only: n_stratOx, n_GLT
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: n_soa_i,n_soa_e
@@ -7806,7 +7675,7 @@ C are done for chemistry.  It might be better to do it like surface
 C sources are done? -- GSF 11/26/02)
 c
       call overwrite_GLT(i,j)
-      call apply_tracer_3Dsource(i,j,nL1overGLT,n_GLT)
+      call apply_tracer_3Dsource(i,j,nOverwrite,n_GLT)
 #endif
 
       call get_lightning_NOx(i,j)
@@ -7862,7 +7731,6 @@ C**** Apply chemistry and overwrite changes:
      &       trm_col(L,n)) / dtsrc
       end do
       call apply_tracer_3Dsource(i,j,nOverwrite,n)
-      tr3Dsource(:,nOverwrite,n) = 0.d0
 
       end subroutine applyRadChem
 
@@ -7881,7 +7749,6 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nAircraft, nBiomass
       use TRACER_COM, only: nVolcanic, nOther
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
-      use TRACER_COM, only: nChmH2O2sP, nChmH2O2sL
       use TRACER_COM, only: coupled_chem
       use TRACER_COM, only: nbins, n_AH2O
       use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
@@ -7910,8 +7777,8 @@ C**** Apply chemistry and overwrite changes:
        call apply_tracer_3Dsource(i,j,nChemistry,n_SO2)    ! SO2 chem source
        call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)     ! SO2 chem sink 
        if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+         call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)  ! H2O2 chem sink
        end if
 
 ! EC/OC aging 
@@ -7938,7 +7805,7 @@ c$$$
        if(do_aircraft(n_AECOB(1)))then
          do kk=1,nbins
            TOMAS_air(:,kk)=
-     &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(kk)            
+     &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(kk)
          enddo
        endif
        
@@ -8042,8 +7909,6 @@ c$$$#endif
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss
       use TRACER_COM, only: nOther
-      use TRACER_COM, only: nChmH2O2sP
-      use TRACER_COM, only: nChmH2O2sL
       use TRACER_COM, only: coupled_chem
       USE FLUXES,     only: tr3Dsource
       USE MODEL_COM,  only: dtsrc
@@ -8071,8 +7936,8 @@ c$$$#endif
 !**** Apply additional aerosol-gas chemistry sources/sinks:
        call apply_tracer_3Dsource(i,j,nChemistry,n_SO4)    ! SO4 chem source
        if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s) ! H2O2 chem sink
+         call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s) ! H2O2 chem source
+         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)  ! H2O2 chem sink
        end if
        call apply_tracer_3Dsource(i,j,nChemistry,n_BCII)   ! BCII aging sink
        call apply_tracer_3Dsource(i,j,nChemistry,n_BCIA)   ! BCIA aging source
@@ -8105,14 +7970,12 @@ c$$$#endif
       use TRACER_COM, only: n_H2SO4
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss
+      use TRACER_COM, only: nOther
       use TRACER_COM, only: ntmAMPi, ntmAMPe
-      use TRACER_COM, only: nPrematH2SO4
-      use TRACER_COM, only: nChmH2O2sP
-      use TRACER_COM, only: nChmH2O2sL
       use TRACER_COM, only: coupled_chem 
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef  TRACERS_SPECIAL_Shindell
-      use TRACER_COM, only: nMatHNO3, n_HNO3
+      use TRACER_COM, only: n_HNO3
 #endif 
 
       implicit none
@@ -8121,13 +7984,13 @@ c$$$#endif
       INTEGER n
 
 !**** Apply aerosol-gas chemistry sources/sinks:
-      call apply_tracer_3Dsource(i,j,nPrematH2SO4,n_H2SO4) ! H2SO4 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_H2SO4)       ! H2SO4 chem prod <-tendency not in model output?
       call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)     ! DMS chem sink
       call apply_tracer_3Dsource(i,j,nChemistry,n_SO2)     ! SO2 chem source
       call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)      ! SO2 chem sink
       if(coupled_chem .eq. 0) then
-        call apply_tracer_3Dsource(i,j,nChmH2O2sP,n_H2O2_s)  ! H2O2 chem source (gas-phase)
-        call apply_tracer_3Dsource(i,j,nChmH2O2sL,n_H2O2_s)  ! H2O2 chem sink (gas-phase)
+        call apply_tracer_3Dsource(i,j,nChemistry,n_H2O2_s)  ! H2O2 chem source (gas-phase)
+        call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)   ! H2O2 chem sink (gas-phase)
       end if
 
       call MATRIX_DRV(i,j)
@@ -8139,7 +8002,7 @@ c$$$#endif
       call apply_tracer_3Dsource(i,j,nChemistry,n_NH3)   ! NH3
       call apply_tracer_3Dsource(i,j,nChemistry,n_H2SO4) ! H2SO4 chem prod
 #ifdef  TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nMatHNO3,n_HNO3)    ! HNO3 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_HNO3)    ! HNO3 change due to thermodynamics
 #endif
 
       end subroutine calculate_and_apply_matrix
@@ -8156,7 +8019,6 @@ c$$$#endif
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry
-      use TRACER_COM, only: nThermoHNO3
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -8170,7 +8032,7 @@ c$$$#endif
 #endif
       call NITRATE_THERMO_DRV(i,j,lm_nitrate)
 #ifdef TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nThermoHNO3,n_HNO3) ! NO3 chem prod <-tendency not in model output?
+      call apply_tracer_3Dsource(i,j,nOther,n_HNO3) ! NO3 change due to thermodynamics
 #endif
       call apply_tracer_3Dsource(i,j,nChemistry,n_NO3p) ! NO3 chem prod
       call apply_tracer_3Dsource(i,j,nChemistry,n_NH4) ! NO3 chem prod
@@ -8192,14 +8054,12 @@ c$$$#endif
       use tracer_com, only : trm,trm_col
       use tracer_com, only : trmom,trmom_col
       USE TRACER_COM, only: ntm,n_Pb210
-      use TRACER_COM, only: ndecayPb210
       use TRACER_COM, only: mchem,mtrace
       use TRACER_COM, only: coupled_chem
       USE MODEL_COM,  only: itime,dtsrc,itimeI
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
 #endif
-      USE apply3d,    only: apply_tracer_3Dsource
       use geom, only : imaxj
       implicit none
       INTEGER J_0, J_1, I_0, I_1
@@ -8290,11 +8150,6 @@ C**** Apply volcanic sources
 C**** Apply biomass burning sources
         call apply_biomass_burning_emissions(i,j)
 #endif
-
-      ! orphan Pb210 (Place into TDECAY?)
-      if(n_Pb210 .gt. 0) then
-        call apply_tracer_3Dsource(i,j,ndecayPb210,n_Pb210) !radioactive decay of Rn222
-      end if
 
 #if (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AMP) ||\

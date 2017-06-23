@@ -50,6 +50,7 @@ module ShindellTracersMetadata_mod
   use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
+  use OldTracer_mod, only: set_has_chemistry
   use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_terp
@@ -253,6 +254,7 @@ contains
         call set_F0(n,  1.4d0)
         call set_HSTAR(n,  1.d-2)
       end if
+      call set_has_chemistry(n, .true.)
     end subroutine Ox_setSpec
 
     subroutine NOx_setSpec(name)
@@ -290,6 +292,7 @@ contains
         end select
       end if
 #endif
+      call set_has_chemistry(n, .true.)
     end subroutine NOx_setSpec
 
     subroutine ClOx_setSpec(name)
@@ -300,6 +303,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 51.5d0)
+      call set_has_chemistry(n, .true.)
     end subroutine ClOx_setSpec
 
     subroutine BrOx_setSpec(name)
@@ -310,6 +314,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 95.9d0)
+      call set_has_chemistry(n, .true.)
     end subroutine BrOx_setSpec
 
     subroutine N2O5_setSpec(name)
@@ -320,6 +325,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 108.02d0)
+      call set_has_chemistry(n, .true.)
     end subroutine N2O5_setSpec
 
     subroutine HNO3_setSpec(name)
@@ -332,6 +338,7 @@ contains
       call set_tr_mm(n, 63.018d0)
       call set_tr_RKD(n, 2.073d3 ) ! in mole/J = 2.1d5 mole/(L atm)
       if (tracers_drydep) call set_HSTAR(n, 1.d14)
+      call set_has_chemistry(n, .true.)
     end subroutine HNO3_setSpec
 
     subroutine CH3OOH_setSpec(name)
@@ -359,6 +366,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 48.042d0)
       if (tracers_drydep) call set_HSTAR(n,  3.d2)
+      call set_has_chemistry(n, .true.)
     end subroutine CH3OOH_setSpec
 
     subroutine HCHO_setSpec(name)
@@ -387,6 +395,7 @@ contains
       call set_tr_mm(n, 30.026d0)
       call set_tr_RKD(n, 6.218d1 ) ! mole/J = 6.3d3 mole/(L atm)
       if (tracers_drydep) call set_HSTAR(n, 6.d3)
+      call set_has_chemistry(n, .true.)
     end subroutine HCHO_setSpec
 
     subroutine HO2NO2_setSpec(name)
@@ -397,6 +406,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 79.018d0)
+      call set_has_chemistry(n, .true.)
     end subroutine HO2NO2_setSpec
 
     subroutine CO_setSpec(name)
@@ -446,6 +456,7 @@ contains
         end select
       end if
 #endif
+      call set_has_chemistry(n, .true.)
     end subroutine CO_setSpec
 
     subroutine PAN_setSpec(name)
@@ -473,6 +484,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 121.054d0) ! assuming CH3COOONO2 = PAN)
       if (tracers_drydep) call set_HSTAR(n,  3.6d0)
+      call set_has_chemistry(n, .true.)
     end subroutine PAN_setSpec
 
     subroutine Isoprene_setSpec(name)
@@ -484,6 +496,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 60.05d0) ! i.e. 5 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
+      call set_has_chemistry(n, .true.)
     end subroutine Isoprene_setSpec
 
     subroutine AlkylNit_setSpec(name)
@@ -495,6 +508,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)   !unknown molecular weight, so use air and make
                                 ! note in the diagnostics write-out...
+      call set_has_chemistry(n, .true.)
     end subroutine AlkylNit_setSpec
 
     subroutine Alkenes_setSpec(name)
@@ -539,6 +553,7 @@ contains
         end select
       end if
 #endif
+      call set_has_chemistry(n, .true.)
     end subroutine Alkenes_setSpec
 
     subroutine Paraffin_setSpec(name)
@@ -583,6 +598,7 @@ contains
         end select
       end if
 #endif
+      call set_has_chemistry(n, .true.)
     end subroutine Paraffin_setSpec
 
     subroutine Terpenes_setSpec(name)
@@ -594,6 +610,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 120.10d0) ! i.e. 10 carbons
       if (tracers_drydep) call set_HSTAR(n,  1.3d-2)
+      call set_has_chemistry(n, .true.)
     end subroutine Terpenes_setSpec
 
 #ifdef TRACERS_AEROSOLS_SOA
@@ -617,6 +634,7 @@ contains
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
       if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+      call set_has_chemistry(n, .true.)
     end subroutine isopp1g_setSpec
 
     subroutine isopp1a_setSpec(name)
@@ -640,6 +658,7 @@ contains
       call set_tr_wd_type(n, nPART)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      call set_has_chemistry(n, .true.)
     end subroutine isopp1a_setSpec
 
     subroutine isopp2g_setSpec(name)
@@ -661,6 +680,7 @@ contains
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
       if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+      call set_has_chemistry(n, .true.)
     end subroutine isopp2g_setSpec
 
     subroutine isopp2a_setSpec(name)
@@ -685,6 +705,7 @@ contains
       call set_tr_wd_type(n, nPART)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      call set_has_chemistry(n, .true.)
     end subroutine isopp2a_setSpec
 
     subroutine apinp1g_setSpec(name)
@@ -706,6 +727,7 @@ contains
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
       if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+      call set_has_chemistry(n, .true.)
     end subroutine apinp1g_setSpec
 
     subroutine apinp1a_setSpec(name)
@@ -729,6 +751,7 @@ contains
       call set_tr_wd_type(n, nPART)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      call set_has_chemistry(n, .true.)
     end subroutine apinp1a_setSpec
 
     subroutine apinp2g_setSpec(name)
@@ -750,6 +773,7 @@ contains
       call set_tr_DHD(n, -12.d0 * gasc        ) !Henry temp dependence (J/mole), Chung and Seinfeld, 2002
       call set_tr_wd_type(n, ngas)
       if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+      call set_has_chemistry(n, .true.)
     end subroutine apinp2g_setSpec
 
     subroutine apinp2a_setSpec(name)
@@ -774,6 +798,7 @@ contains
       call set_tr_wd_type(n, nPART)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      call set_has_chemistry(n, .true.)
     end subroutine apinp2a_setSpec
 #endif  /* TRACERS_AEROSOLS_SOA */
 
@@ -785,6 +810,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 36.5d0)
+      call set_has_chemistry(n, .true.)
     end subroutine HCl_setSpec
 
     subroutine HOCl_setSpec(name)
@@ -795,6 +821,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 52.5d0)
+      call set_has_chemistry(n, .true.)
     end subroutine HOCl_setSpec
 
     subroutine ClONO2_setSpec(name)
@@ -805,6 +832,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 97.5d0)
+      call set_has_chemistry(n, .true.)
     end subroutine ClONO2_setSpec
 
     subroutine HBr_setSpec(name)
@@ -815,6 +843,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 80.9d0)
+      call set_has_chemistry(n, .true.)
     end subroutine HBr_setSpec
 
     subroutine HOBr_setSpec(name)
@@ -825,6 +854,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 96.9d0)
+      call set_has_chemistry(n, .true.)
     end subroutine HOBr_setSpec
 
     subroutine BrONO2_setSpec(name)
@@ -835,6 +865,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 141.9d0)
+      call set_has_chemistry(n, .true.)
     end subroutine BrONO2_setSpec
 
     subroutine CFC_setSpec(name)
@@ -845,6 +876,7 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0) !CFC11
+      call set_has_chemistry(n, .true.)
     end subroutine CFC_setSpec
 
     subroutine codirect_setSpec(name)
@@ -855,6 +887,7 @@ contains
       call set_tr_mm(n, 28.01d0)
       call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
       ! not a radiactive decay, but functionally identical
+      call set_has_chemistry(n, .true.)
     end subroutine codirect_setSpec
 
     subroutine stratOx_setSpec(name)
@@ -868,6 +901,7 @@ contains
         call set_F0(n,  1.4d0)
         call set_HSTAR(n,  1.d-2)
       end if
+      call set_has_chemistry(n, .true.)
     end subroutine stratOx_setSpec
 
     subroutine GLT_setSpec(name)
@@ -876,6 +910,7 @@ contains
       n_GLT = n
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)
+      call set_has_chemistry(n, .true.)
     end subroutine GLT_setSpec
 
   end subroutine SHINDELL_initMetadata

@@ -292,7 +292,6 @@ C---- CTM layers LM down
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
-      USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
       integer i,j,l,FRQfile,lmtc

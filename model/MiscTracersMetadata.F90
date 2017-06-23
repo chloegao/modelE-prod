@@ -31,6 +31,7 @@ module MiscTracersMetadata_mod
   use OldTracer_mod, only: set_trdecay
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
+  use OldTracer_mod, only: set_has_chemistry
   use TRACER_COM, only: &
     n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Pb210,n_Be7, &
     n_Be10, n_CFCn, n_CO2n, n_Age, n_SO4_d1, n_SO4_d2, n_SO4_d3, &
@@ -303,6 +304,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
+    call set_has_chemistry(n, .true.)
   end subroutine NO3p_setSpec
 
   subroutine SO4_d1_setSpec(name)
@@ -319,7 +321,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
-
+    call set_has_chemistry(n, .true.)
   end subroutine SO4_d1_setSpec
 
   subroutine SO4_d2_setSpec(name)
@@ -336,7 +338,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 0.322d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
-
+    call set_has_chemistry(n, .true.)
   end subroutine SO4_d2_setSpec
 
   subroutine SO4_d3_setSpec(name)
@@ -353,7 +355,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
-
+    call set_has_chemistry(n, .true.)
   end subroutine SO4_d3_setSpec
 
   subroutine N_d1_setSpec(name)
@@ -369,6 +371,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
+    call set_has_chemistry(n, .true.)
   end subroutine N_d1_setSpec
 
   subroutine N_d2_setSpec(name)
@@ -385,7 +388,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 0.322d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
-
+    call set_has_chemistry(n, .true.)
   end subroutine N_d2_setSpec
 
   subroutine N_d3_setSpec(name)
@@ -402,7 +405,7 @@ contains
     call set_tr_wd_type(n, npart)
     call set_pm2p5fact(n, 0.d0) ! fraction that's PM2.5
     call set_pm10fact(n, 1.d0) ! fraction that's PM10
-
+    call set_has_chemistry(n, .true.)
   end subroutine N_d3_setSpec
 
   subroutine Pb210_setSpec(name)
@@ -418,7 +421,7 @@ contains
     call set_trradius(n, 3.d-7  ) !again S04 value
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart) ! same as SO4
-
+    call set_has_chemistry(n, .true.)
   end subroutine Pb210_setSpec
 
   subroutine Be7_setSpec(name)
@@ -434,7 +437,7 @@ contains
     call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart) ! same as SO4
-
+    call set_has_chemistry(n, .true.)
   end subroutine Be7_setSpec
 
   subroutine Be10_setSpec(name)
@@ -449,7 +452,7 @@ contains
     call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
     call set_tr_wd_type(n, npart) ! same as SO4
-
+    call set_has_chemistry(n, .true.)
   end subroutine Be10_setSpec
 
 

@@ -187,7 +187,7 @@ c
 !!    use precision_mod, only : reduce_precision 
       USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_ATM,only: write_parallel
-      USE RESOLUTION, only  : ls1=>ls1_nominal
+      USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
       USE ATM_COM, only     : T,Q
       use model_com, only: modelEclock
@@ -642,7 +642,7 @@ C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
       if(daylight)then
-       
+
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
 C levels fastj2 uses Nagatani climatological O3, read in by chem_init: 
         DO L=1,topLevelOfChemistry
@@ -654,8 +654,16 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
-        colmO2=5.6d20 
-        colmO3=5.0d16 
+
+        ! Set above-chemistry-top O2 and O3 columns. Initial hardcoded numbers here
+        ! were for the 0.1 model top. Scaling this linearly in pressure now. Note
+        ! that, in the fastj2_init routine, the model will stop if the pressure at
+        ! min(JPNL,topLevelOfChemistry) level top encroaches on the top of the ozone
+        ! layer (to remind user that a rethink of below formula - and many other
+        ! things - would be needed). In next two lines, 5.6d21 is really 5.6d20/0.1
+        ! and 5.0d17 is 5.0d16/0.1:
+        colmO2=5.6d21*plbot(min(JPNL,topLevelOfChemistry)+1)
+        colmO3=5.0d17*plbot(min(JPNL,topLevelOfChemistry)+1)
 
         ! Using MAX() here because 
         ! letting this spherical corrections get too small (0?) causes NaNs
@@ -2071,7 +2079,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C If fix_CH4_chemistry is turned on, reset the CH4 tracer everywhere
 C to initial conditions and set the chemistry change to zero...
       if(fix_CH4_chemistry == 1)then
-        tr3Dsource(:,nChemistry,n_CH4) = 0.d0 
         call get_CH4_IC_column(1,i,j)
       end if 
 
