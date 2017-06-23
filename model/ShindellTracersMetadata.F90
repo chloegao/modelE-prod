@@ -51,6 +51,7 @@ module ShindellTracersMetadata_mod
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: set_has_chemistry
+  use OldTracer_mod, only: set_has_overwrite
   use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_terp
@@ -255,6 +256,7 @@ contains
         call set_HSTAR(n,  1.d-2)
       end if
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine Ox_setSpec
 
     subroutine NOx_setSpec(name)
@@ -293,6 +295,7 @@ contains
       end if
 #endif
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine NOx_setSpec
 
     subroutine ClOx_setSpec(name)
@@ -304,6 +307,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 51.5d0)
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine ClOx_setSpec
 
     subroutine BrOx_setSpec(name)
@@ -315,6 +319,7 @@ contains
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 95.9d0)
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine BrOx_setSpec
 
     subroutine N2O5_setSpec(name)
@@ -877,6 +882,7 @@ contains
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0) !CFC11
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine CFC_setSpec
 
     subroutine codirect_setSpec(name)
@@ -902,6 +908,7 @@ contains
         call set_HSTAR(n,  1.d-2)
       end if
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine stratOx_setSpec
 
     subroutine GLT_setSpec(name)
@@ -911,6 +918,7 @@ contains
       call set_ntm_power(n, -11)
       call set_tr_mm(n, mair)
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine GLT_setSpec
 
   end subroutine SHINDELL_initMetadata

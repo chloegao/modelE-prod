@@ -33,6 +33,7 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: set_has_chemistry
+  use OldTracer_mod, only: set_has_overwrite
   use TRACER_COM, only : set_ntsurfsrc, whichEPFCs, seasonalNH3src
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
@@ -223,7 +224,8 @@ contains
       end select
     end if
 #endif
-    call set_has_chemistry(n, .true.)
+      call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine CH4_setSpec
 
     subroutine N2O_setSpec(name)
@@ -242,6 +244,7 @@ contains
       end if
 #endif
       call set_has_chemistry(n, .true.)
+      call set_has_overwrite(n, .true.)
     end subroutine N2O_setSpec
 
     subroutine Rn222_setSpec(name)

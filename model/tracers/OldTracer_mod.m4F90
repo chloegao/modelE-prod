@@ -24,6 +24,7 @@ define([PROPERTIES_AND_TYPES],
   (is_dCO_tracer,logical,.false.,!@var true if the tracer belongs to TRACERS_dCO),
   (is_VBS_tracer,logical,.false.,!@var true if the tracer belongs to TRACERS_VBS),
   (has_chemistry,logical,.false.,!@var true if the tracer is affected by chemistry, which adds a TRACERNAME_chem taij diagnostic),
+  (has_overwrite,logical,.false.,!@var true if the tracer is affected by overwrite, which adds a TRACERNAME_overw taij diagnostic),
   (nBBsources,integer,0, number of sources attributed to biomass burning),
   (emisPerFireByVegType,real*8[[[,]]] dimension(12),0.0d0,emisPerFireByVegType tracer emissions per fire count as a
 !@+ function of 12 standard GISS (VDATA) vegetation types, or Ent

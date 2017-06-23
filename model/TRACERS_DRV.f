@@ -2342,6 +2342,7 @@ c Oxidants
       use tracer_com, only: n_N_AKK_1
 #endif
       use OldTracer_mod, only: has_chemistry
+      use OldTracer_mod, only: has_overwrite
       use OldTracer_mod, only: trname, ntm_power, dodrydep,
      &          src_dist_index,nBBsources,do_fire
       use rad_com, only: nradfrc
@@ -2492,6 +2493,20 @@ C**** This needs to be 'hand coded' depending on circumstances
         ia_ijts(k) = ia_src
         lname_ijts(k) = trim(trname(n))//' Chemistry'
         sname_ijts(k) = trim(trname(n))//'_chem'
+        ijts_power(k) = -12
+        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
+      endif
+
+!======================!
+! Overwrite of tracers !
+!======================!
+      if (has_overwrite(n)) then
+        k = k + 1
+        ijts_3Dsource(nOverwrite,n) = k
+        ia_ijts(k) = ia_src
+        lname_ijts(k) = trim(trname(n))//' Overwrite'
+        sname_ijts(k) = trim(trname(n))//'_overw'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -2669,16 +2684,6 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
       case ('N2O')
-#ifdef TRACERS_SPECIAL_Shindell
-      k = k + 1
-        ijts_3Dsource(nOverwrite,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Overwrite'
-        sname_ijts(k) = trim(trname(n))//'_overw'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#endif
 #ifdef TRACERS_SPECIAL_Lerner
       k = k + 1
         ijts_source(1,n) = k
@@ -2741,14 +2746,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 #endif  /* TRACERS_dCO */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
      &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx')
-          k = k + 1
-          ijts_3Dsource(nOverwrite,n) = k
-          ia_ijts(k) = ia_src
-          lname_ijts(k) = trim(trname(n))//' Overwrite'
-          sname_ijts(k) = trim(trname(n))//'_overw'
-          ijts_power(k) = -12
-          units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
         select case(trname(n))
         case('NOx')
           k = k + 1
@@ -2870,16 +2867,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       end select
 
       case ('CH4')
-#ifdef TRACERS_SPECIAL_Shindell
-        k = k + 1
-        ijts_3Dsource(nOverwrite,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' Overwrite'
-        sname_ijts(k) = trim(trname(n))//'_overw'
-        ijts_power(k) = -12
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-#else
+#ifndef TRACERS_SPECIAL_Shindell
       k = k + 1
         ijts_source(6,n) = k
         ia_ijts(k) = ia_src
@@ -3047,18 +3035,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 #ifdef TRACERS_WATER
       case ('Water', 'H2O18', 'H2O17', 'HDO', 'HTO' )
           ! nothing I can think of....
-#endif
-
-#ifdef SHINDELL_STRAT_EXTRA
-      case ('GLT')
-      k = k+1
-        ijts_3Dsource(nOverwrite,n) = k
-        ia_ijts(k) = ia_src
-        lname_ijts(k) = trim(trname(n))//' overwrite'
-        sname_ijts(k) = trim(trname(n))//'_overw'
-        ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
-        scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
       case ('BCB', 'OCB', 'BCIA', 'OCIA', 'NO3p')
