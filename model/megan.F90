@@ -160,7 +160,7 @@ real*8, parameter :: ConvertShadePPFD = 4.6d0
 real*8, parameter :: ConvertSunPPFD = 4.0d0
 
 
-contains
+end module megan
 
 
 subroutine biogenicEmissions_drv(i,j)
@@ -168,6 +168,7 @@ subroutine biogenicEmissions_drv(i,j)
 !@+ MEGAN model 2.1 and fill in source array
 !@auth Greg Faluvegi (intial modelE implementation)
 
+use megan
 use resolution, only: IM
 use model_com, only: modelEclock,itime
 use fluxes, only: atmsrf
@@ -177,7 +178,7 @@ use ent_mod, only: ent_get_exports
 use rad_com, only: cosz1
 use constant, only: radian, undef, tf, mair
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
-use megan_objects_mod, only: runningAverage,nMeganPFT
+use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
 use OldTracer_mod, only: nBBsources,trname,do_fire,do_megan,itime_tr0
 use tracer_com, only: ntm, ntsurfsrcmax, ntsurfsrc, sfc_src
 
@@ -210,7 +211,6 @@ integer, intent(IN) :: i,j
 integer :: n, localTimeIndex, hour, dayOfYear, nTracer, nSource
 integer :: ipft
 integer, parameter :: nMeganSpecies=1
-type(biogenicSpecies) :: Isoprene ! Example. Put others here and in next line?, Terpene, ...
 type(biogenicSpecies), dimension(nMeganSpecies) :: species
 character*80 :: message
 
@@ -513,6 +513,7 @@ subroutine alloc_megan(grid)
 !@+ at startup and allocate array dimensions
 !@auth Greg Faluvegi
 
+use megan
 use megan_objects_mod, only: runningAverage
 use model_com, only: nday
 use domain_decomp_atm, only: dist_grid, getDomainBounds
@@ -658,6 +659,7 @@ subroutine running_average(this, val, i, j)
 ! of a running average, the value (val) at i,j from X-days ago...
 !@auth Greg Faluvegi
 
+use megan
 use constant, only: undef
 use megan_objects_mod, only: runningAverage
 
@@ -944,6 +946,7 @@ subroutine get_gamma_tld(temp,d_temp,this,gam_t)
 ! those parameters up. Here, we pass in 'this' biogenicSpecies object
 ! containing the needed information.
 
+use megan_objects_mod, only: biogenicSpecies
 use constant, only: bygasc
 implicit none
 !@var this current pointed-to species object
@@ -983,6 +986,7 @@ subroutine get_gamma_tli(temp,this,gam_t)
 !@sum Calculate gamma temperature response factor for non-Isopene 
 !@+ species. (tli=light independent?) from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
+use megan_objects_mod, only: biogenicSpecies
 implicit none
 !@var this current pointed-to species object
 type(biogenicSpecies), intent(inout) :: this
@@ -1076,7 +1080,7 @@ subroutine get_gamma_a(LAIp,LAIc,Tt,this,gam_a)
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 ! MEGAN uses INCLUDE 'EACO.EXT' and function INDEX1 to look 
 ! the relative emissions activity parameter up. See REA_INDEX( )
-
+use megan_objects_mod, only: biogenicSpecies
 implicit none
 !@var this current pointed-to species object
 type(biogenicSpecies), intent(inout) :: this
@@ -1492,6 +1496,3 @@ v_megan(15)=v_megan(15)+v_ent(16)
 ! End categories 17 and 18 are bare sand/dirt, so no
 ! accumulation into a MEGAN type. So we'ere done.
 end subroutine map_ent_pfts_to_megan_pfts
-
-
-end module megan
