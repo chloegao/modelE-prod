@@ -81,5 +81,12 @@ emissions scheme as coded in modelE. [G.Faluvegi, Summer, 2017]
     These seem to be what hammoz model uses (e.g. see their cafac variable) and
     match G 2012 Tables as well. 
 
+==> A suface air density is used to convert CO2 units. It would seem to make sense to
+    use: rho=atmsrf%rhoavg(i,j)
+    but upon model startup (at least cold startup) this appears to be zero so would
+    cause a divide-by-zero. Working around by using:
+    rho=100.d0*pedn(1,i,j)/(rgas*atmsrf%tsavg(i,j))
+    instead.
+
 
 

@@ -142,7 +142,6 @@ module megan
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 use megan_objects_mod, only: runningAverage, biogenicSpecies
-use model_com, only: nday
 
 implicit none
 
@@ -169,6 +168,7 @@ subroutine biogenicEmissions_drv(i,j)
 !@auth Greg Faluvegi (intial modelE implementation)
 
 use megan
+use atm_com, only: pedn
 use resolution, only: IM
 use model_com, only: modelEclock,itime
 use fluxes, only: atmsrf
@@ -176,7 +176,7 @@ use ghy_com, only: fearth
 use ent_com, only: entcells,n_covertypes
 use ent_mod, only: ent_get_exports
 use rad_com, only: cosz1
-use constant, only: radian, undef, tf, mair
+use constant, only: radian, undef, tf, mair, rgas
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
 use OldTracer_mod, only: nBBsources,trname,do_fire,do_megan,itime_tr0
@@ -190,7 +190,7 @@ implicit none
 ! to megan gamma routines.
 real*8 :: CO2_megan,LAI_megan,cosSZA_megan,PPFD_megan,PPFD_daily_megan
 real*8 :: LAI_current_megan, LAI_previous_megan, T_daily_megan, T_megan
-real*8 :: SAT_daily_megan, SAT_megan, CO2_wrong_units
+real*8 :: SAT_daily_megan, SAT_megan, CO2_wrong_units, rho
 integer :: JDAY_megan
 real*8 :: gamma_CO2, gamma_LAI, gamma_PPFD, gamma_AGE, gamma_SM 
 real*8 :: gamma_TLD, gamma_TLI, bulk_EF
@@ -232,8 +232,9 @@ call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 ! -- from an expanded rad_to_chem( ) array in rad code used to export
 !    CO2. But in that case, rad_to_chem needs to be saved to rsf files 
 !    even if Shindell tracers are off!
+rho=100.d0*pedn(1,i,j)/(rgas*atmsrf%tsavg(i,j))
 #ifdef MEGAN_TEMP_WORKAROUNDS
-CO2_wrong_units=390.d0/(1.d6*mair*1.e-3)*atmsrf%rhoavg(i,j)
+CO2_wrong_units=390.d0/(1.d6*mair*1.e-3)*rho
 #else
 call ent_get_exports( entcells(i,j),surf_CO2=CO2_wrong_units )
 #endif
@@ -242,7 +243,8 @@ call ent_get_exports( entcells(i,j),surf_CO2=CO2_wrong_units )
 ! we want ppmv, so convert by dividing by air mass density, convert
 ! air mass to moles, and take care of powers of 10 (for kg-->g and
 ! n(co2)/n(air) --> n(co2)/(million n(air)):
-CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
+! CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
+CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/rho
 ! TODO: check with Max if legal use of atmsrf% above
 
 ! Get the local Cosine of the Solar Zenith angle:
@@ -515,16 +517,30 @@ subroutine alloc_megan(grid)
 
 use megan
 use megan_objects_mod, only: runningAverage
-use model_com, only: nday
+! Would like to use this, but it's not set yet at this point in code:
+! use model_com, only: nday
 use domain_decomp_atm, only: dist_grid, getDomainBounds
 use constant, only: undef
+use model_com, only: dtsrc, calendar
+use Rational_mod, only: nint
+use dictionary_mod, only : get_param, is_set_param
 
 implicit none
 
+integer :: nday_local
 integer :: ier, J_1H, J_0H, I_1H, I_0H
+real*8 :: dtsrc_local
 type (dist_grid), intent(in) :: grid
 call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 call getDomainBounds( grid , I_STRT_HALO=I_0H, I_STOP_HALO=I_1H )
+
+! since MODELE.f didn't set nday yet when this code is called, must
+! calculate it here for now: Note that the nint here is used from
+! Rational_mod. Not simply the fortran intrinsic:
+dtsrc_local = dtsrc
+if(is_set_param("DTsrc"))call get_param("DTsrc",dtsrc_local)
+nday_local=2*nint(calendar%getSecondsPerDay()/(dtsrc_local*2))
+
 
 ! For the type(runningAverage) :: SAT, T, LAI, PPFD, etc. set the
 ! daysPerPeriod and stepsPerDay before allocate statements, so they
@@ -533,10 +549,10 @@ SAT%daysPerPeriod=1  ! we want daily running average
 T%daysPerPeriod=1    ! we want daily running average
 PPFD%daysPerPeriod=1 ! we want daily running average
 LAI%daysPerPeriod=30 ! we want 30-day lagged value?
-SAT%stepsPerDay=nday ! e.g. DTsrc timesteps in a day
-PPFD%stepsPerDay=nday ! e.g. DTsrc timesteps in a day
-LAI%stepsPerDay=nday ! e.g. DTsrc timesteps in a day
-T%stepsPerDay=nday ! e.g. DTsrc timesteps in a day
+SAT%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+PPFD%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+LAI%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+T%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
 
 ! Allocations:
 
@@ -1322,9 +1338,8 @@ use ent_com, only: n_covertypes
 use megan_objects_mod, only: nMeganPFT
 use geom, only: lat2D_dg
 implicit none
-real*8, dimension(:), intent(in) :: v_ent
-real*8, dimension(:), intent(in) :: h_ent
-real*8, dimension(:), intent(out) :: v_megan
+real*8, dimension(n_covertypes), intent(in) :: h_ent,v_ent
+real*8, dimension(nMeganPFT), intent(out) :: v_megan
 integer, intent(in) :: i,j
 logical :: tropical, temperate, boreal, arctic
 
