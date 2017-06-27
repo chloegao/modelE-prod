@@ -1,13 +1,14 @@
 #include "rundeck_opts.h"
 
-! First the "TODO" list that is needed for this to run, others, interspersed
-! througout the code are things we should do, but not necessary for running.
-!TODO: call this from the model in an I,J loop ; Make sure source set to 0
-!      at NP and SP if appropriate
+! Please see ../doc/megan_suggested_todo.txt for further notes and suggestions
+! for improvement that have been extracted from this program's comments.
+
+!TODO: I need to set up the 2D emissions diag for this, based on do_megan
+!
 !TODO: save at *least* some running average stuff to the rsf files 
 !      (see flammability code for guide)
-!TODO: call alloc_megan from the allocation driver
-!TODO: For the interfacing with Ent to work, I think Ent/ent_mod.m4f needs to be«
+
+!TODO: For the interfacing with Ent to work, I think Ent/ent_mod.m4f needs to be
 !      modified to export: 
 !      entcell%IPARdir (via direct_visible_rad?)
 !      entcell%IPARdif (via total_visible_rad?)
@@ -15,15 +16,63 @@
 !            don't I need to take par_diffuse=total-direct? !!
 !      entcell%TcanopyC (via existing canopy_temperature)
 !      entcell%Ca (via existing surf_CO2; TODO: and confirm this is what's desired)
+
 !TODO: When writing the flammability code, exporting LAI from Ent, I noted:
 !      "I guess that is the LAI from the *last surface timestep only*?"
 !      Igor said that was OK, as LAI is only computed once per day. However,
 !      now we are using ent_get_exports all over the place, so
 !      we need to revisit this worry about time steps.
+
 !TODO: find out from someone whether my "save" or lack thereof will allow
 !      objects like SAT to be persistent between calls. (e.g. not just with respect
 !      to restarts but to program scope.)
+
 !TODO: Tune the CCE parameter (see noted below)
+!
+! MORE TODOS are below (Throughout)
+
+
+module megan_objects_mod
+use constant, only: undef
+
+implicit none
+private
+public :: runningAverage
+public :: biogenicSpecies
+integer, parameter, public :: nMeganPFT=16 ! number of MEGAN plant functional types
+
+type runningAverage
+  integer :: stepsPerDay=0 ! expected accumulation steps each day (e.g. 48 for DTsrc=1800.)
+  integer :: daysPerPeriod=0 ! expected accumulation days in averaging period
+  logical :: laggedValue=.false. ! if true, instead of the runningAverage array holding a
+                      ! running average, it holds the value from daysPerPeriod days ago.
+  ! (:,:) arrays here are to be I,J dimensions.
+  ! (:,:,:) are either I,J,stepsPerDay(stepSave) or IM,JM,daysPerPeriod (dayAvg)
+  logical, allocatable, dimension(:,:):: first ! Whether in first averaging period
+  real*8, allocatable, dimension(:,:):: step ! Saves number of local accum. in current day
+  real*8, allocatable, dimension(:,:,:):: stepSave ! saves step() through day
+  real*8, allocatable, dimension(:,:):: day ! Saves number of day accum. in first period
+  real*8, allocatable, dimension(:,:,:):: dayAvg ! daily avg saved each day in period
+  real*8, allocatable, dimension(:,:):: runningAverage ! The current running average
+  real*8, allocatable, dimension(:,:):: periodRunningSum ! The current running sum
+  integer, allocatable, dimension(:,:):: marker ! Current position in runningAverage
+end type runningAverage
+
+type biogenicSpecies
+  character*8 :: itsname='_unknown' ! name of species, which should match trname
+  real*8 :: cceo=undef ! Coefficient for temperature activity factor in gamma_tld routine
+  real*8 :: ct1=undef ! A temperature needed for the gamma_tld routine
+  real*8 :: tdf_prm=undef ! a temperature-dependent parameter needed for gamma_tli routine
+  real*8 :: ldf=undef ! light dependant fraction, used for relative weighting between
+                      ! gamma_PPFD*gamma_tld (ldf) and gamma_tli (1-ldf)
+  integer :: aindx=-1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging
+                      ! gamma routine. Related to relative emission acitivity?
+  real*8, allocatable, dimension(:,:):: source ! holds kg m-2 s-1 emissions source for exporting
+  real*8, dimension(nMeganPFT) :: ef ! emissions factors by MEGAN PFT
+end type biogenicSpecies
+
+end module megan_objects_mod
+
 
 module megan
 !@sum Contains MEGAN routines, including gamma calculations from MEGAN2.1
@@ -33,26 +82,25 @@ module megan
 ! See: http://www.lar.wsu.edu/megan/
 ! These routines mostly come from the MEGAN2.1 code: EMPROC/gamma_etc.f
 
-! Note, throughout, when I say "G 2012" I am talking about:
-! Guenther, A. B., X. Jiang, C. L. Heald, et al. 2012The Model of
-! Emissions of Gases and Aerosols from Nature Version 2.1
-! (MEGAN2.1): An Extended and Updated Framework for
-! Modeling Biogenic Emissions. Geoscientific Model Development
-! 5(6): 1471–1492.
+! Note, throughout, "G 2012" means:
+! Guenther, A. B., X. Jiang, C. L. Heald, et al. 2012The Model of Emissions of
+!    Gases and Aerosols from Nature Version 2.1 (MEGAN2.1): An Extended and
+!    Updated Framework for Modeling Biogenic Emissions. Geoscientific Model
+!    Development 5(6): 1471–1492.
 !
-! ... and when I say "hammoz", I am talking about:
-! The ECHAM-HAMMOZ implementation of MEGAN referenced in the online MEGAN2.1
-! documentation. Specifically the single file: mo_hammoz_emi_biogenic.f90
-! obtained from Alexandra Henrot (see her paper:
-! http://www.geosci-model-dev-discuss.net/gmd-2016-248/gmd-2016-248.pdf )
+! and any references to "hammoz" is referring to the ECHAM-HAMMOZ 
+! implementation of MEGAN referenced in the online MEGAN2.1 documentation. 
+! Specifically the single file: mo_hammoz_emi_biogenic.f90 obtained from 
+! Alexandra Henrot (see her paper:
+! http://www.geosci-model-dev-discuss.net/gmd-2016-248/gmd-2016-248.pdf)
 !
 ! Note that the MEGAN gamma routines used to loop over ncols and nrows within.
-! Now called from a driver that loops over i,j and passes in variables needed
-! from the GCM and returns the gamma for the current i,j conditions. Changing
-! to double-precision, using GCM constants when obvious, etc.
+! We now call from a driver that loops over i,j, passes in variables needed
+! from the GCM and returns the gamma for the current i,j conditions. Along the 
+! eay, changing to double-precision, using GCM constants when obvious, etc.
 !
 ! Most notes that look like this next section are copied from MEGAN directly
-! for reference, though actual usage may diverge in specifics:
+! for reference, though ACTUAL USAGE MAY DIVERGE IN SPECIFICS:
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !
 !     Scientific algorithm
@@ -93,8 +141,7 @@ module megan
 !                        { (1-LDF) + [LDF][GAMMA_P] }
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-use megan_objects_mod, only: runningAverage
-use model_com, only: nday
+use megan_objects_mod, only: runningAverage, biogenicSpecies
 
 implicit none
 
@@ -112,7 +159,7 @@ real*8, parameter :: ConvertShadePPFD = 4.6d0
 real*8, parameter :: ConvertSunPPFD = 4.0d0
 
 
-contains
+end module megan
 
 
 subroutine biogenicEmissions_drv(i,j)
@@ -120,16 +167,20 @@ subroutine biogenicEmissions_drv(i,j)
 !@+ MEGAN model 2.1 and fill in source array
 !@auth Greg Faluvegi (intial modelE implementation)
 
+use megan
+use atm_com, only: pedn
 use resolution, only: IM
-use model_com, only: modelEclock
+use model_com, only: modelEclock,itime
 use fluxes, only: atmsrf
 use ghy_com, only: fearth
 use ent_com, only: entcells,n_covertypes
 use ent_mod, only: ent_get_exports
 use rad_com, only: cosz1
-use constant, only: radian, undef, tf
+use constant, only: radian, undef, tf, mair, rgas
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
-use megan_objects_mod, only: runningAverage
+use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
+use OldTracer_mod, only: nBBsources,trname,do_fire,do_megan,itime_tr0
+use tracer_com, only: ntm, ntsurfsrcmax, ntsurfsrc, sfc_src
 
 implicit none
 
@@ -139,7 +190,7 @@ implicit none
 ! to megan gamma routines.
 real*8 :: CO2_megan,LAI_megan,cosSZA_megan,PPFD_megan,PPFD_daily_megan
 real*8 :: LAI_current_megan, LAI_previous_megan, T_daily_megan, T_megan
-real*8 :: SAT_daily_megan, SAT_megan, CO2_wrong_units
+real*8 :: SAT_daily_megan, SAT_megan, CO2_wrong_units, rho
 integer :: JDAY_megan
 real*8 :: gamma_CO2, gamma_LAI, gamma_PPFD, gamma_AGE, gamma_SM 
 real*8 :: gamma_TLD, gamma_TLI, bulk_EF
@@ -156,11 +207,15 @@ real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 real*8, parameter :: CCE=1.d0
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
-integer, intent(IN) :: i,j 
-integer :: n, localTimeIndex, hour, dayOfYear
+integer, intent(IN) :: i,j
+integer :: n, localTimeIndex, hour, dayOfYear, nTracer, nSource
 integer :: ipft
-type(biogenicSpecies) :: Isoprene ! Example. Put others here and in next line?, Terpene, ...
-type(biogenicSpecies), dimension(1) :: species=(/Isoprene/) ! ,Terpene/)
+integer, parameter :: nMeganSpecies=1
+type(biogenicSpecies), dimension(nMeganSpecies) :: species
+character*80 :: message
+
+! Fill in Megan species we're using, until I learn how to iterate the objects better:
+species(1)=Isoprene
 
 call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 
@@ -177,13 +232,19 @@ call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 ! -- from an expanded rad_to_chem( ) array in rad code used to export
 !    CO2. But in that case, rad_to_chem needs to be saved to rsf files 
 !    even if Shindell tracers are off!
+rho=100.d0*pedn(1,i,j)/(rgas*atmsrf%tsavg(i,j))
+#ifdef MEGAN_TEMP_WORKAROUNDS
+CO2_wrong_units=390.d0/(1.d6*mair*1.e-3)*rho
+#else
 call ent_get_exports( entcells(i,j),surf_CO2=CO2_wrong_units )
+#endif
 ! TODO: Confirm units conversion by writing out value!
 ! Ent says Ca is "Atmos CO2 conc at surface height (mol/m3)" and I think
 ! we want ppmv, so convert by dividing by air mass density, convert
 ! air mass to moles, and take care of powers of 10 (for kg-->g and
 ! n(co2)/n(air) --> n(co2)/(million n(air)):
-CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
+! CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
+CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/rho
 ! TODO: check with Max if legal use of atmsrf% above
 
 ! Get the local Cosine of the Solar Zenith angle:
@@ -243,18 +304,11 @@ end if
 ! Get the near-top-of-canopy temperature, running average:
 ! ----------------------------------------------------------------------
 
-! TODO: the T_daily_megan I am passing to gamma_a (aging) routine is supposed
-! to be temperature near "canopy top". While the SAT_daily_megan I am passing
-! to gamma_tld looks like surface air temperature. However in the hammoz model
-! they seem to pass both routines the same temperature. *BUT* their notes say
-! they neglect the canopy, and that that should be studied/improved.
-! Therefore: if what I programmed below *isn't right*, then a good "initial stab"
-! at a fix would be to replace the next section with the line:
-! T_daily_megan=SAT_daily_megan
-! (or, indeed, not use T_daily_megan at all.) But for now, proceeding under
-! the assumption we'll get some sort of canopy temperature from Ent:
-
+#ifdef MEGAN_TEMP_WORKAROUNDS
+T_megan=283.d0
+#else
 call ent_get_exports( entcells(i,j),canopy_temperature=T_megan )
+#endif
 ! Note that the 'instantaneous' value returned here is only used to get the
 ! running average (not used on it's own in a call to gamma routines, *except*
 ! during the first averaging period. See below.)
@@ -313,18 +367,18 @@ end if
 
 ! Obtain photosynthetic photon flux density, instantaneous & running average:
 ! ---------------------------------------------------------------------------
-! TODO: I have no idea about this. In a pinch, maybe we could use something from
-! rad code like ALB(I,J,_appropriate_band)*(SRDN(I,J)+teeny)*COSZ1(I,J)???
-! But it seems most likely we should use Ent again. Consult those folks
-! regarding what is needed. Here is an example for ipar_dif+ipar_dir (diffuse+
-! direct photosynthetically active radiation) from Ent.
-! Note Ent says these are: 400-700 nm (W m-2), so the wavelength range is 
-! appropriate, just not sure the exact quantities are:
+
+! TODO: Ask expert if this is reasonable:
+#ifdef MEGAN_TEMP_WORKAROUNDS
+par_direct=0.001d0
+par_diffuse=0.001d0
+#else
 call ent_get_exports( entcells(i,j),direct_visible_rad=par_direct)
 call ent_get_exports( entcells(i,j),total_visible_rad=par_diffuse)
+#endif
 
-! Next line takes Ent direct and diffuse PAR (which say they are in
-! W m-2) and convert to PPFD in micro-mol(photons) m-2 s-1:
+! Next line takes Ent direct and diffuse PAR (which Ent says are in W m-2
+! for the 400-700 nm range) and converts to PPFD in micro-mol(photons) m-2 s-1:
 !TODO: see note at top of program - find out if you need to subtract
 !      direct from total to get par_diffuse in next line:
 PPFD_megan=par_direct*ConvertSunPPFD+par_diffuse*ConvertShadePPFD
@@ -353,100 +407,104 @@ end if
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ! Gamma for Leaf Area Index (independent of species properties):
-! TODO: consider putting gamma_lai inside species_loop and conditionally calling
-! gamma_LAIbidir instead if species is bidirectional. That routine exists, just
-! is never called (nor is it in hammoz nor my copy of MEGAN2.1.)
-! (possibly relevant to ethanol, acetaldehyde, formaldehyde, acetic acid, formic acid?)
-call gamma_lai( LAI_megan, gamma_LAI )
+call get_gamma_lai( LAI_megan, gamma_LAI )
 
 ! Gamma for photosynthetic photon flux density activity
 ! (independent of species properties):
-call gamma_p( JDAY_megan, cosSZA_megan, PPFD_megan, PPFD_daily_megan, gamma_PPFD )
+call get_gamma_p( JDAY_megan, cosSZA_megan, PPFD_megan, &
+                & PPFD_daily_megan, gamma_PPFD)
 
 ! Gamma for CO2 Inhibition (independent of species properties):
-call gamma_CO2(CO2_megan, gamma_CO2)
+call get_gamma_CO2(CO2_megan, gamma_CO2)
 
 ! Gamma for Soil Moisture (independent of species properties):
 ! Right now just returns a gamma of 1.0:
-! TODO: consider upgrading gamma_s, like hammoz model did. (I already almost entirely
-! coded that -- just commented out.) In you switch to it, we need to pass the volumetric
-! soil moisture.
-call gamma_s(gamma_SM)
+call get_gamma_s(gamma_SM)
 
 ! begin loop over species objects. I.e. below gammas are species-dependant:
-species_loop: do n=1,size(species)
+tracers_loop: do nTracer=1,ntm
 
-  ! But G 2012 says only for Isoprene should the CO2 gamma
-  ! be non-unity. And same for soil moisture. So, here, overwrite then in
-  ! non-Isoprene cases:
-  if (trim(species(n)%itsname) .ne. 'Isoprene')then
-    gamma_CO2=1.d0
-    gamma_SM=1.d0
-  end if
+  ! skip if tracer not turned on yet or not intended for megan use:
+  if(itime < itime_tr0(nTracer) .or. .not.do_megan(nTracer)) cycle
 
-  ! Gamma for Aging (species-dependant):
-  !   TODO: Potentially-important: the hammoz model noted that the algorithm here is
-  !   questionalbe because it assumes the timestep of a month (see TSTLEN parameter set to
-  !   30 days) is the same as the timestep used for LAI. This is the reason I set the "previous"
-  !   LAI in the call below to be the 30-day lagged value of the Ent LAI. Someone needs to look
-  !   into it to see, e.g., if we can use the previous model timestep's LAI instead and then change
-  !   TSTLEN (=t) in gamma_a routine to DTsrc (or whatever).
+  ! try to match tracer with megan-defined species, otherwise skip:
+  species_loop: do n=1,size(species)
+    if(trim(trname(nTracer))==trim(species(n)%itsname)) then
 
-  call gamma_a( LAI_previous_megan, LAI_current_megan, T_daily_megan, species(n), gamma_AGE)
-  ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
-  ! instantaneous one and month-old one)...
+      ! figure out the index of the source in sfc_src( ) array
+      ! (we could move this so that it is not done each i,j,time)
+      if(do_fire(nTracer)) then
+        nSource=ntsurfsrc(nTracer)+         1         +1
+      else
+        nSource=ntsurfsrc(nTracer)+nBBsources(nTracer)+1
+      end if
+      if(nSource>ntsurfsrcmax) &
+      & call stop_model('megan source index > ntsurfsrcmax',255)
 
-  ! Light-dependant temperature gamma: (only one used for Isoprene):
-  call gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
-  ! Light-independant temperature gamma:
-  call gamma_tli(SAT_megan, species(n), gamma_tli)
+      ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
+      ! only for Isoprene. So overwrite here for non-Isoprene species:
+      if (trim(species(n)%itsname) .ne. 'Isoprene')then
+        gamma_CO2=1.d0
+        gamma_SM=1.d0
+      end if
 
-  ! Calculate the emissions flux, to be exported and applied elsewhere:
+      ! Gamma for Aging (species-dependant):
+      !   TODO: Potentially-important: the hammoz model noted that the algorithm here is
+      !   questionalbe because it assumes the timestep of a month (see TSTLEN parameter set to
+      !   30 days) is the same as the timestep used for LAI. This is the reason I set the "previous"
+      !   LAI in the call below to be the 30-day lagged value of the Ent LAI. Someone needs to look
+      !   into it to see, e.g., if we can use the previous model timestep's LAI instead and then change
+      !   TSTLEN (=t) in gamma_a routine to DTsrc (or whatever).
 
-  ! I believe that with the following check, we don't have to treat Isoprene as a
-  ! special case of the emissions formula a few lines down -- because the light-
-  ! independent portion will drop out! But it does worry me why the hammoz model at least
-  ! treated Isoprene separately...
-  if (trim(species(n)%itsname) == 'Isoprene') then
-    if(species(n)%ldf .ne. 1.d0) call stop_model( &
-    & 'Isoprene MEGAN LDF .ne. 1.',255)
-  end if
+      call get_gamma_a( LAI_previous_megan, LAI_current_megan, T_daily_megan, &
+                      & species(n), gamma_AGE)
+      ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
+      ! instantaneous one and month-old one)...
 
-  ! Calculate the bulk emission factor for this species in a loop over fractions
-  ! of *MEGAN* (not Ent) plant functional types:
-  ! TODO: Confirm by printing that pvt( ) are fractions, not percentages.
-  bulk_EF=0.d0
-  do ipft=1,nMeganPFT
-    bulk_EF=bulk_EF+species(n)%EF(ipft)*pvt(ipft)
-  end do
+      ! Light-dependant temperature gamma: (only one used for Isoprene):
+      call get_gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
+      ! Light-independant temperature gamma:
+      call get_gamma_tli(SAT_megan, species(n), gamma_tli)
 
-  ! Calculate the Emissions:
+      ! Calculate the emissions flux, to be exported and applied elsewhere:
 
-  ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
-  ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see 
-  ! convertUnits param):
-  species(n)%source(I,J)=convertUnits * CCE * bulk_EF * &
-  & gamma_LAI * gamma_AGE * gamma_SM * gamma_CO2 * &
-  & ( (1.d0-species(n)%ldf) * gamma_tli + &
-  & species(n)%ldf * gamma_PPFD*gamma_tld)
-  ! TODO: It worries me that hamoz model (and even MEGAN's emproc.F) didn't seem to apply the
-  ! CO2 gamma -- even for Isoprene. Should we find out why?
-  ! TODO: Note that G 2012, page 1474 says the MEGAN 2.1 EFs are net primary emissions,
-  ! not the net flux to atmosphere, as it doesn't remove, e.g. the in-canopy deposition.
-  ! Think about this, once we see the size of sources. Should only matter a few percent, 
-  ! but, e.g.,  do our depositon schemes adequately compensate for this?
-  !
-  ! Note that above emissions equation supercedes G 2012, which would have separated
-  ! the light dependency portions of T and PDDF and had more like what's below (See both
-  ! hammoz and MEGAN 2.1 codes, which use like the equation above):
-  ! species(n)%source(I,J)=convertUnits * CCE * bulk_EF * &
-  ! & gamma_LAI * gamma_AGE * gamma_SM * gamma_CO2 * &
-  ! & ( (1.d0-species(n)%ldf)*gamma_tli + &
-  ! & species(n)%ldf*gamma_tld ) *
-  ! & ( (1.d0-species(n)%ldf) + species(n)%ldf*gamma_PPFD)
+      ! I believe that with the following check, we don't have to treat Isoprene as a
+      ! special case of the emissions formula a few lines down -- because the light-
+      ! independent portion will drop out! But it does worry me why the hammoz model at least
+      ! treated Isoprene separately...
+      if (trim(species(n)%itsname) == 'Isoprene') then
+        if(species(n)%ldf .ne. 1.d0) call stop_model( &
+        & 'Isoprene MEGAN LDF .ne. 1.',255)
+      end if
 
+      ! Calculate the bulk emission factor for this species in a loop over fractions
+      ! of *MEGAN* (not Ent) plant functional types:
+      ! TODO: Confirm by printing that pvt( ) are fractions, not percentages.
+      bulk_EF=0.d0
+      do ipft=1,nMeganPFT
+        bulk_EF=bulk_EF+species(n)%EF(ipft)*pvt(ipft)
+      end do
 
-end do species_loop
+      ! Calculate the Emissions:
+
+      ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
+      ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
+      ! convertUnits param):
+      sfc_src(i,j,nTracer,nSource)= & 
+      & convertUnits*CCE*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2&
+      & * ( (1.d0-species(n)%ldf) * gamma_tli + &
+      & species(n)%ldf * gamma_PPFD*gamma_tld)
+
+      cycle tracers_loop ! done with this tracer
+
+    end if ! matching megan species to tracer name
+
+  end do species_loop
+
+  write(message,*)'MEGAN species '//trim(trname(nTracer))// 'not found.'
+  call stop_model(trim(message),255)
+
+end do tracers_loop
 
 
 end subroutine biogenicEmissions_drv
@@ -457,25 +515,44 @@ subroutine alloc_megan(grid)
 !@+ at startup and allocate array dimensions
 !@auth Greg Faluvegi
 
+use megan
 use megan_objects_mod, only: runningAverage
-use model_com, only: nday
+! Would like to use this, but it's not set yet at this point in code:
+! use model_com, only: nday
 use domain_decomp_atm, only: dist_grid, getDomainBounds
 use constant, only: undef
+use model_com, only: dtsrc, calendar
+use Rational_mod, only: nint
+use dictionary_mod, only : get_param, is_set_param
 
 implicit none
 
+integer :: nday_local
 integer :: ier, J_1H, J_0H, I_1H, I_0H
+real*8 :: dtsrc_local
 type (dist_grid), intent(in) :: grid
 call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
 call getDomainBounds( grid , I_STRT_HALO=I_0H, I_STOP_HALO=I_1H )
 
+! since MODELE.f didn't set nday yet when this code is called, must
+! calculate it here for now: Note that the nint here is used from
+! Rational_mod. Not simply the fortran intrinsic:
+dtsrc_local = dtsrc
+if(is_set_param("DTsrc"))call get_param("DTsrc",dtsrc_local)
+nday_local=2*nint(calendar%getSecondsPerDay()/(dtsrc_local*2))
+
+
 ! For the type(runningAverage) :: SAT, T, LAI, PPFD, etc. set the
-! daysPerPeriod before allocate statements, so it can be used 
-! as a dimension:
+! daysPerPeriod and stepsPerDay before allocate statements, so they
+! can be used as a dimension:
 SAT%daysPerPeriod=1  ! we want daily running average
 T%daysPerPeriod=1    ! we want daily running average
 PPFD%daysPerPeriod=1 ! we want daily running average
 LAI%daysPerPeriod=30 ! we want 30-day lagged value?
+SAT%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+PPFD%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+LAI%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
+T%stepsPerDay=nday_local ! e.g. DTsrc timesteps in a day
 
 ! Allocations:
 
@@ -483,7 +560,7 @@ LAI%daysPerPeriod=30 ! we want 30-day lagged value?
 
 allocate( SAT%first(I_0H:I_1H,J_0H:J_1H) )
 allocate( SAT%step(I_0H:I_1H,J_0H:J_1H) )
-allocate( SAT%stepSave(I_0H:I_1H,J_0H:J_1H) )
+allocate( SAT%stepSave(I_0H:I_1H,J_0H:J_1H,SAT%stepsPerDay ) )
 allocate( SAT%day(I_0H:I_1H,J_0H:J_1H) )
 allocate( SAT%dayAvg(I_0H:I_1H,J_0H:J_1H,SAT%daysPerPeriod) )
 allocate( SAT%runningAverage(I_0H:I_1H,J_0H:J_1H) )
@@ -492,7 +569,7 @@ allocate( SAT%marker(I_0H:I_1H,J_0H:J_1H) )
 
 allocate( PPFD%first(I_0H:I_1H,J_0H:J_1H) )
 allocate( PPFD%step(I_0H:I_1H,J_0H:J_1H) )
-allocate( PPFD%stepSave(I_0H:I_1H,J_0H:J_1H) )
+allocate( PPFD%stepSave(I_0H:I_1H,J_0H:J_1H,PPFD%stepsPerDay) )
 allocate( PPFD%day(I_0H:I_1H,J_0H:J_1H) )
 allocate( PPFD%dayAvg(I_0H:I_1H,J_0H:J_1H,PPFD%daysPerPeriod) )
 allocate( PPFD%runningAverage(I_0H:I_1H,J_0H:J_1H) )
@@ -501,7 +578,7 @@ allocate( PPFD%marker(I_0H:I_1H,J_0H:J_1H) )
 
 allocate( LAI%first(I_0H:I_1H,J_0H:J_1H) )
 allocate( LAI%step(I_0H:I_1H,J_0H:J_1H) )
-allocate( LAI%stepSave(I_0H:I_1H,J_0H:J_1H) )
+allocate( LAI%stepSave(I_0H:I_1H,J_0H:J_1H,LAI%stepsPerDay) )
 allocate( LAI%day(I_0H:I_1H,J_0H:J_1H) )
 allocate( LAI%dayAvg(I_0H:I_1H,J_0H:J_1H,LAI%daysPerPeriod) )
 allocate( LAI%runningAverage(I_0H:I_1H,J_0H:J_1H) )
@@ -510,21 +587,16 @@ allocate( LAI%marker(I_0H:I_1H,J_0H:J_1H) )
 
 allocate( T%first(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%step(I_0H:I_1H,J_0H:J_1H) )
-allocate( T%stepSave(I_0H:I_1H,J_0H:J_1H) )
+allocate( T%stepSave(I_0H:I_1H,J_0H:J_1H,T%stepsPerDay) )
 allocate( T%day(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%dayAvg(I_0H:I_1H,J_0H:J_1H,T%daysPerPeriod) )
 allocate( T%runningAverage(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%periodRunningSum(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%marker(I_0H:I_1H,J_0H:J_1H) )
 
-! Allocate biogenic species stuff:
-
-allocate( isoprene%source(I_0H:I_1H,J_0H:J_1H) )
-
 ! Initializing running average stuff (values may be overwritten by reading from restart files):
 
-SAT%stepsPerDay=nday ! e.g. DTsrc timesteps in a day«
-SAT%laggedValue=.false. ! do actual running average«
+SAT%laggedValue=.false. ! do actual running average
 SAT%first = .true.
 SAT%step = 0.d0
 SAT%stepSave = undef
@@ -534,8 +606,7 @@ SAT%runningAverage = undef
 SAT%periodRunningSum = undef ! starts at 0 end of first averaging period
 SAT%marker = 0
 
-PPFD%stepsPerDay=nday ! e.g. DTsrc timesteps in a day«
-PPFD%laggedValue=.false. ! do actual running average«
+PPFD%laggedValue=.false. ! do actual running average
 PPFD%first = .true.
 PPFD%step = 0.d0
 PPFD%stepSave = undef
@@ -545,8 +616,7 @@ PPFD%runningAverage = undef
 PPFD%periodRunningSum = undef ! starts at 0 end of first averaging period
 PPFD%marker = 0
 
-LAI%stepsPerDay=nday ! e.g. DTsrc timesteps in a day«
-LAI%laggedValue=.true. ! want lagged value, not running average«
+LAI%laggedValue=.true. ! want lagged value, not running average
 LAI%first = .true.
 LAI%step = 0.d0
 LAI%stepSave = undef
@@ -556,8 +626,7 @@ LAI%runningAverage = undef
 LAI%periodRunningSum = undef ! starts at 0 end of first averaging period
 LAI%marker = 0
 
-T%stepsPerDay=nday ! e.g. DTsrc timesteps in a day«
-T%laggedValue=.false. ! do actual running average«
+T%laggedValue=.false. ! do actual running average
 T%first = .true.
 T%step = 0.d0
 T%stepSave = undef
@@ -567,31 +636,29 @@ T%runningAverage = undef
 T%periodRunningSum = undef ! starts at 0 end of first averaging period
 T%marker = 0
 
-! Initializing biogenic species stuff:
+! Initializing biogenic species stuff (nothing to allocate currently):
 
-isoprene%itsname='Isoprene' ! .le. 8 characters and matchine trname please.
+isoprene%itsname='Isoprene' ! .le. 8 characters and matching trname please.
 isoprene%cceo=2.0d0 ! Coefficient for temperature activity factor in gamma_tld routine
 isoprene%ct1=95.0d0 ! A temperature needed for the gamma_tld routine
 isoprene%tdf_prm=0.13d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
 isoprene%ldf=1.0d0 ! light dependant fraction, used for relative weighting gammas
 isoprene%aindx=5 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
-isoprene%source(:,:)=0.d0 ! holds kg m-2 s-1 emissions source for exporting
 isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission factors by MEGAN PFT from ...
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
 
-!TODO: I am finding it very hard to confirm the indicies of the megan species,
-! because I can't find the INDEX1 function referenced in the MEFAN code.
-! However, the file TXT2IOAPI/INCLDIR/SPC_MGN.EXT: might be listing them.
-! I am going on that assumption for e.g. looking up cceo param in:
-! INCLDIR/EACO.EXT (for example, Isoprene is the first one):
-! DATA CT1(1),Cceo (1) /95.0, 2.0/
-! DATA TDF_SPC(1),TDF_PRM(1),TDF_MAP(1)/'ISOP', 0.13 , 1/
-! These seem to be what hammoz uses (e.g. see their cafac) and match G 2012 Tables.
-!TODO: NOTE: if a species we are using in the model doesn't happen to line up with
+!TODO: if a species we are using in the model doesn't happen to line up with
 ! one of the 20 megan categories, then we'll have to run a mechanism translation to get it
-! e.g. see stuff in the MGN2MECH/ megan dir.
+! and this is a major task not yet programmed. E.g. see stuff in the MGN2MECH/ megan dir.
+
+#ifdef PS_BVOC
+call stop_model('DO_MEGAN + PS_BVOC conflict',255)
+#endif
+#ifdef BIOGENIC_EMISSIONS
+call stop_model('DO_MEGAN + BIOGENIC_EMISSIONS conflict',255)
+#endif
 
 end subroutine alloc_megan
 
@@ -608,6 +675,7 @@ subroutine running_average(this, val, i, j)
 ! of a running average, the value (val) at i,j from X-days ago...
 !@auth Greg Faluvegi
 
+use megan
 use constant, only: undef
 use megan_objects_mod, only: runningAverage
 
@@ -670,7 +738,7 @@ if(nint(this%step(i,j)) == this%stepsPerDay) then
       currentDayAverage=currentDayAverage+this%stepSave(i,j,n) &
       & * byStepsPerDay
     end do
-    this%dayAvg(i,j,nint(this%day(i,j))=currentDayAverage
+    this%dayAvg(i,j,nint(this%day(i,j)))=currentDayAverage
 
     ! we are not ready to define this yet:
     this%runningAverage(i,j)=undef
@@ -769,7 +837,7 @@ end subroutine running_average
 !     SUBROUTINE GAMMA_LAI returns the GAMMA_LAI values
 !-----------------------------------------------------------------------
 
-subroutine gamma_lai(lai,gam_l)
+subroutine get_gamma_lai(lai,gam_l)
 !@sum Calculate gamma for leaf area index from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 implicit none
@@ -779,7 +847,7 @@ real*8,intent(OUT) :: gam_l
 gam_l = (0.49d0*lai) / SQRT(1.d0 + 0.2d0*(lai**2))
 
 return
-end subroutine gamma_lai
+end subroutine get_gamma_lai
 
 
 ! MEGAN notes:
@@ -812,7 +880,7 @@ end subroutine gamma_lai
 !     SUBROUTINE GAMMA_P returns the GAMMA_P values
 !-----------------------------------------------------------------------
 
-subroutine gamma_p( local_jday, sinbeta, ppfd, d_ppfd, gam_p )
+subroutine get_gamma_p( local_jday, sinbeta, ppfd, d_ppfd, gam_p )
 !@sum Calculate gamma for photosynthetic photon flux density activity 
 !@+ from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
@@ -845,7 +913,6 @@ else if(sinbeta > 0.d0) then
   ! TODO: See if any more of these "magic numbers" are actually physical
   !       constants that could be replaced (instead of just parameters of
   !       parameterization. COS( ) looks to be below is COS(hourAngle).
-  ! TODO: Is Ptoa something that we can get from GCM? (I think hammoz gets its own.)
   Ptoa = 3000.d0 + 99.d0 * COS(twopi*(local_jday-10)/INT_DAYS_PER_YEAR)
   phi = Pac/(sinbeta*Ptoa)
   bbb = 1.d0 + 0.0005d0*( d_ppfd-400.d0 )
@@ -861,7 +928,7 @@ end if
 if(asin(sinbeta)/radian < 1.d0 .and. gam_p > 0.1d0) gam_p = 0.d0
 
 return
-end subroutine gamma_p
+end subroutine get_gamma_p
 
 
 ! MEGAN Notes:
@@ -886,7 +953,7 @@ end subroutine gamma_p
 !     SUBROUTINE GAMMA_TLD returns the GAMMA_T value for isoprene
 !-----------------------------------------------------------------------
 
-subroutine gamma_tld(temp,d_temp,this,gam_t)
+subroutine get_gamma_tld(temp,d_temp,this,gam_t)
 !@sum Calculate gamma temperature response factor for Isopene 
 !@+ (tld=light dependent?) from MEGAN2.1
 ! (This is more complex in G 2012 incorporating also a 240-hour T)
@@ -895,7 +962,8 @@ subroutine gamma_tld(temp,d_temp,this,gam_t)
 ! those parameters up. Here, we pass in 'this' biogenicSpecies object
 ! containing the needed information.
 
-use constant, only :: bygasc
+use megan_objects_mod, only: biogenicSpecies
+use constant, only: bygasc
 implicit none
 !@var this current pointed-to species object
 type(biogenicSpecies), intent(inout) :: this
@@ -915,7 +983,7 @@ bbb = ( ct2-this%ct1*( 1.d0-exp(ct2*X) ) )
 gam_t = aaa/bbb
 
 return
-end subroutine gamma_tld
+end subroutine get_gamma_tld
 
 
 ! MEGAN Notes:
@@ -930,10 +998,11 @@ end subroutine gamma_tld
 !     SUBROUTINE GAMMA_TLI returns the GAMMA_T value for non-isoprene
 !-----------------------------------------------------------------------
 
-subroutine gamma_tli(temp,this,gam_t)
+subroutine get_gamma_tli(temp,this,gam_t)
 !@sum Calculate gamma temperature response factor for non-Isopene 
 !@+ species. (tli=light independent?) from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
+use megan_objects_mod, only: biogenicSpecies
 implicit none
 !@var this current pointed-to species object
 type(biogenicSpecies), intent(inout) :: this
@@ -950,7 +1019,7 @@ real*8, parameter :: Ts = 303.0d0
 gam_t = exp( this%tdf_prm*(temp-Ts) )
 
 return
-end subroutine gamma_tli
+end subroutine get_gamma_tli
 !-----------------------------------------------------------------------
 
 
@@ -1022,12 +1091,12 @@ end subroutine gamma_tli
 !     SUBROUTINE GAMMA_A returns GAMMA_A
 !-----------------------------------------------------------------------
 
-subroutine gamma_a(LAIp,LAIc,Tt,this,gam_a)
+subroutine get_gamma_a(LAIp,LAIc,Tt,this,gam_a)
 !@sum Calculate gamma foliage aging factor from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 ! MEGAN uses INCLUDE 'EACO.EXT' and function INDEX1 to look 
 ! the relative emissions activity parameter up. See REA_INDEX( )
-
+use megan_objects_mod, only: biogenicSpecies
 implicit none
 !@var this current pointed-to species object
 type(biogenicSpecies), intent(inout) :: this
@@ -1075,6 +1144,7 @@ real*8 :: Fnew, Fgro, Fmat, Fold, ti, tm
 !@var Aold relative emission activity for old foliage
 integer, parameter :: N_CAT  = 5
 real*8, dimension(N_CAT) :: Anew, Agro, Amat, Aold
+integer :: k
 ! Note that, in the comments from MEGAN above, it's the Aold column that's
 ! all 1.00's, but in the below (which I got from EACO.EXT) it's the Amat that
 ! are all 1.00's. I think hammoz was updated to G 2012 paper, and has 6 instead
@@ -1122,10 +1192,6 @@ if(LAIp < LAIc) then ! i.e. growing:
   Fgro = 1.d0 - Fnew - Fmat
   Fold = 0.d0
 
-  !TODO: in this section (above), hammoz model noted that: "if t <= tm (by 
-  !      definition tm>ti) then·there will never be grown leaves, because 
-  !      Fnew+Fmat = 1.
-
 else if(LAIp == LAIc) then ! i.e. mature
 
   Fnew = 0.d0
@@ -1148,7 +1214,7 @@ k=this%aindx
 gam_a=Fnew*Anew(k)+Fgro*Agro(k)+Fmat*Amat(k)+Fold*Aold(k)
 
 return
-end subroutine gamma_a
+end subroutine get_gamma_a
 
 
 ! MEGAN Notes:
@@ -1162,7 +1228,7 @@ end subroutine gamma_a
 !     SUBROUTINE GAMMA_S returns the GAMMA_SM values
 !-----------------------------------------------------------------------
 
-subroutine gamma_s(gam_s)
+subroutine get_gamma_s(gam_s)
 !@sum Calculate gamma soil moisture response factor
 !@+ from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
@@ -1170,28 +1236,29 @@ implicit none
 real*8, intent(OUT) :: gam_s
 
 gam_s = 1.d0
-! TODO: MEGAN 2.1 sets this to unity. But we could parameterize like G 2012.
+
+! While MEGAN 2.1 sets this to unity, as above, we could parameterize like G 2012.
 ! We would need to pass in the volumetric soil moisture (m3 m-3), theta, and
 ! define theta_w, the wilting point soil moisture (below which plants can't extract
 ! moisture). Theta_1 and delta_theta_1 would follow like the code commented below.
-! NOTE THAT the wilting point should be set at what's appropriate for *our* ground
+! Note that the wilting point should be set at what's appropriate for *our* ground
 ! hydrology model/Ent:
-! subroutine gamma_s(theta,gam_s)
-! real*8, intent(IN) :: theta ! volumetric soil moisture
-! ! Next line are placeholders from hamoz, G 2012 has 0.04 for delta_theta_1
-! real*8, parameter :: theta_w=0.35d0, delta_theta_1=0.06d0
-! real*8, parameter :: theta_1=theta_w+delta_theta_1
-! real*8 :: theta_1
-! if(theta >= theta_1) then
-!   gam_s=1.d0
-! else if (theta <= theta_w) then
-!   gam_s=0.d0
-! else
-!   gam_s=(theta-theta_w)/delta_theta_1
-! end if
+!     subroutine gamma_s(theta,gam_s)
+!     real*8, intent(IN) :: theta ! volumetric soil moisture
+!     ! Next line are placeholders from hamoz, G 2012 has 0.04 for delta_theta_1
+!     real*8, parameter :: theta_w=0.35d0, delta_theta_1=0.06d0
+!     real*8, parameter :: theta_1=theta_w+delta_theta_1
+!     real*8 :: theta_1
+!     if(theta >= theta_1) then
+!       gam_s=1.d0
+!     else if (theta <= theta_w) then
+!       gam_s=0.d0
+!     else
+!       gam_s=(theta-theta_w)/delta_theta_1
+!     end if
 
 return
-end subroutine gamma_s
+end subroutine get_gamma_s
 
 
 !  MEGAN Notes:
@@ -1206,7 +1273,7 @@ end subroutine gamma_s
 !    Xuemei Wang-2009-06-22 
 !-----------------------------------------------------------------------
 
-subroutine gamma_CO2(CO2,gam_CO2)
+subroutine get_gamma_CO2(CO2,gam_CO2)
 !@sum Calculate gamma CO2 factor from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 implicit none
@@ -1223,7 +1290,7 @@ else
 end if
 
 return
-end subroutine gamma_CO2
+end subroutine get_gamma_CO2
 
 
 !-----------------------------------------------------------------------
@@ -1238,7 +1305,7 @@ end subroutine gamma_CO2
 !gammaLAIbidir= 0.75
 !End If
 !-----------------------------------------------------------------------
-subroutine gamma_LAIbidir(lai,gam_l)
+subroutine get_gamma_LAIbidir(lai,gam_l)
 !@sum Calculate gamma for leaf area index from MEGAN2.1; but for bidirectional VOCs
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 ! It's not clear why this is never called in MEGAN2.1 (nor hammoz), but
@@ -1256,7 +1323,7 @@ else
 end if
 
 return
-end subroutine gamma_LAIbidir
+end subroutine get_gamma_LAIbidir
 
 
 ! END OF GAMMA ROUTINES
@@ -1271,9 +1338,8 @@ use ent_com, only: n_covertypes
 use megan_objects_mod, only: nMeganPFT
 use geom, only: lat2D_dg
 implicit none
-real*8, dimension(:), intent(in) :: v_ent
-real*8, dimension(:), intent(in) :: h_ent
-real*8, dimension(:), intent(out) :: v_megan
+real*8, dimension(n_covertypes), intent(in) :: h_ent,v_ent
+real*8, dimension(nMeganPFT), intent(out) :: v_megan
 integer, intent(in) :: i,j
 logical :: tropical, temperate, boreal, arctic
 
@@ -1283,9 +1349,9 @@ logical :: tropical, temperate, boreal, arctic
 ! MEGAN ecoregion maps], not by latitude as I have done here. Note that h_ent
 ! (vegetation heights) are passed in, in case useful in refining this, but not
 ! used in current mapping:
-! The person who refines this might want to look at the CLM4 model 
+! The person who refines this might want to look at the CLM4 model
 ! (http://www.cesm.ucar.edu/) pft definitions, as that's what the MEGAN
-! ones (basically) are. 
+! ones (basically) are.
 ! Crops are particularly sketchy in my quick mapping. For example hammoz has
 ! crop1 and then crop2, though the value for EF of 1 for isoprene seems like 16
 ! should be crop1?
@@ -1445,53 +1511,3 @@ v_megan(15)=v_megan(15)+v_ent(16)
 ! End categories 17 and 18 are bare sand/dirt, so no
 ! accumulation into a MEGAN type. So we'ere done.
 end subroutine map_ent_pfts_to_megan_pfts
-
-
-end module megan
-
-
-module megan_objects_mod
-use constant, only: undef
-
-!TODO: If, e.g. the biogenic_species objects get numerous, try to get a«
-!      better programmer to loop over pointers to these objects, instead«
-!      of e.g. the array "species" used above. This could the codes.
-
-implicit none
-private
-public :: runningAverage
-public :: biogenicSpecies
-public, integer, parameter :: nMeganPFT=16 ! number of MEGAN plant functional types
-
-type runningAverage
-  integer :: stepsPerDay=0 ! expected accumulation steps each day (e.g. 48 for DTsrc=1800.)
-  integer :: daysPerPeriod=0 ! expected accumulation days in averaging period
-  logical :: laggedValue=.false. ! if true, instead of the runningAverage array holding a
-                      ! running average, it holds the value from daysPerPeriod days ago.
-  ! (:,:) arrays here are to be I,J dimensions.
-  ! (:,:,:) are either I,J,stepsPerDay(stepSave) or IM,JM,daysPerPeriod (dayAvg)
-  logical, allocatable, dimension(:,:):: first ! Whether in first averaging period
-  real*8, allocatable, dimension(:,:):: step ! Saves number of local accum. in current day
-  real*8, allocatable, dimension(:,:,:):: stepSave ! saves step() through day
-  real*8, allocatable, dimension(:,:):: day ! Saves number of day accum. in first period
-  real*8, allocatable, dimension(:,:,:):: dayAvg ! daily avg saved each day in period
-  real*8, allocatable, dimension(:,:):: runningAverage ! The current running average
-  real*8, allocatable, dimension(:,:):: periodRunningSum ! The current running sum
-  integer, allocatable, dimension(:,:):: marker ! Current position in runningAverage
-end type runningAverage
-
-type biogenicSpecies
-  character*8 :: itsname='_unknown' ! name of species, which should match trname
-  real*8 :: cceo=undef ! Coefficient for temperature activity factor in gamma_tld routine
-  real*8 :: ct1=undef ! A temperature needed for the gamma_tld routine
-  real*8 :: tdf_prm=undef ! a temperature-dependent parameter needed for gamma_tli routine
-  real*8 :: ldf=undef ! light dependant fraction, used for relative weighting between
-                      ! gamma_PPFD*gamma_tld (ldf) and gamma_tli (1-ldf)
-  integer :: aindx=-1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging 
-                      ! gamma routine. Related to relative emission acitivity?
-  real*8, allocatable, dimension(:,:):: source ! holds kg m-2 s-1 emissions source for exporting
-  real*8, dimension(nMeganPFT) :: ef ! emissions factors by MEGAN PFT
-end type biogenicSpecies
-
-end module megan_objects_mod
-
