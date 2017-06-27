@@ -622,7 +622,6 @@ c     Processes AMP Budget
         case ('SOAgas')
 !TOMAS - here needs lots of work~! 
           itcon_3Dsrc(1,n)=tr_con_diag('Microphysics change',T,T)
-          itcon_surf(1,n)=tr_con_diag('Terpene_source',T)
 
        case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
      *    'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
