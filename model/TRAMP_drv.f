@@ -66,7 +66,8 @@ C**************  Latitude-Dependant (allocatable) *******************
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
-     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm_col,ntmAMPi 
+     *  n_NH3, nBiomass, ntmAMPe, nVolcanic, trm_col,ntmAMPi,
+     *  nMicrophys, nThermo
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -224,22 +225,28 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
  
        DO n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1
-          if(AMP_NUMB_MAP(nAMP).eq. 0) then
-      tr3Dsource(l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL *1.d-9)
-     *        -trm_col(l,n)) /dtsrc 
-          else
-      tr3Dsource(l,nChemistry,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL)
+         select case(trname(n))
+         case ('M_NO3','M_NH4','M_H2O')
+      tr3Dsource(l,nThermo,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL *1.d-9)
      *        -trm_col(l,n)) /dtsrc
-          endif   
+         case default
+           if(AMP_NUMB_MAP(nAMP).eq. 0) then
+      tr3Dsource(l,nMicrophys,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL *1.d-9)
+     *        -trm_col(l,n)) /dtsrc 
+           else
+      tr3Dsource(l,nMicrophys,n) =((AERO(AMP_AERO_MAP(nAMP)) *AVOL)
+     *        -trm_col(l,n)) /dtsrc
+           endif   
+         end select
        ENDDO
 
-      tr3Dsource(l,nChemistry,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
+      tr3Dsource(l,nMicrophys,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
      *        -trm_col(l,n_H2SO4)) /dtsrc 
-      tr3Dsource(l,nChemistry,n_NH3)   =((GAS(GAS_NH3)*AVOL *1.d-9)
+      tr3Dsource(l,nThermo,n_NH3)   =((GAS(GAS_NH3)*AVOL *1.d-9)
      *        -trm_col(l,n_NH3)) /dtsrc
 
 #ifdef  TRACERS_SPECIAL_Shindell
-      tr3Dsource(l,3,n_HNO3)  =((GAS(GAS_HNO3)*AVOL * 1.d-9)
+      tr3Dsource(l,nThermo,n_HNO3)  =((GAS(GAS_HNO3)*AVOL * 1.d-9)
      *        -trm_col(l,n_HNO3))/dtsrc
 #endif
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]

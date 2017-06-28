@@ -24,7 +24,7 @@ module Tracer_mod
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: NTSURFSRCMAX=16
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: NT3DSRCMAX=7
+      integer, parameter :: NT3DSRCMAX=10
 
   type, extends(AttributeDictionary) :: Tracer
 !!$    private

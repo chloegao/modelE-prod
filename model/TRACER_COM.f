@@ -523,7 +523,7 @@ C**** Diagnostic indices and meta-data
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: ntsurfsrcmax=16
 !@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: nt3Dsrcmax=7
+      integer, parameter :: nt3Dsrcmax=10
 !@var sfc_src array holds tracer sources that go into trsource( )
 !@+ maybe wasteful of memory, but works for now...
       real*8, allocatable, dimension(:,:,:,:) :: sfc_src
@@ -602,18 +602,22 @@ C**** arrays that could be general, but are only used by chemistry
 ! variables for outputting a map of the regions:
       real*8, allocatable, dimension(:,:) :: ef_REG_IJ
 ! --- end of source-altering section ----------------------------
-!@param nChemistry index for tracer chemistry 3D source
-!@param nOverwrite index for tracer overwrite 3D source
+!@param nChemistry index for tracer net chemistry 3D source (+) or loss (-)
+!@param nOverwrite index for tracer overwrite 3D source (+) or loss (-)
 !@param nOther index for tracer misc. 3D source
 !@param nAircraft index for tracer aircraft 3D source
 !@param nBiomass index for tracer biomass burning 3D source
 !@param nVolcanic index for tracer volcano 3D source
 !@param nChemloss index for tracer chemistry 3D loss
+!@param nChemprod index for tracer chemistry 3D production
+!@param nPartition index for tracer partitioning 3D source (+) or loss (-)
+!@param nThermo index for tracer changes due to thermodynamic equilibrium
 ! Must be a better way to do this, but for now, it is better than
 ! hardcoding indicies with a number like "3":
       INTEGER, PARAMETER :: nChemistry = 1, nOverwrite = 2,
      &     nOther = 3, nAircraft = 4, nBiomass = 5,
-     &     nVolcanic = 6, nChemloss = 7
+     &     nVolcanic = 6, nChemloss = 7, nChemprod = 8,
+     &     nMicrophys = 9, nThermo = 10
 
 !The list below is for non-standard tracer sources and sinks:
 !-----------------------------------------------------------

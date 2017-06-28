@@ -127,7 +127,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE TOMAS_AEROSOL, only: n_subgridcg
       USE TRACER_COM, only: ntm, trm_col, nbins, xk
       use TRACER_COM, only: n_H2SO4, n_NH3, n_NH4, n_SOAgas, nOther
-      use TRACER_COM, only: nChemistry
+      use TRACER_COM, only: nChemistry, nMicrophys, nThermo
       USE TRACER_COM, only : n_ASO4,n_ANACL,n_AECIL,
      &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
      &     n_ANUM
@@ -468,7 +468,7 @@ C     Check for negative tracer problems
                do n=1,ibins       
 !     Aerosol number             
                   tracnum=n_ANUM(1)-1+n 
-                  tr3Dsource(l,nOther,tracnum)=
+                  tr3Dsource(l,nMicrophys,tracnum)=
      &                 (NK(N)-INIT_NK(N))/dtsrc
                   
                   do np=1,ptype
@@ -483,7 +483,7 @@ C     Check for negative tracer problems
 
                   do jc=1,icomp-idiag
                      tracnum=n_ASO4(1)-1+n+ibins*(jc-1)
-                     tr3Dsource(l,nOther,tracnum)=
+                     tr3Dsource(l,nMicrophys,tracnum)=
      &                    (MK(n,jc)-INIT_Mk(n,jc))/dtsrc
 
                   do np=1,ptype
@@ -500,7 +500,7 @@ C     Check for negative tracer problems
                   enddo  
                  
                   tracnum=n_AH2O(1)-1+n 
-                  tr3Dsource(l,nOther,tracnum)=
+                  tr3Dsource(l,nMicrophys,tracnum)=
      &                 (MK(N,SRTH2O)-INIT_MK(N,SRTH2O))/dtsrc
                enddo
                
@@ -519,7 +519,7 @@ C     Check for negative tracer problems
                   enddo               
 
 
-               tr3Dsource(l,nChemistry,n_NH3)=
+               tr3Dsource(l,nThermo,n_NH3)=
      *              (Gc(srtNH4)-INIT_NH3)/dtsrc
 
                                 ! aerosol ammonia
@@ -528,7 +528,7 @@ C     Check for negative tracer problems
                   tot_aam = tot_aam + Mk(n,srtnh4)
                enddo
                
-               tr3Dsource(l,nChemistry,n_NH4)=
+               tr3Dsource(l,nThermo,n_NH4)=
      *              (tot_aam-INIT_NH4)/dtsrc
 
                tr3Dsource(l,nChemistry,n_SOAgas)=

@@ -470,7 +470,7 @@ c
       use TRACER_COM, only: n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use TRACER_COM, only: nChemistry, nChemLoss, nOther
+      use TRACER_COM, only: nChemistry, nChemLoss
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
@@ -576,7 +576,7 @@ c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
       use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
      &                      n_apinp2a, n_NH4, n_NO3p
 #endif  /* TRACERS_AEROSOLS_VBS */
-      use TRACER_COM, only: nChemistry, nChemLoss, nOther
+      use TRACER_COM, only: nChemistry, nChemprod, nChemLoss, nOther
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       use TRACER_COM, only: rxts1, rxts2, rxts3
 #endif
@@ -716,13 +716,13 @@ c    Aging of industrial carbonaceous aerosols
 
           call vbs_calc(vbs_tr_old,vbs_cond)
 
-          tr3Dsource(l,nChemistry,vbs_tr%igas)=
+          tr3Dsource(l,nChemprod,vbs_tr%igas)=
      &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
           tr3Dsource(l,nChemloss,vbs_tr%igas)=
      &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
           tr3Dsource(l,nOther,vbs_tr%igas)=
      &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
-          tr3Dsource(l,nChemistry,vbs_tr%iaer)=
+          tr3Dsource(l,nOther,vbs_tr%iaer)=
      &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
 !     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
 !      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
@@ -788,7 +788,7 @@ C MSA gain: eqn 1
           
         case ('SO2')
 c SO2 production from DMS
-          tr3Dsource(l,nChemistry,n) = (
+          tr3Dsource(l,nChemprod,n) = (
      * 0.75*tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d1)*sqrt(d2)+
      *      tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+
      *      dmssink*tr_mm(n)/tr_mm(n_dms)
@@ -875,7 +875,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #else
        tr3Dsource(l,nChemloss,n) = -trm_col(l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
-       tr3Dsource(l,nOther,n_H2SO4)=trm_col(l,n)*(1.d0-d4)/dtsrc 
+       tr3Dsource(l,nChemistry,n_H2SO4)=trm_col(l,n)*(1.d0-d4)/dtsrc 
      &      *tr_mm(n_H2SO4)/tr_mm(n) 
 #endif  /* TRACERS_AMP */
 #ifdef TRACERS_TOMAS
@@ -955,7 +955,7 @@ c         if (i.eq.72.and.l.eq.1.and.j.le.46) write(6,*)
 c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
 c H2O2 production: eqn 9
          
-          tr3Dsource(l,nChemistry,n) = tr_mm(n)*xk9/dtsrc
+          tr3Dsource(l,nChemprod,n) = tr_mm(n)*xk9/dtsrc
 c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
 c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
 c         endif

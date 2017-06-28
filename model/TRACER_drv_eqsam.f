@@ -41,7 +41,7 @@
       USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
-      USE TRACER_COM, only: nChemistry, nOther
+      USE TRACER_COM, only: nThermo
       USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
 !                                             and pk is t mess up factor
       use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
@@ -186,13 +186,13 @@ c avol [m3/gb] mass of air pro m3
       taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(YO(1,37)+tiny(1.e0)))
 
 ! Nitrate production   from [ug/m^3] -> trm [kg/gb]
-      tr3Dsource(l,nChemistry,n_NO3p)= ((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p)) /dtsrc
+      tr3Dsource(l,nThermo,n_NO3p)=((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p))/dtsrc
 ! Ammonia residual
-      tr3Dsource(l,nChemistry,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
+      tr3Dsource(l,nThermo,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
 ! Ammonium production
-      tr3Dsource(l,nChemistry,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
+      tr3Dsource(l,nThermo,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
 ! Nitric Acid residual
-      tr3Dsource(l,nOther,n_HNO3)= ((GHNO3 * 1.d-9 *AVOL) -trm_col(l,n_HNO3)) /dtsrc
+      tr3Dsource(l,nThermo,n_HNO3)=((GHNO3 * 1.d-9 *AVOL)-trm_col(l,n_HNO3))/dtsrc
 
 
       ENDDO
