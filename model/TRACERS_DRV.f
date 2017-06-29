@@ -194,6 +194,7 @@
       use Tracer_mod, only: Tracer
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
+      use TRACER_COM, only: nSO4anum, nECanum, nOCanum
       use TRACER_COM, only: N_AECOB, n_ASO4, xk
 #endif
 #ifdef TRACERS_ON
@@ -688,9 +689,9 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
      *        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
          
-          itcon_3Dsrc(1,n)=tr_con_diag('SO4 3D src',T,T)
-          itcon_3Dsrc(2,n)=tr_con_diag('EC 3D src',T,T)
-          itcon_3Dsrc(4,n)=tr_con_diag('OC 3D src',T,T) ! why 4 and not 3?
+          itcon_3Dsrc(nSO4anum,n)=tr_con_diag('SO4 3D src',T,T)
+          itcon_3Dsrc(nECanum,n)=tr_con_diag('EC 3D src',T,T)
+          itcon_3Dsrc(nOCanum,n)=tr_con_diag('OC 3D src',T,T)
           itcon_surf(1,n)=tr_con_diag('2D src by SO4',T)
           itcon_surf(2,n)=tr_con_diag('2D src by EC',T)
           itcon_surf(3,n)=tr_con_diag('2D src by OC',T)
@@ -758,6 +759,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       use TRACER_COM, only: ntsurfsrc, tracers, do_aircraft, aqchem_list
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_ANUM, n_AECOB, n_AOCOB
+      use TRACER_COM, only: nSO4anum, nECanum, nOCanum
 #endif
       USE DIAG_COM
 #ifdef TRACERS_ON
@@ -1643,21 +1645,21 @@ c industrial source
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
 c SO4
         k = k + 1
-        jls_3Dsource(1,n) = k
+        jls_3Dsource(nSO4anum,n) = k
         sname_jls(k) = 'SO4_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//' SO4 source'
         jls_ltop(k) = LM
         jls_power(k) = 10
         units_jls(k) = unit_string(jls_power(k),'# s-1')
         k = k + 1
-        jls_3Dsource(2,n) = k
+        jls_3Dsource(nECanum,n) = k
         sname_jls(k) = 'EC_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'EC source'
         jls_ltop(k) = LM
         jls_power(k) = 10
         units_jls(k) = unit_string(jls_power(k),'# s-1')
         k = k + 1
-        jls_3Dsource(4,n) = k
+        jls_3Dsource(nOCanum,n) = k
         sname_jls(k) = 'OC_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'OC source'
         jls_ltop(k) = LM
@@ -2307,6 +2309,7 @@ c Oxidants
       use TRACER_COM, only: ntsurfsrc, tracers, do_aircraft, aqchem_list
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AOCOB, n_ANUM, n_AECOB
+      use TRACER_COM, only: nSO4anum, nECanum, nOCanum
 #endif
       USE DIAG_COM
 #ifdef TRACERS_ON
@@ -3392,7 +3395,7 @@ c put in production of SO4 from gas phase
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
 
         k = k + 1
-        ijts_3Dsource(1,n) = k
+        ijts_3Dsource(nSO4anum,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'SO4 source '//trim(trname(n))
         sname_ijts(k) = 'SO4_src_'//trim(trname(n))
@@ -3401,7 +3404,7 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 
         k = k + 1
-        ijts_3Dsource(2,n) = k
+        ijts_3Dsource(nECanum,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'EC source '//trim(trname(n))
         sname_ijts(k) = 'EC_src_'//trim(trname(n))
@@ -3410,7 +3413,7 @@ c put in production of SO4 from gas phase
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 !TOMAS!#endif
         k = k + 1
-        ijts_3Dsource(4,n) = k
+        ijts_3Dsource(nOCanum,n) = k
         ia_ijts(k) = ia_src
         lname_ijts(k) = 'OC source '//trim(trname(n))
         sname_ijts(k) = 'OC_src_'//trim(trname(n))
