@@ -6496,7 +6496,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       !global averaged emission rates
       !each value corresponds to the annual value
 !      REAL*8, DIMENSION(:), allocatable, save :: ocmip_cfc
-      INTEGER I_0, I_1, J_0, J_1
+      INTEGER I_0, I_1, J_0, J_1, J_1S, J_0S
       class (Tracer), pointer :: pTracer
       integer :: index
       type (TracerSurfaceSource), pointer :: sources(:) 
@@ -6516,7 +6516,7 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
-     &     I_STRT=I_0, I_STOP=I_1)
+     &     I_STRT=I_0, I_STOP=I_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
 
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
@@ -7192,7 +7192,8 @@ c$$$      end do
       ! Outside of tracer loop, call MEGAN-based biogenic emissions.
       ! Emissions will be experienced by any tracers with do_megan()=.true.
       ! .and. with a trname() that matches a MEGAN-defined species.
-      do j=J_0,J_1
+      ! Let's skip the poles.
+      do j=J_0S,J_1S
         do i=I_0,imaxj(j)
           ! Do we have to zero the polar boxes for 2:IM ??
           call biogenicEmissions_drv(i,j)

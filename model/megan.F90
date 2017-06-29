@@ -245,7 +245,6 @@ call ent_get_exports( entcells(i,j),surf_CO2=CO2_wrong_units )
 ! n(co2)/n(air) --> n(co2)/(million n(air)):
 ! CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
 CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/rho
-! TODO: check with Max if legal use of atmsrf% above
 
 ! Get the local Cosine of the Solar Zenith angle:
 ! ---------------------------------------------
@@ -271,7 +270,6 @@ cosSZA_megan = cosz1(i,j)
 ! Here, localTimeIndex is intended to be an integer ranging from 1 to
 ! INT_HOURS_PER_DAY. When it is beyond that range, increment (or decrement)
 ! the local julian day:
-! TODO: Greg: sanity check printing this out!
 localTimeIndex=(hour+1)+NINT((i-(IM+1)/2.)*HOURS_PER_DAY/float(IM))
 if(localTimeIndex > HOURS_PER_DAY) then
   JDAY_megan=dayOfYear+1
@@ -479,7 +477,6 @@ tracers_loop: do nTracer=1,ntm
 
       ! Calculate the bulk emission factor for this species in a loop over fractions
       ! of *MEGAN* (not Ent) plant functional types:
-      ! TODO: Confirm by printing that pvt( ) are fractions, not percentages.
       bulk_EF=0.d0
       do ipft=1,nMeganPFT
         bulk_EF=bulk_EF+species(n)%EF(ipft)*pvt(ipft)
@@ -490,7 +487,7 @@ tracers_loop: do nTracer=1,ntm
       ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
-      sfc_src(i,j,nTracer,nSource)= & 
+      sfc_src(i,j,nTracer,nSource)= &
       & convertUnits*CCE*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2&
       & * ( (1.d0-species(n)%ldf) * gamma_tli + &
       & species(n)%ldf * gamma_PPFD*gamma_tld)
