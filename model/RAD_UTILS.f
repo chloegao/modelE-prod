@@ -3541,21 +3541,15 @@ C     functions
       read(iu,'(a)') title
 
 ! Find appropriate column for current layering
-      j = 20  ; ncol = 0
-      do while(title(j:80).ne.'')
-        read(title(j:80),*) N
-        if(N==NL) then  ! or N in some layer range
-          ncol = ncol + 1
-          exit
-        end if
-        j = j + 14
-      end do
-
-      if(ncol==0) call stop_model('set_FPXCO2: bad CO2profile',255)
+      if (nl < 80) then
+        ncol = 1
+      else
+        ncol = 2
+      end if
 
       allocate (FPX(np),PFP(np))
       do n=1,np
-        read(iu,*) PFP(n),(FPX(n),j=1,ncol)
+        read(iu,*) ((PFP(n),FPX(n)),j=1,ncol)
       end do
 
       call closeunit (iu)
