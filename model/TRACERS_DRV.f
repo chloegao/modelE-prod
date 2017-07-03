@@ -6091,9 +6091,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE TRACER_COM, only: NTM,nOther,nAircraft,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
-#ifdef TRACERS_SPECIAL_Shindell
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
-#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: 
