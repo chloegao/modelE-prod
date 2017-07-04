@@ -3525,7 +3525,7 @@ C     functions
       IMPLICIT NONE
       INTEGER J,N,NL,iu,np,ncol
       REAL*8 PL(NL),FPXCO2(NL)
-      REAL*8 FPI,FPJ,PFI,PFJ
+      REAL*8 FPI,FPJ,PFI,PFJ,pf(4)
       REAL*8, allocatable :: FPX(:),PFP(:)
       character*80 title
 
@@ -3544,12 +3544,14 @@ C     functions
       if (nl < 80) then
         ncol = 1
       else
-        ncol = 2
+        ncol = 3
       end if
 
       allocate (FPX(np),PFP(np))
       do n=1,np
-        read(iu,*) ((PFP(n),FPX(n)),j=1,ncol)
+        read(iu,*) pf
+        pfp(n) = pf(ncol)
+        fpx(n) = pf(ncol+1)
       end do
 
       call closeunit (iu)
