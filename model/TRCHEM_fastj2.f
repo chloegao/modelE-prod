@@ -192,7 +192,7 @@
 !@var jlabel Reference label identifying appropriate J-value to use
       character(len=7), allocatable, dimension(:) :: jlabel
 !@var jind mapping index for jvalues
-!@var ks name of species that photolyses, as defined in the MOLEC file.
+!@var ks name of species that photolyses, as defined in the trchemname array.
 !@+      The index denotes the reaction number, as defined in the JPLPH file
       integer, allocatable, dimension(:) :: jind,ks
 !@var kss same as ks, for photolysis products. The first index denotes the

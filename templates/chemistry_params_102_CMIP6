@@ -1,4 +1,10 @@
 ! -----------------------------------
+! chemistry debug output
+!print_reaction_lists=0
+!print_reaction_rates=0
+!print_chemical_changes=0
+!coords_for_print_chemical=17,35,1 ! ilon,jlat,klev
+! -----------------------------------
 ! Pressure above which Ox, NOx, BrOx, and ClOx will be
 ! overwritten with climatology based on NINT ozone input.
 PltOx=0.0
