@@ -599,7 +599,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_AMP
       ELSE
-        nraero_rf=nraero_rf+1
+        IF (nraero_AMP .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #elif defined(TRACERS_TOMAS)
 !TOMAS does not include NO3 AND VOL, which use its default radiation. 
@@ -611,14 +611,14 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_TOMAS
       ELSE
-        nraero_rf=nraero_rf+1
+        IF (nraero_TOMAS .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #else
       nraero_OMA=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_OMA
       ELSE
-        nraero_rf=nraero_rf+1
+        IF (nraero_OMA .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #endif
 

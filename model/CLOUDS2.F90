@@ -217,12 +217,13 @@ module CLOUDS
 !**** new arrays must be set to model arrays in driver (after MSTCNV)
 !@var TAUMCL convective cloud optical thickness
 !@var SVLATL saved LHX for convective cloud
+!@var CONDPT temporary variable to save CONDP
 !@var CLDMCL convective cloud cover
 !@var SVLHXL saved LHX for large-scale cloud
 !@var SVWMXL saved detrained convective cloud water
 !@var CSIZEL cloud particle radius (micron)
 !@var CSIZELIP counterpart to CSIZEL for ice precip in supercooled water clouds
-  real*8, dimension(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL,SVLAT1
+  real*8, dimension(LM) :: TAUMCL,SVLATL,CLDMCL,SVLHXL,SVWMXL,SVLAT1,CONDPT
   real*8, dimension(LM) :: CSIZEL,CSIZELIP
 
 !**** new arrays must be set to model arrays in driver (before LSCOND)
@@ -519,6 +520,7 @@ contains
 !@var CDHEAT        heating due to condensation
 !@var CMNEG
 !@var COND,CONDP, CONDP1, CONDV, CONDGP,CONDIP condensate mass density (kg/m^3)
+!@var CONDPT        temporary variables to save CONDP
 !@var DQM,DSM,DQMR,DSMR Vertical profiles of T/Q and changes
 !@var DDM           downdraft mass (mb)
 !@var DM, DMR       change in air mass
@@ -796,6 +798,7 @@ contains
     QSATRE=QSAT(283.16d0,LHE,920.d0)             ! for cal U00L
 !**** initiallise arrays of computed output
     TAUMCL=0
+    CONDPT=0
     SVWMXL=0
     SVLATL=0
     SVLAT1=0
@@ -2524,6 +2527,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
             SVLATL(L)=VLAT(L)         ! moved from above
             SVWMXL(L)=SVWMXL(L)+FCLW*COND(L)*BYAM(L)*FMC1
             COND(L)=CONDP(L)
+            CONDPT(L)=CONDPT(L)+CONDP(L)
 
             !**** Apportion cloud tracers and condensation
             !**** Note that TRSVWML is in mass units unlike SVWMX
@@ -2916,16 +2920,16 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #endif
 
       ! pick up cloud and precip water profiles
-      TEMWM=TAUMCL(L)-CONDP(L)*FMC1-SVWMXL(L)*AIRM(L)
+      TEMWM=TAUMCL(L)-CONDPT(L)*FMC1-SVWMXL(L)*AIRM(L)
       if(SVLATL(L).eq.LHE)then
         QLmc(L)=TEMWM/AIRM(L)+SVWMXL(L) ! includes detrained liquid
       elseif(SVLATL(L).eq.LHS) then
         QImc(L)=TEMWM/AIRM(L)+SVWMXL(L) ! includes detrained ice
       endif
       if(LHP(L).eq.LHE) then
-        QLmc(L)=QLmc(L)+CONDP(L)*FMC1/AIRM(L)
+        QLmc(L)=QLmc(L)+CONDPT(L)*FMC1/AIRM(L)
       elseif(LHP(L).eq.LHS) then
-        QImc(L)=QImc(L)+CONDP(L)*FMC1/AIRM(L)
+        QImc(L)=QImc(L)+CONDPT(L)*FMC1/AIRM(L)
       endif
 
       !**** DEFAULT OPTICAL THICKNESS = 8 PER 100 MB CLOUD DEPTH, BUT 2 PER

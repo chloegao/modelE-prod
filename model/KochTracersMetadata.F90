@@ -53,6 +53,7 @@ module KochTracersMetadata_mod
 
 !------------------------------------------------------------------------------
   subroutine KOCH_InitMetadata(pTracer)
+    use TRACER_COM, only: coupled_chem
 !------------------------------------------------------------------------------
     class (Tracer), pointer :: pTracer
 
@@ -60,7 +61,7 @@ module KochTracersMetadata_mod
     call  MSA_setSpec('MSA')
     call  SO2_setSpec('SO2')
     call  SO4_setSpec('SO4')
-    if (.not. tracers_special_shindell) then
+    if (.not. tracers_special_shindell .or. coupled_chem.eq.0) then
       call  H2O2_s_setSpec('H2O2_s')
     end if
     if (.not. sulf_only_aerosols) then
