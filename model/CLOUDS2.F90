@@ -1890,6 +1890,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             if(CONDP(L).gt.CONDP1(L)) CONDP(L)=CONDP1(L)
             CONDV(L)=COND(L)-CONDP1(L)       ! part of COND transported up
             COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
+            TAUMC1(L)=TAUMC1(L)-CONDV(L)*FMC1
 
 #ifdef TRACERS_WATER
             FQCONDV=CONDV(L)/((COND(L)+CONDV(L))+teeny)
