@@ -8,20 +8,27 @@ implicit none
 real*8 :: tune_ss1=1.d0, tune_ss2=1.d0
 #ifdef TRACERS_AEROSOLS_OCEAN
 !@var OC_SS_enrich_fact OCocean enrichment factor of seasalt1
-      real*8, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact !(im,jm)
+      real*8, ALLOCATABLE, DIMENSION(:,:) :: OC_SS_enrich_fact
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 !===============================================================================
 
 contains
 
 !===============================================================================
-subroutine alloc_seasalt_sources
+subroutine alloc_seasalt_sources(grid)
 
-use resolution, only: im,jm
+use domain_decomp_atm, only : dist_grid, getDomainBounds
 implicit none
 
+type (dist_grid), intent(in) :: grid
+integer :: J_1H, J_0H, I_1H, I_0H
+
+call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+I_0H = grid%I_STRT_HALO
+I_1H = grid%I_STOP_HALO
+
 #ifdef TRACERS_AEROSOLS_OCEAN
-allocate(OC_SS_enrich_fact(im,jm))
+allocate(OC_SS_enrich_fact(I_0H:I_1H,J_0H:J_1H))
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 
 end subroutine alloc_seasalt_sources
