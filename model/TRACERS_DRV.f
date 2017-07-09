@@ -2673,19 +2673,11 @@ C**** This needs to be 'hand coded' depending on circumstances
      *'dHCH17O', 'dHCH18O', 'dH13CHO',
      *'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
-     &'isopp1g','isopp1a','isopp2g','isopp2a',
-     &'apinp1g','apinp1a','apinp2g','apinp2a',
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
      &'HO2NO2','PAN','AlkylNit','stratOx')
 
         select case(trname(n))
-        case('isopp1a')
-          ! In the radiation code the RCOMPX call for isopp1a
-          ! currently contains isopp1a+isopp2a and if TRACERS_TERP
-          ! also apinp1a+apinp2a, so using SOA instead of trname:
-          call set_diag_aod(n,k)
-          if (diag_fc==2) call set_diag_rf(n,k)
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
 #ifdef TRACERS_dCO
      *  'd13Calke','d13CPAR',
@@ -3007,7 +2999,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
 #endif
 
-      case ('BCB', 'OCB', 'BCIA', 'OCIA', 'NO3p')
+      case ('BCB', 'OCB', 'BCIA', 'OCIA', 'NO3p', 'isopp1a')
         call set_diag_aod(n,k)
         if (diag_fc==2) call set_diag_rf(n,k)
 
@@ -3439,7 +3431,14 @@ c SO4 from industrial emissions
      &       'AOCOB_01','AOCIL_01','ADUST_01')
 
         call set_diag_aod(n,k)
-        IF (diag_fc==2) call set_diag_rf(n,k)
+        if (diag_fc==2) then
+          call set_diag_rf(n,k)
+        else if (diag_fc==1) then
+          select case (trname(n))
+            case ('ASO4__01')
+              call set_diag_rf(n,k)
+          end select
+        endif
         
       end select      
 
@@ -3477,7 +3476,7 @@ c put in production of H2O2 from gas phase
         select case (trname(n))
         case ('seasalt1')
           call set_diag_aod(n,k)
-          call set_diag_rf(n,k)
+          if (diag_fc>0) call set_diag_rf(n,k) ! this handles [sl]wf_OMA if =1
         case ('seasalt2')
           call set_diag_aod(n,k)
         end select
@@ -3838,13 +3837,13 @@ c- interactive sources diagnostic
      *     'N_MXX_1 ','N_OCS_1 ')
 
         call set_diag_aod(n,k)
-        if (diag_fc==1) then
+        if (diag_fc==2) then
+          call set_diag_rf(n,k)
+        else if (diag_fc==1) then
           select case (trname(n))
             case ('N_AKK_1')
               call set_diag_rf(n,k)
           end select
-        elseif (diag_fc==2) then
-          call set_diag_rf(n,k)
         endif
 
       end select
@@ -4164,7 +4163,9 @@ c      enddo
 
 ! radiative forcing and related diagnostics
 
-      if (diag_fc==1) then
+      if (diag_fc==2) then
+        spcname=trim(trname(n))
+      else if (diag_fc==1) then
         if (tracers_amp) then
           spcname='AMP'
         elseif (tracers_tomas) then
@@ -4172,8 +4173,6 @@ c      enddo
         else
           spcname='OMA'
         endif
-      else
-        spcname=trim(trname(n))
       endif
 
       if (nradfrc>0) then

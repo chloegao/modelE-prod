@@ -598,7 +598,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       nraero_AMP=nmodes
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_AMP
-      ELSE
+      ELSE IF (diag_fc==1) THEN
         IF (nraero_AMP .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #elif defined(TRACERS_TOMAS)
@@ -610,14 +610,14 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #endif
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_TOMAS
-      ELSE
+      ELSE IF (diag_fc==1) THEN
         IF (nraero_TOMAS .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #else
       nraero_OMA=nraero_seasalt+nraero_koch+nraero_nitrate+nraero_dust
       IF (diag_fc==2) THEN
         nraero_rf=nraero_rf+nraero_OMA
-      ELSE
+      ELSE IF (diag_fc==1) THEN
         IF (nraero_OMA .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #endif
@@ -638,7 +638,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 
       if (nraero_aod>0) then
         allocate(ntrix_aod(nraero_aod)) ; ntrix_aod=0
-        allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
+        if (nraero_rf>0) allocate(ntrix_rf(nraero_rf)) ; ntrix_rf=0
         allocate(wttr(nraero_aod))  ; wttr=1.
 
         if (.not.allocated(tau_as)) then
@@ -649,12 +649,14 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 #ifdef CACHED_SUBDD
           allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
-          allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
-          allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
           abstau_as = 0.d0
           abstau_cs = 0.d0
-          swfrc = 0.d0
-          lwfrc = 0.d0
+          if (nraero_rf>0) then
+            allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
+            allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
+            swfrc = 0.d0
+            lwfrc = 0.d0
+          endif
 #endif  /* CACHED_SUBDD */
         endif
       endif
@@ -928,7 +930,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       if (n>0) then
         if (diag_fc==2) then
           ntrix_rf(1:nraero_OMA)=ntrix_aod(1:nraero_OMA)
-        else
+        else if (diag_fc==1) then
           ntrix_rf(1)=ntrix_aod(1)
         endif
       endif
@@ -946,7 +948,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
      &       n_N_MXX_1/)
         if (diag_fc==2) then
           ntrix_rf(n+1:n+nraero_AMP)=ntrix_aod(n+1:n+nraero_AMP)
-        else
+        else if (diag_fc==1) then
           ntrix_rf(n+1)=ntrix_aod(n+1)
         endif
       endif
@@ -974,7 +976,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
 ! ANUM(1) for internal-mixing case. Others(ncomp-1) for external-mixing case.
         if (diag_fc==2) then
           ntrix_rf(n+1:n+nraero_TOMAS)=ntrix_aod(n+1:n+nraero_TOMAS)
-        else
+        else if (diag_fc==1) then
           ntrix_rf(n+1)=ntrix_aod(n+1)
         endif
       endif
@@ -2696,7 +2698,7 @@ C****          succeeds seasalt1 in nraero_rf array
             IF (trname(ntrix_rf(n)).eq."seasalt1") THEN          !add seasalt2
               FSTOPX(n+1)=1-onoff_aer;FTTOPX(n+1)=1-onoff_aer !to seasalt1
             END IF
-          else
+          else if (diag_fc==1) then
             FSTOPX(1:nraero_aod) = 1-onoff_aer !turns off online tracer
             FTTOPX(1:nraero_aod) = 1-onoff_aer !
           endif
@@ -2715,7 +2717,7 @@ C****          succeeds seasalt1 in nraero_rf array
             IF (trname(ntrix_rf(n)).eq."seasalt1") THEN    ! also for seasalt2
               FSTOPX(n+1)=onoff_aer ; FTTOPX(n+1)=onoff_aer
             END IF
-          else
+          else if (diag_fc==1) then
             FSTOPX(1:nraero_aod) = onoff_aer !turns on online tracer
             FTTOPX(1:nraero_aod) = onoff_aer !
           endif
@@ -3758,10 +3760,12 @@ c longwave GHG forcing at TOA
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
     (defined TRACERS_AEROSOLS_SEASALT)
-      swfrc(i,j,1:nraero_rf)=
-     &  rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
-      lwfrc(i,j,1:nraero_rf)=
-     &  -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
+      if (nraero_rf>0) then
+        swfrc(i,j,1:nraero_rf)=
+     &    rsign_aer*(SNFST(2,1:nraero_rf,I,J)-SNFS(LFRC,I,J))*CSZ2
+        lwfrc(i,j,1:nraero_rf)=
+     &    -rsign_aer*(TNFST(2,1:nraero_rf,I,J)-TNFS(LFRC,I,J))
+      endif
 #endif /* any of various tracer groups defined */
 #endif  /* CACHED_SUBDD */
 
@@ -4019,7 +4023,9 @@ C****
             cycle ! not implemented, silently ignore
         end select
         do n=1,nraero_rf
-          if (diag_fc==1) then
+          if (diag_fc==2) then
+            spcname = trim(trname(ntrix_rf(n)))
+          else if (diag_fc==1) then
             if (tracers_amp) then
               spcname='AMP'
             elseif (tracers_tomas) then
@@ -4027,8 +4033,6 @@ C****
             else
               spcname='OMA'
             endif
-          else
-            spcname = trim(trname(ntrix_rf(n)))
           endif
           sname = trim(sfrc(f))//'_'//trim(spcname)
           if (trim(sname)==trim(subdd%name(k))) then ! not select case here
