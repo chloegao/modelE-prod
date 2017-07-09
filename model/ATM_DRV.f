@@ -874,7 +874,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call alloc_tracer_sources(grid)
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
-      call alloc_seasalt_sources()
+      call alloc_seasalt_sources(grid)
 #endif  /* TRACERS_AEROSOLS_SEASALT */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
