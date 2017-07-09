@@ -20,6 +20,7 @@ module Tracer_mod
 !!$  public :: assignment(=)
 
   public :: NTSURFSRCMAX
+  public :: NT3DSRCMAX
   public :: copyInto
 !@var ntsurfsrcmax maximum number of surface 2D sources/sinks
       integer, parameter :: NTSURFSRCMAX=16

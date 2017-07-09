@@ -520,10 +520,6 @@ C note, tr_evap_fact is not dimensioned as NTM:
 
 C**** Diagnostic indices and meta-data
 
-!@var ntsurfsrcmax maximum number of surface 2D sources/sinks
-      integer, parameter :: ntsurfsrcmax=16
-!@var nt3Dsrcmax maximum number of 3D tracer sources/sinks
-      integer, parameter :: nt3Dsrcmax=10
 !@var sfc_src array holds tracer sources that go into trsource( )
 !@+ maybe wasteful of memory, but works for now...
       real*8, allocatable, dimension(:,:,:,:) :: sfc_src
@@ -850,6 +846,7 @@ c note: not applying CPP when declaring counts/lists.
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
 !@auth NCCS (Goddard) Development Team
+      use Tracer_mod, only: ntsurfsrcmax
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
