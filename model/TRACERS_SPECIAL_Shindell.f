@@ -719,7 +719,8 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 #endif
      &     pack_data
       use OldTracer_mod, only: itime_tr0,trname
-      USE TRACER_COM, only: sfc_src,ntsurfsrcmax
+      USE Tracer_mod, only: ntsurfsrcmax
+      USE TRACER_COM, only: sfc_src
       use TRACER_SOURCES, only: PTBA,nncep,first_ncep,avg_ncep,
      &   avg_model,nra_ncep,int_wet_dist,topo_lim,sat_lim,
      &   gw_ulim,gw_llim,SW_lim,exclude_us_eu,nra_ch4,first_mod,

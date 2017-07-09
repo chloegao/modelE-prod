@@ -14,7 +14,7 @@
 #ifdef TRACERS_AEROSOLS_SOA
      &                     ,nsoa
 #endif  /* TRACERS_AEROSOLS_SOA */
-     *     , ntsurfsrcmax, nt3Dsrcmax
+      use Tracer_mod, only: ntsurfsrcmax, nt3Dsrcmax
 #ifdef TRACERS_AMP
       USE AERO_CONFIG,only: nbins
 #endif

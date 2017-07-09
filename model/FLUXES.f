@@ -1453,7 +1453,7 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
      &     atmsrf_xchng_vars,atmlnd_xchng_vars,atmgla_xchng_vars
 #ifdef TRACERS_ON
 #ifndef SKIP_TRACER_SRCS
-      USE TRACER_COM, only: ntsurfsrcmax,nt3Dsrcmax
+      USE Tracer_mod, only: ntsurfsrcmax,nt3Dsrcmax
 #endif
 #endif
       use Dictionary_mod, only : sync_param, get_param
