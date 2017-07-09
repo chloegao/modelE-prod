@@ -147,7 +147,7 @@ C**** ocean related parameters
 !@var nbyz[muvc]: # of basins at each lat/depth
 !@var i[12]yz[muvc]: start/end i-indices for each basin
 ! m: cell center ! u: east edge ! v: north edge ! c: northeast corner
-      integer, parameter :: nbyzmax=20 ! suffices up to 1x1.25 deg res
+      integer, parameter :: nbyzmax=22 ! suffices up to 1x1.25 deg res
       integer, dimension(:,:), allocatable :: nbyzm,nbyzu,nbyzv,nbyzc
       integer, dimension(:,:,:), allocatable ::
      &     i1yzm,i2yzm, i1yzu,i2yzu, i1yzv,i2yzv, i1yzc,i2yzc

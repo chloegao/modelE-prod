@@ -61,6 +61,14 @@
       real*8 :: meso_lenscale_const
 #endif
 
+!@var poros geographically varying factor from 0 to 1 read from POROS file
+!@+   to boost diffusivity as per comments in subroutine shallow_enhance_kmeso.
+!@+   If the POROS file is absent, this array has a value of zero
+!@+   and the enhancement is at the low end everywhere.   Lateral mixing
+!@+   in narrow subgrid passages which are "open" on the model grid can
+!@+   be scaled via this array, but it can be used for other purposes also.
+      real*8, allocatable, dimension(:,:) :: poros
+
       end module ocnmeso_com
 
       subroutine alloc_ocnmeso_com
@@ -69,8 +77,11 @@
       use dictionary_mod, only : get_param,sync_param
       use oceanr_dim, only : ogrid
       use domain_decomp_1d, only : getdomainbounds
+      use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only : file_exists
       implicit none
       integer :: j_0h,j_1h
+      integer :: fid
 
       call getdomainbounds(ogrid, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
@@ -118,6 +129,14 @@
 #elif (defined CONSTANT_MESO_LENSCALE)
        call get_param( 'meso_lenscale_const', meso_lenscale_const )
 #endif
+
+      allocate( poros(im,j_0h:j_1h) )
+      poros = 0.
+      if(file_exists('POROS')) then
+        fid = par_open(ogrid,'POROS','read')
+        call read_dist_data(ogrid,fid,'poros',poros)
+        call par_close(ogrid,fid)
+      endif
 
       end subroutine alloc_ocnmeso_com
 
@@ -761,11 +780,13 @@ c
 
       subroutine shallow_enhance_kmeso(k2d,gmscz)
 !@sum shallow_enhance_kmeso increase diffusivity in shallow waters
-!@+   to help disperse river input and prevent too-low salinities
+!@+   to help disperse river input and prevent too-low salinities.
+!@+   The poros factor scales this effect.
       use ocean, only : im,ze
       use ocean, only : nbyzm,i1yzm,i2yzm,lmm
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : getdomainbounds
+      use ocnmeso_com, only : poros
       implicit none
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) ::
      &     k2d,gmscz
@@ -780,7 +801,7 @@ c
       do n=1,nbyzm(j,1)
       do i=i1yzm(n,j,1),i2yzm(n,j,1)
         if(ze(lmm(i,j)).lt.500.) then ! hard-coded definition of shallow
-          k2d(i,j) = max(k2d(i,j),1200.) ! 1200 m2/s
+          k2d(i,j) = max(k2d(i,j), 1200. + poros(i,j)*8800.)
           gmscz(i,j) = 1d4 ! remove vertical dependence
         endif
       enddo

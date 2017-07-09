@@ -112,7 +112,7 @@ C**** does not produce exactly the same as the default values.
 !@var DIAG_FC Controls the number of radiation calls for the calculation of
 !@+           aerosol radiative forcing. One call if =1, multiple calls if
 !@+           =2, with their number depending on the aerosol scheme used.
-!@+           Use =2 sparingly, it is s l o w. Default is 1.
+!@+           Use =2 sparingly, it is s l o w. Default is 1. No calls if zero.
       integer :: diag_fc=1
 ! nraero_xxxx are the aerosol-specific nraero_aod (old ntrace) components of
 ! aerosol-active species in radiation. nraero_aod=sum(nraero_xxxx)
@@ -783,8 +783,10 @@ C**** Local variables initialised in init_RAD
         call defvar(grid,fid,abstau_cs,
      &       'abstau_cs(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,nraero_rf,'nraero_rf')
-        call defvar(grid,fid,swfrc,'swfrc(dist_im,dist_jm,nraero_rf)')
-        call defvar(grid,fid,lwfrc,'lwfrc(dist_im,dist_jm,nraero_rf)')
+        if (nraero_rf>0) then
+          call defvar(grid,fid,swfrc,'swfrc(dist_im,dist_jm,nraero_rf)')
+          call defvar(grid,fid,lwfrc,'lwfrc(dist_im,dist_jm,nraero_rf)')
+        endif
 #endif  /* CACHED_SUBDD */
       endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -872,8 +874,10 @@ C**** Local variables initialised in init_RAD
           call write_dist_data(grid,fid,'abstau_as',abstau_as)
           call write_dist_data(grid,fid,'abstau_cs',abstau_cs)
           call write_data(grid, fid,'nraero_rf', nraero_rf)
-          call write_dist_data(grid,fid,'swfrc',swfrc)
-          call write_dist_data(grid,fid,'lwfrc',lwfrc)
+          if (nraero_rf>0) then
+            call write_dist_data(grid,fid,'swfrc',swfrc)
+            call write_dist_data(grid,fid,'lwfrc',lwfrc)
+          endif
 #endif  /* CACHED_SUBDD */
         endif
 #endif
@@ -923,7 +927,7 @@ C**** Local variables initialised in init_RAD
             allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
             call read_data(grid,fid,'nraero_rf',nraero_rf_rsf,
      &                     bcast_all=.true.)
-            if (nraero_rf_rsf /= 0) then
+            if (nraero_rf_rsf>0) then
               allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf_rsf))
               allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf_rsf))
             endif
@@ -936,8 +940,10 @@ C**** Local variables initialised in init_RAD
 #ifdef CACHED_SUBDD
           call read_dist_data(grid,fid,'abstau_as',abstau_as)
           call read_dist_data(grid,fid,'abstau_cs',abstau_cs)
-          call read_dist_data(grid,fid,'swfrc',swfrc)
-          call read_dist_data(grid,fid,'lwfrc',lwfrc)
+          if (nraero_rf_rsf>0) then
+            call read_dist_data(grid,fid,'swfrc',swfrc)
+            call read_dist_data(grid,fid,'lwfrc',lwfrc)
+          endif
 #endif  /* CACHED_SUBDD */
         endif
 #endif
