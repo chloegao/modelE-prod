@@ -43,7 +43,7 @@ module AmpTracersMetadata_mod
     tracers_amp_m5, tracers_amp_m6,         &
     tracers_amp_m7, tracers_amp_m8,         &
     tracers_special_shindell
-  use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem
+  use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem, coupled_chem
   use OldTracer_mod, only: set_needtrs
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm
@@ -538,7 +538,9 @@ contains
     call  H2SO4_setSpec('H2SO4')
     call  DMS_setSpec('DMS')  ! duplicate with Koch
     call  SO2_setSpec('SO2')  ! duplicate with Koch
-    if (.not. tracers_special_shindell) call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    if (.not. tracers_special_shindell .or. coupled_chem.eq.0) then
+      call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
+    endif
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
     if (tracers_aerosols_koch.or.tracers_aerosols_seasalt) then
       call stop_model('contradictory tracer specs', 255)

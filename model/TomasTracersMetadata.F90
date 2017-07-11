@@ -24,7 +24,7 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_has_chemistry
   use OldTracer_mod, only: nGAS, nPart
-  use TRACER_COM, only: xk, nbins
+  use TRACER_COM, only: xk, nbins, coupled_chem
   use TRACER_COM, only: n_NH4, n_H2SO4
   use TRACER_COM, only: n_ASO4, n_ANACL, n_AECIL, n_AECOB, &
     n_AOCIL, n_ADUST, n_ANUM, n_AOCOB, n_AH2O, n_SOAgas
@@ -76,7 +76,7 @@ contains
     if (.not. tracers_aerosols_soa) &
       call  TOMAS_SOAgas_setSpec('SOAgas')
 #endif
-    if (.not. tracers_special_shindell) then
+    if (.not. tracers_special_shindell .or. coupled_chem.eq.0) then
       call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
     endif
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
