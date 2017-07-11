@@ -176,6 +176,7 @@
 !------------------------------------------------------------------------------
       subroutine initTracerMetadata()
 !------------------------------------------------------------------------------
+      use TRACER_COM, only: COUPLED_CHEM
       use Dictionary_mod, only: set_param, sync_param
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_terp
@@ -258,6 +259,8 @@
       class (Tracer), pointer :: pTracer
       external setDefaultSpec
       integer :: i
+
+      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 
 ! call routine to read/set up sectors for emissions:
       call setup_emis_sectors()
@@ -505,7 +508,7 @@
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: set_itime_tr0
       USE TRACER_COM, only: NTM, tracers, syncProperty
-      use TRACER_COM, only: coupled_chem,nc_emis_use_ppm_interp
+      use TRACER_COM, only: nc_emis_use_ppm_interp
       use Dictionary_mod, only: sync_param,is_set_param,get_param
       use RAD_COM, only: diag_fc
 #ifdef TRACERS_SPECIAL_O18
@@ -585,8 +588,6 @@ C****
         call set_itime_tr0(n, itime)
       end do
       call syncProperty(tracers, "itime_tr0", set_itime_tr0,itime_tr0())
-
-      call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 
 C**** Synchronise tracer related parameters from rundeck
 
