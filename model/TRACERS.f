@@ -2329,7 +2329,9 @@ c daily_z is currently only needed for CS
 
       do f=1,size(sfrc)
       do n=1,nraero_rf
-        if (diag_fc==1) then
+        if (diag_fc==2) then
+          spcname = trim(trname(ntrix_rf(n)))
+        else if (diag_fc==1) then
           if (tracers_amp) then
             spcname='AMP'
           elseif (tracers_tomas) then
@@ -2337,8 +2339,6 @@ c daily_z is currently only needed for CS
           else
             spcname='OMA'
           endif
-        else
-          spcname = trim(trname(ntrix_rf(n)))
         endif
         arr(next()) = info_type_(
      &    sname = trim(sfrc(f))//'_'//trim(spcname),

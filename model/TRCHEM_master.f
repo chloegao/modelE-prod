@@ -1823,7 +1823,8 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
      &    (y(nn_CH4,1)/y(nM,1))
           CLTOT=CLTOT*y(nM,L)/
      &    (y(nn_ClOx,L)+y(nn_HCl,L)+y(nn_HOCl,L)+y(nn_ClONO2,L))
-          if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then  
+          if(prnchg.and.
+     &       J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3))then
             write(out_line,'("CLTOT = ",F20.5)') CLTOT
             call write_parallel(trim(out_line),crit=jay)
           end if
@@ -1867,7 +1868,8 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
      &    (y(nn_CH4,1)/y(nM,1))
           BRTOT=BRTOT*y(nM,L)/
      &    (y(nn_BrOx,L)+y(nn_HBr,L)+y(nn_HOBr,L)+y(nn_BrONO2,L))
-          if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then  
+          if(prnchg.and.
+     &       J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3))then
             write(out_line,'("BrTOT = ",F20.5)') BRTOT
             call write_parallel(trim(out_line),crit=jay)
           end if
@@ -2230,7 +2232,7 @@ c (radiation code wants atm-cm units):
 
       subroutine printSS27x2Etc()
       integer :: LPRINT
-      if(prnchg .and. J == jprn .and. I == iprn) then
+      if(prnchg .and. J == ijlprn(2) .and. I == ijlprn(1)) then
         jay = .true.!(J >= J_0 .and. J <= J_1)
         write(out_line,*)'O3pO2 means O3prof from O2 Herz & SRB:'
         call write_parallel(trim(out_line),crit=jay)
@@ -2262,32 +2264,38 @@ c (radiation code wants atm-cm units):
 
 CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
       subroutine printDaytimeChemistryDiags()
-      if(prnchg .and. J == jprn .and. I == iprn) then
+      if(prnchg .and. J == ijlprn(2) .and. I == ijlprn(1)) then
        jay = .true.!(J >= J_0 .and. J <= J_1) 
-       if(lprn <= topLevelOfChemistry) then
+       if(ijlprn(3) <= topLevelOfChemistry) then
          write(out_line,*) ' '
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'Family ratios at I,J,L: ',i,j,lprn
+         write(out_line,*) 'Family ratios at I,J,L: ',i,j,ijlprn(3)
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'OH/HO2 = ',y(nOH,lprn)/y(nHO2,lprn)
+         write(out_line,*)
+     &    'OH/HO2 = ',y(nOH,ijlprn(3))/y(nHO2,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'O/O3 = ',y(nO,lprn)/y(nO3,lprn)
+         write(out_line,*) 'O/O3 = ',y(nO,ijlprn(3))/y(nO3,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'O1D/O3 = ',y(nO1D,lprn)/y(nO3,lprn),
-     &    '  J(O1D) = ',ss(rj%O3__O1D_O2,lprn,I,J)
+         write(out_line,*)
+     &    'O1D/O3 = ',y(nO1D,ijlprn(3))/y(nO3,ijlprn(3)),
+     &    '  J(O1D) = ',ss(rj%O3__O1D_O2,ijlprn(3),I,J)
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'NO/NO2 = ',y(nNO,lprn)/y(nNO2,lprn),
-     &    '   J(NO2) = ',ss(rj%NO2__NO_O,lprn,I,J)
+         write(out_line,*)
+     &    'NO/NO2 = ',y(nNO,ijlprn(3))/y(nNO2,ijlprn(3)),
+     &    '   J(NO2) = ',ss(rj%NO2__NO_O,ijlprn(3),I,J)
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'conc OH = ',y(nOH,lprn)
+         write(out_line,*) 'conc OH = ',y(nOH,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'Cl,ClO,Cl2O2,OClO,Cl2 = ',y(nCl,lprn),
-     &    y(nClO,lprn),y(nCl2O2,lprn),y(nOClO,lprn),y(nCl2,lprn)
+         write(out_line,*) 'Cl,ClO,Cl2O2,OClO,Cl2 = ',y(nCl,ijlprn(3)),
+     &    y(nClO,ijlprn(3)),y(nCl2O2,ijlprn(3)),y(nOClO,ijlprn(3)),
+     &    y(nCl2,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'Br,BrO = ',y(nBr,lprn),y(nBrO,lprn)
+         write(out_line,*)
+     &    'Br,BrO = ',y(nBr,ijlprn(3)),y(nBrO,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,lprn),
-     &    pClOx(I,J,lprn),pOClOx(I,J,lprn),pBrOx(I,J,lprn)
+         write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,ijlprn(3)),
+     &    pClOx(I,J,ijlprn(3)),pOClOx(I,J,ijlprn(3)),
+     &    pBrOx(I,J,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
      &   'sun, SALBFJ,sza,I,J,Itime= ',albedoToUse,sza,I,J,Itime
@@ -2298,7 +2306,8 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
 
 
       subroutine printNightChemistryDiags()
-        if(prnchg.and.J == jprn.and.I == iprn.and.L == lprn)then
+        if(prnchg.and.
+     &     J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3))then
           jay = .true.!(J >= J_0 .and. J <= J_1)
           write(out_line,*)
      &    'dark, SALBFJ,sza,I,J,L,Itime= ',albedoToUse,sza,I,J,L,Itime
@@ -2310,40 +2319,40 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
             write(out_line,*) 'There are no PSCs, T =',ta(L)
             call write_parallel(trim(out_line),crit=jay)
           endif
-          write(out_line,198) ay(nn_NOx),': ',
+          write(out_line,198) trchemname(nn_NOx),': ',
      &    changeNOx,' molecules produced; ',
      &    100.d0*(changeNOx)/y(nn_NOx,L),' percent of'
      &    ,y(nn_NOx,L),'(',1.d9*y(nn_NOx,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_HNO3),': ',
+          write(out_line,198) trchemname(nn_HNO3),': ',
      &    changeHNO3,' molecules produced; ',
      &    100.d0*(changeHNO3)/y(nn_HNO3,L),' percent of'
      &    ,y(nn_HNO3,L),'(',1.d9*y(nn_HNO3,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_HETCHEM
-          write(out_line,198) ay(nn_HNO3),': ',
+          write(out_line,198) trchemname(nn_HNO3),': ',
      &    (-krate(l,1,1)*y(nn_HNO3,l)*dt2),' molecules dest dust ',
      &    (100.d0*(-krate(l,1,1)*y(nn_HNO3,l)*dt2))/y(nn_HNO3,L),
      &    ' percent of'
      &    ,y(nn_HNO3,L),'(',1.d9*y(nn_HNO3,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
 #endif
-          write(out_line,198) ay(nn_N2O5),': ',
+          write(out_line,198) trchemname(nn_N2O5),': ',
      &    changeN2O5,' net molec produced; ',
      &    100.d0*(changeN2O5)/y(nn_N2O5,L),' percent of'
      &    ,y(nn_N2O5,L),'(',1.d9*y(nn_N2O5,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_N2O5),': ',
+          write(out_line,198) trchemname(nn_N2O5),': ',
      &    gwprodN2O5,' molec prod fm gas;  ',
      &    100.d0*(gwprodN2O5)/y(nn_N2O5,L),' percent of'
      &    ,y(nn_N2O5,L),'(',1.d9*y(nn_N2O5,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_N2O5),': ',
+          write(out_line,198) trchemname(nn_N2O5),': ',
      &    -wprod_sulf,' molec prod fm sulf; ',
      &    -100.d0*(wprod_sulf)/y(nn_N2O5,L),' percent of'
      &    ,y(nn_N2O5,L),'(',1.d9*y(nn_N2O5,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_HCHO),': ',
+          write(out_line,198) trchemname(nn_HCHO),': ',
      &    wprodHCHO,' molecules produced; ',
      &    100.d0*(wprodHCHO)/y(nn_HCHO,L),' percent of'
      &    ,y(nn_HCHO,L),'(',1.d9*y(nn_HCHO,L)/y(nM,L),' ppbv)'
@@ -2423,37 +2432,37 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    100.d0*(changeAlkylNit)/y(nn_AlkylNit,L),' percent of'
      &    ,y(nn_AlkylNit,L),'(',1.d9*y(nn_AlkylNit,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_ClONO2),': ',
+          write(out_line,198) trchemname(nn_ClONO2),': ',
      &    changeClONO2,' molecules produced; ',
      &    100.d0*(changeClONO2)/y(nn_ClONO2,L),' percent of'
      &    ,y(nn_ClONO2,L),'(',1.d9*y(nn_ClONO2,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_ClOx),': ',
+          write(out_line,198) trchemname(nn_ClOx),': ',
      &    changeClOx,' molecules produced; ',
      &    100.d0*(changeClOx)/y(nn_ClOx,L),' percent of'
      &    ,y(nn_ClOx,L),'(',1.d9*y(nn_ClOx,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_HOCl),': ',
+          write(out_line,198) trchemname(nn_HOCl),': ',
      &    changeHOCl,' molecules produced; ',
      &    100.d0*(changeHOCl)/y(nn_HOCl,L),' percent of'
      &    ,y(nn_HOCl,L),'(',1.d9*y(nn_HOCl,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_HCl),': ',
+          write(out_line,198) trchemname(nn_HCl),': ',
      &    changeHCl,' molecules produced; ',
      &    100.d0*(changeHCl)/y(nn_HCl,L),' percent of'
      &    ,y(nn_HCl,L),'(',1.d9*y(nn_HCl,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_BrONO2),': ',
+          write(out_line,198) trchemname(nn_BrONO2),': ',
      &    changeBrONO2,' molecules produced; ',
      &    100.d0*(changeBrONO2)/y(nn_BrONO2,L),' percent of'
      &    ,y(nn_BrONO2,L),'(',1.d9*y(nn_BrONO2,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_BrOx),': ',
+          write(out_line,198) trchemname(nn_BrOx),': ',
      &    changeBrOx,' molecules produced; ',
      &    100.d0*(changeBrOx)/y(nn_BrOx,L),' percent of'
      &    ,y(nn_BrOx,L),'(',1.d9*y(nn_BrOx,L)/y(nM,L),' ppbv)'
           call write_parallel(trim(out_line),crit=jay)
-          write(out_line,198) ay(nn_HBr),': ',
+          write(out_line,198) trchemname(nn_HBr),': ',
      &    changeHBr,' molecules produced; ',
      &    100.d0*(changeHBr)/y(nn_HBr,L),' percent of'
      &    ,y(nn_HBr,L),'(',1.d9*y(nn_HBr,L)/y(nM,L),' ppbv)'

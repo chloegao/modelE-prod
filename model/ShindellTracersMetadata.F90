@@ -5,6 +5,20 @@ module ShindellTracersMetadata_mod
 !@sum  ShindellTracersMetadata_mod encapsulates the TRACERS_SPECIAL_Shindell
 !@+    metadata.
 !@auth NCCS ASTG
+#ifdef TRACERS_dCO
+  use TRCHEM_Shindell_COM, only: &
+    ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR, &
+    nd18OROR, nd13CROR, nd17Oald, nd18Oald, nd13Cald, &
+    ndCH317O2, ndCH318O2, nd13CH3O2,
+#endif  /* TRACERS_dCO */
+  use TRCHEM_Shindell_COM, only: &
+    nC2O3, nXO2, nXO2N, nRXPAR, nROR, nAldehyde, nH2O, &
+    nCH3O2, nH2, nOH, nHO2, nO3, nO, nO1D, nNO, nNO2, &
+    nNO3, nHONO, nCl2O2, nClO, nOClO, nCl2, nCl, nBrCl, &
+    nBrO, nBr
+  use TRCHEM_Shindell_COM, only: nO2, nM
+  use TRCHEM_Shindell_COM, only: nfam
+  use TRCHEM_Shindell_COM, only: trchemname
   use sharedTracersMetadata_mod, only: CH4_setspec, &
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
@@ -29,6 +43,7 @@ module ShindellTracersMetadata_mod
 #ifdef TRACERS_AEROSOLS_SOA
   USE TRACERS_SOA, only: n_soa_i, n_soa_e
 #endif
+  use OldTracer_mod, only: trname
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_tr_mm
   use OldTracer_mod, only: set_ntm_power
@@ -153,6 +168,61 @@ contains
         call  GLT_setSpec('GLT') ! generic linear tracer
       end if
     end if
+
+! define trchemname (old ay from MOLEC file)
+    do n=ntm_chem_beg, ntm_chem_end
+      trchemname(n-ntm_chem_beg+1)=trname(n)
+    enddo
+
+#ifdef TRACERS_dCO
+    call  C2O3_setSpec('dC217O3')
+    call  C2O3_setSpec('dC218O3')
+    call  C2O3_setSpec('d13C2O3')
+    call  RXPAR_setSpec('d13CXPAR')
+    call  ROR_setSpec('d17OROR')
+    call  ROR_setSpec('d18OROR')
+    call  ROR_setSpec('d13CROR')
+    call  Aldehyde_setSpec('d17Oald')
+    call  Aldehyde_setSpec('d18Oald')
+    call  Aldehyde_setSpec('d13Cald')
+    call  CH3O2_setSpec('dCH317O2')
+    call  CH3O2_setSpec('dCH318O2')
+    call  CH3O2_setSpec('d13CH3O2')
+#endif  /* TRACERS_dCO */
+
+    call  C2O3_setSpec('C2O3')
+    call  XO2_setSpec('XO2')
+    call  XO2N_setSpec('XO2N')
+    call  RXPAR_setSpec('RXPAR')
+    call  ROR_setSpec('ROR')
+    call  Aldehyde_setSpec('Aldehyde')
+    call  H2O_setSpec('H2O')
+    call  CH3O2_setSpec('CH3O2')
+    call  H2_setSpec('H2')
+    call  OH_setSpec('OH')
+    call  HO2_setSpec('HO2')
+! Ox family (1)
+    call  O3_setSpec('O3')
+    call  O_setSpec('O')
+    call  O1D_setSpec('O(1D)')
+! NOx family (2)
+    call  NO_setSpec('NO')
+    call  NO2_setSpec('NO2')
+    call  NO3_setSpec('NO3')
+    call  HONO_setSpec('HONO')
+! ClOx family (3)
+    call  Cl2O2_setSpec('Cl2O2')
+    call  ClO_setSpec('ClO')
+    call  OClO_setSpec('OClO')
+    call  Cl2_setSpec('Cl2')
+    call  Cl_setSpec('Cl')
+    call  BrCl_setSpec('BrCl')
+! BrOx family (4)
+    call  BrO_setSpec('BrO')
+    call  Br_setSpec('Br')
+! O2 and M always last
+    call  O2_setSpec('O2')
+    call  M_setSpec('M')
 
     call calculateIndexOffsets
 
@@ -920,6 +990,257 @@ contains
       call set_has_chemistry(n, .true.)
       call set_has_overwrite(n, .true.)
     end subroutine GLT_setSpec
+
+    subroutine C2O3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      select case (name)
+        case ('C2O3')
+          nC2O3 = n
+#ifdef TRACERS_dCO
+        case ('dC217O3')
+          ndC217O3 = n
+        case ('dC218O3')
+          ndC218O3 = n
+        case ('d13C2O3')
+          nd13C2O3 = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('C2O3-like tracer '//trim(name)//' unknown',255)
+      end select
+    end subroutine C2O3_setSpec
+
+    subroutine XO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nXO2 = n
+    end subroutine XO2_setSpec
+
+    subroutine XO2N_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nXO2N = n
+    end subroutine XO2N_setSpec
+
+    subroutine RXPAR_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      select case (name)
+        case ('RXPAR')
+          nRXPAR = n
+#ifdef TRACERS_dCO
+        case ('d13CXPAR')
+          nd13CXPAR = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('RXPAR-like tracer '//trim(name)//' unknown',255)
+      end select
+    end subroutine RXPAR_setSpec
+
+    subroutine ROR_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      select case (name)
+        case ('ROR')
+          nROR = n
+#ifdef TRACERS_dCO
+        case ('d17OROR')
+          nd17OROR = n
+        case ('d18OROR')
+          nd18OROR = n
+        case ('d13CROR')
+          nd13CROR = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('ROR-like tracer '//trim(name)//' unknown',255)
+      end select
+    end subroutine ROR_setSpec
+
+    subroutine Aldehyde_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      select case (name)
+        case ('Aldehyde')
+          nAldehyde = n
+#ifdef TRACERS_dCO
+        case ('d17Oald')
+          nd17Oald = n
+        case ('d18Oald')
+          nd18Oald = n
+        case ('d13Cald')
+          nd13Cald = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('Aldehyde-like tracer '//trim(name)//' unknown',255)
+      end select
+    end subroutine Aldehyde_setSpec
+
+    subroutine H2O_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nH2O = n
+    end subroutine H2O_setSpec
+
+    subroutine CH3O2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      select case (name)
+        case ('CH3O2')
+          nCH3O2 = n
+#ifdef TRACERS_dCO
+        case ('dCH317O2')
+          ndCH317O2 = n
+        case ('dCH318O2')
+          ndCH318O2 = n
+        case ('d13CH3O2')
+          nd13CH3O2 = n
+#endif  /* TRACERS_dCO */
+        case default
+          call stop_model('CH3O2-like tracer '//trim(name)//' unknown',255)
+      end select
+    end subroutine CH3O2_setSpec
+
+    subroutine H2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nH2 = n
+    end subroutine H2_setSpec
+
+    subroutine OH_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nOH = n
+    end subroutine OH_setSpec
+
+    subroutine HO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nHO2 = n
+    end subroutine HO2_setSpec
+
+    subroutine O3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nO3 = n
+      nfam(1) = n
+    end subroutine O3_setSpec
+
+    subroutine O_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nO = n
+    end subroutine O_setSpec
+
+    subroutine O1D_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nO1D = n
+    end subroutine O1D_setSpec
+
+    subroutine NO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nNO = n
+      nfam(2) = n
+    end subroutine NO_setSpec
+
+    subroutine NO2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nNO2 = n
+    end subroutine NO2_setSpec
+
+    subroutine NO3_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nNO3 = n
+    end subroutine NO3_setSpec
+
+    subroutine HONO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nHONO = n
+    end subroutine HONO_setSpec
+
+    subroutine Cl2O2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nCl2O2 = n
+      nfam(3) = n
+    end subroutine Cl2O2_setSpec
+
+    subroutine ClO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nClO = n
+    end subroutine ClO_setSpec
+
+    subroutine OClO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nOClO = n
+    end subroutine OClO_setSpec
+
+    subroutine Cl2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nCl2 = n
+    end subroutine Cl2_setSpec
+
+    subroutine Cl_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nCl = n
+    end subroutine Cl_setSpec
+
+    subroutine BrCl_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nBrCl = n
+    end subroutine BrCl_setSpec
+
+    subroutine BrO_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nBrO = n
+      nfam(4) = n
+    end subroutine BrO_setSpec
+
+    subroutine Br_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nBr = n
+    end subroutine Br_setSpec
+
+    subroutine O2_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nO2 = n
+    end subroutine O2_setSpec
+
+    subroutine M_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = addNonTranspChemTracer(name)
+      nM = n
+    end subroutine M_setSpec
+
+    integer function addNonTranspChemTracer(name) result(n)
+      implicit none
+      character(len=*), intent(in) :: name
+      integer :: i
+
+      n=0
+      do i=1,size(trchemname) ! brute force, but only happens once
+        if (trchemname(i)=='') then
+          n=i
+          trchemname(n)=trim(name)
+          exit
+        endif
+      enddo
+      if (n==0) call stop_model( &
+        'No space left to add non-transported tracer ' &
+        //trim(name)//'. Increase ntm_chem_nontransp.', 255)
+    end function addNonTranspChemTracer
 
   end subroutine SHINDELL_initMetadata
 

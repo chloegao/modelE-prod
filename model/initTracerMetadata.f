@@ -14,7 +14,8 @@
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
       use TRACER_COM, only: sect_name
-      use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc, ntsurfsrcmax
+      use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc
+      use Tracer_mod, only: ntsurfsrcmax
       use TRACER_COM, only: num_sectors
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources

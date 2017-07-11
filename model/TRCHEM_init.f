@@ -5,13 +5,14 @@
 !@calls jplrts,fastj2_init,reactn
 
 C**** GLOBAL parameters and variables:
+      use Dictionary_mod, only: sync_param
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
       USE TRACER_COM, only: oh_live,no3_live
       USE TRCHEM_Shindell_COM, only: nc
       USE TRCHEM_Shindell_COM, only:
-     &    prnls,prnrts,prnchg,lprn,jprn,iprn,ay,pHOx,pOx,pNOx,
+     &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,
 #ifdef TRACERS_dCO
      &    ydC217O3,ydC218O3,yd13C2O3,
@@ -20,7 +21,7 @@ C**** GLOBAL parameters and variables:
      &    yd17Oald,yd18Oald,yd13Cald,
      &    ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
-     &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam,ny
+     &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
 
       IMPLICIT NONE
@@ -28,8 +29,7 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@var iu_data temporary unit number
 !@var i,l loop dummy
-      character(len=22) :: format_110
-      integer :: iu_data,i,L,j,nc_10,nc_mod
+      integer :: iu_data,i,L,j
       integer :: J_0,J_1,J_0S,J_1S,J_1H,J_0H,I_0,I_1
          
       call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1,
@@ -40,33 +40,12 @@ C**** Local parameters and variables and arguments:
       ! Note that topLevelOfChemistry is set in 
       ! alloc_trchem_shindell_com routine
 
-! define MOLEC reading format
- 100  format(/3(50x,l1/),3(50x,i8/))
-      nc_10=floor(dble(nc+1)/10.d0)
-      if (nc_10 > 99) then
-        ! stop the model if the format becomes invalid
-        call stop_model('ERROR: Too many lines in MOLEC',255)
-      endif
-      nc_mod=mod(nc,10)
-      write (format_110,'(a2,i1,a14,i1,a4)')
-     &  '(',nc_10,'(///10a8),(///',nc_mod,'a8))'
 
-C Read chem diagnostics parameters and molecule names
-C from MOLEC file:
-      call openunit('MOLEC',iu_data,.false.,.true.)
-      read(iu_data,100)prnls,prnrts,prnchg,lprn,jprn,iprn
-      read(iu_data,trim(format_110))ay
-      call closeunit(iu_data)
-
-! figure out first element of each family
-      do i=1,ny
-        select case(ay(i))
-          case ('O3')    ; nfam(1)=i
-          case ('NO')    ; nfam(2)=i
-          case ('Cl2O2') ; nfam(3)=i
-          case ('BrO')   ; nfam(4)=i
-        end select
-      enddo
+c sync some diagnostics, as needed (formerly in MOLEC file)
+      call sync_param('print_reaction_lists', prnls)
+      call sync_param('print_reaction_rates', prnrts)
+      call sync_param('print_chemical_changes', prnchg)
+      call sync_param('coords_for_print_chemical', ijlprn, 3)
 
 C Read JPL chemical reactions/rates from unit JPLRX:
       call jplrts
@@ -152,7 +131,7 @@ C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE FILEMANAGER, only: openunit,closeunit
       USE TRCHEM_Shindell_COM, only: pe,ea,nst,ro,
-     &                               r1,sn,sb,nn,nnr,ay,rrtri
+     &                               r1,sn,sb,nn,nnr,trchemname,rrtri
      &                              ,n_rx,n_bi,n_tri,n_nst,n_het
 
       IMPLICIT NONE
@@ -229,10 +208,10 @@ c
 
 ! find the inverse reaction of a thermal decomposition
       do i=n_bi+1,n_bi+n_nst
-        invreaction = trim(ay(nnr(1,i)))//'_'//
-     &                trim(ay(nnr(2,i)))//'__'//
-     &                trim(ay(nn(1,i)))//'_'//
-     &                trim(ay(nn(2,i)))
+        invreaction = trim(trchemname(nnr(1,i)))//'_'//
+     &                trim(trchemname(nnr(2,i)))//'__'//
+     &                trim(trchemname(nn(1,i)))//'_'//
+     &                trim(trchemname(nn(2,i)))
         select case(invreaction)
           case('HO2_NO2__HO2NO2_M')
             nst(i-n_bi)=rrtri%HO2_NO2__HO2NO2_M
@@ -265,7 +244,7 @@ c
 !@auth Drew Shindell (modelEifications by Greg Faluvegi)
 
 C**** GLOBAL parameters and variables:
-      USE TRCHEM_Shindell_COM, only: nc,ay
+      USE TRCHEM_Shindell_COM, only: nc,trchemname
 
       IMPLICIT NONE
 
@@ -279,7 +258,7 @@ C**** Local parameters and variables and arguments:
       
       j=1
       do while(j <= nc)
-        if(at == ay(j))then
+        if(at == trchemname(j))then
           ks = j
           return
         else
@@ -290,7 +269,7 @@ C**** Local parameters and variables and arguments:
       ks = nc + 1
       if (at /= 'N2' .and. at /= 'H')
      &  call stop_model('ERROR: Tracer '//trim(at)//
-     &    ' does not exist in the MOLEC file',255)
+     &    ' does not exist in the trchemname array',255)
 
       return
       end SUBROUTINE lstnum
@@ -306,7 +285,7 @@ C**** Local parameters and variables and arguments:
 
       use Dictionary_mod, only: sync_param
       use resolution, only: plbot, LM
-      use TRCHEM_Shindell_COM, only: iprn,jprn,prnrts,n_rj
+      use TRCHEM_Shindell_COM, only: ijlprn,prnrts,n_rj
      &                              ,p_1,topLevelOfChemistry
       use photolysis, only: phtlst,inphot
      &                     ,j_iprn,j_jprn,j_prnrts,jppj,jlabel
@@ -337,8 +316,8 @@ C**** Local parameters and variables and arguments:
       end if
       ncfastj2=2*NLGCM+2
       nbfastj=NLGCM+1
-      j_iprn=iprn
-      j_jprn=jprn
+      j_iprn=ijlprn(1)
+      j_jprn=ijlprn(2)
       j_prnrts=prnrts
       jppj=n_rj ! needed for the photolysis routine
  
@@ -537,7 +516,7 @@ c           check that reaction is intrafamily
 C**** GLOBAL parameters and variables:
       USE DOMAIN_DECOMP_ATM, only: write_parallel
       USE TRCHEM_Shindell_COM, only: kpnr,npnr,kdnr,ndnr,kps,nps,
-     &                         ny,nn,nnr,ay,kds,nds,nc
+     &                         ny,nn,nnr,trchemname,kds,nds,nc
       use photolysis, only: ks,kss
 
       IMPLICIT NONE
@@ -557,7 +536,7 @@ c Print reaction lists:
       do igas=1,ny
         write(out_line,*) ' '
         call write_parallel(trim(out_line))
-        write(out_line,10) ay(igas)
+        write(out_line,10) trchemname(igas)
         call write_parallel(trim(out_line))
         ichange=kpnr(igas+1)-kpnr(igas)
         if(ichange >= 1) then
@@ -566,12 +545,13 @@ c Print reaction lists:
             if (nnr(2,npnr(ireac)) > nc) then
               write(out_line,20)
      &        ' Reaction # ',npnr(ireac),' produces ',
-     &        ay(nnr(1,npnr(ireac))),' and  ','X'
+     &        trchemname(nnr(1,npnr(ireac))),' and  ','X'
               call write_parallel(trim(out_line))
             else
               write(out_line,20)
      &        ' Reaction # ',npnr(ireac),' produces ',
-     &        ay(nnr(1,npnr(ireac))),' and  ',ay(nnr(2,npnr(ireac)))
+     &        trchemname(nnr(1,npnr(ireac))),' and  ',
+     &        trchemname(nnr(2,npnr(ireac)))
               call write_parallel(trim(out_line))
             end if
           enddo
@@ -586,7 +566,7 @@ c Print reaction lists:
       do igas=1,ny
         write(out_line,*) ' '
         call write_parallel(trim(out_line))
-        write(out_line,10) ay(igas)
+        write(out_line,10) trchemname(igas)
         call write_parallel(trim(out_line))
         ichange=kdnr(igas+1)-kdnr(igas)
         if(ichange >= 1) then
@@ -594,7 +574,8 @@ c Print reaction lists:
             ireac=ireac+1
             write(out_line,20)
      &      ' Reaction # ',ndnr(ireac),' destroys ',
-     *      ay(nn(1,ndnr(ireac))),' and  ',ay(nn(2,ndnr(ireac)))
+     &      trchemname(nn(1,ndnr(ireac))),' and  ',
+     &      trchemname(nn(2,ndnr(ireac)))
             call write_parallel(trim(out_line))
           enddo
         end if
@@ -608,14 +589,15 @@ c Print reaction lists:
       do igas=1,ny
         write(out_line,*) ' '
         call write_parallel(trim(out_line))
-        write(out_line,10) ay(igas)
+        write(out_line,10) trchemname(igas)
         call write_parallel(trim(out_line))
         ichange=kps(igas+1)-kps(igas)
         if(ichange >= 1) then
           do ii=1,ichange
             ireac=ireac+1
             write(out_line,20) ' Reaction # ',nps(ireac),' produces ',
-     *      ay(kss(1,nps(ireac))),' and  ', ay(kss(2,nps(ireac)))
+     &      trchemname(kss(1,nps(ireac))),' and  ',
+     &      trchemname(kss(2,nps(ireac)))
             call write_parallel(trim(out_line))
           enddo
         end if
@@ -629,14 +611,14 @@ c Print reaction lists:
       do igas=1,ny
         write(out_line,*) ' '
         call write_parallel(trim(out_line))
-        write(out_line,10) ay(igas)
+        write(out_line,10) trchemname(igas)
         call write_parallel(trim(out_line))
         ichange=kds(igas+1)-kds(igas)
         if(ichange >= 1) then
           do ii=1,ichange
             ireac=ireac+1
             write(out_line,30) ' Reaction # ',nds(ireac),' destroys ',
-     *      ay(ks(nds(ireac)))
+     *      trchemname(ks(nds(ireac)))
             call write_parallel(trim(out_line))
           enddo
         end if

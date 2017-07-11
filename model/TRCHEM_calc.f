@@ -59,7 +59,7 @@ C
      &                   d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
      &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
-     &                   nO3,nNO2,nNO3,prnrts,jprn,iprn,lprn,ay,
+     &                   nO3,nNO2,nNO3,prnrts,ijlprn,trchemname,
      &                   prnchg,y,nps,kps,nds,kds,n_rx,n_rj,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
      &                   Jacet,acetone,minKG,rrmono,rrbi,rrtri
@@ -1327,35 +1327,38 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C             REACTION RATES, CHEMICAL CHANGES
 c (chem1prn: argument before multip is index = number of call):
       
-      if(prnrts .and. J==jprn .and. I==iprn)then
+      if(prnrts .and. J==ijlprn(2) .and. I==ijlprn(1))then
         do igas=1,ntm_chem
           total=0.d0
-          write(out_line,108)' Species: ',ay(igas)
+          write(out_line,108)' Species: ',trchemname(igas)
           call write_parallel(trim(out_line),crit=jay)
 
           call chem1prn
      &    (kdnr,2,n_rx,nn,ndnr,chemrate,1,-1,igas,total,maxL,I,J,jay)
 
           if(igas == nn_NOx)then
-            if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
+            if(-dest(nn_HO2NO2,ijlprn(3)) >= y(nn_HO2NO2,ijlprn(3)) .or.
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'loss by reaction rrtri%HO2_NO2__HO2NO2_M removed',
-     &          chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)
+     &          chemrate(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_N2O5,ijlprn(3)) >= y(nn_N2O5,ijlprn(3)) .or.
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'losses by reaction rrtri%NO3_NO2__N2O5_M removed',
-     &          2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,lprn)
+     &          2.d0*chemrate(rrtri%NO3_NO2__N2O5_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn) .or.
-     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_PAN,ijlprn(3)) >= y(nn_PAN,ijlprn(3)) .or.
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'losses by reaction rrtri%C2O3_NO2__PAN_M removed',
-     &          chemrate(rrtri%C2O3_NO2__PAN_M,lprn)
+     &          chemrate(rrtri%C2O3_NO2__PAN_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
@@ -1364,29 +1367,32 @@ c (chem1prn: argument before multip is index = number of call):
      &    (kpnr,2,n_rx,nnr,npnr,chemrate,2,1,igas,total,maxL,I,J,jay)
      
           if(igas == nn_NOx)then
-            if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
+            if(-dest(nn_HO2NO2,ijlprn(3)) >= y(nn_HO2NO2,ijlprn(3)) .or.
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'gain by reactions destroying HO2NO2 removed  ',
-     &          (rr(rrbi%OH_HO2NO2__H2O_NO2,lprn)*y(nOH,L)
-     &            +rr(rrmono%HO2NO2_M__HO2_NO2,lprn)*y(nM,lprn)
-     &            +ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
-     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)
-     &          )*y(nn_HO2NO2,lprn)*dt2
+     &          (rr(rrbi%OH_HO2NO2__H2O_NO2,ijlprn(3))*y(nOH,L)
+     &           +rr(rrmono%HO2NO2_M__HO2_NO2,ijlprn(3))*y(nM,ijlprn(3))
+     &            +ss(rj%HO2NO2__HO2_NO2,ijlprn(3),I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,ijlprn(3),I,J)
+     &          )*y(nn_HO2NO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)     
             endif
-            if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn).or.
-     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_N2O5,ijlprn(3)) >= y(nn_N2O5,ijlprn(3)).or.
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'gains by reaction rrmono%N2O5_M__NO3_NO2 removed',
-     &          2.d0*chemrate(rrmono%N2O5_M__NO3_NO2,lprn)
+     &          2.d0*chemrate(rrmono%N2O5_M__NO3_NO2,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn).or.
-     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_PAN,ijlprn(3)) >= y(nn_PAN,ijlprn(3)).or.
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)
      &          'gain by reaction rrbi%PAN_M__C2O3_NO2 removed',
-     &          chemrate(rrbi%PAN_M__C2O3_NO2,lprn)
+     &          chemrate(rrbi%PAN_M__C2O3_NO2,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
@@ -1400,156 +1406,167 @@ c (chem1prn: argument before multip is index = number of call):
 ! involving Oxcorr above:
 !          if(igas == nn_Ox) then
 !            write(out_line,110)'Ox change due to within NOx rxns  ',
-!     &      -Oxcorr(lprn)
+!     &      -Oxcorr(ijlprn(3))
 !            call write_parallel(trim(out_line),crit=jay)
 !          end if
 
           if(igas == nn_NOx)then
-            if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_N2O5,ijlprn(3)) >= y(nn_N2O5,ijlprn(3)) .or.
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)'gains by reaction 7'//
      &          ' (N2O5 photolysis) removed',
-     &          ss(rj%N2O5__NO3_NO2,lprn,I,J)*
-     &          y(nn_N2O5,lprn)*dt2
+     &          ss(rj%N2O5__NO3_NO2,ijlprn(3),I,J)*
+     &          y(nn_N2O5,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_N2O5,lprn) >= y(nn_N2O5,lprn) .or.
-     &      chemrate(rrtri%NO3_NO2__N2O5_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_N2O5,ijlprn(3)) >= y(nn_N2O5,ijlprn(3)) .or.
+     &      chemrate(rrtri%NO3_NO2__N2O5_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)'net change due to N2O5 is ',
-     &          2.d0*(y(nn_N2O5,lprn)
-     &                -(rr(rrtri%NO3_NO2__N2O5_M,lprn)*y(nNO3,lprn)*
-     &                    *y(nNO2,lprn))
-     &                 /(rr(rrmono%N2O5_M__NO3_NO2,lprn)*y(nM,lprn)
-     &                   +ss(rj%N2O5__NO3_NO2,lprn,I,J)))
+     &          2.d0*(y(nn_N2O5,ijlprn(3))
+     &           -(rr(rrtri%NO3_NO2__N2O5_M,ijlprn(3))*y(nNO3,ijlprn(3))
+     &                    *y(nNO2,ijlprn(3)))
+     &            /(rr(rrmono%N2O5_M__NO3_NO2,ijlprn(3))*y(nM,ijlprn(3))
+     &                   +ss(rj%N2O5__NO3_NO2,ijlprn(3),I,J)))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
+            if(-dest(nn_HO2NO2,ijlprn(3)) >= y(nn_HO2NO2,ijlprn(3)) .or.
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)'gain by rxns 10 & 11 (HO2NO2'
      &          //' photolysis) removed',
-     &          (ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
-     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)
-     &          )*y(nn_HO2NO2,lprn)*dt2
+     &          (ss(rj%HO2NO2__HO2_NO2,ijlprn(3),I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,ijlprn(3),I,J)
+     &          )*y(nn_HO2NO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_HO2NO2,lprn) >= y(nn_HO2NO2,lprn) .or.
-     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,lprn)>y(nn_NOx,lprn)) then
+            if(-dest(nn_HO2NO2,ijlprn(3)) >= y(nn_HO2NO2,ijlprn(3)) .or.
+     &      chemrate(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)'net change due to HO2NO2 is ',
-     &          y(nn_HO2NO2,lprn)
-     &          -((rr(rrtri%HO2_NO2__HO2NO2_M,lprn)*y(nHO2,lprn)*
-     &            y(nNO2,lprn))
-     &          /(rr(rrbi%OH_HO2NO2__H2O_NO2,lprn)*y(nOH,lprn)
-     &            +rr(rrmono%HO2NO2_M__HO2_NO2,lprn)*y(nM,lprn)
-     &            +ss(rj%HO2NO2__HO2_NO2,lprn,I,J)
-     &            +ss(rj%HO2NO2__OH_NO3,lprn,I,J)))
+     &          y(nn_HO2NO2,ijlprn(3))
+     &          -((rr(rrtri%HO2_NO2__HO2NO2_M,ijlprn(3))
+     &          *y(nHO2,ijlprn(3))*y(nNO2,ijlprn(3)))
+     &          /(rr(rrbi%OH_HO2NO2__H2O_NO2,ijlprn(3))*y(nOH,ijlprn(3))
+     &           +rr(rrmono%HO2NO2_M__HO2_NO2,ijlprn(3))*y(nM,ijlprn(3))
+     &            +ss(rj%HO2NO2__HO2_NO2,ijlprn(3),I,J)
+     &            +ss(rj%HO2NO2__OH_NO3,ijlprn(3),I,J)))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_PAN,lprn) >= y(nn_PAN,lprn) .or.
-     &      chemrate(rrtri%C2O3_NO2__PAN_M,lprn) > y(nn_NOx,lprn)) then
+            if(-dest(nn_PAN,ijlprn(3)) >= y(nn_PAN,ijlprn(3)) .or.
+     &      chemrate(rrtri%C2O3_NO2__PAN_M,ijlprn(3))>
+     &      y(nn_NOx,ijlprn(3))) then
               write(out_line,110)'net change due to PAN is ',
-     &          y(nn_PAN,lprn)
-     &          -((rr(rrtri%C2O3_NO2__PAN_M,lprn)*y(nC2O3,lprn)*
-     &            y(nNO2,lprn))
-     &          /(rr(rrbi%PAN_M__C2O3_NO2,lprn)*y(nM,lprn)
-     &            +ss(rj%PAN__C2O3_NO2,lprn,I,J)))
+     &          y(nn_PAN,ijlprn(3))
+     &          -((rr(rrtri%C2O3_NO2__PAN_M,ijlprn(3))
+     &          *y(nC2O3,ijlprn(3))*y(nNO2,ijlprn(3)))
+     &          /(rr(rrbi%PAN_M__C2O3_NO2,ijlprn(3))*y(nM,ijlprn(3))
+     &            +ss(rj%PAN__C2O3_NO2,ijlprn(3),I,J)))
               call write_parallel(trim(out_line),crit=jay)    
             end if
           end if
                 
           if(igas == nn_Ox .or. igas == nn_NOx) total=
-     &    100.d0*(dest(igas,lprn)+prod(igas,lprn))/y(igas,lprn)
+     &    100.d0*(dest(igas,ijlprn(3))+prod(igas,ijlprn(3)))
+     &    /y(igas,ijlprn(3))
      
           if(igas == nn_BrOx)then
-            if(-dest(nn_HOBr,lprn) >= y(nn_HOBr,lprn).or.
-     &         chemrate(rrbi%BrO_HO2__HOBr_O2,lprn) >
-     &           0.5d0*y(nn_BrOx,lprn))then
+            if(-dest(nn_HOBr,ijlprn(3)) >= y(nn_HOBr,ijlprn(3)).or.
+     &         chemrate(rrbi%BrO_HO2__HOBr_O2,ijlprn(3)) >
+     &           0.5d0*y(nn_BrOx,ijlprn(3)))then
               write(out_line,110)
      &          'gain by rxns 24 (HOBr photolysis) removed',
-     &          ss(rj%HOBr__Br_OH,lprn,i,j)*y(nn_HOBr,lprn)*dt2
+     &         ss(rj%HOBr__Br_OH,ijlprn(3),i,j)*y(nn_HOBr,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrbi%BrO_HO2__HOBr_O2 removed',
-     &          chemrate(rrbi%BrO_HO2__HOBr_O2,lprn)
+     &          chemrate(rrbi%BrO_HO2__HOBr_O2,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             endif
-            if(-dest(nn_BrONO2,lprn) >= y(nn_BrONO2,lprn) .or.
-     &         chemrate(rrtri%BrO_NO2__BrONO2_M,lprn) >
-     &           0.5d0*y(nn_BrOx,lprn))then
+            if(-dest(nn_BrONO2,ijlprn(3)) >= y(nn_BrONO2,ijlprn(3)) .or.
+     &         chemrate(rrtri%BrO_NO2__BrONO2_M,ijlprn(3)) >
+     &           0.5d0*y(nn_BrOx,ijlprn(3)))then
               write(out_line,110)
      &          'gain by rxns 23 (BrONO2 photolysis) removed',
-     &          ss(rj%BrONO2__BrO_NO2,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
+     &          ss(rj%BrONO2__BrO_NO2,ijlprn(3),i,j)
+     &          *y(nn_BrONO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%BrO_NO2__BrONO2_M removed'
-     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,lprn)
+     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
           
           if(igas == nn_NOx)then
-            if(-dest(nn_BrONO2,lprn) >= y(nn_BrONO2,lprn) .or.
-     &         chemrate(rrtri%BrO_NO2__BrONO2_M,lprn) >
-     &           0.5d0*y(nn_BrOx,lprn))then
+            if(-dest(nn_BrONO2,ijlprn(3)) >= y(nn_BrONO2,ijlprn(3)) .or.
+     &         chemrate(rrtri%BrO_NO2__BrONO2_M,ijlprn(3)) >
+     &           0.5d0*y(nn_BrOx,ijlprn(3)))then
               write(out_line,110)
      &        'gain by rxns 23 (BrONO2 photolysis) removed'
-     &        ,ss(rj%BrONO2__BrO_NO2,lprn,i,j)*y(nn_BrONO2,lprn)*dt2
+     &        ,ss(rj%BrONO2__BrO_NO2,ijlprn(3),i,j)
+     &        *y(nn_BrONO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%BrO_NO2__BrONO2_M removed'
-     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,lprn)
+     &          ,chemrate(rrtri%BrO_NO2__BrONO2_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)     
             end if
           end if
           
           if(igas == nn_ClOx)then
-            if(-dest(nn_HOCl,lprn) >= y(nn_HOCl,lprn) .or.
-     &      chemrate(rrbi%ClO_HO2__HOCl_O2,lprn) > y(nn_ClOx,lprn))then
+            if(-dest(nn_HOCl,ijlprn(3)) >= y(nn_HOCl,ijlprn(3)) .or.
+     &      chemrate(rrbi%ClO_HO2__HOCl_O2,ijlprn(3))>
+     &      y(nn_ClOx,ijlprn(3)))then
               write(out_line,110)
      &          'gain by rxn 21 (HOCl photolysis) removed',
-     &          ss(rj%HOCl__OH_Cl,lprn,i,j)*y(nn_HOCl,lprn)*dt2
+     &         ss(rj%HOCl__OH_Cl,ijlprn(3),i,j)*y(nn_HOCl,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'gain by rxn rrbi%O_HOCl__OH_ClO removed',
-     &          chemrate(rrbi%O_HOCl__OH_ClO,lprn)
+     &          chemrate(rrbi%O_HOCl__OH_ClO,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
                 write(out_line,110)
      &          'loss by rxn rrbi%ClO_HO2__HOCl_O2 removed',
-     &          chemrate(rrbi%ClO_HO2__HOCl_O2,lprn)
+     &          chemrate(rrbi%ClO_HO2__HOCl_O2,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             endif 
-            if(-dest(nn_ClONO2,lprn) >= y(nn_ClONO2,lprn) .or.
-     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
-     &           0.8d0*y(nn_ClOx,lprn))then
+            if(-dest(nn_ClONO2,ijlprn(3)) >= y(nn_ClONO2,ijlprn(3)) .or.
+     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,ijlprn(3)) >
+     &           0.8d0*y(nn_ClOx,ijlprn(3)))then
               write(out_line,110)
      &          'gain by rxn 22 (ClONO2 photolysis) removed',
-     &          ss(rj%ClONO2__Cl_NO3,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          ss(rj%ClONO2__Cl_NO3,ijlprn(3),i,j)
+     &          *y(nn_ClONO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
-     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
-     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn)
+     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
         
           if(igas == nn_NOx)then
-            if(-dest(nn_ClONO2,lprn) >= y(nn_ClONO2,lprn) .or.
-     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn) >
-     &           0.8d0*y(nn_ClOx,lprn))then
+            if(-dest(nn_ClONO2,ijlprn(3)) >= y(nn_ClONO2,ijlprn(3)) .or.
+     &         chemrate(rrtri%ClO_ClO__Cl2O2_M,ijlprn(3)) >
+     &           0.8d0*y(nn_ClOx,ijlprn(3)))then
               write(out_line,110)
      &          'gain by rxn 22 (ClONO2 photolysis) removed',
-     &          ss(rj%ClONO2__Cl_NO3,lprn,i,j)*y(nn_ClONO2,lprn)*dt2
+     &          ss(rj%ClONO2__Cl_NO3,ijlprn(3),i,j)
+     &          *y(nn_ClONO2,ijlprn(3))*dt2
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'gain by rxn rrbi%ClONO2_O__ClO_NO3 removed',
-     &          chemrate(rrbi%ClONO2_O__ClO_NO3,lprn)
+     &          chemrate(rrbi%ClONO2_O__ClO_NO3,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
               write(out_line,110)
      &          'loss by rxn rrtri%ClO_ClO__Cl2O2_M removed'
-     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,lprn)
+     &          ,chemrate(rrtri%ClO_ClO__Cl2O2_M,ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
             end if
           end if
@@ -1557,8 +1574,8 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_CH3OOH) then
             write(out_line,'(a48,a6,e10.3)')
      &        'production from XO2N + HO2 ','dy = ',
-     &        y(nHO2,lprn)*y(nXO2N,lprn)
-     &        *rr(rrbi%XO2N_HO2__CH3OOH_O2,lprn)*dt2
+     &        y(nHO2,ijlprn(3))*y(nXO2N,ijlprn(3))
+     &        *rr(rrbi%XO2N_HO2__CH3OOH_O2,ijlprn(3))*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 
@@ -1566,27 +1583,28 @@ c (chem1prn: argument before multip is index = number of call):
           if(igas == nn_HNO3) then
             write(out_line,'(a48,a6,e10.3)')
      &      'destruction from HNO3 +dust ','dy = ',
-     &      -y(nn_HNO3,lprn)*krate(lprn,1,1)*dt2
+     &      -y(nn_HNO3,ijlprn(3))*krate(ijlprn(3),1,1)*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif
           if(igas == nn_Paraffin) then
             write(out_line,'(a48,a6,e10.3)')'destruction from RXPAR ',
-     &      'dy = ',-y(nRXPAR,lprn)*y(nn_Paraffin,lprn)
-     &        *rr(rrbi%Paraffin_RXPAR__M_M,lprn)*dt2
+     &      'dy = ',-y(nRXPAR,ijlprn(3))*y(nn_Paraffin,ijlprn(3))
+     &        *rr(rrbi%Paraffin_RXPAR__M_M,ijlprn(3))*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #ifdef TRACERS_dCO
           if(igas == nn_d13CPAR) then
             write(out_line,'(a48,a6,e10.3)')'destruction from d13CXPAR',
-     &      'dy = ',-y(nRXPAR,lprn)*y(nn_d13CPAR,lprn)
-     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,lprn)*dt2
+     &      'dy = ',-y(nRXPAR,ijlprn(3))*y(nn_d13CPAR,ijlprn(3))
+     &        *rr(rrbi%d13CPAR_d13CXPAR__M_M,ijlprn(3))*dt2
             call write_parallel(trim(out_line),crit=jay)
           end if
 #endif  /* TRACERS_dCO */
           
-          write(out_line,118) ' Total change in ',ay(igas),
-     &    ' is ',total,' percent; dy= ',dest(igas,lprn)+prod(igas,lprn)
+          write(out_line,118) ' Total change in ',trchemname(igas),
+     &    ' is ',total,' percent; dy= ',dest(igas,ijlprn(3))
+     &    +prod(igas,ijlprn(3))
           call write_parallel(trim(out_line),crit=jay)
           write(out_line,*) ' '
           call write_parallel(trim(out_line),crit=jay)
@@ -1596,7 +1614,7 @@ c (chem1prn: argument before multip is index = number of call):
  110  format(a68,e10.3)
  118  format(a17,a8,a4,f10.0,a14,e12.3)
 
-      if(prnchg .and. J == jprn .and. I == iprn) then
+      if(prnchg .and. J == ijlprn(2) .and. I == ijlprn(1)) then
         write(out_line,*)
      &  'Percentage ozone loss per cycle at I,J:',I,J
         call write_parallel(trim(out_line),crit=jay)
@@ -1641,7 +1659,7 @@ c (chem1prn: argument before multip is index = number of call):
         write(out_line,*) ' '
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a35,3(2x,i2))')
-     &  ' Total change by species at I, J, L',i,j,lprn
+     &  ' Total change by species at I, J, L',i,j,ijlprn(3)
         call write_parallel(trim(out_line),crit=jay)
       end if ! end of chemistry diagnostics ----------------------------
 
@@ -1995,7 +2013,7 @@ c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
 c Ensure nitrogen conservation,
 c (since equilibration of short lived gases may alter this):
 
-      if(prnchg .and. J == jprn .and. I == iprn)then
+      if(prnchg .and. J == ijlprn(2) .and. I == ijlprn(1))then
         write(out_line,*)
      &  'changes (mass) before nitrogen conservation routine'
         call write_parallel(trim(out_line),crit=jay)
@@ -2003,18 +2021,20 @@ c (since equilibration of short lived gases may alter this):
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,*) 'ClONO2, BrONO2'
         call write_parallel(trim(out_line),crit=jay)
-        write(out_line,*) changeL(lprn,n_NOx),changeL(lprn,n_N2O5),
-     &  changeL(lprn,n_HO2NO2),changeL(lprn,n_HNO3),
-     &  changeL(lprn,n_PAN),changeL(lprn,n_AlkylNit)
-     &  ,changeL(lprn,n_N2O)
-     &  ,changeL(lprn,n_ClONO2),changeL(lprn,n_BrONO2)
+        write(out_line,*) changeL(ijlprn(3),n_NOx),
+     &  changeL(ijlprn(3),n_N2O5),
+     &  changeL(ijlprn(3),n_HO2NO2),changeL(ijlprn(3),n_HNO3),
+     &  changeL(ijlprn(3),n_PAN),changeL(ijlprn(3),n_AlkylNit)
+     &  ,changeL(ijlprn(3),n_N2O)
+     &  ,changeL(ijlprn(3),n_ClONO2),changeL(ijlprn(3),n_BrONO2)
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,*)
-     &  'N2O change w/o rxns forming N2',sv_changeN2O(lprn)
+     &  'N2O change w/o rxns forming N2',sv_changeN2O(ijlprn(3))
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_HETCHEM
         write(out_line,*) 'HNO3 loss on dust replaced for cons ',
-     &  (krate(lprn,1,1)*y(nn_HNO3,lprn)*dt2)*rMAbyM(lprn)*axyp(I,J)
+     &  (krate(ijlprn(3),1,1)*y(nn_HNO3,ijlprn(3))*dt2)
+     &  *rMAbyM(ijlprn(3))*axyp(I,J)
         call write_parallel(trim(out_line),crit=jay)
 #endif
       end if
@@ -2049,7 +2069,7 @@ c First check for nitrogen loss > 100% :
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(l,1,1)
      &  *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
-!       if(prnchg .and. i == iprn .and. j == jprn) then
+!       if(prnchg .and. i == ijlprn(1) .and. j == ijlprn(2)) then
 !         write(out_line,*)
 !    &    changeL(L,n_HNO3),krate(l,1,1),y(nn_HNO3,l)
 !         call write_parallel(trim(out_line),crit=jay)
@@ -2068,7 +2088,8 @@ c Next insure balance between dNOx and sum of dOthers:
      &  changeL(L,n_BrONO2)*mass2vol(n_BrONO2)
         dNOx=changeL(L,n_NOx)*mass2vol(n_NOx)+
      &  2.d0*sv_changeN2O(L)*mass2vol(n_N2O)
-        if(prnchg.and.J==jprn.and.I==iprn.and.L==lprn) then
+        if (prnchg.and.
+     &      J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3)) then
           write(out_line,*)
      &    'other N changes, dNOx (less prod fm N2O) = (molec) ',
      &    sumN,dNOx
@@ -2213,7 +2234,8 @@ c          reduce NOx destruction to match N production:
 
         end if ! skipped section above if ratio very close to one
 
-        if(prnchg.and.J==jprn.and.I==iprn.and.L==lprn) then
+        if (prnchg.and.
+     &      J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3)) then
           write(out_line,*) 'ratio for conservation =',ratio
           call write_parallel(trim(out_line),crit=jay)
         endif
@@ -2256,7 +2278,8 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      *         *cpd/DTsrc
 #endif
         end if 
-        if(prnchg.and.J==jprn.and.I==iprn.and.l==lprn) then
+        if (prnchg.and.
+     &      J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3)) then
           write(out_line,*) 'NOx loss & Ox gain due to rxns  w/ N '
      &    ,NlossNOx,NprodOx
           call write_parallel(trim(out_line),crit=jay)
@@ -2265,14 +2288,14 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
       end do ! end big L loop -----------------
 
 c     In the stratosphere, calculate ozone change due to rxn with atomic H:
-      if(prnchg.and.J==jprn.and.I==iprn) then
+      if(prnchg.and.J==ijlprn(2).and.I==ijlprn(1)) then
         write(out_line,*) 'Ox loss due to rxns  w/ H : L, OxlossbyH(L)'
         call write_parallel(trim(out_line),crit=jay)
       end if
       do L=maxT+1,maxL
         if(OxlossbyH(L)<y(nn_Ox,L))dest(nn_Ox,L)=
      &  dest(nn_Ox,L)-OxlossbyH(L)
-        if(prnchg.and.J==jprn.and.I==iprn) then 
+        if(prnchg.and.J==ijlprn(2).and.I==ijlprn(1)) then 
           write(out_line,'(i3,1X,E20.5)') L,OxlossbyH(L)
           call write_parallel(trim(out_line),crit=jay)
         end if
@@ -2286,114 +2309,117 @@ c     In the stratosphere, calculate ozone change due to rxn with atomic H:
       ! as it doesn't come back to the gas phase.
 
 c Print chemical changes in a particular grid box if desired:
-      if(prnchg .and. J==jprn .and. I==iprn)then
+      if(prnchg .and. J==ijlprn(2) .and. I==ijlprn(1))then
         do igas=1,ntm_chem
           idx=igas+ntm_chem_beg-1
-          changeA=changeL(Lprn,idx)*y(nM,lprn)*mass2vol(idx)*
-     &    byaxyp(I,J)*byMA(lprn,I,J)
-          if(y(igas,lprn) == 0.d0)then
-            write(out_line,156) ay(igas),': ',changeA,' molecules;  y=0'
+          changeA=changeL(ijlprn(3),idx)*y(nM,ijlprn(3))*mass2vol(idx)*
+     &    byaxyp(I,J)*byMA(ijlprn(3),I,J)
+          if(y(igas,ijlprn(3)) == 0.d0)then
+            write(out_line,156) trchemname(igas),': ',changeA,
+     &                          ' molecules;  y=0'
             call write_parallel(trim(out_line),crit=jay)
           else
-            write(out_line,155)ay(igas),': ',changeA
+            write(out_line,155)trchemname(igas),': ',changeA
      &      ,' molecules produced; ',
-     &      (100.d0*changeA)/y(igas,lprn),' percent of'
-     &      ,y(igas,lprn),'(',1.d9*y(igas,lprn)/y(nM,lprn),' ppbv)'
+     &      (100.d0*changeA)/y(igas,ijlprn(3)),' percent of'
+     &      ,y(igas,ijlprn(3)),'(',1.d9*y(igas,ijlprn(3))
+     &      /y(nM,ijlprn(3)),' ppbv)'
             call write_parallel(trim(out_line),crit=jay)
           end if
         end do ! igas
-        write(out_line,155) ay(nH2O),': ',
-     &  changeH2O(lprn),' molecules produced; ',
-     &  (100*changeH2O(lprn))/y(nH2O,lprn),' percent of',
-     &  y(nH2O,lprn),'(',1.d6*y(nH2O,lprn)/y(nM,lprn),' ppmv)'
+        write(out_line,155) trchemname(nH2O),': ',
+     &  changeH2O(ijlprn(3)),' molecules produced; ',
+     &  (100*changeH2O(ijlprn(3)))/y(nH2O,ijlprn(3)),' percent of',
+     &  y(nH2O,ijlprn(3)),'(',1.d6*y(nH2O,ijlprn(3))/y(nM,ijlprn(3)),
+     &  ' ppmv)'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' CH3O2   :',yCH3O2(I,J,LPRN),(yCH3O2(I,J,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
-        call write_parallel(trim(out_line),crit=jay)
-#ifdef TRACERS_dCO
-        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' dCH317O2:',ydCH317O2(I,J,LPRN),(ydCH317O2(I,J,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
-        call write_parallel(trim(out_line),crit=jay)
-        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' dCH318O2:',ydCH318O2(I,J,LPRN),(ydCH318O2(I,J,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
-        call write_parallel(trim(out_line),crit=jay)
-        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d13CH3O2:',yd13CH3O2(I,J,LPRN),(yd13CH3O2(I,J,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
-        call write_parallel(trim(out_line),crit=jay)
-#endif  /* TRACERS_dCO */
-        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' C2O3    :',y(nC2O3,LPRN),(y(nC2O3,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' CH3O2   :',yCH3O2(I,J,ijlprn(3)),(yCH3O2(I,J,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_dCO
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' dC217O3 :',y(ndC217O3,LPRN),(y(ndC217O3,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' dCH317O2:',ydCH317O2(I,J,ijlprn(3)),(ydCH317O2(I,J,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' dC218O3 :',y(ndC218O3,LPRN),(y(ndC218O3,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' dCH318O2:',ydCH318O2(I,J,ijlprn(3)),(ydCH318O2(I,J,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d13C2O3 :',y(nd13C2O3,LPRN),(y(nd13C2O3,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d13CH3O2:',yd13CH3O2(I,J,ijlprn(3)),(yd13CH3O2(I,J,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_dCO */
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' XO2     :',y(nXO2,LPRN),(y(nXO2,LPRN)/
-     &  y(nM,LPRN))*1.d9,
+     &  ' C2O3    :',y(nC2O3,ijlprn(3)),(y(nC2O3,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#ifdef TRACERS_dCO
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dC217O3 :',y(ndC217O3,ijlprn(3)),(y(ndC217O3,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' dC218O3 :',y(ndC218O3,ijlprn(3)),(y(ndC218O3,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' d13C2O3 :',y(nd13C2O3,ijlprn(3)),(y(nd13C2O3,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
+        call write_parallel(trim(out_line),crit=jay)
+#endif  /* TRACERS_dCO */
+        write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
+     &  ' XO2     :',y(nXO2,ijlprn(3)),(y(nXO2,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,
      &  ' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' XO2N    :',y(nXO2N,LPRN),(y(nXO2N,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' XO2N    :',y(nXO2N,ijlprn(3)),(y(nXO2N,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' RXPAR   :',y(nRXPAR,LPRN),(y(nRXPAR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' RXPAR   :',y(nRXPAR,ijlprn(3)),(y(nRXPAR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_dCO
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d13CXPAR:',y(nd13CXPAR,LPRN),(y(nd13CXPAR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d13CXPAR:',y(nd13CXPAR,ijlprn(3)),(y(nd13CXPAR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_dCO */
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' Aldehyde:',y(nAldehyde,LPRN),(y(nAldehyde,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' Aldehyde:',y(nAldehyde,ijlprn(3)),(y(nAldehyde,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_dCO
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d17Oald :',y(nd17Oald,LPRN),(y(nd17Oald,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d17Oald :',y(nd17Oald,ijlprn(3)),(y(nd17Oald,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d18Oald :',y(nd18Oald,LPRN),(y(nd18Oald,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d18Oald :',y(nd18Oald,ijlprn(3)),(y(nd18Oald,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d13Cald :',y(nd13Cald,LPRN),(y(nd13Cald,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d13Cald :',y(nd13Cald,ijlprn(3)),(y(nd13Cald,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_dCO */
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' ROR     :',y(nROR,LPRN),(y(nROR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' ROR     :',y(nROR,ijlprn(3)),(y(nROR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_dCO
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d17OROR :',y(nd17OROR,LPRN),(y(nd17OROR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d17OROR :',y(nd17OROR,ijlprn(3)),(y(nd17OROR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d18OROR :',y(nd18OROR,LPRN),(y(nd18OROR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d18OROR :',y(nd18OROR,ijlprn(3)),(y(nd18OROR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' d13CROR :',y(nd13CROR,LPRN),(y(nd13CROR,LPRN)/
-     &  y(nM,LPRN))*1.d9,' ppbv'
+     &  ' d13CROR :',y(nd13CROR,ijlprn(3)),(y(nd13CROR,ijlprn(3))/
+     &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #endif  /* TRACERS_dCO */
 
@@ -2525,7 +2551,7 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_dCO_bin_reprod
 ! When (if) CH3OOH is not produced from XO2{,N}+HO2,
 ! this ifdef block will not be needed
-      USE TRCHEM_Shindell_COM, only: rrbi, ay
+      USE TRCHEM_Shindell_COM, only: rrbi, trchemname
       use TRACER_COM, only: nn_CH3OOH
 #endif  /* TRACERS_dCO_bin_reprod */
 #ifdef TRACERS_dCO
@@ -2546,7 +2572,7 @@ C**** Local parameters and variables and arguments:
 !@var rrate rrate or photrate passed from chemstep
 !@var proddest dest or prod             passed from chemstep
 !@var multip -1 for destruction, +1 for production
-!@var igas index of tracer, as defined in the MOLEC file and the ay array
+!@var igas index of tracer, as defined in the trchemname array
 !@var ireac index of reaction per tracer. Starts from 1 and increases
 !@+   every time a tracer has a reaction. E.g.: tracer a has 3 destruction
 !@+   reactions, and tracer b has 4; ireac is [123] for a and [4567] for b.
@@ -2633,7 +2659,8 @@ c Individual Species:
 C**** GLOBAL parameters and variables:
 
       USE DOMAIN_DECOMP_ATM, only : write_parallel
-      USE TRCHEM_Shindell_COM, only: ay, lprn, nfam, nc, numfam, y, p_1
+      USE TRCHEM_Shindell_COM, only: trchemname,ijlprn,nfam,nc,numfam,
+     &                               y, p_1
 
       IMPLICIT NONE
 
@@ -2676,11 +2703,11 @@ c FAMILIES ONLY:
           if(nn(1,npdnrs(ireac)) >= nfam(igas) .and. 
      &    nn(1,npdnrs(ireac)) < nfam(igas+1))then
             per=0.d0
-            if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            if(y(igas,ijlprn(3)) /= 0.d0) per=multip*100.d0*
+     &      rrate(npdnrs(ireac),ijlprn(3))/y(igas,ijlprn(3))
             write(out_line,177) label,npdnrs(ireac),' percent change'
-     &      //' from ',ay(nn(1,npdnrs(ireac))),' = ',per,
-     &      ' dy=',multip*rrate(npdnrs(ireac),lprn)
+     &      //' from ',trchemname(nn(1,npdnrs(ireac))),' = ',per,
+     &      ' dy=',multip*rrate(npdnrs(ireac),ijlprn(3))
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if
@@ -2688,11 +2715,11 @@ c FAMILIES ONLY:
             if(nn(2,npdnrs(ireac)) >= nfam(igas) .and. 
      &      nn(2,npdnrs(ireac)) < nfam(igas+1))then
               per=0.d0
-              if(y(igas,lprn) /= 0.d0) per=multip*100.d0*
-     &        rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+              if(y(igas,ijlprn(3)) /= 0.d0) per=multip*100.d0*
+     &        rrate(npdnrs(ireac),ijlprn(3))/y(igas,ijlprn(3))
               write(out_line,177) label,npdnrs(ireac),' percent change'
-     &        //' from ',ay(nn(2,npdnrs(ireac))),' = ',per,
-     &        ' dy=',multip*rrate(npdnrs(ireac),lprn)
+     &        //' from ',trchemname(nn(2,npdnrs(ireac))),' = ',per,
+     &        ' dy=',multip*rrate(npdnrs(ireac),ijlprn(3))
               call write_parallel(trim(out_line),crit=jay)
               total=total+per
             end if
@@ -2716,20 +2743,20 @@ c       skip same reaction if written twice:
         end if
         if(nn(1,npdnrs(ireac)) == igas)then
           per=0.d0
-          if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &    rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+          if(y(igas,ijlprn(3)) /= 0.d0) per=100.d0*multip*
+     &    rrate(npdnrs(ireac),ijlprn(3))/y(igas,ijlprn(3))
           write(out_line,106) label,npdnrs(ireac),' percent change = '
-     &    ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
+     &    ,per,' dy=',multip*rrate(npdnrs(ireac),ijlprn(3))
           call write_parallel(trim(out_line),crit=jay)
           total=total+per
         end if
         if(numeL == 2)then
           if(nn(2,npdnrs(ireac)) == igas)then
             per=0.d0
-            if(y(igas,lprn) /= 0.d0) per=100.d0*multip*
-     &      rrate(npdnrs(ireac),lprn)/y(igas,lprn)
+            if(y(igas,ijlprn(3)) /= 0.d0) per=100.d0*multip*
+     &      rrate(npdnrs(ireac),ijlprn(3))/y(igas,ijlprn(3))
             write(out_line,106) label,npdnrs(ireac),' percent change = '
-     &      ,per,' dy=',multip*rrate(npdnrs(ireac),lprn)
+     &      ,per,' dy=',multip*rrate(npdnrs(ireac),ijlprn(3))
             call write_parallel(trim(out_line),crit=jay)
             total=total+per
           end if

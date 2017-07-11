@@ -102,7 +102,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
-#include "chemistry_input_files_nosoa"
+#include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 
 #include "dust_tracer_144x90_input_files"

@@ -1,7 +1,6 @@
 !-----------------------------------------------
 !  resolution-independent chemistry input files:
 !-----------------------------------------------
-MOLEC=chem_files/ds4_moleculesE_terp_soa
 JPLRX=chem_files/JPL2011_CMIP6_E2.1_fastterp_newRX2
 JPLPH=chem_files/ds4_photlist_T25
 RATJ=chem_files/ratj.giss_25

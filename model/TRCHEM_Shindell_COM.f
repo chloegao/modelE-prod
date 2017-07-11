@@ -323,73 +323,23 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ny     = ntm_chem+ntm_chem_nontransp,
      & nc     = ny+ntm_chem_extra,
      & numfam =    4,
-#ifdef TRACERS_dCO
-! define below ntm_dCO_nontransp tracers
-     & ndC217O3=   1+ntm_chem,
-     & ndC218O3=   2+ntm_chem,
-     & nd13C2O3=   3+ntm_chem,
-     & nd13CXPAR=  4+ntm_chem,
-     & nd17OROR =  5+ntm_chem,
-     & nd18OROR =  6+ntm_chem,
-     & nd13CROR =  7+ntm_chem,
-     & nd17Oald =  8+ntm_chem,
-     & nd18Oald =  9+ntm_chem,
-     & nd13Cald = 10+ntm_chem,
-     & ndCH317O2= 11+ntm_chem,
-     & ndCH318O2= 12+ntm_chem,
-     & nd13CH3O2= 13+ntm_chem,
-#endif  /* TRACERS_dCO */
-! define below ntm_shindell_nontransp tracers
-     & nC2O3=      1+ntm_chem+ntm_dCO_nontransp,
-     & nXO2=       2+ntm_chem+ntm_dCO_nontransp,
-     & nXO2N=      3+ntm_chem+ntm_dCO_nontransp,
-     & nRXPAR=     4+ntm_chem+ntm_dCO_nontransp,
-     & nROR=       5+ntm_chem+ntm_dCO_nontransp,
-     & nAldehyde=  6+ntm_chem+ntm_dCO_nontransp,
-     & nH2O=       7+ntm_chem+ntm_dCO_nontransp,
-     & nCH3O2=     8+ntm_chem+ntm_dCO_nontransp,
-     & nH2=        9+ntm_chem+ntm_dCO_nontransp,
-     & nOH=       10+ntm_chem+ntm_dCO_nontransp,
-     & nHO2=      11+ntm_chem+ntm_dCO_nontransp,
-     & nO3=       12+ntm_chem+ntm_dCO_nontransp,
-     & nO=        13+ntm_chem+ntm_dCO_nontransp,
-     & nO1D=      14+ntm_chem+ntm_dCO_nontransp,
-     & nNO=       15+ntm_chem+ntm_dCO_nontransp,
-     & nNO2=      16+ntm_chem+ntm_dCO_nontransp,
-     & nNO3=      17+ntm_chem+ntm_dCO_nontransp,
-     & nHONO=     18+ntm_chem+ntm_dCO_nontransp,
-     & nCl2O2=    19+ntm_chem+ntm_dCO_nontransp,
-     & nClO=      20+ntm_chem+ntm_dCO_nontransp,
-     & nOClO=     21+ntm_chem+ntm_dCO_nontransp,
-     & nCl2=      22+ntm_chem+ntm_dCO_nontransp,
-     & nCl=       23+ntm_chem+ntm_dCO_nontransp,
-     & nBrCl=     24+ntm_chem+ntm_dCO_nontransp,
-     & nBrO=      25+ntm_chem+ntm_dCO_nontransp,
-     & nBr=       26+ntm_chem+ntm_dCO_nontransp,
-! define below ntm_chem_extra tracers
-     & nO2=        1+ntm_chem+ntm_chem_nontransp,
-     & nM=         2+ntm_chem+ntm_chem_nontransp, !you must always put nM last (highest number)
      & n_rj  =    28+n_rj_dCO,
      & p_1   =     2
-C ----------------------------------------------     
-c     & n_Ox=        1,    ! note, these
-c     & n_NOx=       2,    ! first 15 species are
-c     & n_N2O5=      3,    ! tracers, and therefore
-c     & n_HNO3=      4,    ! these parameters are
-c     & n_H2O2=      5,    ! to be defined in 
-c     & n_CH3OOH=    6,    ! TRACER_COM.f.
-c     & n_HCHO=      7,    ! Note the UNDERSCORE!
-c     & n_HO2NO2=    8,    !  T
-c     & n_CO=        9,    !  R
-c     & n_CH4=      10,    !  A
-c     & n_PAN=      11,    !  C
-c     & n_Isoprene= 12,    !  E
-c     & n_AlkylNit= 13,    !  R
-c     & n_Alkenes=  14,    !  S
-c     & n_Paraffin= 15,    !
-c     & n_Terpenes= 16,    ! ---------------
-C ----------------------------------------------   
-     
+
+#ifdef TRACERS_dCO
+! define below ntm_dCO_nontransp tracers
+      integer :: ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR,
+     &           nd18OROR, nd13CROR, nd17Oald, nd18Oald, nd13Cald,
+     &           ndCH317O2, ndCH318O2, nd13CH3O2,
+#endif  /* TRACERS_dCO */
+! define below ntm_shindell_nontransp tracers
+      integer :: nC2O3, nXO2, nXO2N, nRXPAR, nROR, nAldehyde, nH2O,
+     &           nCH3O2, nH2, nOH, nHO2, nO3, nO, nO1D, nNO, nNO2,
+     &           nNO3, nHONO, nCl2O2, nClO, nOClO, nCl2, nCl, nBrCl,
+     &           nBrO, nBr
+! define below ntm_chem_extra tracers
+      integer :: nO2, nM
+
       REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
      &                      BYO3MULT     = 1./O3MULT,
      &                      T_thresh     = 200.d0,
@@ -522,7 +472,7 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var topLevelOfChemistry the model level above which no chemistry is done
-!@var nn name of species that reacts, as defined in the MOLEC file. The
+!@var nn name of species that reacts, as defined in the trchemname array. The
 !@+      first index denotes the reactant 1 or 2, and the second the reaction
 !@+      number, as defined in the JPLRX file
 !@var nnr same as nn, for products
@@ -533,13 +483,12 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var npnr same as nps for thermal reactions in JPLRX
 !@var ndnr same as npnr for destruction
 !@var kps index of JPLPH reaction (production) per photodissociating
-!@+       species found in MOLEC
+!@+       species found in trchemname
 !@var kds same as kps for destruction
 !@var kpnr same as kps for thermal reactions in JPLRX
 !@var kdnr same as kpnr for destruction
 !@var nst reverse reaction number for dissociation reactions
-!@var lprn,jprn,iprn l, j, and i point for chemistry debugging
-!@var ay name of gas being considered, as defined in MOLEC
+!@var ijlprn i,j,l point for chemistry debugging
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
 !@+   number, 2nd is verticle level
@@ -636,8 +585,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
 !@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
 !@+ for given I,J point (saved in rsf for reproducibilty purposes)
-      INTEGER :: L75P,L75M,L569P,L569M,
-     &lprn,jprn,iprn,MIEDX,NCFASTJ,topLevelOfChemistry
+      integer, dimension(3) :: ijlprn
+      INTEGER :: L75P,L75M,L569P,L569M,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(numfam+1)     :: nfam = (/0,0,0,0,ny+1/)
       INTEGER, DIMENSION(p_1,n_rx)     :: nn, nnr
       INTEGER, DIMENSION(p_1*n_rx)     :: npnr, ndnr
@@ -702,10 +651,12 @@ C**************  Not Latitude-Dependant ****************************
      &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
      &                        ,N2OICL,CFCICL  
 
-      LOGICAL                             :: prnrts,prnchg,prnls
+      LOGICAL                             :: prnrts=.false.,
+     &                                       prnchg=.false.,
+     &                                       prnls=.false.
       LOGICAL, ALLOCATABLE, DIMENSION(:)  :: pscX
 
-      CHARACTER*8, DIMENSION(nc)          :: ay
+      CHARACTER*8, DIMENSION(nc)          :: trchemname=''
       
       END MODULE TRCHEM_Shindell_COM
       
