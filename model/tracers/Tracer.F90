@@ -262,13 +262,14 @@ contains
     fullName = trim(tracerName) // '_' // suffix
   end function addIntegerSuffix
 
-  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src,isChemTracer)
+  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src,isChemTracer&
+                              &,megan_index)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
     USE DOMAIN_DECOMP_ATM, only: GRID
     use TracerSurfaceSource_mod, only: readSurfaceSource
     type (Tracer), target, intent(inout) :: trcer
-    integer, intent(in) :: nsrc,n
+    integer, intent(in) :: nsrc,n,megan_index
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: checkname
     logical, intent(in) :: isChemTracer
@@ -282,6 +283,7 @@ contains
     if (nsrc <= 0) return
 
     do ns=1,nsrc
+      if(ns==megan_index)cycle
       call readSurfaceSource(trcer%surfaceSources(ns), addIntegerSuffix(getName(trcer), ns), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)
     enddo

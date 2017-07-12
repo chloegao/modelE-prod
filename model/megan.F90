@@ -3,8 +3,6 @@
 ! Please see ../doc/megan_suggested_todo.txt for further notes and suggestions
 ! for improvement that have been extracted from this program's comments.
 
-!TODO: I need to set up the 2D emissions diag for this, based on do_megan
-!
 !TODO: save at *least* some running average stuff to the rsf files 
 !      (see flammability code for guide)
 
@@ -28,6 +26,9 @@
 !      to restarts but to program scope.)
 
 !TODO: Tune the CCE parameter (see noted below)
+!
+!TODO: think about taking most of the coding outside of #ifdef DO_MEGAN blocks,
+!      and just use that to actually turn it on? (e.g. see tracers/Tracer.F90)
 !
 ! MORE TODOS are below (Throughout)
 
@@ -179,8 +180,9 @@ use rad_com, only: cosz1
 use constant, only: radian, undef, tf, mair, rgas
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
-use OldTracer_mod, only: nBBsources,trname,do_fire,do_megan,itime_tr0
-use tracer_com, only: ntm, ntsurfsrcmax, ntsurfsrc, sfc_src
+use OldTracer_mod, only: nBBsources,trname,do_megan,itime_tr0
+use tracer_com, only: ntm, ntsurfsrc, sfc_src
+use Tracer_mod, only: ntsurfsrcmax
 
 implicit none
 
@@ -208,7 +210,7 @@ real*8, parameter :: CCE=1.d0
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
 integer, intent(IN) :: i,j
-integer :: n, localTimeIndex, hour, dayOfYear, nTracer, nSource
+integer :: n, localTimeIndex, hour, dayOfYear, nTracer
 integer :: ipft
 integer, parameter :: nMeganSpecies=1
 type(biogenicSpecies), dimension(nMeganSpecies) :: species
@@ -423,21 +425,11 @@ call get_gamma_s(gamma_SM)
 tracers_loop: do nTracer=1,ntm
 
   ! skip if tracer not turned on yet or not intended for megan use:
-  if(itime < itime_tr0(nTracer) .or. .not.do_megan(nTracer)) cycle
+  if(itime < itime_tr0(nTracer) .or. do_megan(nTracer) <= 0) cycle
 
   ! try to match tracer with megan-defined species, otherwise skip:
   species_loop: do n=1,size(species)
     if(trim(trname(nTracer))==trim(species(n)%itsname)) then
-
-      ! figure out the index of the source in sfc_src( ) array
-      ! (we could move this so that it is not done each i,j,time)
-      if(do_fire(nTracer)) then
-        nSource=ntsurfsrc(nTracer)+         1         +1
-      else
-        nSource=ntsurfsrc(nTracer)+nBBsources(nTracer)+1
-      end if
-      if(nSource>ntsurfsrcmax) &
-      & call stop_model('megan source index > ntsurfsrcmax',255)
 
       ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
       ! only for Isoprene. So overwrite here for non-Isoprene species:
@@ -487,7 +479,7 @@ tracers_loop: do nTracer=1,ntm
       ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
-      sfc_src(i,j,nTracer,nSource)= &
+      sfc_src(i,j,nTracer,do_megan(nTracer))= &
       & convertUnits*CCE*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2&
       & * ( (1.d0-species(n)%ldf) * gamma_tli + &
       & species(n)%ldf * gamma_PPFD*gamma_tld)
@@ -645,6 +637,9 @@ isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission facto
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
+! IMPORTANT: in entering more megan ef values, always confirm index 2 vs. 3 as there
+!            was some bug in the code that swapped the two vs. the paper their based on?
+!            (see Tables 2 and 3 in G 2012 vs. MGN2MECH/INCLDIR/EFS_PFT.EXT.womap)
 
 !TODO: if a species we are using in the model doesn't happen to line up with
 ! one of the 20 megan categories, then we'll have to run a mechanism translation to get it
@@ -1352,9 +1347,6 @@ logical :: tropical, temperate, boreal, arctic
 ! Crops are particularly sketchy in my quick mapping. For example hammoz has
 ! crop1 and then crop2, though the value for EF of 1 for isoprene seems like 16
 ! should be crop1?
-! TODO: A particular reminder to confirm the mapping of MEGAN types 2 and 3;
-! see Table 3 in G 2012 once you determine which order of 2, 3 is correct, because
-! there is reason to believe there's a bug mixing up MEGANs indexes 2 and 3.
 
 ! Only mapped for a single configuration so far:
 if(n_covertypes.ne.18)call stop_model( &
@@ -1381,8 +1373,8 @@ end if
 !  I *believe* the 16 Megan types are:
 !  =====================================
 !  1 needleleaf evergreen temperate tree
-!  2 needleleaf deciduous boreal tree
-!  3 needleleaf evergreen boreal tree
+!  2 needleleaf deciduous boreal tree   - swapped order compared to G 2012
+!  3 needleleaf evergreen boreal tree   - swapped order compared to G 2012
 !  4 broadleaf evergreen tropical tree
 !  5 broadleaf evergreen temperate tree
 !  6 broadleaf deciduous tropical tree

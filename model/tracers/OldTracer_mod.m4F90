@@ -19,7 +19,7 @@ define([PROPERTIES_AND_TYPES],
 !@+   Same as the tr_RKD wet dep variable, except for units.
 !@+   If F0 & HSTAR both 0, & tracer not particulate, then no drydep.),
   (do_fire,logical,.false.,true if tracer should have emissions via flammability),
-  (do_megan,logical,.false.,true if tracer should have emissions via MEGAN),
+  (do_megan,integer,0,index of source when tracer should have emissions via MEGAN),
   (do_aircraft,logical,.false.,true if tracer should have emissions via aircraft),
   (first_aircraft,logical,.true.,false once tracer timestream opened for aircraft),
   (is_dCO_tracer,logical,.false.,!@var true if the tracer belongs to TRACERS_dCO),

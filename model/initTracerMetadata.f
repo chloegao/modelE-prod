@@ -103,6 +103,26 @@
             call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
           end if
         end if
+
+#ifdef DO_MEGAN
+!     Next, check for MEGAN-based emissions which will be accounted
+!     among the surface sources. Set the do_megan(n) to the index
+!     of the MEGAN surface source, so (1) it can be used to fill the
+!     source in the MEGAN routines and (2) this source can be
+!     skipped in the file reading routine. The later avoids complex
+!     logic for, e.g. a tracer that may have a MEGAN source *and*
+!     nBBsources biomass burning sources that must be listed last
+!     in the rundeck (see section on that above). BUT this means
+!     this section MUST COME AFTER the nBBsources were removed from
+!     ntsurfsrc(n) above.
+        select case (trname(n))
+        case ('Isoprene') ! expand this when megan species expand
+          pTracer => tracers%getReference(trname(n))
+          call addSurfaceSource(pTracer, "MEGAN")
+          call set_do_megan(n, pTracer%ntSurfSrc)
+        end select
+#endif /* DO_MEGAN */
+
         if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
           write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
           call stop_model('do_fire+ntsurfsrc too large',13)
@@ -114,12 +134,6 @@
         end if
 
 !     other special cases:
-#ifdef DO_MEGAN
-        select case (trname(n))
-        case ('Isoprene')
-          call set_do_megan(n, .true.)
-        end select
-#endif
 #ifndef TRACERS_AEROSOLS_SOA
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
         (defined TRACERS_TOMAS)
