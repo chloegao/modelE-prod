@@ -914,6 +914,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
        tr3Dsource(i,j,l,nChemloss,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
        tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc
+     &      *tr_mm(n_H2SO4)/tr_mm(n)
 #endif  /* TRACERS_AMP */
 #ifdef TRACERS_TOMAS
        H2SO4_chem(i,j,l)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
