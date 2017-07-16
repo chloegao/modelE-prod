@@ -6980,8 +6980,8 @@ C*****
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
 #ifdef TRACERS_TOMAS
-      integer :: k, kk
-      real*8, dimension(LM,NBINS) :: TOMAS_bio
+      integer :: k
+      real*8, dimension(NBINS,LM) :: TOMAS_bio
 #endif
 
 C**** All sources are saved as kg s-1
@@ -7033,10 +7033,10 @@ C**** 3D biomass source
         select case (trname(n))
         case ('ASO4__01')
 
-       do kk=1,nbins
-         TOMAS_bio(:,kk)=
+       do k=1,nbins
+         TOMAS_bio(k,:)=
      &        tr3Dsource(:,nBiomass,n_ASO4(1))
-     &        *scalesizeSO4_bio(kk)
+     &        *scalesizeSO4_bio(k)
        enddo
        
        do k=1,nbins
@@ -7050,7 +7050,7 @@ C**** 3D biomass source
      &        scalesizeSO4_vol(k)*src_fact
 #endif         
          tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)=
-     *        TOMAS_bio(:,k)
+     *        TOMAS_bio(k,:)
          
          tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
      &        (tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)
@@ -7275,8 +7275,8 @@ C**** Apply chemistry and overwrite changes:
 !@var src_index source index for the current tracer
 !@var src_fact source factor for the current tracer
       integer :: src_index,get_src_index
-      integer :: k, kk,kn,jc,tracnum
-      real*8, dimension (LM,NBINS) :: TOMAS_bio,TOMAS_air
+      integer :: k,kn,jc,tracnum
+      real*8, dimension (NBINS,LM) :: TOMAS_bio,TOMAS_air
 
 !**** Apply aerosol-gas chemistry sources/sinks:
 !H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
@@ -7306,41 +7306,39 @@ C**** Apply chemistry and overwrite changes:
        TOMAS_bio(:,:)=0.0
        TOMAS_air(:,:)=0.0
 
-       do kk=1,nbins
-         TOMAS_bio(:,kk)=
-     &       tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(kk)
+       do k=1,nbins
+         TOMAS_bio(k,:)=
+     &       tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(k)
 c$$$  
+         if(do_aircraft(n_AECOB(1)))then
+           TOMAS_air(k,:)=
+     &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(k)
+         endif
        enddo
-       if(do_aircraft(n_AECOB(1)))then
-         do kk=1,nbins
-           TOMAS_air(:,kk)=
-     &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(kk)
-         enddo
-       endif
-       
+
        !TODO: once reproducibility is determined, pull these
        ! if's out of the k loop and do a second conditional
        ! k-loop instead:
        do k=1,nbins
-         
+
          tr3Dsource(:,nBiomass,n_AECOB(1)+k-1)=
-     *        TOMAS_bio(:,k)*0.8
+     *        TOMAS_bio(k,:)*0.8
          tr3Dsource(:,nBiomass,n_AECIL(1)+k-1)=
-     *        TOMAS_bio(:,k)*0.2
-         
+     *        TOMAS_bio(k,:)*0.2
+
          if(do_aircraft(n_AECOB(1))) then
            tr3Dsource(:,nAircraft,n_AECOB(1)+k-1)=
-     *        TOMAS_air(:,k)*0.8
+     *        TOMAS_air(k,:)*0.8
            tr3Dsource(:,nAircraft,n_AECIL(1)+k-1)=
-     *        TOMAS_air(:,k)*0.2
+     *        TOMAS_air(k,:)*0.2
          end if
-         
+
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
          tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
-     &      (TOMAS_bio(:,k)+TOMAS_air(:,k))
+     &      (TOMAS_bio(k,:)+TOMAS_air(k,:))
      &      /(sqrt(xk(k)*xk(k+1)))  
-         
+
          call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
      &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(1)+k-1)
@@ -7358,26 +7356,23 @@ c$$$
        TOMAS_bio(:,:)=0.0
        TOMAS_air(:,:)=0.0
 
-       do kk=1,nbins
-         TOMAS_bio(:,kk)=
-     &       tr3Dsource(:,nBiomass,n_AOCOB(1))*scalesizeCARBO100(kk)      
+       do k=1,nbins
+         TOMAS_bio(k,:)=
+     &       tr3Dsource(:,nBiomass,n_AOCOB(1))*scalesizeCARBO100(k)
        enddo
        
        do k=1,nbins
          
          tr3Dsource(:,nBiomass,n_AOCOB(1)+k-1)=
-     *        TOMAS_bio(:,k)*0.5
+     *        TOMAS_bio(k,:)*0.5
          tr3Dsource(:,nBiomass,n_AOCIL(1)+k-1)=
-     *        TOMAS_bio(:,k)*0.5
-         
+     *        TOMAS_bio(k,:)*0.5
          tr3Dsource(:,nOCanum,n_ANUM(1)+k-1)=
-     &        (TOMAS_bio(:,k)
+     &        (TOMAS_bio(k,:)
      &        )/(sqrt(xk(k)*xk(k+1)))  
-        
  
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(1)+k-1)
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(1)+k-1)
-!     ntsurfsrc(n=3) is used for microphysics, so it is 4. 
          call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(1)+k-1)
          
        enddo
