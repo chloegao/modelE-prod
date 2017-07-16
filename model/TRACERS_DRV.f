@@ -7028,8 +7028,6 @@ C**** 3D biomass source
         if(n<n_ASO4(1)) call apply_tracer_3Dsource(i,j,nBiomass,n)
 
 !Initialize 
-       TOMAS_bio(:,:)=0.0
-
         select case (trname(n))
         case ('ASO4__01')
 
@@ -7303,8 +7301,7 @@ C**** Apply chemistry and overwrite changes:
          trm_emis(i,j,l,:)=trm_col(l,:)
        end do
    
-       TOMAS_bio(:,:)=0.0
-       TOMAS_air(:,:)=0.0
+       TOMAS_air(:,:)=0.d0
 
        do k=1,nbins
          TOMAS_bio(k,:)=
@@ -7322,15 +7319,15 @@ c$$$
        do k=1,nbins
 
          tr3Dsource(:,nBiomass,n_AECOB(1)+k-1)=
-     *        TOMAS_bio(k,:)*0.8
+     *        TOMAS_bio(k,:)*0.8d0
          tr3Dsource(:,nBiomass,n_AECIL(1)+k-1)=
-     *        TOMAS_bio(k,:)*0.2
+     *        TOMAS_bio(k,:)*0.2d0
 
          if(do_aircraft(n_AECOB(1))) then
            tr3Dsource(:,nAircraft,n_AECOB(1)+k-1)=
-     *        TOMAS_air(k,:)*0.8
+     *        TOMAS_air(k,:)*0.8d0
            tr3Dsource(:,nAircraft,n_AECIL(1)+k-1)=
-     *        TOMAS_air(k,:)*0.2
+     *        TOMAS_air(k,:)*0.2d0
          end if
 
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
@@ -7353,9 +7350,6 @@ c$$$
 
        enddo
 
-       TOMAS_bio(:,:)=0.0
-       TOMAS_air(:,:)=0.0
-
        do k=1,nbins
          TOMAS_bio(k,:)=
      &       tr3Dsource(:,nBiomass,n_AOCOB(1))*scalesizeCARBO100(k)
@@ -7364,9 +7358,9 @@ c$$$
        do k=1,nbins
          
          tr3Dsource(:,nBiomass,n_AOCOB(1)+k-1)=
-     *        TOMAS_bio(k,:)*0.5
+     *        TOMAS_bio(k,:)*0.5d0
          tr3Dsource(:,nBiomass,n_AOCIL(1)+k-1)=
-     *        TOMAS_bio(k,:)*0.5
+     *        TOMAS_bio(k,:)*0.5d0
          tr3Dsource(:,nOCanum,n_ANUM(1)+k-1)=
      &        (TOMAS_bio(k,:)
      &        )/(sqrt(xk(k)*xk(k+1)))  
