@@ -6882,23 +6882,26 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
       subroutine apply_volcanic_emissions(i,j)
-      use OldTracer_mod
+      use OldTracer_mod, only: trname
+      use TRACER_COM, only: ntm
       use TRACER_COM, only: nVolcanic
-      use TRACER_COM, only: n_SO2, n_SO4, n_M_ACC_SU, n_M_AKK_SU
       USE FLUXES, only: tr3Dsource
       USE apply3d, only : apply_tracer_3Dsource
       USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
+#ifdef TRACERS_TOMAS
+      use TRACER_COM, only: nbins
+      use TRACER_COM, only: n_ASO4
+      use TRACER_COM, only: n_ANUM
+      use TRACER_COM, only: nSO4anum
+      use TRACER_COM, only: xk
+      use TOMAS_EMIS, only: scalesizeSO4_vol
+#endif
 
       implicit none
       integer, intent(in) :: i,j
-!@var voltrn is the number of tracers with volcanic sources
-      integer, parameter :: voltrn = 4 
-!@var voltrindx is an array of the volcanic tracer indices
-      integer, dimension(voltrn) :: voltrindx
-      INTEGER n,ns,l
-!@var src_index source index for the current tracer
+      integer :: n,k
 !@var src_fact source factor for the current tracer
-      integer :: src_index,get_src_index,bb_i,bb_e
+      integer :: get_src_index,bb_i,bb_e
       real*8 :: src_fact
       interface
         real*8 function get_src_fact(n,ibb)
@@ -6907,28 +6910,41 @@ C****
         end function get_src_fact
       end interface
 
-C**** All sources are saved as kg/s
+C**** All sources are saved as kg s-1
 
-C**** Set tracer indices
+      do n=1,ntm
+        src_fact=get_src_fact(n)
 
-      voltrindx(:) = (/n_SO2,n_SO4,n_M_ACC_SU,n_M_AKK_SU/)
-
-C**** Calculate and apply volcano sources
-
-      do ns=1,voltrn
-
-        n = voltrindx(ns)
-
-        if(n .gt. 0) then
-          src_fact=get_src_fact(n)                    
-
-          tr3Dsource(:,nVolcanic,n) =
-     &    so2_src_3d(i,j,:,nso2src_3d)*src_fact
-
-          call apply_tracer_3Dsource(i,j,nVolcanic,n)
-        end if
-
-      end do
+        select case(trname(n))
+        case ('SO2','SO4','M_ACC_SU','M_AKK_SU','ASO4__01')
+          select case(trname(n))
+          case ('SO2','SO4','M_ACC_SU','M_AKK_SU')
+            tr3Dsource(:,nVolcanic,n)=
+     &        so2_src_3d(i,j,:,nso2src_3d)*src_fact
+            call apply_tracer_3Dsource(i,j,nVolcanic,n)
+#ifdef TRACERS_TOMAS
+          case ('ASO4__01')
+            do k=1,nbins
+#ifdef TRACERS_VOLCEXP
+              tr3Dsource(:,nVolcanic,n_ASO4(k))=
+     &          so2_src_3d(i,j,:,nso2src_3d-1)
+     &         *scalesizeSO4_vol(k)*src_fact
+#else
+              tr3Dsource(:,nVolcanic,n_ASO4(k))=
+     &          so2_src_3d(i,j,:,nso2src_3d)
+     &         *scalesizeSO4_vol(k)*src_fact
+#endif
+              tr3Dsource(:,nSO4anum,n_ANUM(k))=
+     &          tr3Dsource(:,nVolcanic,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
+!              call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
+!              call apply_tracer_3Dsource(i,j,nVolcanic,n_ANUM(k))
+            enddo
+#endif  /* TRACERS_TOMAS */
+          end select
+        case default
+          ! do nothing, no emissions
+        end select
+      enddo
 
 C*****
       end subroutine apply_volcanic_emissions
@@ -6955,7 +6971,6 @@ C*****
       use TRACER_COM, only: n_ANUM
       use TRACER_COM, only: n_ASO4
       use TRACER_COM, only: n_AECOB, n_AOCOB
-      use TRACER_COM, only: nVolcanic ! wrong place for this !!!
       use TRACER_COM, only: nSO4anum
       USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
       USE TOMAS_AEROSOL, only : xk
@@ -7038,25 +7053,13 @@ C**** 3D biomass source
        enddo
        
        do k=1,nbins
-#ifdef TRACERS_VOLCEXP
-         tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)=
-     &        so2_src_3d(i,j,:,nso2src_3d-1)*
-     &        scalesizeSO4_vol(k)*src_fact
-#else
-         tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)=
-     &        so2_src_3d(i,j,:,nso2src_3d)*
-     &        scalesizeSO4_vol(k)*src_fact
-#endif
          tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)=
      *        TOMAS_bio(k,:)
-         
-         tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
-     &     tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
          tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
      &     tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)
      &     +tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
-          
        enddo
+
        end select
 #endif
 
