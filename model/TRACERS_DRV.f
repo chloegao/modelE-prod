@@ -7046,14 +7046,15 @@ C**** 3D biomass source
          tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)=
      &        so2_src_3d(i,j,:,nso2src_3d)*
      &        scalesizeSO4_vol(k)*src_fact
-#endif         
+#endif
          tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)=
      *        TOMAS_bio(k,:)
          
          tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
-     &        (tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)
-     &        +tr3Dsource(:,nBiomass,n_ASO4(1)+k-1))
-     &        /(sqrt(xk(k)*xk(k+1)))  
+     &     tr3Dsource(:,nVolcanic,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
+         tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
+     &     tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)
+     &     +tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
           
        enddo
        end select
