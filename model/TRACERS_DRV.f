@@ -6786,12 +6786,9 @@ c latlon grid
 
 #ifdef TRACERS_SPECIAL_Lerner
       subroutine lernerchem_prep
-      use RESOLUTION, only: LM
-      use OldTracer_mod
-      USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
-      use TRACER_COM, only: nTropCH4, nStratCH4
-      use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
-      USE MODEL_COM, only: itime,dtsrc,itimeI
+      use OldTracer_mod, only: itime_tr0
+      USE TRACER_COM, only: n_CH4
+      USE MODEL_COM, only: itime
       implicit none
 
 C****CH4
@@ -6801,13 +6798,12 @@ C****CH4
       end subroutine lernerchem_prep
 
       subroutine calculate_and_apply_lerner(i,j)
-      use RESOLUTION, only: LM
-      use OldTracer_mod
+      use OldTracer_mod, only: itime_tr0
       USE TRACER_COM, only: n_CH4, n_O3, n_N2O, n_CFC11
       use TRACER_COM, only: nTropCH4, nStratCH4
       use TRACER_COM, only: nTropO3P, nTropO3L, nStratO3
       use TRACER_COM, only: nChemistry
-      USE MODEL_COM, only: itime,dtsrc,itimeI
+      USE MODEL_COM, only: itime
       USE apply3d, only : apply_tracer_3Dsource
       implicit none
       integer, intent(in) :: i,j
@@ -6953,14 +6949,18 @@ C*****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_TOMAS)
       subroutine apply_biomass_burning_emissions(i,j)
+#ifdef TRACERS_TOMAS
       use RESOLUTION, only: LM
-      use OldTracer_mod
+#endif
+      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: do_fire
+      use OldTracer_mod, only: nBBsources
+      use OldTracer_mod, only: do_aircraft
       USE TRACER_COM, only: ntm, sfc_src
       use TRACER_COM, only: ntsurfsrc
-      use TRACER_COM, only: nBiomass,nChemistry
+      use TRACER_COM, only: nBiomass
       USE FLUXES, only: tr3Dsource
-      USE MODEL_COM, only: dtsrc
-      use atm_com, only : ma
+      use atm_com, only : MA
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : axyp
       USE PBLCOM, only: dclev
@@ -7000,7 +7000,7 @@ C*****
 #endif
 
 C**** All sources are saved as kg s-1
-      do n=1,NTM
+      do n=1,ntm
       src_index=get_src_index(n)
       src_fact=get_src_fact(n)
 
@@ -7072,11 +7072,11 @@ C**** 3D biomass source
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       subroutine aircraft_emissions_prep
-      use OldTracer_mod
+      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: do_aircraft
       USE TRACER_COM, only: ntm
-      use TRACER_COM, only: naircraft
+      use TRACER_COM, only: nAircraft
       use model_com, only: modelEclock
-      USE ATM_COM, only: MA ! Air mass of each box (kg/m^2)
       use ATM_COM, only: phi
       use TRACER_COM, only: AIRCstreams,AIRCsrc
       implicit none
@@ -7102,8 +7102,7 @@ C**** Get current model time
       end subroutine aircraft_emissions_prep
 
       subroutine apply_aircraft_emissions(i,j)
-      use RESOLUTION, only: LM
-      use OldTracer_mod
+      use OldTracer_mod, only: do_aircraft
       USE TRACER_COM, only: ntm
       use TRACER_COM, only: naircraft
 #ifdef TRACERS_TOMAS
@@ -7140,7 +7139,7 @@ C**** Get current model time
 #ifdef TRACERS_SPECIAL_Shindell
       subroutine calculate_and_apply_chemistry(i,j)
       use RESOLUTION, only: LM
-      use OldTracer_mod
+      use OldTracer_mod, only: tr_mm
       USE TRACER_COM, only: trm_col
       use TRACER_COM, only: n_CFC, n_CH4
       use TRACER_COM, only: n_N2O
@@ -7252,7 +7251,7 @@ C**** Apply chemistry and overwrite changes:
       subroutine calculate_and_apply_tomas(i,j)
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       use RESOLUTION, only: LM
-      use OldTracer_mod
+      use OldTracer_mod, only: do_aircraft
       USE TRACER_COM, only: trm_col
       use TRACER_COM, only: n_DMS, n_H2O2_s
       use TRACER_COM, only: n_NH3, n_NH4
@@ -7261,9 +7260,9 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nVolcanic, nChemprod
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
       use TRACER_COM, only: coupled_chem
-      use TRACER_COM, only: nbins, n_AH2O
-      use TRACER_COM, only: n_AOCIL, n_ANUM, n_ANACL, n_ADUST
-      use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAGAS
+      use TRACER_COM, only: nbins
+      use TRACER_COM, only: n_AOCIL, n_ANUM
+      use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAgas
       use TRACER_COM, only: nChemistry, nChemloss, n_AECIL, ntm_tomas
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: dtsrc
@@ -7402,7 +7401,7 @@ c$$$#endif
 #ifdef TRACERS_AEROSOLS_Koch
       subroutine calculate_and_apply_oma(i,j)
       use RESOLUTION, only: LM
-      use OldTracer_mod
+!      use OldTracer_mod
       use TRACER_COM, only: n_BCIA, n_BCII
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_MSA
       use TRACER_COM, only: n_OCIA, n_OCII
@@ -7465,8 +7464,7 @@ c$$$#endif
 
 #ifdef TRACERS_AMP
       subroutine calculate_and_apply_matrix(i,j)
-      use RESOLUTION, only: LM
-      use OldTracer_mod
+      use OldTracer_mod, only: trname
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_SO2
       use TRACER_COM, only: n_NH3
       use TRACER_COM, only: n_H2SO4
@@ -7517,7 +7515,7 @@ c$$$#endif
 #ifdef TRACERS_NITRATE
       subroutine calculate_and_apply_nitrate(i,j)
       use RESOLUTION, only: LM
-      use OldTracer_mod
+!      use OldTracer_mod
       use TRACER_COM, only: n_HNO3
       use TRACER_COM, only: n_NH3,n_NH4
       use TRACER_COM, only: n_NO3p
@@ -7534,7 +7532,7 @@ c$$$#endif
 #ifdef TRACERS_SPECIAL_Shindell
       lm_nitrate = topLevelOfChemistry
 #else
-      lm_nitrate = lm
+      lm_nitrate = LM
 #endif
       call NITRATE_THERMO_DRV(i,j,lm_nitrate)
 #ifdef TRACERS_SPECIAL_Shindell
@@ -7556,7 +7554,7 @@ c$$$#endif
 !@+   is used, all diagnostics and moments are updated automatically.
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use RESOLUTION, only: LM
-      use OldTracer_mod
+!      use OldTracer_mod
       use tracer_com, only : trm,trm_col
       use tracer_com, only : trmom,trmom_col
       USE TRACER_COM, only: ntm,n_Pb210
