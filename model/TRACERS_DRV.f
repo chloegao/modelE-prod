@@ -7336,8 +7336,10 @@ c$$$
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
          tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
-     &      (TOMAS_bio(k,:)+TOMAS_air(k,:))
-     &      /(sqrt(xk(k)*xk(k+1)))  
+     &      TOMAS_bio(k,:)/sqrt(xk(k)*xk(k+1))
+         tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
+     &      tr3Dsource(:,nECanum,n_ANUM(1)+k-1)
+     &     +TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
 
          call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
