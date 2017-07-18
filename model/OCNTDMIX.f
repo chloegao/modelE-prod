@@ -1562,7 +1562,7 @@ c
         do n=1,nbyzm(j,l)
         do i=i1yzm(n,j,l),i2yzm(n,j,l)
           frel = mrely(i,j,l)
-          trynew = .5d0*(try(i,j-1,l)+try(i,j,l))
+          trynew = .25d0*(try(i,j-1,l)+try(i,j,l))
           trynew = (1d0-frel)*trym(i,j,l)*mrat(i,j,l)
      &         + frel*trynew*mnew(i,j,l)
           trym(i,j,l) = trynew
