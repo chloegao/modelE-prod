@@ -480,7 +480,7 @@ C**** set some defaults
      *       ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
-     *       ,'Paraffin','stratOx','Terpenes') ! N2O done above
+     *       ,'Paraffin','stratOx','Terpenes','Acetone') ! N2O done above
           select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
 #ifdef TRACERS_dCO
@@ -497,7 +497,7 @@ C**** set some defaults
      *           ,'d13Calke'
      *           ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
-     *           ,'Terpenes')
+     *           ,'Terpenes','Acetone')
               kt_power_change(n) = -13
             case default
               kt_power_change(n) = -12
@@ -1263,7 +1263,7 @@ C**** special one unique to HTO
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
-     &      'AlkylNit','Ox','NOx','stratOx','Terpenes')
+     &      'AlkylNit','Ox','NOx','stratOx','Terpenes','Acetone')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
@@ -1286,7 +1286,7 @@ C**** special one unique to HTO
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
-     &  'Terpenes','NOx','stratOx','BrOx','ClOx')
+     &  'Terpenes','Acetone','NOx','stratOx','BrOx','ClOx')
           k = k + 1
           jls_3Dsource(nOverwrite,n) = k
           sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
@@ -2646,7 +2646,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 #endif  /* TRACERS_dCO */
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
-     &'HO2NO2','PAN','AlkylNit','stratOx')
+     &'HO2NO2','PAN','AlkylNit','stratOx','Acetone')
 
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
@@ -2658,7 +2658,7 @@ C**** This needs to be 'hand coded' depending on circumstances
      *  'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
-     &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx')
+     &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx','Acetone')
         select case(trname(n))
         case('NOx')
           ijts_3Dsource(nOther,n)=
@@ -5053,7 +5053,7 @@ c**** earth
      &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor*dICfactor
           end do; end do; end do
 
-        case('Terpenes'
+        case('Terpenes','Acetone'
 #ifdef TRACERS_AEROSOLS_SOA
      &      ,'isopp1g','isopp1a','isopp2g','isopp2a'
      &      ,'apinp1g','apinp1a','apinp2g','apinp2a'
