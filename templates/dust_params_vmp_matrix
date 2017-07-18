@@ -9,8 +9,7 @@ fracClayPDFscheme=0.0167282564076 ! clay emission parameter from calibration
 fracSiltPDFscheme=0.0492715467799 ! silt emission parameter from calibration
    !fracClayPDFscheme = 0.0177771056404[1] * 0.941[2]
    !fracSiltPDFscheme = 0.0523608361104[1] * 0.941[2]
-   ![1] emission parameters used for calibration run E20170406TmatrixF40climIM0_
-001
+   ![1] emission parameters used for calibration run E20170406TmatrixF40climIM0_001
    ![2] total emitted mass factor derived from calibration
 ! for imDust=3-5:
 !scaleDustEmission=0.2025779939 ! scales total dust emission
