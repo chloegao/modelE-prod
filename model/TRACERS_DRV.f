@@ -6038,7 +6038,8 @@ C****
       ! Outside of tracer loop, call MEGAN-based biogenic emissions.
       ! Emissions will be experienced by any tracers with do_megan()>0
       ! .and. with a trname() that matches a MEGAN-defined species.
-      ! Let's skip the poles.
+      ! Call will fill sfc_src, to be added to trsource below. Let's 
+      ! skip the poles.
       do j=J_0S,J_1S
         do i=I_0,imaxj(j)
           ! Do we have to zero the polar boxes for 2:IM ??

@@ -5,16 +5,7 @@
 
 !TODO: save at *least* some running average stuff to the rsf files 
 !      (see flammability code for guide)
-
-!TODO: For the interfacing with Ent to work, I think Ent/ent_mod.m4f needs to be
-!      modified to export: 
-!      entcell%IPARdir (via direct_visible_rad?)
-!      entcell%IPARdif (via total_visible_rad?)
-!      TODO: find out if IPARdif is indeed "total" and if so, when I go to use it,
-!            don't I need to take par_diffuse=total-direct? !!
-!      entcell%TcanopyC (via existing canopy_temperature)
-!      entcell%Ca (via existing surf_CO2; TODO: and confirm this is what's desired)
-
+!
 !TODO: When writing the flammability code, exporting LAI from Ent, I noted:
 !      "I guess that is the LAI from the *last surface timestep only*?"
 !      Igor said that was OK, as LAI is only computed once per day. However,
@@ -26,9 +17,6 @@
 !      to restarts but to program scope.)
 
 !TODO: Tune the CCE parameter (see noted below)
-!
-!TODO: think about taking most of the coding outside of #ifdef DO_MEGAN blocks,
-!      and just use that to actually turn it on? (e.g. see tracers/Tracer.F90)
 !
 ! MORE TODOS are below (Throughout)
 
@@ -169,15 +157,14 @@ subroutine biogenicEmissions_drv(i,j)
 !@auth Greg Faluvegi (intial modelE implementation)
 
 use megan
-use atm_com, only: pedn
 use resolution, only: IM
 use model_com, only: modelEclock,itime
 use fluxes, only: atmsrf
 use ghy_com, only: fearth
 use ent_com, only: entcells,n_covertypes
 use ent_mod, only: ent_get_exports
-use rad_com, only: cosz1
-use constant, only: radian, undef, tf, mair, rgas
+use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
+use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
 use OldTracer_mod, only: nBBsources,trname,do_megan,itime_tr0
@@ -192,11 +179,11 @@ implicit none
 ! to megan gamma routines.
 real*8 :: CO2_megan,LAI_megan,cosSZA_megan,PPFD_megan,PPFD_daily_megan
 real*8 :: LAI_current_megan, LAI_previous_megan, T_daily_megan, T_megan
-real*8 :: SAT_daily_megan, SAT_megan, CO2_wrong_units, rho
+real*8 :: SAT_daily_megan, SAT_megan
 integer :: JDAY_megan
 real*8 :: gamma_CO2, gamma_LAI, gamma_PPFD, gamma_AGE, gamma_SM 
 real*8 :: gamma_TLD, gamma_TLI, bulk_EF
-real*8 :: par_direct, par_diffuse ! assumed components of ppfd below
+real*8 :: par_total, par_direct, par_diffuse ! assumed components of ppfd below
 real*8, parameter :: radianToDegree=1.d0/radian
 !@param convertUnits to convert from emission factor in microgram m-2 hr-1
 !@+ from megan to kg m-2 s-1 for GCM
@@ -228,25 +215,10 @@ call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 ! Get near-surface CO2 value:
 ! ---------------------------
 
-! Here, we are assuming we'd get the near-surface ambient CO2 from
-! Ent. Other possibilities:
-! -- from a CO2 tracer?
-! -- from an expanded rad_to_chem( ) array in rad code used to export
-!    CO2. But in that case, rad_to_chem needs to be saved to rsf files 
-!    even if Shindell tracers are off!
-rho=100.d0*pedn(1,i,j)/(rgas*atmsrf%tsavg(i,j))
-#ifdef MEGAN_TEMP_WORKAROUNDS
-CO2_wrong_units=390.d0/(1.d6*mair*1.e-3)*rho
-#else
-call ent_get_exports( entcells(i,j),surf_CO2=CO2_wrong_units )
-#endif
-! TODO: Confirm units conversion by writing out value!
-! Ent says Ca is "Atmos CO2 conc at surface height (mol/m3)" and I think
-! we want ppmv, so convert by dividing by air mass density, convert
-! air mass to moles, and take care of powers of 10 (for kg-->g and
-! n(co2)/n(air) --> n(co2)/(million n(air)):
-! CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/atmsrf%rhoavg(i,j)
-CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/rho
+! Getting CO2 from rad code exporting (one option GHY_DRV uses; see
+! land_CO2_bc_flag for others. We could, e.g. hook up with CO2 tracer).
+CO2_megan=CO2ppm*CO2X ! remains in-routine in case eventually is I,J-dependent
+
 
 ! Get the local Cosine of the Solar Zenith angle:
 ! ---------------------------------------------
@@ -258,10 +230,9 @@ CO2_megan=CO2_wrong_units*1.d6*mair*1.e-3/rho
 ! the horizon. However, I think this is OK because within the gamma routine,
 ! gamma is set to zero when COS(SZA) is negative (or zero).
 ! Note: beta is confusingly called both the SZA and the elevation angle (SZA
-! complement) in the megan routines. I belive sinbeta (sine of the elevation angle)
-! equals cos(sza). So, to avoid changing the gamma routine, keeping this caslled
+! complement) in the megan routines. I believe sinbeta (sine of the elevation angle)
+! equals cos(sza). So, to avoid changing the gamma routine, keeping this called
 ! sin(beta) in there, but passing it cos(sza) here:
-! subroutine.
 cosSZA_megan = cosz1(i,j)
 
 ! Get the local julian day:
@@ -303,27 +274,23 @@ end if
 
 ! Get the near-top-of-canopy temperature, running average:
 ! ----------------------------------------------------------------------
+call get_canopy_temperaure(T_megan, i, j) ! from GHY_DRV
 
-#ifdef MEGAN_TEMP_WORKAROUNDS
-T_megan=283.d0
-#else
-call ent_get_exports( entcells(i,j),canopy_temperature=T_megan )
-#endif
-! Note that the 'instantaneous' value returned here is only used to get the
+! Note that the 'instantaneous' value returned there is only used to get the
 ! running average (not used on it's own in a call to gamma routines, *except*
 ! during the first averaging period. See below.)
 
-! I think it's possible, looking inside Ent, that, where there is no
-! vegetation, this canopy temperature might be -1.d30 and NOT 'undef', specifically.
-! Hence we have to deal with missing values here. That is very tricky when dealing
-! with running averages, as it might be -1.d30 at one time but not later... Here,
-! for safety, I replace canopy temperature with SAT when the former is missing
-! (since SAT should be available everywhere):
+! This canopy temperature is defined as -1.d30 (not 'undef') when there's no
+! vegetation. Hence we have to deal with missing values here. That is very
+! tricky when dealing with running averages, as it might be -1.d30 at one
+! time but not later... So for safety, I replace canopy temperature with SAT
+! when the former is missing (since SAT should be available everywhere):
 if(T_megan == -1.d30 .or. T_megan == undef) then
   T_megan=SAT_megan
 else
   T_megan=T_megan+tf ! degC --> K
 end if
+
 call running_average( T, T_megan, i, j)
 if(T%runningAverage(i,j)==undef)then
   ! e.g. in first averaging period use instantaneous value instead:
@@ -367,20 +334,14 @@ end if
 
 ! Obtain photosynthetic photon flux density, instantaneous & running average:
 ! ---------------------------------------------------------------------------
+! This is an 'educated guess' obtained from GHY_DRV subroutine earth, but what's
+! the 0.82? :
+par_total=SRVISSURF(i,j)*cosSZA_megan*0.82d0 ! visible (400-700nm) rad from GHY_DRV
+par_direct=par_total*FSRDIR(i,j)
+par_diffuse=par_total-par_direct
 
-! TODO: Ask expert if this is reasonable:
-#ifdef MEGAN_TEMP_WORKAROUNDS
-par_direct=0.001d0
-par_diffuse=0.001d0
-#else
-call ent_get_exports( entcells(i,j),direct_visible_rad=par_direct)
-call ent_get_exports( entcells(i,j),total_visible_rad=par_diffuse)
-#endif
-
-! Next line takes Ent direct and diffuse PAR (which Ent says are in W m-2
+! Next line takes direct and diffuse PAR (which Ent says are in W m-2
 ! for the 400-700 nm range) and converts to PPFD in micro-mol(photons) m-2 s-1:
-!TODO: see note at top of program - find out if you need to subtract
-!      direct from total to get par_diffuse in next line:
 PPFD_megan=par_direct*ConvertSunPPFD+par_diffuse*ConvertShadePPFD
 
 call running_average( PPFD, PPFD_megan, i, j)
