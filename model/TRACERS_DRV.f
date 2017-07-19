@@ -7144,7 +7144,6 @@ C**** Get current model time
       USE TRACER_COM, only: trm_col
       use TRACER_COM, only: n_CFC, n_CH4
       use TRACER_COM, only: n_N2O
-      use TRACER_COM, only: n_N_d1, n_N_d2, n_N_d3
       use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
       use TRACER_COM, only: n_NOx, nChemistry
       use TRACER_COM, only: nOther, nOverwrite
@@ -7221,11 +7220,6 @@ C**** Apply chemistry and overwrite changes:
       call apply_tracer_3Dsource(i,j,nChemistry,n_stratOx)
       call apply_tracer_3Dsource(i,j,nOverwrite,n_stratOx)
 #endif
-#if (defined TRACERS_HETCHEM) && (defined TRACERS_NITRATE)
-       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d1) ! NO3 chem prod on dust
-       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d2) ! NO3 chem prod on dust
-       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d3) ! NO3 chem prod on dust
-#endif
 
       contains
 
@@ -7247,6 +7241,23 @@ C**** Apply chemistry and overwrite changes:
 
       end subroutine calculate_and_apply_chemistry
 #endif
+
+#ifdef TRACERS_HETCHEM
+      subroutine calculate_and_apply_hetchem(i,j)
+      use TRACER_COM, only: n_N_d1,n_N_d2,n_N_d3
+      use TRACER_COM, only: nChemistry
+      USE apply3d, only : apply_tracer_3Dsource
+      implicit none
+      integer, intent(in) :: i,j
+
+#ifdef TRACERS_NITRATE
+       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d1) ! NO3 chem prod on dust
+       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d2) ! NO3 chem prod on dust
+       call apply_tracer_3Dsource(i,j,nChemistry,n_N_d3) ! NO3 chem prod on dust
+#endif  /* TRACERS_NITRATE */
+
+      end subroutine calculate_and_apply_hetchem
+#endif  /* TRACERS_HETCHEM */
 
 #ifdef TRACERS_TOMAS
       subroutine calculate_and_apply_tomas(i,j)
@@ -7675,6 +7686,11 @@ C**** Apply aircraft sources
 c**** Calculate and apply sources from gas-phase chemistry
         call calculate_and_apply_chemistry(i,j)
 #endif
+
+#ifdef TRACERS_HETCHEM
+c**** Calculate and apply sources from heterogeneous chemistry on dust
+        call calculate_and_apply_hetchem(i,j)
+#endif  /* TRACERS_HETCHEM */
 
 #ifdef TRACERS_NITRATE
 c**** Calculate and apply nitrate (thermo) sources
