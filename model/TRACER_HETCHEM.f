@@ -237,14 +237,14 @@ c radii interpolation
       ENDDO ! nd
 
       DO nd = 1,ndtr-1  !1,ndtr
-        krate(:,1,il) = krate(:,1,il) + rxtnox(:,nd,il)
+        krate(:,1,il) = krate(:,1,il) + rxtnox(:,nd,il) ! Total HNO3 loss on all dust types
       ENDDO
       do nd = 1,nSubClays
-        krate( :, 2, il ) = krate( :, 2, il ) + rxtnox( :, nd, il )
+        krate( :, 2, il ) = krate( :, 2, il ) + rxtnox( :, nd, il ) ! Total formation on all clays
       end do
-        krate(:,3,il) = rxtnox(:,5,il)
-        krate(:,4,il) = rxtnox(:,6,il)
-!        krate(:,5,il) = rxtnox(:,8,il)
+        krate(:,3,il) = rxtnox(:,nSubClays+1,il) ! Formation on silt1
+        krate(:,4,il) = rxtnox(:,nSubClays+2,il) ! Formation on silt2
+!        krate(:,5,il) = rxtnox(:,nSubClays+3,il) ! Formation on silt3
       ENDDO ! il
 
       return
