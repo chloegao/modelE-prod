@@ -7267,7 +7267,7 @@ C**** Apply chemistry and overwrite changes:
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: dtsrc
       USE apply3d, only : apply_tracer_3Dsource
-      USE TOMAS_AEROSOL, only : trm_emis,xk
+      USE TOMAS_AEROSOL, only : trm_preemis,xk
       USE TOMAS_EMIS, only : scalesizeCARBO100,scalesizeCARBO30
       implicit none
       integer, intent(in) :: i,j
@@ -7301,7 +7301,7 @@ C**** Apply chemistry and overwrite changes:
        enddo
 
        do l=1,lm
-         trm_emis(i,j,l,:)=trm_col(l,:)
+         trm_preemis(:,l)=trm_col(l,:)
        end do
    
        TOMAS_air(:,:)=0.d0

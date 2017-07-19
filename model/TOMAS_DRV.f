@@ -101,8 +101,8 @@ C Physical properties of aerosol components
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg 
 !@var M_subgridcg : aerosol mass emission rate changed by subgrid coagulation
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:,:)  :: M_subgridcg 
-!@var trm_emis : TRM before emission and used in subgridcoagualtion process 
-      real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: trm_emis
+!@var trm_preemis : TRM before emission and used in subgrid coagualtion process
+      real*8, ALLOCATABLE,DIMENSION(:,:)  :: trm_preemis
 !@var CCN_TOMAS [CM-3]
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:)  :: CCN_TOMAS
 !@var TOMAS_QEXT/TOMAS_QSCA/TOMAS_QABS/TOMAS_GSCA : size-dependant radiative properties 
@@ -1901,8 +1901,8 @@ c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
 c$$$          open (1044,file='debug_coag.dat',access='append',
 c$$$     &         status='unknown')
 c$$$          do k=1,nbins
-c$$$            write(1044,*)'begin',l,trm_emis(i,j,l,n_aecob(1)+k-1)
-c$$$     $           ,trm_emis(i,j,l,n_anum(1)+k-1),
+c$$$            write(1044,*)'begin',l,trm_preemis(n_aecob(k),l)
+c$$$     $           ,trm_preemis(n_anum(k),l),
 c$$$     $   trm_col(l,n_aecob(1)+k-1),trm_col(l,n_anum(1)+k-1),
 c$$$     $           taijs(i,j,ijts_subcoag(n_AECOB(1)+k-1))
 c$$$            enddo
@@ -1915,12 +1915,12 @@ c$$$      ENDIF
      &     *gasc*temp/pres*1e6  !cm3
 
       do k=1,nbins
-        ndist0(k)=TRM_EMIS(I,J,L,n_ANUM(1)+k-1)
+        ndist0(k)=trm_preemis(n_ANUM(k),l)
         do c=1,icomp-idiag
-          mdist0(k,c)=TRM_EMIS(I,J,L,n_ASO4(1)+(c-1)*nbins+k-1)
+          mdist0(k,c)=trm_preemis(n_ASO4(k)+(c-1)*nbins,l)
         enddo
         mdist0(k,srtnh4)=0.0
-        mdist0(k,srth2o)=TRM_EMIS(I,J,L,n_AH2O(1)+k-1)
+        mdist0(k,srth2o)=trm_preemis(n_AH2O(k),l)
         ndistfinal(k)=0
         maddfinal(k)=0
       enddo
@@ -2046,7 +2046,7 @@ c$$$      ENDIF
 c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
 c$$$          do k=1,nbins
 c$$$            
-c$$$        write(1044,*) 'subcoag result',l,trm_emis(i,j,l,n_aecob(1)+k-1),
+c$$$        write(1044,*) 'subcoag result',l,trm_preemis(n_aecob(k),l),
 c$$$     $       trm_col(l,n_aecob(1)+3),M_subgridcg(i,j,l,k,3,2),
 c$$$     $           N_subgridcg(i,j,l,k,2),
 c$$$     $       taijs(i,j,ijts_subcoag(n_AECOB(1)+k-1))
@@ -2395,7 +2395,7 @@ C     determine the mass added to each bin coagulation
       allocate(  M_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,
      *     ICOMP-IDIAG,2))
      
-      allocate(  TRM_EMIS(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
+      allocate(  trm_preemis(NTM,LM) )
 
       allocate(  CCN_TOMAS(I_0H:I_1H,J_0H:J_1H,LM,NSMAX) )
 
