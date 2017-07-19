@@ -8302,12 +8302,6 @@ C***4.SO2 + OH -> SO4 + HO2
 
       do l=1,LM
 
-C Initialise
-c        rsulf1(l)=0.d0
-c        rsulf2(l)=0.d0
-c        rsulf3(l)=0.d0
-c        rsulf4(l)=0.d0
-
 C Calculate effective temperature
 
         ppres=pmid(l,i,j)*9.869d-4 !in atm
