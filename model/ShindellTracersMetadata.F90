@@ -35,7 +35,7 @@ module ShindellTracersMetadata_mod
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
     n_Isoprene, n_AlkylNit, n_Alkenes, n_Paraffin,   &
-    n_stratOx, n_Terpenes,n_codirect,                &
+    n_stratOx, n_Terpenes,n_codirect, n_Acetone,     &
     n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,         &
     n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,         &
     n_ClOx,   n_BrOx,  n_HCl,   n_HOCl,   n_ClONO2,  &
@@ -75,9 +75,7 @@ module ShindellTracersMetadata_mod
   use RunTimeControls_mod, only: accmip_like_diags
   use RunTimeControls_mod, only: dynamic_biomass_burning
   USE CONSTANT, only: mair
-#ifdef TRACERS_AEROSOLS_SOA
   USE CONSTANT, only: gasc
-#endif
   use Tracer_mod, only: Tracer
   use Dictionary_mod, only: sync_param
 
@@ -115,6 +113,9 @@ contains
     call  AlkylNit_setSpec('AlkylNit')
     call  Alkenes_setSpec('Alkenes')
     call  Paraffin_setSpec('Paraffin')
+#ifdef TRACERS_ACETONE
+    call  Acetone_setSpec('Acetone')
+#endif  /* TRACERS_ACETONE */
 
     if (tracers_terp) then
       call  Terpenes_setSpec('Terpenes')
@@ -235,7 +236,7 @@ contains
            nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  &
            nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             &
            nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   &
-           nn_stratOx, nn_Terpenes,nn_codirect,                &
+           nn_stratOx, nn_Terpenes,nn_codirect, nn_Acetone,     &
            nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         &
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
@@ -268,6 +269,9 @@ contains
      nn_AlkylNit = n_AlkylNit - offset
      nn_Alkenes = n_Alkenes - offset
      nn_Paraffin = n_Paraffin - offset
+#ifdef TRACERS_ACETONE
+     nn_Acetone = n_Acetone - offset
+#endif  /* TRACERS_ACETONE */
      nn_stratOx = n_stratOx - offset
     if (tracers_terp) then
        nn_Terpenes = n_Terpenes - offset
@@ -675,6 +679,22 @@ contains
 #endif
       call set_has_chemistry(n, .true.)
     end subroutine Paraffin_setSpec
+
+#ifdef TRACERS_ACETONE
+    subroutine Acetone_setSpec(name)
+      character(len=*), intent(in) :: name
+      n = oldAddTracer(name)
+      n_Acetone = n
+      if (ntm_chem_beg==0) ntm_chem_beg = n
+      ntm_chem_end = n
+      call set_ntm_power(n, -11)
+      call set_tr_mm(n, 58.08d0)
+      call set_tr_RKD(n, 27.d0 / convert_HSTAR ) !Henry; from mole/(L atm) to mole/J
+      call set_tr_DHD(n, 5300.d0 * gasc) !Henry temp dependence (J/mole), Zhou and Mopper, 1990
+      if (tracers_drydep) call set_HSTAR(n, tr_RKD(n)*convert_HSTAR)
+      call set_has_chemistry(n, .true.)
+    end subroutine Acetone_setSpec
+#endif  /* TRACERS_ACETONE */
 
     subroutine Terpenes_setSpec(name)
       character(len=*), intent(in) :: name

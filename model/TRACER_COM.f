@@ -104,7 +104,11 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_shindell_trop: Number of TRACERS_SPECIAL_Shindell tracers.
 !@var ntm_shindell_strat: Number of Shindell strat chem tracers.
 #ifdef TRACERS_SPECIAL_Shindell
+#ifdef TRACERS_ACETONE
+      integer, parameter :: ntm_shindell_trop=16
+#else
       integer, parameter :: ntm_shindell_trop=15
+#endif  /* TRACERS_ACETONE */
       integer, parameter :: ntm_shindell_strat=10
 #else
       integer, parameter :: ntm_shindell_trop=0
@@ -389,7 +393,7 @@ C**** Each tracer has a variable name and a unique index
      *     n_N2O5=0,   n_HNO3=0,  n_H2O2=0,  n_CH3OOH=0,   n_HCHO=0,
      *     n_HO2NO2=0, n_CO=0,    n_PAN=0,   n_H2O17=0,
      *     n_Isoprene=0, n_AlkylNit=0, n_Alkenes=0, n_Paraffin=0,
-     *     n_stratOx=0, n_Terpenes=0,n_codirect=0,
+     *     n_stratOx=0, n_Terpenes=0,n_codirect=0, n_Acetone=0,
      *     n_isopp1g=0,n_isopp1a=0,n_isopp2g=0,n_isopp2a=0,
      *     n_apinp1g=0,n_apinp1a=0,n_apinp2g=0,n_apinp2a=0,
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
@@ -462,7 +466,7 @@ C**** Each tracer has a variable name and a unique index
      *     nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  
      *     nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,
      *     nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
-     *     nn_stratOx, nn_Terpenes,nn_codirect,                
+     *     nn_stratOx, nn_Terpenes,nn_codirect, nn_Acetone,
      *     nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
      *     nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  

@@ -3522,12 +3522,31 @@ C     functions
 
       SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL)
       use filemanager, only : file_exists, openunit, closeunit
+      use dictionary_mod
       IMPLICIT NONE
       INTEGER J,N,NL,iu,np,ncol
       REAL*8 PL(NL),FPXCO2(NL)
-      REAL*8 FPI,FPJ,PFI,PFJ,pf(4)
+      integer, parameter :: ncols = 6
+      REAL*8 FPI,FPJ,PFI,PFJ,pf(ncols)
       REAL*8, allocatable :: FPX(:),PFP(:)
       character*80 title
+!@dbparam KFPCO2 selects CO2 profile absorber scaling (if >0 )
+      integer :: KFPCO2 = -1 ! scaling determined by # of layers NL
+!
+! FPXCO2 scaling factors: 1.0 for P > 50mb, linear in P for P < 50mb
+! PFP Pressure scale inflection points: continuous linear line segments
+! PL=layerL mean pressure, FPXCO2=CO2 absorber scaling factor
+! NL=total number of radiation layers incl. the top 3 rad. only layers
+!
+! CO2 profile absorber scaling: KFPCO2=0  FPXCO2=1, no scaling
+!                               KFPCO2=1  FPXCO2:  43-layer scaling
+!                               KFPCO2=2  FPXCO2:  99-layer scaling
+!                               KFPCO2=3  FPXCO2: 105-layer scaling
+!                               KFPCO2=4  FPXCO2: 105-layer scaling plus
+!                               using FIT105_KPFCO2 fit in top 10 layers
+!                               KPFCO2<0  NL determines scaling
+!                               KPFCO2>4  FPXCO2=1, no scaling
+! If the file CO2profile is not present:  FPXCO2=1, no scaling
 
       FPXCO2 = 1. ! default
 
@@ -3541,11 +3560,23 @@ C     functions
       read(iu,'(a)') title
 
 ! Find appropriate column for current layering
-      if (nl < 80) then
-        ncol = 1
-      else
-        ncol = 3
+      call sync_param ("KFPCO2",KFPCO2)
+      if (KFPCO2 < 0) then
+        if (nl < 30) then
+          KFPCO2 = 0
+        else if (nl < 80) then
+          KFPCO2 = 1
+        else if (nl < 102) then
+          KFPCO2 = 2
+        else
+          KFPCO2 = 4
+        end if
       end if
+
+      if (KFPCO2 > 4 .or. KFPCO2 < 1) return
+
+      ncol = 2*KFPCO2 - 1
+      if (ncol > ncols) ncol=ncols-1
 
       allocate (FPX(np),PFP(np))
       do n=1,np
