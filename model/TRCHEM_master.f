@@ -2587,11 +2587,9 @@ C Make sure nighttime chemistry changes are not too big:
 #ifdef CUBED_SPHERE
         call stop_model('fix the following in masterchem_post',255)
 #endif
-        if(prnchg) then
-          do j=grid%j_strt,grid%j_stop
-            DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
-          enddo
-        endif
+        do j=grid%j_strt,grid%j_stop
+          DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
+        enddo
         call PACK_DATA( grid, DU_O3, DU_O3_glob )
         IF(AM_I_ROOT()) THEN
           write(6,*) 'Ozone column fm -90 to +90'
