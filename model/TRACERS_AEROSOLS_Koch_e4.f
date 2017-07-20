@@ -504,7 +504,7 @@ c Aerosol chemistry
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ichemi,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,j_0,j_1,
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,j_0,j_1,
      * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
       integer nrecs_skip
       logical :: newMonth
@@ -628,7 +628,7 @@ c Aerosol chemistry
 #endif
       real*8 bciage,ociage
       integer l,n,iuc,iun,itau,ichemi,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,najl,mmm
+     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
 #ifdef TRACERS_AEROSOLS_VBS
       type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
       type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
@@ -835,8 +835,7 @@ c SO2 production from DMS
 
 #endif
 #ifndef TRACERS_TOMAS                   
-          najl = jls_NO3
-          call inc_tajls2(i,j,l,najl,ttno3)
+          call inc_tajls2(i,j,l,jls_NO3,ttno3)
 #endif
         end select
         
@@ -889,14 +888,8 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
-c#ifdef TRACERS_SPECIAL_Shindell
-c         najl = jls_OHcon
-c#else
-          najl = jls_OHconk
-c#endif
-          if (najl > 0) call inc_tajls2(i,j,l,najl,oh(i,j,l))
-          najl = jls_HO2con
-          if (najl > 0) call inc_tajls2(i,j,l,najl,dho2(i,j,l))
+         if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,oh(i,j,l))
+         if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,dho2(i,j,l))
 
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')
@@ -969,8 +962,7 @@ c H2O2 losses:5 and 6
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
           
-          najl = jls_phot
-          if (najl > 0) call inc_tajls(i,j,l,najl,perj(i,j,l))
+          if (jls_phot>0) call inc_tajls(i,j,l,jls_phot,perj(i,j,l))
           endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop
