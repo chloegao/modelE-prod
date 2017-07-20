@@ -7550,11 +7550,11 @@ c$$$#endif
 #endif
       call NITRATE_THERMO_DRV(i,j,lm_nitrate)
 #ifdef TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nThermo,n_HNO3) ! NO3 change due to thermodynamics
+      call apply_tracer_3Dsource(i,j,nThermo,n_HNO3) ! HNO3 change
 #endif
-      call apply_tracer_3Dsource(i,j,nThermo,n_NO3p) ! NO3 chem prod
-      call apply_tracer_3Dsource(i,j,nThermo,n_NH4)  ! NO3 chem prod
-      call apply_tracer_3Dsource(i,j,nThermo,n_NH3)  ! NH3
+      call apply_tracer_3Dsource(i,j,nThermo,n_NO3p) ! NO3p change
+      call apply_tracer_3Dsource(i,j,nThermo,n_NH4)  ! NH4 change
+      call apply_tracer_3Dsource(i,j,nThermo,n_NH3)  ! NH3 change
 
       return
 
