@@ -59,6 +59,7 @@
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM
+      use TRACER_COM, only: coupled_chem
       use AEROSOL_SOURCES, only: DMSinput,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
@@ -100,17 +101,22 @@
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
-     * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
-     * ,o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
-      allocate( ohr(I_0H:I_1H,J_0H:J_1H,lm),
-     * dho2r(I_0H:I_1H,J_0H:J_1H,lm),
-     * perjr(I_0H:I_1H,J_0H:J_1H,lm),tno3r(I_0H:I_1H,J_0H:J_1H,lm),
-     * ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
-      allocate( ohrCache(I_0H:I_1H,J_0H:J_1H,lm),
-     * dho2rCache(I_0H:I_1H,J_0H:J_1H,lm),
-     * perjrCache(I_0H:I_1H,J_0H:J_1H,lm),
-     *     tno3rCache(I_0H:I_1H,J_0H:J_1H,lm))
+      allocate(         oh(I_0H:I_1H,J_0H:J_1H,lm))
+      allocate(       tno3(I_0H:I_1H,J_0H:J_1H,lm))
+      allocate(       dho2(I_0H:I_1H,J_0H:J_1H,lm))
+      if (coupled_chem==0) then
+        allocate(       perj(I_0H:I_1H,J_0H:J_1H,lm),
+     *            o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+        allocate(        ohr(I_0H:I_1H,J_0H:J_1H,lm),
+     *                 dho2r(I_0H:I_1H,J_0H:J_1H,lm),
+     *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
+     *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
+     *                  ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+        allocate(   ohrCache(I_0H:I_1H,J_0H:J_1H,lm),
+     *            dho2rCache(I_0H:I_1H,J_0H:J_1H,lm),
+     *            perjrCache(I_0H:I_1H,J_0H:J_1H,lm),
+     *            tno3rCache(I_0H:I_1H,J_0H:J_1H,lm))
+      endif
 #ifdef BC_ALB
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
 #endif  /* BC_ALB */
@@ -482,8 +488,8 @@ c
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,imaxj,BYAXYP
       USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
-     & dho2,perj,tno3,ohsr,o3_offline, JmonthCache,
+      USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,
+     &      ohsr,JmonthCache,
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
@@ -557,8 +563,6 @@ c I have to read in every timestep unless I can find a better way
 c
 c impose diurnal variability
         CALL SCALERAD
-c       write(6,*) ' RRR OXID2 ',ohr(10,45,1),
-c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
 
       end subroutine aerosol_gas_chem_prep
 
@@ -599,8 +603,7 @@ c    *   oh(10,45,1),dho2r(3,45,1),dho2(3,45,1)
       USE PBLCOM, only : dclev
       USE GEOM, only: axyp,BYAXYP
       USE FLUXES, only: tr3Dsource
-      USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,
-     & dho2,perj,tno3,ohsr,o3_offline
+      USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,ohsr,o3_offline
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_TOMAS
@@ -968,7 +971,7 @@ c H2O2 losses:5 and 6
           
           najl = jls_phot
           if (najl > 0) call inc_tajls(i,j,l,najl,perj(i,j,l))
-          endif
+          endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop
 
