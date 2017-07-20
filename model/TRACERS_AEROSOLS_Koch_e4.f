@@ -495,7 +495,7 @@ c
       use TimeConstants_mod, only: SECONDS_PER_DAY
 c Aerosol chemistry
       implicit none
-      real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
+      real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
@@ -584,10 +584,6 @@ c impose diurnal variability
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       use TRACER_COM, only: rxts1, rxts2, rxts3
 #endif
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AECOB, n_AECIL, n_AOCOB, n_AOCIL
-      use TRACER_COM, only: n_AECIL, n_H2SO4, nbins
-#endif
 #ifdef TRACERS_AMP
       use TRACER_COM, only: n_H2SO4
 #endif
@@ -607,6 +603,7 @@ c impose diurnal variability
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_TOMAS
+      use TRACER_COM, only: n_H2SO4
       USE TOMAS_AEROSOL, only : h2so4_chem
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
@@ -635,10 +632,6 @@ c Aerosol chemistry
 !@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
       real*8 :: kg2ugm3
 #endif /* TRACERS_AEROSOLS_VBS */
-#ifdef TRACERS_TOMAS
-      REAL*8 TAU_hydro
-      integer k
-#endif
 
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
@@ -765,6 +758,8 @@ c - not necessary for Shindell source
           else
             ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
           endif
+          call inc_tajls2(i,j,l,jls_NO3,ttno3)
+
           r3=rsulf3(l)*ttno3
           d3= exp(-r3*dtsrc)
           ddno3=r3*trm_col(l,n)/tr_mm(n)*1000.d0*dtsrc
@@ -796,47 +791,6 @@ c SO2 production from DMS
      *      tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+
      *      dmssink*tr_mm(n)/tr_mm(n_dms)
      *                                 )/dtsrc
-#ifdef TRACERS_TOMAS 
-! EC/OC aging 
-        case ('AECIL_01')
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
-
-           DO K=1,nbins
-              tr3Dsource(l,nChemistry,n_AECIL(K))=
-     &             trm_col(l,n_AECOB(K))*
-     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
-
-              tr3Dsource(l,nChemistry,n_AECOB(K))=
-     &             -trm_col(l,n_AECOB(K))*
-     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
-
-!              IF(am_i_root())
-!         print*,'ECOB aging',k,n_AECOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
-!     &  , trm_col(l,n_AECOB(K))
-           ENDDO
-           
-        case ('AOCIL_01')
-           TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
-
-           DO K=1,nbins
-              tr3Dsource(l,nChemistry,n_AOCIL(K))
-     &             =trm_col(l,n_AOCOB(K))*
-     &             (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
-!     &             4.3D-6
-              tr3Dsource(l,nChemistry,n_AOCOB(K))
-     &             =-trm_col(l,n_AOCOB(K))*
-     &            (1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
-!     &             4.3D-6
-!              IF(am_i_root())
-!         print*,'OCOB aging',k,n_AOCOB(K),(1.D0-EXP(-dtsrc/TAU_hydro))
-!     &  , trm_col(l,n_AOCOB(K))
-
-           ENDDO   
-
-#endif
-#ifndef TRACERS_TOMAS                   
-          call inc_tajls2(i,j,l,jls_NO3,ttno3)
-#endif
         end select
         
         enddo                     ! tracer loop

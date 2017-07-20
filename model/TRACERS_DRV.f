@@ -7264,6 +7264,7 @@ C**** Apply chemistry and overwrite changes:
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       use RESOLUTION, only: LM
       use OldTracer_mod, only: do_aircraft
+      use TimeConstants_mod, only: SECONDS_PER_DAY
       USE TRACER_COM, only: trm_col
       use TRACER_COM, only: n_DMS, n_H2O2_s
       use TRACER_COM, only: n_NH3, n_NH4
@@ -7290,6 +7291,7 @@ C**** Apply chemistry and overwrite changes:
       integer :: src_index,get_src_index
       integer :: k,kn,jc,tracnum
       real*8, dimension (NBINS,LM) :: TOMAS_bio,TOMAS_air
+      REAL*8 :: TAU_hydro
 
 !**** Apply aerosol-gas chemistry sources/sinks:
 !H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
@@ -7303,9 +7305,19 @@ C**** Apply chemistry and overwrite changes:
          call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s) ! H2O2 chem sink
        end if
 
-! EC/OC aging 
-       
+! EC/OC aging
+       TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
+
        do k=1,nbins
+         tr3Dsource(:,nChemistry,n_AECIL(K))=
+     &     trm_col(:,n_AECOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+         tr3Dsource(:,nChemistry,n_AECOB(K))=
+     &     -trm_col(:,n_AECOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+         tr3Dsource(:,nChemistry,n_AOCIL(K))=
+     &     trm_col(:,n_AOCOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
+         tr3Dsource(:,nChemistry,n_AOCOB(K))=
+     &     -trm_col(:,n_AOCOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+       
           call apply_tracer_3Dsource(i,j,nChemistry,n_AECOB(k))
           call apply_tracer_3Dsource(i,j,nChemistry,n_AECIL(k))
           call apply_tracer_3Dsource(i,j,nChemistry,n_AOCOB(k))
