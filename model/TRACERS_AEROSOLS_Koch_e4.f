@@ -473,10 +473,6 @@ c
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, oh_live, no3_live, trm
-      use TRACER_COM, only: n_BCIA, n_BCII, n_DMS,n_H2O2_s
-      use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
-      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use TRACER_COM, only: nChemistry, nChemLoss
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
       USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
