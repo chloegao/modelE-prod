@@ -493,10 +493,6 @@ c Aerosol chemistry
       implicit none
       real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,r3,d3,
      * ddno3,dddms,ddno3a,fmom,dtt
-      real*8 rk4,ek4,r4,d4
-      real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
-     * r5,d5,dmssink,bdy
-      real*8 bciage,ociage
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ichemi,itt,
@@ -571,7 +567,7 @@ c impose diurnal variability
       use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
-      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3, n_H2SO4
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
      &                      n_apinp2a, n_NH4, n_NO3p
@@ -579,9 +575,6 @@ c impose diurnal variability
       use TRACER_COM, only: nChemistry, nChemprod, nChemLoss, nOther
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       use TRACER_COM, only: rxts1, rxts2, rxts3
-#endif
-#ifdef TRACERS_AMP
-      use TRACER_COM, only: n_H2SO4
 #endif
       USE TRDIAG_COM, only : 
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
@@ -599,7 +592,6 @@ c impose diurnal variability
       USE CONSTANT, only : mair
       use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_H2SO4
       USE TOMAS_AEROSOL, only : h2so4_chem
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
@@ -787,60 +779,50 @@ c SO2 production from DMS
      *      tr_mm(n)/tr_mm(n_dms)*trm_col(l,n_dms)*(1.d0 - d2)*sqrt(d1)+
      *      dmssink*tr_mm(n)/tr_mm(n_dms)
      *                                 )/dtsrc
+
+c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
+          ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
+          r4=rsulf4(l)*ohmc
+          d4 = exp(-r4*dtsrc)
+
+          IF (d4.GE.1.) d4=0.99999d0
+#ifdef TRACERS_HETCHEM
+          if (COUPLED_CHEM.ne.1) then
+            o3mc=o3_offline(i,j,l)
+          else
+            o3mc=trm_col(l,n_Ox)
+          endif
+          o3mc = o3mc*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
+
+          rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te))*10.d5 !assuming pH=5
+          rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
+          d41 = exp(-rxts1(l)*dtsrc)     
+          d42 = exp(-rxts2(l)*dtsrc)     
+          d43 = exp(-rxts3(l)*dtsrc)     
+          tr3Dsource(l,nChemloss,n) = (-trm_col(l,n)*(1.d0-d41)/dtsrc)
+     .                              + (-trm_col(l,n)*(1.d0-d4)/dtsrc)
+     .                              + (-trm_col(l,n)*(1.d0-d42)/dtsrc)
+     .                              + (-trm_col(l,n)*(1.d0-d43)/dtsrc)
+#else
+          tr3Dsource(l,nChemloss,n) = -trm_col(l,n)*(1.d0-d4)/dtsrc 
+#endif  /* TRACERS_HETCHEM */
+
         end select
         
         enddo                     ! tracer loop
 
 ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
 
-
-        ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
-
-#ifdef TRACERS_HETCHEM
-        if (COUPLED_CHEM.ne.1) then
-          o3mc=o3_offline(i,j,l)
-        else
-          o3mc=trm_col(l,n_Ox)
-        endif
-        o3mc = o3mc*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
-#endif
-
-        do n=1,NTM
-        select case (trname(n))
-        case ('SO2')
-c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-
-          r4=rsulf4(l)*ohmc
-          d4 = exp(-r4*dtsrc)
-
-          IF (d4.GE.1.) d4=0.99999d0
-#ifdef TRACERS_HETCHEM
-      rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te)) * 10.d5 !assuming pH=5
-      rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
-       d41 = exp(-rxts1(l)*dtsrc)     
-       d42 = exp(-rxts2(l)*dtsrc)     
-       d43 = exp(-rxts3(l)*dtsrc)     
-       tr3Dsource(l,nChemloss,n) = (-trm_col(l,n)*(1.d0-d41)/dtsrc)
-     .                       + ( -trm_col(l,n)*(1.d0-d4)/dtsrc)
-     .                       + ( -trm_col(l,n)*(1.d0-d42)/dtsrc)
-     .                       + ( -trm_col(l,n)*(1.d0-d43)/dtsrc)
-#else
-       tr3Dsource(l,nChemloss,n) = -trm_col(l,n)*(1.d0-d4)/dtsrc 
-#ifdef TRACERS_AMP
-       tr3Dsource(l,nChemistry,n_H2SO4)=trm_col(l,n)*(1.d0-d4)/dtsrc 
-     &      *tr_mm(n_H2SO4)/tr_mm(n) 
-#endif  /* TRACERS_AMP */
-#ifdef TRACERS_TOMAS
-       H2SO4_chem(i,j,l)=trm_col(l,n)*(1.d0-d4)/dtsrc 
-     &      *tr_mm(n_H2SO4)/tr_mm(n) 
-#endif  /* TRACERS_TOMAS */
-#endif  /* TRACERS_HETCHEM */
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
-         if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,oh(i,j,l))
-         if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,dho2(i,j,l))
+        if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,oh(i,j,l))
+        if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,dho2(i,j,l))
 
+! SO4 and H2O2_s formation MUST be in a separate loop, since SO2 does not have
+! to be before SO4 or H2SO4 or H2O2_s in the tracer list
+        do n=1,NTM
+        select case (trname(n))
 #ifdef TRACERS_HETCHEM
        case ('SO4_d1')
 c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
@@ -866,11 +848,15 @@ c sulfate production from SO2 on mineral dust aerosol
      *           /dtsrc
 
 #endif
-        case('SO4')
+        case('SO4','H2SO4')
 C SO4 production
-          tr3Dsource(l,nChemistry,n) = 
-     *         tr3Dsource(l,nChemistry,n)+tr_mm(n)
-     *         /tr_mm(n_so2)*trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
+#ifndef TRACERS_TOMAS
+          tr3Dsource(l,nChemistry,n)=trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
+     *         *tr_mm(n)/tr_mm(n_so2)
+#else
+          H2SO4_chem(l)=trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
+     *         *tr_mm(n)/tr_mm(n_so2)
+#endif
         case('H2O2_s')
 
           if (coupled_chem.ne.1) then

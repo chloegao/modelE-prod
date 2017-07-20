@@ -96,7 +96,7 @@ C Physical properties of aerosol components
 !@var AQSO4oxid_mc/AQSO4oxid_ls : aqueous h2so4 formation for convective and large-scale clouds 
       real*8, ALLOCATABLE,DIMENSION(:,:,:) :: AQSO4oxid_mc,AQSO4oxid_ls 
 !@var h2so4_chem : h2so4 formation rate from so2+oh [kg of H2SO4/sec]
-      real*8, ALLOCATABLE,DIMENSION(:,:,:)  ::  h2so4_chem  
+      real*8, ALLOCATABLE,DIMENSION(:)  ::  h2so4_chem  
 !@var N_subgridcg : aerosol number emission rate changed by subgrid coagulation 
       real*8, ALLOCATABLE,DIMENSION(:,:,:,:,:) :: N_subgridcg 
 !@var M_subgridcg : aerosol mass emission rate changed by subgrid coagulation
@@ -221,7 +221,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
 
                INIT_NK(:) = NK(:)
                INIT_MK(:,:)=MK(:,:)
-               INIT_H2SO4 = H2SO4_chem(I,J,L)*dtsrc
+               INIT_H2SO4 = H2SO4_chem(L)*dtsrc
                INIT_NH3=TRM_COL(L,n_NH3)
                INIT_NH4=TRM_COL(L,n_NH4)
                INIT_SOA=TRM_COL(L,n_SOAgas)
@@ -240,7 +240,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
                   tot_n_1 = tot_n_1 + Mk(k,srtnh4)*14.d0/18.d0
                enddo
 
-               H2SO4rate_o = H2SO4_chem(i,j,l) !kg of h2so4/sec  (from SO2+OH)
+               H2SO4rate_o = H2SO4_chem(l) !kg of h2so4/sec  (from SO2+OH)
                SOAmass=trm_col(l,n_SOAgas) !kg of SOA 
                
 ! Do water eqm at appropriate times
@@ -2389,7 +2389,7 @@ C     determine the mass added to each bin coagulation
 
       allocate(  AQSO4oxid_mc(I_0H:I_1H,J_0H:J_1H,LM)   )
       allocate(  AQSO4oxid_ls(I_0H:I_1H,J_0H:J_1H,LM)   )
-      allocate(  H2SO4_chem(I_0H:I_1H,J_0H:J_1H,LM)  )
+      allocate(  H2SO4_chem(LM)  )
       allocate(  AEROD(I_0H:I_1H,J_0H:J_1H,LM,NTM,ptype) )
       allocate(  N_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,2) )
       allocate(  M_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,
