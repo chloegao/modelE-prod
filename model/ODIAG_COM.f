@@ -453,6 +453,7 @@ c instances of arrays
 #endif
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
+      use straits, only : nmst
       implicit none
       integer fid            !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
@@ -464,8 +465,10 @@ c instances of arrays
      &     'oijl(dist_imo,dist_jmo,lmo,koijl)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,ol,'ol(lmo,kol)',
      &     r4_on_disk=r4_on_disk)
+      if(nmst.gt.0) then
       call defvar(grid,fid,olnst,'olnst(lmo,nmst,kolnst)',
      &     r4_on_disk=r4_on_disk)
+      endif
 #ifdef TRACERS_OCEAN
       if(r4_on_disk) then
         call defvar(grid,fid,toijl_out,
@@ -474,8 +477,10 @@ c instances of arrays
         call defvar(grid,fid,toijl,
      &       'toijl(dist_imo,dist_jmo,lmo,ktoijl,ntmo)')
       endif
+      if(nmst.gt.0) then
       call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntmo)',
      &     r4_on_disk=r4_on_disk)
+      endif
 #ifndef TRACERS_ON
 #ifndef STANDALONE_OCEAN
       call def_rsf_tcons(fid,r4_on_disk)
@@ -501,6 +506,7 @@ c    extended/rescaled instances of arrays when writing acc files
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
+      use straits, only : nmst
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -510,8 +516,10 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_dist_data(grid,fid,'oijmm',oijmm)
         call write_dist_data(grid,fid,'oijl',oijl)
         call write_data(grid,fid,'ol',ol)
+        if(nmst.gt.0) then
 c straits arrays
         call write_data(grid,fid,'olnst',olnst)
+        endif
 #ifdef TRACERS_OCEAN
         if(iaction.eq.iowrite) then
           call write_dist_data(grid,fid,'toijl',toijl)
@@ -525,11 +533,15 @@ c straits arrays
         call read_dist_data(grid,fid,'oijmm',oijmm)
         call read_dist_data(grid,fid,'oijl',oijl)
         call read_data(grid,fid,'ol',ol,bcast_all=.true.)
+        if(nmst.gt.0) then
 c straits arrays
         call read_data(grid,fid,'olnst',olnst,bcast_all=.true.)
+        endif
 #ifdef TRACERS_OCEAN
         call read_dist_data(grid,fid,'toijl',toijl)
+        if(nmst.gt.0) then
         call read_data(grid,fid,'tlnst',tlnst,bcast_all=.true.)
+        endif
 #endif
       end select
 
@@ -552,6 +564,7 @@ c straits arrays
       use ocean, only : oxyp
       USE OCEANR_DIM, only : grid=>ogrid
       use cdl_mod, only : defvar_cdl
+      use straits, only : nmst
       implicit none
       integer :: fid         !@var fid file id
 
@@ -585,6 +598,7 @@ c straits arrays
       call write_attr(grid,fid,'ol','reduction','sum')
       call write_attr(grid,fid,'ol','split_dim',2)
 
+      if(nmst.gt.0) then
       call write_attr(grid,fid,'olnst','reduction','sum')
       call write_attr(grid,fid,'olnst','split_dim',3)
       call defvar(grid,fid,ia_olnst,'ia_olnst(kolnst)')
@@ -593,6 +607,7 @@ c straits arrays
      &     'sname_olnst(sname_strlen,kolnst)')
       call defvar_cdl(grid,fid,cdl_olnst,
      &     'cdl_olnst(cdl_strlen,kcdl_olnst)')
+      endif
 
       call defvar(grid,fid,ojl_out,'ojl(jmo,lmo,kojl)',
      &     r4_on_disk=.true.)
@@ -643,6 +658,7 @@ c straits arrays
       USE OCEANR_DIM, only : grid=>ogrid
       use ocean, only : oxyp,focean
       use cdl_mod, only : write_cdl
+      use straits, only : nmst
       implicit none
       integer :: fid         !@var fid file id
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: tmp
@@ -678,10 +694,12 @@ c straits arrays
       call write_data(grid,fid,'sname_otj',sname_otj)
       call write_cdl(grid,fid,'cdl_otj',cdl_otj)
 
+      if(nmst.gt.0) then
       call write_data(grid,fid,'ia_olnst',ia_olnst)
       call write_data(grid,fid,'scale_olnst',scale_olnst)
       call write_data(grid,fid,'sname_olnst',sname_olnst)
       call write_cdl(grid,fid,'cdl_olnst',cdl_olnst)
+      endif
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
@@ -1987,6 +2005,7 @@ c
      &       make_timeaxis=make_timeaxis)
       enddo
 
+      if(nmst.gt.0) then
       cdl_olnst = cdl_odepths
       call add_dim(cdl_olnst,'nmst',nmst)
       call add_dim(cdl_olnst,'strait_strlen',len(name_st(1)))
@@ -2007,6 +2026,7 @@ c
      &       units=trim(units_olnst(k)),
      &       make_timeaxis=make_timeaxis)
       enddo
+      endif
 
       cdl_otj = cdl_olats
       do k=1,kotj

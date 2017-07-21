@@ -1929,6 +1929,7 @@ C****
       call defvar(grid,fid,ogeoz,'ogeoz(dist_imo,dist_jmo)')
       call defvar(grid,fid,ogeoz_sv,'ogeoz_sv(dist_imo,dist_jmo)')
       call defvar(grid,fid,kpl,'kpl(dist_imo,dist_jmo)')
+      if(nmst.gt.0) then
 c straits arrays
       call defvar(grid,fid,must,'must(lmo,nmst)')
       call defvar(grid,fid,g0mst,'g0mst(lmo,nmst)')
@@ -1942,6 +1943,7 @@ c straits arrays
       call defvar(grid,fid,msist,'msist(two,nmst)')
       call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
       call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
+      endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
       do n=1,tracerlist%getsize()
@@ -1969,6 +1971,7 @@ c tracer arrays
      &       'tzxmo_'//trim(entry%trname)//'(dist_imo,dist_jmo,lmo)')
         endif
       enddo
+      if(nmst.gt.0) then
 c tracer arrays in straits
       call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntmo)')
       call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntmo)')
@@ -1976,6 +1979,7 @@ c tracer arrays in straits
 #ifdef TRACERS_WATER
       call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
 #endif
+      endif
 #ifdef TRACERS_OceanBiology
       call def_rsf_obio(fid)
 #endif
@@ -2056,6 +2060,7 @@ c tracer arrays in straits
         call write_dist_data(grid,fid,'ogeoz',ogeoz)
         call write_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
         call write_dist_data(grid,fid,'kpl',kpl)
+        if(nmst.gt.0) then
 c straits arrays
         call write_data(grid,fid,'must',must)
         call write_data(grid,fid,'g0mst',g0mst)
@@ -2069,6 +2074,7 @@ c straits arrays
         call write_data(grid,fid,'msist',msist)
         call write_data(grid,fid,'hsist',hsist)
         call write_data(grid,fid,'ssist',ssist)
+        endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
         do n=1,tracerlist%getsize()
@@ -2096,6 +2102,7 @@ c tracer arrays
      &           tzxmo(:,:,:,n))
           endif
         enddo
+        if(nmst.gt.0) then
 c tracer arrays in straits
         call write_data(grid,fid,'trmst',trmst)
         call write_data(grid,fid,'txmst',txmst)
@@ -2103,6 +2110,7 @@ c tracer arrays in straits
 #ifdef TRACERS_WATER
         call write_data(grid,fid,'trsist',trsist)
 #endif
+        endif
 #endif
         call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &                 j_strt_halo=j_0h,j_stop_halo=j_1h)
@@ -2147,6 +2155,7 @@ c tracer arrays in straits
         call read_dist_data(grid,fid,'ogeoz',ogeoz)
         call read_dist_data(grid,fid,'ogeoz_sv',ogeoz_sv)
         call read_dist_data(grid,fid,'kpl',kpl)
+        if(nmst.gt.0) then
 c straits arrays
         call read_data(grid,fid,'must',must,bcast_all=.true.)
         call read_data(grid,fid,'g0mst',g0mst,bcast_all=.true.)
@@ -2160,6 +2169,7 @@ c straits arrays
         call read_data(grid,fid,'msist',msist,bcast_all=.true.)
         call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
         call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
+        endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
         do n=1,tracerlist%getsize()
@@ -2187,6 +2197,7 @@ c tracer arrays
      &         tzxmo(:,:,:,n))
           endif
         enddo
+        if(nmst.gt.0) then
 c tracer arrays in straits
         call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)
         call read_data(grid,fid,'txmst',txmst,bcast_all=.true.)
@@ -2194,6 +2205,7 @@ c tracer arrays in straits
 #ifdef TRACERS_WATER
         call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
 #endif
+        endif
 #endif
       end select
 

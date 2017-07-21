@@ -1782,9 +1782,10 @@ c
       use constant, only : grav
       use kpp_com, only : use_tdiss
 #ifdef OCEAN_TENDENCY_DIAGS
-      use straits, only: nmst, ist,jst,lmst
+      use straits, only: ist,jst,lmst
       use domain_decomp_1d, only : broadcast
 #endif
+      use straits, only : nmst
       implicit none
       integer i,j,l,k,kk,n
       real*8 mass,gos,sos,temgs,volgs,volgsp,fac,facst,dpr
@@ -1808,6 +1809,7 @@ c
       character(len=32) :: tendname(max_num_tends)
       real*8 :: sign_end
 #endif
+      real*8 dumarr(1,1)
 
       j_0 = grid%j_strt
       j_1 = grid%j_stop
@@ -2104,7 +2106,11 @@ C****
       if(am_i_root()) then
         FAC   = -1d-9/dts
         FACST = -1d-9/dts
-        CALL STRMIJ(MFU_GLOB,FAC,OLNST(1,1,LN_MFLX),FACST,SF_GLOB)
+        if(nmst.gt.0) then
+          CALL STRMIJ(MFU_GLOB,FAC,OLNST(1,1,LN_MFLX),FACST,SF_GLOB)
+        else
+          CALL STRMIJ(MFU_GLOB,FAC,DUMARR,FACST,SF_GLOB)
+        endif
       endif
       call unpack_data(grid,sf_glob,oij(:,:,ij_sf))
       deallocate(mfu_glob,sf_glob)
@@ -2236,6 +2242,7 @@ c
       REAL*8 ::
      &     X(grid%j_strt_halo:grid%j_stop_halo,4,3)
      &    ,XCOMP(grid%j_strt_halo:grid%j_stop_halo,4,3,3)
+      real*8 dumarr(1,1)
 
       j_0 = grid%j_strt
       j_1 = grid%j_stop
@@ -2277,8 +2284,13 @@ C**** Calculate Mass Stream Function
 C****
       FAC   = -1d-9/DTS
       FACST = -1d-9/DTS
-      CALL STRMJL (OIJL(1,j_0h,1,IJL_MFU),FAC,
-     &     OLNST(1,1,LN_MFLX),FACST,SFM)
+      if(nmst.gt.0) then
+        CALL STRMJL (OIJL(1,j_0h,1,IJL_MFU),FAC,
+     &       OLNST(1,1,LN_MFLX),FACST,SFM)
+      else
+        CALL STRMJL (OIJL(1,j_0h,1,IJL_MFU),FAC,
+     &       DUMARR,FACST,SFM)
+      endif
       if(am_i_root()) then
         ojl(1,:,:,jl_sf) = 0.
         ojl(2:jm,:,:,jl_sf) = sfm(1:jm-1,1:lmo,:)
@@ -2290,8 +2302,13 @@ C**** the resolved streamfunction
 C****
       FAC   = -1d-9/DTS
       FACST = 0.
-      CALL STRMJL (OIJL(1,j_0h,1,IJL_MFVB-1),FAC,
-     &     OLNST(1,1,LN_MFLX),FACST,SFM)
+      if(nmst.gt.0) then
+        CALL STRMJL (OIJL(1,j_0h,1,IJL_MFVB-1),FAC,
+     &       OLNST(1,1,LN_MFLX),FACST,SFM)
+      else
+        CALL STRMJL (OIJL(1,j_0h,1,IJL_MFVB-1),FAC,
+     &       DUMARR,FACST,SFM)
+      endif
       if(am_i_root()) then
         ojl(1,:,:,jl_sfb) = 0.
         ojl(2:jm,:,:,jl_sfb) = sfm(1:jm-1,1:lmo,:)
