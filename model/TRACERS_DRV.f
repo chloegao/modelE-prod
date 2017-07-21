@@ -6025,9 +6025,9 @@ C****
 #ifdef TRACERS_TOMAS
 #ifndef SKIP_TRACER_SRCS
         do k=1,nbins
-           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=0.
-           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=0.
-           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=0.
+           trsource(:,J_0:J_1,1,n_ANUM(k))=0.
+           trsource(:,J_0:J_1,2,n_ANUM(k))=0.
+           trsource(:,J_0:J_1,3,n_ANUM(k))=0.
         enddo
 #endif
 #endif
@@ -6564,12 +6564,12 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_ASO4(1))
              
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_ASO4(k))=
      &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
                
-                trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1) +
-     &               trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)
+                trsource(:,J_0:J_1,1,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,1,n_ANUM(k)) +
+     &               trsource(:,J_0:J_1,ns,n_ASO4(k))
      &               /sqrt(xk(k)*xk(k+1))    
               enddo
 
@@ -6579,16 +6579,16 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AECOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECOB(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.8
 
-                trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECIL(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.2
 
-                trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1) +
-     &             ( trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)+
-     &                 trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1))
+                trsource(:,J_0:J_1,2,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,2,n_ANUM(k)) +
+     &             ( trsource(:,J_0:J_1,ns,n_AECOB(k))+
+     &                 trsource(:,J_0:J_1,ns,n_AECIL(k)))
      &             /sqrt(xk(k)*xk(k+1))  
              enddo
           elseif(n.eq.n_AOCOB(1))then
@@ -6596,16 +6596,16 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AOCOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCOB(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCIL(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1) +
-     &              ( trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)+
-     &                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1))
+                trsource(:,J_0:J_1,3,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,3,n_ANUM(k)) +
+     &              ( trsource(:,J_0:J_1,ns,n_AOCOB(k))+
+     &                trsource(:,J_0:J_1,ns,n_AOCIL(k)))
      &            /sqrt(xk(k)*xk(k+1))  
              enddo
           endif
@@ -7054,11 +7054,11 @@ C**** 3D biomass source
        enddo
        
        do k=1,nbins
-         tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_ASO4(k))=
      *        TOMAS_bio(k,:)
-         tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
-     &     tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)
-     &     +tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
+         tr3Dsource(:,nSO4anum,n_ANUM(k))=
+     &     tr3Dsource(:,nSO4anum,n_ANUM(k))
+     &     +tr3Dsource(:,nBiomass,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
        enddo
 
        end select
@@ -7362,38 +7362,38 @@ C**** Apply chemistry and overwrite changes:
        ! k-loop instead:
        do k=1,nbins
 
-         tr3Dsource(:,nBiomass,n_AECOB(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AECOB(k))=
      *        TOMAS_bio(k,:)*0.8d0
-         tr3Dsource(:,nBiomass,n_AECIL(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AECIL(k))=
      *        TOMAS_bio(k,:)*0.2d0
 
          if(do_aircraft(n_AECOB(1))) then
-           tr3Dsource(:,nAircraft,n_AECOB(1)+k-1)=
+           tr3Dsource(:,nAircraft,n_AECOB(k))=
      *        TOMAS_air(k,:)*0.8d0
-           tr3Dsource(:,nAircraft,n_AECIL(1)+k-1)=
+           tr3Dsource(:,nAircraft,n_AECIL(k))=
      *        TOMAS_air(k,:)*0.2d0
          end if
 
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
-         tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
+         tr3Dsource(:,nECanum,n_ANUM(k))=
      &      TOMAS_bio(k,:)/sqrt(xk(k)*xk(k+1))
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
-         tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
+         tr3Dsource(:,nECanum,n_ANUM(k))=
      &      TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(1)+k-1)
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(k))
          if(do_aircraft(n_AECOB(1)))
-     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(1)+k-1)
+     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(k))
          if(do_aircraft(n_AECOB(1)))
-     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(1)+k-1)
+     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(k))
 
-         call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(1)+k-1) 
+         call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(k))
+         call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(k)) 
 
        enddo
 
@@ -7404,17 +7404,17 @@ C**** Apply chemistry and overwrite changes:
        
        do k=1,nbins
          
-         tr3Dsource(:,nBiomass,n_AOCOB(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AOCOB(k))=
      *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nBiomass,n_AOCIL(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AOCIL(k))=
      *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nOCanum,n_ANUM(1)+k-1)=
+         tr3Dsource(:,nOCanum,n_ANUM(k))=
      &        (TOMAS_bio(k,:)
      &        )/(sqrt(xk(k)*xk(k+1)))  
  
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(k))
+         call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(k))
          
        enddo
        
@@ -8088,15 +8088,15 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
       
       do k=1,nbins
 
-        call set_fq_aer(ntix(n_ANUM(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_ASO4(1)+k-1), fraction(k))
-        call set_fq_aer(ntix(n_ANACL(1)+k-1),  fraction(k))
-        call set_fq_aer(ntix(n_AECIL(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AECOB(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AOCIL(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AOCOB(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_ADUST(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AH2O(1)+k-1), fraction(k))
+        call set_fq_aer(ntix(n_ANUM(k)),fraction(k))
+        call set_fq_aer(ntix(n_ASO4(k)), fraction(k))
+        call set_fq_aer(ntix(n_ANACL(k)),  fraction(k))
+        call set_fq_aer(ntix(n_AECIL(k)),fraction(k))
+        call set_fq_aer(ntix(n_AECOB(k)),fraction(k))
+        call set_fq_aer(ntix(n_AOCIL(k)),fraction(k))
+        call set_fq_aer(ntix(n_AOCOB(k)),fraction(k))
+        call set_fq_aer(ntix(n_ADUST(k)),fraction(k))
+        call set_fq_aer(ntix(n_AH2O(k)), fraction(k))
 
          if (fraction(k).gt.1.or.fraction(k).lt.0) then
             print*,'fraction>1 or fraction<0'
@@ -8268,15 +8268,15 @@ c      fq(hlaw_list) = 0.D0
          do k=1,nbins               
             dpaero=getdp(k)
             scavr=stratscav(dpaero)  
-            call set_rc_washt(ntix(n_ASO4(1)+k-1), scavr)
-            call set_rc_washt(ntix(n_ANACL(1)+k-1),  scavr)
-            call set_rc_washt(ntix(n_AECOB(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AECIL(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AOCOB(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AOCIL(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_ADUST(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AH2O(1)+k-1), scavr)
-            call set_rc_washt(ntix(n_ANUM(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_ASO4(k)), scavr)
+            call set_rc_washt(ntix(n_ANACL(k)),  scavr)
+            call set_rc_washt(ntix(n_AECOB(k)),scavr)
+            call set_rc_washt(ntix(n_AECIL(k)),scavr)
+            call set_rc_washt(ntix(n_AOCOB(k)),scavr)
+            call set_rc_washt(ntix(n_AOCIL(k)),scavr)
+            call set_rc_washt(ntix(n_ADUST(k)),scavr)
+            call set_rc_washt(ntix(n_AH2O(k)), scavr)
+            call set_rc_washt(ntix(n_ANUM(k)),scavr)
          enddo
          
       endif
