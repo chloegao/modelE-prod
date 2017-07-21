@@ -616,8 +616,8 @@ C     for setbak/getbak only   1      2      3       4       5
 !@var TAUWC0,TAUIC0 lower limits for water/ice cloud opt.depths
       REAL*8 ::  TAUWC0=1d-3, TAUIC0=1d-3
 
-!@var KPFCO2,KPFOZO if > 0 scale CO2,O3 to stand. vertical profile
-      INTEGER :: KPFCO2=1,  KPFOZO=0
+!@var KFPCO2,KPFOZO if > 0 scale CO2,O3 vertical profile
+      INTEGER :: KFPCO2=-1, KPFOZO=0
 
 !@var KANORM,KCNORM if > 0 renormalize aerosols,cloud albedos
       INTEGER :: KANORM=0, KCNORM=0
@@ -2277,7 +2277,7 @@ C                  -----------------------------------------------------
   100 CONTINUE
 !nu   HLB(NL0+1)=HLB0(NL0+1)
 ccc      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
-      CALL SET_FPXCO2(PL,FPXCO2,NL0)
+      CALL SET_FPXCO2(PL,FPXCO2,NL0,KFPCO2)
 cc    IUFAC=1
 cc    IF(IUFAC==0) FPXCO2(:)=1
 
@@ -2398,7 +2398,7 @@ C****
   240 CONTINUE
       ULGAS(1:NL0,13)=U0GAS(1:NL0,13)*FULGAS(13)
 
-      IF(KPFCO2==1) ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
+      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
       RETURN
 
@@ -2488,7 +2488,7 @@ C****
       if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
      * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
 
-      IF(KPFCO2==1) ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
+      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
       IF(MRELAY > 0) THEN          ! for offline use only
         IF(NO3COL > 0)             ! rescale ozone to col.amount RO3COL
@@ -4528,6 +4528,9 @@ C                               ----------------------------------------
       ENDIF
   600 CONTINUE
 
+!     Optional TRGXLK vertical TAU redistribution for NL=105 model only
+      if(kfpco2==4) call FIT105_KFPCO2(TRGXLK,LX)
+
       RETURN
       END SUBROUTINE TAUGAS
 
@@ -6424,7 +6427,7 @@ C-------------
      +      /' CONTROL PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
 
        WRITE(KW,6001)                              KUVFAC,KSNORM
-     + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KPFCO2,KPFOZO,KSIALB
+     + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KFPCO2,KPFOZO,KSIALB
      + ,KORDER,KUFH2O,KUFCO2,KCSELF,KCFORN
  6001 FORMAT( ! 7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
 !nu  2    ! /7X,'   MEANAC = ',I1,'     0      Use Ann-Mean Aer Clim'
@@ -6439,7 +6442,7 @@ C-------------
      1      /7X,'   KLATZ0 = ',I1,'     1      Use GHG VDist Lat Dep'
      2      /7X,'   KCLDEM = ',I1,'     1      Use TopCloud Scat Cor'
      3      /7X,'   KANORM = ',I1,'     0      Use SGP Atmo Col Norm'
-     4      /7X,'   KPFCO2 = ',I1,'     0      1=MOD CO2PROF: FPXCO2'
+     4      /7X,'   KFPCO2 = ',I1,'     0      1=MOD CO2PROF: FPXCO2'
      5      /7X,'   KPFOZO = ',I1,'     0      1=MOD O3 PROF: FPXOZO'
      6      /7X,'   KSIALB = ',I1,'     0      Schramm"s ocn ice alb'
      7      /7X,'   KORDER = ',I1,'     0      WRITER k-d spec order'
