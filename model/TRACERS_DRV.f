@@ -7350,7 +7350,7 @@ C**** Apply chemistry and overwrite changes:
        do k=1,nbins
          TOMAS_bio(k,:)=
      &       tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(k)
-c$$$  
+
          if(do_aircraft(n_AECOB(1)))then
            TOMAS_air(k,:)=
      &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(k)
@@ -7378,9 +7378,11 @@ c$$$
          ! so leaving it unconditional:
          tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
      &      TOMAS_bio(k,:)/sqrt(xk(k)*xk(k+1))
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
+
          tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
-     &      tr3Dsource(:,nECanum,n_ANUM(1)+k-1)
-     &     +TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
+     &      TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
 
          call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
@@ -7388,7 +7390,6 @@ c$$$
          call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(1)+k-1)
          if(do_aircraft(n_AECOB(1)))
      &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
 
          call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(1)+k-1)
          call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(1)+k-1)
@@ -7426,6 +7427,8 @@ c$$$#endif
         call TOMAS_DRV(i,j)
 !        if(am_i_root()) print*,'exit TOMAS DRV'
 
+! the following loop assumes that n_ASO4(1) is the first TOMAS tracer and the last
+! nbins ones are all water tracers.
       DO n=1,ntm_TOMAS-nbins ! exclude h2o
         call apply_tracer_3Dsource(i,j,nMicrophys,n_ASO4(1)+n-1)! Aerosol Mirophysics
       ENDDO
