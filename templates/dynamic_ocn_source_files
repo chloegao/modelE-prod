@@ -1,11 +1,12 @@
 OLAYERS                             ! ocean layering options
-ODIAG_COM  OCEAN_COM  OGEOM         ! dynamic ocean modules
+OCEAN_COM  OGEOM                    ! dynamic ocean modules
 OCNDYN  OCNDYN2  OTIDELL            ! dynamic ocean routines
 OCN_Interp                          ! dynamic ocean routines
 OSTRAITS_COM  OSTRAITS              ! straits parameterization
 OCNKPP                              ! ocean vertical mixing
 OCNMESO_DRV OCNTDMIX OCNGM          ! ocean mesoscale mixing
 OCEANR_DIM  OFLUXES
+ODIAG_COM ODIAG_ZONAL               ! ocean diagnostics modules
 ODIAG_PRT                           ! ocean diagnostic print out
 OCNFUNTAB                           ! ocean function look up table
 SparseCommunicator_mod              ! sparse gather/scatter module
