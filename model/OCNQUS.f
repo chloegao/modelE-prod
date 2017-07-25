@@ -182,6 +182,7 @@ c when flow out both sides would cause negative tracer mass, modify moments
             endif
           endif
           do n=1,nbyzm(j,l)
+          if(i1yzm(n,j,l)>1 .and. i1yzm(n,j,l)==i2yzm(n,j,l)) cycle
           do i=max(2,i1yzm(n,j,l)),i2yzm(n,j,l)
             if(mudt(i).gt.0. .and. mudt(i-1).lt.0.) then
               call checkfluxo(mudt(i-1),mudt(i),mm(i,j,l),
