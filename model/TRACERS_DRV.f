@@ -6025,9 +6025,9 @@ C****
 #ifdef TRACERS_TOMAS
 #ifndef SKIP_TRACER_SRCS
         do k=1,nbins
-           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=0.
-           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=0.
-           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=0.
+           trsource(:,J_0:J_1,1,n_ANUM(k))=0.
+           trsource(:,J_0:J_1,2,n_ANUM(k))=0.
+           trsource(:,J_0:J_1,3,n_ANUM(k))=0.
         enddo
 #endif
 #endif
@@ -6564,12 +6564,12 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_ASO4(1))
              
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_ASO4(k))=
      &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
                
-                trsource(:,J_0:J_1,1,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,1,n_ANUM(1)+k-1) +
-     &               trsource(:,J_0:J_1,ns,n_ASO4(1)+k-1)
+                trsource(:,J_0:J_1,1,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,1,n_ANUM(k)) +
+     &               trsource(:,J_0:J_1,ns,n_ASO4(k))
      &               /sqrt(xk(k)*xk(k+1))    
               enddo
 
@@ -6579,16 +6579,16 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AECOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECOB(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.8
 
-                trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AECIL(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.2
 
-                trsource(:,J_0:J_1,2,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,2,n_ANUM(1)+k-1) +
-     &             ( trsource(:,J_0:J_1,ns,n_AECOB(1)+k-1)+
-     &                 trsource(:,J_0:J_1,ns,n_AECIL(1)+k-1))
+                trsource(:,J_0:J_1,2,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,2,n_ANUM(k)) +
+     &             ( trsource(:,J_0:J_1,ns,n_AECOB(k))+
+     &                 trsource(:,J_0:J_1,ns,n_AECIL(k)))
      &             /sqrt(xk(k)*xk(k+1))  
              enddo
           elseif(n.eq.n_AOCOB(1))then
@@ -6596,16 +6596,16 @@ C****
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_AOCOB(1))
 
              do k=1,nbins
-                trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCOB(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1)=
+                trsource(:,J_0:J_1,ns,n_AOCIL(k))=
      &               tot_emis(:,J_0:J_1)*scalesizeCARBO30(k)*0.5
 
-                trsource(:,J_0:J_1,3,n_ANUM(1)+k-1)=
-     &           trsource(:,J_0:J_1,3,n_ANUM(1)+k-1) +
-     &              ( trsource(:,J_0:J_1,ns,n_AOCOB(1)+k-1)+
-     &                trsource(:,J_0:J_1,ns,n_AOCIL(1)+k-1))
+                trsource(:,J_0:J_1,3,n_ANUM(k))=
+     &           trsource(:,J_0:J_1,3,n_ANUM(k)) +
+     &              ( trsource(:,J_0:J_1,ns,n_AOCOB(k))+
+     &                trsource(:,J_0:J_1,ns,n_AOCIL(k)))
      &            /sqrt(xk(k)*xk(k+1))  
              enddo
           endif
@@ -7054,11 +7054,11 @@ C**** 3D biomass source
        enddo
        
        do k=1,nbins
-         tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_ASO4(k))=
      *        TOMAS_bio(k,:)
-         tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)=
-     &     tr3Dsource(:,nSO4anum,n_ANUM(1)+k-1)
-     &     +tr3Dsource(:,nBiomass,n_ASO4(1)+k-1)/sqrt(xk(k)*xk(k+1))
+         tr3Dsource(:,nSO4anum,n_ANUM(k))=
+     &     tr3Dsource(:,nSO4anum,n_ANUM(k))
+     &     +tr3Dsource(:,nBiomass,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
        enddo
 
        end select
@@ -7259,6 +7259,35 @@ C**** Apply chemistry and overwrite changes:
       end subroutine calculate_and_apply_hetchem
 #endif  /* TRACERS_HETCHEM */
 
+      subroutine apply_aerosol_gas_chem(i,j)
+      use TRACER_COM, only: n_DMS,n_MSA,n_SO2
+      use TRACER_COM, only: n_SO4_d1,n_SO4_d2,n_SO4_d3,n_SO4,n_H2SO4
+      use TRACER_COM, only: n_H2O2_s
+      use TRACER_COM, only: nChemistry,nChemprod,nChemloss
+      USE apply3d, only : apply_tracer_3Dsource
+      implicit none
+
+      integer, intent(in) :: i,j
+
+! if any index is zero below, nothing happens; no need to check before calling
+      call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)    ! DMS chem sink
+      call apply_tracer_3Dsource(i,j,nChemistry,n_MSA)    ! MSA chem source
+      call apply_tracer_3Dsource(i,j,nChemprod,n_SO2)     ! SO2 chem source
+      call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)     ! SO2 chem sink
+
+      call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d1) ! SO4 chem prod on dust
+      call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d2) ! SO4 chem prod on dust
+      call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d3) ! SO4 chem prod on dust
+      call apply_tracer_3Dsource(i,j,nChemistry,n_SO4)    ! SO4 chem source
+!H2SO4 chem prod is zero for TOMAS (H2SO4_chem will be used in TOMAS_DRV)
+!But it still calls to save the diagnostics. 
+      call apply_tracer_3Dsource(i,j,nChemistry,n_H2SO4)  ! SO4 chem source
+
+      call apply_tracer_3Dsource(i,j,nChemprod,n_H2O2_s)  ! H2O2 chem source
+      call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s)  ! H2O2 chem sink
+
+      end subroutine apply_aerosol_gas_chem
+
 #ifdef TRACERS_TOMAS
       subroutine calculate_and_apply_tomas(i,j)
       USE DOMAIN_DECOMP_ATM, only : am_i_root
@@ -7293,18 +7322,6 @@ C**** Apply chemistry and overwrite changes:
       real*8, dimension (NBINS,LM) :: TOMAS_bio,TOMAS_air
       REAL*8 :: TAU_hydro
 
-!**** Apply aerosol-gas chemistry sources/sinks:
-!H2SO4 chem prod is zero for TOMAS (H2SO4 will use directly in TOMAS_DRV)
-!But it still calls to save the diagnostics. 
-       call apply_tracer_3Dsource(i,j,nChemistry,n_H2SO4)  ! H2SO4 chem prod
-       call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)    ! DMS chem sink
-       call apply_tracer_3Dsource(i,j,nChemprod,n_SO2)     ! SO2 chem source
-       call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)     ! SO2 chem sink 
-       if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChemprod,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s) ! H2O2 chem sink
-       end if
-
 ! EC/OC aging
        TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
 
@@ -7333,7 +7350,7 @@ C**** Apply chemistry and overwrite changes:
        do k=1,nbins
          TOMAS_bio(k,:)=
      &       tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(k)
-c$$$  
+
          if(do_aircraft(n_AECOB(1)))then
            TOMAS_air(k,:)=
      &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(k)
@@ -7345,37 +7362,38 @@ c$$$
        ! k-loop instead:
        do k=1,nbins
 
-         tr3Dsource(:,nBiomass,n_AECOB(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AECOB(k))=
      *        TOMAS_bio(k,:)*0.8d0
-         tr3Dsource(:,nBiomass,n_AECIL(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AECIL(k))=
      *        TOMAS_bio(k,:)*0.2d0
 
          if(do_aircraft(n_AECOB(1))) then
-           tr3Dsource(:,nAircraft,n_AECOB(1)+k-1)=
+           tr3Dsource(:,nAircraft,n_AECOB(k))=
      *        TOMAS_air(k,:)*0.8d0
-           tr3Dsource(:,nAircraft,n_AECIL(1)+k-1)=
+           tr3Dsource(:,nAircraft,n_AECIL(k))=
      *        TOMAS_air(k,:)*0.2d0
          end if
 
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
-         tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
+         tr3Dsource(:,nECanum,n_ANUM(k))=
      &      TOMAS_bio(k,:)/sqrt(xk(k)*xk(k+1))
-         tr3Dsource(:,nECanum,n_ANUM(1)+k-1)=
-     &      tr3Dsource(:,nECanum,n_ANUM(1)+k-1)
-     &     +TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(1)+k-1)
-         if(do_aircraft(n_AECOB(1)))
-     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(1)+k-1)
-         if(do_aircraft(n_AECOB(1)))
-     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(1)+k-1)
+         tr3Dsource(:,nECanum,n_ANUM(k))=
+     &      TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
+         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
-         call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(1)+k-1) 
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(k))
+         if(do_aircraft(n_AECOB(1)))
+     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(k))
+         if(do_aircraft(n_AECOB(1)))
+     &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(k))
+
+         call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(k))
+         call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(k)) 
 
        enddo
 
@@ -7386,17 +7404,17 @@ c$$$
        
        do k=1,nbins
          
-         tr3Dsource(:,nBiomass,n_AOCOB(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AOCOB(k))=
      *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nBiomass,n_AOCIL(1)+k-1)=
+         tr3Dsource(:,nBiomass,n_AOCIL(k))=
      *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nOCanum,n_ANUM(1)+k-1)=
+         tr3Dsource(:,nOCanum,n_ANUM(k))=
      &        (TOMAS_bio(k,:)
      &        )/(sqrt(xk(k)*xk(k+1)))  
  
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(1)+k-1)
-         call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(1)+k-1)
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(k))
+         call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(k))
+         call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(k))
          
        enddo
        
@@ -7409,6 +7427,8 @@ c$$$#endif
         call TOMAS_DRV(i,j)
 !        if(am_i_root()) print*,'exit TOMAS DRV'
 
+! the following loop assumes that n_ASO4(1) is the first TOMAS tracer and the last
+! nbins ones are all water tracers.
       DO n=1,ntm_TOMAS-nbins ! exclude h2o
         call apply_tracer_3Dsource(i,j,nMicrophys,n_ASO4(1)+n-1)! Aerosol Mirophysics
       ENDDO
@@ -7427,7 +7447,8 @@ c$$$#endif
 #ifdef TRACERS_AEROSOLS_Koch
       subroutine calculate_and_apply_oma(i,j)
       use RESOLUTION, only: LM
-!      use OldTracer_mod
+      use OldTracer_mod, only: trname
+      use TRACER_COM, only: ntm, trm_col
       use TRACER_COM, only: n_BCIA, n_BCII
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_MSA
       use TRACER_COM, only: n_OCIA, n_OCII
@@ -7441,50 +7462,118 @@ c$$$#endif
       USE MODEL_COM,  only: dtsrc
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : byaxyp
-      use trdiag_com, only : taijls=>taijls_loc,ijlt_prodSO4gs
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
+     &                      n_apinp2a, n_NH4, n_NO3p
+      use CONSTANT, only : gasc
+      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
+     &                       vbs_calc, vbs_tr
+#endif  /* TRACERS_AEROSOLS_VBS */
+      use TimeConstants_mod, only: SECONDS_PER_DAY
 
       implicit none
       integer, intent(in) :: i,j
 
-      INTEGER l
-
-!**** Apply aerosol-gas chemistry sources/sinks:
-       call apply_tracer_3Dsource(i,j,nChemistry,n_SO4)  ! SO4 chem source
-       call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)  ! DMS chem sink
-       call apply_tracer_3Dsource(i,j,nChemistry,n_MSA)  ! MSA chem source
-       call apply_tracer_3Dsource(i,j,nChemprod,n_SO2)   ! SO2 chem source
-       call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)   ! SO2 chem sink
-
-#ifdef ACCMIP_LIKE_DIAGS
-       do l=1,lm
-         taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
-     &   tr3Dsource(l,nChemistry,n_SO4)*byaxyp(i,j)
-       end do
-#endif
-!**** Apply additional aerosol-gas chemistry sources/sinks:
-       if(coupled_chem .eq. 0) then
-         call apply_tracer_3Dsource(i,j,nChemprod,n_H2O2_s) ! H2O2 chem source
-         call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s) ! H2O2 chem sink
-       end if
-       call apply_tracer_3Dsource(i,j,nChemistry,n_BCII)   ! BCII aging sink
-       call apply_tracer_3Dsource(i,j,nChemistry,n_BCIA)   ! BCIA aging source
 #ifdef TRACERS_AEROSOLS_VBS
-       do i=1,vbs_tr%nbins
-         call apply_tracer_3Dsource(i,j,nChemprod,vbs_tr%igas(i))  ! aging source
-         call apply_tracer_3Dsource(i,j,nChemloss,vbs_tr%igas(i))  ! aging loss
-         call apply_tracer_3Dsource(i,j,nOther,vbs_tr%igas(i))     ! partitioning
-         call apply_tracer_3Dsource(i,j,nOther,vbs_tr%iaer(i))     ! partitioning
-       enddo
-#else
-       call apply_tracer_3Dsource(i,j,nChemistry,n_OCII) ! OCII aging sink
-       call apply_tracer_3Dsource(i,j,nChemistry,n_OCIA) ! OCIA aging source
-#endif
+      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
+      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
+!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
+      real*8 :: kg2ugm3
+#endif /* TRACERS_AEROSOLS_VBS */
+      real*8 :: bciage,ociage
+      integer :: n
 
-#ifdef TRACERS_HETCHEM
-       call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d1) ! SO4 chem prod on dust
-       call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d2) ! SO4 chem prod on dust
-       call apply_tracer_3Dsource(i,j,nChemistry,n_SO4_d3) ! SO4 chem prod on dust
+      !efold time of 1 days
+      bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
+      !efold time of 1.6 days
+      ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
+
+      do n=1,NTM
+
+      select case (trname(n))
+        case ('BCII')
+c    Aging of industrial carbonaceous aerosols 
+          tr3Dsource(:,nChemistry,n)=-bciage*trm_col(:,n)
+          tr3Dsource(:,nChemistry,n_BCIA)=bciage*trm_col(:,n)
+
+          call apply_tracer_3Dsource(i,j,nChemistry,n_BCII)   ! BCII aging sink
+          call apply_tracer_3Dsource(i,j,nChemistry,n_BCIA)   ! BCIA aging source
+
+#ifdef TRACERS_AEROSOLS_VBS
+        case ('vbsAm2') ! This handles all VBS tracers
+        do l=1,lm
+          kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
+     &            (MA(l,i,j)*axyp(i,j)*gasc*te)
+          vbs_cond%dt=dtsrc
+          vbs_cond%OH=ohmc
+          vbs_cond%temp=te
+          vbs_cond%nvoa=(trm_col(l,n_BCII)
+     &                  +trm_col(l,n_BCIA)
+     &                  +trm_col(l,n_BCB)
+#ifdef TRACERS_AEROSOLS_SOA
+     &                  +trm_col(l,n_isopp1a)
+     &                  +trm_col(l,n_isopp2a)
+     &                  +trm_col(l,n_apinp1a)
+     &                  +trm_col(l,n_apinp2a)
+#endif /* TRACERS_AEROSOLS_SOA */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                  +trm_col(l,n_ococean)
+#endif  /* TRACERS_AEROSOLS_OCEAN */
+     &                  +trm_col(l,n_msa)
+     &                  +trm_col(l,n_so4)
+#ifdef TRACERS_NITRATE
+     &                  +trm_col(l,n_nh4)
+     &                  +trm_col(l,n_no3p)
 #endif
+     &                  )*kg2ugm3
+          vbs_tr_old%gas=trm_col(l,vbs_tr%igas)*kg2ugm3
+          vbs_tr_old%aer=trm_col(l,vbs_tr%iaer)*kg2ugm3
+
+          call vbs_calc(vbs_tr_old,vbs_cond)
+
+          tr3Dsource(l,nChemprod,vbs_tr%igas)=
+     &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
+          tr3Dsource(l,nChemloss,vbs_tr%igas)=
+     &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
+          tr3Dsource(l,nOther,vbs_tr%igas)=
+     &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
+          tr3Dsource(l,nOther,vbs_tr%iaer)=
+     &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
+!     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
+!      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
+!        print '(a,3e)','KOSTAS gas',
+!     &                 sum(vbs_tr_old%gas),
+!     &                 sum(vbs_tr%gas),
+!     &                 sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer)
+!        print '(a,3e)','KOSTAS aer',
+!     &                 sum(vbs_tr_old%aer),
+!     &                 sum(vbs_tr%aer),
+!     &                 sum(vbs_tr%gas)+sum(vbs_tr%aer)
+!        print '(a,3e)','KOSTAS bud',
+!     &                 sum(vbs_tr%chem_prod),
+!     &                 sum(vbs_tr%chem_loss),
+!     &                 sum(vbs_tr%partition)
+!      endif
+        enddo
+
+        do i=1,vbs_tr%nbins
+          call apply_tracer_3Dsource(i,j,nChemprod,vbs_tr%igas(i))  ! aging source
+          call apply_tracer_3Dsource(i,j,nChemloss,vbs_tr%igas(i))  ! aging loss
+          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%igas(i))     ! partitioning
+          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%iaer(i))     ! partitioning
+        enddo
+#else
+        case ('OCII')
+          tr3Dsource(:,nChemistry,n)=-ociage*trm_col(:,n)
+          tr3Dsource(:,nChemistry,n_OCIA)=ociage*trm_col(:,n)
+
+          call apply_tracer_3Dsource(i,j,nChemistry,n) ! OCII aging sink
+          call apply_tracer_3Dsource(i,j,nChemistry,n_OCIA) ! OCIA aging source
+#endif /* TRACERS_AEROSOLS_VBS */
+      end select
+
+      enddo
+
       end subroutine calculate_and_apply_oma
 #endif
 
@@ -7507,16 +7596,6 @@ c$$$#endif
       integer, intent(in) :: i,j
 !
       INTEGER n
-
-!**** Apply aerosol-gas chemistry sources/sinks:
-      call apply_tracer_3Dsource(i,j,nChemistry,n_H2SO4)   ! H2SO4 chem prod
-      call apply_tracer_3Dsource(i,j,nChemistry,n_DMS)     ! DMS chem sink
-      call apply_tracer_3Dsource(i,j,nChemprod,n_SO2)      ! SO2 chem source
-      call apply_tracer_3Dsource(i,j,nChemloss,n_SO2)      ! SO2 chem sink
-      if(coupled_chem .eq. 0) then
-        call apply_tracer_3Dsource(i,j,nChemprod,n_H2O2_s) ! H2O2 chem source (gas-phase)
-        call apply_tracer_3Dsource(i,j,nChemLoss,n_H2O2_s) ! H2O2 chem sink (gas-phase)
-      end if
 
       call MATRIX_DRV(i,j)
 
@@ -7714,6 +7793,7 @@ c**** Calculate and apply nitrate (thermo) sources
     (defined TRACERS_TOMAS)
 c**** Calculate aerosol-gas chemistry tendencies (sources/sinks)
         call aerosol_gas_chem(i,j)
+        call apply_aerosol_gas_chem(i,j)
 #endif
 
 #ifdef TRACERS_TOMAS
@@ -8008,15 +8088,15 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
       
       do k=1,nbins
 
-        call set_fq_aer(ntix(n_ANUM(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_ASO4(1)+k-1), fraction(k))
-        call set_fq_aer(ntix(n_ANACL(1)+k-1),  fraction(k))
-        call set_fq_aer(ntix(n_AECIL(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AECOB(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AOCIL(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AOCOB(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_ADUST(1)+k-1),fraction(k))
-        call set_fq_aer(ntix(n_AH2O(1)+k-1), fraction(k))
+        call set_fq_aer(ntix(n_ANUM(k)),fraction(k))
+        call set_fq_aer(ntix(n_ASO4(k)), fraction(k))
+        call set_fq_aer(ntix(n_ANACL(k)),  fraction(k))
+        call set_fq_aer(ntix(n_AECIL(k)),fraction(k))
+        call set_fq_aer(ntix(n_AECOB(k)),fraction(k))
+        call set_fq_aer(ntix(n_AOCIL(k)),fraction(k))
+        call set_fq_aer(ntix(n_AOCOB(k)),fraction(k))
+        call set_fq_aer(ntix(n_ADUST(k)),fraction(k))
+        call set_fq_aer(ntix(n_AH2O(k)), fraction(k))
 
          if (fraction(k).gt.1.or.fraction(k).lt.0) then
             print*,'fraction>1 or fraction<0'
@@ -8188,15 +8268,15 @@ c      fq(hlaw_list) = 0.D0
          do k=1,nbins               
             dpaero=getdp(k)
             scavr=stratscav(dpaero)  
-            call set_rc_washt(ntix(n_ASO4(1)+k-1), scavr)
-            call set_rc_washt(ntix(n_ANACL(1)+k-1),  scavr)
-            call set_rc_washt(ntix(n_AECOB(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AECIL(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AOCOB(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AOCIL(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_ADUST(1)+k-1),scavr)
-            call set_rc_washt(ntix(n_AH2O(1)+k-1), scavr)
-            call set_rc_washt(ntix(n_ANUM(1)+k-1),scavr)
+            call set_rc_washt(ntix(n_ASO4(k)), scavr)
+            call set_rc_washt(ntix(n_ANACL(k)),  scavr)
+            call set_rc_washt(ntix(n_AECOB(k)),scavr)
+            call set_rc_washt(ntix(n_AECIL(k)),scavr)
+            call set_rc_washt(ntix(n_AOCOB(k)),scavr)
+            call set_rc_washt(ntix(n_AOCIL(k)),scavr)
+            call set_rc_washt(ntix(n_ADUST(k)),scavr)
+            call set_rc_washt(ntix(n_AH2O(k)), scavr)
+            call set_rc_washt(ntix(n_ANUM(k)),scavr)
          enddo
          
       endif

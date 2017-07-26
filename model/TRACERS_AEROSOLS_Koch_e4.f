@@ -491,8 +491,6 @@ c
       use TimeConstants_mod, only: SECONDS_PER_DAY
 c Aerosol chemistry
       implicit none
-      real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,r3,d3,
-     * ddno3,dddms,ddno3a,fmom,dtt
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
       integer i,j,l,n,iuc,iun,itau,ichemi,itt,
@@ -568,10 +566,6 @@ c impose diurnal variability
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3, n_H2SO4
-#ifdef TRACERS_AEROSOLS_VBS
-      use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
-     &                      n_apinp2a, n_NH4, n_NO3p
-#endif  /* TRACERS_AEROSOLS_VBS */
       use TRACER_COM, only: nChemistry, nChemprod, nChemLoss, nOther
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
       use TRACER_COM, only: rxts1, rxts2, rxts3
@@ -590,15 +584,11 @@ c impose diurnal variability
       USE FLUXES, only: tr3Dsource
       USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,ohsr,o3_offline
       USE CONSTANT, only : mair
-      use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : h2so4_chem
 #endif
-#ifdef TRACERS_AEROSOLS_VBS
-      use CONSTANT, only : gasc
-      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
-     &                       vbs_calc, vbs_tr
-#endif /* TRACERS_AEROSOLS_VBS */
+      use trdiag_com, only : taijls=>taijls_loc,ijlt_prodSO4gs
+
 c Aerosol chemistry
       implicit none
       integer, intent(in) :: i,j
@@ -607,19 +597,12 @@ c Aerosol chemistry
      * ddno3,dddms,ddno3a,fmom,dtt
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
-     * r5,d5,dmssink,bdy
+     * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
      *       ,d41,d42,d43,o3mc,rsulfo3
 #endif
-      real*8 bciage,ociage
       integer l,n,iuc,iun,itau,ichemi,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
-#ifdef TRACERS_AEROSOLS_VBS
-      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
-      type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
-!@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
-      real*8 :: kg2ugm3
-#endif /* TRACERS_AEROSOLS_VBS */
 
 C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
@@ -641,94 +624,19 @@ c     CALL GET_O3_OFFLINE
 c     endif
 #endif
 
-
-      dtt=dtsrc
-      !efold time of 1 days
-      bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
-      !efold time of 1.6 days
-      ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
-
       do l=1,lm
 C Initialise       
-        bdy = dclev(i,j) 
         ppres=pmid(l,i,j)*9.869d-4 !in atm
         te=pk(l,i,j)*t(i,j,l)
-        mm = MA(l,i,j)*axyp(i,j)
-        tt = 1.d0/te
 
+c DMM is number density of air in molecules/cm3
         dmm=ppres/(.082d0*te)*6.02d20
         ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
 
 ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
-c DMM is number density of air in molecules/cm3
         do n=1,NTM
 
         select case (trname(n))
-c    Aging of industrial carbonaceous aerosols 
-        case ('BCII')
-          tr3Dsource(l,nChemistry,n)=-bciage*trm_col(l,n)
-          tr3Dsource(l,nChemistry,n_BCIA)=bciage*trm_col(l,n)
-
-#ifdef TRACERS_AEROSOLS_VBS
-        case ('vbsAm2') ! This handles all VBS tracers
-          kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
-     &            (MA(l,i,j)*axyp(i,j)*gasc*te)
-          vbs_cond%dt=dtsrc
-          vbs_cond%OH=ohmc
-          vbs_cond%temp=te
-          vbs_cond%nvoa=(trm_col(l,n_BCII)
-     &                  +trm_col(l,n_BCIA)
-     &                  +trm_col(l,n_BCB)
-#ifdef TRACERS_AEROSOLS_SOA
-     &                  +trm_col(l,n_isopp1a)
-     &                  +trm_col(l,n_isopp2a)
-     &                  +trm_col(l,n_apinp1a)
-     &                  +trm_col(l,n_apinp2a)
-#endif /* TRACERS_AEROSOLS_SOA */
-#ifdef TRACERS_AEROSOLS_OCEAN
-     &                  +trm_col(l,n_ococean)
-#endif  /* TRACERS_AEROSOLS_OCEAN */
-     &                  +trm_col(l,n_msa)
-     &                  +trm_col(l,n_so4)
-#ifdef TRACERS_NITRATE
-     &                  +trm_col(l,n_nh4)
-     &                  +trm_col(l,n_no3p)
-#endif
-     &                  )*kg2ugm3
-          vbs_tr_old%gas=trm_col(l,vbs_tr%igas)*kg2ugm3
-          vbs_tr_old%aer=trm_col(l,vbs_tr%iaer)*kg2ugm3
-
-          call vbs_calc(vbs_tr_old,vbs_cond)
-
-          tr3Dsource(l,nChemprod,vbs_tr%igas)=
-     &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
-          tr3Dsource(l,nChemloss,vbs_tr%igas)=
-     &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
-          tr3Dsource(l,nOther,vbs_tr%igas)=
-     &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
-          tr3Dsource(l,nOther,vbs_tr%iaer)=
-     &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
-!     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
-!      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
-!        print '(a,3e)','KOSTAS gas',
-!     &                 sum(vbs_tr_old%gas),
-!     &                 sum(vbs_tr%gas),
-!     &                 sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer)
-!        print '(a,3e)','KOSTAS aer',
-!     &                 sum(vbs_tr_old%aer),
-!     &                 sum(vbs_tr%aer),
-!     &                 sum(vbs_tr%gas)+sum(vbs_tr%aer)
-!        print '(a,3e)','KOSTAS bud',
-!     &                 sum(vbs_tr%chem_prod),
-!     &                 sum(vbs_tr%chem_loss),
-!     &                 sum(vbs_tr%partition)
-!      endif
-#else
-        case ('OCII')
-          tr3Dsource(l,nChemistry,n)=-ociage*trm_col(l,n)
-          tr3Dsource(l,nChemistry,n_OCIA)=ociage*trm_col(l,n)
-#endif /* TRACERS_AEROSOLS_VBS */
-
         case ('DMS')
 C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
@@ -741,7 +649,7 @@ C***3.DMS + NO3 -> HNO3 + SO2
 
 c     NO3 is in mixing ratio: convert to molecules/cm3
 c - not necessary for Shindell source
-          if (l.gt.bdy) then
+          if (l.gt.dclev(i,j)) then
             ttno3=0.d0
           else
             ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
@@ -765,7 +673,7 @@ C DMS losses: eqns 1, 2 ,3
      *      dmssink=trm_col(l,n)+tr3Dsource(l,nChemistry,n)*dtsrc
           tr3Dsource(l,nChemistry,n)=
      *      tr3Dsource(l,nChemistry,n)-dmssink/dtsrc
-          
+
         case ('MSA')
 C MSA gain: eqn 1
 
@@ -832,6 +740,7 @@ c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
      *         *(1.d0-d41)*trm_col(l,n_so2)            !  SO2
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
+
        case ('SO4_d2')
 c sulfate production from SO2 on mineral dust aerosol
 
@@ -839,6 +748,7 @@ c sulfate production from SO2 on mineral dust aerosol
      *   tr_mm(n)/tr_mm(n_so2)*(1.d0-d42)*trm_col(l,n_so2)
      *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
+
        case ('SO4_d3')
 c sulfate production from SO2 on mineral dust aerosol
 
@@ -857,6 +767,12 @@ C SO4 production
           H2SO4_chem(l)=trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
      *         *tr_mm(n)/tr_mm(n_so2)
 #endif
+
+#ifdef ACCMIP_LIKE_DIAGS
+          taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
+     &      tr3Dsource(l,nChemistry,n)*byaxyp(i,j)
+#endif
+
         case('H2O2_s')
 
           if (coupled_chem.ne.1) then
@@ -870,6 +786,9 @@ C     HO2 + HO2 + M ->
 C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
+          dtt=dtsrc
+          mm = MA(l,i,j)*axyp(i,j)
+          tt = 1.d0/te
           r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
           d6 = exp(-r6*dtsrc)
           ek9 = 2.2d-13*exp(600.d0*tt)
@@ -897,7 +816,7 @@ c H2O2 losses:5 and 6
 
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
-          
+
           if (jls_phot>0) call inc_tajls(i,j,l,jls_phot,perj(i,j,l))
           endif ! coupled_chem.ne.1
         end select
