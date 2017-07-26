@@ -218,6 +218,8 @@ SCM_FREE-RUNNING (Run SCM with GCM initialization and no forcing)
 SCM_lon=-96.25             ! Southern Great Plains site longitude (deg)
 SCM_lat=37.                ! Southern Great Plains site latitude (deg)
 SCM_area=49370385348.1287  ! nominal grid box area (m2) from 144x90 grid
+SCM_sfc=-1                 ! 1:land 2:ocean, Free-Running 0:gcm ocean -1:gcm land(total grid box)
+
 
 GLMELT_ON=0      !turn off GLMELT in run deck for SCM long runs
 
