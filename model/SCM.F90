@@ -163,15 +163,21 @@
     if( SCMopt%sfc==1 )then
       FLAND(1,1) = 1.
       FOCEAN(1,1) = 0.
+      FLAKE(1,1) = 0.
     else if( SCMopt%sfc==2 )then
       FLAND(1,1) = 0.
       FOCEAN(1,1) = 1.
+      FLAKE(1,1) = 0.
     endif
-    FEARTH(1,1) = 1.
+  else if (SCMopt%sfc == -1) then
+    FLAND(1,1) = 1. 
+    FOCEAN(1,1) = 0.  
     FLAKE(1,1) = 0.
-    FLAKE0(1,1) = FLAKE(1,1)
-    FEARTH0(1,1) = FEARTH(1,1)
   endif
+  FLAKE0(1,1) = FLAKE(1,1)
+  FEARTH(1,1) = FLAND(1,1) 
+  FEARTH0(1,1) = FEARTH(1,1)
+
   if( SCMopt%Tskin )then
     atmocn%GTEMP(1,1)  = SCMin%Tskin - TF
     atmocn%GTEMPR(1,1) = SCMin%Tskin
