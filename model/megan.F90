@@ -56,7 +56,6 @@ type biogenicSpecies
                       ! gamma_PPFD*gamma_tld (ldf) and gamma_tli (1-ldf)
   integer :: aindx=-1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging
                       ! gamma routine. Related to relative emission acitivity?
-  real*8, allocatable, dimension(:,:):: source ! holds kg m-2 s-1 emissions source for exporting
   real*8, dimension(nMeganPFT) :: ef ! emissions factors by MEGAN PFT
 end type biogenicSpecies
 
@@ -153,7 +152,7 @@ end module megan
 
 subroutine biogenicEmissions_drv(i,j)
 !@sum calculate biogenic emissions of atmospheric constituents using
-!@+ MEGAN model 2.1 and fill in source array
+!@+ MEGAN model 2.1 and fill in sfc_src array
 !@auth Greg Faluvegi (intial modelE implementation)
 
 use megan
@@ -167,7 +166,7 @@ use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
-use OldTracer_mod, only: nBBsources,trname,do_megan,itime_tr0
+use OldTracer_mod, only: trname,do_megan,itime_tr0
 use tracer_com, only: ntm, ntsurfsrc, sfc_src
 use Tracer_mod, only: ntsurfsrcmax
 
@@ -190,7 +189,7 @@ real*8, parameter :: radianToDegree=1.d0/radian
 real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 !@param CCE G 2012 canopy environment coefficient to be set
 !@+ such that total gamma of 1 results during standard conditions (e.g. 
-!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectivesly)
+!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectively)
 !@+ Is this the same as RHO in MEGAN 2.1?
 !TODO: Tune this CCE parameter:
 real*8, parameter :: CCE=1.d0
@@ -362,7 +361,6 @@ else
   pvt(:)=0.d0
 end if
 
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Calculate the gammas from MEGAN for current conditions:
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -437,7 +435,7 @@ tracers_loop: do nTracer=1,ntm
 
       ! Calculate the Emissions:
 
-      ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
+      ! I am aiming for kg m-2 s-1 units for sfc_src. Since EF is in microGram m-2 hr-1
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
       sfc_src(i,j,nTracer,do_megan(nTracer))= &
@@ -646,13 +644,6 @@ integer, intent(in) :: i,j
 !@var currentDayAverage temporary working variable
 real*8 :: byStepsPerDay, byDaysPerPeriod, currentDayAverage
 integer :: n
-
-!TODO: Greg: sanity check by printing things out to confirm that the whole
-! globe (all i,j's) running average are "in sync". Meaning their 'step(i,j)'s
-! are incrementing each call all over and whether their 'first(i,j)'s turn
-! to false at the same time. If so, I guess such arrays could be made 
-! scalar (though then you'd have to increment them and set them high up in
-! the model - outseide the I,J loop.)
 
 ! Make sure we didn't run outside of expected calls per day:
 if(nint(this%step(i,j)) < 0 .or. &
