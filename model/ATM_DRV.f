@@ -942,6 +942,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 #ifdef CALCULATE_FLAMMABILITY
       call def_rsf_flammability(fid)
 #endif
+#ifdef DO_MEGAN
+      call def_rsf_megan(fid)
+#endif
 #ifdef TRACERS_ON
       call tracerIO(fid, 'define')
 #endif
@@ -977,6 +980,9 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call new_io_icedyn (fid,iorw)
 #ifdef CALCULATE_FLAMMABILITY
       call new_io_flammability(fid,iorw)
+#endif
+#ifdef DO_MEGAN
+      call new_io_megan(fid,iorw)
 #endif
 #ifdef TRACERS_ON
       select case (iorw)

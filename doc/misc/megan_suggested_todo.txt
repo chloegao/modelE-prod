@@ -56,6 +56,11 @@ emissions scheme as coded in modelE. [G.Faluvegi, Summer, 2017]
     Think about this, once we see the size of sources: It should only matter a few
     percent, but, e.g., does our depositon schemes adequately compensate for this?
 
+==> I *think* that the arrays {SAT,T,PPFD,LAI}%{step(i,j),day(i,j),first(i,j),marker(i,j)}
+    could maybe become scalars (like SAT%step), if all the running averages are in sync
+    for all i,j space. In which case they would need to be updated outside of the megan.F90
+    code -- before the i,j loop that calls it.
+
 ==> It is worth thinking about the fact that the final emissions formula as coded:
 
     species(n)%source(I,J)=convertUnits * CCE * bulk_EF * gamma_LAI * gamma_AGE *

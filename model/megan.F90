@@ -3,9 +3,6 @@
 ! Please see ../doc/megan_suggested_todo.txt for further notes and suggestions
 ! for improvement that have been extracted from this program's comments.
 
-!TODO: save at *least* some running average stuff to the rsf files 
-!      (see flammability code for guide)
-!
 !TODO: When writing the flammability code, exporting LAI from Ent, I noted:
 !      "I guess that is the LAI from the *last surface timestep only*?"
 !      Igor said that was OK, as LAI is only computed once per day. However,
@@ -56,7 +53,6 @@ type biogenicSpecies
                       ! gamma_PPFD*gamma_tld (ldf) and gamma_tli (1-ldf)
   integer :: aindx=-1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging
                       ! gamma routine. Related to relative emission acitivity?
-  real*8, allocatable, dimension(:,:):: source ! holds kg m-2 s-1 emissions source for exporting
   real*8, dimension(nMeganPFT) :: ef ! emissions factors by MEGAN PFT
 end type biogenicSpecies
 
@@ -153,7 +149,7 @@ end module megan
 
 subroutine biogenicEmissions_drv(i,j)
 !@sum calculate biogenic emissions of atmospheric constituents using
-!@+ MEGAN model 2.1 and fill in source array
+!@+ MEGAN model 2.1 and fill in sfc_src array
 !@auth Greg Faluvegi (intial modelE implementation)
 
 use megan
@@ -167,7 +163,7 @@ use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
-use OldTracer_mod, only: nBBsources,trname,do_megan,itime_tr0
+use OldTracer_mod, only: trname,do_megan,itime_tr0
 use tracer_com, only: ntm, ntsurfsrc, sfc_src
 use Tracer_mod, only: ntsurfsrcmax
 
@@ -190,7 +186,7 @@ real*8, parameter :: radianToDegree=1.d0/radian
 real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 !@param CCE G 2012 canopy environment coefficient to be set
 !@+ such that total gamma of 1 results during standard conditions (e.g. 
-!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectivesly)
+!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectively)
 !@+ Is this the same as RHO in MEGAN 2.1?
 !TODO: Tune this CCE parameter:
 real*8, parameter :: CCE=1.d0
@@ -362,7 +358,6 @@ else
   pvt(:)=0.d0
 end if
 
-
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Calculate the gammas from MEGAN for current conditions:
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -437,7 +432,7 @@ tracers_loop: do nTracer=1,ntm
 
       ! Calculate the Emissions:
 
-      ! I am aiming for kg m-2 s-1 units for "source". Since EF is in microGram m-2 hr-1
+      ! I am aiming for kg m-2 s-1 units for sfc_src. Since EF is in microGram m-2 hr-1
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
       sfc_src(i,j,nTracer,do_megan(nTracer))= &
@@ -616,6 +611,158 @@ call stop_model('DO_MEGAN + BIOGENIC_EMISSIONS conflict',255)
 end subroutine alloc_megan
 
 
+#ifdef NEW_IO
+      subroutine def_rsf_megan(fid)
+!@sum  def_rsf_megan defines MEGAN  array structure in restart files
+!@auth Greg Faluvegi (from original M. Kelley's def_rsf_lakes)
+      use megan
+      use megan_objects_mod
+      use domain_decomp_atm, only : grid
+      use pario, only : defvar
+      implicit none
+      integer fid   !@var fid file id
+      character(len=15) :: ijstr
+
+      ijstr='dist_im,dist_jm'
+
+      ! Figure out how to put this in a loop over the running average objects:
+      ! Also could maybe make scalars one day...
+      call defvar(grid,fid,T%first,'T_first('//ijstr//')')
+      call defvar(grid,fid,T%step,'T_step('//ijstr//')')
+      call defvar(grid,fid,T%day,'T_day('//ijstr//')')
+      call defvar(grid,fid,T%runningAverage,'T_runningAverage('//ijstr//')')
+      call defvar(grid,fid,T%periodRunningSum,'T_periodRunningSum('//ijstr//')')
+      call defvar(grid,fid,T%marker,'T_marker('//ijstr//')')
+      call defvar(grid,fid,T%stepSave,'T_stepSave('//ijstr//',T_stepsPerDay)')
+      call defvar(grid,fid,T%dayAvg,'T_dayAvg('//ijstr//',T_daysPerPeriod)')
+
+      call defvar(grid,fid,SAT%first,'SAT_first('//ijstr//')')
+      call defvar(grid,fid,SAT%step,'SAT_step('//ijstr//')')
+      call defvar(grid,fid,SAT%day,'SAT_day('//ijstr//')')
+      call defvar(grid,fid,SAT%runningAverage,'SAT_runningAverage('//ijstr//')')
+      call defvar(grid,fid,SAT%periodRunningSum,'SAT_periodRunningSum('//ijstr//')')
+      call defvar(grid,fid,SAT%marker,'SAT_marker('//ijstr//')')
+      call defvar(grid,fid,SAT%stepSave,'SAT_stepSave('//ijstr//',SAT_stepsPerDay)')
+      call defvar(grid,fid,SAT%dayAvg,'SAT_dayAvg('//ijstr//',SAT_daysPerPeriod)')
+
+      call defvar(grid,fid,LAI%first,'LAI_first('//ijstr//')')
+      call defvar(grid,fid,LAI%step,'LAI_step('//ijstr//')')
+      call defvar(grid,fid,LAI%day,'LAI_day('//ijstr//')')
+      call defvar(grid,fid,LAI%runningAverage,'LAI_runningAverage('//ijstr//')')
+      call defvar(grid,fid,LAI%periodRunningSum,'LAI_periodRunningSum('//ijstr//')')
+      call defvar(grid,fid,LAI%marker,'LAI_marker('//ijstr//')')
+      call defvar(grid,fid,LAI%stepSave,'LAI_stepSave('//ijstr//',LAI_stepsPerDay)')
+      call defvar(grid,fid,LAI%dayAvg,'LAI_dayAvg('//ijstr//',LAI_daysPerPeriod)')
+
+      call defvar(grid,fid,PPFD%first,'PPFD_first('//ijstr//')')
+      call defvar(grid,fid,PPFD%step,'PPFD_step('//ijstr//')')
+      call defvar(grid,fid,PPFD%day,'PPFD_day('//ijstr//')')
+      call defvar(grid,fid,PPFD%runningAverage,'PPFD_runningAverage('//ijstr//')')
+      call defvar(grid,fid,PPFD%periodRunningSum,'PPFD_periodRunningSum('//ijstr//')')
+      call defvar(grid,fid,PPFD%marker,'PPFD_marker('//ijstr//')')
+      call defvar(grid,fid,PPFD%stepSave,'PPFD_stepSave('//ijstr//',PPFD_stepsPerDay)')
+      call defvar(grid,fid,PPFD%dayAvg,'PPFD_dayAvg('//ijstr//',PPFD_daysPerPeriod)')
+
+      return
+      end subroutine def_rsf_megan
+
+
+      subroutine new_io_megan(fid,iaction)
+!@sum  new_io_megan read/write arrays from/to restart files
+!@auth Greg Faluvegi (from original M. Kelley's new_io_lakes)
+      use model_com, only : ioread,iowrite
+      use domain_decomp_atm, only : grid
+      use pario, only : write_dist_data,read_dist_data
+      use megan_objects_mod
+      use megan
+      implicit none
+      integer fid   !@var fid unit number of read/write
+      integer iaction !@var iaction flag for reading or writing to file
+      select case (iaction)
+      case (iowrite)            ! output to restart file«
+
+        ! Figure out how to put this in a loop over the running average objects:
+        ! Also could maybe make scalars one day...
+        call write_dist_data(grid, fid, 'T_first', T%first )
+        call write_dist_data(grid, fid, 'T_step', T%step )
+        call write_dist_data(grid, fid, 'T_day', T%day )
+        call write_dist_data(grid, fid, 'T_runningAverage', T%runningAverage )
+        call write_dist_data(grid, fid, 'T_periodRunningSum', T%periodRunningSum )
+        call write_dist_data(grid, fid, 'T_marker', T%marker )
+        call write_dist_data(grid, fid, 'T_stepSave', T%stepSave )
+        call write_dist_data(grid, fid, 'T_dayAvg', T%dayAvg )
+
+        call write_dist_data(grid, fid, 'SAT_first', SAT%first )
+        call write_dist_data(grid, fid, 'SAT_step', SAT%step )
+        call write_dist_data(grid, fid, 'SAT_day', SAT%day )
+        call write_dist_data(grid, fid, 'SAT_runningAverage', SAT%runningAverage )
+        call write_dist_data(grid, fid, 'SAT_periodRunningSum', SAT%periodRunningSum )
+        call write_dist_data(grid, fid, 'SAT_marker', SAT%marker )
+        call write_dist_data(grid, fid, 'SAT_stepSave', SAT%stepSave )
+        call write_dist_data(grid, fid, 'SAT_dayAvg', SAT%dayAvg )
+
+        call write_dist_data(grid, fid, 'LAI_first', LAI%first )
+        call write_dist_data(grid, fid, 'LAI_step', LAI%step )
+        call write_dist_data(grid, fid, 'LAI_day', LAI%day )
+        call write_dist_data(grid, fid, 'LAI_runningAverage', LAI%runningAverage )
+        call write_dist_data(grid, fid, 'LAI_periodRunningSum', LAI%periodRunningSum )
+        call write_dist_data(grid, fid, 'LAI_marker', LAI%marker )
+        call write_dist_data(grid, fid, 'LAI_stepSave', LAI%stepSave )
+        call write_dist_data(grid, fid, 'LAI_dayAvg', LAI%dayAvg )
+
+        call write_dist_data(grid, fid, 'PPFD_first', PPFD%first )
+        call write_dist_data(grid, fid, 'PPFD_step', PPFD%step )
+        call write_dist_data(grid, fid, 'PPFD_day', PPFD%day )
+        call write_dist_data(grid, fid, 'PPFD_runningAverage', PPFD%runningAverage )
+        call write_dist_data(grid, fid, 'PPFD_periodRunningSum', PPFD%periodRunningSum )
+        call write_dist_data(grid, fid, 'PPFD_marker', PPFD%marker )
+        call write_dist_data(grid, fid, 'PPFD_stepSave', PPFD%stepSave )
+        call write_dist_data(grid, fid, 'PPFD_dayAvg', PPFD%dayAvg )
+
+      case (ioread)            ! input from restart file
+
+        call read_dist_data(grid, fid, 'T_first', T%first )
+        call read_dist_data(grid, fid, 'T_step', T%step )
+        call read_dist_data(grid, fid, 'T_day', T%day )
+        call read_dist_data(grid, fid, 'T_runningAverage', T%runningAverage )
+        call read_dist_data(grid, fid, 'T_periodRunningSum', T%periodRunningSum )
+        call read_dist_data(grid, fid, 'T_marker', T%marker )
+        call read_dist_data(grid, fid, 'T_stepSave', T%stepSave )
+        call read_dist_data(grid, fid, 'T_dayAvg', T%dayAvg )
+
+        call read_dist_data(grid, fid, 'SAT_first', SAT%first )
+        call read_dist_data(grid, fid, 'SAT_step', SAT%step )
+        call read_dist_data(grid, fid, 'SAT_day', SAT%day )
+        call read_dist_data(grid, fid, 'SAT_runningAverage', SAT%runningAverage )
+        call read_dist_data(grid, fid, 'SAT_periodRunningSum', SAT%periodRunningSum )
+        call read_dist_data(grid, fid, 'SAT_marker', SAT%marker )
+        call read_dist_data(grid, fid, 'SAT_stepSave', SAT%stepSave )
+        call read_dist_data(grid, fid, 'SAT_dayAvg', SAT%dayAvg )
+
+        call read_dist_data(grid, fid, 'LAI_first', LAI%first )
+        call read_dist_data(grid, fid, 'LAI_step', LAI%step )
+        call read_dist_data(grid, fid, 'LAI_day', LAI%day )
+        call read_dist_data(grid, fid, 'LAI_runningAverage', LAI%runningAverage )
+        call read_dist_data(grid, fid, 'LAI_periodRunningSum', LAI%periodRunningSum )
+        call read_dist_data(grid, fid, 'LAI_marker', LAI%marker )
+        call read_dist_data(grid, fid, 'LAI_stepSave', LAI%stepSave )
+        call read_dist_data(grid, fid, 'LAI_dayAvg', LAI%dayAvg )
+
+        call read_dist_data(grid, fid, 'PPFD_first', PPFD%first )
+        call read_dist_data(grid, fid, 'PPFD_step', PPFD%step )
+        call read_dist_data(grid, fid, 'PPFD_day', PPFD%day )
+        call read_dist_data(grid, fid, 'PPFD_runningAverage', PPFD%runningAverage )
+        call read_dist_data(grid, fid, 'PPFD_periodRunningSum', PPFD%periodRunningSum )
+        call read_dist_data(grid, fid, 'PPFD_marker', PPFD%marker )
+        call read_dist_data(grid, fid, 'PPFD_stepSave', PPFD%stepSave )
+        call read_dist_data(grid, fid, 'PPFD_dayAvg', PPFD%dayAvg )
+
+      end select
+      return
+      end subroutine new_io_megan
+#endif /* NEW_IO */
+
+
 subroutine running_average(this, val, i, j)
 !@sum running_average keeps a running average of model quantities
 !@+ needed for MEGAN input. In practice, this does hourly and daily
@@ -646,13 +793,6 @@ integer, intent(in) :: i,j
 !@var currentDayAverage temporary working variable
 real*8 :: byStepsPerDay, byDaysPerPeriod, currentDayAverage
 integer :: n
-
-!TODO: Greg: sanity check by printing things out to confirm that the whole
-! globe (all i,j's) running average are "in sync". Meaning their 'step(i,j)'s
-! are incrementing each call all over and whether their 'first(i,j)'s turn
-! to false at the same time. If so, I guess such arrays could be made 
-! scalar (though then you'd have to increment them and set them high up in
-! the model - outseide the I,J loop.)
 
 ! Make sure we didn't run outside of expected calls per day:
 if(nint(this%step(i,j)) < 0 .or. &
