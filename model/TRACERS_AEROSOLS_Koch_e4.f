@@ -617,11 +617,7 @@ c Set h2o2_s =0 and use on-line h2o2 from chemistry
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST(i,j)
-c calculation of heterogeneous reaction rates: SO2 on seasalt
-c      CALL SULFSEAS 
-c     if (COUPLED_CHEM.ne.1) then
-c     CALL GET_O3_OFFLINE
-c     endif
+c     if (COUPLED_CHEM.ne.1) CALL GET_O3_OFFLINE
 #endif
 
       do l=1,lm
