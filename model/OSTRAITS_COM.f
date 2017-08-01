@@ -95,7 +95,7 @@
 
       subroutine alloc_straits
       use straits
-      use filemanager, only : openunit,closeunit
+      use filemanager, only : openunit,closeunit,file_exists
       implicit none
       integer :: iu,ios,n
       character(len=20) :: name
@@ -103,39 +103,47 @@
       real*8 :: width,depth,xy1(2),xy2(2)
       namelist/strait/ name,ij1,ij2,lm,width,depth,xy1,xy2
 
-      call openunit('OSTRAITS',iu,.false.,.true.)
+      if(file_exists('OSTRAITS')) then
+        call openunit('OSTRAITS',iu,.false.,.true.)
+      else
+        iu = -999
+      endif
 
       do iter=1,2 ! first iteration counts straits, second fills data
         nmst = 0
-        do
-          n = nmst+1
-          depth = -1d30
-          read(iu,nml=strait,iostat=ios)
-          if(ios.ne.0) exit
-          nmst = nmst + 1
-          if(iter.eq.2) then
-            name_st(n) = name
-            wist(n) = width
-            zst(n) = depth
-            lmst(n) = lm
-            ist(n,1) = ij1(1)
-            jst(n,1) = ij1(2)
-            ist(n,2) = ij2(1)
-            jst(n,2) = ij2(2)
-            xst(n,1) = xy1(1)
-            yst(n,1) = xy1(2)
-            xst(n,2) = xy2(1)
-            yst(n,2) = xy2(2)
-          endif
-        enddo
-        rewind(iu) ! use rewind_parallel?
-        if(iter.eq.1) then ! allocate once we know how many straits exist
+        if(iu.ne.-999) then
+          do
+            n = nmst+1
+            depth = -1d30
+            read(iu,nml=strait,iostat=ios)
+            if(ios.ne.0) exit
+            nmst = nmst + 1
+            if(iter.eq.2) then
+              name_st(n) = name
+              wist(n) = width
+              zst(n) = depth
+              lmst(n) = lm
+              ist(n,1) = ij1(1)
+              jst(n,1) = ij1(2)
+              ist(n,2) = ij2(1)
+              jst(n,2) = ij2(2)
+              xst(n,1) = xy1(1)
+              yst(n,1) = xy1(2)
+              xst(n,2) = xy2(1)
+              yst(n,2) = xy2(2)
+            endif
+          enddo
+          rewind(iu)            ! use rewind_parallel?
+        endif
+        if(iter.eq.1) then      ! allocate once we know how many straits exist
           allocate(wist(nmst),xst(nmst,2),yst(nmst,2))
           allocate(lmst(nmst),ist(nmst,2),jst(nmst,2))
           allocate(name_st(nmst),zst(nmst))
         endif
       enddo
-      call closeunit(iu)
+      if(iu.ne.-999) then
+        call closeunit(iu)
+      endif
 
       allocate(
      &     MMST(LMO,NMST),
