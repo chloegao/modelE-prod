@@ -6214,13 +6214,7 @@ C**** Initialize tables for Prather StratChem tracers
 
 C**** Prather StratChem tracers and linoz tables change each month
       IF (modelEclock%getMonth().NE.last_month) THEN
-        do n=1,NTM
-          if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
-     *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
-            CALL STRTL  ! one call does all based on n_MPtable_max
-            exit
-          end if
-        end do
+        CALL STRTL  ! one call does all based on n_MPtable_max
         do n=1,NTM
           if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
             CALL linoz_STRATL

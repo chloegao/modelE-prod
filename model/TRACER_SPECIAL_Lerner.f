@@ -99,6 +99,7 @@ C**** Prather stratospheric chemistry
       USE PRATHER_CHEM_COM, only: set_prather_constants
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      use TRACER_COM, only: ntm
       use OldTracer_mod, only: trname,tcscale,iMPtable
       implicit none
 
@@ -108,9 +109,9 @@ C**** Prather stratospheric chemistry
       integer l,nl
       real*8    XPSD,XPSLM1,XPSL
 
-      do n=1,nMPtable
+      do n=1,ntm
         if (iMPtable(n) == 0) cycle
-        filein = trim(trname(iMPtable(n)))//'_TABLE'
+        filein = trim(trname(n))//'_TABLE'
         call openunit(filein,iu,.false.,.true.)
         read (iu,'(a)')   titlch
         if (AM_I_ROOT()) write(6,'(1x,a)') titlch
@@ -122,7 +123,7 @@ C**** Prather stratospheric chemistry
         end do
         call closeunit(iu)
         if (AM_I_ROOT()) write(6,'(2A)') 'STRATCHEM TABLES READ for ',
-     *                                   trim(trname(iMPtable(n)))
+     *                                   trim(trname(n))
       enddo
 
       call set_prather_constants
