@@ -168,7 +168,6 @@ contains
     real (kind=WP) :: trueAnomaly
     real (kind=WP) :: deltaAnomaly
     real (kind=WP) :: sinObliquity
-    real (kind=WP) :: MA
     real (kind=WP), parameter :: pi = 2*asin(1.0d0)
 
     real (KIND=WP), parameter :: RADIANS_PER_DEGREE = pi/180
@@ -176,7 +175,6 @@ contains
     trueAnomaly = this%getTrueAnomaly(t)
     deltaAnomaly = trueAnomaly + this%getLongitudeAtPeriapsis()*RADIANS_PER_DEGREE
 
-    MA = this%getMeanAnomaly(t)
     sinObliquity = sin(this%getObliquity() * RADIANS_PER_DEGREE)
     sinDeclinationAngle = sinObliquity * sin(deltaAnomaly)
 

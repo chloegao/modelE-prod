@@ -53,20 +53,29 @@ module ParameterizedEarthOrbit_mod
 
 contains
 
+   ! Cannot complete initialization until setYear() is called.
    function newParameterizedEarthOrbit(yearBeforePresent) result(orbit)
       use BaseTime_mod
       use TimeInterval_mod
-      use Rational_mod
+      use TimeConstants_mod, only: INT_SECONDS_PER_DAY, INT_SECONDS_PER_YEAR
+      use OrbitUtilities_mod, only: computeMeanAnomaly, computeTrueAnomaly
       type (ParameterizedEarthOrbit) :: orbit
       integer, intent(in) :: yearBeforePresent
       
+      type (TimeInterval) :: siderealRotationPeriod
+      type (TimeInterval) :: siderealPeriod
 
       call orbit%setMeanDistance(1.0_WP) ! 1 A.U.
+      ! Hardwired date for Vernal Equinox:   March 21 12:00
       orbit%timeAtVernalEquinox = newBaseTime(Rational(79*24+12)*3600)
-      call orbit%setTimeAtPeriapsis(newBaseTime(Rational(2*24+5)*3600))
 
-      call orbit%setSiderealOrbitalPeriod(TimeInterval(Rational(365*24*3600)))
-      call orbit%setSiderealRotationPeriod(TimeInterval(Rational(24*3600 * 365,366)))
+      siderealPeriod = TimeInterval(Rational(INT_SECONDS_PER_YEAR))
+      call orbit%setSiderealOrbitalPeriod(siderealPeriod)
+      
+      ! Around the world in 80 days ...
+      siderealRotationPeriod = TimeInterval((Rational(INT_SECONDS_PER_DAY)*365)/366)
+      call orbit%setSiderealRotationPeriod(siderealRotationPeriod)
+      call orbit%setMeanDay(TimeInterval(INT_SECONDS_PER_DAY))
 
       orbit%yearBeforePresent = yearBeforePresent
 
@@ -82,6 +91,11 @@ contains
     pYear = year - this%yearBeforePresent
     call orbpar(pYear, this%eccentricity, this%obliquity, this%longitudeAtPeriapsis)
 
+    ! The time of periapsis depends on longitude (and eccentricity to
+    ! a lesser degree).  Thus it must be recomputed each time the
+    ! orbital parameters are updated.
+    call this%setTimeAtPeriapsis()
+    
     if (this%getVerbose()) then
        write(6,*) 'Set orbital parameters for year ',pyear,' (CE)'
        if (this%yearBeforePresent /= 0) write(6,*) 'offset by', &
@@ -93,7 +107,25 @@ contains
     end if
 
   end subroutine setYear
-  
+
+  subroutine setTimeAtPeriapsis(this)
+     use MathematicalConstants_mod, only: PI, RADIAN
+     use TimeConstants_mod, only: INT_SECONDS_PER_DAY, INT_SECONDS_PER_YEAR
+     use OrbitUtilities_mod, only: computeMeanAnomaly, computeTrueAnomaly
+     use BaseTime_mod
+     class (ParameterizedEarthOrbit), intent(inout) :: this
+
+     real (kind=WP) :: meanAnomaly
+     real (kind=WP) :: trueAnomaly
+
+     trueAnomaly = -this%getLongitudeAtPeriapsis() * RADIAN
+     meanAnomaly = computeMeanAnomaly(trueAnomaly, this%getEccentricity())
+
+     this%timeAtPeriapsis = newBaseTime(this%timeAtVernalEquinox - &
+          & Rational((meanAnomaly/(2*PI)) * INT_SECONDS_PER_YEAR, tolerance=1.d-15))
+
+     
+  end subroutine setTimeAtPeriapsis
 
   function getEccentricity(this) result(eccentricity)
     real(kind=WP) :: eccentricity
@@ -150,14 +182,6 @@ contains
     trueAnomaly = computeTrueAnomaly(meanAnomaly, this%getEccentricity())
 
   end function getTrueAnomaly
-
-
-  subroutine setTimeAtPeriapsis(this, timeAtPeriapsis)
-    use BaseTime_mod, only: BaseTime
-    class (ParameterizedEarthOrbit), intent(inout) :: this
-    type (BaseTime), intent(in) :: timeAtPeriapsis
-    this%timeAtPeriapsis = timeAtPeriapsis
-  end subroutine setTimeAtPeriapsis
 
 
   function getTimeAtPeriapsis(this) result(timeAtPeriapsis)

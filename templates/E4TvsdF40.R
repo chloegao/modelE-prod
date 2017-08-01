@@ -31,7 +31,6 @@ Preprocessor Options
 #define SKIP_TRACER_DIAGS        ! expedites
 #define SKIP_TRACER_SRCS         ! expedites
 #define WATER_PROPORTIONAL       ! flags non fractionating, 'water' tracers
-#define RAD_O3_2010              ! 2010 ozone dataset
 End Preprocessor Options
 
 Object modules:

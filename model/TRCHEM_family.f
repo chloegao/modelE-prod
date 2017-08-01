@@ -89,37 +89,22 @@ C**** Local parameters and variables and arguments:
 !@var L dummy loop variable
 !@var I,J passed horizontal position indicies
 !@var lmax maximum altitude for chemistry
-!@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
-!@+ Or the top layer of chemistry in the unlikely event that is lower.
-!@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-      integer             :: L,maxT
+      integer             :: L
       integer, intent(IN) :: Lmax,I,J
       real*8              :: b,c,p1,p2,d
       
-      select case(which_trop)
-      case(0); maxT=min(Ltropo(I,J),Lmax)
-      case(1); maxT=min(ls1-1,Lmax)
-      case default; call stop_model('which_trop problem 8',255)
-      end select
-
       do L=1,Lmax
         ! here we USED TO set NO3 back to zero at dawn.
 c       B is for NO->NO2 reactions :
         B=rr(rrbi%O3_NO__NO2_O2,L)*y(nO3,L)
      &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nHO2,L)
      &    +rr(rrtri%NO_O__NO2_M,L)*y(nO,L)
-
-        if(L <= maxT)then  ! Troposphere:
-          B=B
-     &      +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nCH3O2,L)
-     &      +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
-     &      +rr(rrbi%XO2_NO__NO2_M,L)*y(nXO2,L)
-        else               ! Stratosphere:
-          B=B
-     &      +rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)
-     &      +rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)
-     &      +rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
-        end if
+     &    +rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nCH3O2,L)
+     &    +rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nC2O3,L)
+     &    +rr(rrbi%XO2_NO__NO2_M,L)*y(nXO2,L)
+     &    +rr(rrbi%ClO_NO__NO2_Cl,L)*y(nClO,L)
+     &    +rr(rrbi%NO_OClO__NO2_ClO,L)*y(nOClO,L)
+     &    +rr(rrbi%BrO_NO__Br_NO2,L)*y(nBrO,L)
 
 C       C is for NO2->NO reactions :
         C=ss(rj%NO2__NO_O,L,I,J)
@@ -194,24 +179,14 @@ C**** Local parameters and variables and arguments:
 !@var I,J passed horizontal position indicies
 !@var Lmax maximum altitude for chemistry
 !@var rHprod,rHspecloss,rkzero,rktot temporary var during OH->H rxns
-!@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
-!@+ Or the top layer of chemistry in the unlikely event that is lower.
-!@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
 
-      integer             :: L, maxT 
+      integer             :: L
       integer, intent(IN) :: Lmax,I,J
       real*8              :: aqqz, bqqz, cqqz, cz, dz, sqroot, 
      &   temp_yHOx,ratio,rHprod,rHspecloss,rkzero,rktot,
      &   yAtomicH
 
-      select case(which_trop)
-      case(0); maxT=min(ltropo(I,J),Lmax)
-      case(1); maxT=min(ls1-1,Lmax)
-      case default; call stop_model('which_trop problem 9',255)
-      end select
-
-C ------------ Troposphere ------------
-      do L=1,maxT   ! >> beginning of altitude loop <<
+      do L=1,Lmax
 c First calculate equilibrium amount of HOx:
 c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
@@ -228,10 +203,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
      &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L)
-     &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L))
-     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nCH3O2,L)
-     &    +pHOx(I,J,L)
-     &    *(rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
+     &      +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)
+     &      +rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nAldehyde,L)
      &      +rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)*0.89d0
 !!!!!&      +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
      &      +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)
@@ -241,11 +214,22 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &        *0.15d0
 #endif  /* TRACERS_TERP */
+     &      +rr(rrbi%OH_HCl__H2O_Cl,L)*y(nn_HCl,L)
+     &      +rr(rrbi%OH_HOCl__H2O_ClO,L)*y(nn_HOCl,L)
+     &      +rr(rrbi%OClO_OH__HOCl_O2,L)*y(nOClO,L)
+     &      +rr(rrbi%ClO_OH__HCl_O2,L)*y(nClO,L)
+     &      +rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)
+     &      +rr(rrbi%BrO_OH__HBr_O2,L)*y(nBrO,L)
+     &      +rsulf1(l)*ydms(i,j,l) ! oxidation of DMS
+     &      +rsulf2(l)*ydms(i,j,l) ! oxidation of SO2
      &    )
+     &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nCH3O2,L)
      &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nXO2,L)
      &    +rr(rrbi%XO2N_HO2__CH3OOH_O2,L)*y(nXO2N,L)
-     &    +pHOx(I,J,L)*(rsulf1(l)*ydms(i,j,l) ! oxidation of DMS
-     &      +rsulf2(l)*ydms(i,j,l)) ! oxidation of SO2
+     &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nCl,L)
+     &    +rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)
+     &    +rr(rrbi%Br_HO2__HBr_O2,L)*y(nBr,L)
+     &    +rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)
 
         cqqz=2.d0*ss(rj%H2O2__OH_OH,L,I,J)*y(nn_H2O2,L)
      &    +ss(rj%HNO3__OH_NO2,L,I,J)*y(nn_HNO3,L)
@@ -253,14 +237,24 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +2.d0*ss(rj%CH3OOH__HCHO_HO2,L,I,J)*y(nn_CH3OOH,L)
      &    +(rr(rrbi%CH3O2_NO__HCHO_NO2,L)*y(nNO,L)
      &      +2.d0*rr(rrbi%CH3O2_CH3O2__HCHO_HCHO,L)*y(nCH3O2,L)
-     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)
+     &      +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)
      &    )*y(nCH3O2,L)
+! Use OH production without O1D explicitly:
+     &    +ss(rj%HOCl__OH_Cl,L,i,j)*y(nn_HOCl,L) 
+     &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nn_HCl,L)*y(nO,L)
+     &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
+     &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
+     &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nCl,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nCl,L)*y(nH2,L)
+     &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
+     &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
+     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)*y(nCH3O2,L)
 
         ! 1.66/1.31 accounts for HOx production via O(1D)+CH4-->CH3O2 path:
         cqqz=cqqz
-     &    +((2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
+     &    +(2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
      &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
-     &    )*y(nO1D,L))
+     &    )*y(nO1D,L)
      &    +ss(rj%Aldehyde__HCHO_CO,L,I,J)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
@@ -277,10 +271,26 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      *y(nO3,L)*0.58d0
 #endif  /* TRACERS_TERP */
 
+        ! water vapor photolysis in SRBs (Schumann-Runge bands):
+        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
+
         sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
         y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
         y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
         temp_yHOx=y(nOH,L)+y(nHO2,L)
+
+c Include loss of OH into atomic H using production
+c via O + OH -> O2 + H, loss via H + O3 -> OH + O2 and
+c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
+        rHprod=rr(rrbi%O_OH__O2_H,L)*y(nOH,L)*y(nO,L)
+        rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
+        rkzero=y(nM,L)*4.4d-32*((ta(L)/300.d0)**(-1.3))
+        rktot=(rkzero/(1+(rkzero/(7.5d-11*(ta(L)/300.d0)**0.2))))
+        rktot=y(nO2,L)*rktot
+        rHspecloss=rHspecloss+rktot
+        if(rHspecloss==0.) call stop_model('rHspecloss=0.',255)
+        yAtomicH=rHprod/rHspecloss
+        OxlossbyH(L)= yAtomicH*(rHspecloss-rktot)*dt2
 
 c Now partition HOx into OH and HO2:
         ! CZ: OH->HO2 reactions :
@@ -296,7 +306,10 @@ c Now partition HOx into OH and HO2:
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
-     &    +rsulf4(l)*yso2(i,j,l) ! SO2 oxidation: 
+     &    +rsulf4(l)*yso2(i,j,l) ! SO2 oxidation
+     &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
+     &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
+     &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/rHspecloss
 
         ! DZ: HO2->OH reactions :
         dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
@@ -304,9 +317,11 @@ c Now partition HOx into OH and HO2:
      &    +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*(0.79d0*y(nC2O3,L))
 c Previous few lines represent additional OH production via reaction 41
 c which also produces HO2 and R15 then S4/(S4+S14) fraction.
+     &    +rr(rrbi%Cl_HO2__OH_ClO,L)*y(nCl,L)
+     &    +rr(rrbi%O_HO2__OH_O2,L)*y(nO,L)
 
         if(cz+dz > 0.)then
-          y(nOH,L)=(dz/(cz+dz))*temp_yHOx
+          y(nOH,L)=(dz/(cz+dz))*temp_yHOx-yAtomicH
           if(y(nOH,L) > temp_yHOx) y(nOH,L)=temp_yHOx-1.d0
           ! here we USED TO cap OH as a function of latitude
         else
@@ -316,115 +331,10 @@ c which also produces HO2 and R15 then S4/(S4+S14) fraction.
         ! Some limits on OH, HO2:
         if(y(nOH,L) < 1.d0)y(nOH,L)=1.d0
         if(y(nHO2,L) < 1.d0)y(nHO2,L)=1.d0
-        if(y(nHO2,L) > 1.d9)y(nHO2,L)=1.d9
+        if(y(nHO2,L) > 1.d12)y(nHO2,L)=1.d12
         pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
 
-      end do  ! >> end of troposphere loop <<
-
-C ------------ Stratosphere ------------
-      do L=maxT+1,Lmax
-c First calculate equilibrium amount of HOx:
-c A: loss rxns with HOx**2
-c B: loss rxns linear in HOx
-c C: prod equations
-c all: in terms of HO2 (so *pHOx when OH is reactant)
-        aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
-     &    +pHOx(I,J,L)*pHOx(I,J,L)
-     &      *(rr(rrbi%OH_OH__H2O_O,L)
-     &        +rr(rrtri%OH_OH__H2O2_M,L))
-     &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
-
-        bqqz=pHOx(I,J,L)
-     &    *(rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nn_CH4,L)
-     &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
-     &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
-     &      +rr(rrtri%OH_NO__HONO_M,L)*y(nNO,L))
-     &    +rr(rrbi%OH_HCl__H2O_Cl,L)*y(nn_HCl,L)*pHOx(I,J,L)
-     &    +rr(rrbi%OH_HOCl__H2O_ClO,L)*y(nn_HOCl,L)*pHOx(I,J,L)
-     &    +rr(rrbi%OClO_OH__HOCl_O2,L)*y(nOClO,L)*pHOx(I,J,L)
-     &    +rr(rrbi%Cl_HO2__HCl_O2,L)*y(nCl,L)
-     &    +rr(rrbi%ClO_OH__HCl_O2,L)*y(nClO,L)*pHOx(I,J,L)
-     &    +rr(rrbi%ClO_HO2__HOCl_O2,L)*y(nClO,L)
-     &    +rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)*pHOx(I,J,L)
-     &    +rr(rrbi%Br_HO2__HBr_O2,L)*y(nBr,L)
-     &    +rr(rrbi%BrO_HO2__HOBr_O2,L)*y(nBrO,L)
-     &    +rr(rrbi%BrO_OH__HBr_O2,L)*y(nBrO,L)*pHOx(I,J,L)
-     &    +pHOx(I,J,L)*(rsulf1(l)*ydms(i,j,l) ! oxidation of SO2
-     &    +rsulf2(l)*ydms(i,j,l)) ! oxidation of DMS
-
-        ! Use OH production without O1D explicitly:
-        cqqz=2.d0*ss(rj%H2O2__OH_OH,L,i,j)*y(nn_H2O2,L)
-     &    +ss(rj%HNO3__OH_NO2,L,i,j)*y(nn_HNO3,L)
-     &    +ss(rj%HOCl__OH_Cl,L,i,j)*y(nn_HOCl,L) 
-     &    +rr(rrbi%O_HCl__OH_Cl,L)*y(nn_HCl,L)*y(nO,L)
-     &    +rr(rrbi%O_HOCl__OH_ClO,L)*y(nn_HOCl,L)*y(nO,L)
-     &    +rr(rrbi%Cl_HOCl__Cl2_OH,L)*y(nn_HOCl,L)*y(nCl,L)
-     &    +rr(rrbi%Cl_H2O2__HCl_HO2,L)*y(nCl,L)*y(nn_H2O2,L)
-     &    +rr(rrbi%Cl_H2__HCl_HO2,L)*y(nCl,L)*y(nH2,L)
-     &    +rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nBr,L)*y(nn_H2O2,L)
-     &    +rr(rrbi%O_HBr__OH_Br,L)*y(nn_HBr,L)*y(nO,L)
-     &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nClO,L)*y(nCH3O2,L)
-     
-        ! water vapor photolysis in SRBs:
-        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
-
-        ! production from O1D NO LONGER limited to O1D amount or
-        ! O1D fraction via r10,11,s2:
-        cqqz=cqqz
-     &    +(2.d0*rr(rrbi%O1D_H2O__OH_OH,L)*y(nH2O,L)
-     &      +(1.66d0/1.31d0)*rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nn_CH4,L)
-     &    )*y(nO1D,L)
-
-        sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
-        y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
-        y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
-        temp_yHOx=y(nOH,L)+y(nHO2,L)
-
-c Include loss of OH into atomic H using production
-c via OH + O -> O2 + H, loss via H + O3 -> OH + O2 and
-c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
-        rHprod=rr(rrbi%O_OH__O2_H,L)*y(nOH,L)*y(nO,L)
-        rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
-        rkzero=y(nM,L)*4.4d-32*((ta(L)/300.d0)**(-1.3))
-        rktot=(rkzero/(1+(rkzero/(7.5d-11*(ta(L)/300.d0)**0.2))))
-        rktot=y(nO2,L)*rktot
-        rHspecloss=rHspecloss+rktot
-        if(rHspecloss==0. .or. rHspecloss+rktot==0.)
-     &  call stop_model('rHspecloss or rHspecloss+rktot=0.',255)
-        yAtomicH=rHprod/rHspecloss
-        OxlossbyH(L)= yAtomicH*rHspecloss*dt2
-
-c Now partition HOx into OH and HO2:
-c CZ: OH->HO2 reactions :
-        cz=rr(rrbi%OH_O3__HO2_O2,L)*y(nO3,L)
-     &    +rr(rrbi%CO_OH__HO2_O2,L)*y(nn_CO,L)
-     &    +rr(rrbi%OH_H2O2__H2O_HO2,L)*y(nn_H2O2,L)
-     &    +rr(rrbi%H2_OH__HO2_H2O,L)*y(nH2,L)
-     &    +rr(rrbi%HCHO_OH__HO2_CO,L)*y(nn_HCHO,L)
-     &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
-     &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
-     &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/(rHspecloss+rktot)
-     &    +rsulf4(l)*yso2(i,j,l) ! SO2 oxidation: 
-
-        dz=rr(rrbi%HO2_O3__OH_O2,L)*y(nO3,L)
-     &    +rr(rrbi%HO2_NO__OH_NO2,L)*y(nNO,L)
-     &    +rr(rrbi%Cl_HO2__OH_ClO,L)*y(nCl,L)
-     &    +rr(rrbi%O_HO2__OH_O2,L)*y(nO,L)
-
-        if(cz+dz > 0)then
-          y(nOH,L)=(dz/(cz+dz))*temp_yHOx-yAtomicH
-          if(y(nOH,L) > temp_yHOx)y(nOH,L)=temp_yHOx-1.d0
-        else
-          y(nOH,L)=1.d0
-        end if
-        y(nHO2,L)=(temp_yHOx-y(nOH,L))
-
-        if(y(nOH,L)  < 1)   y(nOH,L)  = 1.d0
-        if(y(nHO2,L) < 1)   y(nHO2,L) = 1.d0
-        if(y(nHO2,L) > 1.d9)y(nHO2,L) = 1.d9
-        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
-
-      end do  ! end of stratosphere loop
+      end do
 
       return
       END SUBROUTINE HOxfam
@@ -456,21 +366,12 @@ C**** Local parameters and variables and arguments:
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var rnormnum is temporary var for conservation of Cl
 !@var destCl, prodCl temporary vars for simple steady state Cl calc
-!@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
-!@+ Or the top layer of chemistry in the unlikely event that is lower.
-!@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-      integer               :: L,maxT
+      integer               :: L
       integer, intent(IN)   :: Lmax,I,J
       real*8                :: A,B,C,D,F,G,Q,V,X,YY,dClOx,ww,p1,p2,p3,
      &                         dOClO,ratioc,rnormnum,destCl,prodCl
 
-      select case(which_trop)
-      case(0); maxT=min(ltropo(I,J),Lmax)
-      case(1); maxT=min(ls1-1,Lmax)
-      case default; call stop_model('which_trop problem 10',255)
-      end select
-
-      do L=maxT+1,Lmax ! stratosphere
+      do L=1,Lmax
 c Set Cl2 and default Cl2O2:
         y(nCl2,L)=yCl2(I,J,L)       ! set in chemstep
         yCl2O2(I,J,L)=0.d0          ! non-zero at low temp, see below
@@ -644,20 +545,11 @@ C**** GLOBAL parameters and variables:
 
 C**** Local parameters and variables and arguments:
 !@var a,b,c,d,eq,f,p2,p1 dummy vars
-!@var maxT LTROPO(I,J) or LS1-1, depending upon what_trop variable
-!@+ Or the top layer of chemistry in the unlikely event that is lower.
-!@+ Note in that case, loops like L=maxT+1,Lmax will do nothing.
-      integer             :: L,maxT
+      integer             :: L
       integer, intent(IN) :: Lmax,I,J
       real*8              :: a,b,c,d,eq,f,p2,p1
       
-      select case(which_trop)
-      case(0); maxT=min(ltropo(I,J),Lmax)
-      case(1); maxT=min(ls1-1,Lmax)
-      case default; call stop_model('which_trop problem 11',255)
-      end select
-
-      do L=maxT+1,Lmax  ! stratosphere
+      do L=1,Lmax
         a=y(nO3,L)*rr(rrbi%Br_O3__BrO_O2,L)
      &    +y(nOClO,L)*rr(rrbi%Br_OClO__BrO_ClO,L)
         b=y(nO,L)*rr(rrbi%BrO_O__Br_O2,L)

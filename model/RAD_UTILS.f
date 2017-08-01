@@ -3520,7 +3520,7 @@ C     functions
 
       end module O3mod
 
-      SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL)
+      SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL,KFPCO2)
       use filemanager, only : file_exists, openunit, closeunit
       use dictionary_mod
       IMPLICIT NONE
@@ -3531,7 +3531,7 @@ C     functions
       REAL*8, allocatable :: FPX(:),PFP(:)
       character*80 title
 !@dbparam KFPCO2 selects CO2 profile absorber scaling (if >0 )
-      integer :: KFPCO2 = -1 ! scaling determined by # of layers NL
+      integer :: KFPCO2 ! KFPCO2 will be set from NL or from rundeck
 !
 ! FPXCO2 scaling factors: 1.0 for P > 50mb, linear in P for P < 50mb
 ! PFP Pressure scale inflection points: continuous linear line segments
@@ -3550,7 +3550,10 @@ C     functions
 
       FPXCO2 = 1. ! default
 
-      if(.not.file_exists('CO2profile')) return
+      if (.not.file_exists('CO2profile')) then
+         KFPCO2 = 0
+         return
+      end if
 
       call openunit('CO2profile',iu,.false.,.true.)
 
@@ -3568,8 +3571,10 @@ C     functions
           KFPCO2 = 1
         else if (nl < 102) then
           KFPCO2 = 2
-        else
+        else if (nl == 105) then
           KFPCO2 = 4
+        else
+          KFPCO2 = 3
         end if
       end if
 
@@ -3611,3 +3616,82 @@ C     functions
   100 deallocate (FPX,PFP)
       RETURN
       END  SUBROUTINE SET_FPXCO2
+
+      SUBROUTINE FIT105_KFPCO2(TRGXLK,NL)
+      IMPLICIT NONE
+      INTEGER L,K,KK
+      REAL*8 SUMD13,D13H2O,SUMDKK,DKKCO2
+
+!     Precise LBL CO2 cooling rate refinement for 105 layer for 0-10mb
+!     by local vertical redistribution of CO2 opacity in k-bands 21-25
+!
+!     Operates via PARAMETER KFPCO2 by IF(KFPCO2==4) CALL FIT105_KFPCO2
+!     placed just after CALL TAUGAS statement, just before CALL THERML
+!     Only INPUT variable is TRGXLK(L,K) defined by TAUGAS
+!
+!     Routine performs fractional opacity redistribution of CO2 opacity
+!     in k-bands 21-25 of TRGXLK(L,K) within layers 76-105 (0-10mb)
+!     The residual opacity amounts are redistributed to layer 70 (32mb)
+!     Column opacity is conserved within each k-band
+!
+!     Fractional amounts of H2O opacity in k-band 13 of TRGXLK(L,K) are
+!     redistributed downward from layers 85-105 (0mb - 3mb) to layer 70
+!
+!     FIT105_KFPCO2 operates together with FPXCO2 CO2 absorber scaling
+!     that is initialized by CALL SET_FPXCO2(PL,FPXCO2,NL)
+!     with parameter KFPCO2=4, specifically for 105-layer model runs
+
+      integer, intent(in) :: NL
+      REAL*8 :: TRGXLK(NL,*)
+      REAL*8, PARAMETER :: F22F25(30,5) = RESHAPE( (/
+     & 0.02000D0, 0.05000D0,-0.03000D0, 0.00500D0, 0.07000D0, 0.08000D0,
+     &-0.00500D0, 0.00600D0,-0.00500D0,-0.01100D0, 0.00600D0, 0.00100D0,
+     &-0.01200D0,-0.01100D0,-0.01100D0,-0.00900D0,-0.00800D0,-0.01500D0,
+     &-0.01000D0,-0.02000D0,-0.01700D0,-0.02200D0,-0.00300D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.04000D0,-0.03000D0, 0.00000D0, 0.10000D0, 0.20000D0,
+     &-0.25000D0,-0.03000D0,-0.09000D0,-0.06000D0,-0.02500D0,-0.02000D0,
+     &-0.00800D0,-0.04500D0,-0.01000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.01000D0,-0.00700D0,-0.04500D0,-0.03400D0,-0.00700D0, 0.00000D0,
+     &-0.83000D0,-0.70000D0,-0.78200D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.20000D0, 0.20000D0,
+     &-0.25000D0,-0.03000D0,-0.09000D0,-0.06000D0,-0.01000D0,-0.01000D0,
+     &-0.01000D0,-0.04500D0, 0.00500D0,-0.01500D0,-0.00800D0, 0.00000D0,
+     & 0.00000D0, 0.01000D0, 0.01000D0, 0.02700D0, 0.07000D0, 0.03000D0,
+     &-0.98000D0,-0.96000D0,-0.97600D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.02353D0, 0.13040D0,-0.02867D0,-0.08529D0, 0.40750D0,
+     & 0.18620D0, 0.05854D0,-0.36590D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
+     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,-0.09784D0, 0.18780D0,
+     & 0.51150D0, 0.45190D0, 0.05729D0,-0.09257D0,-0.04591D0,-0.01872D0/
+     &),(/30,5/) )
+      REAL*8, PARAMETER :: F13H2O(21)=(/
+     & 0.9990D0, 0.8000D0, 0.9800D0, 0.9000D0, 0.9990D0, 0.5000D0,
+     & 0.7000D0, 0.6500D0, 0.6000D0, 0.6000D0, 0.5800D0, 0.8000D0,
+     & 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0,
+     & 0.9999D0, 0.9999D0, 0.9999D0/)
+      DO K=1,5
+      KK=K+20
+      SUMDKK=0.D0 ! TAUGAS TAU_table TRGXLK vertical TAU redistribution
+      DO L=76,105 ! CO2 opacity redistribution for K=22,25 and L=76,105
+      DKKCO2=TRGXLK(L,KK)*F22F25(L-75,K)
+      SUMDKK=SUMDKK+DKKCO2
+      TRGXLK(L,KK)=TRGXLK(L,KK)+DKKCO2
+      END DO
+      TRGXLK( 70,KK)=TRGXLK( 70,KK)-SUMDKK
+      END DO
+      SUMD13=0.D0 ! TAUGAS TAUtable TRGXLK: vertical TAU redistribution
+      DO L=85,105 ! H2O opacity redistribution for K=13 and L=85,105
+      D13H2O=TRGXLK(L,13)*F13H2O(L-84)
+      SUMD13=SUMD13+D13H2O
+      TRGXLK(L,13)=TRGXLK(L,13)-D13H2O
+      IF(L.GT.95) TRGXLK(L,12)=1.D-06
+      END DO
+      TRGXLK( 70,13)=TRGXLK( 70,13)+SUMD13
+      RETURN
+      END SUBROUTINE FIT105_KFPCO2

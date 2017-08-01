@@ -7,13 +7,13 @@
       integer :: status,ofid,ivarid,varid
       integer, dimension(:), allocatable :: fids
       character(len=4096) :: ifile,ofile
-      integer :: n,nfiles,nlast,iargc,nvars
+      integer :: n,nfiles,nlast,iargc,nvars,ndigits_year
       integer :: itbeg,itend,itnow,itime0,itime,nday,iyear1,accsize
       integer :: Jyear0,Jmon0,Jday0,Jdate0,Jhour0,
      &           Jyear,Jmon,Jday,Jdate,Jhour
       character(len=4) :: amon0,amon
       real*4 :: days
-      character(len=12) :: acc_period
+      character(len=16) :: acc_period
       character(len=30) :: runid,reduction,vname
       character(len=100) :: fromto
       character(len=132) :: xlabel
@@ -74,7 +74,18 @@ c
      *     ,amon0)
       call getdte(Itime-1,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
      *     ,amon)
-      call aperiod(monacc,jyear0,jyear,acc_period)
+      ndigits_year = 4 ! default
+      status = nf_inq_varid(fids(nlast),'iparam',varid)
+      status =
+     &     nf_get_att_int(fids(nlast),varid,'ndigits_year',ndigits_year)
+      if(ndigits_year.le.0.or.ndigits_year.gt.6) stop 'bad ndigits_year'
+      ! the following override should never be needed
+      !if(jyear.ge.100000) then
+      !  ndigits_year = 6
+      !elseif(jyear.ge.10000) then
+      !  ndigits_year = 5
+      !endif
+      call aperiod(monacc,jyear0,jyear,ndigits_year,acc_period)
 
 c
 c copy the structure of the latest input file to the output file
@@ -181,11 +192,11 @@ c
       return
       end subroutine getdte
 
-      subroutine aperiod(monacc,yr_start,yr_end,acc_period)
+      subroutine aperiod(monacc,yr_start,yr_end,ndigits_year,acc_period)
       implicit none
       integer :: monacc(12)
-      integer :: yr_start,yr_end
-      character(len=12) :: acc_period
+      integer :: yr_start,yr_end,ndigits_year
+      character(len=16) :: acc_period
       character(len=3), dimension(12), parameter :: amonth = (/
      &  'JAN','FEB','MAR','APR','MAY','JUN',
      &  'JUL','AUG','SEP','OCT','NOV','DEC' /)
@@ -193,6 +204,9 @@ c
       integer :: mons(12)
       integer :: m,nmo,yr1,ninc,ndec
       logical :: incyr1
+      character(len=1) :: c1
+      character(len=6) :: fmtyr
+      character(len=6) :: yrstr
      
       if(minval(monacc,mask=monacc>0).ne.maxval(monacc,mask=monacc>0))
      &     stop 'unequal numbers of months'
@@ -239,10 +253,16 @@ c
       yr1 = yr_start
       if(incyr1) yr1 = yr1+1
 
+      write(c1,'(i1)') ndigits_year
+      fmtyr = '(i'//c1//'.'//c1//')'
+      yrstr=''; write(yrstr,fmtyr) yr1
+
       acc_period=''
-      acc_period(1:3) = mostr(1:3)
-      write(acc_period(4:7),'(i4.4)') yr1
-      if(yr_end.gt.yr1) write(acc_period(8:12),'(a1,i4.4)') '-',yr_end
+      acc_period = mostr(1:3)//yrstr
+      if(yr_end.gt.yr1) then
+        yrstr=''; write(yrstr,fmtyr) yr_end
+        acc_period = trim(acc_period)//'-'//yrstr
+      endif
 
 c check for gaps
       ninc = count(monacc(2:12).gt.monacc(1:11))

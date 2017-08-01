@@ -128,87 +128,6 @@
 
 !@var icon_xx indexes for conservation quantities
       INTEGER icon_OCE,icon_OKE,icon_OAM,icon_OMS,icon_OSL
-!@var kbasin integer index of which basin a particular ocean point is in
-      INTEGER, DIMENSION(:,:), allocatable :: KBASIN,KBASIN_glob
-!@var XLB label for diagnostic titles
-      CHARACTER XLB*30
-!@var FLAT latitude values on primary and secondary ocean grids
-      REAL*8, DIMENSION(JM,2) :: FLAT
-!@var FLON longitude values on primary and secondary ocean grids
-      REAL*8, DIMENSION(IM,2) :: FLON
-!@var iu_otj unit number for ascii output of ocean transports
-      INTEGER iu_otj
-!@var NBAS number of ocean basins 
-!@var nqty number of output qtys zonally averaged over basins
-      INTEGER, PARAMETER :: NBAS=4,nqty=3,NCIRC=3
-!@var BASIN names of ocean basins for diag output
-      CHARACTER*16, DIMENSION(NBAS) :: BASIN=
-     *     (/"Atlantic","Pacific ","Indian  ","Global  "/)
-      character(len=4), dimension(nqty), parameter :: qtyname=(/
-     &     'Mass','Heat','Salt' /)
-      character(len=9), dimension(nqty), parameter :: qtyflxunit=(/
-     &     '10^9 kg/s','10^15 W  ','10^6 kg/s' /)
-      character(len=3), dimension(ncirc), parameter :: circstr=(/
-     &     'moc','gmf','gyr' /)
-      character(len=7), dimension(ncirc), parameter :: circname=(/
-     &     'Overtrn', 'GM flx ', 'Hor gyr'/)
-
-!@var KOJL,OJL (number of qtys having) zonal sums/means over basins
-      INTEGER, PARAMETER :: KOJL=5*NBAS
-      REAL*8, DIMENSION(JM,LMO,NBAS,KOJL/NBAS) :: OJL
-      REAL*8, DIMENSION(JM,LMO,KOJL) :: OJL_out
-
-!@var JL_xxx indices for qtys in OJL
-      INTEGER :: JL_M,JL_PT,JL_S,JL_SF,JL_SFB
-
-!@var lname_ojl Long names for OJL diagnostics
-      CHARACTER(len=lname_strlen), DIMENSION(KOJL) :: LNAME_OJL
-!@var sname_ojl Short names for OJL diagnostics
-      CHARACTER(len=sname_strlen), DIMENSION(KOJL) :: SNAME_OJL
-!@var units_ojl Units for OJL diagnostics
-      CHARACTER(len=units_strlen), DIMENSION(KOJL) :: UNITS_OJL
-!@var ia_ojl IDACC numbers for OJL diagnostics
-      INTEGER, DIMENSION(KOJL) :: IA_OJL
-!@var denom_ojl denominators for OJL diagnostics
-      INTEGER, DIMENSION(KOJL) :: DENOM_OJL
-!@var scale_ojl scales for OJL diagnostics
-      REAL*8, DIMENSION(KOJL) :: SCALE_OJL
-!@var [jl]grid_ojl Grid descriptors for OJL diagnostics
-      INTEGER, DIMENSION(KOJL) :: JGRID_OJL,LGRID_OJL
-
-!@var NSEC number of lat/lon sections for diags
-      INTEGER, PARAMETER :: NSEC=3
-!@var SEC_LAT, SEC_LON lat/lon for sectional tracer profiles
-      REAL*8, PARAMETER :: SEC_LAT(NSEC) = (/-64.,0.,48./),
-     *     SEC_LON(NSEC) = (/-165.0,-30.,65./)
-C**** OTJ is integrated flux array OTJ(LATITUDE,BASIN,KQ)
-C****   KQ 1   Mass (kg)
-C****      2   Heat (J)
-C****      3   Salt (kg)
-C****  OTJCOMP OTJ(LATITUDE,BASIN,COMP,KQ) (KQ = 2,3)
-C**** COMP 1   advected by overturning
-C****      2   flux from GM
-C****      3   advected by horizontal gyres (residual)
-C****
-      REAL*8 OTJ(0:JM,4,3),OTJCOMP(0:JM,4,3,3)
-      integer, parameter :: kotj=4*4*3
-
-!@var OTJ_out reshaped combination of OTJ and OTJCOMP
-      REAL*8 OTJ_out(JM,kotj)
-
-!@var ia_otj IDACC numbers for OTJ diagnostics
-      integer, dimension(kotj) :: ia_otj
-!@var scale_otj scales for OTJ diagnostics
-      real*8, dimension(kotj) :: scale_otj
-!@var sname_otj short names for OTJ diagnostics
-      character(len=sname_strlen), dimension(kotj) :: sname_otj
-!@var lname_otj Long names for OTJ diagnostics
-      character(len=lname_strlen), dimension(kotj) :: lname_otj
-!@var units_otj units for OTJ diagnostics
-      character(len=units_strlen), dimension(kotj) :: units_otj
-
-!@var SFM meridional overturning stream function for each basin
-      REAL*8, DIMENSION(JM,0:LMO,4) :: SFM!,SFS SFS is for salt
 
 !@var ZOC, ZOC1 ocean depths for diagnostics (m)
       REAL*8 :: ZOC(LMO) = 0. , ZOC1(LMO+1) = 0.
@@ -243,8 +162,8 @@ C****
 !@var CDL_OLNST consolidated metadata for OLNST output fields in CDL notation
 !@var CDL_OJL consolidated metadata for OJL output fields in CDL notation
 !@var CDL_OTJ consolidated metadata for OTJ output fields in CDL notation
-      type(cdl_type) :: cdl_oij,cdl_oijl,cdl_olnst,cdl_ojl,cdl_otj
-     &     ,cdl_oijmm
+      type(cdl_type) :: cdl_oij,cdl_oijl,cdl_olnst,cdl_oijmm
+
 c declarations that facilitate switching between restart and acc
 c instances of arrays
       target :: oijl_loc,oijl_out
@@ -453,6 +372,7 @@ c instances of arrays
 #endif
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
+      use straits, only : nmst
       implicit none
       integer fid            !@var fid file id
       logical :: r4_on_disk  !@var r4_on_disk if true, real*8 stored as real*4
@@ -464,8 +384,10 @@ c instances of arrays
      &     'oijl(dist_imo,dist_jmo,lmo,koijl)',r4_on_disk=r4_on_disk)
       call defvar(grid,fid,ol,'ol(lmo,kol)',
      &     r4_on_disk=r4_on_disk)
+      if(nmst.gt.0) then
       call defvar(grid,fid,olnst,'olnst(lmo,nmst,kolnst)',
      &     r4_on_disk=r4_on_disk)
+      endif
 #ifdef TRACERS_OCEAN
       if(r4_on_disk) then
         call defvar(grid,fid,toijl_out,
@@ -474,8 +396,10 @@ c instances of arrays
         call defvar(grid,fid,toijl,
      &       'toijl(dist_imo,dist_jmo,lmo,ktoijl,ntmo)')
       endif
+      if(nmst.gt.0) then
       call defvar(grid,fid,tlnst,'tlnst(lmo,nmst,kolnst,ntmo)',
      &     r4_on_disk=r4_on_disk)
+      endif
 #ifndef TRACERS_ON
 #ifndef STANDALONE_OCEAN
       call def_rsf_tcons(fid,r4_on_disk)
@@ -501,6 +425,7 @@ c    extended/rescaled instances of arrays when writing acc files
 #endif
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
+      use straits, only : nmst
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
@@ -510,8 +435,10 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_dist_data(grid,fid,'oijmm',oijmm)
         call write_dist_data(grid,fid,'oijl',oijl)
         call write_data(grid,fid,'ol',ol)
+        if(nmst.gt.0) then
 c straits arrays
         call write_data(grid,fid,'olnst',olnst)
+        endif
 #ifdef TRACERS_OCEAN
         if(iaction.eq.iowrite) then
           call write_dist_data(grid,fid,'toijl',toijl)
@@ -525,11 +452,15 @@ c straits arrays
         call read_dist_data(grid,fid,'oijmm',oijmm)
         call read_dist_data(grid,fid,'oijl',oijl)
         call read_data(grid,fid,'ol',ol,bcast_all=.true.)
+        if(nmst.gt.0) then
 c straits arrays
         call read_data(grid,fid,'olnst',olnst,bcast_all=.true.)
+        endif
 #ifdef TRACERS_OCEAN
         call read_dist_data(grid,fid,'toijl',toijl)
+        if(nmst.gt.0) then
         call read_data(grid,fid,'tlnst',tlnst,bcast_all=.true.)
+        endif
 #endif
       end select
 
@@ -552,6 +483,7 @@ c straits arrays
       use ocean, only : oxyp
       USE OCEANR_DIM, only : grid=>ogrid
       use cdl_mod, only : defvar_cdl
+      use straits, only : nmst
       implicit none
       integer :: fid         !@var fid file id
 
@@ -585,6 +517,7 @@ c straits arrays
       call write_attr(grid,fid,'ol','reduction','sum')
       call write_attr(grid,fid,'ol','split_dim',2)
 
+      if(nmst.gt.0) then
       call write_attr(grid,fid,'olnst','reduction','sum')
       call write_attr(grid,fid,'olnst','split_dim',3)
       call defvar(grid,fid,ia_olnst,'ia_olnst(kolnst)')
@@ -593,27 +526,7 @@ c straits arrays
      &     'sname_olnst(sname_strlen,kolnst)')
       call defvar_cdl(grid,fid,cdl_olnst,
      &     'cdl_olnst(cdl_strlen,kcdl_olnst)')
-
-      call defvar(grid,fid,ojl_out,'ojl(jmo,lmo,kojl)',
-     &     r4_on_disk=.true.)
-      call write_attr(grid,fid,'ojl','reduction','sum')
-      call write_attr(grid,fid,'ojl','split_dim',3)
-      call defvar(grid,fid,ia_ojl,'ia_ojl(kojl)')
-      call defvar(grid,fid,denom_ojl,'denom_ojl(kojl)')
-      call defvar(grid,fid,scale_ojl,'scale_ojl(kojl)')
-      call defvar(grid,fid,sname_ojl,'sname_ojl(sname_strlen,kojl)')
-      call defvar_cdl(grid,fid,cdl_ojl,
-     &     'cdl_ojl(cdl_strlen,kcdl_ojl)')
-
-      call defvar(grid,fid,otj_out,'otj(jmo,kotj)',
-     &     r4_on_disk=.true.)
-      call write_attr(grid,fid,'otj','reduction','sum')
-      call write_attr(grid,fid,'otj','split_dim',2)
-      call defvar(grid,fid,ia_otj,'ia_otj(kotj)')
-      call defvar(grid,fid,scale_otj,'scale_otj(kotj)')
-      call defvar(grid,fid,sname_otj,'sname_otj(sname_strlen,kotj)')
-      call defvar_cdl(grid,fid,cdl_otj,
-     &     'cdl_otj(cdl_strlen,kcdl_otj)')
+      endif
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
@@ -632,6 +545,8 @@ c straits arrays
      &     'cdl_toijl(cdl_strlen,kcdl_toijl)')
 #endif      
 
+      call def_meta_ocdiag_zonal(fid)
+
       return
       end subroutine def_meta_ocdiag
 
@@ -643,6 +558,7 @@ c straits arrays
       USE OCEANR_DIM, only : grid=>ogrid
       use ocean, only : oxyp,focean
       use cdl_mod, only : write_cdl
+      use straits, only : nmst
       implicit none
       integer :: fid         !@var fid file id
       real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo) :: tmp
@@ -665,23 +581,12 @@ c straits arrays
       call write_data(grid,fid,'sname_oijl',sname_oijl)
       call write_cdl(grid,fid,'cdl_oijl',cdl_oijl)
 
-      call write_data(grid,fid,'ojl',ojl_out)
-      call write_data(grid,fid,'ia_ojl',ia_ojl)
-      call write_data(grid,fid,'denom_ojl',denom_ojl)
-      call write_data(grid,fid,'scale_ojl',scale_ojl)
-      call write_data(grid,fid,'sname_ojl',sname_ojl)
-      call write_cdl(grid,fid,'cdl_ojl',cdl_ojl)
-
-      call write_data(grid,fid,'otj',otj_out)
-      call write_data(grid,fid,'ia_otj',ia_otj)
-      call write_data(grid,fid,'scale_otj',scale_otj)
-      call write_data(grid,fid,'sname_otj',sname_otj)
-      call write_cdl(grid,fid,'cdl_otj',cdl_otj)
-
+      if(nmst.gt.0) then
       call write_data(grid,fid,'ia_olnst',ia_olnst)
       call write_data(grid,fid,'scale_olnst',scale_olnst)
       call write_data(grid,fid,'sname_olnst',sname_olnst)
       call write_cdl(grid,fid,'cdl_olnst',cdl_olnst)
+      endif
 
 #ifdef TRACERS_OCEAN
 #ifndef TRACERS_ON
@@ -695,6 +600,8 @@ c straits arrays
       call write_data(grid,fid,'sname_toijl',sname_toijl)
       call write_cdl(grid,fid,'cdl_toijl',cdl_toijl)
 #endif      
+
+      call write_meta_ocdiag_zonal(fid)
 
       return
       end subroutine write_meta_ocdiag
@@ -1797,100 +1704,9 @@ C**** Oceanic tracers
 #endif
 #endif /* STANDALONE_OCEAN */
 
-C**** Initialise ocean basins
-      CALL OBASIN
-
 C**** Define ocean depths for diagnostic output
       ZOC1(1:LMO+1) = ZE(0:LMO)
       ZOC(1:LMO) = 0.5*(ZE(1:LMO)+ZE(0:LMO-1))
-
-C**** Metadata for northward transports
-      scale_otj(:) = 1.
-      ia_otj(:) = ia_src
-      kk = 0
-      do kq=1,3
-      do kb=1,4
-        kk = kk + 1
-        sname_otj(kk)='nt_'//trim(qtyname(kq))//'_'//basin(kb)(1:3)
-        lname_otj(kk)='North. Trans. of '//trim(qtyname(kq))//
-     &       ' in the '//trim(basin(kb))//' basin'
-        units_otj(kk)=qtyflxunit(kq)
-        do kc=1,3
-          kk = kk + 1
-          sname_otj(kk)='nt_'//trim(qtyname(kq))//'_'//basin(kb)(1:3)//
-     &       '_'//trim(circstr(kc))
-          lname_otj(kk)='North. Trans. of '//trim(qtyname(kq))//
-     &       ' in the '//trim(basin(kb))//' basin by '//
-     &       trim(circname(kc))
-          units_otj(kk)=qtyflxunit(kq)
-        enddo
-      enddo
-      enddo
-
-C**** set properties for OJL diagnostics
-      do k=1,kojl
-        sname_ojl(k) = 'unused'
-        ia_ojl(k) = ia_src
-        denom_ojl(k) = 0
-        scale_ojl(k) = 1.
-        lname_ojl(k) = 'no output'
-        units_ojl(k) = 'no output'
-        jgrid_ojl(k) = 1
-        lgrid_ojl(k) = 1
-      enddo
-c
-      k=0
-      kk=0
-c
-      k=k+1
-      JL_M = k
-      do n=1,nbas
-        kk = kk + 1
-        sname_ojl(kk) = 'mo_'//basin(n)(1:3)
-      enddo
-c
-      k=k+1
-      JL_PT = k
-      do n=1,nbas
-        kk = kk + 1
-        denom_ojl(kk) = JL_M +n-1
-        sname_ojl(kk) = 'temp_'//basin(n)(1:3)
-        units_ojl(kk) = 'C'
-        lname_ojl(kk) = 'Temperature, '//trim(basin(n))//' Basin'
-      enddo
-c
-      k=k+1
-      JL_S = k
-      do n=1,nbas
-        kk = kk + 1
-        denom_ojl(kk) = JL_M +n-1
-        sname_ojl(kk) = 'salt_'//basin(n)(1:3)
-        units_ojl(kk) = 'psu'
-        lname_ojl(kk) = 'Salinity, '//trim(basin(n))//' Basin'
-      enddo
-c
-      k=k+1
-      JL_SF = k
-      do n=1,nbas
-        kk = kk + 1
-        sname_ojl(kk) = 'sf_'//basin(n)(1:3)
-        units_ojl(kk) = 'Sv'
-        lname_ojl(kk) = 'Total Stream Function, '//
-     &       trim(basin(n))//' Basin'
-        jgrid_ojl(kk) = 2
-        lgrid_ojl(kk) = 2
-      enddo
-c
-      k=k+1
-      JL_SFB = k
-      do n=1,nbas
-        kk = kk + 1
-        sname_ojl(kk) = 'sfb_'//basin(n)(1:3)
-        units_ojl(kk) = 'Sv'
-        lname_ojl(kk) = 'Bolus SF, '//trim(basin(n))//' Basin'
-        jgrid_ojl(kk) = 2
-        lgrid_ojl(kk) = 2
-      enddo
 
 #ifdef NEW_IO
 c
@@ -1970,23 +1786,7 @@ c
      &       make_timeaxis=make_timeaxis)
       enddo
 
-      call merge_cdl(cdl_olats,cdl_odepths,cdl_ojl)
-      do k=1,kojl
-        if(trim(sname_ojl(k)).eq.'unused') cycle
-        if(trim(lname_ojl(k)).eq.'no output') cycle
-        ystr='lato) ;'
-        if(jgrid_ojl(k).eq.2) ystr='lato2) ;'
-        zstr='(zoc,'
-        if(lgrid_ojl(k).eq.2) zstr='(zoce,'
-        set_miss = denom_ojl(k).ne.0
-        call add_var(cdl_ojl,
-     &       'float '//trim(sname_ojl(k))//trim(zstr)//trim(ystr),
-     &       long_name=trim(lname_ojl(k)),
-     &       units=trim(units_ojl(k)),
-     &       set_miss=set_miss,
-     &       make_timeaxis=make_timeaxis)
-      enddo
-
+      if(nmst.gt.0) then
       cdl_olnst = cdl_odepths
       call add_dim(cdl_olnst,'nmst',nmst)
       call add_dim(cdl_olnst,'strait_strlen',len(name_st(1)))
@@ -2007,16 +1807,7 @@ c
      &       units=trim(units_olnst(k)),
      &       make_timeaxis=make_timeaxis)
       enddo
-
-      cdl_otj = cdl_olats
-      do k=1,kotj
-        if(trim(sname_otj(k)).eq.'unused') cycle
-        call add_var(cdl_otj,
-     &       'float '//trim(sname_otj(k))//'(lato2) ;',
-     &       long_name=trim(lname_otj(k)),
-     &       units=trim(units_otj(k)),
-     &       make_timeaxis=make_timeaxis)
-      enddo
+      endif
 
 #ifdef TRACERS_OCEAN 
       do kk=1,ktoijlx
@@ -2142,6 +1933,8 @@ c
 
 #endif
 
+      call init_ODIAG_zonal
+
       RETURN
       END SUBROUTINE init_ODIAG
 
@@ -2194,7 +1987,6 @@ c
 
       call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
 
-      ALLOCATE(        KBASIN (IM,J_0H:J_1H), STAT=IER )
       ALLOCATE(        OIJ_loc (IM,J_0H:J_1H,KOIJ), STAT=IER )
       ALLOCATE(        OIJmm (IM,J_0H:J_1H,KOIJmm), STAT=IER )
       ALLOCATE(       OIJL_loc (IM,J_0H:J_1H,LMO,KOIJL), STAT=IER )
@@ -2207,9 +1999,6 @@ c
 #endif
 #endif
 
-      if(am_i_root()) then
-        ALLOCATE( KBASIN_glob (IM,JM), STAT=IER )
-      endif
       ALLOCATE(OLNST(LMO,NMST,KOLNST))
 
       END SUBROUTINE alloc_odiag

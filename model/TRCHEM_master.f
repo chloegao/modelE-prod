@@ -434,14 +434,11 @@ C CALCULATE TX, THE REAL TEMPERATURE:
 
 ! Define acetone in terms of Isoprene:
 !kt Terpenes should also be included here in the future
-      do L=1,maxT
+      do L=1,topLevelOfChemistry
         acetone(L)=max(0.d0, ! in molec/cm3
      &  (1.25d0*(
      &    zonalIsop(i,j)-trm_col(L,n_Isoprene)*mass2vol(n_Isoprene)*
      &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
-      enddo
-      do L=maxT+1,topLevelOfChemistry
-        acetone(L)=0.d0
       enddo
 #ifdef TRACERS_dCO
       do L=1,topLevelOfChemistry

@@ -82,11 +82,6 @@ contains
     birthday = CalendarDate(month=12, date=27, year=1571)
     call calendar%addTransitionDate('Johannes Kepler Birthday', birthday)
 
-    ! source http://en.wikipedia.org/wiki/James_Hansen
-    birthday = CalendarDate(month=3, date=20, year=1941)
-    call calendar%addTransitionDate('James Hansen Birthday', birthday)
-
-
   end function newJulianCalendar
 
 

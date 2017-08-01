@@ -61,7 +61,7 @@
 !@var SCMopt%lat,SCMopt%lon = SCM latitude and longitude
 !@var SCMopt%area = SCM nominal area (m2)
 !@var SCMopt%tau = nudging time constant (s) for qv and T
-!@var SCMopt%sfc = 1:land, 2:ocean (defaults to land)
+!@var SCMopt%sfc = -1:GCM land only, 0(default):GCM   1:land, 2:ocean 
 !@var SCMopt%TopHat = T:assume top-hat distributions for input profiles (else piecewise linear)
 !@var SCMopt%allowMC = T:allow moist convection
 !@var SCMopt%allowCTEI = T:allow cloud-top entrainment instability

@@ -2502,7 +2502,7 @@ C****
       cd_n10 = (2.7/w10+0.142+0.0764*w10)/1e3  ! L-Y eqn. 6a
       cd_n10_rt = sqrt(cd_n10)
       cq_n10 =  34.6 *cd_n10_rt/1e3            ! L-Y eqn. 6b
-      stab = 0.5 + sign(0.5,ts-tg)
+      stab = 0.5d0 + sign(0.5d0,ts-tg)
       ch_n10 = (18.0*stab+32.7*(1-stab))*cd_n10_rt/1e3  ! L-Y eqn. 6c
   
       cd = cd_n10     ! first guess for exchange coeff's at z
@@ -2532,7 +2532,7 @@ C****
         cd_n10 = (2.7/w10+0.142+0.0764*w10)/1e3           ! L-Y eqn. 6a again
         cd_n10_rt = sqrt(cd_n10)
         cq_n10 = 34.6*cd_n10_rt/1e3                       ! L-Y eqn. 6b again
-        stab = 0.5 + sign(0.5,zeta)
+        stab = 0.5d0 + sign(0.5d0,zeta)
         ch_n10 = (18.0*stab+32.7*(1-stab))*cd_n10_rt/1e3  ! L-Y eqn. 6c again
         z0 = 10*exp(-vonkarm/cd_n10_rt)                   ! diagnostic
     
