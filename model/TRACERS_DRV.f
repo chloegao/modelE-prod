@@ -898,14 +898,15 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF CFC-11 BY SOURCE, L1'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &                 ' BY CHEMISTRY IN STRATOS'
         jls_ltop(k) = lm
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -914,7 +915,7 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF 14CO2 by SINK, L1'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
         jls_ltop(k) = 1
         jls_power(k) = -4
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -2251,14 +2252,16 @@ c Oxidants
       k = k + 1
       jls_source(1,n) = k
       sname_jls(k) = 'L1_sink_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
+      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &               ' BY RESETTING TO 462.2d-9, L1'
       jls_ltop(k) = 1
       jls_power(k) = 0
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
       k = k + 1
       jls_3Dsource(1,n) = k
       sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
+      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &               ' BY CHEMISTRY IN STRATOS'
       jls_ltop(k) = lm
       jls_power(k) = -1
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -2638,8 +2641,8 @@ C**** This needs to be 'hand coded' depending on circumstances
       k = k + 1
         ijts_source(1,n) = k
         ia_ijts(k) = ia_src
-        lname_ijts(k) = 'N2O CHANGE IN L 1'
-        sname_ijts(k) = 'N2O_CHANGE_IN_L_1'
+        lname_ijts(k) = trim(trname(n))//' CHANGE IN L 1'
+        sname_ijts(k) = trim(trname(n))//'_CHANGE_IN_L_1'
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
@@ -6103,6 +6106,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
+      use tracer_com, only: n_O3,n_CO2,n_CH4
       USE TRACERS_MPchem_COM, only: STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
@@ -6201,12 +6205,7 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
-      do n=1,NTM
-        if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
-          call linoz_setup(n)
-          exit
-        end if
-      end do
+        if (itime.ge.itime_tr0(n_O3)) call linoz_setup(n_O3)
 
 C**** Initialize tables for Prather StratChem tracers
         call stratchem_setup
@@ -6215,30 +6214,15 @@ C**** Initialize tables for Prather StratChem tracers
 C**** Prather StratChem tracers and linoz tables change each month
       IF (modelEclock%getMonth().NE.last_month) THEN
         CALL STRTL  ! one call does all based on n_MPtable_max
-        do n=1,NTM
-          if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
-            CALL linoz_STRATL
-            exit
-          end if
-        end do
+        if (itime.ge.itime_tr0(n_O3)) CALL linoz_STRATL
         last_month = modelEclock%getMonth()
       END IF
 
 C**** Tracer specific call for CO2
-      do n=1,NTM
-        if (trname(n).eq."CO2") then
-          call read_CO2_sources(n)
-          exit
-        end if
-      end do
+      call read_CO2_sources(n_CO2)
 
 C**** Tracer specific call for CH4
-      do n=1,NTM
-        if (trname(n).eq."CH4") then
-          call read_CH4_sources(n)
-          exit
-        end if
-      end do
+      call read_CH4_sources(n_CH4)
 #endif
 
 #ifdef TRACERS_COSMO

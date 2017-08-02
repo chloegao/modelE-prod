@@ -366,8 +366,9 @@ C**** total chemical change for CH4
       if (n_CH4.gt.0) then
         k = k + 1
         kk=jls_3Dsource(1,n_CH4)
-        sname_tajl(k) = 'Total_Chem_change'//trname(n_CH4)
-        lname_tajl(k) = 'TOTAL CHANGE OF CH4 BY CHEMISTRY'
+        sname_tajl(k) = 'Total_Chem_change_'//trim(trname(n_CH4))
+        lname_tajl(k) = 'TOTAL CHANGE OF '//trim(trname(n_CH4))//
+     &                  ' BY CHEMISTRY'
         units_tajl(k) = units_jls(kk)
         ia_tajl(k) = ia_jls(kk)
         ltop_tajl(k) = jls_ltop(kk)
@@ -384,8 +385,9 @@ C**** total chemical change for O3
       if (n_O3.gt.0) then
         k = k + 1
         kk=jls_3Dsource(1,n_O3)
-        sname_tajl(k) = 'Total_change_chem+depo'//trname(n_O3)
-        lname_tajl(k) = 'Total Change of O3 by Chemistry and deposition'
+        sname_tajl(k) = 'Total_change_chem+depo_'//trim(trname(n_O3))
+        lname_tajl(k) = 'Total Change of '//trim(trname(n_O3))//
+     &                  ' by Chemistry and deposition'
         units_tajl(k) = units_jls(kk)
         ia_tajl(k) = ia_jls(kk)
         ltop_tajl(k) = jls_ltop(kk)

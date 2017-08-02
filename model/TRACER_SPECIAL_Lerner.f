@@ -100,7 +100,7 @@ C**** Prather stratospheric chemistry
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       use TRACER_COM, only: ntm
-      use OldTracer_mod, only: trname,tcscale,iMPtable
+      use OldTracer_mod, only: trname,iMPtable
       implicit none
 
       integer n,j,k,m,iu
@@ -118,7 +118,7 @@ C**** Prather stratospheric chemistry
         do m=1,INT_MONTHS_PER_YEAR
           do j=1,18
             read(iu,'(20x,6e10.3/(8e10.3))')
-     *          (tscparm(k,j,m,n),k=lz_schem,1,-1)
+     *          (tscparm(k,j,m,iMPtable(n)),k=lz_schem,1,-1)
           end do
         end do
         call closeunit(iu)
@@ -221,7 +221,7 @@ C---  to this change (T0L):
           g0l = t0l/trm(i,j,l,n)
           g1l = t1l/t0l
           g2l = t2l/t0l
-          t0l = (1.0-exp(-g0l*dtsrc*tcscale(iMPtable(n))))*trm(i,j,l,n)
+          t0l = (1.0-exp(-g0l*dtsrc*tcscale(n)))*trm(i,j,l,n)
           t0l = t0l*facbb  ! APPLY AN AD-HOC FACTOR
           tr3Dsource(i,j,l,ns,n)=-t0l/dtsrc
 cc          trm(i,j,l,n) = trm(i,j,l,n) - t0l
@@ -253,6 +253,7 @@ C**** Prather strat chem
       USE PRATHER_CHEM_COM, only: nstrtc,jlatmd,p0l
       USE TRACERS_MPchem_COM, only: tscparm,nMPtable,
      *    tltrm,tltzm,tltzzm,lz_schem,lz_sx,ps
+      use OldTracer_mod, only: iMPtable
       implicit none
 C-----------------------------------------------------------------------
 C---monthly set up of chemical loss parameters
@@ -276,7 +277,7 @@ C****
         DO 700 J=J_0,J_1
           JJ = JLATMD(J)
           DO K=1,lz_schem
-            STRTX(K) = tscparm(K,JJ,jmon,n)
+            STRTX(K) = tscparm(K,JJ,jmon,iMPtable(n))
           END DO
           CALL STRT2M(STRTX,lz_schem,STRT0L,STRT1L,STRT2L,P0L,NSTRTC
      *      ,ps,f,lz_sx)
