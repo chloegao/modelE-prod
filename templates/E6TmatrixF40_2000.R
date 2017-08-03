@@ -145,7 +145,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 #include "dust_params_vmp_matrix"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
-#include "ch4_params_CMIP6"
+#include "ch4_params_CMIP6_2000"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
