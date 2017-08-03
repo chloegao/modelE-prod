@@ -1,7 +1,6 @@
-E6TtomasF40clim.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm TOMAS tracers
+E6TtomasF40_2000.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm TOMAS tracers
 
-E6TtomasF40clim: E6TtomasF40 but swap emissions to climatological
-               (e.g. 9-year averages centered around nominal date)
+E6TtomasF40_2000: E6TtomasF40clim but year 2000 settings
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -95,7 +94,7 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
-#include "static_ocn_1880_144x90_input_files"
+#include "static_ocn_2000_144x90_input_files"
 RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
 
@@ -113,7 +112,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TtomasF40clim (climatological prescribed ocean atmospheric tracer model with TOMAS and Shindell chemistry)
+E6TtomasF40_2000 (climatological prescribed ocean atmospheric tracer model with TOMAS and Shindell chemistry)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -139,7 +138,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 
 initial_GHG_setup = 1 ! Set to 0 after initial setup.
 
-#include "atmCompos_1850_params"
+#include "atmCompos_2000_params"
 !!!!!!!!!!!!!!!!!!!!!!!
 ! Please note that making o3_yr non-zero tells the model
 ! to override the transient chemistry tracer emissions'
