@@ -9,6 +9,7 @@ module SF6TracersMetadata_mod
   use OldTracer_mod, only: oldAddTracer
   use OldTracer_mod, only: set_tr_mm, set_ntm_power
   use Tracer_mod, only: Tracer
+  use OldTracer_mod, only: set_has_chemistry
   implicit none
 
   private
