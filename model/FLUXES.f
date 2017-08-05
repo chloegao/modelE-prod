@@ -229,6 +229,10 @@
 !@var gs_vel gravitational settling velocity
 !@var drydflx dry deposition flux
      &       ,dep_vel,gs_vel,drydflx
+#ifdef ACCMIP_LIKE_DIAGS
+!@var stomatal_dep_vel turbulent deposition velocity via stomata(m/s)
+        real*8, dimension(:,:), pointer :: stomatal_dep_vel ! just one tracer
+#endif
 #endif
 
 
@@ -829,6 +833,9 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
      &     ,this%wsubwd
      &     ,this%wsubtke
      &     ,this%wsubwm
+#endif
+#if (defined TRACERS_DRYDEP ) && (defined ACCMIP_LIKE_DIAGS)
+     &     ,this%stomatal_dep_vel
 #endif
      &     )
       if(ptrs_only)

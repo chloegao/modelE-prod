@@ -370,8 +370,11 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
         atm%drydflx(n,i,j)=-rtsdt*
      &       (atm%dep_vel(n,i,j)+atm%gs_vel(n,i,j)) ! kg/m2
       enddo
-#endif
-#endif
+#ifdef ACCMIP_LIKE_DIAGS
+      atm%stomatal_dep_vel(i,j)=pbl_args%stomatal_dep_vel
+#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_DRYDEP */
+#endif /* TRACERS_ON */
 
 #ifdef SCM
       if ( SCMopt%geo .and. SCMopt%ustar ) then
