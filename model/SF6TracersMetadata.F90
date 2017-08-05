@@ -8,7 +8,6 @@ module SF6TracersMetadata_mod
   use TRACER_COM, only: set_ntsurfsrc
   use OldTracer_mod, only: oldAddTracer
   use OldTracer_mod, only: set_tr_mm, set_ntm_power
-  use RunTimeControls_mod, only: tracers_special_sf6
   use Tracer_mod, only: Tracer
   implicit none
 
