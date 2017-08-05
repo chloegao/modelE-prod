@@ -121,7 +121,7 @@ Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step
 ! ---- Lerner/Rind tracers
   to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 ! itime_tr0=99999999,99999999,99999999,99999999,99999999,99999999,30624,30624,99999999
-  itime_tr0=13104,13104,13104,13104,21840,13824,13104,13104,13104,13104      !Lerner/Rind
+  itime_tr0=13104,13104,13104,21840,13824,13104,13104,13104,13104,13104      !Lerner/Rind
   nstrtc=17                    ! Number of layers for Prather stratosphere chemistry
   clim_interact_chem=1
 ! ---- end Lerner/Rind tracers
