@@ -39,7 +39,6 @@ contains
       n_SF6 = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 146.01d0)
-      call set_ntsurfsrc(n,  1)
       call set_has_chemistry(n, .true.)
     end subroutine SF6_setSpec
 
@@ -49,7 +48,6 @@ contains
       n_SF6_c = n
       call set_ntm_power(n, -14)
       call set_tr_mm(n, 146.01d0)
-      call set_ntsurfsrc(n,  1)
       call set_has_chemistry(n, .true.)
     end subroutine SF6_c_setSpec
 
