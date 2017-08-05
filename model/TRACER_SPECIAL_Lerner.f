@@ -262,7 +262,7 @@ C****
         DO 700 J=J_0,J_1
           JJ = JLATMD(J)
           DO K=1,lz_schem
-            STRTX(K) = tscparm(K,JJ,jmon,iMPtable(n))
+            STRTX(K) = tscparm(K,JJ,jmon,n)
           END DO
           CALL STRT2M(STRTX,lz_schem,STRT0L,STRT1L,STRT2L,P0L,NSTRTC
      *      ,ps,f,lz_sx)

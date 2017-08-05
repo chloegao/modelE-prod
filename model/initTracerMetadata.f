@@ -155,7 +155,7 @@
         select case (trname(n))
         case ('N2O')
           call addSurfaceSource(pTracer, "overwrite_at_surface")
-        case ('CFC11')
+        case ('CFC11', 'Rn222')
           call addSurfaceSource(pTracer, "surface_src")
         case ('CH4')
           call addSurfaceSource(pTracer, "animal_src")
@@ -174,10 +174,6 @@
           call addSurfaceSource(pTracer, "wetlands_tundra_src")
         case ('O3')
           call addSurfaceSource(pTracer, "deposition_sink")
-        case ('SF6')
-          call addSurfaceSource(pTracer, "surface_src")
-        case ('SF6_c')
-          call addSurfaceSource(pTracer, "surface_src")
         case ('CO2')
           call addSurfaceSource(pTracer, "fossil_fuel_src")
           call addSurfaceSource(pTracer, "fertilization_sink")
@@ -187,10 +183,16 @@
           call addSurfaceSource(pTracer, "ocean_exchange")
         case ('14CO2')
           call addSurfaceSource(pTracer, "surface_sink")
-        case ('Rn222')
-          call addSurfaceSource(pTracer, "surface_src")
         end select
 #endif  /* TRACERS_SPECIAL_Lerner */
+
+#ifdef TRACERS_SF6
+        pTracer => tracers%getReference(trname(n))
+        select case (trname(n))
+        case ('SF6', 'SF6_c')
+          call addSurfaceSource(pTracer, "surface_src")
+        end select
+#endif  /* TRACERS_SF6 */
 
       end subroutine setDefaultSpec
 
@@ -211,6 +213,7 @@
       use RunTimeControls_mod, only: tracers_gasexch_ocean_co2
       use RunTimeControls_mod, only: tracers_gasexch_land_co2
       use RunTimeControls_mod, only: tracers_special_lerner
+      use RunTimeControls_mod, only: tracers_sf6
       use RunTimeControls_mod, only: tracers_aerosols_koch
       use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use RunTimeControls_mod, only: tracers_aerosols_ocean
@@ -245,6 +248,9 @@
       use Tracer_mod, only: Tracer
 #ifdef TRACERS_SPECIAL_Lerner
       use LernerTracersMetadata_mod
+#endif
+#ifdef TRACERS_SF6
+      use SF6TracersMetadata_mod
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
@@ -300,6 +306,12 @@
         call Lerner_InitMetadata(pTracer)
         if (tracers_special_shindell) 
      &    call stop_model('contradictory tracer specs')
+      end if
+#endif
+
+#ifdef TRACERS_SF6
+      if (tracers_sf6) then
+        call SF6_InitMetadata(pTracer)
       end if
 #endif
 

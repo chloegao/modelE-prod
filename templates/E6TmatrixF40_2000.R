@@ -1,7 +1,6 @@
-E6TmatrixF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm MATRIX tracers
+E6TmatrixF40_2000.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm MATRIX tracers
 
-E6TomaF40: Same as E6F40, with MATRIX tracers and computed aerosol
-           indirect effect, including Shindell chemistry
+E6TmatrixF40_2000: E6TmatrixF40clim but year 2000 settings
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -32,6 +31,7 @@ Preprocessor Options
 !<--- generic tracers code end
 !---> chemistry start
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
+#define RAD_O3_2010              ! 2010 ozone dataset
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
@@ -91,25 +91,25 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 #include "IC_144x90_input_files"
-#include "static_ocn_transient_144x90_input_files"
+#include "static_ocn_2000_144x90_input_files"
 RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files_CMIP6"
-#include "chemistry_input_files"
+#include "chemistry_input_files_nosoa"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
-#include "chem_emiss_144x90_input_files_CMIP6"
-#include "aerosol_MATRIX_input_files_CMIP6"
+#include "chem_emiss_144x90_input_files_CMIP6clim"
+#include "aerosol_MATRIX_input_files_CMIP6clim"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TmatrixF40 (prescribed ocean atmospheric tracer model with MATRIX and Shindell chemistry)
+E6TmatrixF40_2000 (climatological prescribed ocean atmospheric tracer model with MATRIX and Shindell chemistry)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -135,7 +135,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 
 initial_GHG_setup = 1 ! Set to 0 after initial setup.
 
-#include "atmCompos_transient_params"
+#include "atmCompos_2000_params"
 !!!!!!!!!!!!!!!!!!!!!!!
 ! Please note that making o3_yr non-zero tells the model
 ! to override the transient chemistry tracer emissions'
@@ -145,7 +145,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 #include "dust_params_vmp_matrix"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
-#include "ch4_params_CMIP6"
+#include "ch4_params_CMIP6_2000"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.

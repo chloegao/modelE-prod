@@ -1,6 +1,6 @@
 E6TlernerF40.R GISS ModelE Lat-Lon Atmosphere Model, 1850 atm./ocean with Lerner tracers
 
-E6TlernerF40: Same as E6F40, with Lerner tracers
+E6TlernerF40: Same as E6F40, with Lerner and SF6 tracers
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -26,6 +26,7 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
+#define TRACERS_SF6              ! SF6 tracers
 End Preprocessor Options
 
 Object modules:
@@ -48,6 +49,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "tracer_shared_source_files"
 #include "tracer_lerner_source_files"
+SF6TracersMetadata                  ! SF6 tracers
 TRDIAG                              ! new i/o
 Components:
 #include "E4_components_nc"    /* without "Ent" */
