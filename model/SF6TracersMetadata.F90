@@ -5,7 +5,6 @@ module SF6TracersMetadata_mod
 !@auth NCCS ASTG
 !  use sharedTracersMetadata_mod
   use TRACER_COM, only: n_SF6, n_SF6_c
-  use TRACER_COM, only: set_ntsurfsrc
   use OldTracer_mod, only: oldAddTracer
   use OldTracer_mod, only: set_tr_mm, set_ntm_power
   use Tracer_mod, only: Tracer

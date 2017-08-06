@@ -33,7 +33,7 @@ module sharedTracersMetadata_mod
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: set_has_chemistry
-  use TRACER_COM, only : set_ntsurfsrc, whichEPFCs, seasonalNH3src
+  use TRACER_COM, only : whichEPFCs, seasonalNH3src
   use TRACER_COM, only: n_H2O2, n_NH3,  n_NH4, n_DMS, n_SO2, n_H2O2_s, &
     n_CH4, n_N2O, n_Rn222
   use Dictionary_mod, only: sync_param
@@ -69,8 +69,6 @@ contains
     n = oldAddTracer(name)
     n_DMS = n
     call set_ntm_power(n, -12)
-    ! the ocean source of DMS is actually interactive and therefore should
-    ! not count for ntsurfsrc....
     call set_tr_mm(n, 62.d+0)
     call set_needtrs(n, .true.)
     call set_has_chemistry(n, .true.)
@@ -191,7 +189,6 @@ contains
       call set_tr_mm(n, 16.d0)
 #ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
-        call set_ntsurfsrc(n,  14)
         call set_ntm_power(n, -9)
         nMPtable=nMPtable+1
         call set_iMPtable(n, nMPtable)
@@ -235,7 +232,6 @@ contains
       call set_tr_mm(n, 44.d0)
 #ifdef TRACERS_SPECIAL_Lerner
       if (tracers_special_lerner) then
-        call set_ntsurfsrc(n,  1)
         nMPtable=nMPtable+1
         call set_iMPtable(n, nMPtable)
         call set_tcscale(n, 1.d0)
@@ -251,7 +247,6 @@ contains
       call set_ntm_power(n, -21)
       call set_tr_mm(n, 222.d0)
       call set_trdecay(n,  2.1d-6)
-      call set_ntsurfsrc(n,  1)  
       call set_has_chemistry(n, .true.)
     end subroutine Rn222_setSpec
 
