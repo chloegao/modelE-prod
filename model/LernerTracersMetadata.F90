@@ -7,7 +7,6 @@ module LernerTracersMetadata_mod
   use sharedTracersMetadata_mod
   use TRACER_COM, only: n_CH4, n_N2O, n_CO2, n_CFC11, n_14CO2, &
     n_O3, n_Rn222
-  use TRACER_COM, only: set_ntsurfsrc
 !@dbparam dsol describes portion of solar cycle being modeled for linoz
 !@+      +1.0 = solar max, 0.0 = neutral, -1.0 = solar min
   USE LINOZ_CHEM_COM, only: dsol
@@ -55,7 +54,6 @@ contains
       call set_ntm_power(n, -6)
       call set_tr_mm(n, 44.d0)
       call set_t_qlimit(n,  .false.)
-      call set_ntsurfsrc(n,  6)
       call set_has_chemistry(n, .true.)
     end subroutine CO2_setSpec
 
@@ -65,7 +63,6 @@ contains
       n_CFC11 = n
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 137.4d0)
-      call set_ntsurfsrc(n,  1)
       if (tracers_special_lerner) then
         nMPtable=nMPtable+1
         call set_iMPtable(n, nMPtable)
@@ -80,7 +77,6 @@ contains
       n_14CO2 = n
       call set_ntm_power(n, -18)
       call set_tr_mm(n, 46.d0)
-      call set_ntsurfsrc(n,  1)
       call set_has_chemistry(n, .true.)
     end subroutine C_14O2_setSpec
 
@@ -90,7 +86,6 @@ contains
       n_O3 = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
-      call set_ntsurfsrc(n,  1)
       if (tracers_special_lerner) then
       !**** Get solar variability coefficient from namelist if it exits
         dsol = 0.
