@@ -185,10 +185,9 @@ real*8, parameter :: radianToDegree=1.d0/radian
 !@+ from megan to kg m-2 s-1 for GCM
 real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 !@param CCE G 2012 canopy environment coefficient to be set
-!@+ such that total gamma of 1 results during standard conditions (e.g. 
-!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectively)
-!@+ Is this the same as RHO in MEGAN 2.1?
-!TODO: Tune this CCE parameter:
+!@+ such that total gamma of 1 results during standard MEGAN conditions (e.g. 
+!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectively. See G 2006 for standard
+!@+ conditions). This is distinct from the rho=1. parameter in MEGAN.
 real*8, parameter :: CCE=1.d0
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
@@ -1239,7 +1238,7 @@ integer, parameter :: N_CAT  = 5
 real*8, dimension(N_CAT) :: Anew, Agro, Amat, Aold
 integer :: k
 ! Note that, in the comments from MEGAN above, it's the Aold column that's
-! all 1.00's, but in the below (which I got from EACO.EXT) it's the Amat that
+! all 1.00's, but in the below (obtained from EACO.EXT) it's the Amat that
 ! are all 1.00's. I think hammoz was updated to G 2012 paper, and has 6 instead
 ! of 5 categories, and has the Amat all 1's as well, as also stated in that paper:
 data Anew(1),Agro(1),Amat(1),Aold(1) /1.00d0, 1.00d0, 1.00d0, 1.00d0/
@@ -1370,7 +1369,7 @@ subroutine get_gamma_CO2(CO2,gam_CO2)
 !@sum Calculate gamma CO2 factor from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 implicit none
-real*8, intent(IN) :: CO2 ! I think ppmv
+real*8, intent(IN) :: CO2 ! Should, I believe, be ppmv
 real*8, intent(OUT):: gam_CO2
 real*8 :: Ci
 real*8, parameter :: ISmax = 1.344d0, h=1.4614d0, Cstar =585.d0

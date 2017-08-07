@@ -1,6 +1,16 @@
 Below are suggestions for further improvements or checking on the MEGAN biogenic
-emissions scheme as coded in modelE. [G.Faluvegi, Summer, 2017]
+emissions scheme as coded in modelE. Fairly random order. [G.Faluvegi, Summer,
+2017]
 ================================================================================
+
+==> There is a rundeck parameter CCE_megan, which appears to be a linear tuning
+    factor to take into account differences in models running megan (technically,
+    canopy environment models. See Guenther, 2012 page 1475. and Guenther 2006, 
+    p. 3190) This is to be tuned to get a total?? gamma of ~1.0 under "standard
+    conditions". Perhaps need to put in a "tune_megan" switch that sets these
+    standard conditions and outputs the total gamma. Bit confused though, as the
+    total gamma is species-dependant, so maybe it's just part of the gamma that
+    needs to be unity (see pg 3189 of Guenther 2006)
 
 ==> In the routine subroutine biogenicEmissions_drv, instead of using an array
     'species' to define the (list of) species, get a better programmer to loop over
@@ -67,7 +77,7 @@ emissions scheme as coded in modelE. [G.Faluvegi, Summer, 2017]
        gamma_SM * gamma_CO2 * ( (1.d0-species(n)%ldf) * gamma_tli +
        species(n)%ldf * gamma_PPFD*gamma_tld)
 
-    supercedes Guenther 2012. That paper would have use separate the light dependency 
+    supercedes Guenther 2012. That paper would have used separate the light dependency 
     portions of T and PDDF and would have looked more like what's below. (But both
     the hammoz model and MEGAN 2.1 codes seem to use more like what we did above.)
 

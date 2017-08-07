@@ -3,7 +3,7 @@ E6TomaF40int.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA trace
 This rundeck is not set up for any particular science but serves as an
 example that has additional tracer "int"eractions on like fire model,
 interactive biomass burning, CH4 sources (instead of rad code synchronizing)
-and climate-sensitive CH4 wetland emissions.
+climate-sensitive CH4 wetland emissions, and MEGAN biogenic emissions.
 This deck also is not quite really "E6" because CMIP6 CH4 emissions files
 are not available for non-biomass burning sources. Also note that
 the wetlands source has not yet been "balanced" (from the rundeck)
@@ -41,7 +41,8 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
-#define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
+#define DO_MEGAN                    ! include biogenic emissions of species set up for megan
+!  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
@@ -90,6 +91,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
+megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
 SUBDD
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
