@@ -5429,6 +5429,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE CONSTANT, only: grav
+      use RunTimeControls_mod, only: tracers_amp
+      use RunTimeControls_mod, only: tracers_tomas
+      use RunTimeControls_mod, only: tracers_aerosols_soa
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources,do_fire,vol2mass,do_aircraft
@@ -5443,7 +5446,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: 
-     *  aer_int_yr,n_NH3,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
@@ -5467,6 +5470,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use Tracer_mod, only: Tracer, readSurfaceSources
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
+      logical :: checkname
       LOGICAL, INTENT(IN) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -5594,12 +5598,16 @@ C**** Tracer specific call for CH4
       end if
 #endif
 
-
+!===============================================================================
+! Chemistry/OMA/MATRIX/TOMAS case, where surface emissions are of type
+! TRACERNAME_XX
+!===============================================================================
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+
       !! xday is used by multiple sources below
       xday=dayOfYear
-      !!
+
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
       if(rad_FL.gt.0) call READ_FL(end_of_day)
@@ -5619,13 +5627,19 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       endif
       call readflamPopDens(xyear,xday)
 #endif
-      do n=1,NTM
+
+!-------------------------------------------------------------------------------
+! tracers loop
+!-------------------------------------------------------------------------------
+      do n=1,ntm
+        pTracer => tracers%getReference(trname(n))
+
         if ((n>=ntm_chem_beg).and.(n<=ntm_chem_end)) then
           isChemTracer=.true. ! careful: only for this n loop
         else
           isChemTracer=.false.
         end if
-!**** Allow overriding of transient emissions date:
+!**** Allow overriding of ozone precursor transient emissions date:
 ! for now, tying this to O3_yr becasue Gavin
 ! didn't want a new parameter, also not allowing
 ! day overriding yet, because of that.
@@ -5639,6 +5653,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           endif
         else
 #endif
+
+! allow overriding of transient aerosol emissions date
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
           if(aer_int_yr > 0) then
@@ -5651,140 +5667,109 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         end if
 #endif
 
-        pTracer => tracers%getReference(trname(n))
-        if(trname(n)=='CH4')then ! ---------- methane --------------
+! define nread and checkname per tracer
+        nread=ntsurfsrc(n)+nBBsources(n)
+        if (.not.tracers_amp .and. .not.tracers_tomas) then
+          checkname=.false.
+        else
+          checkname=.true.
+        endif
+
+        select case (trname(n))
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
+        case ('codirect')
+          checkname=.false.
+          isChemTracer=.true.
+          if(trans_emis_overr_yr > 0)then
+            xyear=trans_emis_overr_yr
+          else
+            xyear=year
+          endif
+#endif
+        case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
+          if (.not.tracers_aerosols_soa) nread=nread-1
+        case ('SO4','M_AKK_SU','M_ACC_SU',
+     &        'ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15',
+     &        'ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
+     &        'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
+     &        'ASO4__11','ASO4__12','ASO4__13','ASO4__14','ASO4__15')
+          nread=0
+        case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          checkname=.false.
+        case ('SF6', 'SF6_c')
+          nread=0 ! regional sources calculated in the code, not via a file
+        end select
+
+!-------------------------------------------------------------------------------
+! read surface sources of all tracers
+!-------------------------------------------------------------------------------
+        call readSurfaceSources(pTracer,n,nread,xyear,xday,checkname,
+     &                          itime,itime_tr0(n),sfc_src,isChemTracer,
+     &                          do_megan(n))
+!-------------------------------------------------------------------------------
+
+! post-read calculations
+        select case (trname(n))
 #ifdef TRACERS_SPECIAL_Shindell
-         nread=ntsurfsrc(n)+nBBsources(n)
-         if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,xday,
-     &   .true., itime, itime_tr0(n), sfc_src,isChemTracer,do_megan(n))
+        case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
-         do ns=1,ntsurfsrc(n) 
-           if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal')
-     &          sfc_src(I_0:I_1,J_0:J_1,n,ns)=
-     &     1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
-     &     5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
-     &     1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
-         end do
+          if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
+            do ns=1,ntsurfsrc(n) 
+     &        sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+     &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
+     &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
+     &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
+            end do
+          endif
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-         if(nread>0) call read_ncep_for_wetlands(end_of_day)
+          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
-#endif /* TRACERS_SPECIAL_Shindell */
 
-        else !-------------------------------------- general ---------
+        case ('N2O5')
+          if (COUPLED_CHEM.ne.1)
+     &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
+#endif
 
-            nread=ntsurfsrc(n) ! default
-            select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
-            case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
-#ifdef TRACERS_dCO
-     *      'd13Calke','d13CPAR',
-     *      'dC17O', 'dC18O', 'd13CO',
-#endif  /* TRACERS_dCO */
-     &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
-     &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
-     &      'AECOB_01','AOCOB_01')
-              nread=nread+nBBsources(n)
-            end select
+        case ('M_OCC_OC', 'OCII')
+          if (.not.tracers_aerosols_soa) then
+            sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
+     &                          ntsurfsrc(n)+nBBsources(n))=
+     &      sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
+     &                          ntsurfsrc(n)+nBBsources(n)-1)
+            sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
+          endif
+        end select
 
-#ifndef TRACERS_AEROSOLS_SOA
-            select case (trname(n))
-            case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
-              nread=nread-1
-            end select
-#endif  /* TRACERS_AEROSOLS_SOA */
+      end do ! ntm
+!-------------------------------------------------------------------------------
+! end tracers loop
+!-------------------------------------------------------------------------------
 
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-            tmpString = trim(trname(n))
-            if (trim(trname(n)).eq.'ASO4__01'.or.
-     &           tmpString(1:5).eq.'ANUM_'.or.
-     &           trim(trname(n)).eq.'M_AKK_SU'.or. 
-     &           trim(trname(n)).eq.'M_ACC_SU') then  
-              continue !skip these tracers!
-            else
-
-              if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,
-     &        xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &        ,do_megan(n))
-
-            endif
-#ifndef TRACERS_AEROSOLS_SOA
-            select case (trname(n))
-            case ('M_OCC_OC', 'OCII')
-              sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
-     &                            ntsurfsrc(n)+nBBsources(n))=
-     &          sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
-     &                              ntsurfsrc(n)+nBBsources(n)-1)
-              sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
-            end select
-#endif  /* TRACERS_AEROSOLS_SOA */
-#else /* NOT TRACERS_AMP or TRACERS_TOMAS */
-            select case(trname(n))
-            case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
-     &            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
-     &           xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &           ,do_megan(n))
-            case ('SO4')
-              ! nothing here, SO4 sources come from SO2
-              continue
-            case default
-              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
-     &        xday,.true.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &        ,do_megan(n))
-            end select
-#endif /* WHETHER TRACERS_AMP or TRACERS_TOMAS */
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-            if (trim(trname(n)).eq.'SO2') then ! set this AFTER reading
+! define ntsurfsrc for sulfate, AFTER reading and AFTER the tracers loop
 #ifdef TRACERS_AEROSOLS_Koch
-              call set_ntsurfsrc(n_SO4,ntsurfsrc(n))
+        call set_ntsurfsrc(n_SO4,ntsurfsrc(n_SO2))
 #endif
 #ifdef TRACERS_AMP
-              call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n))
+        call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n_SO2))
 #ifndef TRACERS_AMP_M4
-              call set_ntsurfsrc(n_M_AKK_SU, ntsurfsrc(n))
+        call set_ntsurfsrc(n_M_AKK_SU, ntsurfsrc(n_SO2))
 #endif
 #endif
 #ifdef TRACERS_TOMAS
-              call set_ntsurfsrc(n_ASO4(1),ntsurfsrc(n))
-#endif
-            endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-            select case (trname(n))
-            case ('NOx')
-!           (lightning and aircraft called from tracer_3Dsource)
-            case ('N2O5')
-              if (COUPLED_CHEM.ne.1)
-     &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
-            end select
-#endif
-
-        endif !------------------------------------------------------
-      end do ! NTM
-
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      pTracer => tracers%getReference(trname(n_codirect))
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
-      call readSurfaceSources(pTracer,n_codirect,
-     &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
-     & xday,.false.,itime,itime_tr0(n_codirect),sfc_src,.true.
-     & ,do_megan(n_codirect))
+        call set_ntsurfsrc(n_ASO4(1),ntsurfsrc(n_SO2))
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
+!===============================================================================
+! End of Chemistry/OMA/MATRIX/TOMAS case
+!===============================================================================
 
-C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
-
       call tracer_IC
 
 
