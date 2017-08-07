@@ -901,8 +901,8 @@ C****
 #ifdef ACCMIP_LIKE_DIAGS
 ! estimate stomatal tracer flux:
           if(n .eq. n_Ox)
-     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+ptype*
-     &         rtsdt*(pbl_args%stomatal_dep_vel)
+     &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+
+     &         ptype*rtsdt*asflx(ipatch)%stomatal_dep_vel(i,j)
 #endif
 #ifdef TRACERS_COSMO
           if (n .eq. n_Be7) BE7D_acc(i,j)=BE7D_acc(i,j)+ptype*rtsdt

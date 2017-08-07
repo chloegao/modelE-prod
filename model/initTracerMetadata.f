@@ -21,7 +21,7 @@
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
       use SystemTools, only: stLinkStatus
-#ifdef TRACERS_SPECIAL_Shindell      
+#ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif
       implicit none
@@ -65,7 +65,9 @@
       end select
 
 #ifdef DYNAMIC_BIOMASS_BURNING
+!-------------------------------------------------------------------------------
 !     allow some tracers to have biomass burning based on fire model:
+!-------------------------------------------------------------------------------
         select case (trname(n))
           case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
 #ifdef TRACERS_AMP
@@ -89,8 +91,10 @@
         end select
 #endif /* DYNAMIC_BIOMASS_BURNING */
 
+!-------------------------------------------------------------------------------
 !     allow some tracers to have biomass burning sources that mix over
 !     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
+!-------------------------------------------------------------------------------
         val = nBBsources(n)
         call sync_param(trim(trname(n))//"_nBBsources",val)
         call set_nBBsources(n, val)
@@ -133,29 +137,28 @@
           call stop_model('ntsurfsrc+nBBsources too large',13)
         end if
 
-!     other special cases:
+!-------------------------------------------------------------------------------
+! add surface sources to tracers that don't follow the TRACERNAME_XX convention
+!-------------------------------------------------------------------------------
+        select case (trname(n))
+
 #ifndef TRACERS_AEROSOLS_SOA
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
         (defined TRACERS_TOMAS)
-        select case (trname(n))
         case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
-          pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(pTracer, "Terpene_source")
-        end select
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
+
 #ifdef TRACERS_SPECIAL_Shindell
-        if (trname(n)=='CH4' .and. use_rad_ch4/=0) then
-          call set_ntsurfsrc(n,0)
-        end if
+        case('CH4') ! in case use_rad_ch4/=0 but the rundeck lists CH4_XX files
+          if (use_rad_ch4/=0) call set_ntsurfsrc(n,0)
 #endif
 
 #ifdef TRACERS_SPECIAL_Lerner
-        pTracer => tracers%getReference(trname(n))
-        select case (trname(n))
         case ('N2O')
           call addSurfaceSource(pTracer, "overwrite_at_surface")
-        case ('CFC11')
+        case ('CFC11', 'Rn222')
           call addSurfaceSource(pTracer, "surface_src")
         case ('CH4')
           call addSurfaceSource(pTracer, "animal_src")
@@ -174,10 +177,6 @@
           call addSurfaceSource(pTracer, "wetlands_tundra_src")
         case ('O3')
           call addSurfaceSource(pTracer, "deposition_sink")
-        case ('SF6')
-          call addSurfaceSource(pTracer, "surface_src")
-        case ('SF6_c')
-          call addSurfaceSource(pTracer, "surface_src")
         case ('CO2')
           call addSurfaceSource(pTracer, "fossil_fuel_src")
           call addSurfaceSource(pTracer, "fertilization_sink")
@@ -187,10 +186,14 @@
           call addSurfaceSource(pTracer, "ocean_exchange")
         case ('14CO2')
           call addSurfaceSource(pTracer, "surface_sink")
-        case ('Rn222')
-          call addSurfaceSource(pTracer, "surface_src")
-        end select
 #endif  /* TRACERS_SPECIAL_Lerner */
+
+#ifdef TRACERS_SF6
+        case ('SF6', 'SF6_c')
+          call addSurfaceSource(pTracer, "surface_src")
+#endif  /* TRACERS_SF6 */
+
+        end select
 
       end subroutine setDefaultSpec
 
@@ -211,6 +214,7 @@
       use RunTimeControls_mod, only: tracers_gasexch_ocean_co2
       use RunTimeControls_mod, only: tracers_gasexch_land_co2
       use RunTimeControls_mod, only: tracers_special_lerner
+      use RunTimeControls_mod, only: tracers_sf6
       use RunTimeControls_mod, only: tracers_aerosols_koch
       use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use RunTimeControls_mod, only: tracers_aerosols_ocean
@@ -246,8 +250,12 @@
 #ifdef TRACERS_SPECIAL_Lerner
       use LernerTracersMetadata_mod
 #endif
+#ifdef TRACERS_SF6
+      use SF6TracersMetadata_mod
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
+      use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif   
 #ifdef TRACERS_TOMAS
       use TomasTracersMetadata_mod
@@ -282,6 +290,9 @@
       integer :: i
 
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
+#ifdef TRACERS_SPECIAL_Shindell
+      call sync_param( "use_rad_ch4", use_rad_ch4 )
+#endif
 
 ! call routine to read/set up sectors for emissions:
       call setup_emis_sectors()
@@ -300,6 +311,12 @@
         call Lerner_InitMetadata(pTracer)
         if (tracers_special_shindell) 
      &    call stop_model('contradictory tracer specs')
+      end if
+#endif
+
+#ifdef TRACERS_SF6
+      if (tracers_sf6) then
+        call SF6_InitMetadata(pTracer)
       end if
 #endif
 
@@ -555,7 +572,7 @@
      &     OxICIN,OxIC,OxICINL,OxICL,
      &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
      &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
+     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
@@ -664,7 +681,6 @@ C**** set super saturation parameter for isotopes if needed
       call sync_param("PIratio_CO_S",PIratio_CO_S)
       call sync_param("PIratio_other",PIratio_other)
       call sync_param("rad_FL",rad_fl)
-      call sync_param("use_rad_ch4",use_rad_ch4)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
       call sync_param("use_rad_n2o",use_rad_n2o)

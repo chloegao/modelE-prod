@@ -151,10 +151,14 @@ C*********************************************************************
           if(m_spec(c).gt.0.and.vol_spec(c).gt.0.) then
             vwetp=(vol_spec(c)+vol_h2o(c))/num_spec(c) !one wet particle's vol [m3]
             reffwet =(3./4.*vwetp/pi)**(1./3.) !m
-            density(c) = (m_spec(c)+mh2o)/(vol_spec(c)+vol_h2o(c)) !average density
+            density(c) = (rho_spec(c)*vol_spec(c)+rho_h2o*vol_h2o(c))/
+     &             (vol_spec(c)+vol_h2o(c)) !average density
           else
             reffwet=5.0e-10        ! Dp=1nm 
           endif
+
+!dmw: skip calculation if density is tiny, 0, or negative
+          if (density(c) .le. 1.d-10) goto 500
 
           
 C     BHMIE RADIATIVE PROPERTIES LOOKUP TABLE

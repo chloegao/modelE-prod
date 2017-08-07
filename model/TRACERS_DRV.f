@@ -985,8 +985,10 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-      case ('SF6','SF6_c','CFCn')
-        call SF6_init_jls(k,n,trname(n))
+      case ('SF6','SF6_c')
+        call layer1_init_jls(k,n,trname(n))
+      case ('CFCn')
+        call layer1_init_jls(k,n,trname(n))
       case ('CO2n')
         call CO2n_init_jls(k,n,'CO2n')
       case ('Rn222')
@@ -1000,14 +1002,15 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF CFC-11 BY SOURCE, L1'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
         jls_ltop(k) = 1
         jls_power(k) = -1
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF CFC-11 BY CHEMISTRY IN STRATOS'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &                 ' BY CHEMISTRY IN STRATOS'
         jls_ltop(k) = lm
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -1016,7 +1019,7 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(1,n) = k
         sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF 14CO2 by SINK, L1'
+        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
         jls_ltop(k) = 1
         jls_power(k) = -4
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -2220,18 +2223,18 @@ c Oxidants
 
       contains
 
-      subroutine SF6_init_jls(k,n, name)
+      subroutine layer1_init_jls(k,n, name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
       character(len=*), intent(in) :: name
       k = k + 1
       jls_source(1,n) = k
       sname_jls(k) = 'Layer_1_source_of_'//trim(trname(n))
-      lname_jls(k) = trim(trname(n))//' CFC-GRID SOURCE, LAYER 1'
+      lname_jls(k) = trim(trname(n))//' GRID SOURCE, LAYER 1'
       jls_ltop(k) = 1
       jls_power(k) = -3
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
-      end subroutine SF6_init_jls
+      end subroutine layer1_init_jls
 
       subroutine CO2n_init_jls(k,n,name)
       integer, intent(inout) :: k
@@ -2342,14 +2345,16 @@ c Oxidants
       k = k + 1
       jls_source(1,n) = k
       sname_jls(k) = 'L1_sink_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF N20 BY RESETTING TO 462.2d-9, L1'
+      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &               ' BY RESETTING TO 462.2d-9, L1'
       jls_ltop(k) = 1
       jls_power(k) = 0
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
       k = k + 1
       jls_3Dsource(1,n) = k
       sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF N2O BY CHEMISTRY IN STRATOS'
+      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+     &               ' BY CHEMISTRY IN STRATOS'
       jls_ltop(k) = lm
       jls_power(k) = -1
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
@@ -2556,7 +2561,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         select case (trname(n))
         case ('CFCn','SF6','SF6_c')
           ijts_source(1,n)=
-     *      ijts_diag(trim(trname(n))//'_CFC-GRID_SOURCE_LAYER_1',
+     *      ijts_diag(trim(trname(n))//'_GRID_SOURCE_LAYER_1',
      *                trim(trname(n))//' Layer 1 SOURCE',
      *                'kg m-2 s-1', power=-15)
         end select
@@ -5424,6 +5429,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE COSMO_SOURCES, only : variable_phi
 #endif
       USE CONSTANT, only: grav
+      use RunTimeControls_mod, only: tracers_amp
+      use RunTimeControls_mod, only: tracers_tomas
+      use RunTimeControls_mod, only: tracers_aerosols_soa
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources,do_fire,vol2mass,do_aircraft
@@ -5438,7 +5446,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: 
-     *  aer_int_yr,n_NH3,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
@@ -5447,6 +5455,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
+      use tracer_com, only: n_O3,n_CO2,n_CH4
       USE TRACERS_MPchem_COM, only: STRATCHEM_SETUP
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
@@ -5461,6 +5470,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use Tracer_mod, only: Tracer, readSurfaceSources
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
+      logical :: checkname
       LOGICAL, INTENT(IN) :: end_of_day
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
@@ -5544,12 +5554,7 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
-      do n=1,NTM
-        if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
-          call linoz_setup(n)
-          exit
-        end if
-      end do
+        if (itime.ge.itime_tr0(n_O3)) call linoz_setup(n_O3)
 
 C**** Initialize tables for Prather StratChem tracers
         call stratchem_setup
@@ -5557,37 +5562,16 @@ C**** Initialize tables for Prather StratChem tracers
 
 C**** Prather StratChem tracers and linoz tables change each month
       IF (modelEclock%getMonth().NE.last_month) THEN
-        do n=1,NTM
-          if ((trname(n).eq."N2O" .or. trname(n).eq."CH4" .or.
-     *         trname(n).eq."CFC11") .and. itime.ge.itime_tr0(n)) then
-            CALL STRTL  ! one call does all based on n_MPtable_max
-            exit
-          end if
-        end do
-        do n=1,NTM
-          if (trname(n).eq."O3" .and. itime.ge.itime_tr0(n)) then
-            CALL linoz_STRATL
-            exit
-          end if
-        end do
+        CALL STRTL  ! one call does all based on n_MPtable_max
+        if (itime.ge.itime_tr0(n_O3)) CALL linoz_STRATL
         last_month = modelEclock%getMonth()
       END IF
 
 C**** Tracer specific call for CO2
-      do n=1,NTM
-        if (trname(n).eq."CO2") then
-          call read_CO2_sources(n)
-          exit
-        end if
-      end do
+      call read_CO2_sources(n_CO2)
 
 C**** Tracer specific call for CH4
-      do n=1,NTM
-        if (trname(n).eq."CH4") then
-          call read_CH4_sources(n)
-          exit
-        end if
-      end do
+      call read_CH4_sources(n_CH4)
 #endif
 
 #ifdef TRACERS_COSMO
@@ -5614,12 +5598,16 @@ C**** Tracer specific call for CH4
       end if
 #endif
 
-
+!===============================================================================
+! Chemistry/OMA/MATRIX/TOMAS case, where surface emissions are of type
+! TRACERNAME_XX
+!===============================================================================
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+
       !! xday is used by multiple sources below
       xday=dayOfYear
-      !!
+
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
       if(rad_FL.gt.0) call READ_FL(end_of_day)
@@ -5639,13 +5627,19 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
       endif
       call readflamPopDens(xyear,xday)
 #endif
-      do n=1,NTM
+
+!-------------------------------------------------------------------------------
+! tracers loop
+!-------------------------------------------------------------------------------
+      do n=1,ntm
+        pTracer => tracers%getReference(trname(n))
+
         if ((n>=ntm_chem_beg).and.(n<=ntm_chem_end)) then
           isChemTracer=.true. ! careful: only for this n loop
         else
           isChemTracer=.false.
         end if
-!**** Allow overriding of transient emissions date:
+!**** Allow overriding of ozone precursor transient emissions date:
 ! for now, tying this to O3_yr becasue Gavin
 ! didn't want a new parameter, also not allowing
 ! day overriding yet, because of that.
@@ -5659,6 +5653,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           endif
         else
 #endif
+
+! allow overriding of transient aerosol emissions date
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
           if(aer_int_yr > 0) then
@@ -5671,140 +5667,109 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         end if
 #endif
 
-        pTracer => tracers%getReference(trname(n))
-        if(trname(n)=='CH4')then ! ---------- methane --------------
+! define nread and checkname per tracer
+        nread=ntsurfsrc(n)+nBBsources(n)
+        if (.not.tracers_amp .and. .not.tracers_tomas) then
+          checkname=.false.
+        else
+          checkname=.true.
+        endif
+
+        select case (trname(n))
+#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
+        case ('codirect')
+          checkname=.false.
+          isChemTracer=.true.
+          if(trans_emis_overr_yr > 0)then
+            xyear=trans_emis_overr_yr
+          else
+            xyear=year
+          endif
+#endif
+        case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
+          if (.not.tracers_aerosols_soa) nread=nread-1
+        case ('SO4','M_AKK_SU','M_ACC_SU',
+     &        'ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15',
+     &        'ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
+     &        'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
+     &        'ASO4__11','ASO4__12','ASO4__13','ASO4__14','ASO4__15')
+          nread=0
+        case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          checkname=.false.
+        case ('SF6', 'SF6_c')
+          nread=0 ! regional sources calculated in the code, not via a file
+        end select
+
+!-------------------------------------------------------------------------------
+! read surface sources of all tracers
+!-------------------------------------------------------------------------------
+        call readSurfaceSources(pTracer,n,nread,xyear,xday,checkname,
+     &                          itime,itime_tr0(n),sfc_src,isChemTracer,
+     &                          do_megan(n))
+!-------------------------------------------------------------------------------
+
+! post-read calculations
+        select case (trname(n))
 #ifdef TRACERS_SPECIAL_Shindell
-         nread=ntsurfsrc(n)+nBBsources(n)
-         if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,xday,
-     &   .true., itime, itime_tr0(n), sfc_src,isChemTracer,do_megan(n))
+        case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
-         do ns=1,ntsurfsrc(n) 
-           if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal')
-     &          sfc_src(I_0:I_1,J_0:J_1,n,ns)=
-     &     1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
-     &     5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
-     &     1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
-         end do
+          do ns=1,ntsurfsrc(n) 
+            if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
+     &        sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+     &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
+     &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
+     &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
+            endif
+          end do
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
-         if(nread>0) call read_ncep_for_wetlands(end_of_day)
+          if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
-#endif /* TRACERS_SPECIAL_Shindell */
 
-        else !-------------------------------------- general ---------
+        case ('N2O5')
+          if (COUPLED_CHEM.ne.1)
+     &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
+#endif
 
-            nread=ntsurfsrc(n) ! default
-            select case (trname(n)) ! list here tracers that have 3D biomass burning emissions
-            case ('Alkenes', 'CO', 'NOx', 'Paraffin', ! CH4 done above
-#ifdef TRACERS_dCO
-     *      'd13Calke','d13CPAR',
-     *      'dC17O', 'dC18O', 'd13CO',
-#endif  /* TRACERS_dCO */
-     &      'NH3', 'SO2', 'BCB', 'OCB', ! do not include sulfate here
-     &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
-     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
-     &      'AECOB_01','AOCOB_01')
-              nread=nread+nBBsources(n)
-            end select
+        case ('M_OCC_OC', 'OCII')
+          if (.not.tracers_aerosols_soa) then
+            sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
+     &                          ntsurfsrc(n)+nBBsources(n))=
+     &      sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
+     &                          ntsurfsrc(n)+nBBsources(n)-1)
+            sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
+          endif
+        end select
 
-#ifndef TRACERS_AEROSOLS_SOA
-            select case (trname(n))
-            case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
-              nread=nread-1
-            end select
-#endif  /* TRACERS_AEROSOLS_SOA */
+      end do ! ntm
+!-------------------------------------------------------------------------------
+! end tracers loop
+!-------------------------------------------------------------------------------
 
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-            tmpString = trim(trname(n))
-            if (trim(trname(n)).eq.'ASO4__01'.or.
-     &           tmpString(1:5).eq.'ANUM_'.or.
-     &           trim(trname(n)).eq.'M_AKK_SU'.or. 
-     &           trim(trname(n)).eq.'M_ACC_SU') then  
-              continue !skip these tracers!
-            else
-
-              if(nread>0) call readSurfaceSources(pTracer,n,nread,xyear,
-     &        xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &        ,do_megan(n))
-
-            endif
-#ifndef TRACERS_AEROSOLS_SOA
-            select case (trname(n))
-            case ('M_OCC_OC', 'OCII')
-              sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
-     &                            ntsurfsrc(n)+nBBsources(n))=
-     &          sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
-     &                              ntsurfsrc(n)+nBBsources(n)-1)
-              sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
-            end select
-#endif  /* TRACERS_AEROSOLS_SOA */
-#else /* NOT TRACERS_AMP or TRACERS_TOMAS */
-            select case(trname(n))
-            case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
-     &            'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
-     &           xday,.false.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &           ,do_megan(n))
-            case ('SO4')
-              ! nothing here, SO4 sources come from SO2
-              continue
-            case default
-              if(nread>0)call readSurfaceSources(pTracer,n,nread,xyear,
-     &        xday,.true.,itime,itime_tr0(n),sfc_src,isChemTracer
-     &        ,do_megan(n))
-            end select
-#endif /* WHETHER TRACERS_AMP or TRACERS_TOMAS */
-
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-            if (trim(trname(n)).eq.'SO2') then ! set this AFTER reading
+! define ntsurfsrc for sulfate, AFTER reading and AFTER the tracers loop
 #ifdef TRACERS_AEROSOLS_Koch
-              call set_ntsurfsrc(n_SO4,ntsurfsrc(n))
+        call set_ntsurfsrc(n_SO4,ntsurfsrc(n_SO2))
 #endif
 #ifdef TRACERS_AMP
-              call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n))
+        call set_ntsurfsrc(n_M_ACC_SU, ntsurfsrc(n_SO2))
 #ifndef TRACERS_AMP_M4
-              call set_ntsurfsrc(n_M_AKK_SU, ntsurfsrc(n))
+        call set_ntsurfsrc(n_M_AKK_SU, ntsurfsrc(n_SO2))
 #endif
 #endif
 #ifdef TRACERS_TOMAS
-              call set_ntsurfsrc(n_ASO4(1),ntsurfsrc(n))
-#endif
-            endif
-#endif
-#ifdef TRACERS_SPECIAL_Shindell
-            select case (trname(n))
-            case ('NOx')
-!           (lightning and aircraft called from tracer_3Dsource)
-            case ('N2O5')
-              if (COUPLED_CHEM.ne.1)
-     &        call read_aero(sulfate,'SULFATE_SA') !not applied directly
-            end select
-#endif
-
-        endif !------------------------------------------------------
-      end do ! NTM
-
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      pTracer => tracers%getReference(trname(n_codirect))
-      if(trans_emis_overr_yr > 0)then
-        xyear=trans_emis_overr_yr
-      else
-        xyear=year
-      endif
-      call readSurfaceSources(pTracer,n_codirect,
-     &     ntsurfsrc(n_codirect)+nBBsources(n_codirect),xyear,
-     & xday,.false.,itime,itime_tr0(n_codirect),sfc_src,.true.
-     & ,do_megan(n_codirect))
+        call set_ntsurfsrc(n_ASO4(1),ntsurfsrc(n_SO2))
 #endif
 
 #endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
+!===============================================================================
+! End of Chemistry/OMA/MATRIX/TOMAS case
+!===============================================================================
 
-C****
 C**** Initialize tracers here to allow for tracers that 'turn on'
 C**** at the start of any day
-
       call tracer_IC
 
 
@@ -5961,7 +5926,7 @@ C**** at the start of any day
       USE Dictionary_mod, only: sync_param
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
-      REAL*8 :: source,sarea,steppy,base,steppd,x,airm,anngas,
+      REAL*8 :: sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                    GRID%J_STRT_HALO:GRID%J_STOP_HALO)
@@ -5969,7 +5934,6 @@ C**** at the start of any day
 c      real*8 :: factj(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
 c      real*8 :: nlight, max_COSZ1, fact0
 #endif
-      real*8 :: lon_w,lon_e,lat_s,lat_n
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 !@var src_index source index for the current tracer
@@ -6105,124 +6069,26 @@ c initialization and their areas saved? (Or do whenever
 c fearth changes.)
 
 C**** Source over United States and Canada
-        source = .37d0*anngas*steppy
-        lon_e =  -70.d0
-        lon_w = -125.d0
-        lat_n =   50.d0
-        lat_s =   30.d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .37d0*anngas*steppy,
+     &                    -70.d0, -125.d0, 50.d0, 30.d0)
 C**** Source over Europe and Russia
-        source = .37d0*anngas*steppy
-        lon_e =  45.d0
-        lon_w = -10.d0
-        lat_n =  65.d0
-        lat_s =  36.1d0 ! 0.1 deg offset avoids overlap with Middle East
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .37d0*anngas*steppy,
+     &                    45.d0, -10.d0, 65.d0, 36.1d0) ! 0.1 deg offset avoids overlap with Middle East
 C**** Source over Far East
-        source = .13d0*anngas*steppy
-        lon_e = 150.d0
-        lon_w = 120.d0
-        lat_n =  45.d0
-        lat_s =  20.d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .13d0*anngas*steppy,
+     &                    150.d0, 120.d0, 45.d0, 20.d0)
 C**** Source over Middle East
-        source = .05d0*anngas*steppy
-        lon_e = 75.d0
-        lon_w = 30.d0
-        lat_n = 35.9d0 ! 0.1 deg offset avoids overlap with Europe
-        lat_s = 15.d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .05d0*anngas*steppy,
+     &                    75.d0, 30.d0, 35.9d0, 15.d0) ! 0.1 deg offset avoids overlap with Europe
 C**** Source over South America
-        source = .04d0*anngas*steppy
-        lon_e = -40.d0
-        lon_w = -50.d0
-        lat_n = -22.5d0
-        lat_s = -23.5d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .04d0*anngas*steppy,
+     &                    -40.d0, -50.d0, -22.5d0, -23.5d0)
 C**** Source over South Africa
-        source = .02d0*anngas*steppy
-        lat_n = -24.d0
-        lat_s = -28.d0
-        lon_e =  30.d0
-        lon_w =  25.d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .02d0*anngas*steppy,
+     &                    30.d0, 25.d0, -24.d0, -28.d0)
 C**** Source over Australia and New Zealand
-        source = .02d0*anngas*steppy
-        lat_n = -33.5d0
-        lat_s = -34.5d0
-        lon_e = 150.5d0
-        lon_w = 149.5d0
-        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
-        do j=j_0,j_1; do i=i_0,i_1
-            sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
-        enddo; enddo
-        call globalsum(grid, sarea_prt, sarea, all=.true.)
-#ifndef SKIP_TRACER_SRCS
-        do j=j_0,j_1; do i=i_0,i_1
-            trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
-        enddo; enddo
-#endif
+        call regional_src(n, .02d0*anngas*steppy,
+     &                    150.5d0, 149.5d0, -33.5d0, -34.5d0)
 
         if (trim(pTracer%getName()).eq.'CFCn') then
           !print out global average for each time step before weighing
@@ -6719,6 +6585,40 @@ c$$$      end do
 #endif
 
       END SUBROUTINE set_tracer_2Dsource
+
+      subroutine regional_src(n,source,lon_e,lon_w,lat_n,lat_s)
+!@sum Assign regional 2d sources
+!@auth Kostas Tsigaridis, based on old Lerner code
+        use DOMAIN_DECOMP_ATM, only : globalsum,grid,getDomainBounds
+        use GEOM, only: axyp
+        use GHY_COM, only : fearth
+#ifndef SKIP_TRACER_SRCS
+        use FLUXES, only: trsource
+#endif
+        implicit none
+        integer, intent(in) :: n
+        real*8, intent(in) :: source, lon_e, lon_w, lat_n, lat_s
+        real*8 :: sarea_prt(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                      grid%J_STRT_HALO:grid%J_STOP_HALO)
+        real*8 :: sarea
+        integer :: i_0,i_1,j_0,j_1
+        integer :: i,j
+
+        call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1,
+     &                             J_STRT=J_0, J_STOP=J_1)
+
+        call get_latlon_mask(lon_w,lon_e,lat_s,lat_n,sarea_prt)
+        do j=j_0,j_1; do i=i_0,i_1
+          sarea_prt(i,j) = sarea_prt(i,j)*axyp(i,j)*fearth(i,j)
+        enddo; enddo
+        call globalsum(grid, sarea_prt, sarea, all=.true.)
+#ifndef SKIP_TRACER_SRCS
+        do j=j_0,j_1; do i=i_0,i_1
+            trsource(i,j,1,n) = trsource(i,j,1,n) +
+     &         source*sarea_prt(i,j)/sarea
+        enddo; enddo
+#endif
+      end subroutine regional_src
 
       subroutine get_latlon_mask(lon_w,lon_e,lat_s,lat_n,latlon_mask)
 !@sum Set mask array to 1 for all cells overlapping a lat-lon rectangle

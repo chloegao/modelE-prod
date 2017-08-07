@@ -38,9 +38,9 @@ Preprocessor Options
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
-!  OFF #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
+#define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-!  OFF #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
+#define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
 !---> TOMAS start
 #define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
@@ -126,7 +126,7 @@ FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.54   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.71   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 use_vmp=1
