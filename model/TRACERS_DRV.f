@@ -5716,14 +5716,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef TRACERS_SPECIAL_Shindell
         case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
-          if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
-            do ns=1,ntsurfsrc(n) 
+          do ns=1,ntsurfsrc(n) 
+            if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
      &        sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
      &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
-            end do
-          endif
+            endif
+          end do
 #endif
 #ifdef INTERACTIVE_WETLANDS_CH4
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
