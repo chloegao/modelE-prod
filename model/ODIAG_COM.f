@@ -39,8 +39,8 @@
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: OIJL_out
 
 !@var IJ_xxx Names for OIJ diagnostics
-      INTEGER IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF,
-     *     IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
+      INTEGER IJ_OCNFR,IJ_HBL,IJ_BO,IJ_BOSOL,IJ_USTAR,IJ_SSH,IJ_PB,IJ_SF
+     *     ,IJ_SRHFLX,IJ_SRWFLX,IJ_SRHFLXI,IJ_SRWFLXI,IJ_SRSFLXI,IJ_ERVR
      *     ,IJ_MRVR,IJ_EICB,IJ_MICB,IJ_GMSC,IJ_GMSCz,ij_mld 
      *     ,IJ_dEPO_Dyn
 
@@ -52,6 +52,8 @@
       CHARACTER(len=units_strlen), DIMENSION(KOIJ) :: UNITS_OIJ
 !@var ia_oij IDACC numbers for OIJ diagnostics
       INTEGER, DIMENSION(KOIJ) :: IA_OIJ
+!@var denom_oij denominators for OIJ diagnostics
+      INTEGER, DIMENSION(KOIJ) :: DENOM_OIJ
 !@var scale_oij scales for OIJ diagnostics
       REAL*8, DIMENSION(KOIJ) :: SCALE_OIJ
 !@var [ij]grid_oij Grid descriptor for OIJ diagnostics
@@ -492,6 +494,7 @@ c straits arrays
       call write_attr(grid,fid,'oij','reduction','sum')
       call write_attr(grid,fid,'oij','split_dim',3)
       call defvar(grid,fid,ia_oij,'ia_oij(koij)')
+      call defvar(grid,fid,denom_oij,'denom_oij(koij)')
       call defvar(grid,fid,scale_oij,'scale_oij(koij)')
       call defvar(grid,fid,sname_oij,'sname_oij(sname_strlen,koij)')
       call defvar_cdl(grid,fid,cdl_oij,
@@ -567,6 +570,7 @@ c straits arrays
       call write_dist_data(grid,fid,'oxyp',tmp)
 
       call write_data(grid,fid,'ia_oij',ia_oij)
+      call write_data(grid,fid,'denom_oij',denom_oij)
       call write_data(grid,fid,'scale_oij',scale_oij)
       call write_data(grid,fid,'sname_oij',sname_oij)
       call write_cdl(grid,fid,'cdl_oij',cdl_oij)
@@ -1355,6 +1359,9 @@ c
 c
 C**** set properties for OIJ diagnostics
       do k=1,koij
+        ia_oij(k) = ia_src
+        denom_oij(k) = 0
+        scale_oij(k) = 1.
         sname_oij(k) = 'unused'
         lname_oij(k) = 'no output'
         units_oij(k) = 'no output'
@@ -1364,288 +1371,271 @@ C**** set properties for OIJ diagnostics
       k=0
 c
       k=k+1
+      IJ_OCNFR=k
+      lname_oij(k)="Ocean Mask"
+      sname_oij(k)="oij_mask"
+      units_oij(k)="1"
+c
+      k=k+1
       IJ_HBL=k
       lname_oij(k)="Ocean Boundary layer depth (KPP)"
       sname_oij(k)="oij_hbl"
       units_oij(k)="m"
-      ia_oij(k)=ia_src
-      scale_oij(k) = 1
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       ij_mld=k
       lname_oij(k)="Ocean Mixed layer depth"
       sname_oij(k)="oij_mld"
       units_oij(k)="m"
-      ia_oij(k)=ia_src
-      scale_oij(k) = 1
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_BO=k
       lname_oij(k)="Surface buoyancy forcing (KPP)"
       sname_oij(k)="oij_bo"
       units_oij(k)="10^-7 m^2/s^3"
-      ia_oij(k)=ia_src
       scale_oij(k) = 1d7
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_BOSOL=k
       lname_oij(k)="Surface solar buoyancy flux"
       sname_oij(k)="oij_bosol"
       units_oij(k)="10^-7 m^2/s^3"
-      ia_oij(k)=ia_src
       scale_oij(k) = 1d7
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_USTAR=k
       lname_oij(k)="Surface friction speed"
       sname_oij(k)="oij_ustar"
       units_oij(k)="m/s"
-      ia_oij(k)=ia_src
-      scale_oij(k) = 1
-
+      denom_oij(k) = IJ_OCNFR
+c
       if (ocn_cfc) then
         k=k+1
         IJ_cfcair=k
         lname_oij(k)="CFC concentration ATM"
         sname_oij(k)="oij_cfcair"
         units_oij(k)="uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_kw=k
         lname_oij(k)="CFC piston velocity"
         sname_oij(k)="oij_kw"
         units_oij(k)="m/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_csat=k
         lname_oij(k)="CFC Csat=CFCair*solub"
         sname_oij(k)="oij_csat"
         units_oij(k)="mol/m3"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_cfcflux=k
         lname_oij(k)="CFC Flux into ocean"
         sname_oij(k)="oij_cfcflux"
         units_oij(k)="mol/m2/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_cfcsolub=k
         lname_oij(k)="CFC solub"
         sname_oij(k)="oij_cfcsolub"
         units_oij(k)="mol/m3/uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
+        denom_oij(k) = IJ_OCNFR
 !------  cfc12
         k=k+1
         IJ_cfc12air=k
         lname_oij(k)="CFC-12 concentration ATM"
         sname_oij(k)="oij_cfc12air"
         units_oij(k)="uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_kw12=k
         lname_oij(k)="CFC-12 piston velocity"
         sname_oij(k)="oij_kw12"
         units_oij(k)="m/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_csat12=k
         lname_oij(k)="CFC-12 Csat=CFC12air*solub"
         sname_oij(k)="oij_csat12"
         units_oij(k)="mol/m3"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_cfc12flux=k
         lname_oij(k)="CFC-12 Flux into ocean"
         sname_oij(k)="oij_cfc12flux"
         units_oij(k)="mol/m2/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_cfc12solub=k
         lname_oij(k)="CFC-12 solub"
         sname_oij(k)="oij_cfc12solub"
         units_oij(k)="mol/m3/uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
+        denom_oij(k) = IJ_OCNFR
 !----- sf6
         k=k+1
         IJ_sf6air=k
         lname_oij(k)="SF6 concentration ATM"
         sname_oij(k)="oij_sf6air"
         units_oij(k)="uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-      
+        denom_oij(k) = IJ_OCNFR
+c      
         k=k+1
         IJ_kw_sf6=k
         lname_oij(k)="SF6 piston velocity"
         sname_oij(k)="oij_kw_sf6"
         units_oij(k)="m/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_csat_sf6=k
         lname_oij(k)="SF6 Csat=SF6air*solub"
         sname_oij(k)="oij_csat_sf6"
         units_oij(k)="mol/m3"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_sf6flux=k
         lname_oij(k)="SF6 Flux into ocean"
         sname_oij(k)="oij_sf6flux"
         units_oij(k)="mol/m2/s"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
-
+        denom_oij(k) = IJ_OCNFR
+c
         k=k+1
         IJ_sf6solub=k
         lname_oij(k)="SF6 solub"
         sname_oij(k)="oij_sf6solub"
         units_oij(k)="mol/m3/uatm"
-        ia_oij(k)=ia_src
-        scale_oij(k)=1
+        denom_oij(k) = IJ_OCNFR
       endif
-
+c
       k=k+1
       IJ_SSH=k
       lname_oij(k)="Ocean surface height"
       sname_oij(k)="oij_ssh"
       units_oij(k)="m"
-      ia_oij(k)=ia_src
       scale_oij(k)=bygrav
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_PB=k
       lname_oij(k)="Ocean bottom pressure anomaly"
       sname_oij(k)="oij_pb"
       units_oij(k)="Pa"
-      ia_oij(k)=ia_src
-      scale_oij(k)=1.
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SRHFLX=k
       lname_oij(k)="Ocean surface downward heat flux"
       sname_oij(k)="oij_srhflx"
       units_oij(k)="W/m^2"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SRWFLX=k
       lname_oij(k)="Ocean surface downward fresh water flux"
       sname_oij(k)="oij_srwflx"
       units_oij(k)="kg/m^2/s"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SRHFLXI=k
       lname_oij(k)="Ocean surface downward heat flux from ice"
       sname_oij(k)="oij_srhflxi"
       units_oij(k)="W/m^2"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SRWFLXI=k
       lname_oij(k)="Ocean surface downward fresh water flux from ice"
       sname_oij(k)="oij_srwflxi"
       units_oij(k)="kg/m^2/s"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SRSFLXI=k
       lname_oij(k)="Ocean surface downward salt flux from ice"
       sname_oij(k)="oij_srsflxi"
       units_oij(k)="kg/m^2/s"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       K = K+1
       IJ_dEPO_Dyn = K  !  OCEANS
       LNAME_OIJ(K) = 'Potential Enthalpy of Ocean by Advection'
       SNAME_OIJ(K) = 'dEPO_Dyn'    
       UNITS_OIJ(K) = 'W/m^2'
       SCALE_OIJ(K) = 1 / DTsrc
-         IA_OIJ(K) = IA_SRC
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_ERVR=k
       lname_oij(k)="Ocean input of energy from rivers"
       sname_oij(k)="oij_ervr"
       units_oij(k)="W/m^2"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_MRVR=k
       lname_oij(k)="Ocean input of mass from rivers"
       sname_oij(k)="oij_mrvr"
       units_oij(k)="kg/m^2/s"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_EICB=k
       lname_oij(k)="Ocean input of energy from icebergs"
       sname_oij(k)="oij_eicb"
       units_oij(k)="W/m^2"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_MICB=k
       lname_oij(k)="Ocean input of mass from icebergs"
       sname_oij(k)="oij_micb"
       units_oij(k)="kg/m^2/s"
-      ia_oij(k)=ia_src
       scale_oij(k)=1./dts
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_SF=k
       lname_oij(k)='HORIZONTAL MASS TRANSPORT STREAMFUNCTION'
       sname_oij(k)='osfij'
       units_oij(k)='Sv'
-      ia_oij(k)=ia_src
-      scale_oij(k)=1.
       igrid_oij(k) = 2
       jgrid_oij(k) = 2
-
+c
       k=k+1
       IJ_GMSC=k
       lname_oij(k)='Scaling for GM skew-flux'
       sname_oij(k)='gm_scale_ij'
       units_oij(k)='m2/s'
-      ia_oij(k)=ia_src
-      scale_oij(k)=1.
-
+      denom_oij(k) = IJ_OCNFR
+c
       k=k+1
       IJ_GMSCz=k
       lname_oij(k)='Mesoscale diffusivity z-decay scale'
       sname_oij(k)='zscale_meso'
       units_oij(k)='m'
-      ia_oij(k)=ia_src
-      scale_oij(k)=1.
+      denom_oij(k) = IJ_OCNFR
 
       if (k.gt.KOIJ) then
         write(6,*) "Too many OIJ diagnostics: increase KOIJ to at least"
@@ -1750,10 +1740,12 @@ c
         if(igrid_oij(k).eq.2) xstr='lono2) ;'
         ystr='(lato,'
         if(jgrid_oij(k).eq.2) ystr='(lato2,'
+        set_miss = denom_oij(k).ne.0
         call add_var(cdl_oij,
      &       'float '//trim(sname_oij(k))//trim(ystr)//trim(xstr),
      &       long_name=trim(lname_oij(k)),
      &       units=trim(units_oij(k)),
+     &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
       enddo
 
