@@ -7136,6 +7136,8 @@ C**** Apply chemistry and overwrite changes:
      &       trm_col(L,n)) / dtsrc
       end do
       call apply_tracer_3Dsource(i,j,nOverwrite,n)
+      ! reset, since already applied and so can be reused in the chemistry code:
+      tr3Dsource(:,nOverwrite,n) = 0d0
 
       end subroutine applyRadChem
 
