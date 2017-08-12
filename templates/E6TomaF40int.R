@@ -134,8 +134,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TomaF40int (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry 
- some interactive sources)
+E6TomaF40int (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry and some interactive sources)
 
 &&PARAMETERS
 #include "static_ocn_params"
