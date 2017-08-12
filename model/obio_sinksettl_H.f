@@ -1,5 +1,6 @@
 #include "rundeck_opts.h"
-      subroutine obio_sinksettl(vrbos,kmax,errcon,i,j)
+      subroutine obio_sinksettl(vrbos,kmax,errcon,i,j,
+     &                    kdm,nstep,dtsrc,ddxypo)
 
       USE obio_dim
       USE obio_incom,only: wsdeth,mgchltouMC
@@ -9,16 +10,13 @@
      .                   ,rhs,cexp,kzc
       use TimeConstants_mod, only: HOURS_PER_DAY, DAYS_PER_YEAR,
      &                             SECONDS_PER_HOUR
-#ifdef OBIO_ON_GARYocean
-      USE MODEL_COM,  only : nstep=>itime
-      USE OCEAN, only: dxypo
-#else
-      USE hycom_dim, only: kdm
-      USE hycom_scalars, only: nstep,baclin
-      USE hycom_arrays, only: scp2
-#endif
+
+
 
       implicit none
+
+      integer, intent(in) ::kdm,nstep
+      real, intent(in) :: dtsrc,ddxypo
 
       integer :: i,j,k,nt,kmax
       real    :: trnd
@@ -28,8 +26,6 @@
 !---------------------------------------------------------------
 ! --- phyto sinking and detrital settling
 !---------------------------------------------------------------
-
-#ifdef OBIO_ON_GARYocean
 
 !originally: the sinking term is given in units (m/hr)*(mgr,chl/m3)
 !in order to be converted into mgr,chl/m3/hr as the tendency
@@ -41,57 +37,7 @@
 !the /hr factor is bcz the obio timestep is in hrs.
 ! now: all terms in /s, hence tendencies in /s. July 2016
 
-      !phyto sinking
-      do nt = nnut+1,ntyp-nzoo
-        do k = 1,kmax
-        rhs(k,nt,16) = 0.
-        enddo
-        do k = 1,kmax-1
-         trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
-         P_tend(k  ,nt) = P_tend(k,  nt) - trnd/dp1d(k  )
-         P_tend(k+1,nt) = P_tend(k+1,nt) + trnd/dp1d(k+1)
-
-         rhs(k  ,nt,16) = rhs(k  ,nt,16) - trnd/dp1d(k  )
-         rhs(k+1,nt,16) = rhs(k+1,nt,16) + trnd/dp1d(k+1)
-        enddo  ! k
-!let phytoplankton that reaches the bottom, disappear in the sediment
-!        k = kmax
-!        trnd = obio_P(k,nt)*obio_ws(k,nt-nnut)
-!        P_tend(k,nt)   = P_tend(k,nt)   - trnd/dp1d(k)
-!        rhs(k,nt,16)= - trnd/dp1d(k)
-      enddo ! n
-
-     
-      !diagnostic for total carbon export at compensation depth
-      !total carbon = sinking phyto + settling C detritus
-      !term1: sinking phytoplankton
-
-      !detritus settling
-      do nt = 1,ndet
-        do k=1,kmax
-        rhs(k,nnut+nchl+nzoo+nt,16) = 0.
-        enddo
-        do k = 1,kmax-1
-         trnd = det(k,nt)*wsdet(k,nt)
-         D_tend(k  ,nt) = D_tend(k  ,nt) - trnd/dp1d(k  )
-         D_tend(k+1,nt) = D_tend(k+1,nt) + trnd/dp1d(k+1)
-
-         rhs(k  ,nnut+nchl+nzoo+nt,16)= rhs(k  ,nnut+nchl+nzoo+nt,16) 
-     .                                - trnd/dp1d(k  )
-         rhs(k+1,nnut+nchl+nzoo+nt,16)= rhs(k+1,nnut+nchl+nzoo+nt,16) 
-     .                                + trnd/dp1d(k+1)
-
-        enddo  ! k
-!let detritus that reaches the bottom, disappear in the sediment
-!        k = kmax
-!        trnd = det(k,nt)*wsdet(k,nt)
-!        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
-!        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
-      enddo ! nt
-
-#else     /* HYCOM */
       if (kmax.le.1) return
-
 
        !phyto sinking
        do nt=1,nchl
@@ -107,7 +53,8 @@
           do k=1,kmax
              obio_ws(k,nt)=min(obio_ws(k,nt),p1d(kmax+1)-p1d(k))
 !    .                    * baclin/SECONDS_PER_HOUR
-     .                    * baclin        !July 2016
+     .                    !* baclin        !July 2016
+     &                     *dtsrc
           enddo
 
            do k=1,kmax
@@ -147,7 +94,8 @@
           do k=1,kmax
              wsdet(k,nt)=min(wsdet(k,nt),p1d(kmax+1)-p1d(k))
 !    .                  *baclin/SECONDS_PER_HOUR
-     .                  *baclin
+     .                  !*baclin
+     &                   *dtsrc
           enddo
 !need to change that (?) and create an array that will actually
 !hold the excess stuff (sediment array) to be used in
@@ -178,8 +126,6 @@
 
        end do  !ndet
 
-#endif /* OBIO_ON_GARYocean */
-
       !diagnostic for carbon export at compensation depth
       cexp = 0.
       do  k=1,kzc    
@@ -190,12 +136,9 @@
      .        * 12.d0              
      .        * SECONDS_PER_HOUR    !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR         
-     .        * 1.d-15            !mgm3 -> PgC/yr               
-#ifdef OBIO_ON_GARYocean
-     .        * dxypo(j)                      
-#else
-     .        * scp2(i,j)                    
-#endif
+     .        * 1.d-15            !mgm3 -> PgC/yr              
+     &        * ddxypo
+ 
         enddo
 
       !term2: settling C detritus contribution
@@ -206,11 +149,8 @@
      .        * SECONDS_PER_HOUR     !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR
      .        * 1.d-15                 !ugC/l -> PgC/yr
-#ifdef OBIO_ON_GARYocean
-     .        * dxypo(j) 
-#else
-     .        * scp2(i,j) 
-#endif
+     &        * ddxypo
+   
       enddo
 
 
