@@ -4977,7 +4977,7 @@ C**** Surface stress is applied to V component at the North Pole
      *     , oDMSI, oDHSI, oDSSI
      *     , ocnice
       USE ODIAG, only : oij=>oij_loc,ij_srhflx,ij_srwflx,ij_srhflxi
-     *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr 
+     *     ,ij_srwflxi,ij_srsflxi,ij_ervr,ij_mrvr,ij_ocnfr
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
       Use OCEAN, Only: TRMO
@@ -5150,6 +5150,8 @@ C**** Updated using latest sea ice (this ensures that total column mass
 C**** is consistent for OGEOZ calculation).
         OPRESS(I,J) = oAPRESS(I,J)+GRAV*(
      *       (1.-oRSI(I,J))*oDMSI(1,I,J) + oRSI(I,J)*oDMSI(2,I,J))
+
+        OIJ(I,J,IJ_OCNFR)  = OIJ(I,J,IJ_OCNFR) + 1.
 
 C**** Set some ocean diagnostics of net fluxes (downward +ve)
 C**** This includes atm/oc + si/oc, rivers + icebergs are separate 

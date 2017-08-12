@@ -3496,7 +3496,7 @@ c find indices of denominators
       USE TRDIAG_COM, only: diag_rad,ijts_tau,ijts_sqex,ijts_sqsc
      &                     ,ijts_sqcb
      &                     ,ijts_tausub,ijts_sqexsub,ijts_sqscsub
-     &                     ,ijts_sqcbsub
+     &                     ,ijts_sqcbsub,save_dry_aod
       USE DIAG_COM, only: ia_rad
       implicit none
 
@@ -3512,8 +3512,9 @@ c find indices of denominators
 !@var skr value of kr as a string
 !@var sn1 value of n1 as a string
       character(len=sname_strlen), parameter :: dname='clrsky'
-      character(len=10), parameter, dimension(2) ::
-     &  sascs=(/'   ','CS_'/),lascs=(/'         ','clear sky'/)
+      character(len=10), parameter, dimension(3) ::
+     &  sascs=(/'    ','CS_ ','DRY_'/),
+     &  lascs=(/'         ','clear sky','dry aeros'/)
       integer :: k,kr,s,n1,n_sub
       character(len=1) :: skr,sn1
 
@@ -3535,6 +3536,7 @@ c find indices of denominators
 ! aerosol optical depth and related diagnostics
 
       do s=1,size(sascs)
+        if (trim(sascs(s)).eq.'DRY_' .and. save_dry_aod.eq.0) cycle
         IF (diag_rad /= 1) THEN
 ! aerosol optical depth for band6
           do n1=1,n_sub
@@ -3550,6 +3552,13 @@ c find indices of denominators
      *                    trim(trname(n))//trim(sn1)//' '//
      *                      trim(lascs(s))//' aerosol optical depth',
      *                    ' ', power=-2, ia=ia_rad, denom=trim(dname),
+     *                    scalediv=1.d0, hasArea=.false.)
+            else if (trim(sascs(s))=='DRY_') then
+              k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
+     *                      trim(sn1),
+     *                    trim(trname(n))//trim(sn1)//' '//
+     *                      trim(lascs(s))//' aerosol optical depth',
+     *                    ' ', power=-2, ia=ia_rad,
      *                    scalediv=1.d0, hasArea=.false.)
             else
               k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
@@ -3584,6 +3593,14 @@ c find indices of denominators
      *                        trim(lascs(s))//' SW extinction band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad, denom=trim(dname),
+     *                      scalediv=1.d0, hasArea=.false.)
+              else if (trim(sascs(s))=='DRY_') then
+                k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
+     *                        trim(trname(n))//trim(sn1),
+     *                      trim(trname(n))//trim(sn1)//' '//
+     *                        trim(lascs(s))//' SW extinction band '//
+     *                        skr,
+     *                      ' ', power=-4, ia=ia_rad,
      *                      scalediv=1.d0, hasArea=.false.)
               else
                 k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
@@ -3632,6 +3649,14 @@ c find indices of denominators
      *                        trim(lascs(s))//
      *                        ' SW asymmetry factor band '//skr,
      *                      ' ', power=-2, ia=ia_rad, denom=trim(dname),
+     *                      scalediv=1.d0, hasArea=.false.)
+              else if (trim(sascs(s))=='DRY_') then
+                k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
+     *                        trim(trname(n))//trim(sn1),
+     *                      trim(trname(n))//trim(sn1)//' '//
+     *                        trim(lascs(s))//
+     *                        ' SW asymmetry factor band '//skr,
+     *                      ' ', power=-2, ia=ia_rad,
      *                      scalediv=1.d0, hasArea=.false.)
               else
                 k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
@@ -3821,11 +3846,13 @@ c find indices of denominators
 C**** use this routine to set 3D tracer-related diagnostics.
 
 C**** some tracer specific 3D arrays
-      if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+      if (diag_aod_3d>0 .and. diag_aod_3d<5) then ! valid values are 1-4
         allocate(ijlt_3Dtau(nraero_aod))    ; ijlt_3Dtau = 0
         allocate(ijlt_3DtauCS(nraero_aod))  ; ijlt_3DtauCS = 0
+        allocate(ijlt_3DtauDRY(nraero_aod))  ; ijlt_3DtauDRY = 0
         allocate(ijlt_3Daaod(nraero_aod))   ; ijlt_3Daaod = 0
         allocate(ijlt_3DaaodCS(nraero_aod)) ; ijlt_3DaaodCS = 0
+        allocate(ijlt_3DaaodDRY(nraero_aod)) ; ijlt_3DaaodDRY = 0
 
         iclay=0
         do n=1,nraero_aod
@@ -3868,8 +3895,27 @@ C**** some tracer specific 3D arrays
      &                  denom='clrsky2d')
           endif ! diag_aod_3d = 2 or 3
 
+          if (diag_aod_3d==4 .or. diag_aod_3d==3) then
+            k = k + 1
+            ijlt_3DtauDRY(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' DRY tau'
+            sname_ijlt(k) = 'tau_3D_DRY_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            k = k + 1
+            ijlt_3DaaodDRY(n)=k
+            ia_ijlt(k) = ia_rad
+            lname_ijlt(k) = trim(trname_curr)//' DRY aaod'
+            sname_ijlt(k) = 'aaod_3D_DRY_'//trim(trname_curr)
+            ijlt_power(k) = -2
+            units_ijlt(k) = unit_string(ijlt_power(k),' ')
+            scale_ijlt(k) = 10.**(-ijlt_power(k))
+          endif ! diag_aod_3d = 4 or 3
+
         enddo ! nraero_aod
-      endif ! 0<diag_aod_3d<4
+      endif ! 0<diag_aod_3d<5
 
       do n=1,NTM
         select case(trname(n))
@@ -5718,7 +5764,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef WATER_MISC_GRND_CH4_SRC
           do ns=1,ntsurfsrc(n) 
             if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
-     &        sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+              sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
      &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean

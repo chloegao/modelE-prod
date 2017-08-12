@@ -1,6 +1,5 @@
 #include "rundeck_opts.h"
 
-#ifdef OBIO_ON_GARYocean
       Subroutine CARBON (SUBR)
 !@sum  CARBON writes global carbon reservoirs to unit 6
 !@auth Original Development Team
@@ -378,4 +377,3 @@ C****
   910 Format ('NITRATE:',A7,I6,3('/',I2.2),5F9.3,F11.3,F13.3,3F14.3
      .         ,F11.6)
       End Subroutine NITR
-#endif

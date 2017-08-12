@@ -8,12 +8,7 @@
       use ocalbedo_mod, only: nlt
 !     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-      use ocean, only : jm
-#else
       USE hycom_dim_glob, only: kdm
-#endif
 
       implicit none
 
@@ -37,7 +32,6 @@ c
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rhs_obio      !rhs matrix
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: chng_by       !integr tendency for total C
 
-#ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       real, ALLOCATABLE, DIMENSION(:,:) :: pCO2av, pCO2av_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2tot_dayav_loc
@@ -53,7 +47,7 @@ c
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav
       real, ALLOCATABLE, DIMENSION(:,:) :: pp2cocc_dayav_loc
       real, ALLOCATABLE, DIMENSION(:,:) :: pHav,pHav_loc
-#endif
+      
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
       real, ALLOCATABLE, DIMENSION(:,:)::  Edz,Euz,Esz
       real, ALLOCATABLE, DIMENSION(:,:)::  Kd       !absorption+scattering in seawater due to chl
@@ -62,18 +56,14 @@ c
 
       integer :: nstep0=0
 
-#ifdef OBIO_ON_GARYocean
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
 !!    integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific          
-      integer, parameter :: itest=1,  jtest=jm/2     !equator Pacific
-#else
 !     integer, parameter :: itest=(220,320) equator Atlant; (245,275) 0.6S;274.5E Nino3
 !     integer, parameter :: itest=316, jtest=258    !257.5E;-50.7S
       integer, parameter :: itest=243, jtest=1      !equator,dateline
       real :: diag_counter
-#endif
 
 
       integer, parameter :: EUZ_DEFINED=1
@@ -159,17 +149,10 @@ C endif
       contains
 
       subroutine build_ze
-#ifdef OBIO_ON_GARYocean
-      use oceanr_dim, only: ogrid
-      use oceanres, only: kdm=>lmo
-      use ofluxes, only: oapress
-      use ocean, only: g0m,s0m,mo,dxypo,lmm
-      use constant, only: grav
-#else
       use hycom_dim, only: ogrid, kdm
       USE hycom_arrays, only : dpinit
       USE hycom_scalars, only: onem
-#endif
+      
       implicit none
       integer :: k
       real :: pres,g,s
@@ -179,25 +162,12 @@ C endif
       if (.not.allocated(ze)) allocate(ze(ogrid%i_strt:ogrid%i_stop,
      &                                ogrid%j_strt:ogrid%j_stop, 0:kdm))
       ze=0
-#ifdef OBIO_ON_GARYocean
-      do i=ogrid%i_strt,ogrid%i_stop
-        do j=ogrid%j_strt,ogrid%j_stop
-          pres=oapress(i,j)
-          do k=1, lmm(i,j)
-            pres=pres+mo(i,j,k)*grav*.5
-            g=g0m(i,j,k)/(mo(i,j,k)*dxypo(j))
-            s=s0m(i,j,k)/(mo(i,j,k)*dxypo(j))
-            ze(i,j,k)=ze(i,j,k-1)+mo(i,j,k)*volgsp(g,s,pres)
-            pres=pres+mo(i,j,k)*grav*.5
-          end do
-        end do
-      end do
-#else
-      do k=1, kdm
+      
+     do k=1, kdm
         ze(:, :, k)=ze(:, :, k-1)+dpinit(ogrid%i_strt:ogrid%i_stop,
      &                 ogrid%j_strt:ogrid%j_stop, k)/onem
       end do
-#endif
+      
       end subroutine build_ze
 
       END MODULE obio_com
@@ -249,11 +219,10 @@ C endif
       type(vector_real8) :: scale_ij, scale_ijl
       type(cdl_type) :: cdl_ij, cdl_ijl
       type(cdl_type), pointer :: cdl_lons, cdl_lats, cdl_depths
-#ifndef OBIO_ON_GARYocean
       type(cdl_type), allocatable, target ::
      &                         hycom_lons, hycom_lats, hycom_depths
-#endif
-      contains
+      
+     contains
 
 
       subroutine add_diag(lname, sname, units, dim3, idx)
@@ -288,25 +257,14 @@ C endif
 
 
       subroutine init_obio_diag
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only: ogrid
-      USE OCEANRES, only: kdm=>lmo
-      use odiag, only: cdl_olons, cdl_olats, cdl_odepths
-#else
+      
       USE hycom_dim, only: kdm, ogrid
       use cdl_mod, only: add_coord, init_cdl_type
       use domain_decomp_1d, only: am_i_root
-#endif
       use obio_com, only: arg2d, arg3d
+
       implicit none
 
-#ifdef OBIO_ON_GARYocean
-      cdl_lons=>cdl_olons
-      cdl_lats=>cdl_olats
-      cdl_depths=>cdl_odepths
-      arg2d='dist_imo,dist_jmo'
-      arg3d='dist_imo,dist_jmo,lmo'
-#else
       arg2d='idm,dist_jdm'
       arg3d='idm,dist_jdm,kdm'
       allocate(hycom_lons, hycom_lats, hycom_depths)
@@ -324,8 +282,8 @@ C endif
         call init_cdl_type('cdl_obio_depths', hycom_depths)
         call add_coord(hycom_depths, 'zoc', kdm, units='m')
       endif
-#endif
-      allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
+      
+     allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
       allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))
@@ -336,11 +294,8 @@ C endif
       subroutine def_rsf_obio_diag(fid, r4_on_disk)
       use pario, only: defvar
       use obio_com, only: arg2d, arg3d
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only: ogrid
-#else
       USE hycom_dim, only: ogrid
-#endif
+      
       implicit none
 
       integer, intent(in) :: fid
@@ -357,11 +312,8 @@ C endif
       subroutine new_io_obio_diag(fid, iaction)
       use model_com, only: ioread
       use pario, only: write_dist_data, read_dist_data
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only: ogrid
-#else
       USE hycom_dim, only: ogrid
-#endif
+      
       implicit none
 
       integer, intent(in) :: fid
@@ -382,13 +334,10 @@ C endif
       use pario, only: defvar, write_attr
       use cdl_mod, only: defvar_cdl, merge_cdl, add_var
       use domain_decomp_1d, only: am_i_root
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only: ogrid
-#else
       USE hycom_dim, only: ogrid, kdm
       use hycom_arrays, only : lonij, latij
       use obio_com, only: ze, build_ze, arg2d, arg3d
-#endif
+      
       implicit none
 
       integer, intent(in) :: fid
@@ -397,18 +346,15 @@ C endif
       if (associated(cdl_lons)) then
         if (am_i_root()) then
           call merge_cdl(cdl_lons, cdl_lats, cdl_ij)
-#ifndef OBIO_ON_GARYocean
           call add_var(cdl_ij, 'float latij(lato,lono) ;',
      &         long_name='gridbox latitude', units='degrees')
           call add_var(cdl_ij, 'float lonij(lato,lono) ;',
      &         long_name='gridbox longitude', units='degrees')
-#endif
           call merge_cdl(cdl_ij, cdl_depths, cdl_ijl)
-#ifndef OBIO_ON_GARYocean
           call add_var(cdl_ijl, 'float depths(lato,lono,zoc) ;',
      &         long_name='gridbox depth', units='m')
-#endif
-          do k=1, sname_ij%getsize()
+          
+       do k=1, sname_ij%getsize()
             call add_var(cdl_ij,
      &         'float '//trim(sname_ij%at(k))//'(lato,lono) ;',
      &         long_name=trim(lname_ij%at(k)),
@@ -445,12 +391,10 @@ C endif
      &            'scale_obio_ijl(kobio_ijl)')
       call defvar(ogrid, fid, sname_ijl%getdata(),
      &            'sname_obio_ijl(sname_strlen,kobio_ijl)')
-#ifndef OBIO_ON_GARYocean
       call defvar(ogrid, fid,latij(:,:,3), 'latij('//trim(arg2d)//')')
       call defvar(ogrid, fid,lonij(:,:,3), 'lonij('//trim(arg2d)//')')
       call build_ze
       call defvar(ogrid,fid,ze(:,:,1:), 'depths('//trim(arg3d)//')')
-#endif
 
       end subroutine def_meta_obio_diag
 
@@ -458,22 +402,17 @@ C endif
       subroutine write_meta_obio_diag(fid)
       use pario, only: write_data, write_dist_data
       use cdl_mod, only: write_cdl
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only: ogrid
-#else
       USE hycom_dim, only: ogrid
       use hycom_arrays, only : lonij, latij
       use obio_com, only: ze
-#endif
+      
       implicit none
 
       integer, intent(in) :: fid
 
-#ifndef OBIO_ON_GARYocean
       call write_dist_data(ogrid, fid, 'latij', latij(:, :, 3))
       call write_dist_data(ogrid, fid, 'lonij', lonij(:, :, 3))
       call write_dist_data(ogrid, fid, 'depths', ze)
-#endif
       call write_data(ogrid, fid, 'ia_obio_ij', ia_ij%getdata())
       call write_data(ogrid, fid, 'scale_obio_ij', scale_ij%getdata())
       call write_data(ogrid, fid, 'sname_obio_ij', sname_ij%getdata())
@@ -504,16 +443,12 @@ C endif
 
 !------------------------------------------------------------------------------
       subroutine alloc_obio_com
+
       USE obio_com
       USE obio_dim
       use obio_diag, only: init_obio_diag
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only :kdm=>lmo
-#else
       USE hycom_dim, only: kdm,ogrid
-#endif
 
       implicit none
 
@@ -528,7 +463,8 @@ c**** Extract domain decomposition info
 
       ALLOCATE(tracer(i_0:i_1,j_0:j_1,kdm,ntrac))
 
-      call alloc_obio_forc
+!NOT FOR HYCOM:idm and jdm were not originally passes to hycom
+      call alloc_obio_forc(kdm,ogrid,idm,jdm)
 
       ALLOCATE(tzoo2d(i_0:i_1,j_0:j_1))
       ALLOCATE(wshc3d(i_0:i_1,j_0:j_1,kdm))
@@ -547,7 +483,6 @@ c**** Extract domain decomposition info
       ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
       ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
 
-#ifndef OBIO_ON_GARYocean   /* NOT for Russell ocean */
       ALLOCATE(pCO2av(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(pp2tot_dayav(ogrid%im_world,ogrid%jm_world))
       ALLOCATE(cexpav(ogrid%im_world,ogrid%jm_world))
@@ -568,7 +503,6 @@ c**** Extract domain decomposition info
       ALLOCATE(pp2cyan_dayav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(pp2cocc_dayav_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(pHav_loc(i_0:i_1,j_0:j_1))
-#endif
 
       ALLOCATE(Edz(nlt,kdm))
       ALLOCATE(Esz(nlt,kdm))
@@ -589,10 +523,6 @@ c**** Extract domain decomposition info
 !@ver  beta
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0,pp2tot_day, arg2d, arg3d
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : grid=>ogrid
-      use pario, only : defvar
-#else
       USE HYCOM_DIM, only : grid=>ogrid
       use pario, only : defvar
       USE obio_com, only : pCO2av=>pCO2av_loc,
@@ -601,7 +531,7 @@ c**** Extract domain decomposition info
      &    cexpav=>cexpav_loc, diag_counter,
      .    pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
      .    pp2cocc_dayav_loc,pHav_loc
-#endif
+      
       implicit none
       integer, intent(in) :: fid   !@var fid file id
 
@@ -611,7 +541,6 @@ c**** Extract domain decomposition info
       call defvar(grid,fid,tirrq3d,'tirrq3d('//trim(arg3d)//')')
       call defvar(grid,fid,ihra,'ihra('//trim(arg2d)//')')
       call defvar(grid,fid,pp2tot_day,'pp2tot_day('//trim(arg2d)//')')
-#ifndef OBIO_ON_GARYocean
       call defvar(grid,fid,diag_counter,'obio_diag_counter')
       call defvar(grid,fid,pCO2av,'pCO2av('//trim(arg2d)//')')
       call defvar(grid,fid,pp2tot_dayav,'pp2tot_dayav('//
@@ -628,7 +557,7 @@ c**** Extract domain decomposition info
       call defvar(grid,fid,pp2cocc_dayav_loc,'pp2cocc_day('//
      &                                                 trim(arg2d)//')')
       call defvar(grid,fid,phav_loc,'pHav('//trim(arg2d)//')')
-#endif
+      
       return
       end subroutine def_rsf_obio
 
@@ -642,9 +571,6 @@ c**** Extract domain decomposition info
       USE obio_forc, only : avgq,tirrq3d,ihra
       USE obio_com, only : gcmax,nstep0
      &     ,pp2tot_day
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : grid=>ogrid
-#else
       USE HYCOM_DIM, only : grid=>ogrid
       USE obio_com, only : pCO2av=>pCO2av_loc,
      &     ao_co2fluxav=>ao_co2fluxav_loc,
@@ -652,7 +578,7 @@ c**** Extract domain decomposition info
      &     cexpav=>cexpav_loc, diag_counter
      .    ,pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc
      .    ,pp2cocc_dayav_loc,pHav_loc
-#endif
+      
       implicit none
 
       integer fid   !@var fid unit number of read/write
@@ -666,7 +592,6 @@ c**** Extract domain decomposition info
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call write_dist_data(grid,fid,'ihra',ihra)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-#ifndef OBIO_ON_GARYocean
         call write_data(grid,fid,'obio_diag_counter',diag_counter)
         call write_dist_data(grid,fid,'pCO2av',pCO2av)
         call write_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
@@ -677,7 +602,6 @@ c**** Extract domain decomposition info
         call write_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
         call write_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
         call write_dist_data(grid,fid,'pHav',phav_loc)
-#endif
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'obio_nstep0',nstep0,
      &       bcast_all=.true.)
@@ -686,7 +610,6 @@ c**** Extract domain decomposition info
         call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
         call read_dist_data(grid,fid,'ihra',ihra)
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
-#ifndef OBIO_ON_GARYocean
         call read_data(grid,fid,'obio_diag_counter',diag_counter)
         call read_dist_data(grid,fid,'pCO2av',pCO2av)
         call read_dist_data(grid,fid,'pp2tot_dayav',pp2tot_dayav)
@@ -697,12 +620,10 @@ c**** Extract domain decomposition info
         call read_dist_data(grid,fid,'pp2cyan_day',pp2cyan_dayav_loc)
         call read_dist_data(grid,fid,'pp2cocc_day',pp2cocc_dayav_loc)
         call read_dist_data(grid,fid,'pHav',phav_loc)
-#endif
       end select
       return
       end subroutine new_io_obio
 
-#ifndef OBIO_ON_GARYocean
 
       subroutine obio_set_data_after_archiv
       USE obio_com, only:
@@ -762,4 +683,3 @@ c**** Extract domain decomposition info
       return
       end subroutine obio_gather_before_archive
 
-#endif /* which ocean */

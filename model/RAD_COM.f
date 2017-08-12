@@ -180,18 +180,22 @@ C**** does not produce exactly the same as the default values.
 !@+   This is so clays are separate. Now also used for old parameter
 !@+   mxfastj: Number of aerosol/cloud types currently active in the model
 !@var tau_cs Same as tau_as for clear-sky
+!@var tau_dry Same as tau_as for dry aerosol (RH=0%)
       integer :: njaero ! nraero_aod+2 cloud types (water/ice)
       integer :: nraero_aod_rsf=0
       integer :: nraero_rf_rsf=0
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tau_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tau_cs
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: tau_dry
 #ifdef CACHED_SUBDD
 !@var abstau_as Same as tau_as for absorption
 !@var abstau_cs Same as tau_cs for absorption
+!@var abstau_dry Same as tau_dry for absorption
 !@var swfrc Shortwave aerosol radiative forcing
 !@var lwfrc Shortwave aerosol radiative forcing
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: abstau_as
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: abstau_cs
+      REAL*8,ALLOCATABLE,DIMENSION(:,:,:,:) :: abstau_dry
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif
@@ -749,6 +753,9 @@ C**** Local variables initialised in init_RAD
       use rad_com
       use domain_decomp_atm, only : grid
       use pario, only : defvar
+#ifdef TRACERS_ON
+      use TRDIAG_COM, only: save_dry_aod
+#endif
       implicit none
       integer fid   !@var fid file id
 
@@ -777,11 +784,19 @@ C**** Local variables initialised in init_RAD
      &       'tau_as(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,tau_cs,
      &       'tau_cs(dist_im,dist_jm,lm,nraero_aod)')
+        if (save_dry_aod>0) then
+          call defvar(grid,fid,tau_dry,
+     &         'tau_dry(dist_im,dist_jm,lm,nraero_aod)')
+        endif
 #ifdef CACHED_SUBDD
         call defvar(grid,fid,abstau_as,
      &       'abstau_as(dist_im,dist_jm,lm,nraero_aod)')
         call defvar(grid,fid,abstau_cs,
      &       'abstau_cs(dist_im,dist_jm,lm,nraero_aod)')
+        if (save_dry_aod>0) then
+          call defvar(grid,fid,abstau_dry,
+     &         'abstau_dry(dist_im,dist_jm,lm,nraero_aod)')
+        endif
         call defvar(grid,fid,nraero_rf,'nraero_rf')
         if (nraero_rf>0) then
           call defvar(grid,fid,swfrc,'swfrc(dist_im,dist_jm,nraero_rf)')
@@ -816,6 +831,7 @@ C**** Local variables initialised in init_RAD
       use model_com, only : ioread,iowrite
 #ifdef TRACERS_ON
       USE tracer_com , only : NTM
+      use TRDIAG_COM, only: save_dry_aod
 #endif
       use rad_com
       use domain_decomp_atm, only : grid, getDomainBounds
@@ -870,9 +886,15 @@ C**** Local variables initialised in init_RAD
           call write_data(grid, fid,'nraero_aod', nraero_aod)
           call write_dist_data(grid,fid,'tau_as',tau_as)
           call write_dist_data(grid,fid,'tau_cs',tau_cs)
+          if (save_dry_aod>0) then
+            call write_dist_data(grid,fid,'tau_dry',tau_dry)
+          endif
 #ifdef CACHED_SUBDD
           call write_dist_data(grid,fid,'abstau_as',abstau_as)
           call write_dist_data(grid,fid,'abstau_cs',abstau_cs)
+          if (save_dry_aod>0) then
+            call write_dist_data(grid,fid,'abstau_dry',abstau_dry)
+          endif
           call write_data(grid, fid,'nraero_rf', nraero_rf)
           if (nraero_rf>0) then
             call write_dist_data(grid,fid,'swfrc',swfrc)
@@ -880,7 +902,7 @@ C**** Local variables initialised in init_RAD
           endif
 #endif  /* CACHED_SUBDD */
         endif
-#endif
+#endif  /* TRACERS_ON */
       case (ioread)
         call read_data(grid, fid,'s0', s0, bcast_all=.true.)
         call read_dist_data(grid, fid,'rqt',  rqt, jdim=3)
@@ -922,9 +944,15 @@ C**** Local variables initialised in init_RAD
           if (nraero_aod_rsf /= 0) then
             allocate(tau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
             allocate(tau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            if (save_dry_aod>0) then
+              allocate(tau_dry(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            endif
 #ifdef CACHED_SUBDD
             allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
             allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            if (save_dry_aod>0) then
+             allocate(abstau_dry(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod_rsf))
+            endif
             call read_data(grid,fid,'nraero_rf',nraero_rf_rsf,
      &                     bcast_all=.true.)
             if (nraero_rf_rsf>0) then
@@ -937,16 +965,22 @@ C**** Local variables initialised in init_RAD
         if (allocated(tau_as)) then ! needs to be separate from previous if
           call read_dist_data(grid,fid,'tau_as',tau_as)
           call read_dist_data(grid,fid,'tau_cs',tau_cs)
+          if (save_dry_aod>0) then
+            call read_dist_data(grid,fid,'tau_dry',tau_dry)
+          endif
 #ifdef CACHED_SUBDD
           call read_dist_data(grid,fid,'abstau_as',abstau_as)
           call read_dist_data(grid,fid,'abstau_cs',abstau_cs)
+          if (save_dry_aod>0) then
+            call read_dist_data(grid,fid,'abstau_dry',abstau_dry)
+          endif
           if (nraero_rf_rsf>0) then
             call read_dist_data(grid,fid,'swfrc',swfrc)
             call read_dist_data(grid,fid,'lwfrc',lwfrc)
           endif
 #endif  /* CACHED_SUBDD */
         endif
-#endif
+#endif  /* TRACERS_ON */
       end select
       return
       end subroutine new_io_rad
