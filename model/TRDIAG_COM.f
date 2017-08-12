@@ -115,8 +115,10 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@dbparam diag_rad switches on/off comprehensive radiative diags for tracers
       INTEGER :: diag_rad=0 ! =off (default)
 !@dbparam diag_aod_3d outputs 3d aod and aaod (band6) for all-sky (=1),
-!@+       clear-sky(=2), or both (=3).
+!@+       clear-sky(=2), dry aerosol(=4), or all (=3). Notice weird order!
       INTEGER :: diag_aod_3d=0 ! =off (default)
+!@dbparam save_dry_aod outputs 2d dry aod for all bands.
+      INTEGER :: save_dry_aod=0 ! =off (default)
 !@var TAIJS  lat/lon special tracer diagnostics; sources, sinks, etc.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAIJS_loc
@@ -303,10 +305,14 @@ C**** TAIJLS 3D special tracer diagnostics
       integer, allocatable :: ijlt_3Dtau(:)
 !@var ijlt_3DtauCS 3D tracer independent array for clear-sky hydrated opt. thick.
       integer, allocatable :: ijlt_3DtauCS(:)
+!@var ijlt_3DtauDRY 3D tracer independent array for dry opt. thick.
+      integer, allocatable :: ijlt_3DtauDRY(:)
 !@var ijlt_3Daaod 3D tracer independent array for all-sky hydrated absorption
       INTEGER, allocatable :: ijlt_3Daaod(:)
 !@var ijlt_3DaaodCS 3D tracer independent array for clear-sky hydrated absorption
       INTEGER, allocatable :: ijlt_3DaaodCS(:)
+!@var ijlt_3DaaodDRY 3D tracer independent array for dry absorption
+      INTEGER, allocatable :: ijlt_3DaaodDRY(:)
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
 !@var ijlt_3Dmass 3D tracer independent array for layer MASS (or load)
       INTEGER, allocatable :: ijlt_3Dmass(:)
@@ -1469,21 +1475,21 @@ C*** Unpack read global data into local distributed arrays
       ijts_isrc = 0
       allocate(ijts_aq(ntm))
       ijts_aq = 0
-      allocate(ijts_tau(2,ntm))
+      allocate(ijts_tau(3,ntm))
       ijts_tau = 0
-      allocate(ijts_tausub(2,Ntm,MaxSubCl))
+      allocate(ijts_tausub(3,Ntm,MaxSubCl))
       ijts_tausub = 0
-      allocate(ijts_sqex(2,6,Ntm))
+      allocate(ijts_sqex(3,6,Ntm))
       ijts_sqex = 0
-      allocate(ijts_sqexsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_sqexsub(3,6,Ntm,MaxSubCl))
       ijts_sqexsub = 0
-      allocate(ijts_sqsc(2,6,Ntm))
+      allocate(ijts_sqsc(3,6,Ntm))
       ijts_sqsc = 0
-      allocate(ijts_sqscsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_sqscsub(3,6,Ntm,MaxSubCl))
       ijts_sqscsub = 0
-      allocate(ijts_sqcb(2,6,Ntm))
+      allocate(ijts_sqcb(3,6,Ntm))
       ijts_sqcb = 0
-      allocate(ijts_sqcbsub(2,6,Ntm,MaxSubCl))
+      allocate(ijts_sqcbsub(3,6,Ntm,MaxSubCl))
       ijts_sqcbsub = 0
       allocate(ijts_fc(8,ntm))
       ijts_fc = 0

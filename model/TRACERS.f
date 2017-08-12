@@ -2325,7 +2325,7 @@ c daily_z is currently only needed for CS
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
       use tracer_com, only : ntm
-      use trdiag_com, only : to_volume_MixRat
+      use trdiag_com, only : to_volume_MixRat, save_dry_aod
       use radpar, only: nraero_aod=>NTRACE
       use rad_com, only: ntrix_aod,nraero_rf,ntrix_rf,diag_fc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
@@ -2335,9 +2335,10 @@ c daily_z is currently only needed for CS
       integer :: nmax,decl_count
       type(info_type) :: arr(nmax)
 ! types of aods to be saved
-! The name will be any combination of {,TRNAME}{as,cs}{,a}aod
-      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
-     &                                lsky=(/'All-sky  ','Clear-sky'/)
+! The name will be any combination of {,TRNAME}{as,cs,dry}{,a}aod
+      character(len=10), dimension(3) :: ssky=(/'as ','cs ','dry'/),
+     &                                lsky=(/'All-sky  ','Clear-sky',
+     &                                       'Dry aeros'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
      &                                labs=(/'          ','absorption'/)
       character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/),
@@ -2362,6 +2363,7 @@ c daily_z is currently only needed for CS
 ! Optical Depths
 
       do s=1,size(ssky)
+      if (ssky(s).eq.'dry' .and. save_dry_aod.eq.0) cycle
       do a=1,size(sabs)
       do n=1,nraero_aod+1 ! +1 for total
         if (n<=nraero_aod) then
@@ -2492,16 +2494,17 @@ C
       use OldTracer_mod, only: trname
       use radpar, only: nraero_aod=>NTRACE
       use rad_com, only: ntrix_aod
-      use trdiag_com, only : to_volume_MixRat
+      use trdiag_com, only : to_volume_MixRat, save_dry_aod
       implicit none
       integer :: nmax,decl_count
       integer :: n
       character*80 :: unitString
       type(info_type) :: arr(nmax)
 ! types of aods to be saved
-! The name will be any combination of {,TRNAME}{as,cs}{,a}aod3d
-      character(len=10), dimension(2) :: ssky=(/'as','cs'/),
-     &                                lsky=(/'All-sky  ','Clear-sky'/)
+! The name will be any combination of {,TRNAME}{as,cs,dry}{,a}aod3d
+      character(len=10), dimension(3) :: ssky=(/'as ','cs ','dry'/),
+     &                                lsky=(/'All-sky  ','Clear-sky',
+     &                                       'Dry aeros'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/),
      &                               labs=(/'          ','absorption'/),
      &                               lcoef=(/'extinction','absorption'/)
@@ -2542,6 +2545,7 @@ C
 ! 3d AOD
 
       do s=1,size(ssky)
+      if (ssky(s).eq.'dry' .and. save_dry_aod.eq.0) cycle
       do a=1,size(sabs)
       do n=1,nraero_aod+1 ! +1 for total
         if (n<=nraero_aod) then
