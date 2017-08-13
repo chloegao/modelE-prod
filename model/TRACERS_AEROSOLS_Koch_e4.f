@@ -24,11 +24,7 @@
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
-#ifdef TRACERS_VOLCEXP
-      INTEGER, PARAMETER :: nso2src_3d  = 2
-#else
-      INTEGER, PARAMETER :: nso2src_3d  = 1
-#endif
+      INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
@@ -63,7 +59,7 @@
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * nso2src_3d,SO2_src_3D,
+     * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
@@ -79,6 +75,7 @@
 #ifdef BC_ALB
       use AEROSOL_SOURCES, only: snosiz
 #endif  /* BC_ALB */
+      use filemanager, only: file_exists
 
       use RESOLUTION, only: lm
       
@@ -99,6 +96,14 @@
 #ifndef TRACERS_AEROSOLS_SOA
       allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif  /* TRACERS_AEROSOLS_SOA */
+      if (file_exists('SO2_VOLCANO')) then
+        nso2src_3d=nso2src_3d+1
+        iso2volcano=nso2src_3d
+      endif
+      if (file_exists('SO2_VOLCANO_EXPL')) then
+        nso2src_3d=nso2src_3d+1
+        iso2volcanoexpl=nso2src_3d
+      endif
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
      * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)

@@ -524,9 +524,6 @@ C****                                         even if the year is fixed
       if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
-#ifdef TRACERS_VOLCEXP
-      MADVOL=0
-#endif
 !***  KYEARV=0 : use current year
 !***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
 !     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
