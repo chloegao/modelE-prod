@@ -6913,7 +6913,6 @@ C*****
       use TRACER_COM, only: n_ASO4
       use TRACER_COM, only: n_AECOB, n_AOCOB
       use TRACER_COM, only: nSO4anum
-      USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
       USE TOMAS_AEROSOL, only : xk
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
