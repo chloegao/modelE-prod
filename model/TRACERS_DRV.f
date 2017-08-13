@@ -4353,7 +4353,7 @@ c find indices of denominators
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE AEROSOL_SOURCES, only: SO2_src_3D
+      USE AEROSOL_SOURCES, only: SO2_src_3D,iso2volcano
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
@@ -5351,7 +5351,8 @@ c read in DMS source
 c read in SO2 emissions
 c volcano - continuous
 C    Initialize:
-      so2_src_3D(:,:,:,1)= 0.d0
+      if (iso2volcano>0) then
+      so2_src_3D(:,:,:,iso2volcano)= 0.d0
 c read lat-lon netcdf file and convert lat,lon,pres to i,j,l.
 c NOTE: the input file specifies integrals over its gridboxes.
       ALLOCATE(  psref(grid%i_strt_halo:grid%i_stop_halo,
@@ -5390,7 +5391,8 @@ c NOTE: the input file specifies integrals over its gridboxes.
           enddo
           amsum = sum(amref(1:lmax))
           do ll=1,lmax ! add source between surf and max height
-            so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
+            so2_src_3d(ii,jj,ll,iso2volcano)=
+     &        so2_src_3d(ii,jj,ll,iso2volcano)
      &          +(amref(ll)/amsum)*
      &           volc_emiss(ilon,jlat)/(SECONDS_PER_DAY*30.4d0)/12.d0
           enddo
@@ -5400,6 +5402,7 @@ c NOTE: the input file specifies integrals over its gridboxes.
       deallocate(volc_lats, volc_pup, volc_emiss)
 #endif
       deallocate(psref)
+      endif ! iso2volcano>0
 #endif
 ! ---------------------------------------------------
 #ifndef TRACERS_AEROSOLS_SOA
@@ -5457,7 +5460,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & write_parallel
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_VOLCEXP
-      USE AEROSOL_SOURCES, only: so2_src_3d
+      USE AEROSOL_SOURCES, only: so2_src_3d,iso2volcanoexpl
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
@@ -5565,7 +5568,7 @@ C****
       call read_stream(grid,SO2_vphe_stream,year,dayofyear,
      &                 Plume_hei_volc_emis_expl)
 
-      so2_src_3d(:,:,:,2) = 0.d0
+      so2_src_3d(:,:,:,iso2volcanoexpl) = 0.d0
 
       DO J=J_0,J_1                          
       DO I=I_0,I_1  
@@ -5580,10 +5583,12 @@ C****
           do ll=lmin,lmax ! add source into the upper 1/3 of the plume
                           ! conversion kt d-1 into kg s-1
           if (lmax <= 2) then
-            so2_src_3d(i,j,1,2) = so2_src_3d(i,j,1,2)
+            so2_src_3d(i,j,1,iso2volcanoexpl)=
+     &        so2_src_3d(i,j,1,iso2volcanoexpl)
      &                + so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
           else
-            so2_src_3d(i,j,ll,2) = so2_src_3d(i,j,ll,2)
+            so2_src_3d(i,j,ll,iso2volcanoexpl)=
+     &        so2_src_3d(i,j,ll,iso2volcanoexpl)
      &                + (1./(float(lmax-lmin)+1)) 
      &                * so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
           endif
@@ -6857,20 +6862,13 @@ C**** All sources are saved as kg s-1
           select case(trname(n))
           case ('SO2','SO4','M_ACC_SU','M_AKK_SU')
             tr3Dsource(:,nVolcanic,n)=
-     &        so2_src_3d(i,j,:,nso2src_3d)*src_fact
+     &        sum(so2_src_3d(i,j,:,:),2)*src_fact
             call apply_tracer_3Dsource(i,j,nVolcanic,n)
 #ifdef TRACERS_TOMAS
           case ('ASO4__01')
             do k=1,nbins
-#ifdef TRACERS_VOLCEXP
               tr3Dsource(:,nVolcanic,n_ASO4(k))=
-     &          so2_src_3d(i,j,:,nso2src_3d-1)
-     &         *scalesizeSO4_vol(k)*src_fact
-#else
-              tr3Dsource(:,nVolcanic,n_ASO4(k))=
-     &          so2_src_3d(i,j,:,nso2src_3d)
-     &         *scalesizeSO4_vol(k)*src_fact
-#endif
+     &          sum(so2_src_3d(i,j,:,:),2)*scalesizeSO4_vol(k)*src_fact
               tr3Dsource(:,nSO4anum,n_ANUM(k))=
      &          tr3Dsource(:,nVolcanic,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
 !              call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
