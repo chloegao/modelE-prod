@@ -3896,22 +3896,16 @@ C**** some tracer specific 3D arrays
           endif ! diag_aod_3d = 2 or 3
 
           if (diag_aod_3d==4 .or. diag_aod_3d==3) then
-            k = k + 1
-            ijlt_3DtauDRY(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' DRY tau'
-            sname_ijlt(k) = 'tau_3D_DRY_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
-            k = k + 1
-            ijlt_3DaaodDRY(n)=k
-            ia_ijlt(k) = ia_rad
-            lname_ijlt(k) = trim(trname_curr)//' DRY aaod'
-            sname_ijlt(k) = 'aaod_3D_DRY_'//trim(trname_curr)
-            ijlt_power(k) = -2
-            units_ijlt(k) = unit_string(ijlt_power(k),' ')
-            scale_ijlt(k) = 10.**(-ijlt_power(k))
+            ijlt_3DtauDRY(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='tau_3D_DRY_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' DRY tau',
+     &                  units=' ', power=-2)
+            ijlt_3DaaodDRY(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='aaod_3D_DRY_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' DRY aaod',
+     &                  units=' ', power=-2)
           endif ! diag_aod_3d = 4 or 3
 
         enddo ! nraero_aod
