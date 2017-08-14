@@ -4572,7 +4572,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = -10 ! to match NOx
         units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
-#ifdef TRACERS_AEROSOLS_Koch
       k = k + 1
         ijlt_prodSO4aq=k
         lname_ijlt(k) = 'SO4 aqueous chem source 3D'
@@ -4587,7 +4586,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
         ijlt_power(k) = -15 ! to match ijts 2D
         units_ijlt(k) = unit_string(ijlt_power(k),'kg m-2 s-1')
         scale_ijlt(k) = 10.**(-ijlt_power(k))/DTsrc
-#endif /* TRACERS_AEROSOLS_Koch */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
