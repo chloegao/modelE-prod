@@ -4051,7 +4051,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='NO2_vmr',
      &              lname='NO2 mixing ratio',
      &              units='V/V air', power=-10) ! to match NOx
-#ifdef TRACERS_AEROSOLS_Koch
         ijlt_prodSO4aq=
      &    ijlt_diag(sname='SO4aqSrc3D',
      &              lname='SO4 aqueous chem source 3D',
@@ -4060,7 +4059,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='SO4gasSrc3D',
      &              lname='SO4 gas phase source 3D',
      &              units='kg m-2 s-1', power=-15) ! to match ijts 2D
-#endif /* TRACERS_AEROSOLS_Koch */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
