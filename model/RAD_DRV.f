@@ -4024,6 +4024,7 @@ C****
       subdd => subdd_groups(grpids(igrp))
       do k=1,subdd%ndiags
       do s=1,size(ssky)
+      if (trim(ssky(s)).eq.'dry' .and. save_dry_aod==0) cycle
       do a=1,size(sabs)
         select case (trim(ssky(s))//trim(sabs(a)))
           case ('as')
