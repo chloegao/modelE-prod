@@ -1312,7 +1312,7 @@ C Return the density
       real*8 tot_nh3  !total kmoles of ammonia
       real*8 tot_so4  !total kmoles of so4
       real*8 sfrac    !fraction of sulfate that is in that bin
-      real*8 Gce(icomp)
+      real*8 Gce(icomp-1)
       real*8 Mke(ibins,icomp)
 
 
@@ -1770,7 +1770,7 @@ C Bulk species
       real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
       real*8,dimension(nbins) ::  ndist, ndist2, ndist0 !the number of particles in the box
       real*8,dimension(nbins,icomp) :: mdist,mdist2,mdist0 ! the mass of each component in the box. (kg)
-      real tscale ! the scale time for mixing (s)
+      real*8 tscale ! the scale time for mixing (s)
       real*8 ndistfinal(nbins),tot_ndistinit(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8 maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
 
@@ -2146,7 +2146,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       real*8, intent(in) :: ndist2(nbins) !the number of particles in the box
       real*8, intent(in) :: mdist2(nbins,icomp) ! the mass of each component in the box. (kg)
       real*8, intent(in) :: boxvolume  ! volume of box in cm3
-      real, intent(in) :: tscale ! the scale time for mixing (s)
+      real*8, intent(in) :: tscale ! the scale time for mixing (s)
       real*8, intent(out) :: ndistfinal(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8, intent(out) :: maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
       real*8 mp ! mass of the particle (kg)
