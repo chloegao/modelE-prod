@@ -2324,6 +2324,9 @@ c daily_z is currently only needed for CS
       use model_com, only : dtsrc,nday
       use subdd_mod, only : info_type, sched_rad
       use OldTracer_mod, only: trname
+#ifdef TRACERS_WATER 
+      use OldTracer_mod, only : nWater, tr_wd_type
+#endif
       use tracer_com, only : ntm
       use trdiag_com, only : to_volume_MixRat, save_dry_aod
       use radpar, only: nraero_aod=>NTRACE
@@ -2474,6 +2477,33 @@ C
      &  )
 #endif 
 
+#ifdef TRACERS_WATER
+! Water tracer/isotope precipitation 
+      do n=1,ntm
+        if (tr_wd_type(n).eq.nWater) then !Is it a water (isotope) tracer?
+          !Set 'subdd' variable/object meta-data:
+          arr(next()) = info_type_(
+     &      sname = trim(trname(n))//'_in_prec',
+     &      lname = trim(trname(n))//' in Precip',
+     &      units = 'kg/m^2/s',
+     &      scale = 1./dtsrc !kg/m2 -> kg/m2/s
+     &      )
+        end if
+      end do !ntm
+
+! Water tracer/isotope evaporation
+      do n=1,ntm
+        if (tr_wd_type(n).eq.nWater) then !Is it a water (isotope) tracer?
+          !Set 'subdd' variable/object meta-data:
+          arr(next()) = info_type_(
+     &      sname = trim(trname(n))//'_in_evap',
+     &      lname = trim(trname(n))//' in Evap',
+     &      units = 'kg/m^2/s',
+     &      scale = 1./dtsrc !kg/m2 -> kg/m2/s
+     &      )
+        end if
+      end do !ntm
+#endif
 
       return
       contains
