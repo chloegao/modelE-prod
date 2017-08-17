@@ -32,19 +32,19 @@
       END MODULE obio_forc
 
 !------------------------------------------------------------------------------
-      subroutine alloc_obio_forc
+!NOT FOR HYCOM:idm and jdm were passed to the subroutine       
+      subroutine alloc_obio_forc(kdm,ogrid,idm,jdm)
+
       use ocalbedo_mod, only: nlt
       USE obio_forc
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,kdm=>lmo
+      USE DOMAIN_DECOMP_1D, only :DIST_GRID
 
-#else
-      USE hycom_dim, only : ogrid, kdm
-#endif
 
 
       implicit none
+
+      integer, intent(in) :: kdm,idm,jdm
+      type(DIST_grid), intent(in) :: ogrid
 
       INTEGER :: j_0,j_1,i_0,i_1
 

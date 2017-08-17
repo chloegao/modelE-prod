@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_ptend(vrbos,kmax,i,j)
+      subroutine obio_ptend(vrbos,kmax,i,j,kdm,nstep,n_co2n,
+     &                      DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC) 
 
 c  Computes tendencies of biological particles (units/hr) 
 c  tracer
@@ -26,20 +27,17 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d,flimit,obio_deltat,sday
+
 #ifdef restoreIRON
 !AR5 preprocessor option
      .                    ,Iron_BC
 #endif
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-      USE MODEL_COM, only : nstep=>itime
-#else  /* HYCOM ocean */
-      USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep
-#endif
 
       implicit none
+
+      integer,intent(in) :: kdm,nstep,n_co2n,n_abioDIC,num_tracers
+      real, intent(in) :: dts,mmo,ddxypo,SDIC(num_tracers)
 
       integer i,j,k,kto
       integer nt,kmax
@@ -68,7 +66,6 @@ c  P(9) = herbivores (mg chl m-3)
      .  ' NO3   ',' NH4   ',' SiO2  ',' Iron  ','Diatom ','Chlphy ',
      .  'Cyanob ','Coccol ','Herbiv ','N/Cdet ','Silica ','Fe_det '/)
 
-
        rhs=0.0
        obio_ws = 0.0
        P_tend = 0.0
@@ -85,8 +82,7 @@ c  P(9) = herbivores (mg chl m-3)
        gronfix = 0.0
 
 
-
-!define no ice points based on covice (here: covice_ij)
+       !define no ice points based on covice (here: covice_ij)
       pnoice(1)=1.-covice_ij
       do k=2,kdm
          pnoice(k)=pnoice(1)
@@ -103,7 +99,8 @@ c  Start Model Space Loop
 !we do not need to multiply this by pnoice, because iron
 !is deposited over ice and presumably when ice melts will enter
 !the ocean
-       k = 1
+       
+        k = 1
        term = atmFe_ij*solFe*1.d-3/max(p1d(k+1),1.e-3)
        rhs(k,4,4) = term
        P_tend(k,4) = P_tend(k,4) + term
@@ -603,9 +600,7 @@ c        rfix = min(rfix,0.2)
       do k=1,kmax
        !we distribute total_gronfix into each layer according to its layer thickness
        kto = (kmax-k)+1
-#ifndef OBIO_ON_GARYocean
-       if (dp1d(kto).gt.1.) then    ! for hycom only, avoid massless layers
-#endif
+       if (dp1d(kto).gt.1.) then    !avoid massless layers
        ratio = obio_P(kto,1)*dp1d(kto) / SobioP1
        term = -bn* ratio * Sgronfix/dp1d(kto)
        rhs(kto,1,11) = term
@@ -615,9 +610,7 @@ c      if (vrbos)write(*,'(a,5i6,8e18.8)')'Nfixation_new diag:',
 c    .     nstep,i,j,k,kto,dp1d(k),dp1d(kto),
 c    .     obio_P(kto,1),SobioP1,ratio,Sgronfix,
 c    .     rhs(kto,1,11),rhs(k,7,12)*bn
-#ifndef OBIO_ON_GARYocean
        endif
-#endif
       enddo
       endif  !Sgronfix*dt <= 0.5*SobioP1
 #endif
@@ -701,11 +694,14 @@ c    .     rhs(kto,1,11),rhs(k,7,12)*bn
 #ifdef TOPAZ_params
       call obio_alkalinity_topaz(vrbos,kmax,i,j)
 #else
-      call obio_alkalinity(kmax,i,j)
+      call obio_alkalinity(kmax,i,j,nstep)
 #endif
 #endif
 
-      call obio_carbon(gro,vrbos,kmax,i,j)
+!NOT FOR HYCOM:dts,mo,dxypo, n_abioDIC, num_tracers,trmo and oij passed
+!to the subroutine.  
+      call obio_carbon(gro,vrbos,kmax,i,j,nstep,kdm,n_co2n,
+     &                 DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC)
 
  107  format (/'lyr',i3,4x,'amount   tndcy   ',
      .    9(2x,a7)/(a7,2es9.1,2x,6es9.1))
