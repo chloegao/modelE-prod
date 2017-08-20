@@ -4395,32 +4395,31 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef ACCMIP_LIKE_DIAGS
       k = k + 1
-        ijlt_OH=k
+        ijlt_OHvmr=k
         lname_ijlt(k) = 'OH mixing ratio'
         sname_ijlt(k) = 'OH_vmr'
         ijlt_power(k) = -10
         units_ijlt(k) = unit_string(ijlt_power(k),'V/V air')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
-#else
+#endif
       k = k + 1
-        ijlt_OH=k
+        ijlt_OHconc=k
         lname_ijlt(k) = 'OH concentration'
-        sname_ijlt(k) = 'OH_con'
+        sname_ijlt(k) = 'OH_conc'
         ijlt_power(k) = 5
         units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
-#endif
       k = k + 1
         ijlt_NO3=k
         lname_ijlt(k) = 'NO3 concentration'
-        sname_ijlt(k) = 'NO3_con'
+        sname_ijlt(k) = 'NO3_conc'
         ijlt_power(k) = 5
         units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
         scale_ijlt(k) = 10.**(-ijlt_power(k))
       k = k + 1
         ijlt_HO2=k
         lname_ijlt(k) = 'HO2 concentration'
-        sname_ijlt(k) = 'HO2_con'
+        sname_ijlt(k) = 'HO2_conc'
         ijlt_power(k) = 7
         units_ijlt(k) = unit_string(ijlt_power(k),'molecules cm-3')
         scale_ijlt(k) = 10.**(-ijlt_power(k))

@@ -240,7 +240,8 @@ C**** TAIJLS 3D special tracer diagnostics
 !@var ijlt_power: power of 10 used for tracer IJL 3D diags
       INTEGER, DIMENSION(ktaijs) :: ijlt_power
 !@var ijlt_XXX diag names associated with 3D tracer special diags
-      INTEGER :: ijlt_OH,ijlt_NO3,ijlt_HO2,ijlt_COp,ijlt_COd,
+      INTEGER :: ijlt_OHvmr,ijlt_OHconc,
+     & ijlt_NO3,ijlt_HO2,ijlt_COp,ijlt_COd,
      & ijlt_Oxp,ijlt_Oxd,ijlt_CH4d,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxpRO2
      & ,ijlt_OxlOH,ijlt_OxlHO2,ijlt_OxlALK,ijlt_phO1D,ijlt_pO1D,ijlt_pOH
      & ,ijlt_NOxLgt,ijlt_NOvmr,ijlt_NO2vmr,ijlt_JO1D,ijlt_JNO2
