@@ -1,6 +1,11 @@
 #include "rundeck_opts.h"
 !#define DEBUG 1
-!#define USE_NR_SOLVER_FOR_FBB
+
+! use iterative solver by default
+#define USE_NR_SOLVER_FOR_FBB
+#ifdef ENT_USE_ANALYTIC_SOLVER_FOR_FBB
+#undef USE_NR_SOLVER_FOR_FBB
+#endif
       module  photcondmod
 !@sum Photosynthesis and stomatal conductance at the leaf level at the
 !@+   physical time step.

@@ -110,7 +110,7 @@ C**** Apply bottom and coastal drags
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
-      call obio_model(ocnatm)
+      call obio_model(0,ocnatm)
 #ifdef TRACERS_GASEXCH_ocean_CO2
          Call CARBON ('OBIO_M')
          Call NITR ('OBIO_M')

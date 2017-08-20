@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_alkalinity(kmax,i,j)
+      subroutine obio_alkalinity(kmax,i,j,nstep)
 
 !@sum  online computation of alkalinity
 !@auth Natassa Romanou
@@ -49,19 +49,17 @@
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,alk1d,caexp,kzc
 
-#ifdef OBIO_ON_GARYocean
-      USE MODEL_COM, only: nstep=> itime
-      USE OCEAN, only: dxypo
-#else
-      USE hycom_scalars, only: nstep
-      USE hycom_arrays, only: scp2
-#endif
 
       implicit none
+
+      integer, intent(in) :: nstep
 
       integer nt,k,kmax,nchl1,nchl2,i,j
       real*8 J_PO4(kmax),pp,Jprod(kmax),Jprod_sum,Fc,zz,F_Ca(kmax+1),
      .       J_Ca(kmax),term,term1,term2,DOP,offterm
+
+
+
 !--------------------------------------------------------------------------
 !only compute tendency terms if total depth greater than conpensation depth
       if (p1d(kmax+1) .lt. p1d(kzc)) then
@@ -159,12 +157,7 @@
 !    .        exp(-1.d0*(p1d(kzc)-p1d(kzc))/d_Ca),F_Ca(kzc)
 
 
-#ifdef OBIO_ON_GARYocean
-!     caexp = F_Ca(4)        !mili-gC/m2/hr
       caexp = F_Ca(kzc)        !mili-gC/m2/s   July 2016
-#else
-      caexp = F_Ca(kzc)      !mili-gC/m2/s     July 2016
-#endif
 
 !compute sources/sinks of CaCO3
       offterm= 0.d0

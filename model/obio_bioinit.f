@@ -1,6 +1,11 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_bioinit
+!NOT FOR HYCOM: mo, DXYPO, trmo,n_abioDIC,im,jm, number traces and lmm
+!passed to subroutine
+      subroutine obio_bioinit(kdm,n_abioDIC,DXYPO,ogrid,
+     &                    MO,trmo,num_tracers,
+     &                   im,jm,rlon2D,rlat2D,ip,lmm)
+
  
 !note: 
 !obio_bioinit is called only for a cold start and reads in INITIAL conditions and interpolates them
@@ -23,19 +28,24 @@
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax, tracer
  
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-      USE OCEAN, only : ip=>focean,trmo,MO,DXYPO
-      USE OCEANR_DIM, only : ogrid
-      USE OCN_TRACER_COM, only : n_abioDIC
-#else
-      USE hycom_dim, only : ip,kdm,ogrid
-#endif
       use obio_com, only: ze
-      use bio_inicond_mod, only: bio_inicond
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      use bio_inicond_mod, only : bio_inicond
+      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT ,DIST_GRID
 
       implicit none
+
+      integer, intent(in) :: num_tracers,kdm,n_abioDIC,
+     &                       im,jm
+      type(DIST_GRID), intent(in) :: ogrid
+      integer, intent(in) :: lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)
+      real, intent(in) ::DXYPO(jm),
+     &                   MO(im,ogrid%j_strt_halo:ogrid%j_stop_halo,kdm),
+     &                   ip(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &                      ogrid%j_strt_halo:ogrid%j_stop_halo),
+     &                   rlon2D(im,jm) ,rlat2D(im,jm)
+      real, intent(out) :: trmo(im,
+     &         ogrid%j_strt_halo:ogrid%j_stop_halo,kdm,num_tracers)
+
 
       real, parameter, dimension(0:13) :: fer_values=
      &  (/ 0E0,
@@ -55,10 +65,7 @@
 
       integer i,j,k,l
 
-
-      integer nir(nrg), nt
-
-      INTEGER :: j_0,j_1,i_0,i_1
+      integer nir(nrg),nt,I_0,I_1,J_0,J_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
@@ -75,8 +82,11 @@
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
 
-      call bio_inicond('nitrates_inicond',tracer(:,:,:,1))
-      call bio_inicond('silicate_inicond',tracer(:,:,:,3))
+!NOT FOR HYCOM: lmm passed to subroutine
+      call bio_inicond('nitrates_inicond',tracer(:,:,:,1),
+     &                 kdm,im,ogrid,ip,lmm)
+      call bio_inicond('silicate_inicond',tracer(:,:,:,3),
+     &                 kdm,im,ogrid,ip,lmm)
 
 
 #ifdef obio_TRANSIENTRUNS
@@ -84,11 +94,14 @@
       dic = tracer(:,:,:,15)
 #else
 ! otherwise take from rundeck
-      call bio_inicond('dic_inicond',dic)
+!NOT FOR HYCOM: lmm passed to subroutine
+      call bio_inicond('dic_inicond',dic,
+     &                 kdm,im,ogrid,ip,lmm)
 #endif
 
 #ifdef TRACERS_Alkalinity
-      call init_alk(tracer(:,:,:,ntrac))
+!check the value of ntrac
+     call init_alk(tracer(:,:,:,ntrac),kdm,ogrid)
 #endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
@@ -101,8 +114,8 @@
 !at the same time use dps and interpolate to layer depths from the model
 
       do k=1,kdm
-       do j=j_0,j_1
-        do i=i_0,i_1
+       do j=ogrid%j_strt,ogrid%j_stop
+        do i=ogrid%i_strt,ogrid%i_stop
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
           if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
@@ -117,13 +130,13 @@
 
 c  Obtain region indicators
 c     write(6,*)'calling fndreg...'
-      call fndreg(ir)
+      call fndreg(ir,ogrid,im,jm,rlon2D,rlat2D,ip)
  
 c  Define Fe:NO3 ratios by region, according to Fung et al. (2000)
 c  GBC.  Conversion produces nM Fe, since NO3 is as uM
 
-      do j=j_0,j_1
-        do i=i_0,i_1
+      do j=ogrid%j_strt,ogrid%j_stop
+        do i=ogrid%i_strt,ogrid%i_stop
           fer(i,j,:)=fer_values(ir(i,j))
         enddo  !i-loop
       enddo  !j-loop
@@ -133,8 +146,8 @@ c  Create arrays
      .  write(6,*)'Creating bio restart data for ',ntyp,' arrays and'
      . ,kdm,'  layers...'
 
-      do j=j_0,j_1
-      do i=i_0,i_1
+      do j=ogrid%j_strt,ogrid%j_stop
+      do i=ogrid%i_strt,ogrid%i_stop
         if (ip(i,j)==0) cycle
 
         do k=1,kdm
@@ -258,21 +271,24 @@ c  Coccolithophore max growth rate
       return
       end subroutine obio_bioinit
 
-      subroutine init_alk(alk)
-#ifdef OBIO_ON_GARYocean
-      use oceanr_dim, only: ogrid
-      use oceanres, only: kdm=>lmo
-#else
-      use hycom_dim, only: ogrid, kdm
-#endif
+      subroutine init_alk(alk,kdm,ogrid,im,ip,lmm)
       use obio_com, only : ze
       use bio_inicond_mod, only: bio_inicond
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
+      
       implicit none
-      real, dimension(ogrid%i_strt:ogrid%i_stop,
-     &      ogrid%j_strt:ogrid%j_stop,kdm), intent(out) :: alk
+      
+      integer, intent(in) ::  kdm,im
+      type(DIST_GRID), intent(in) :: ogrid
+      integer, intent(in) :: lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)
+      real, intent(in) :: ip(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &                      ogrid%j_strt_halo:ogrid%j_stop_halo)
+      real, intent(out) :: alk(ogrid%i_strt:ogrid%i_stop,
+     &                         ogrid%j_strt:ogrid%j_stop,kdm)
+  
       integer :: i, j, k
 
-      call bio_inicond('alk_inicond',alk)
+      call bio_inicond('alk_inicond',alk,kdm,im,ogrid,ip,lmm)
       do k=1,kdm
       do j=ogrid%j_strt,ogrid%j_stop
       do i=ogrid%i_strt,ogrid%i_stop
@@ -289,8 +305,8 @@ c  Coccolithophore max growth rate
       end subroutine init_alk
 
 c------------------------------------------------------------------------------
-      subroutine fndreg(ir)
- 
+      subroutine fndreg(ir,ogrid,im,jm,rlon2D,rlat2D,ip)
+
 c  Finds nwater indices corresponding to significant regions,
 c  and defines arrays.  Variables representative of the regions will 
 c  later be kept in these array indicators.
@@ -311,20 +327,18 @@ c       13 -- Mediterranean/Black Seas
  
 
       USE obio_dim
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid   
-      Use OCEAN,      only : oLON_DG,oLAT_DG,ip=>focean
-#else
-      USE hycom_dim, only : ip,ogrid
-      USE hycom_arrays, only : lonij,latij
-#endif
       use obio_com, only: ze
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID
 
       implicit none
 
-      integer, DIMENSION(ogrid%i_strt:ogrid%i_stop,
-     &             ogrid%j_strt:ogrid%j_stop), intent(out)   :: ir
+      integer, intent(in) :: im,jm
+      type(DIST_GRID), intent(in) :: ogrid
+      integer, intent(out) :: ir(ogrid%i_strt:ogrid%i_stop,
+     &                           ogrid%j_strt:ogrid%j_stop)
+      real, intent(in) :: rlon2D(im,jm),rlat2D(im,jm),
+     &                    ip(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &                      ogrid%j_strt_halo:ogrid%j_stop_halo)
 
       integer i,j,l
       integer iant,isin,ispc,isat,iein,iepc,ieat,incp
@@ -336,7 +350,7 @@ c       13 -- Mediterranean/Black Seas
 
       real antlat,rnpolat
       data antlat,rnpolat /-40.0, 40.0/
- 
+
 
 c  Set up indicators
       iant = 1   !antarcic region
@@ -361,13 +375,12 @@ c  Find nwater values corresponding to regions
        do j=ogrid%j_strt,ogrid%j_stop
        do i=ogrid%i_strt,ogrid%i_stop
 
-#ifdef OBIO_ON_GARYocean
-        rlon=oLON_DG(i,1)
-        rlat=oLAT_DG(j,1)
-#else
-        rlon=lonij(i,j,3)
-        rlat=latij(i,j,3)
-#endif
+        rlon=rlon2D(i,j)
+        rlat=rlat2D(i,j)
+ 
+         if (i.eq.1) then
+           write(*,*) 'rlon and rlat',i,j,rlon, rlat
+         endif
 
         if (rlon .gt. 180)rlon = rlon-360.0
 

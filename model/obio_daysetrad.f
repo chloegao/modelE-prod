@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_daysetrad(vrbos,i,j)
+      subroutine obio_daysetrad(vrbos,i,j,kdm)
 c
 c  Sets daily parameters for ocean irradiance.
 c
@@ -10,16 +10,11 @@ c
       USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
      .                    ,acdom
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-#else
-      USE hycom_dim_glob, only : kdm
-#endif
-
       implicit none
 
       integer :: i,j,k
       integer :: nl,nt
+      integer, intent(in) :: kdm
       real :: actot450,atot450
 
       logical vrbos
