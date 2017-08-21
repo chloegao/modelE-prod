@@ -3,14 +3,12 @@ emissions scheme as coded in modelE. Fairly random order. [G.Faluvegi, Summer,
 2017]
 ================================================================================
 
-==> There is a rundeck parameter CCE_megan, which appears to be a linear tuning
-    factor to take into account differences in models running megan (technically,
-    canopy environment models. See Guenther, 2012 page 1475. and Guenther 2006, 
-    p. 3190) This is to be tuned to get a total?? gamma of ~1.0 under "standard
-    conditions". Perhaps need to put in a "tune_megan" switch that sets these
-    standard conditions and outputs the total gamma. Bit confused though, as the
-    total gamma is species-dependant, so maybe it's just part of the gamma that
-    needs to be unity (see pg 3189 of Guenther 2006)
+==> Like the Hammoz implementation, we have not yet called a canopy model to get
+    the gamma_TLD & gamma_TLI -- we're calling the MEGAN routines directly to get
+    these. (Right now there's a database parameter use_canopy_model, which could
+    eventually get a call sync_param to turn this option on. If this gets implemented
+    we need a CCE tuning parameter. See comments in the code about it and also:
+    See Guenther, 2012 page 1475. and Guenther 2006, p. 3190).
 
 ==> In the routine subroutine biogenicEmissions_drv, instead of using an array
     'species' to define the (list of) species, get a better programmer to loop over
@@ -21,15 +19,15 @@ emissions scheme as coded in modelE. Fairly random order. [G.Faluvegi, Summer,
     to be temperature near "canopy top", while the SAT_daily_megan we are passing
     to gamma_tld routine looks like surface air temperature. However, in the hammoz
     model, they seem to pass both routines the same temperature. Think about this.
-    *BUT* their notes say that they neglect the canopy, and that that should be 
+    *BUT* their notes say that they neglect the canopy, and that that should be
     studied/improved.
-    Therefore, if the exporting of the canopy temperature from Ent is NOT RIGHT,
+    Therefore, if the exporting of the canopy temperature from GHY_DRV is NOT RIGHT,
     (for some reason) then a good "initial stab" at a fix would be to replace the
     section that sets T_daily_megan with the line:
     T_daily_megan=SAT_daily_megan
-    (or, indeed, not use T_daily_megan at all.) 
+    (or, indeed, not use T_daily_megan at all.)
     Current code proceeds under the assumption we'll get some sort of canopy 
-    temperature from Ent:
+    temperature from Ent.
 
 ==> If the use of PPFD_megan=par_direct*ConvertSunPPFD+par_diffuse*ConvertShadePPFD
     (quantities from Ent) is not appropriate and we have no others we can export,
@@ -73,7 +71,7 @@ emissions scheme as coded in modelE. Fairly random order. [G.Faluvegi, Summer,
 
 ==> It is worth thinking about the fact that the final emissions formula as coded:
 
-    species(n)%source(I,J)=convertUnits * CCE * bulk_EF * gamma_LAI * gamma_AGE *
+    species(n)%source(I,J)=convertUnits * bulk_EF * gamma_LAI * gamma_AGE *
        gamma_SM * gamma_CO2 * ( (1.d0-species(n)%ldf) * gamma_tli +
        species(n)%ldf * gamma_PPFD*gamma_tld)
 
@@ -81,9 +79,9 @@ emissions scheme as coded in modelE. Fairly random order. [G.Faluvegi, Summer,
     portions of T and PDDF and would have looked more like what's below. (But both
     the hammoz model and MEGAN 2.1 codes seem to use more like what we did above.)
 
-    species(n)%source(I,J)=convertUnits * CCE * bulk_EF * gamma_LAI * gamma_AGE *
-       gamma_SM * gamma_CO2 * ( (1.d0-species(n)%ldf) * gamma_tli + 
-       species(n)%ldf * gamma_tld ) * ( (1.d0-species(n)%ldf) + 
+    species(n)%source(I,J)=convertUnits * bulk_EF * gamma_LAI * gamma_AGE *
+       gamma_SM * gamma_CO2 * ( (1.d0-species(n)%ldf) * gamma_tli +
+       species(n)%ldf * gamma_tld ) * ( (1.d0-species(n)%ldf) +
        species(n)%ldf * gamma_PPFD )
 
 ==> Note: found it very hard to confirm the indicies of the megan species, because I
