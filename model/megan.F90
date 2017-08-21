@@ -24,7 +24,6 @@ private
 public :: runningAverage
 public :: biogenicSpecies
 integer, parameter, public :: nMeganPFT=16 ! number of MEGAN plant functional types
-integer :: use_canopy_model=0 !dbparam use_canopy_model on/off switch for canopy model
 
 type runningAverage
   integer :: stepsPerDay=0 ! expected accumulation steps each day (e.g. 48 for DTsrc=1800.)
@@ -141,6 +140,8 @@ type(biogenicSpecies), save :: isoprene
 ! Units are [micro mole photons] per [Joule]:
 real*8, parameter :: ConvertShadePPFD = 4.6d0
 real*8, parameter :: ConvertSunPPFD = 4.0d0
+!dbparam use_canopy_model on/off switch for canopy model
+integer :: use_canopy_model=0
 
 
 end module megan
@@ -253,7 +254,7 @@ SAT_megan=atmsrf%tsavg(i,j)
 ! If, for this location, the running average has not finished it's
 ! first averaging period, it will remain undefined and use the instantaneous
 ! value of the SAT for megan instead:
-call running_average( SAT, SAT_megan, i, j)
+call running_average_megan( SAT, SAT_megan, i, j)
 if(SAT%runningAverage(i,j)==undef)then
   ! i.e. in first averaging period use instantaneous value instead:
   SAT_daily_megan=SAT_megan
@@ -280,7 +281,7 @@ else
   T_megan=T_megan+tf ! degC --> K
 end if
 
-call running_average( T, T_megan, i, j)
+call running_average_megan( T, T_megan, i, j)
 if(T%runningAverage(i,j)==undef)then
   ! e.g. in first averaging period use instantaneous value instead:
   T_daily_megan=T_megan
@@ -300,9 +301,9 @@ end if
 ! Get LAI leaf area index from current and previous time step (This is weird;
 ! see notes below on questionable methodology and TSTLEN set to 30 days...)
 !
-! For now, for LAI, the running_average subroutine returns the LAI saved from
-! 30 days ago, and this will act as the "previous" value. (It knows to return
-! this, instead of the running average because LAI%laggedValue=.true.):
+! For now, for LAI, the running_average_megan subroutine returns the LAI saved
+! from 30 days ago, and this will act as the "previous" value. (It knows to
+! return this, instead of the running average because LAI%laggedValue=.true.):
 
 if(fearth(i,j)>0.d0) then
   call ent_get_exports( entcells(i,j),leaf_area_index=LAI_megan)
@@ -311,7 +312,7 @@ else
 end if
 LAI_current_megan=LAI_megan
 
-call running_average( LAI, LAI_megan, i, j)
+call running_average_megan( LAI, LAI_megan, i, j)
 if(LAI%runningAverage(i,j)==undef)then
   ! In first averaging period use instantaneous value instead (=no aging yet):
   LAI_previous_megan=LAI_current_megan
@@ -333,7 +334,7 @@ par_diffuse=par_total-par_direct
 ! for the 400-700 nm range) and converts to PPFD in micro-mol(photons) m-2 s-1:
 PPFD_megan=par_direct*ConvertSunPPFD+par_diffuse*ConvertShadePPFD
 
-call running_average( PPFD, PPFD_megan, i, j)
+call running_average_megan( PPFD, PPFD_megan, i, j)
 if(PPFD%runningAverage(i,j)==undef)then
   ! e.g. in first averaging period use instantaneous value instead:
   PPFD_daily_megan=PPFD_megan
@@ -771,8 +772,8 @@ end subroutine alloc_megan
 #endif /* NEW_IO */
 
 
-subroutine running_average(this, val, i, j)
-!@sum running_average keeps a running average of model quantities
+subroutine running_average_megan(this, val, i, j)
+!@sum running_average_megan keeps a running average of model quantities
 !@+ needed for MEGAN input. In practice, this does hourly and daily
 !@+ running averages and uses those to maintain the period-long running
 !@+ average, to avoid saving a huge array. This multi-day functionality
@@ -806,7 +807,7 @@ integer :: n
 if(nint(this%step(i,j)) < 0 .or. &
  & nint(this%step(i,j)) > this%stepsPerDay) then
   write(6,*) "i,j,step,max=",i,j,nint(this%step(i,j)),this%stepsPerDay
-  call stop_model('step problem in running_average MEGAN',255)
+  call stop_model('step problem in running_average_megan',255)
 end if
 
 byStepsPerDay=1.d0/dble(this%stepsPerDay)
@@ -922,7 +923,7 @@ if(nint(this%step(i,j)) == this%stepsPerDay) then
 
 end if ! whether of not at the end of the day
 
-end subroutine running_average
+end subroutine running_average_megan
 
 
 ! Moving on to gamma routines:
