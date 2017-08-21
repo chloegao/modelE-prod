@@ -28,6 +28,7 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
+#define WATER_MISC_GRND_CH4_SRC  ! Ocean, lake, misc. ground sources for CH4
 End Preprocessor Options
 
 Object modules:
@@ -81,6 +82,7 @@ E4TlernerF40
 
 
 &&PARAMETERS
+nc_emis_use_ppm_interp=0 ! chooses linear month-to-month for closer match to old Lerner source-reading
 #include "static_ocn_params"
 #include "sdragF40_params"
 #include "gwdragF40_params"
