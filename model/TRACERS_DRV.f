@@ -413,14 +413,6 @@ C**** set some defaults
         case ('Rn222')
           itcon_decay(n)=tr_con_diag('DECAY',T,T)
 
-        case ('CO2')
-          itcon_surf(1,N)=tr_con_diag('FossilFuel',T)
-          itcon_surf(2,N)=tr_con_diag('Fertilization',T)
-          itcon_surf(3,N)=tr_con_diag('Forest Regrowth',T)
-          itcon_surf(4,N)=tr_con_diag('Land Use',T)
-          itcon_surf(5,N)=tr_con_diag('Ecosystem Exch',T)
-          itcon_surf(6,N)=tr_con_diag('Ocean Exch',T)
-
         case ('N2O')   ! two versions dependent on configuration
 #ifdef TRACERS_SPECIAL_Lerner
           itcon_surf(1,N)=tr_con_diag('Reset in L1',T)
@@ -446,20 +438,6 @@ C**** set some defaults
           itcon_3Dsrc(nOverwrite,n)=tr_con_diag('Overwrite',T,T)
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
-          itcon_surf(1,N)=tr_con_diag('Animal source',T)
-          itcon_surf(2,N)=tr_con_diag('Coal Mine source',T)
-          itcon_surf(3,N)=tr_con_diag('Gas Leak source',T)
-          itcon_surf(4,N)=tr_con_diag('Gas Vent source',T)
-          itcon_surf(5,N)=tr_con_diag('City Dump source',T)
-          itcon_surf(6,N)=tr_con_diag('Soil sink',T)
-          itcon_surf(7,N)=tr_con_diag('Termite Source',T)
-          itcon_surf(8,N)=tr_con_diag('Coal Combustion',T)
-          itcon_surf(9,N)=tr_con_diag('Ocean source',T)
-          itcon_surf(10,N)=tr_con_diag('Lake source',T)
-          itcon_surf(11,N)=tr_con_diag('Misc. Ground source',T)
-          itcon_surf(12,N)=tr_con_diag('Biomass Burning',T)
-          itcon_surf(13,N)=tr_con_diag('Rice source',T)
-          itcon_surf(14,N)=tr_con_diag('Wetlands+Tundra',T)
           itcon_3Dsrc(1,n)=tr_con_diag('Tropos. Chem.',T,T)
           itcon_3Dsrc(2,n)=tr_con_diag('Stratos. Chem.',T,T)
 #endif /* TRACERS_SPECIAL_Lerner */
@@ -993,9 +971,6 @@ C**** set defaults for some precip/wet-dep related diags
         call CO2n_init_jls(k,n,'CO2n')
       case ('Rn222')
         call Rn222_init_jls(k,n,'Rn222')
-! keep AIJ and AJL CO2 sources in same order !!
-      case ('CO2')
-        call CO2_init_jls(k,n,'CO2')
       case ('N2O')
         call N2O_init_jls(k,n,'N2O')
       case ('CFC11')   !!! should start April 1
@@ -1041,104 +1016,6 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
 #else
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'Soil_sink_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' sink due to soil absorption'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(7,n) = k
-        sname_jls(k) = 'Termite_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Termite source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(9,n) = k
-        sname_jls(k) = 'Ocean_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Ocean source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(10,n) = k
-        sname_jls(k) = 'Fresh_Water_lake_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Fresh Water lake source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(11,n) = k
-        sname_jls(k) = 'Misc_Ground_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Misc_Ground source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(14,n) = k
-        sname_jls(k) = 'Wetlands+Tundra_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Wetlands+Tundra source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Animal_source_of_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Animal source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'Coal_Mine_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Coal Mine source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Gas_Leak_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Gas Leak source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'Gas_Venting_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Gas Venting source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'Municipal_solid_waste_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Municipal solid waste source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(8,n) = k
-        sname_jls(k) = 'Coal_combustion_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Coal combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(12,n) = k
-        sname_jls(k) = 'Biomass_burning_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Biomass burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(13,n) = k
-        sname_jls(k) = 'Rice_Cultivation_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Rice Cultivation source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trim(trname(n))
@@ -2271,55 +2148,6 @@ c Oxidants
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
       end subroutine Rn222_init_jls
       
-      subroutine CO2_init_jls(k,n,name)
-      integer, intent(inout) :: k
-      integer, intent(in) :: n
-      character(len=*), intent(in) :: name
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Fossil_fuel_source_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'fertilization_sink_'//trim(trname(n))
-        lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Northern_forest_regrowth_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Northern forest regrowth sink'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'Land_Use_Modification_'//trim(trname(n))
-        lname_jls(k) = 'CO2 from Land use modification (Houton)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'Ecosystem_exchange_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'Ocean_exchange_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Ocean exchange'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-
-      end subroutine CO2_init_jls
-
       subroutine N2O_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
@@ -2594,33 +2422,6 @@ C**** This needs to be 'hand coded' depending on circumstances
      *              trim(trname(n))//' L 1 SOURCE',
      *              'kg m-2 s-1', power=-21)
 
-      case ('CO2')
-! keep AIJ and AJL CO2 sources in same order !!
-        ijts_source(1,n)=
-     *    ijts_diag('Fossil_fuel_source_'//trim(trname(n)),
-     *              trim(trname(n))//' Fossil fuel src',
-     *              'kg m-2 s-1', power=-11)
-        ijts_source(2,n)=
-     *    ijts_diag('fertilization_sink_'//trim(trname(n)),
-     *              trim(trname(n))//' fertilization',
-     *              'kg m-2 s-1', power=-11)
-        ijts_source(3,n)=
-     *    ijts_diag('Northern_forest_regrowth_'//trim(trname(n)),
-     *              trim(trname(n))//' North forest regrowth',
-     *              'kg m-2 s-1', power=-11)
-        ijts_source(4,n)=
-     *    ijts_diag('Land_Use_Modification_'//trim(trname(n)),
-     *              trim(trname(n))//' from Land use mods',
-     *              'kg m-2 s-1', power=-11)
-        ijts_source(5,n)=
-     *    ijts_diag('Ecosystem_exchange_'//trim(trname(n)),
-     *              trim(trname(n))//' Ecosystem exch',
-     *              'kg m-2 s-1', power=-11)
-        ijts_source(6,n)=
-     *    ijts_diag('Ocean_exchange_'//trim(trname(n)),
-     *              trim(trname(n))//' Ocean exchange',
-     *              'kg m-2 s-1', power=-11)
-
       case ('N2O')
 #ifdef TRACERS_SPECIAL_Lerner
         ijts_source(1,n)=
@@ -2741,63 +2542,7 @@ C**** This needs to be 'hand coded' depending on circumstances
       end select
 
       case ('CH4')
-#ifndef TRACERS_SPECIAL_Shindell
-        ijts_source(1,n)=
-     *    ijts_diag(trim(trname(n))//'_Animal_source',
-     *              trim(trname(n))//' Animal source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(2,n)=
-     *    ijts_diag(trim(trname(n))//'_Coal_Mine_source',
-     *              trim(trname(n))//' Coal Mine source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(3,n)=
-     *    ijts_diag(trim(trname(n))//'_Gas_Leak_source',
-     *              trim(trname(n))//' Gas Leak source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(4,n)=
-     *    ijts_diag(trim(trname(n))//'_Gas_Venting_source',
-     *              trim(trname(n))//' Gas Venting source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(5,n)=
-     *    ijts_diag(trim(trname(n))//'_MSW_src',
-     *              trim(trname(n))//' Municipal solid waste src',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(6,n)=
-     *    ijts_diag(trim(trname(n))//'_soil_sink',
-     *              trim(trname(n))//' sink due to soil absorption',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(7,n)=
-     *    ijts_diag(trim(trname(n))//'_Termite_source',
-     *              trim(trname(n))//' Termite source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(8,n)=
-     *    ijts_diag(trim(trname(n))//'_Coal_source',
-     *              trim(trname(n))//' Coal combustion source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(9,n)=
-     *    ijts_diag(trim(trname(n))//'_Ocean_source',
-     *              trim(trname(n))//' Ocean source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(10,n)=
-     *    ijts_diag(trim(trname(n))//'_lake_source',
-     *              trim(trname(n))//' Fresh Water lake source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(11,n)=
-     *    ijts_diag(trim(trname(n))//'_Misc_Ground_source',
-     *              trim(trname(n))//' Misc Ground source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(12,n)=
-     *    ijts_diag(trim(trname(n))//'_Biomass_source',
-     *              trim(trname(n))//' Biomass burning source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(13,n)=
-     *    ijts_diag(trim(trname(n))//'_Rice_source',
-     *              trim(trname(n))//' Rice cultivation source',
-     *              'kg m-2 s-1', power=-13)
-        ijts_source(14,n)=
-     *    ijts_diag(trim(trname(n))//'_Wetlands+Tundra_source',
-     *              trim(trname(n))//' Wetlands+Tundra source',
-     *              'kg m-2 s-1', power=-13)
+#ifndef TRACERS_SPECIAL_Shindell /* NOT */
         ijts_3Dsource(1,n)=
      *    ijts_diag(trim(trname(n))//'_trop_chem',
      *              trim(trname(n))//' Tropospheric Chemistry',
@@ -5610,11 +5355,6 @@ C**** Prather StratChem tracers and linoz tables change each month
         last_month = modelEclock%getMonth()
       END IF
 
-C**** Tracer specific call for CO2
-      call read_CO2_sources(n_CO2)
-
-C**** Tracer specific call for CH4
-      call read_CH4_sources(n_CH4)
 #endif
 
 #ifdef TRACERS_COSMO
@@ -5643,10 +5383,11 @@ C**** Tracer specific call for CH4
 
 !===============================================================================
 ! Chemistry/OMA/MATRIX/TOMAS case, where surface emissions are of type
-! TRACERNAME_XX
+! TRACERNAME_XX. Also (partially) LERNER:
 !===============================================================================
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
-    (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+    (defined TRACERS_AMP) || (defined TRACERS_TOMAS) ||\
+    (defined TRACERS_SPECIAL_Lerner)
 
       !! xday is used by multiple sources below
       xday=dayOfYear
@@ -5709,6 +5450,10 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef TRACERS_SPECIAL_Shindell
         end if
 #endif
+#ifdef TRACERS_SPECIAL_Lerner
+        ! no overriding for the moment for Lerner:
+        xyear=year
+#endif
 
 ! define nread and checkname per tracer
         nread=ntsurfsrc(n)+nBBsources(n)
@@ -5746,6 +5491,16 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           nread=0 ! regional sources calculated in the code, not via a file
         end select
 
+#ifdef TRACERS_SPECIAL_Lerner
+        ! for the moment, for Lerner tracers, only allow CO2 and CH4:
+        select case (trname(n))
+        case ('CO2','CH4')
+          nread=ntsurfsrc(n)+nBBsources(n)
+        case default
+          nread=0
+        end select
+#endif
+
 !-------------------------------------------------------------------------------
 ! read surface sources of all tracers
 !-------------------------------------------------------------------------------
@@ -5756,7 +5511,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 
 ! post-read calculations
         select case (trname(n))
-#ifdef TRACERS_SPECIAL_Shindell
         case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
           do ns=1,ntsurfsrc(n) 
@@ -5768,10 +5522,13 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
             endif
           end do
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
 #ifdef INTERACTIVE_WETLANDS_CH4
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
+#endif
 
+#ifdef TRACERS_SPECIAL_Shindell
         case ('N2O5')
           if (COUPLED_CHEM.ne.1)
      &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
@@ -5806,9 +5563,9 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         call set_ntsurfsrc(n_ASO4(1),ntsurfsrc(n_SO2))
 #endif
 
-#endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
+#endif /* TRACERS_SPECIAL_Shindell || TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS || TRACERS_SPECIAL_Lerner */
 !===============================================================================
-! End of Chemistry/OMA/MATRIX/TOMAS case
+! End of Chemistry/OMA/MATRIX/TOMAS/Some Lerner case
 !===============================================================================
 
 C**** Initialize tracers here to allow for tracers that 'turn on'
@@ -5935,10 +5692,6 @@ C**** at the start of any day
 #endif
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
-#endif
-#ifdef TRACERS_SPECIAL_Lerner
-      USE CO2_SOURCES, only: co2_src
-      USE CH4_SOURCES, only: ch4_src
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -6257,24 +6010,16 @@ C**** source from ice-free ocean
 
 #ifdef TRACERS_SPECIAL_Lerner
 C****
-C**** Sources and sinks for CO2 (kg s-1)
+C**** Sources and sinks for CO2 and CH4 (kg s-1)
 C****
-      case ('CO2')
-        do ns=1,ntsurfsrc(n)
+      case ('CO2','CH4')
+        do ns=1,ntsurfsrc(n) 
           do j=J_0,J_1
-            trsource(:,j,ns,n) = co2_src(:,j,ns)*axyp(:,j)
+            trsource(I_0:I_1,j,ns,n)=
+     &      sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
           end do
         end do
 
-C****
-C**** Sources and sinks for CH4 (kg s-1)
-C****
-      case ('CH4')
-        do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1
-            trsource(:,j,ns,n) = ch4_src(:,j,ns)*axyp(:,j)
-          end do
-        end do
 C****
 C**** Sources and sinks for N2O:
 C**** First layer is set to a constant 462.2 ppbm. (300 PPB V)

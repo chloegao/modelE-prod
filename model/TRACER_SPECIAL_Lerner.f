@@ -3,9 +3,6 @@
       MODULE CH4_SOURCES
       USE TRACER_COM
       implicit none
-!@var CH4_src CH4 surface sources and sinks (kg/s)
-      integer, parameter :: nch4src=14
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: CH4_src
 !@var frqlos chemical loss rate for methane in troposphere
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: frqlos
       END MODULE CH4_SOURCES
@@ -921,236 +918,6 @@ c -=-=- cae: apply sign
       END SUBROUTINE SOMLFQ
 
 
-      subroutine read_CH4_sources(nt)
-!@sum reads in CH4 sources and sinks
-!@auth Jean Lerner
-C****
-C**** There are 3 monthly sources and 11 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,modelEclock
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
-      use TimeConstants_mod, only: JDPERY
-      USE FLUXES, only: focean,fearth0,flake0
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
-     *  readt_parallel, AM_I_ROOT
-      use OldTracer_mod, only: itime_tr0,trname
-      USE FILEMANAGER, only: openunit,closeunit
-      USE FILEMANAGER, only: nameunit
-      USE CH4_SOURCES, only: src=>ch4_src,nsrc=>nch4src
-      implicit none
-      character*80 title
-!@var adj Factors that tune the total amount of individual sources
-      real*8 adj(nsrc)
-      data adj/1.3847,1.0285,3.904,1.659,1.233,1.194,0.999,
-!    *  7.2154, 3.7247d-5,3.1399d-4,5.4838d-5,   !Model II prime
-     *  7.2154, 3.5997d-5,17.330d-4,5.3558d-5,
-     *  0.4369,0.7533,0.9818/
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=11,nmons=3
-      integer ann_units(nanns-3),mon_units(nmons)
-      character*12 :: ann_files(nanns-3) =
-     *  (/'CH4_ANIMALS ','CH4_COALMINE','CH4_GASLEAK ','CH4_GASVENT ',
-     *    'CH4_CITYDUMP','CH4_SOIL_ABS','CH4_TERMITES','CH4_COALBURN'/)
-      logical :: ann_bins=.true.
-      character*8 :: mon_files(nmons) =
-     *   (/'CH4_BURN','CH4_RICE','CH4_WETL'/)
-      real*8 adj_wet(GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-      integer :: kwet=14         !!! position of wetlands array in src
-      logical :: mon_bins=.true.
-
-c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
-      real*8, allocatable :: tlca(:,:,:), tlcb(:,:,:)   ! for monthly sources
-      real*8 frac
-      integer i,j,nt,iu,k,imon(nmons)
-      logical :: ifirst=.true. 
-      integer :: jdlast=0
-      integer :: jday
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
-
-C****
-C**** Extract useful local domain parameters from "grid"
-C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      jday = modelEclock%getDayOfYear()
-
-      adj_wet = 0
-      do J=J_0,J_1
-         if ( (J>JM/3) .AND. (J<=JM-JM/3) ) then   !!! low latitudes
-            adj_wet(J) = 1.761
-         else
-            adj_wet(J) = 0.6585                  !!! high latitudes
-         endif
-      end do
-
-      if (itime.lt.itime_tr0(nt)) return
-C****
-C**** Annual Sources and sinks
-C**** Apply adjustment factors to bring sources into balance
-C**** Annual sources are in KG C/M2/Y
-C**** Sources need to be kg/m^2 s; convert /year to /s
-C****
-      if (ifirst) then
-         call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-         I_0H=GRID%I_STRT_HALO
-         I_1H=GRID%I_STOP_HALO
-         Allocate(tlca(i_0H:i_1H,j_0H:j_1H,nmons))
-         Allocate(tlcb(i_0H:i_1H,j_0H:j_1H,nmons))
-        k = 0
-        call openunit(ann_files,ann_units,ann_bins)
-        do iu = 1,nanns-3
-          k = k+1
-          call readt_parallel (grid,
-     &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
-!ref      call readt          (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,:,k) = src(:,:,k)*adj(k)/
-     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-        end do
-        call closeunit(ann_units)
-        ! 3 miscellaneous sources
-          k = k+1
-          src(:,:,k) = focean(:,:)*adj(k)/
-     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-          k = k+1
-          src(:,:,k) = flake0(:,:)*adj(k)/
-     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-          k = k+1
-          src(:,:,k) = fearth0(:,:)*adj(k)/
-     &                 (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-
-      call openunit(mon_files,mon_units,mon_bins)
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** Also, Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-C****
-      ifirst = .false.
-      j = 0
-      do k = nanns+1,nsrc
-        j = j+1
-        call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
-        src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
-      end do
-      jdlast = jday
-      if (AM_I_ROOT())
-     *  write(6,*) trname(nt),'Sources interpolated to current day',frac
-      call sys_flush(6)
-C****
-C**** Zonal adjustment for combined wetlands and tundra
-C****
-      do j=J_0,J_1
-        src(:,j,kwet) = src(:,j,kwet)*adj_wet(j)
-      end do
-      return
-      end subroutine read_CH4_sources
-
-
-      MODULE CO2_SOURCES
-      USE TRACER_COM
-!@var co2_src C02 surface sources and sinks (kg/s)
-      integer, parameter :: nco2src=6
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: co2_src
-      END MODULE CO2_SOURCES
-
-      subroutine read_CO2_sources(nt)
-!@sum reads in CO2 sources and sinks
-!@auth Jean Lerner
-C****
-C**** There are two monthly sources and 4 annual sources
-C**** Annual sources are read in at start and re-start of run only
-C**** Monthly sources are interpolated each day
-      USE RESOLUTION, only: im,jm
-      USE MODEL_COM, only: itime,modelEclock
-      use TimeConstants_mod, only: JDPERY
-      USE DOMAIN_DECOMP_ATM, only : grid, getDomainBounds, AM_I_ROOT
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
-      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL
-      use OldTracer_mod, only: itime_tr0,trname
-      USE CO2_SOURCES, only: src=>co2_src,nsrc=>nco2src
-      USE FILEMANAGER, only: openunit,closeunit
-      USE FILEMANAGER, only: nameunit
-      implicit none
-      character*80 title
-!@var adj Factors that tune the total amount of individual sources
-      real*8 adj(nsrc)
-      data adj/3.81d0,3.67d0,3.67d0,19.54d0,3.67d0,6.42d0/
-!@var nanns,nmons: number of annual and monthly input files
-      integer, parameter :: nanns=4,nmons=2
-      integer ann_units(nanns),mon_units(nmons)
-      character*12 :: ann_files(nanns) =
-     *  (/'CO2_FOS_FUEL','CO2_FERT    ','CO2_REGROWTH','CO2_LAND_USE'/)
-      logical :: ann_bins=.true.
-      character*9 :: mon_files(nmons) = (/'CO2_VEG  ','CO2_OCEAN'/)
-      logical :: mon_bins=.true.
-
-c GISS-ESMF EXCEPTIONAL CASE - SAVE and I/O issues
-      real*8, Allocatable, DIMENSION(:,:,:) :: tlca, tlcb ! for monthly sources
-      real*8 frac
-      integer i,j,nt,iu,k,imon(nmons)
-      logical :: ifirst=.true.
-      integer :: jdlast=0
-      save ifirst,jdlast,tlca,tlcb,mon_units,imon
-      integer :: J_0, J_1, J_0H, J_1H, I_0H, I_1H
-      integer :: jday
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      jday = modelEclock%getDayOfYear()
-
-      if (itime.lt.itime_tr0(nt)) return
-C****
-C**** Annual Sources and sink
-C**** Apply adjustment factors to bring sources into balance
-C**** Annual sources are in KG C/M2/Y
-C**** Sources need to be kg/m^2 s; convert /year to /s
-C****
-      if (ifirst) then
-        I_0H=GRID%I_STRT_HALO
-        I_1H=GRID%I_STOP_HALO
-        J_0H=GRID%J_STRT_HALO
-        J_1H=GRID%J_STOP_HALO
-        Allocate(tlca(i_0H:i_1H,j_0H:j_1H,nmons))
-        Allocate(tlcb(i_0H:i_1H,j_0H:j_1H,nmons))
-        call openunit(ann_files,ann_units,ann_bins)
-        k = 0
-        do iu = 1,nanns
-          k = k+1
-          call readt_parallel (grid,
-     &         ann_units(iu),nameunit(ann_units(iu)),src(:,:,k),1)
-!ref      call readt (iu,0,src(1,1,k),im*jm,src(1,1,k),1)
-          src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)/
-     &                       (SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-        end do
-        call closeunit(ann_units)
-
-      call openunit(mon_files,mon_units,mon_bins)
-      endif
-C****
-C**** Monthly sources are interpolated to the current day
-C****
-C**** Also, Apply adjustment factors to bring sources into balance
-C**** Monthly sources are in KG C/M2/S => src in kg/m^2 s
-      ifirst = .false.
-      j = 0
-      do k=nanns+1,nsrc
-        j = j+1
-        call read_monthly_sources(mon_units(j),jdlast,
-     *    tlca(:,:,j),tlcb(:,:,j),src(:,:,k),frac,imon(j))
-        src(:,J_0:J_1,k) = src(:,J_0:J_1,k)*adj(k)
-      end do
-      jdlast = jday
-      if (AM_I_ROOT())
-     *  write(6,*) trname(nt),'Sources interpolated to current day',frac
-      call sys_flush(6)
-C****
-      return
-      end subroutine read_CO2_sources
-
-
       SUBROUTINE get_14CO2_IC(CO2IJL)
 !@sum GET_14CO2_IC Calculates initial distribution for 14CO2 tracer
 !@auth J.Lerner (modified from program by G. Russell)
@@ -1667,8 +1434,6 @@ c     call closeunit(iu)
 !@auth NCCS (Goddard) Development Team
       USE PRATHER_CHEM_COM
       USE TRACERS_MPchem_COM
-      USE CO2_SOURCES
-      USE CH4_SOURCES
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
@@ -1687,9 +1452,6 @@ C****
      *           tltzm(J_0H:J_1H,lm,nMPtable),
      *          tltzzm(J_0H:J_1H,lm,nMPtable),
      *          STAT=IER )
-      ALLOCATE(  CH4_src(I_0H:I_1H,J_0H:J_1H,nch4src),
-     *           CO2_src(I_0H:I_1H,J_0H:J_1H,nco2src),
-     *           STAT=IER )
       allocate(tscparm(lz_schem,18,INT_MONTHS_PER_YEAR,nMPtable))
 
       END SUBROUTINE ALLOC_TRACER_SPECIAL_Lerner_COM

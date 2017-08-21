@@ -27,6 +27,7 @@ Preprocessor Options
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
 #define TRACERS_SF6              ! SF6 tracers
+#define WATER_MISC_GRND_CH4_SRC  ! Ocean, lake, misc. ground sources for CH4
 End Preprocessor Options
 
 Object modules:
@@ -78,6 +79,7 @@ Label and Namelist:  (next 2 lines)
 E6TlernerF40 (prescribed ocean atmospheric tracer model with Lerner tracers)
 
 &&PARAMETERS
+nc_emis_use_ppm_interp=0 ! chooses linear month-to-month for closer match to old Lerner source-reading
 #include "static_ocn_params"
 #include "sdragF40_params"
 #include "gwdragF40_params"
