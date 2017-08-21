@@ -90,9 +90,9 @@ C****
      *     ,radiationSetOrbit
      *     ,chl_from_obio,chl_from_seawifs
 #ifdef TRACERS_ON
-     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,tau_as,tau_cs
+     *     ,njaero,nraero_aod_rsf,nraero_rf_rsf,tau_as,tau_cs,tau_dry
 #ifdef CACHED_SUBDD
-     *     ,abstau_as,abstau_cs,swfrc,lwfrc
+     *     ,abstau_as,abstau_cs,abstau_dry,swfrc,lwfrc
 #endif  /* CACHED_SUBDD */
 #endif  /* TRACERS_ON */
 #ifdef ALTER_RADF_BY_LAT
@@ -111,6 +111,7 @@ C****
       USE TRACER_COM, only: n_OCB, n_OCIA, n_Isopp1a, n_SO4
       USE TRACER_COM, only: n_vbsAm2
       use RAD_COM, only: diag_fc
+      use TRDIAG_COM, only: save_dry_aod
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4, n_ANACL, n_AECOB, n_AECIL,
      &     n_AOCOB, n_AOCIL, n_ADUST
@@ -523,9 +524,6 @@ C****                                         even if the year is fixed
       if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
-#ifdef TRACERS_VOLCEXP
-      MADVOL=0
-#endif
 !***  KYEARV=0 : use current year
 !***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
 !     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
@@ -646,11 +644,19 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
           allocate(tau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           tau_as = 0.d0
           tau_cs = 0.d0
+          if (save_dry_aod>0) then
+            allocate(tau_dry(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+            tau_dry = 0.d0
+          endif
 #ifdef CACHED_SUBDD
           allocate(abstau_as(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           allocate(abstau_cs(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
           abstau_as = 0.d0
           abstau_cs = 0.d0
+          if (save_dry_aod>0) then
+            allocate(abstau_dry(I_0H:I_1H,J_0H:J_1H,lm,nraero_aod))
+            abstau_dry = 0.d0
+          endif
           if (nraero_rf>0) then
             allocate(swfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
             allocate(lwfrc(I_0H:I_1H,J_0H:J_1H,nraero_rf))
@@ -1610,6 +1616,7 @@ C     OUTPUT DATA
      &          ,BTEMPW ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
      &          ,aesqex,aesqsc,aesqcb
+     &          ,aesqex_dry,aesqsc_dry,aesqcb_dry
      &          ,SRXNIR,SRDNIR
       USE RAD_COM, only : modrd,nrad
       USE RAD_COM, only : rqt,srhr,trhr,fsf,cosz1,s0x,rsdist,nradfrc
@@ -1636,10 +1643,10 @@ C     OUTPUT DATA
      &     ,stratO3_tracer_save
 #endif
 #ifdef TRACERS_ON
-      use rad_com, only: tau_as,tau_cs,nraero_rf
+      use rad_com, only: tau_as,tau_cs,tau_dry,nraero_rf
 #ifdef CACHED_SUBDD
       USE CONSTANT, only : grav,Rgas 
-      use rad_com, only: abstau_as,abstau_cs,swfrc,lwfrc
+      use rad_com, only: abstau_as,abstau_cs,abstau_dry,swfrc,lwfrc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 #endif  /* CACHED_SUBDD */
 #endif
@@ -1701,9 +1708,10 @@ C     OUTPUT DATA
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
      *     ,ijts_tau,ijts_tausub,ijts_fcsub
      *     ,ijlt_3dtau,ijlt_3daaod,ijlt_3dtauCS,ijlt_3daaodCS
+     *     ,ijlt_3dtauDRY,ijlt_3daaodDRY
      *     ,ijts_sqex
      *     ,ijts_sqexsub,ijts_sqsc,ijts_sqscsub,ijts_sqcb,ijts_sqcbsub
-     *     ,diag_rad,diag_aod_3d
+     *     ,diag_rad,diag_aod_3d,save_dry_aod
 #ifdef AUXILIARY_OX_RADF
      *     ,ijts_auxfc
 #endif /* AUXILIARY_OX_RADF */
@@ -1792,7 +1800,7 @@ C     for GCM grid but currently limited to SCM use
      &                  lm,nraero_aod) ::
      &     sddarr4d
       character(len=10), dimension(2) :: sgroups=(/'taijh ','taijlh'/)
-      character(len=10), dimension(2) :: ssky=(/'as','cs'/)
+      character(len=10), dimension(3) :: ssky=(/'as ','cs ','dry'/)
       character(len=10), dimension(2) :: sabs=(/' ','a'/)
       character(len=10), dimension(2) :: sfrc=(/'swf','lwf'/)
       character(len=10) :: spcname
@@ -1905,7 +1913,7 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       real*8 :: nh4_on_no3
 #endif
 #ifdef TRACERS_TOMAS
-      real*8 :: qcb_col(6,ICOMP-2)
+      real*8 :: qcb_col(6,ICOMP-2),qcb_col_dry(6,ICOMP-2)
 #endif
 
       REAL*8, DIMENSION(:,:), POINTER :: RSI,ZSI,SNOWI,POND_MELT
@@ -2450,6 +2458,9 @@ C**** EVEN PRESSURES
       aesqex(:,:,:)=0.0
       aesqsc(:,:,:)=0.0
       aesqcb(:,:,:)=0.0
+      aesqex_dry(:,:,:)=0.0
+      aesqsc_dry(:,:,:)=0.0
+      aesqcb_dry(:,:,:)=0.0
 #endif
       PLB(LM+1)=PEDN(LM+1,I,J)
       DO L=1,LM
@@ -2921,7 +2932,7 @@ C**** Save optical depth diags
           nsub_ntrix(ntrix_aod(n)) = nsub_ntrix(ntrix_aod(n)) + 1
 
 ! 3d aod
-          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+          if (diag_aod_3d>0 .and. diag_aod_3d<5) then ! valid values are 1-4
             if (ijlt_3Daaod(n).gt.0)
      *           taijls(i,j,1:lm,ijlt_3Daaod(n))
      *           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
@@ -2930,13 +2941,21 @@ C**** Save optical depth diags
      *           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
      *           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
      *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3DaaodDRY(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DaaodDRY(n))
+     *           =taijls(i,j,1:lm,ijlt_3DaaodDRY(n))+
+     *            (aesqex_dry(1:lm,6,n)-aesqsc_dry(1:lm,6,n))
             if (ijlt_3Dtau(n).gt.0)
      *           taijls(i,j,1:lm,ijlt_3Dtau(n))
      *         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
             if (ijlt_3DtauCS(n).gt.0)
      *           taijls(i,j,1:lm,ijlt_3DtauCS(n))
      *         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
-          endif ! 0<diag_aod_3d<4
+            if (ijlt_3DtauDRY(n).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DtauDRY(n))
+     *         =taijls(i,j,1:lm,ijlt_3DtauDRY(n))+
+     *          aesqex_dry(1:lm,6,n)
+          endif ! 0<diag_aod_3d<5
 
 ! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
@@ -2950,6 +2969,11 @@ C**** Save optical depth diags
      &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(2
      &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
      &            SUM(aesqex(1:Lm,6,n)) * OPNSKY
+            IF ( ijts_tausub(3,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))>0
+     &           )taijs(i,j,ijts_tausub(3,ntrix_aod(n)
+     &           ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j,ijts_tausub(3
+     &           ,ntrix_aod(n),nsub_ntrix(ntrix_aod(n)))) +
+     &            SUM(aesqex_dry(1:Lm,6,n))
           ELSE
             DO kr=1,6
               IF ( ijts_sqexsub(1,kr,ntrix_aod(n)
@@ -2965,6 +2989,12 @@ C**** Save optical depth diags
      &             ,ijts_sqexsub(2,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqex(1:Lm,kr,n)) *
      &             OPNSKY
+              IF ( ijts_sqexsub(3,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqexsub(3,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqexsub(3,kr,ntrix_aod(n)
+     &           ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqex_dry(1:Lm,kr,n))
               IF ( ijts_sqscsub(1,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
      &             ,ijts_sqscsub(1,kr,ntrix_aod(n)
@@ -2978,6 +3008,12 @@ C**** Save optical depth diags
      &             ,ijts_sqscsub(2,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqsc(1:Lm,kr,n)) *
      &             OPNSKY
+              IF ( ijts_sqscsub(3,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
+     &             ,ijts_sqscsub(3,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqscsub(3,kr,ntrix_aod(n)
+     &           ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqsc_dry(1:Lm,kr,n))
               IF ( ijts_sqcbsub(1,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n))) >0 ) taijs(i,j
      &             ,ijts_sqcbsub(1,kr,ntrix_aod(n)
@@ -2992,12 +3028,19 @@ C**** Save optical depth diags
      &             ,ijts_sqcbsub(2,kr,ntrix_aod(n)
      &             ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqcb(1:Lm,kr,n)) /
      &             (SUM(aesqsc(1:Lm,kr,n))+1.D-10) * OPNSKY
+              IF (ijts_sqcbsub(3,kr,ntrix_aod(n),
+     &             nsub_ntrix(ntrix_aod(n)))
+     &             >0) taijs(i,j,ijts_sqcbsub(3,kr,ntrix_aod(n)
+     &             ,nsub_ntrix(ntrix_aod(n)))) = taijs(i,j
+     &             ,ijts_sqcbsub(3,kr,ntrix_aod(n)
+     &         ,nsub_ntrix(ntrix_aod(n)))) +SUM(aesqcb_dry(1:Lm,kr,n)) /
+     &             (SUM(aesqsc_dry(1:Lm,kr,n))+1.D-10)
             END DO
           END IF
         CASE DEFAULT
 
 ! 3d aod
-          if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+          if (diag_aod_3d>0 .and. diag_aod_3d<5) then ! valid values are 1-4
             if (ijlt_3Daaod(n).gt.0)
      &           taijls(i,j,1:lm,ijlt_3Daaod(n))
      &           =taijls(i,j,1:lm,ijlt_3Daaod(n))+
@@ -3006,13 +3049,20 @@ C**** Save optical depth diags
      &           taijls(i,j,1:lm,ijlt_3DaaodCS(n))
      &           =taijls(i,j,1:lm,ijlt_3DaaodCS(n))+
      *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3DaaodDRY(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DaaodDRY(n))
+     &           =taijls(i,j,1:lm,ijlt_3DaaodDRY(n))+
+     *            (aesqex_dry(1:lm,6,n)-aesqsc(1:lm,6,n))
             if (ijlt_3Dtau(n).gt.0)
      &           taijls(i,j,1:lm,ijlt_3Dtau(n))
      &         =taijls(i,j,1:lm,ijlt_3Dtau(n))+aesqex(1:lm,6,n)
             if (ijlt_3DtauCS(n).gt.0)
      &           taijls(i,j,1:lm,ijlt_3DtauCS(n))
      &         =taijls(i,j,1:lm,ijlt_3DtauCS(n))+aesqex(1:lm,6,n)*OPNSKY
-          endif ! 0<diag_aod_3d<4
+            if (ijlt_3DtauDRY(n).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DtauDRY(n))
+     &         =taijls(i,j,1:lm,ijlt_3DtauDRY(n))+aesqex_dry(1:lm,6,n)
+          endif ! 0<diag_aod_3d<5
 
 ! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
@@ -3024,6 +3074,10 @@ C**** Save optical depth diags
      &           taijs(i,j,ijts_tau(2,ntrix_aod(n)))
      &           =taijs(i,j,ijts_tau(2,ntrix_aod(n)))
      &           +SUM(aesqex(1:lm,6,n))*OPNSKY
+            if (ijts_tau(3,ntrix_aod(n)).gt.0)
+     &           taijs(i,j,ijts_tau(3,ntrix_aod(n)))
+     &           =taijs(i,j,ijts_tau(3,ntrix_aod(n)))
+     &           +SUM(aesqex_dry(1:lm,6,n))
           ELSE
             DO kr=1,6
 c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
@@ -3035,6 +3089,10 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             taijs(i,j,ijts_sqex(2,kr,ntrix_aod(n)))
      &             =taijs(i,j,ijts_sqex(2,kr,ntrix_aod(n)))
      &             +SUM(aesqex(1:Lm,kr,n))*OPNSKY
+              IF (ijts_sqex(3,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqex(3,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqex(3,kr,ntrix_aod(n)))
+     &             +SUM(aesqex_dry(1:Lm,kr,n))
               IF (ijts_sqsc(1,kr,ntrix_aod(n)) > 0)
      &             taijs(i,j,ijts_sqsc(1,kr,ntrix_aod(n)))
      &             =taijs(i,j,ijts_sqsc(1,kr,ntrix_aod(n)))
@@ -3043,6 +3101,10 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             taijs(i,j,ijts_sqsc(2,kr,ntrix_aod(n)))
      &             =taijs(i,j,ijts_sqsc(2,kr,ntrix_aod(n)))
      &             +SUM(aesqsc(1:Lm,kr,n))*OPNSKY
+              IF (ijts_sqsc(3,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqsc(3,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqsc(3,kr,ntrix_aod(n)))
+     &             +SUM(aesqsc_dry(1:Lm,kr,n))
 #ifndef TRACERS_TOMAS
               IF (ijts_sqcb(1,kr,ntrix_aod(n)) > 0)
      &             taijs(i,j,ijts_sqcb(1,kr,ntrix_aod(n)))
@@ -3054,11 +3116,19 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             =taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
      &             +SUM(aesqcb(1:Lm,kr,n))
      &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
+              IF (ijts_sqcb(3,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(3,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(3,kr,ntrix_aod(n)))
+     &             +SUM(aesqcb_dry(1:Lm,kr,n))
+     &             /(SUM(aesqsc_dry(1:Lm,kr,n))+1.D-10)
 #else
               qcb_col(kr,n)=0.d0
+              qcb_col_dry(kr,n)=0.d0
               do l=1,lm
                 qcb_col(kr,n)=qcb_col(kr,n)+aesqcb(l,kr,n)*
      *               aesqsc(l,kr,n)
+                qcb_col_dry(kr,n)=qcb_col(kr,n)+aesqcb_dry(l,kr,n)*
+     *               aesqsc_dry(l,kr,n)
               enddo
 
               IF (ijts_sqcb(1,kr,ntrix_aod(n)) > 0)
@@ -3071,6 +3141,11 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
      &             =taijs(i,j,ijts_sqcb(2,kr,ntrix_aod(n)))
      &             +qcb_col(kr,n)
      &             /(SUM(aesqsc(1:Lm,kr,n))+1.D-10)*OPNSKY
+              IF (ijts_sqcb(3,kr,ntrix_aod(n)) > 0)
+     &             taijs(i,j,ijts_sqcb(3,kr,ntrix_aod(n)))
+     &             =taijs(i,j,ijts_sqcb(3,kr,ntrix_aod(n)))
+     &             +qcb_col_dry(kr,n)
+     &             /(SUM(aesqsc_dry(1:Lm,kr,n))+1.D-10)
 #endif
             END DO ! kr
           END IF ! diag_rad
@@ -3083,12 +3158,19 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
       if (nraero_aod>0) then
         tau_as(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)
         tau_cs(i,j,1:LM,1:nraero_aod)=aesqex(1:LM,6,1:nraero_aod)*OPNSKY
+        if (save_dry_aod>0) then
+          tau_dry(i,j,1:LM,1:nraero_aod)=aesqex_dry(1:LM,6,1:nraero_aod)
+        endif
 #ifdef CACHED_SUBDD
         abstau_as(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))
         abstau_cs(i,j,1:LM,1:nraero_aod)=
      &    (aesqex(1:LM,6,1:nraero_aod)-aesqsc(1:LM,6,1:nraero_aod))*
      &    OPNSKY
+        if (save_dry_aod>0) then
+          abstau_dry(i,j,1:LM,1:nraero_aod)=
+     & (aesqex_dry(1:LM,6,1:nraero_aod)-aesqsc_dry(1:LM,6,1:nraero_aod))
+        endif
 #endif  /* CACHED_SUBDD */
       endif
 #endif /* TRACERS_ON */
@@ -3942,16 +4024,21 @@ C****
       subdd => subdd_groups(grpids(igrp))
       do k=1,subdd%ndiags
       do s=1,size(ssky)
+      if (trim(ssky(s)).eq.'dry' .and. save_dry_aod==0) cycle
       do a=1,size(sabs)
         select case (trim(ssky(s))//trim(sabs(a)))
           case ('as')
             sddarr4d=tau_as
           case ('cs')
             sddarr4d=tau_cs
+          case ('dry')
+            sddarr4d=tau_dry
           case ('asa')
             sddarr4d=abstau_as
           case ('csa')
             sddarr4d=abstau_cs
+          case ('drya')
+            sddarr4d=abstau_dry
           case default
             cycle ! not implemented, silently ignore
         end select

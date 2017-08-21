@@ -197,6 +197,9 @@ C--------------------------------------------------------
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
+!@var aesqex_dry saves dry extinction aerosol optical thickness
+!@var aesqsc_dry saves dry scattering aerosol optical thickness
+!@var aesqcb_dry saves dry aerosol scattering asymmetry factor
 
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
@@ -214,6 +217,8 @@ C--------------------------------------------------------
 !nu  K      ,TRDFSL,TRUFSL,TRSLCR,SRSLHR,TRSLWV  !nu = not (yet) used
 !sl  K      ,TRSLTS,TRSLTG,TRSLBS
       REAL*8 aesqex(lx,6,itrmax),aesqsc(lx,6,itrmax),aesqcb(lx,6,itrmax)
+      REAL*8 aesqex_dry(lx,6,itrmax),aesqsc_dry(lx,6,itrmax),
+     &       aesqcb_dry(lx,6,itrmax)
       INTEGER :: LBOTCL,LTOPCL
 
 C----------------   scratch pad for temporary arrays that are passed to
@@ -2821,7 +2826,7 @@ C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
 C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
-      REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC
+      REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC,RHFTAU_dry
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
       REAL*8, DIMENSION(LM,33) :: TAB
@@ -3051,8 +3056,10 @@ C     ------------------------------------------------------------------
       NA=ITR(NT)
       DO 700 L=L1,NL
       RHFTAU=RTINFO(NRHNAN(L,NA),2,NT)*TTAULX(L,NT)*FSXTAU
+      RHFTAU_dry=RTINFO(1,2,NT)*TTAULX(L,NT)*FSXTAU
       IF (FSTOPX(NT) > 0) THEN
         RHFTAU=RHFTAU*FSTOPX(NT)*FSTASC(NT)
+        RHFTAU_dry=RHFTAU_dry*FSTOPX(NT)*FSTASC(NT)
         DO K=1,6
           SRBEXT(L,K)=SRBEXT(L,K)+SRTQEX(K,NRHNAN(L,NA),NT)*RHFTAU
           SRBGQL =SRBGCB(L,K)*SRBSCT(L,K)+SRTQCB(K,NRHNAN(L,NA),NT)
@@ -3064,6 +3071,9 @@ C     ------------------------------------------------------------------
       aesqex(L,:,nt)=srtqex(:,nrhnan(L,na),nt)*rhftau           ! 1:6
       aesqsc(L,:,nt)=srtqsc(:,nrhnan(L,na),nt)*rhftau
       aesqcb(L,:,nt)=srtqcb(:,nrhnan(L,na),nt)*aesqsc(L,:,nt)
+      aesqex_dry(L,:,nt)=srtqex(:,1,nt)*rhftau_dry           ! 1:6
+      aesqsc_dry(L,:,nt)=srtqsc(:,1,nt)*rhftau_dry
+      aesqcb_dry(L,:,nt)=srtqcb(:,1,nt)*aesqsc_dry(L,:,nt)
   700 CONTINUE
 
       DO 750 NT=1,NTRACE

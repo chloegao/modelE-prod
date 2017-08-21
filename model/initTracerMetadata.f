@@ -558,7 +558,7 @@
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
-      use TRDIAG_COM, only: diag_rad,diag_aod_3d
+      use TRDIAG_COM, only: diag_rad,diag_aod_3d,save_dry_aod
       use TRACER_COM, only: ntm ! should be available by this procedure call
 #ifdef TRACERS_WATER
 #ifdef TRDIAG_WETDEPO
@@ -658,6 +658,7 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
       CALL sync_param("diag_aod_3d",diag_aod_3d)
+      CALL sync_param("save_dry_aod",save_dry_aod)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif

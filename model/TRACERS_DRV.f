@@ -3496,7 +3496,7 @@ c find indices of denominators
       USE TRDIAG_COM, only: diag_rad,ijts_tau,ijts_sqex,ijts_sqsc
      &                     ,ijts_sqcb
      &                     ,ijts_tausub,ijts_sqexsub,ijts_sqscsub
-     &                     ,ijts_sqcbsub
+     &                     ,ijts_sqcbsub,save_dry_aod
       USE DIAG_COM, only: ia_rad
       implicit none
 
@@ -3512,8 +3512,9 @@ c find indices of denominators
 !@var skr value of kr as a string
 !@var sn1 value of n1 as a string
       character(len=sname_strlen), parameter :: dname='clrsky'
-      character(len=10), parameter, dimension(2) ::
-     &  sascs=(/'   ','CS_'/),lascs=(/'         ','clear sky'/)
+      character(len=10), parameter, dimension(3) ::
+     &  sascs=(/'    ','CS_ ','DRY_'/),
+     &  lascs=(/'         ','clear sky','dry aeros'/)
       integer :: k,kr,s,n1,n_sub
       character(len=1) :: skr,sn1
 
@@ -3535,6 +3536,7 @@ c find indices of denominators
 ! aerosol optical depth and related diagnostics
 
       do s=1,size(sascs)
+        if (trim(sascs(s)).eq.'DRY_' .and. save_dry_aod.eq.0) cycle
         IF (diag_rad /= 1) THEN
 ! aerosol optical depth for band6
           do n1=1,n_sub
@@ -3550,6 +3552,13 @@ c find indices of denominators
      *                    trim(trname(n))//trim(sn1)//' '//
      *                      trim(lascs(s))//' aerosol optical depth',
      *                    ' ', power=-2, ia=ia_rad, denom=trim(dname),
+     *                    scalediv=1.d0, hasArea=.false.)
+            else if (trim(sascs(s))=='DRY_') then
+              k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
+     *                      trim(sn1),
+     *                    trim(trname(n))//trim(sn1)//' '//
+     *                      trim(lascs(s))//' aerosol optical depth',
+     *                    ' ', power=-2, ia=ia_rad,
      *                    scalediv=1.d0, hasArea=.false.)
             else
               k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
@@ -3584,6 +3593,14 @@ c find indices of denominators
      *                        trim(lascs(s))//' SW extinction band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad, denom=trim(dname),
+     *                      scalediv=1.d0, hasArea=.false.)
+              else if (trim(sascs(s))=='DRY_') then
+                k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
+     *                        trim(trname(n))//trim(sn1),
+     *                      trim(trname(n))//trim(sn1)//' '//
+     *                        trim(lascs(s))//' SW extinction band '//
+     *                        skr,
+     *                      ' ', power=-4, ia=ia_rad,
      *                      scalediv=1.d0, hasArea=.false.)
               else
                 k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
@@ -3632,6 +3649,14 @@ c find indices of denominators
      *                        trim(lascs(s))//
      *                        ' SW asymmetry factor band '//skr,
      *                      ' ', power=-2, ia=ia_rad, denom=trim(dname),
+     *                      scalediv=1.d0, hasArea=.false.)
+              else if (trim(sascs(s))=='DRY_') then
+                k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
+     *                        trim(trname(n))//trim(sn1),
+     *                      trim(trname(n))//trim(sn1)//' '//
+     *                        trim(lascs(s))//
+     *                        ' SW asymmetry factor band '//skr,
+     *                      ' ', power=-2, ia=ia_rad,
      *                      scalediv=1.d0, hasArea=.false.)
               else
                 k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
@@ -3821,11 +3846,13 @@ c find indices of denominators
 C**** use this routine to set 3D tracer-related diagnostics.
 
 C**** some tracer specific 3D arrays
-      if (diag_aod_3d>0 .and. diag_aod_3d<4) then ! valid values are 1-3
+      if (diag_aod_3d>0 .and. diag_aod_3d<5) then ! valid values are 1-4
         allocate(ijlt_3Dtau(nraero_aod))    ; ijlt_3Dtau = 0
         allocate(ijlt_3DtauCS(nraero_aod))  ; ijlt_3DtauCS = 0
+        allocate(ijlt_3DtauDRY(nraero_aod))  ; ijlt_3DtauDRY = 0
         allocate(ijlt_3Daaod(nraero_aod))   ; ijlt_3Daaod = 0
         allocate(ijlt_3DaaodCS(nraero_aod)) ; ijlt_3DaaodCS = 0
+        allocate(ijlt_3DaaodDRY(nraero_aod)) ; ijlt_3DaaodDRY = 0
 
         iclay=0
         do n=1,nraero_aod
@@ -3868,8 +3895,21 @@ C**** some tracer specific 3D arrays
      &                  denom='clrsky2d')
           endif ! diag_aod_3d = 2 or 3
 
+          if (diag_aod_3d==4 .or. diag_aod_3d==3) then
+            ijlt_3DtauDRY(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='tau_3D_DRY_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' DRY tau',
+     &                  units=' ', power=-2)
+            ijlt_3DaaodDRY(n)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='aaod_3D_DRY_'//trim(trname_curr),
+     &                  lname=trim(trname_curr)//' DRY aaod',
+     &                  units=' ', power=-2)
+          endif ! diag_aod_3d = 4 or 3
+
         enddo ! nraero_aod
-      endif ! 0<diag_aod_3d<4
+      endif ! 0<diag_aod_3d<5
 
       do n=1,NTM
         select case(trname(n))
@@ -4011,7 +4051,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='NO2_vmr',
      &              lname='NO2 mixing ratio',
      &              units='V/V air', power=-10) ! to match NOx
-#ifdef TRACERS_AEROSOLS_Koch
         ijlt_prodSO4aq=
      &    ijlt_diag(sname='SO4aqSrc3D',
      &              lname='SO4 aqueous chem source 3D',
@@ -4020,7 +4059,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='SO4gasSrc3D',
      &              lname='SO4 gas phase source 3D',
      &              units='kg m-2 s-1', power=-15) ! to match ijts 2D
-#endif /* TRACERS_AEROSOLS_Koch */
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -4313,7 +4351,7 @@ c find indices of denominators
 #ifndef TRACERS_AEROSOLS_SOA
       USE AEROSOL_SOURCES, only: OCT_src
 #endif  /* TRACERS_AEROSOLS_SOA */
-      USE AEROSOL_SOURCES, only: SO2_src_3D
+      USE AEROSOL_SOURCES, only: SO2_src_3D,iso2volcano
 #endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
@@ -5311,7 +5349,8 @@ c read in DMS source
 c read in SO2 emissions
 c volcano - continuous
 C    Initialize:
-      so2_src_3D(:,:,:,1)= 0.d0
+      if (iso2volcano>0) then
+      so2_src_3D(:,:,:,iso2volcano)= 0.d0
 c read lat-lon netcdf file and convert lat,lon,pres to i,j,l.
 c NOTE: the input file specifies integrals over its gridboxes.
       ALLOCATE(  psref(grid%i_strt_halo:grid%i_stop_halo,
@@ -5350,7 +5389,8 @@ c NOTE: the input file specifies integrals over its gridboxes.
           enddo
           amsum = sum(amref(1:lmax))
           do ll=1,lmax ! add source between surf and max height
-            so2_src_3d(ii,jj,ll,1) = so2_src_3d(ii,jj,ll,1)
+            so2_src_3d(ii,jj,ll,iso2volcano)=
+     &        so2_src_3d(ii,jj,ll,iso2volcano)
      &          +(amref(ll)/amsum)*
      &           volc_emiss(ilon,jlat)/(SECONDS_PER_DAY*30.4d0)/12.d0
           enddo
@@ -5360,6 +5400,7 @@ c NOTE: the input file specifies integrals over its gridboxes.
       deallocate(volc_lats, volc_pup, volc_emiss)
 #endif
       deallocate(psref)
+      endif ! iso2volcano>0
 #endif
 ! ---------------------------------------------------
 #ifndef TRACERS_AEROSOLS_SOA
@@ -5417,7 +5458,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & write_parallel
       USE RAD_COM, only: o3_yr
 #ifdef TRACERS_VOLCEXP
-      USE AEROSOL_SOURCES, only: so2_src_3d
+      USE AEROSOL_SOURCES, only: so2_src_3d,iso2volcanoexpl
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
@@ -5525,7 +5566,7 @@ C****
       call read_stream(grid,SO2_vphe_stream,year,dayofyear,
      &                 Plume_hei_volc_emis_expl)
 
-      so2_src_3d(:,:,:,2) = 0.d0
+      so2_src_3d(:,:,:,iso2volcanoexpl) = 0.d0
 
       DO J=J_0,J_1                          
       DO I=I_0,I_1  
@@ -5540,10 +5581,12 @@ C****
           do ll=lmin,lmax ! add source into the upper 1/3 of the plume
                           ! conversion kt d-1 into kg s-1
           if (lmax <= 2) then
-            so2_src_3d(i,j,1,2) = so2_src_3d(i,j,1,2)
+            so2_src_3d(i,j,1,iso2volcanoexpl)=
+     &        so2_src_3d(i,j,1,iso2volcanoexpl)
      &                + so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
           else
-            so2_src_3d(i,j,ll,2) = so2_src_3d(i,j,ll,2)
+            so2_src_3d(i,j,ll,iso2volcanoexpl)=
+     &        so2_src_3d(i,j,ll,iso2volcanoexpl)
      &                + (1./(float(lmax-lmin)+1)) 
      &                * so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
           endif
@@ -5718,7 +5761,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 #ifdef WATER_MISC_GRND_CH4_SRC
           do ns=1,ntsurfsrc(n) 
             if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
-     &        sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+              sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
      &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
@@ -6817,20 +6860,13 @@ C**** All sources are saved as kg s-1
           select case(trname(n))
           case ('SO2','SO4','M_ACC_SU','M_AKK_SU')
             tr3Dsource(:,nVolcanic,n)=
-     &        so2_src_3d(i,j,:,nso2src_3d)*src_fact
+     &        sum(so2_src_3d(i,j,:,:),2)*src_fact
             call apply_tracer_3Dsource(i,j,nVolcanic,n)
 #ifdef TRACERS_TOMAS
           case ('ASO4__01')
             do k=1,nbins
-#ifdef TRACERS_VOLCEXP
               tr3Dsource(:,nVolcanic,n_ASO4(k))=
-     &          so2_src_3d(i,j,:,nso2src_3d-1)
-     &         *scalesizeSO4_vol(k)*src_fact
-#else
-              tr3Dsource(:,nVolcanic,n_ASO4(k))=
-     &          so2_src_3d(i,j,:,nso2src_3d)
-     &         *scalesizeSO4_vol(k)*src_fact
-#endif
+     &          sum(so2_src_3d(i,j,:,:),2)*scalesizeSO4_vol(k)*src_fact
               tr3Dsource(:,nSO4anum,n_ANUM(k))=
      &          tr3Dsource(:,nVolcanic,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
 !              call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
@@ -6873,7 +6909,6 @@ C*****
       use TRACER_COM, only: n_ASO4
       use TRACER_COM, only: n_AECOB, n_AOCOB
       use TRACER_COM, only: nSO4anum
-      USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
       USE TOMAS_AEROSOL, only : xk
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
@@ -7136,6 +7171,8 @@ C**** Apply chemistry and overwrite changes:
      &       trm_col(L,n)) / dtsrc
       end do
       call apply_tracer_3Dsource(i,j,nOverwrite,n)
+      ! reset, since already applied and so can be reused in the chemistry code:
+      tr3Dsource(:,nOverwrite,n) = 0d0
 
       end subroutine applyRadChem
 
