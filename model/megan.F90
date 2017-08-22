@@ -13,8 +13,6 @@
 !      objects like SAT to be persistent between calls. (e.g. not just with respect
 !      to restarts but to program scope.)
 
-!TODO: Tune the CCE parameter (see noted below)
-!
 ! MORE TODOS are below (Throughout)
 
 
@@ -142,6 +140,8 @@ type(biogenicSpecies), save :: isoprene
 ! Units are [micro mole photons] per [Joule]:
 real*8, parameter :: ConvertShadePPFD = 4.6d0
 real*8, parameter :: ConvertSunPPFD = 4.0d0
+!dbparam use_canopy_model on/off switch for canopy model
+integer :: use_canopy_model=0
 
 
 end module megan
@@ -184,11 +184,6 @@ real*8, parameter :: radianToDegree=1.d0/radian
 !@param convertUnits to convert from emission factor in microgram m-2 hr-1
 !@+ from megan to kg m-2 s-1 for GCM
 real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
-!@param CCE G 2012 canopy environment coefficient to be set
-!@+ such that total gamma of 1 results during standard MEGAN conditions (e.g. 
-!@+ 0.3 or 0.57 in CLM4 and WRF-AQ models, respectively. See G 2006 for standard
-!@+ conditions). This is distinct from the rho=1. parameter in MEGAN.
-real*8, parameter :: CCE=1.d0
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
 integer, intent(IN) :: i,j
@@ -259,7 +254,7 @@ SAT_megan=atmsrf%tsavg(i,j)
 ! If, for this location, the running average has not finished it's
 ! first averaging period, it will remain undefined and use the instantaneous
 ! value of the SAT for megan instead:
-call running_average( SAT, SAT_megan, i, j)
+call running_average_megan( SAT, SAT_megan, i, j)
 if(SAT%runningAverage(i,j)==undef)then
   ! i.e. in first averaging period use instantaneous value instead:
   SAT_daily_megan=SAT_megan
@@ -286,7 +281,7 @@ else
   T_megan=T_megan+tf ! degC --> K
 end if
 
-call running_average( T, T_megan, i, j)
+call running_average_megan( T, T_megan, i, j)
 if(T%runningAverage(i,j)==undef)then
   ! e.g. in first averaging period use instantaneous value instead:
   T_daily_megan=T_megan
@@ -306,9 +301,9 @@ end if
 ! Get LAI leaf area index from current and previous time step (This is weird;
 ! see notes below on questionable methodology and TSTLEN set to 30 days...)
 !
-! For now, for LAI, the running_average subroutine returns the LAI saved from
-! 30 days ago, and this will act as the "previous" value. (It knows to return
-! this, instead of the running average because LAI%laggedValue=.true.):
+! For now, for LAI, the running_average_megan subroutine returns the LAI saved
+! from 30 days ago, and this will act as the "previous" value. (It knows to
+! return this, instead of the running average because LAI%laggedValue=.true.):
 
 if(fearth(i,j)>0.d0) then
   call ent_get_exports( entcells(i,j),leaf_area_index=LAI_megan)
@@ -317,7 +312,7 @@ else
 end if
 LAI_current_megan=LAI_megan
 
-call running_average( LAI, LAI_megan, i, j)
+call running_average_megan( LAI, LAI_megan, i, j)
 if(LAI%runningAverage(i,j)==undef)then
   ! In first averaging period use instantaneous value instead (=no aging yet):
   LAI_previous_megan=LAI_current_megan
@@ -339,7 +334,7 @@ par_diffuse=par_total-par_direct
 ! for the 400-700 nm range) and converts to PPFD in micro-mol(photons) m-2 s-1:
 PPFD_megan=par_direct*ConvertSunPPFD+par_diffuse*ConvertShadePPFD
 
-call running_average( PPFD, PPFD_megan, i, j)
+call running_average_megan( PPFD, PPFD_megan, i, j)
 if(PPFD%runningAverage(i,j)==undef)then
   ! e.g. in first averaging period use instantaneous value instead:
   PPFD_daily_megan=PPFD_megan
@@ -364,10 +359,15 @@ end if
 ! Gamma for Leaf Area Index (independent of species properties):
 call get_gamma_lai( LAI_megan, gamma_LAI )
 
-! Gamma for photosynthetic photon flux density activity
-! (independent of species properties):
-call get_gamma_p( JDAY_megan, cosSZA_megan, PPFD_megan, &
-                & PPFD_daily_megan, gamma_PPFD)
+if (use_canopy_model==1) then
+  gamma_PPFD=1.d0 ! I think would in this case be incorporated into
+                  ! gamma_tld & gamma_tli calculation instead
+else
+  ! Gamma for photosynthetic photon flux density activity
+  ! (independent of species properties):
+  call get_gamma_p( JDAY_megan, cosSZA_megan, PPFD_megan, &
+                  & PPFD_daily_megan, gamma_PPFD)
+end if
 
 ! Gamma for CO2 Inhibition (independent of species properties):
 call get_gamma_CO2(CO2_megan, gamma_CO2)
@@ -406,17 +406,27 @@ tracers_loop: do nTracer=1,ntm
       ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
       ! instantaneous one and month-old one)...
 
+if (use_canopy_model==1) then
+      ! Define gamma_tld & gamma_tli calling a canopy model
+      call stop_model('megan canopy model not implemented.',255)
+      ! This is not implemented yet, as it seems like it should be in Ent. Remember, if it
+      ! does get coded, include a linear scale factor "CCE" that is tuned such that the
+      ! total canopy environment gamma (gamma_CE) is unity when fed standard MEGAN conditions
+      ! as defined in G 2006. (e.g. CCE=0.3 or 0.57 in CLM4 and WRF-AQ models, respectively.)
+      ! (Hammoz model did not include the canopy model and noted this meant they were
+      ! effectively using 'MEGAN 2.04')
+else
       ! Light-dependant temperature gamma: (only one used for Isoprene):
       call get_gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
       ! Light-independant temperature gamma:
       call get_gamma_tli(SAT_megan, species(n), gamma_tli)
+end if
 
       ! Calculate the emissions flux, to be exported and applied elsewhere:
 
       ! I believe that with the following check, we don't have to treat Isoprene as a
       ! special case of the emissions formula a few lines down -- because the light-
-      ! independent portion will drop out! But it does worry me why the hammoz model at least
-      ! treated Isoprene separately...
+      ! independent portion will drop out.
       if (trim(species(n)%itsname) == 'Isoprene') then
         if(species(n)%ldf .ne. 1.d0) call stop_model( &
         & 'Isoprene MEGAN LDF .ne. 1.',255)
@@ -435,9 +445,9 @@ tracers_loop: do nTracer=1,ntm
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
       sfc_src(i,j,nTracer,do_megan(nTracer))= &
-      & convertUnits*CCE*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2&
+      & convertUnits*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2 &
       & * ( (1.d0-species(n)%ldf) * gamma_tli + &
-      & species(n)%ldf * gamma_PPFD*gamma_tld)
+      & species(n)%ldf * gamma_PPFD*gamma_tld )
 
       cycle tracers_loop ! done with this tracer
 
@@ -762,8 +772,8 @@ end subroutine alloc_megan
 #endif /* NEW_IO */
 
 
-subroutine running_average(this, val, i, j)
-!@sum running_average keeps a running average of model quantities
+subroutine running_average_megan(this, val, i, j)
+!@sum running_average_megan keeps a running average of model quantities
 !@+ needed for MEGAN input. In practice, this does hourly and daily
 !@+ running averages and uses those to maintain the period-long running
 !@+ average, to avoid saving a huge array. This multi-day functionality
@@ -797,7 +807,7 @@ integer :: n
 if(nint(this%step(i,j)) < 0 .or. &
  & nint(this%step(i,j)) > this%stepsPerDay) then
   write(6,*) "i,j,step,max=",i,j,nint(this%step(i,j)),this%stepsPerDay
-  call stop_model('step problem in running_average MEGAN',255)
+  call stop_model('step problem in running_average_megan',255)
 end if
 
 byStepsPerDay=1.d0/dble(this%stepsPerDay)
@@ -913,7 +923,7 @@ if(nint(this%step(i,j)) == this%stepsPerDay) then
 
 end if ! whether of not at the end of the day
 
-end subroutine running_average
+end subroutine running_average_megan
 
 
 ! Moving on to gamma routines:
