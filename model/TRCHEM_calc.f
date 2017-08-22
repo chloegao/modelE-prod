@@ -15,7 +15,8 @@ C
       USE ATM_COM, only         : MA, byMA,ltropo
       USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
-     &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd,ijlt_OH
+     &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
+     &     ,ijlt_OHvmr,ijlt_OHconc
      &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
      &     ,ijlt_OxpRO2
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
@@ -2251,10 +2252,11 @@ C**** special diags not associated with a particular tracer
         conOH(L) = 0.
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
           conOH(l) = y(nOH,L)
-          TAIJLS(I,J,L,ijlt_OH)=TAIJLS(I,J,L,ijlt_OH)+y(nOH,L)
 #ifdef ACCMIP_LIKE_DIAGS
+          TAIJLS(I,J,L,ijlt_OHvmr)=TAIJLS(I,J,L,ijlt_OHvmr)+y(nOH,L)
      &                                             /y(nM,L)
 #endif
+          TAIJLS(I,J,L,ijlt_OHconc)=TAIJLS(I,J,L,ijlt_OHconc)+y(nOH,L)
         end if
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)
      &       TAIJLS(I,J,L,ijlt_HO2)=TAIJLS(I,J,L,ijlt_HO2)+y(nHO2,L)

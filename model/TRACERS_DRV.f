@@ -3948,22 +3948,21 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef ACCMIP_LIKE_DIAGS
-        ijlt_OH=
+        ijlt_OHvmr=
      &    ijlt_diag(sname='OH_vmr',
      &              lname='OH mixing ratio',
      &              units='V/V air', power=-10)
-#else
-        ijlt_OH=
-     &    ijlt_diag(sname='OH_con',
+#endif
+        ijlt_OHconc=
+     &    ijlt_diag(sname='OH_conc',
      &              lname='OH concentration',
      &              units='molecules cm-3', power=5)
-#endif
         ijlt_NO3=
-     &    ijlt_diag(sname='NO3_con',
+     &    ijlt_diag(sname='NO3_conc',
      &              lname='NO3 concentration',
      &              units='molecules cm-3', power=5)
         ijlt_HO2=
-     &    ijlt_diag(sname='HO2_con',
+     &    ijlt_diag(sname='HO2_conc',
      &              lname='HO2 concentration',
      &              units='molecules cm-3', power=7)
         ijlt_JO1D=
