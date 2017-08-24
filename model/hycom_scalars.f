@@ -17,7 +17,8 @@ c
       logical, public:: diagno,thermo,windf,relax,trcout,dotrcr
 c
       real, public :: time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
-     .     area,avgbot,watcum,empcum,slfcum,sala2o,tavini
+     . area,avgbot,ocnvol,slfcum,watcum,empcum,sala2o,tavini,
+     . tmean0=0,smean0=0
 c
       integer, public ::  nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
      .             ,ls2,ls3,oddev
@@ -68,14 +69,14 @@ c --- 'thref'  = reference value of specific volume (cm**3/g)
 c --- 'epsil'  = small nonzero number used to prevent division by zero
 c
       real, public ::
-     &     tenm,onem,tencm,onecm,onemm,g,csubp,spcifh,cd,ct,airdns,
-     .     evaplh,thref,epsil,huge,radian,pi
+     &     tenm,onem,tencm,onecm,onemm,onemu,g,csubp,spcifh,cd,ct,
+     &     airdns,evaplh,thref,epsil,huge,radian,pi
 c
       character*60, public ::
      &     flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
-     .            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
-     .            ,flnminp,flnmint,flnmins
-     .            ,flnmcoso,flnmcosa,flnma2o,flnmo2a
+     &            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
+     &            ,flnminp,flnmint,flnmins
+     &            ,flnmcoso,flnmcosa,flnma2o,flnmo2a
 
 c --- opening the bering strait requires information exchange across a
 c --- 'u' face represented in 2 different locations in the tri-pole grid.
@@ -174,14 +175,16 @@ c
 c --- weights for time smoothing
 ccc      data wuv1,wuv2/.5,.25/
       data wuv1,wuv2/.75,.125/
-ccc      data wts1,wts2/.875,.0625/
+ccc   data wts1,wts2/.5,.25/
+ccc   data wts1,wts2/.875,.0625/
 ccc      data wts1,wts2/.9375,.03125/
 CCC   data wts1,wts2/.96875,.015625/
       data wts1,wts2/.984375,.0078125/
       data wbaro/.125/
 c
 c --- layer thicknesses in units of pressure (kg/m/sec^2):
-      data tenm,onem,tencm,onecm,onemm/98060.,9806.,980.6,98.06,9.806/
+      data tenm, onem, tencm, onecm, onemm, onemu
+     .   /98060.,9806.,980.6, 98.06, 9.806,.0098/
       data radian/57.2957795/,pi/3.1415926536/
 c
 c --- 'g'      = gravitational acceleration (m/s^2)
@@ -244,11 +247,6 @@ c
       data flnmcoso   /'cososino'/
       data flnmovt/'./'/
 
-      integer, public :: lp
-c
-c --- 'lp' = logical unit number for printer output
-      data lp/6/
-
 c --- grid point where detailed diagnostics are desired:
       integer, public :: itest=-1, jtest=-1    !overwritten by values in rundeck
 c
@@ -271,6 +269,7 @@ c
 c --- 'thkdff' = diffusion velocity (m/s) for thickness diffusion
       real, public :: thkdff = 0.05             !overwritten by values in rundeck
 c
+      real, public :: stdsal=34.7, h_glb_cum(2)=0., s_glb_cum(2)=0.
 c --- choices for bolus velocity (interface smoothing); overwritten by values in rundeck
 c --- 1 = true, 0 = false
       integer, public :: bolus_biharm_constant=0
