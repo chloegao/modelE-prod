@@ -12,7 +12,7 @@ c
 c
 c --- compute coefficients for tridiagonal matrix (dimension=kdm).
 c --- Note: tcu(1) = 0. and tcl(kdm+1) = 0. are necessary conditions.
-c     
+c
 c --- input
       real diff(kdm+1)    ! diffusivity profile on interfaces
       integer nlayer
@@ -48,10 +48,10 @@ ccc   use mod_xc  ! HYCOM communication interface
       USE HYCOM_DIM_GLOB, only : kdm
       implicit none
 c
-      integer k 
+      integer k
 c
 c --- compute right hand side of tridiagonal matrix for scalar fields:
-c --- =  yo (old field) 
+c --- =  yo (old field)
 c ---  + flux-divergence of ghat
 c ---  + flux-divergence of non-turbulant fluxes
 c
@@ -64,7 +64,7 @@ c --- input
       real h(kdm),         ! layer thickness
      &     yo(kdm+1),      ! old profile
      &     diff(kdm+1),    ! diffusivity profile on interfaces
-     &     ghat(kdm+1),    ! ghat turbulent flux   
+     &     ghat(kdm+1),    ! ghat turbulent flux
      &     ghatflux,       ! surface flux for ghat: includes solar flux
      &     delt1           ! time step
       integer nlayer
@@ -77,13 +77,13 @@ c
 c --- in the top layer
       rhs(1)=yo(1)+delt1/h(1)*(ghatflux*diff(2)*ghat(2))
 c
-c --- inside the domain 
+c --- inside the domain
       do 10 k=2,nlayer-1
       rhs(k)=yo(k)+delt1/h(k)*
      &      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
  10   continue
 c
-c --- in the bottom layer     
+c --- in the bottom layer
       k=nlayer
       rhs(k)=yo(k)+delt1/h(k)*
      &      (ghatflux*(diff(k+1)*ghat(k+1)-diff(k)*ghat(k)))
@@ -104,7 +104,7 @@ c ---    surface layer needs +delt1*surfaceflux/(h(1)*bet)
 c ---    bottom  layer needs +tri(nlayer,1)*diff(nlayer+1)*yo(nlayer+1))/bet
 c
       USE HYCOM_DIM_GLOB, only : kdm
-      USE HYCOM_SCALARS, only : lp, itest, jtest
+      USE HYCOM_SCALARS, only : itest, jtest
       implicit none
       integer k
 c
@@ -130,18 +130,18 @@ c --- solve tridiagonal matrix.
       gam(k)=tcl(k-1)/bet
       bet=tcc(k)-tcu(k)*gam(k)
       if(bet.eq.0.) then
-        write(lp,*) 
-        write(lp,*) '** algorithm for solving tridiagonal matrix fails'
-        write(lp,*) '** bet=',bet,itest,jtest
-        write(lp,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
+        write(*,*)
+        write(*,*) '** algorithm for solving tridiagonal matrix fails'
+        write(*,*) '** bet=',bet,itest,jtest
+        write(*,*) '** k=',k,' tcc=',tcc(k),' tcu=',tcu(k),
      &              ' gam=',gam(k)
-        call sys_flush(lp)
+        call sys_flush(6)
         stop '(tridmat)'
 *       bet=1.E-12
       endif
       yn(k) =      (rhs(k)  - tcu(k)  *yn(k-1)  )/bet
 c     to avoid "Underflow" at single precision on the sun
-c     yni   =      (rhs(k)  - tcu(k)  *yn(k-1)  )/bet 
+c     yni   =      (rhs(k)  - tcu(k)  *yn(k-1)  )/bet
 c     if(yni.lt.0.) then
 c       yn(k) =min( (rhs(k)  - tcu(k)  *yn(k-1)  )/bet ,-1.E-12 )
 c     else
