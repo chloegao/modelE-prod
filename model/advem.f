@@ -1,59 +1,64 @@
 #include "hycom_mpi_hacks.h"
-      subroutine advem(iord,fld,u,v,scal,scali,dt,fco,fc)
+      subroutine advem(iord,fld,u,v,scal,scali,dt,fco,fcn)
 c
 c --- version 2.8 -- cyclic and noncyclic b.c. combined
       USE HYCOM_DIM
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT,HALO_UPDATE,NORTH,SOUTH,
-     &                          haveLatitude,GLOBALSUM
-      USE HYCOM_SCALARS, only: itest,jtest
+     &                             GLOBALSUM
+      USE HYCOM_SCALARS, only: itest,jtest,onecm,onemu
 
       implicit none
 c
 c combined monotone scheme, for details see section 3.3 (eqs. 34 to 37)
 c in smolarkiewicz and clark, 1986, j.comput.phys.,67,no 2, p. 396-438
 c and smolarkiewicz and grabowski, 1989, j.comput.phys.
-c  fld    - transported mixing ratio, e.g., salinity or temperature
-c  u,v    - mass fluxes satisfying continuity equation
-c  scal   - spatial increments (squared)
-c  scali  - inverse of scal
-c  dt     - temporal increment
-c  fco,fc - depth of the layer at previous and new time step
+c  fld     - transported mixing ratio, e.g., salinity or temperature
+c  u,v     - mass fluxes satisfying continuity equation
+c  scal    - grid cell size
+c  scali   - inverse of scal
+c  dt      - temporal increment
+c  fco,fcn - depth of the layer at previous and new time step
 c
-      integer i,j,l,n,ia,ib,ja,jb
-c
-      real fld(idm,J_0H:J_1H),u(idm,J_0H:J_1H),
-     .     v(idm,J_0H:J_1H),scal(idm,J_0H:J_1H),
-     .     scali(idm,J_0H:J_1H),fco(idm,J_0H:J_1H),
-     .     fc(idm,J_0H:J_1H)
+      real,intent(INOUT) :: fld(idm,J_0H:J_1H)
+      real,intent(IN)    :: u(idm,J_0H:J_1H),v(idm,J_0H:J_1H),
+     .     scal(idm,J_0H:J_1H),scali(idm,J_0H:J_1H),
+     .     fco(idm,J_0H:J_1H),fcn(idm,J_0H:J_1H),dt
       real fmx(idm,J_0H:J_1H),fmn(idm,J_0H:J_1H),
      .     flp(idm,J_0H:J_1H),fln(idm,J_0H:J_1H),
      .     flx(idm,J_0H:J_1H),fly(idm,J_0H:J_1H)
       real u1(idm,J_0H:J_1H),v1(idm,J_0H:J_1H),
-     .     flxdiv(idm,J_0H:J_1H),clipj(J_0H:J_1H),
-     .     vlumj(J_0H:J_1H)
+     .     flxdiv(idm,J_0H:J_1H),vlumj(J_0H:J_1H),
+     .     bforj(J_0H:J_1H),aftrj(J_0H:J_1H),
+     .     thko(idm,J_0H:J_1H),thkn(idm,J_0H:J_1H)
 
-      real dt,onemu,q,clip,vlume,amount,bfore,after
-      integer iord,ip1,im1,jp1,jm1
-      logical wrap,recovr
-      data recovr/.false./
+      real q,clip,vlume,clipped,unclipd,bfore,after,div,offset
+      integer iord,i,j,l,n,ia,ib,ja,jb,ip1,im1,jp1,jm1
+      logical,parameter :: recovr=.true.
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
-      parameter (onemu=.0098)          !  SI units
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- optional code for checking conservation properties
-ccc      bfore=0.
-ccc      do 14 j=1,jj
-ccc      do 14 l=1,isp(j)
-ccc      do 14 i=ifp(j,l),ilp(j,l)
-ccc 14   bfore=bfore+fld(i,j)*fco(i,j)*scal(i,j)
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      if (recovr) then
+        do 14 j=J_0,J_1
+        bforj(j)=0.
+        do 14 l=1,isp(j)
+        do 14 i=ifp(j,l),ilp(j,l)
+ 14     bforj(j)=bforj(j)+fld(i,j)*fco(i,j)*scal(i,j)
+      end if
+
+c --- generate auxiliary layer depths consistent with mass flux divergence
+      do 12 j=J_0,J_1
+      jb = PERIODIC_INDEX(j+1, jj)
+      do 12 l=1,isp(j)
+      do 12 i=ifp(j,l),ilp(j,l)
+      div=(u(i+1,j)-u(i,j)+v(i,jb )-v(i,j))*scali(i,j)*dt
+      thkn(i,j)=.5*(fco(i,j)+fcn(i,j)-div)
+      thko(i,j)=.5*(fco(i,j)+fcn(i,j)+div)
+      offset=min(0.,thko(i,j),thkn(i,j))
+      thkn(i,j)=thkn(i,j)-offset
+ 12   thko(i,j)=thko(i,j)-offset
 c
 c --- compute low-order and part of antidiffusive fluxes
 c
-      fmx=0.d0; fmn=0.d0; fly=0.d0;
-      flp=0.d0; fln=0.d0;
-
       call cpy_p_par(fld)
 
       CALL HALO_UPDATE(ogrid,fld, FROM=SOUTH+NORTH)
@@ -61,6 +66,17 @@ c
       do 11 j=J_0,J_1
       ja = PERIODIC_INDEX(j-1, jj)
 c
+      do i=1,ii
+        fmx(i,j)=0.
+        fmn(i,j)=0.
+        flp(i,j)=0.
+        fln(i,j)=0.
+        flx(i,j)=0.
+        fly(i,j)=0.
+        u1 (i,j)=0.
+        v1 (i,j)=0.
+      end do
+
       do 2 l=1,isu(j)
       do 2 i=ifu(j,l),ilu(j,l)
       u1(i,j)=.5*abs(u(i,j))*(fld(i,j)-fld(i-1,j))
@@ -94,29 +110,10 @@ c
       fmx(i,j)=max(fld(i,j),fld(ia,j),fld(ib,j),fld(i,ja),fld(i,jb))
    11 fmn(i,j)=min(fld(i,j),fld(ia,j),fld(ib,j),fld(i,ja),fld(i,jb))
 c
-      do 22 j=J_0,J_1
-      do 22 l=1,isp(j)
-      flx(ifp(j,l)  ,j)=0.
-      flx(ilp(j,l)+1,j)=0.
-  22  continue
-c
-      do 33 i=1,ii1
-      wrap=jfv(i,1).eq.1	! true if j=1 and j=jj are both water points
-      do 33 l=1,jsp(i)
-      j=jfp(i,l)
-      if (haveLatitude(ogrid, J=j)) then
-        if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
-      endif
-      j=mod(jlp(i,l),jj)+1
-      if (haveLatitude(ogrid, J=j)) then
-        if (j.gt.1 .or. .not.wrap) fly(i,j)=0.
-      endif
-   33 continue
-c
 cdiag i=itest
 cdiag j=jtest
-cdiag write (lp,'(''advem (1)''2i5,f22.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,
-cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,j-1),
+cdiag write (*,'("advem (1)",2i5,f22.3/es39.2/f21.3,es9.2,f9.3,
+cdiag.es9.2,f9.3/es39.2/f39.3)') i,j,fld(i-1,j),u(i,j),fld(i,j-1),
 cdiag.v(i,j),fld(i,j),v(i,j+1),fld(i,j+1),u(i+1,j),fld(i+1,j)
 
       CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
@@ -124,24 +121,20 @@ c
       do 61 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       vlumj(j)=0.
-      clipj(j)=0.
       do 61 l=1,isp(j)
       do 61 i=ifp(j,l),ilp(j,l)
       flxdiv(i,j)=(flx(i+1,j)-flx(i,j)+fly(i,jb )-fly(i,j))*dt
      .   *scali(i,j)
-      q=fld(i,j)*fco(i,j)-flxdiv(i,j)
-      amount=max(fmn(i,j)*fc(i,j),min(q,fmx(i,j)*fc(i,j)))
-      if (recovr) then
-        vlumj(j)=vlumj(j)+scal(i,j)*fc(i,j)
-        clipj(j)=clipj(j)+(q-amount)*scal(i,j)
-      end if
-   61 fld(i,j)=(fld(i,j)*onemu+amount)/(onemu+fc(i,j))
+      unclipd=fld(i,j)*thko(i,j)-flxdiv(i,j)
+      clipped=max(fmn(i,j)*thkn(i,j),min(unclipd,fmx(i,j)*thkn(i,j)))
+      if (recovr) vlumj(j)=vlumj(j)+scal(i,j)*fcn(i,j)
+   61 fld(i,j)=(fld(i,j)*onemu+clipped)/(onemu+thkn(i,j))
 c
       if (iord.le.1) go to 100
 
       CALL HALO_UPDATE(ogrid,flxdiv, FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,fco,    FROM=SOUTH)
-      CALL HALO_UPDATE(ogrid,fc,     FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,thko,   FROM=SOUTH)
+      CALL HALO_UPDATE(ogrid,thkn,   FROM=SOUTH)
 c
 c --- finish computation of antidiffusive fluxes
 c
@@ -151,26 +144,25 @@ c
       do 7 l=1,isu(j)
       do 7 i=ifu(j,l),ilu(j,l)
     7 flx(i,j)=u1(i,j)-u(i,j)*(flxdiv(i,j)+flxdiv(i-1,j))
-     .   /(fco(i,j)+fco(i-1,j)+fc(i,j)+fc(i-1,j)+onemu)
+     .   /(thko(i,j)+thko(i-1,j)+thkn(i,j)+thkn(i-1,j)+onemu)
 c
       do 8 l=1,isv(j)
       do 8 i=ifv(j,l),ilv(j,l)
     8 fly(i,j)=v1(i,j)-v(i,j)*(flxdiv(i,j)+flxdiv(i,ja ))
-     .   /(fco(i,j)+fco(i,ja )+fc(i,j)+fc(i,ja )+onemu)
+     .   /(thko(i,j)+thko(i,ja )+thkn(i,j)+thkn(i,ja )+onemu)
 c
 c---- limit antidiffusive fluxes
 c
-
       CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
       do 16 j=J_0,J_1
       jb = PERIODIC_INDEX(j+1, jj)
       do 16 l=1,isp(j)
       do 16 i=ifp(j,l),ilp(j,l)
-      flp(i,j)=(fmx(i,j)-fld(i,j))*fc(i,j)*scal(i,j)/( (onemu
+      flp(i,j)=(fmx(i,j)-fld(i,j))*thkn(i,j)*scal(i,j)/( (onemu
      .  -min(0.,flx(i+1,j))+max(0.,flx(i,j))
      .  -min(0.,fly(i,jb ))+max(0.,fly(i,j)) )*dt)
-      fln(i,j)=(fld(i,j)-fmn(i,j))*fc(i,j)*scal(i,j)/( (onemu
+      fln(i,j)=(fld(i,j)-fmn(i,j))*thkn(i,j)*scal(i,j)/( (onemu
      .  +max(0.,flx(i+1,j))-min(0.,flx(i,j))
      .  +max(0.,fly(i,jb ))-min(0.,fly(i,j)) )*dt)
    16 continue
@@ -200,8 +192,8 @@ c
 c
 cdiag i=itest
 cdiag j=jtest
-cdiag write (lp,'(''advem (2)''2i5,f22.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,
-cdiag.1pe9.2,0pf9.3/1pe39.2/0pf39.3)') i,j,fld(i-1,j),u(i,j),fld(i,ja ),
+cdiag write (*,'("advem (2)",2i5,f22.3/es39.2/f21.3,es9.2,f9.3,
+cdiag.es9.2,f9.3/es39.2/f39.3)') i,j,fld(i-1,j),u(i,j),fld(i,ja ),
 cdiag.v(i,j),fld(i,j),v(i,jb ),fld(i,jb ),u(i+1,j),fld(i+1,j)
 c
       do 62 j=J_0,J_1
@@ -210,42 +202,42 @@ c
       do 62 i=ifp(j,l),ilp(j,l)
       flxdiv(i,j)=(flx(i+1,j)-flx(i,j)+fly(i,jb )-fly(i,j))*dt
      .   *scali(i,j)
-      q=fld(i,j)*fc(i,j)-flxdiv(i,j)
-      amount=max(fmn(i,j)*fc(i,j),min(q,fmx(i,j)*fc(i,j)))
-      if (recovr) clipj(j)=clipj(j)+(q-amount)*scal(i,j)
-   62 fld(i,j)=(fld(i,j)*onemu+amount)/(onemu+fc(i,j))
+      unclipd=fld(i,j)*thkn(i,j)-flxdiv(i,j)
+      clipped=max(fmn(i,j)*thkn(i,j),min(unclipd,fmx(i,j)*thkn(i,j)))
+   62 fld(i,j)=(fld(i,j)*onemu+clipped)/(onemu+thkn(i,j))
 c
   100 continue
 c
 c --- revover 'clipped' amount and return to field
 c
       if (recovr) then
-        vlume=0.
-        clip=0.
-c
         call GLOBALSUM(ogrid,vlumj,vlume, all=.true.)
-        call GLOBALSUM(ogrid,clipj,clip,  all=.true.)
-
-        if (vlume.ne.0.) then
-          clip=clip/vlume
-cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
+        if (vlume.gt.0.) then
+          do 15 j=J_0,J_1
+          aftrj(j)=0.
+          do 15 l=1,isp(j)
+          do 15 i=ifp(j,l),ilp(j,l)
+ 15       aftrj(j)=aftrj(j)+fld(i,j)*fcn(i,j)*scal(i,j)
+          call GLOBALSUM(ogrid,bforj,bfore, all=.true.)
+          call GLOBALSUM(ogrid,aftrj,after, all=.true.)
+          clip=(bfore-after)/vlume
           do 13 j=J_0,J_1
+          aftrj(j)=0.
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
-   13     fld(i,j)=fld(i,j)+clip
+          fld(i,j)=fld(i,j)+clip
+ 13       aftrj(j)=aftrj(j)+fld(i,j)*fcn(i,j)*scal(i,j)
         end if
-      end if
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+! --- optional:
+cc      call GLOBALSUM(ogrid,aftrj,after, all=.true.)
+cc
+cc      if (AM_I_ROOT())
+cc   .   write (*,'(a,2f17.11,es11.2)') 'advem conservation:',
+cc   .   bfore/vlume,after/vlume,(after-bfore)/vlume
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c --- optional code for checking conservation properties
-ccc      after=0.
-ccc      do 15 j=1,jj
-ccc      do 15 l=1,isp(j)
-ccc      do 15 i=ifp(j,l),ilp(j,l)
-ccc 15   after=after+fld(i,j)*fc(i,j)*scal(i,j)
-ccc      write (lp,'(a,1p,3e14.6,e11.1)') 'advem conservation:',
-ccc     .  bfore,after,after-bfore,(after-bfore)/bfore
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+      end if			! recovr
       return
       end
 c
@@ -257,3 +249,5 @@ c> Apr. 2000 - conversion to SI units
 c> Apr. 2000 - changed i/j loop nesting to j/i
 c> May  2000 - modified j-1,j+1 to accomodate both channel & closed basin b.c.
 c> Sep. 2000 - fixed cyclicity problem in loop 33
+c> Jul  2017 - new 'recovr' logic to assure exact global conservation
+
