@@ -77,7 +77,7 @@ c --- m_prime in remaining layers:
 c
 cdiag do j=jtest-1,jtest+1
 cdiag do i=itest-1,itest+1
-cdiag if (ip(i,j).gt.0) write (lp,103) nstep,i,j,
+cdiag if (ip(i,j).gt.0) write (*,103) nstep,i,j,
 cdiag. '    temp    saln  thstar   thkns    dpth   montg',
 cdiag.  (k,temp(i,j,k+mm),saln(i,j,k+mm),thstar(i,j,k),
 cdiag.   dp(i,j,k+mm)/onem,p(i,j,k+1)/onem,montg(i,j,k)/g,k=1,kk)
@@ -152,7 +152,7 @@ c
       stresx(i,j)=(taux(i,j)+taux(i-1,j))*.5
      .            *g/min(ekman*onem,depthu(i,j))        !  units: m/s^2
 c --- reduce stress under ice
-c     stresx(i,j)=stresx(i,j)*(1.-.45*(covice(i,j)+covice(i-1,j)))
+c     stresx(i,j)=stresx(i,j)*(1.-.45*(oice(i,j)+oice(i-1,j)))
  69   continue
 c
       do 70 l=1,isv(j)
@@ -165,7 +165,7 @@ c
       stresy(i,j)=(tauy(i,j)+tauy(i,ja))*.5
      .            *g/min(ekman*onem,depthv(i,j))        !  units: m/s^2
 c --- reduce stress under ice
-c     stresy(i,j)=stresy(i,j)*(1.-.45*(covice(i,j)+covice(i,ja )))
+c     stresy(i,j)=stresy(i,j)*(1.-.45*(oice(i,j)+oice(i,ja )))
  70   continue
 c
 c --- the old  momeq2.f  starts here
@@ -437,10 +437,10 @@ c
 c --- check whether variables along coast have been initialized correctly
 cdiag if (k.eq.kk) then
 cdiag   if (iu(i,ja).eq.0 .and. dpu(i,ja,km).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero dpu(ja):',dpu(i,ja,km)
 cdiag   if (iu(i,jb).eq.0 .and. dpu(i,jb,km).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero dpu(jb):',dpu(i,jb,km)
 cdiag end if
 c
@@ -486,10 +486,10 @@ c
 c --- check whether variables along coast have been initialized correctly
 cdiag if (k.eq.kk) then
 cdiag   if (iu(i,ja).eq.0 .and. pgfx(i,ja).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero pgfx(ja):',pgfx(i,ja)
 cdiag   if (iu(i,jb).eq.0 .and. pgfx(i,jb).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero pgfx(jb):',pgfx(i,jb)
 cdiag end if
 c
@@ -535,13 +535,13 @@ c --- set baroclinic velocity to zero one point away from bering strait seam
       if (haveLatitude(ogrid, J=jatl)) u(iatln,jatl,kn)=0.
 c
       if (itest.gt.0 .and. jtest.gt.0) then
-      if (jtest.ge.J_0 .and. jtest.le.J_1) then 
-      write (lp,100) nstep
+      if (jtest.ge.J_0 .and. jtest.le.J_1) then
+      write (*,100) nstep
       do j=max(J_0, jtest-1), min(J_1, jtest+1)
       jb = PERIODIC_INDEX(j+1, jj)
       do i=itest-1,itest+1
       if (iu(i,j).gt.0) then
-      write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
+      write (*,'(2i5,i3,2p,8f8.3)') i,j,k,
      .  util4(i,j),u(i,j,kn),-delt1*gradx(i,j)*scuxi(i,j),
      .  -delt1*scuxi(i,j)*
      . .25*(utotm(i+1,j)**2+vtotm(i  ,j)**2+vtotm(i  ,jb )**2
@@ -632,10 +632,10 @@ c
 c --- check whether variables along coast have been initialized correctly
 cdiag if (k.eq.kk) then
 cdiag   if (iv(ia,j).eq.0 .and. dpv(ia,j,km).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero dpv(ia):',dpv(ia,j,km)
 cdiag   if (iv(ib,j).eq.0 .and. dpv(ib,j,km).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero dpv(ib):',dpv(ib,j,km)
 cdiag end if
 c
@@ -686,10 +686,10 @@ c
 c --- check whether variables along coast have been initialized correctly
 cdiag if (k.eq.kk) then
 cdiag   if (iv(ia,j).eq.0 .and. pgfy(ia,j).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero pgfy(ia):',pgfy(ia,j)
 cdiag   if (iv(ib,j).eq.0 .and. pgfy(ib,j).ne.0.) write
-cdiag.   (lp,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
+cdiag.   (*,'(i9,2i5,a,1p,2e9.1)') nstep,i,j,
 cdiag.   '  error - nonzero pgfy(ib):',pgfy(ib,j)
 cdiag end if
 c
@@ -734,14 +734,14 @@ c
      . +vflux3(i,j)-vflux2(i,j))/(scv2(i,j)*max(dpv(i,j,km),onemm)))
 c
       if (itest.gt.0 .and. jtest.gt.0) then
-      if (jtest.ge.J_0 .and. jtest.le.J_1) then 
-      write (lp,101) nstep
+      if (jtest.ge.J_0 .and. jtest.le.J_1) then
+      write (*,101) nstep
       do j=max(J_0, jtest-1), min(J_1, jtest+1)
       ja = PERIODIC_INDEX(j-1, jj)
       jb = PERIODIC_INDEX(j+1, jj)
       do i=itest-1,itest+1
       if (iv(i,j).gt.0) then
-      write (lp,'(2i5,i3,2p,8f8.3)') i,j,k,
+      write (*,'(2i5,i3,2p,8f8.3)') i,j,k,
      .  util4(i,j),v(i,j,kn),-delt1*grady(i,j)*scvyi(i,j),
      .  -delt1*scvyi(i,j)*
      . .25*(vtotm(i,jb )**2+utotm(i,j  )**2+utotm(i+1,j  )**2
@@ -820,7 +820,7 @@ cdiag     oldb=u(i,j,kn+1)
           u(i,j,kn+1)=(u(i,j,kn+1)*thk+avg*thkb)/(thk+thkb)
 c
 cdiag     if (i.eq.itest .and. j.eq.jtest)
-cdiag.     write (lp,104) nstep,i,j,k,'ua,ub:',dpu(i,j,kn)/onem,
+cdiag.     write (*,104) nstep,i,j,k,'ua,ub:',dpu(i,j,kn)/onem,
 cdiag.      dpu(i,j,kn+1)/onem,olda,oldb,u(i,j,kn),u(i,j,kn+1)
  104       format (i7,2i5,i3,' dpa,dpb,',a,3(f8.2,f7.2))
         end if
@@ -858,7 +858,7 @@ cdiag     oldb=v(i,j,kn+1)
           v(i,j,kn+1)=(v(i,j,kn+1)*thk+avg*thkb)/(thk+thkb)
 c
 cdiag   if (i.eq.itest .and. j.eq.jtest)
-cdiag.   write (lp,104) nstep,i,j,k,'va,vb:',dpv(i,j,kn)/onem,
+cdiag.   write (*,104) nstep,i,j,k,'va,vb:',dpv(i,j,kn)/onem,
 cdiag.    dpv(i,j,kn+1)/onem,olda,oldb,v(i,j,kn),v(i,j,kn+1)
         end if
       end if
