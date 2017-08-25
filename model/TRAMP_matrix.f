@@ -1,4 +1,10 @@
-      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG)
+#include "rundeck_opts.h"
+      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG
+#ifdef TRACERS_AMP_M9
+     &                  ,VBS_FLUXES)
+#else
+     &                             )
+#endif
 !-----------------------------------------------------------------------------------------------------------------------
 !
 !@sum     This is the top-level routine of the MATRIX aerosol microphysical module.
@@ -73,7 +79,9 @@
       REAL(8), INTENT(IN)    :: AQSO4RATE                  ! in-cloud SO4 production rate [ug/m^3/s]
       REAL(8), INTENT(IN)    :: WUPDRAFT                   ! cloud updraft velocity [m/s]
       REAL(8), INTENT(INOUT) :: DIAG(NDIAG_AERO,NAEROBOX)  ! budget or tendency diagnostics [ug/m^3/s] or [#/m^3/s]
-
+#ifdef TRACERS_AMP_M9
+      REAL(8), INTENT(IN)    :: VBS_FLUXES(NMODES,NMASS_SPCS)
+#endif
       ! Local variables.
 
       INTEGER :: I,J,K,L,Q,QQ              ! indices
@@ -95,7 +103,7 @@
       REAL(8) :: TOT_MASS    (NMODES)      ! total ambient mass conc. for each mode [ug/m^3]
       REAL(8) :: TOT_MASS_DRY(NMODES)      ! total dry     mass conc. for each mode [ug/m^3]
       REAL(8) :: H2O_MASS(NMODES)          ! water mass mass conc. for each mode [ug/m^3]
-      REAL(8) :: MASS_COMP(NMODES,8)       ! mass conc. of each component for each mode [ug/m^3]
+      REAL(8) :: MASS_COMP(NMODES,NMASS_SPCS+NEXTRA)       ! mass conc. of each component for each mode [ug/m^3]
       REAL(8) :: DENS_MODE    (NMODES)     ! average mode density calculated from component concentrations [g/cm^3]
       REAL(8) :: DENS_MODE_DRY(NMODES)     ! average mode density calculated from component concentrations [g/cm^3]
       REAL(8) :: OPTOT_NO3NH4H2O_TO_SULF   ! 1 + ( total NO3+NH4+H2O / total SO4 )
@@ -962,7 +970,29 @@
       !-----------------------------------------------------------------------------------------------------------------
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
-
+#ifdef TRACERS_AMP_M9
+      DO i=1,NWEIGHTS
+IF (MSPCS(PROD_INDEX_OCM2,i) .eq. 0) CYCLE  !mspcs(nmass_spcs,nmodes_max),determine if vbs species is 0 or 1
+        PIQ (i,PROD_INDEX_OCM2)=PIQ (i,PROD_INDEX_OCM2)+VBS_FLUXES(i,PROD_INDEX_OCM2)
+        PIQ (i,PROD_INDEX_OCM1)=PIQ (i,PROD_INDEX_OCM1)+VBS_FLUXES(i,PROD_INDEX_OCM1)
+        PIQ (i,PROD_INDEX_OCM0)=PIQ (i,PROD_INDEX_OCM0)+VBS_FLUXES(i,PROD_INDEX_OCM0)
+        PIQ (i,PROD_INDEX_OCP1)=PIQ (i,PROD_INDEX_OCP1)+VBS_FLUXES(i,PROD_INDEX_OCP1)
+        PIQ (i,PROD_INDEX_OCP2)=PIQ (i,PROD_INDEX_OCP2)+VBS_FLUXES(i,PROD_INDEX_OCP2)
+        PIQ (i,PROD_INDEX_OCP3)=PIQ (i,PROD_INDEX_OCP3)+VBS_FLUXES(i,PROD_INDEX_OCP3)
+        PIQ (i,PROD_INDEX_OCP4)=PIQ (i,PROD_INDEX_OCP4)+VBS_FLUXES(i,PROD_INDEX_OCP4)
+        PIQ (i,PROD_INDEX_OCP5)=PIQ (i,PROD_INDEX_OCP5)+VBS_FLUXES(i,PROD_INDEX_OCP5)
+        PIQ (i,PROD_INDEX_OCP6)=PIQ (i,PROD_INDEX_OCP6)+VBS_FLUXES(i,PROD_INDEX_OCP6)
+          DIAGTMP1(11,OCM2_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM2)
+          DIAGTMP1(11,OCM1_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM1)
+          DIAGTMP1(11,OCM0_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM0)
+          DIAGTMP1(11,OCP1_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP1)
+          DIAGTMP1(11,OCP2_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP2)
+          DIAGTMP1(11,OCP3_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP3)
+          DIAGTMP1(11,OCP4_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP4)
+          DIAGTMP1(11,OCP5_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP5)
+          DIAGTMP1(11,OCP6_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP6)
+      ENDDO
+#endif
       IF( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(/A,5X,3D15.8)')'XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH = ', XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH
         WRITE(AUNIT1,*)'PIQ(1,PROD_INDEX_SULF) = ', PIQ(1,PROD_INDEX_SULF)
@@ -1118,42 +1148,135 @@
       TOT_SULF = SUM( AERO(SULF_MAP(:)) ) + TINYNUMER
       OPTOT_NO3NH4H2O_TO_SULF = 1.0D+00 + SUM(AERO(1:3)) / TOT_SULF
 
-      IF( AERO(MASS_DD1_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_DD1_DUST) .GT. MIMR_DDD ) THEN
         !--------------------------------------------------------------------------------------------------------------
         ! Transfer mode DD1 to mode DS1.
         !--------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      IF( AERO(MASS_DD1_DUST) .GT. 1.d-20) THEN
+        IF( (AERO(MASS_DD1_SULF)*OPTOT_NO3NH4H2O_TO_SULF+AERO(MASS_DD1_OCM2)+AERO(MASS_DD1_OCM1)+AERO(MASS_DD1_OCM0)+
+     &      AERO(MASS_DD1_OCP1)+AERO(MASS_DD1_OCP2)+AERO(MASS_DD1_OCP3)+AERO(MASS_DD1_OCP4)+AERO(MASS_DD1_OCP5)+
+     &      AERO(MASS_DD1_OCP6))/AERO(MASS_DD1_DUST) .GT. MIMR_DDD ) THEN
+#else
+      IF( AERO(MASS_DD1_DUST) .GT. 1.d-20  ) THEN
+        IF( AERO(MASS_DD1_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_DD1_DUST) .GT. MIMR_DDD ) THEN
+#endif
+
         AERO(MASS_DS1_SULF) = AERO(MASS_DS1_SULF) + AERO(MASS_DD1_SULF)
         AERO(MASS_DS1_DUST) = AERO(MASS_DS1_DUST) + AERO(MASS_DD1_DUST)
+
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_DS1_OCM2) = AERO(MASS_DS1_OCM2) + AERO(MASS_DD1_OCM2)
+        AERO(MASS_DS1_OCM1) = AERO(MASS_DS1_OCM1) + AERO(MASS_DD1_OCM1)
+        AERO(MASS_DS1_OCM0) = AERO(MASS_DS1_OCM0) + AERO(MASS_DD1_OCM0)
+        AERO(MASS_DS1_OCP1) = AERO(MASS_DS1_OCP1) + AERO(MASS_DD1_OCP1)
+        AERO(MASS_DS1_OCP2) = AERO(MASS_DS1_OCP2) + AERO(MASS_DD1_OCP2)
+        AERO(MASS_DS1_OCP3) = AERO(MASS_DS1_OCP3) + AERO(MASS_DD1_OCP3)
+        AERO(MASS_DS1_OCP4) = AERO(MASS_DS1_OCP4) + AERO(MASS_DD1_OCP4)
+        AERO(MASS_DS1_OCP5) = AERO(MASS_DS1_OCP5) + AERO(MASS_DD1_OCP5)
+        AERO(MASS_DS1_OCP6) = AERO(MASS_DS1_OCP6) + AERO(MASS_DD1_OCP6)
+#endif
         AERO(NUMB_DS1_1   ) = AERO(NUMB_DS1_1   ) + AERO(NUMB_DD1_1   )
         AERO(MASS_DD1_SULF) = TINYNUMER
         AERO(MASS_DD1_DUST) = TINYNUMER
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_DD1_OCM2) = TINYNUMER
+        AERO(MASS_DD1_OCM1) = TINYNUMER
+        AERO(MASS_DD1_OCM0) = TINYNUMER
+        AERO(MASS_DD1_OCP1) = TINYNUMER
+        AERO(MASS_DD1_OCP2) = TINYNUMER
+        AERO(MASS_DD1_OCP3) = TINYNUMER
+        AERO(MASS_DD1_OCP4) = TINYNUMER
+        AERO(MASS_DD1_OCP5) = TINYNUMER
+        AERO(MASS_DD1_OCP6) = TINYNUMER
+#endif
         AERO(NUMB_DD1_1   ) = TINYNUMER
       ENDIF
-  
-      IF( MASS_DD2_DUST .GT. 0.0D+00 ) THEN
-        IF( AERO(MASS_DD2_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_DD2_DUST) .GT. MIMR_DDD ) THEN
+      ENDIF
           !------------------------------------------------------------------------------------------------------------
           ! Transfer mode DD2 to mode DS2.
           !------------------------------------------------------------------------------------------------------------
-          AERO(MASS_DS2_SULF) = AERO(MASS_DS2_SULF) + AERO(MASS_DD2_SULF)
-          AERO(MASS_DS2_DUST) = AERO(MASS_DS2_DUST) + AERO(MASS_DD2_DUST)
-          AERO(NUMB_DS2_1   ) = AERO(NUMB_DS2_1   ) + AERO(NUMB_DD2_1   )
-          AERO(MASS_DD2_SULF) = TINYNUMER
-          AERO(MASS_DD2_DUST) = TINYNUMER
-          AERO(NUMB_DD2_1   ) = TINYNUMER
-        ENDIF
+#ifdef TRACERS_AMP_M9
+      IF( AERO(MASS_DD2_DUST) .GT. 1.d-20) THEN
+        IF( (AERO(MASS_DD2_SULF)*OPTOT_NO3NH4H2O_TO_SULF+AERO(MASS_DD2_OCM2)+AERO(MASS_DD2_OCM1)+AERO(MASS_DD2_OCM0)+
+     &     AERO(MASS_DD2_OCP1)+AERO(MASS_DD2_OCP2)+AERO(MASS_DD2_OCP3)+AERO(MASS_DD2_OCP4)+AERO(MASS_DD2_OCP5)+
+     &         AERO(MASS_DD2_OCP6))/AERO(MASS_DD2_DUST) .GT. MIMR_DDD ) THEN
+#else
+      IF( AERO(MASS_DD2_DUST) .GT. 1.d-20) THEN
+        IF( AERO(MASS_DD2_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_DD2_DUST) .GT. MIMR_DDD ) THEN
+#endif
+        AERO(MASS_DS2_SULF) = AERO(MASS_DS2_SULF) + AERO(MASS_DD2_SULF)
+        AERO(MASS_DS2_DUST) = AERO(MASS_DS2_DUST) + AERO(MASS_DD2_DUST)
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_DS2_OCM2) = AERO(MASS_DS2_OCM2) + AERO(MASS_DD2_OCM2)
+        AERO(MASS_DS2_OCM1) = AERO(MASS_DS2_OCM1) + AERO(MASS_DD2_OCM1)
+        AERO(MASS_DS2_OCM0) = AERO(MASS_DS2_OCM0) + AERO(MASS_DD2_OCM0)
+        AERO(MASS_DS2_OCP1) = AERO(MASS_DS2_OCP1) + AERO(MASS_DD2_OCP1)
+        AERO(MASS_DS2_OCP2) = AERO(MASS_DS2_OCP2) + AERO(MASS_DD2_OCP2)
+        AERO(MASS_DS2_OCP3) = AERO(MASS_DS2_OCP3) + AERO(MASS_DD2_OCP3)
+        AERO(MASS_DS2_OCP4) = AERO(MASS_DS2_OCP4) + AERO(MASS_DD2_OCP4)
+        AERO(MASS_DS2_OCP5) = AERO(MASS_DS2_OCP5) + AERO(MASS_DD2_OCP5)
+        AERO(MASS_DS2_OCP6) = AERO(MASS_DS2_OCP6) + AERO(MASS_DD2_OCP6)
+#endif
+        AERO(NUMB_DS2_1   ) = AERO(NUMB_DS2_1   ) + AERO(NUMB_DD2_1   )
+        AERO(MASS_DD2_SULF) = TINYNUMER
+        AERO(MASS_DD2_DUST) = TINYNUMER
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_DD2_OCM2) = TINYNUMER
+        AERO(MASS_DD2_OCM1) = TINYNUMER
+        AERO(MASS_DD2_OCM0) = TINYNUMER
+        AERO(MASS_DD2_OCP1) = TINYNUMER
+        AERO(MASS_DD2_OCP2) = TINYNUMER
+        AERO(MASS_DD2_OCP3) = TINYNUMER
+        AERO(MASS_DD2_OCP4) = TINYNUMER
+        AERO(MASS_DD2_OCP5) = TINYNUMER
+        AERO(MASS_DD2_OCP6) = TINYNUMER
+#endif
+        AERO(NUMB_DD2_1   ) = TINYNUMER
+      ENDIF
       ENDIF
 
-      IF( AERO(MASS_BC1_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_BC1_BCAR) .GT. MIMR_BC1 ) THEN
         !--------------------------------------------------------------------------------------------------------------
         ! Transfer mode BC1 to mode BC2.
         !--------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      IF( AERO(MASS_BC1_BCAR) .GT. 1.d-20) THEN
+        IF( (AERO(MASS_BC1_SULF)*OPTOT_NO3NH4H2O_TO_SULF+AERO(MASS_BC1_OCM2)+AERO(MASS_BC1_OCM1)+AERO(MASS_BC1_OCM0)+
+     &        AERO(MASS_BC1_OCP1)+AERO(MASS_BC1_OCP2)+AERO(MASS_BC1_OCP3)+AERO(MASS_BC1_OCP4)+AERO(MASS_BC1_OCP5)+
+     &        AERO(MASS_BC1_OCP6))/AERO(MASS_BC1_BCAR) .GT. MIMR_BC1 ) THEN
+#else
+      IF( AERO(MASS_BC1_BCAR) .GT. 1.d-20) THEN
+        IF( AERO(MASS_BC1_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_BC1_BCAR) .GT. MIMR_BC1 ) THEN
+#endif
+
         AERO(MASS_BC2_SULF) = AERO(MASS_BC2_SULF) + AERO(MASS_BC1_SULF)
         AERO(MASS_BC2_BCAR) = AERO(MASS_BC2_BCAR) + AERO(MASS_BC1_BCAR)
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_BC2_OCM2) = AERO(MASS_BC2_OCM2) + AERO(MASS_BC1_OCM2)
+        AERO(MASS_BC2_OCM1) = AERO(MASS_BC2_OCM1) + AERO(MASS_BC1_OCM1)
+        AERO(MASS_BC2_OCM0) = AERO(MASS_BC2_OCM0) + AERO(MASS_BC1_OCM0)
+        AERO(MASS_BC2_OCP1) = AERO(MASS_BC2_OCP1) + AERO(MASS_BC1_OCP1)
+        AERO(MASS_BC2_OCP2) = AERO(MASS_BC2_OCP2) + AERO(MASS_BC1_OCP2)
+        AERO(MASS_BC2_OCP3) = AERO(MASS_BC2_OCP3) + AERO(MASS_BC1_OCP3)
+        AERO(MASS_BC2_OCP4) = AERO(MASS_BC2_OCP4) + AERO(MASS_BC1_OCP4)
+        AERO(MASS_BC2_OCP5) = AERO(MASS_BC2_OCP5) + AERO(MASS_BC1_OCP5)
+        AERO(MASS_BC2_OCP6) = AERO(MASS_BC2_OCP6) + AERO(MASS_BC1_OCP6)
+#endif
         AERO(NUMB_BC2_1   ) = AERO(NUMB_BC2_1   ) + AERO(NUMB_BC1_1   )
-        AERO(MASS_BC1_SULF) = TINYNUMER
+        AERO(MASS_BC1_SULF) = TINYNUMER 
         AERO(MASS_BC1_BCAR) = TINYNUMER
+#ifdef TRACERS_AMP_M9
+        AERO(MASS_BC1_OCM2) = TINYNUMER
+        AERO(MASS_BC1_OCM1) = TINYNUMER
+        AERO(MASS_BC1_OCM0) = TINYNUMER
+        AERO(MASS_BC1_OCP1) = TINYNUMER
+        AERO(MASS_BC1_OCP2) = TINYNUMER
+        AERO(MASS_BC1_OCP3) = TINYNUMER
+        AERO(MASS_BC1_OCP4) = TINYNUMER
+        AERO(MASS_BC1_OCP5) = TINYNUMER
+        AERO(MASS_BC1_OCP6) = TINYNUMER
+#endif
         AERO(NUMB_BC1_1   ) = TINYNUMER
+      ENDIF
       ENDIF
 
       IF( AERO(MASS_BC2_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_BC2_BCAR) .GT. MIMR_BC2 ) THEN

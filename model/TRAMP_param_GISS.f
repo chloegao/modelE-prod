@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE AERO_PARAM  
 !-------------------------------------------------------------------------------------------------------------------------
 !@sum     AEROSOL PARAMETERS AND VARIABLES THAT ARE INDEPENDENT OF CONFIGURATION. 
@@ -47,7 +48,11 @@
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: AUNIT1            = 90 ! logical unit # - log file of module
       INTEGER, PARAMETER :: AUNIT2            = 91 ! logical unit # - test of coag. coef.
-      INTEGER, PARAMETER :: NEMIS_SPCS        = 10 ! number of emissions variables
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: NEMIS_SPCS        = 19 ! number of emissions variables for mechanism 9
+#else
+      INTEGER, PARAMETER :: NEMIS_SPCS        = 10 ! number of emissions variables for mechanism 1-8
+#endif
       INTEGER, PARAMETER :: NDIAG_AERO        = 15 ! number of aerosol diagnostics collected
       INTEGER, PARAMETER :: KIJ_NDGS_SET      = 31 ! default value=81; if NO_MICROPHYSICS=.TRUE., set to 3 to save storage
       INTEGER, PARAMETER :: IMTR_METHOD       =  1 ! =1 no cut of pdf, =2 fixed-Dp cut, =3 variable-Dp cut as in CMAQ
@@ -298,15 +303,30 @@ c     &               80.81, 85.58, 90./
 !
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
-      INTEGER, PARAMETER :: NMASS_SPCS = 5      ! total number of mass species
-      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !\.
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: NMASS_SPCS = 14     ! total number of mass species for mechanism 9
+#else
+      INTEGER, PARAMETER :: NMASS_SPCS = 5      ! total number of mass species for mechanisms 1-8
+#endif
+      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !-
       INTEGER, PARAMETER :: GAS_HNO3   = 2      !-indices in the GAS array
-      INTEGER, PARAMETER :: GAS_NH3    = 3      !/
+      INTEGER, PARAMETER :: GAS_NH3    = 3      !-
       INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_BCAR = 2 ! BCAR index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_DUST = 4 ! DUST index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_SEAS = 5 ! SEAS index in PROD_INDEX(:,:)
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: PROD_INDEX_OCM2 = 6 ! OCM2 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCM1 = 7 ! OCM1 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCM0 = 8 ! OCM0 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP1 = 9 ! OCP1 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP2 = 10! OCP2 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP3 = 11! OCP3 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP4 = 12! OCP4 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP5 = 13! OCP5 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP6 = 14! OCP6 index in PROD_INDEX(:,:)
+#endif
       !-------------------------------------------------------------------------------------------------------------------
       ! EMIS_DENS_XXXX is the dry particle density of emitted species XXXX.
       !
@@ -326,16 +346,40 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: EMIS_DENS_SEAS = 2.165D+00  ! [g/cm^3] - NaCl
       REAL(8), PARAMETER :: EMIS_DENS_BOCC = 0.50D+00   ! [g/cm^3] - average
      &                                     * ( EMIS_DENS_BCAR + EMIS_DENS_OCAR ) 
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: EMIS_DENS_OCM2 = 1.00D+00 ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCM1 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCM0 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP1 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP2 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP3 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP4 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP5 = 1.00D+00   ! [g/cm^3]
+      REAL(8), PARAMETER :: EMIS_DENS_OCP6 = 1.00D+00   ! [g/cm^3]
+      REAL, DIMENSION(NEMIS_SPCS) :: EMIS_DENS = (/  EMIS_DENS_SULF,
+     &               EMIS_DENS_SULF, EMIS_DENS_BCAR, EMIS_DENS_OCAR,
+     &               EMIS_DENS_DUST, EMIS_DENS_SEAS, EMIS_DENS_SEAS,
+     &               EMIS_DENS_BOCC, EMIS_DENS_BOCC, EMIS_DENS_DUST,
+     &               EMIS_DENS_OCM2, EMIS_DENS_OCM1, EMIS_DENS_OCM0,
+     &               EMIS_DENS_OCP1, EMIS_DENS_OCP2, EMIS_DENS_OCP3,
+     &               EMIS_DENS_OCP4, EMIS_DENS_OCP5, EMIS_DENS_OCP6/)
+#else
       REAL, DIMENSION(NEMIS_SPCS) :: EMIS_DENS = (/  EMIS_DENS_SULF,
      &               EMIS_DENS_SULF, EMIS_DENS_BCAR, EMIS_DENS_OCAR,
      &               EMIS_DENS_DUST, EMIS_DENS_SEAS, EMIS_DENS_SEAS,
      &               EMIS_DENS_BOCC, EMIS_DENS_BOCC, EMIS_DENS_DUST /)
+#endif
       !-------------------------------------------------------------------------------------------------------------------
       ! The aerosol chemical species are SO4, BC, OC, mineral dust, and sea salt.
       ! Nitrate, ammonium and water are not included here.
       !-------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS)
-     &                 = (/'SULF','BCAR','OCAR','DUST','SEAS'/)
+#ifdef TRACERS_AMP_M9
+      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS)&
+     &                 = (/'SULF','BCAR','OCAR','DUST','SEAS','OCM2','OCM1','OCM0','OCP1','OCP2', 
+     &                 'OCP3','OCP4','OCP5','OCP6'/)
+#else
+      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS) = (/'SULF','BCAR','OCAR','DUST','SEAS'/)
+#endif
       !-------------------------------------------------------------------------------------------------------------------
       ! The Maximum Inorganic Mass Ratio (MIMR) in modes DD1, DD2, BC1, and BC2.
       ! 
@@ -370,16 +414,36 @@ c     &               80.81, 85.58, 90./
 !     Aerosol species defined for each mode in each mechanism.
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, SAVE :: MSPCS(NMASS_SPCS,NMODES_MAX) 
-      DATA MSPCS(1,1:NMODES_MAX)/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/   ! SULF: =0 no sulfate, =1 has sulfate
-      DATA MSPCS(2,1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1/   ! BCAR: =0 no BC     , =1 has BC
-      DATA MSPCS(3,1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
-      DATA MSPCS(4,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust     
+      DATA MSPCS(1, 1:NMODES_MAX)/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/   ! SULF: =0 no sulfate, =1 has sulfate
+      DATA MSPCS(2, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1/   ! BCAR: =0 no BC     , =1 has BC
+#ifdef TRACERS_AMP_M9
+      DATA MSPCS(3, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
+      DATA MSPCS(4, 1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
+      DATA MSPCS(5, 1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
+      DATA MSPCS(6, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM2: =0 no OC     , =1 has OC
+      DATA MSPCS(7, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM1: =0 no OC     , =1 has OC
+      DATA MSPCS(8, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM0: =0 no OC     , =1 has OC
+      DATA MSPCS(9, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP1: =0 no OC     , =1 has OC
+      DATA MSPCS(10,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP2: =0 no OC     , =1 has OC
+      DATA MSPCS(11,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP3: =0 no OC     , =1 has OC
+      DATA MSPCS(12,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP4: =0 no OC     , =1 has OC
+      DATA MSPCS(13,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP5: =0 no OC     , =1 has OC
+      DATA MSPCS(14,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP6: =0 no OC     , =1 has OC
+#else
+      DATA MSPCS(3, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
+      DATA MSPCS(4,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
       DATA MSPCS(5,1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
+#endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     Aerosol modes used for each mechanism.
 !-------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: NM9=15
+      INTEGER ::MODES9(NM9)
+      DATA MODES9/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/
+#else
       INTEGER, PARAMETER :: NM1=16,NM2=16,NM3=13,NM4=10
-      INTEGER, PARAMETER :: NM5=14,NM6=14,NM7=11,NM8=8  
+      INTEGER, PARAMETER :: NM5=14,NM6=14,NM7=11,NM8=8
       INTEGER :: MODES1(NM1),MODES2(NM2),MODES3(NM3),MODES4(NM4)
       INTEGER :: MODES5(NM5),MODES6(NM6),MODES7(NM7),MODES8(NM8)
       DATA MODES1/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/
@@ -390,9 +454,59 @@ c     &               80.81, 85.58, 90./
       DATA MODES6/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/
       DATA MODES7/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/
       DATA MODES8/ 2, 3, 4, 9,10,11,12,18/
+#endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
 !-------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      INTEGER       :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3 
+      INTEGER, SAVE :: NUMB_AKK_1, NUMB_AKK_2, MASS_AKK_SULF, 
+     &                  NUMB_ACC_1, NUMB_ACC_2, MASS_ACC_SULF, 
+     &                  MASS_ACC_OCM2, MASS_ACC_OCM1, MASS_ACC_OCM0, MASS_ACC_OCP1, MASS_ACC_OCP2, 
+     &                  MASS_ACC_OCP3, MASS_ACC_OCP4, MASS_ACC_OCP5, MASS_ACC_OCP6, 
+     &                  NUMB_DD1_1, NUMB_DD1_2, MASS_DD1_SULF, 
+     &                  MASS_DD1_OCM2, MASS_DD1_OCM1, MASS_DD1_OCM0, MASS_DD1_OCP1, MASS_DD1_OCP2, 
+     &                  MASS_DD1_OCP3, MASS_DD1_OCP4, MASS_DD1_OCP5, MASS_DD1_OCP6,           MASS_DD1_DUST,
+     &                  NUMB_DS1_1, NUMB_DS1_2, MASS_DS1_SULF, 
+     &                  MASS_DS1_OCM2, MASS_DS1_OCM1, MASS_DS1_OCM0, MASS_DS1_OCP1, MASS_DS1_OCP2, 
+     &                  MASS_DS1_OCP3, MASS_DS1_OCP4, MASS_DS1_OCP5, MASS_DS1_OCP6,           MASS_DS1_DUST,
+     &                  NUMB_DD2_1, NUMB_DD2_2, MASS_DD2_SULF, 
+     &                  MASS_DD2_OCM2, MASS_DD2_OCM1, MASS_DD2_OCM0, MASS_DD2_OCP1, MASS_DD2_OCP2, 
+     &                  MASS_DD2_OCP3, MASS_DD2_OCP4, MASS_DD2_OCP5, MASS_DD2_OCP6,           MASS_DD2_DUST,
+     &                  NUMB_DS2_1, NUMB_DS2_2, MASS_DS2_SULF, 
+     &                  MASS_DS2_OCM2, MASS_DS2_OCM1, MASS_DS2_OCM0, MASS_DS2_OCP1, MASS_DS2_OCP2, 
+     &                  MASS_DS2_OCP3, MASS_DS2_OCP4, MASS_DS2_OCP5, MASS_DS2_OCP6,           MASS_DS2_DUST,
+     &                  NUMB_SSA_1, NUMB_SSA_2, MASS_SSA_SULF, 
+     &                  MASS_SSA_OCM2, MASS_SSA_OCM1, MASS_SSA_OCM0, MASS_SSA_OCP1, MASS_SSA_OCP2, 
+     &                  MASS_SSA_OCP3, MASS_SSA_OCP4, MASS_SSA_OCP5, MASS_SSA_OCP6,                          MASS_SSA_SEAS,
+     &                  NUMB_SSC_1, NUMB_SSC_2, MASS_SSC_SULF, 
+     &                  MASS_SSC_OCM2, MASS_SSC_OCM1, MASS_SSC_OCM0, MASS_SSC_OCP1, MASS_SSC_OCP2, 
+     &                  MASS_SSC_OCP3, MASS_SSC_OCP4, MASS_SSC_OCP5, MASS_SSC_OCP6,                          MASS_SSC_SEAS,
+     &                  NUMB_SSS_1, NUMB_SSS_2, MASS_SSS_SULF,                                               MASS_SSS_SEAS,
+     &                  NUMB_OCC_1, NUMB_OCC_2, MASS_OCC_SULF,                MASS_OCC_OCAR, 
+     &                  MASS_OCC_OCM2, MASS_OCC_OCM1, MASS_OCC_OCM0, MASS_OCC_OCP1, MASS_OCC_OCP2, 
+     &                  MASS_OCC_OCP3, MASS_OCC_OCP4, MASS_OCC_OCP5, MASS_OCC_OCP6, 
+     &                  NUMB_BC1_1, NUMB_BC1_2, MASS_BC1_SULF, MASS_BC1_BCAR, 
+     &                  MASS_BC1_OCM2, MASS_BC1_OCM1, MASS_BC1_OCM0, MASS_BC1_OCP1, MASS_BC1_OCP2, 
+     &                  MASS_BC1_OCP3, MASS_BC1_OCP4, MASS_BC1_OCP5, MASS_BC1_OCP6, 
+     &                  NUMB_BC2_1, NUMB_BC2_2, MASS_BC2_SULF, MASS_BC2_BCAR, 
+     &                  MASS_BC2_OCM2, MASS_BC2_OCM1, MASS_BC2_OCM0, MASS_BC2_OCP1, MASS_BC2_OCP2, 
+     &                  MASS_BC2_OCP3, MASS_BC2_OCP4, MASS_BC2_OCP5, MASS_BC2_OCP6, 
+     &                  NUMB_BC3_1, NUMB_BC3_2, MASS_BC3_SULF, MASS_BC3_BCAR, 
+     &                  NUMB_OCS_1, NUMB_OCS_2, MASS_OCS_SULF,                MASS_OCS_OCAR, 
+     &                  MASS_OCS_OCM2, MASS_OCS_OCM1, MASS_OCS_OCM0, MASS_OCS_OCP1, MASS_OCS_OCP2, 
+     &                  MASS_OCS_OCP3, MASS_OCS_OCP4, MASS_OCS_OCP5, MASS_OCS_OCP6, 
+     &                  NUMB_DBC_1, NUMB_DBC_2, MASS_DBC_SULF, MASS_DBC_BCAR,                 MASS_DBC_DUST, 
+     &                  NUMB_BOC_1, NUMB_BOC_2, MASS_BOC_SULF, MASS_BOC_BCAR, MASS_BOC_OCAR, 
+     &                  MASS_BOC_OCM2, MASS_BOC_OCM1, MASS_BOC_OCM0, MASS_BOC_OCP1, MASS_BOC_OCP2, 
+     &                  MASS_BOC_OCP3, MASS_BOC_OCP4, MASS_BOC_OCP5, MASS_BOC_OCP6, 
+     &                  NUMB_BCS_1, NUMB_BCS_2, MASS_BCS_SULF, MASS_BCS_BCAR, 
+     &                  MASS_BCS_OCM2, MASS_BCS_OCM1, MASS_BCS_OCM0, MASS_BCS_OCP1, MASS_BCS_OCP2, 
+     &                  MASS_BCS_OCP3, MASS_BCS_OCP4, MASS_BCS_OCP5, MASS_BCS_OCP6, 
+     &                  NUMB_MXX_1, NUMB_MXX_2, MASS_MXX_SULF, MASS_MXX_BCAR, MASS_MXX_OCAR,  MASS_MXX_DUST, MASS_MXX_SEAS, 
+     &                  MASS_MXX_OCM2, MASS_MXX_OCM1, MASS_MXX_OCM0, MASS_MXX_OCP1, MASS_MXX_OCP2, 
+     &                  MASS_MXX_OCP3, MASS_MXX_OCP4, MASS_MXX_OCP5, MASS_MXX_OCP6
+#else
       INTEGER       :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3 
       INTEGER, SAVE :: NUMB_AKK_1, NUMB_AKK_2, MASS_AKK_SULF,  
      &                 NUMB_ACC_1, NUMB_ACC_2, MASS_ACC_SULF,
@@ -412,5 +526,5 @@ c     &               80.81, 85.58, 90./
      &                 NUMB_BOC_1, NUMB_BOC_2, MASS_BOC_SULF, MASS_BOC_BCAR, MASS_BOC_OCAR,
      &                 NUMB_BCS_1, NUMB_BCS_2, MASS_BCS_SULF, MASS_BCS_BCAR,
      &                 NUMB_MXX_1, NUMB_MXX_2, MASS_MXX_SULF, MASS_MXX_BCAR, MASS_MXX_OCAR, MASS_MXX_DUST, MASS_MXX_SEAS
-
+#endif
       END MODULE AERO_PARAM  

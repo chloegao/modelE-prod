@@ -1,6 +1,5 @@
+#include "rundeck_opts.h"
       MODULE AERO_SUBS
-
-
 !@sum     This module contains various aerosol microphysical routines.
 !@auth    Susanne Bauer/Doug Wright
 !----------------------------------------------------------------------------------------------------------------------
@@ -16,7 +15,12 @@
 !     This routine rescales all aerosol and gas-phase species to enforce
 !     mass conservation to machine precision.
 !----------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP, OCM2_MAP,OCM1_MAP,OCM0_MAP,
+     &                      OCP1_MAP, OCP2_MAP, OCP3_MAP, OCP4_MAP, OCP5_MAP, OCP6_MAP
+#else
       USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
+#endif
       IMPLICIT NONE
 
       ! Arguments.
@@ -40,7 +44,9 @@
       ! Get the precise mass conc. that should exist at the end of the time
       ! step, divided by the actual mass conc. at the end of the time step.
       !----------------------------------------------------------------------------------------------------------------
-      SPCMASS2(:) = SPCMASS2(:) + TINYDENOM 
+      do i = 1, NMASS_SPCS+2
+        if (SPCMASS2(i) == 0.d0) SPCMASS2(i) = TINYNUMER
+      enddo
       SCALE(1) = ( SPCMASS1(1) + ( AQSO4RATE + EMIS_MASS(1) + EMIS_MASS(2)  ) * TSTEP ) / SPCMASS2(1) 
       SCALE(2) = ( SPCMASS1(2) + (             EMIS_MASS(3) + EMIS_MASS(8)  ) * TSTEP ) / SPCMASS2(2) 
       SCALE(3) = ( SPCMASS1(3) + (             EMIS_MASS(4) + EMIS_MASS(9)  ) * TSTEP ) / SPCMASS2(3) 
@@ -48,7 +54,17 @@
       SCALE(5) = ( SPCMASS1(5) + (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(5) 
       SCALE(6) = ( SPCMASS1(6)                                                        ) / SPCMASS2(6) 
       SCALE(7) = ( SPCMASS1(7)                                                        ) / SPCMASS2(7) 
-
+#ifdef TRACERS_AMP_M9
+      SCALE(8) = ( SPCMASS1(8) +                              EMIS_MASS(11)   * TSTEP ) / SPCMASS2(8)
+      SCALE(9) = ( SPCMASS1(9) +                              EMIS_MASS(12)   * TSTEP ) / SPCMASS2(9)
+      SCALE(10) = ( SPCMASS1(10) +                            EMIS_MASS(13)   * TSTEP ) / SPCMASS2(10)
+      SCALE(11) = ( SPCMASS1(11) +                            EMIS_MASS(14)   * TSTEP ) / SPCMASS2(11)
+      SCALE(12) = ( SPCMASS1(12) +                            EMIS_MASS(15)   * TSTEP ) / SPCMASS2(12)
+      SCALE(13) = ( SPCMASS1(13) +                            EMIS_MASS(16)   * TSTEP ) / SPCMASS2(13)
+      SCALE(14) = ( SPCMASS1(14) +                            EMIS_MASS(17)   * TSTEP ) / SPCMASS2(14)
+      SCALE(15) = ( SPCMASS1(15) +                            EMIS_MASS(18)   * TSTEP ) / SPCMASS2(15)
+      SCALE(16) = ( SPCMASS1(16) +                            EMIS_MASS(19)   * TSTEP ) / SPCMASS2(16)
+#endif
       ! WRITE(*,'(7F14.9)') SCALE(:)
       ! WRITE(*,'(7E14.6)') SPCMASS1(6), SPCMASS2(6), SPCMASS1(7), SPCMASS2(7)
       !----------------------------------------------------------------------------------------------------------------
@@ -60,6 +76,17 @@
       AERO( SEAS_MAP(:) ) = AERO( SEAS_MAP(:) ) * SCALE(5)
       AERO( MASS_NO3    ) = AERO( MASS_NO3    ) * SCALE(6)
       AERO( MASS_NH4    ) = AERO( MASS_NH4    ) * SCALE(7)
+#ifdef TRACERS_AMP_M9
+      AERO( OCM2_MAP(:) ) = AERO( OCM2_MAP(:) ) * SCALE(8)
+      AERO( OCM1_MAP(:) ) = AERO( OCM1_MAP(:) ) * SCALE(9)
+      AERO( OCM0_MAP(:) ) = AERO( OCM0_MAP(:) ) * SCALE(10)
+      AERO( OCP1_MAP(:) ) = AERO( OCP1_MAP(:) ) * SCALE(11)
+      AERO( OCP2_MAP(:) ) = AERO( OCP2_MAP(:) ) * SCALE(12)
+      AERO( OCP3_MAP(:) ) = AERO( OCP3_MAP(:) ) * SCALE(13)
+      AERO( OCP4_MAP(:) ) = AERO( OCP4_MAP(:) ) * SCALE(14)
+      AERO( OCP5_MAP(:) ) = AERO( OCP5_MAP(:) ) * SCALE(15)
+      AERO( OCP6_MAP(:) ) = AERO( OCP6_MAP(:) ) * SCALE(16)
+#endif
       GAS ( GAS_H2SO4   ) = GAS ( GAS_H2SO4   ) * SCALE(1)
       GAS ( GAS_HNO3    ) = GAS ( GAS_HNO3    ) * SCALE(6)
       GAS ( GAS_NH3     ) = GAS ( GAS_NH3     ) * SCALE(7)
