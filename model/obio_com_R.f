@@ -41,6 +41,7 @@ c
 
       integer :: nstep0=0
 
+      integer:: num_tracers
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean

@@ -193,11 +193,11 @@ c    . ,omlhc_loc(idm,J_0H:J_1H),omlhc(idm,jdm)
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
       real*8, dimension(:,:), pointer :: cosz1_loc,wsavg_loc,achl_loc
-      real*8, dimension(:,:), allocatable, save ::
-     &     avisdir_loc,avisdif_loc, anirdir_loc, anirdif_loc
-#ifdef TRACERS_OceanBiology /*TNL insert this line */
-      real*8, allocatable, DIMENSION(:,:), save :: asolz_loc, awind_loc
-#endif   /*TNL insert this line */
+!     real*8, dimension(:,:), allocatable, save ::
+!    &     avisdir_loc,avisdif_loc, anirdir_loc, anirdif_loc
+!#ifdef TRACERS_OceanBiology /*TNL insert this line */
+!      real*8, allocatable, DIMENSION(:,:), save :: asolz_loc, awind_loc
+!#endif   /*TNL insert this line */
 #ifdef TRACERS_GASEXCH_ocean /*TNL insert this line */
       real*8, dimension(:,:,:), pointer :: GTRACER_loc
 #endif   /*TNL insert this line */
@@ -220,12 +220,12 @@ c
      .  hour=hour, dayOfYear=dayOfYear)
 
       call getdte(Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,amon)
-#ifdef TRACERS_OceanBiology /*TNL insert this line */
-      if (.not.allocated(asolz_loc)) then
-        allocate(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
-        allocate(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
-      endif
-#endif /*TNL insert this line */
+!#ifdef TRACERS_OceanBiology /*TNL insert this line */
+!      if (.not.allocated(asolz_loc)) then
+!        allocate(asolz_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
+!        allocate(awind_loc(aI_0H:aI_1H,aJ_0H:aJ_1H))
+!      endif
+!#endif /*TNL insert this line */
       rsi_loc => iceocn%rsi
       focean_loc => atmocn%focean
       dmua_loc => atmocn%dmua
@@ -293,24 +293,24 @@ c
           atracflx_loc(ia,ja,nt)=0.
         enddo
 #endif
-#ifdef TRACERS_OceanBiology
-        awind_loc(ia,ja)=0.
-        asolz_loc(ia,ja)=0.
-#endif
-#ifdef OBIO_RAD_coupling
-        if (allocated(atmocn%dirvis)) then
-          if (.not.allocated(avisdir_loc))
-     &             ALLOCATE(
-     &         avisdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         avisdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         anirdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
-     &         anirdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H) )
-          avisdir_loc(ia,ja)=0.
-          avisdif_loc(ia,ja)=0.
-          anirdir_loc(ia,ja)=0.
-          anirdif_loc(ia,ja)=0.
-        endif
-#endif
+!#ifdef TRACERS_OceanBiology
+!        awind_loc(ia,ja)=0.
+!        asolz_loc(ia,ja)=0.
+!#endif
+!#ifdef OBIO_RAD_coupling
+!        if (allocated(atmocn%dirvis)) then
+!          if (.not.allocated(avisdir_loc))
+!     &             ALLOCATE(
+!     &         avisdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+!     &         avisdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+!     &         anirdir_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+!     &         anirdif_loc(aI_0H:aI_1H,aJ_0H:aJ_1H) )
+!          avisdir_loc(ia,ja)=0.
+!          avisdif_loc(ia,ja)=0.
+!          anirdir_loc(ia,ja)=0.
+!          anirdif_loc(ia,ja)=0.
+!        endif
+!#endif
  28     continue
 #ifdef CUBED_SPHERE
         call reset_dynsi_accum
@@ -413,24 +413,24 @@ c --- dmua on A-grid, admui on C-grid
         end if
       enddo
 #endif
-#ifdef TRACERS_OceanBiology
-            asolz_loc(ia,ja)=asolz_loc(ia,ja) !
-     .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-            awind_loc(ia,ja)=awind_loc(ia,ja) !
-     .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-#endif
-#ifdef OBIO_RAD_coupling
-          if (allocated(atmocn%dirvis)) then
-            avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
-     .         +atmocn%dirvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-            avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
-     .         +atmocn%difvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-            anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
-     .         +atmocn%dirnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-            anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
-     .         +atmocn%difnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
-          endif
-#endif
+!#ifdef TRACERS_OceanBiology
+!            asolz_loc(ia,ja)=asolz_loc(ia,ja) !
+!     .           +COSZ1_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!            awind_loc(ia,ja)=awind_loc(ia,ja) !
+!     .           +wsavg_loc(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!#endif
+!#ifdef OBIO_RAD_coupling
+!          if (allocated(atmocn%dirvis)) then
+!            avisdir_loc(ia,ja)=avisdir_loc(ia,ja) !
+!     .         +atmocn%dirvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!            avisdif_loc(ia,ja)=avisdif_loc(ia,ja) !
+!     .         +atmocn%difvis(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!            anirdir_loc(ia,ja)=anirdir_loc(ia,ja) !
+!     .         +atmocn%dirnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!            anirdif_loc(ia,ja)=anirdif_loc(ia,ja) !
+!     .         +atmocn%difnir(ia,ja)*dtsrc/(SECONDS_PER_HOUR*real(nhr)) !
+!          endif
+!#endif
  29   continue
 c
       nsavea=nsavea+1
@@ -473,16 +473,16 @@ c combine wind and ice stresses after regridding
         ocnatm%trgasex(nt,:,:) = ocnatm%work1(:,:)
       enddo
 #endif
-#ifdef TRACERS_OceanBiology
-      call fld_a2o(asolz_loc,osolz_loc)
-      call fld_a2o(awind_loc,owind_loc)
-#endif
-#ifdef OBIO_RAD_coupling
-      call fld_a2o(avisdir_loc,ovisdir_loc)
-      call fld_a2o(avisdif_loc,ovisdif_loc)
-      call fld_a2o(anirdir_loc,onirdir_loc)
-      call fld_a2o(anirdif_loc,onirdif_loc)
-#endif
+!#ifdef TRACERS_OceanBiology
+!      call fld_a2o(asolz_loc,osolz_loc)
+!      call fld_a2o(awind_loc,owind_loc)
+!#endif
+!#ifdef OBIO_RAD_coupling
+!      call fld_a2o(avisdir_loc,ovisdir_loc)
+!      call fld_a2o(avisdif_loc,ovisdif_loc)
+!      call fld_a2o(anirdir_loc,onirdir_loc)
+!      call fld_a2o(anirdif_loc,onirdif_loc)
+!#endif
       call scatter1_hycom_arrays ! delete this call, if not the routine
 c
       call system_clock(before)

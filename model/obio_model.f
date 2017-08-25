@@ -31,6 +31,7 @@
      .                    ,cexp,flimit,kzc
      .                    ,rhs_obio,chng_by,Kpar,Edz,Esz,Euz
      .                    ,delta_temp1d,sday
+     .                    ,num_tracers
 #ifdef TOPAZ_params
      .                    ,ca_det_calc1d
 #endif
@@ -79,17 +80,17 @@
      .                      ,trmo,txmo,tymo,tzmo
       use ocn_tracer_vector_mod, only:
      &                           vector_ocn_tracer_entry=>vector
-      USE OCN_TRACER_COM, only :n_abioDIC,tracerlist,add_ocn_tracer
+      USE OCN_TRACER_COM, only :n_abioDIC,add_ocn_tracer,tracerlist
       USE sw2ocean, only : lsrpd,fsr
       use OCEANRES, only : IM=>IMO,JM=>JMO
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       use obio_diag, only: oij=>obio_ij,ij_ph,ij_co3
 #else
-      USE hycom_dim, only: ogrid
+      USE hycom_dim, only: ogrid,im=>idm,jm=>jdm,kdm,ntrcr
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
       USE  hycom_arrays_glob, only: latij_glob=>latij,lonij_glob=>lonij
-      USE hycom_scalars, only: nstep,onem,time,lp,dtsrc=>baclin
+      USE hycom_scalars, only: nstep,onem,time,dtsrc=>baclin,dts=>baclin
       USE obio_com, only: ao_co2fluxav_loc,
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc,
      .     pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
@@ -124,14 +125,13 @@
       Real*8,External   :: VOLGSP
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
-      real :: SDIC(tracerlist%getsize())
 #else
       integer :: n_abioDIC,
      &           lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)
       real :: dxypo(jm),
      &        MO(im,ogrid%j_strt_halo:ogrid%j_stop_halo,kdm),
      &        trmo(im,ogrid%j_strt_halo:ogrid%j_stop_halo,
-     &             kdm,num_tracers),
+     &             kdm,ntrcr),
      &        ip(ogrid%i_strt_halo:ogrid%i_stop_halo,
      &                      ogrid%j_strt_halo:ogrid%j_stop_halo)     
 #endif
@@ -145,13 +145,18 @@
       logical, save :: initialized=.false.
       real, save :: atmco2=-1.
       real :: rlon2D(im,jm),rlat2D(im,jm),ddxypo,mmo
-!     &        SDIC(tracerlist%getsize())
-      integer :: num_tracers
+      real :: SDIC(num_tracers)
       integer :: i_0,i_1,j_0,j_1
       integer :: n_co2n
       real :: oij_pH,oij_co3
 
       if(.not.dobio) return
+
+#ifdef OBIO_ON_RUSSELLocean
+      num_tracers=tracerlist%getsize()
+#else
+      num_tracers=ntrcr
+#endif
 
       call start(' obio_model')
 !--------------------------------------------------------
@@ -204,7 +209,6 @@ c
 #ifdef OBIO_ON_RUSSELLocean
        rlon2D=transpose(spread(oLON_DG(:,1),DIM=1,NCOPIES=jm))
        rlat2D=spread(oLAT_DG(:,1),DIM=1,NCOPIES=im)
-       num_tracers=tracerlist%getsize()
 #else
        rlon2D=lonij(:,:,3)
        rlat2D=latij(:,:,3)
@@ -830,7 +834,6 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 #ifdef OBIO_ON_RUSSELLocean
         mmo=mo(i,j,1)
         ddxypo=dxypo(j)
-        num_tracers=tracerlist%getsize()
         SDIC=trmo(i,j,1,:)
         oij_pH=oij(i,j,ij_ph)
         oij_co3=oij(i,j,ij_co3)
