@@ -97,7 +97,7 @@ c
       cubrl=sqq*cos(cuban)
       cubim=sqq*sin(cuban)
       tofsig=-cubrl+sqrt(3.)*cubim-athird*a2
-ccc      if (abs(sig(tofsig,salin)-sigm).gt.1.e-6) write (lp,100)
+ccc      if (abs(sig(tofsig,salin)-sigm).gt.1.e-6) write (*,100)
 ccc     .   tofsig,salin,sigm,sig(tofsig,salin)
  100  format ('tofsig,sal,old/new sig =',2f9.3,3p,2f9.3)
       return
@@ -342,7 +342,7 @@ c --- results from pechg1 are stored in 'nunit' for later use by pechg2.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g
+      USE HYCOM_SCALARS, only : theta,onem,flnmovt,g
       USE HYCOM_ARRAYS_GLOB
       implicit none
       integer i,j,k,l,n
@@ -428,7 +428,7 @@ c
       do 14 lgth=60,1,-1
       if (flnmovt(lgth:lgth).eq.'/') go to 13
  14   continue
-      write (lp,*) 'ape --  cannot find slash in',flnmovt
+      write (*,*) 'ape --  cannot find slash in',flnmovt
       stop
  13   write (flnm,'(a,i2.2)') flnmovt(1:lgth)//'ape.',nunit
       open (unit=nunit,file=flnm,form='unformatted',status='unknown')
@@ -470,7 +470,7 @@ c --- results from pechg1 representing 'before' state are read from 'nunit'.
 c --- use different values of 'nunit' for nested APE process diagnostics.
 c
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : theta,onem,flnmovt,lp,g,delt1
+      USE HYCOM_SCALARS, only : theta,onem,flnmovt,g,delt1
       USE HYCOM_ARRAYS_GLOB
       implicit none
       integer i,j,k,l,n
@@ -556,7 +556,7 @@ c
       do 14 lgth=60,1,-1
       if (flnmovt(lgth:lgth).eq.'/') go to 13
  14   continue
-      write (lp,*) 'ape --  cannot find slash in',flnmovt
+      write (*,*) 'ape --  cannot find slash in',flnmovt
       stop
  13   write (flnm,'(a,i2.2)') flnmovt(1:lgth)//'ape.',nunit
       open (unit=nunit,file=flnm,form='unformatted',status='old')
@@ -601,7 +601,6 @@ c> Dec. 2004 - fixed bug in loop 9 (excluded interfaces on shallow bottom)
 c
       subroutine totals(dp1,field1,dp2,field2,text)
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : lp
       USE HYCOM_ARRAYS_GLOB
       implicit none
 c
@@ -629,7 +628,7 @@ c
       sum1=sum1+sum1j(j)
  2    sum2=sum2+sum2j(j)
 c
-      write (lp,'(a,1p,2e19.9)') text,sum1,sum2
+      write (*,'(a,1p,2e19.9)') text,sum1,sum2
       return
       end
 c
@@ -644,7 +643,6 @@ c
 c --- use this entry to operate on -p- points
 c
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : lp
       implicit none
       integer i,j
 c
@@ -712,14 +710,14 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
       numcrs=coord(numfin)
       if (real(numcrs).ne.coord(numfin)) then
-        write (lp,*) '-coord- array must end on whole number'
+        write (*,*) '-coord- array must end on whole number'
         stop '(refinp)'
       end if
       newrows=numfin-numcrs
       ieqcrs=eqcrs
       ieqfin=eqfin
       if (ieqfin-ieqcrs .ne. newrows) then
-        write (lp,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
+        write (*,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
      .  '  inconsistent with numfin/old =',numfin,numcrs
         stop '(refinp)'
       end if
@@ -783,14 +781,14 @@ c --- i.e., values that need to be apportioned rather than interpolated
 c
       numcrs=coord(numfin)
       if (real(numcrs).ne.coord(numfin)) then
-        write (lp,*) '-coord- array must end on whole number'
+        write (*,*) '-coord- array must end on whole number'
         stop '(refnap)'
       end if
       newrows=numfin-numcrs
       ieqcrs=eqcrs
       ieqfin=eqfin
       if (ieqfin-ieqcrs .ne. newrows) then
-        write (lp,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
+        write (*,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
      .  '  inconsistent with numfin/old =',numfin,numcrs
         stop '(refnap)'
       end if
@@ -842,14 +840,14 @@ c --- use this entry to operate on -u- points
 c
       numcrs=coord(numfin)
       if (real(numcrs).ne.coord(numfin)) then
-        write (lp,*) '-coord- array must end on whole number'
+        write (*,*) '-coord- array must end on whole number'
         stop '(refinu)'
       end if
       newrows=numfin-numcrs
       ieqcrs=eqcrs
       ieqfin=eqfin
       if (ieqfin-ieqcrs .ne. newrows) then
-        write (lp,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
+        write (*,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
      .  '  inconsistent with numfin/old =',numfin,numcrs
         stop '(refinu)'
       end if
@@ -899,14 +897,14 @@ c --- remove extra grid rows introduced by previous calls to 'refinp'
 c
       numcrs=coord(numfin)
       if (real(numcrs).ne.coord(numfin)) then
-        write (lp,*) '-coord- array must end on whole number'
+        write (*,*) '-coord- array must end on whole number'
         stop '(unrfin)'
       end if
       newrows=numfin-numcrs
       ieqcrs=eqcrs
       ieqfin=eqfin
       if (ieqfin-ieqcrs .ne. newrows) then
-        write (lp,'(a,2i4,a,i4,f6.2)') 'ieqfin/old =',ieqfin,ieqcrs,
+        write (*,'(a,2i4,a,i4,f6.2)') 'ieqfin/old =',ieqfin,ieqcrs,
      .  '  inconsistent with numfin/old =',numfin,numcrs
         stop '(unrfin)'
       end if
@@ -944,7 +942,7 @@ c --- north of equator:
       fieldc(ieqcrs-icrs,j)=wgt*fieldf(ifin+1,j)+(1.-wgt)*fieldf(ifin,j)
  24   continue
       if (icrs.ne.int(coord(numfin-1))) then
-        write (lp,'(2(a,i3))') 'icrs=',icrs,'  not',int(coord(numfin-1))
+        write (*,'(2(a,i3))') 'icrs=',icrs,'  not',int(coord(numfin-1))
         stop '(unrefp)'
       end if
 c
@@ -957,14 +955,14 @@ c --- use this entry to remove extra rows of -u- points
 c
       numcrs=coord(numfin)
       if (real(numcrs).ne.coord(numfin)) then
-        write (lp,*) '-coord- array must end on whole number'
+        write (*,*) '-coord- array must end on whole number'
         stop '(unrefu)'
       end if
       newrows=numfin-numcrs
       ieqcrs=eqcrs
       ieqfin=eqfin
       if (ieqfin-ieqcrs .ne. newrows) then
-        write (lp,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
+        write (*,'(2(a,2i4))') 'ieqfin/old =',ieqfin,ieqcrs,
      .  '  inconsistent with numfin/old =',numfin,numcrs
         stop '(unrefu)'
       end if
@@ -1001,7 +999,7 @@ c --- north of equator:
      .   wgt*fieldf(ifin+1,j)+(1.-wgt)*fieldf(ifin,j)
  28   continue
       if (icrs.ne.int(coord(numfin))) then
-        write (lp,'(2(a,i3))') 'icrs=',icrs,'  not',int(coord(numfin))
+        write (*,'(2(a,i3))') 'icrs=',icrs,'  not',int(coord(numfin))
        stop '(unrefu)'
       end if
 c
