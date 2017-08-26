@@ -13,7 +13,7 @@ c  dt     - temporal increment
 c  fco,fc - depth of the layer at previous and new time step
 c
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : itest,jtest
+      USE HYCOM_SCALARS, only : itest,jtest,onemu
 
       implicit none
       integer i,j,l,ia,ib,ja,jb
@@ -23,21 +23,21 @@ c
       real fmx(idm,jdm),fmn(idm,jdm),flp(idm,jdm),fln(idm,jdm),
      .     flx(idm,jdm),fly(idm,jdm),uan(idm,jdm),van(idm,jdm),
      .     flxdiv(idm,jdm),clipj(jdm),vlumj(jdm)
-      real dt,onemu,q,clip,vlume,amount,bfore,after,epsil
+      real dt,q,clip,vlume,amount,bfore,after,epsil
       integer iord,jaa
       logical wrap,recovr
       data recovr/.true./
 c
-      parameter (epsil=1.e-11,onemu=.0098)
+      parameter (epsil=1.e-11)
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional code for checking conservation properties
 ccc      bfore=0.
 ccc      do 14 j=1,jj
 ccc      do 14 l=1,isp(j)
 ccc      do 14 i=ifp(j,l),ilp(j,l)
 ccc 14   bfore=bfore+fld(i,j)*fco(i,j)*scal(i,j)
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c
 c --- compute low-order and antidiffusive (high-minus-low order) fluxes
 c
@@ -115,10 +115,10 @@ cdiag i=itest
 cdiag j=jtest
 cdiag ja=mod(j+2+jj,jj)+1
 cdiag jb=mod(j     ,jj)+1
-cdiag write (lp,101) 'advem (1)',i,j,fld(i-1,j),flx(i,j),fld(i,ja )
+cdiag write (*,101) 'advem (1)',i,j,fld(i-1,j),flx(i,j),fld(i,ja )
 cdiag.,fly(i,j),fld(i,j),fly(i,jb ),fld(i,jb ),flx(i+1,j),fld(i+1,j)
-  101 format(a,2i5,f20.3/1pe39.2/0pf21.3,1pe9.2,0pf9.3,1pe9.2,0pf9.3/
-     .  1pe39.2/0pf39.3)
+  101 format(a,2i5,f20.3/es39.2/f21.3,es9.2,f9.3,es9.2,f9.3/
+     .  es39.2/f39.3)
 c
       do 61 j=1,jj
       jb=mod(j     ,jj)+1
@@ -183,7 +183,7 @@ cdiag i=itest
 cdiag j=jtest
 cdiag ja=mod(j+2+jj,jj)+1
 cdiag jb=mod(j     ,jj)+1
-cdiag write (lp,101) 'advem (2)',i,j,fld(i-1,j),flx(i,j),fld(i,ja )
+cdiag write (*,101) 'advem (2)',i,j,fld(i-1,j),flx(i,j),fld(i,ja )
 cdiag.,fly(i,j),fld(i,j),fly(i,jb ),fld(i,jb ),flx(i+1,j),fld(i+1,j)
 c
       do 62 j=1,jj
@@ -210,7 +210,7 @@ c
 c
         if (vlume.ne.0.) then
           clip=clip/vlume
-cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
+cdiag     write (*,'(a,es11.3)') 'tracer drift in advem:',-clip
           do 13 j=1,jj
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
@@ -218,16 +218,16 @@ cdiag     write (lp,'(a,1pe11.3)') 'tracer drift in advem:',-clip
         end if
       end if
 c
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- optional code for checking conservation properties
 ccc      after=0.
 ccc      do 15 j=1,jj
 ccc      do 15 l=1,isp(j)
 ccc      do 15 i=ifp(j,l),ilp(j,l)
 ccc 15   after=after+fld(i,j)*fc(i,j)*scal(i,j)
-ccc      write (lp,'(a,1p,3e14.6,e11.1)') 'advem conservation:',
+ccc      write (*,'(a,3es14.6,e11.1)') 'advem conservation:',
 ccc     .  bfore,after,after-bfore,(after-bfore)/bfore
-c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       return
       end
 c

@@ -10,9 +10,8 @@ c
       USE MODEL_COM, only : modelEclock,
      *  itime,iyear1,nday,aMON,xlabel,lrunid,monthi,datei
       USE TimeConstants_mod, only: SECONDS_PER_DAY
-      USE HYCOM_SCALARS, only : nstep,time,lp,theta,huge,baclin,onem
-     &     ,thref,nhr,g
-     &     ,pr1d
+      USE HYCOM_SCALARS, only : nstep,time,theta,huge,baclin,onem
+     &     ,thref,nhr,g,delt1,pr1d
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
@@ -34,10 +33,8 @@ c
      .    ,icearea,icevol,icearean,icevoln,iceareas,icevols
       character flnm*40,intvl*4,flnm_nc*40
       character what*16
-      real*4 real4(idm,jdm)
-     .   ,time4,watcum4,empcum4,thref4,theta4(kdm),unused
-     .                                ,pr1d4(kdm)
-      real utotal(idm,jdm,kdm), vtotal(idm,jdm,kdm)
+      real*4 real4(idm,jdm),time4,thref4,theta4(kdm),unused,pr1d4(kdm)
+      real utotal(idm,jdm,kdm), vtotal(idm,jdm,kdm),util(idm,jdm)
      .       ,dpm(idm,jdm,kdm),dpmixlm(idm,jdm)
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
@@ -55,18 +52,18 @@ c
       print *,'stamp',Itime,Nday,Iyear1,year,month,dayOfYear,date,hour,
      .  amon
 
-        dpm(:,:,:)=huge
-        dpmixlm(:,:)=huge
-        do k=1,kk
-        do j=1,jj
-        do l=1,isp(j)
-        do i=ifp(j,l),ilp(j,l)
-        dpm(i,j,k)=dp(i,j,k)/onem			! convert to m
-        if (k==1) dpmixlm(i,j)=dpmixl(i,j,n)/onem	! convert to m
-        end do
-        end do
-        end do
-        end do
+      dpm(:,:,:)=huge
+      dpmixlm(:,:)=huge
+      do k=1,kk
+      do j=1,jj
+      do l=1,isp(j)
+      do i=ifp(j,l),ilp(j,l)
+      dpm(i,j,k)=dp(i,j,k)/onem                 ! convert to m
+      if (k==1) dpmixlm(i,j)=dpmixl(i,j,n)/onem ! convert to m
+      end do
+      end do
+      end do
+      end do
 c --- check if ogcm date matches agcm date
       if (nstep.eq.1) then
         write(flnm,'(a3,i4.4,2a)') amon,0,'.out',xlabel(1:lrunid)
@@ -148,7 +145,7 @@ c
                                            ! irecl=1 on COMPAQ, irecl=4 on SGI
       length=((irecl*idm*JDM+no+15)/no)*no
 c
-      write (lp,'(a/9x,a)') 'storing history data in',flnm
+      write (*,'(a/9x,a)') 'storing history data in',flnm
 c
       call findunit(nop)
       open (unit=nop,file=flnm,status='unknown',form='unformatted',
@@ -175,17 +172,17 @@ c
       call r8tor4(srfhgt,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'srfhgt (m)      ',0,real4
-      write (lp,100)     'srfhgt (m)      ',0,no
+      write (*,100)     'srfhgt (m)      ',0,no
       no=no+1
       call r8tor4(dpmixlm,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'mix_dpth(m)     ',0,real4
-      write (lp,100)     'mix_dpth(m)     ',0,no
+      write (*,100)     'mix_dpth(m)     ',0,no
       no=no+1
       call r8tor4(oice,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'icecover(%)     ',0,real4
-      write (lp,100)     'icecover(%)     ',0,no
+      write (*,100)     'icecover(%)     ',0,no
 c
       do 75 k=1,kk
       kn=k+nn
@@ -193,35 +190,35 @@ c
       call r8tor4(utotal(1,1,kn),real4)
       if (smooth) call usmoo4(real4)
       write (nop,rec=no) 'u               ',k,real4
-      write (lp,100)     'u               ',k,no
+      write (*,100)     'u               ',k,no
       no=no+1
       call r8tor4(vtotal(1,1,kn),real4)
       if (smooth) call vsmoo4(real4)
       write (nop,rec=no) 'v               ',k,real4
-      write (lp,100)     'v               ',k,no
+      write (*,100)     'v               ',k,no
       no=no+1
       if (smooth) then
         call r8tor4(dpsmo(1,1,k),real4)
       else
         call r8tor4(dpm(1,1,kn),real4)
       endif
-      write (nop,rec=no) 'dp(m)           ',k,real4	! unit in m
-      write (lp,100)     'dp(m)           ',k,no
+      write (nop,rec=no) 'dp(m)           ',k,real4 ! unit in m
+      write (*,100)     'dp(m)           ',k,no
       no=no+1
       call r8tor4(temp(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'temp            ',k,real4
-      write (lp,100)     'temp            ',k,no
+      write (*,100)     'temp            ',k,no
       no=no+1
       call r8tor4(saln(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'saln            ',k,real4
-      write (lp,100)     'saln            ',k,no
+      write (*,100)     'saln            ',k,no
       no=no+1
       call r8tor4(th3d(1,1,kn),real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'th3d            ',k,real4
-      write (lp,100)     'th3d            ',k,no
+      write (*,100)     'th3d            ',k,no
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- ifort miscomputes 'no' in the following loop:
 ccc      do nt=1,ntrcr
@@ -230,7 +227,7 @@ ccc        call r8tor4(tracer(1,1,k,nt),real4)
 ccc        if (smooth) call psmoo4(real4)
 ccc        write (what,'(a6,i2,4x)') 'tracer',nt
 ccc        write (nop,rec=no) what,k,real4
-ccc      write (lp,100)       what,k,no
+ccc      write (*,100)       what,k,no
 ccc      end do
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c --- temporary: store diffusivity as tracer 1
@@ -243,7 +240,7 @@ c --- code around compiler glitch:
         if (smooth) call psmoo4(real4)
         write (what,'(a6,i2,5x)') 'tracer',nt
         write (nop,rec=no+nt) what,k,real4
-      write (lp,100)       what,k,no+nt
+      write (*,100)       what,k,no+nt
       end do
       no=no+ntrcr
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -258,7 +255,7 @@ c
       do 55 j=1,jj
       do 55 l=1,isp(j)
       do 55 i=ifp(j,l),ilp(j,l)
-      eminpav(i,j)=eminpav(i,j)*factor
+      eminpav(i,j)=eminpav(i,j)*factor*1000.*SECONDS_PER_DAY !mm/day
       surflav(i,j)=surflav(i,j)*factor
       salflav(i,j)=salflav(i,j)*factor
       brineav(i,j)=brineav(i,j)*factor
@@ -304,13 +301,13 @@ c
         salav(i,j,k)=salav(i,j,k)/dpav(i,j,k)
         th3av(i,j,k)=th3av(i,j,k)/dpav(i,j,k)
       end if
-      dpav(i,j,k)=dpav(i,j,k)*factor/onem	! in meter
+      dpav(i,j,k)=dpav(i,j,k)*factor/onem   ! in meter
 c
       diaflx(i,j,k)=-diaflx(i,j,k)/(2.*onem)
 c --- convert diapycnal thickness changes into actual interface fluxes
       if (k.gt.1) diaflx(i,j,k)=diaflx(i,j,k)+diaflx(i,j,k-1)
  59   continue
-ccc      write (lp,'(a,i3)') 'shown below: N.Atl. diaflx, bottm of layer',k
+ccc      write (*,'(a,i3)') 'shown below: N.Atl. diaflx, bottm of layer',k
 ccc      call zebra(diaflx(1,int(.8*jdm),k),idm,idm/3,idm/3)
 c
  58   continue
@@ -321,17 +318,19 @@ c
       pbavav(i,j)=pbavav(i,j)*factor
       sfhtav(i,j)=sfhtav(i,j)*factor      ! in meter
       dpmxav(i,j)=dpmxav(i,j)*factor/onem ! in meter
- 56   oiceav(i,j)=oiceav(i,j)*factor
+      oiceav(i,j)=oiceav(i,j)*factor
+      util(i,j)=loan_ice(i,j)/(delt1*scp2(i,j)) !=> W/m2
+ 56   continue
 c
       end if      ! nstep > 1
 c
-c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c     write (*,'(3a,i5)') 'shown below: ',intvl
 c    .    ,'- day SSH average step=',nstep
 c     call zebra(sfhtav,idm,ii1,jj)
-c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c     write (*,'(3a,i5)') 'shown below: ',intvl
 c    .    ,'- day SST average, step=',nstep
 c     call zebra(temav,idm,ii1,jj)
-c     write (lp,'(3a,i5)') 'shown below: ',intvl
+c     write (*,'(3a,i5)') 'shown below: ',intvl
 c    .    ,'- day ice average, step=',nstep
 c     call zebra(oiceav,idm,ii1,jj)
 c
@@ -339,60 +338,60 @@ c
       no=no+1
       call r8tor4(uflxav(1,1,k),real4)
       write (nop,rec=no) '     uflxav_'//intvl,k,real4
-      write (lp,100)     '     uflxav_'//intvl,k,no
+      write (*,100)     '     uflxav_'//intvl,k,no
       no=no+1
       call r8tor4(vflxav(1,1,k),real4)
       write (nop,rec=no) '     vflxav_'//intvl,k,real4
-      write (lp,100)     '     vflxav_'//intvl,k,no
+      write (*,100)     '     vflxav_'//intvl,k,no
       no=no+1
       call r8tor4(ufxavp(1,1,k),real4)
       write (nop,rec=no) '     ufxavp_'//intvl,k,real4
-      write (lp,100)     '     ufxavp_'//intvl,k,no
+      write (*,100)     '     ufxavp_'//intvl,k,no
       no=no+1
       call r8tor4(vfxavp(1,1,k),real4)
       write (nop,rec=no) '     vfxavp_'//intvl,k,real4
-      write (lp,100)     '     vfxavp_'//intvl,k,no
+      write (*,100)     '     vfxavp_'//intvl,k,no
       no=no+1
       call r8tor4(diaflx(1,1,k),real4)
       write (nop,rec=no) '     diaflx_'//intvl,k,real4
-      write (lp,100)     '     diaflx_'//intvl,k,no
+      write (*,100)     '     diaflx_'//intvl,k,no
       no=no+1
       call r8tor4(dpmxav,real4)
       write (nop,rec=no) '     dpmxav_'//intvl,0,real4
-      write (lp,100)     '     dpmxav_'//intvl,0,no
+      write (*,100)     '     dpmxav_'//intvl,0,no
       no=no+1
       call r8tor4(oiceav,real4)
       write (nop,rec=no) '     oiceav_'//intvl,1,real4
-      write (lp,100)     '     oiceav_'//intvl,0,no
+      write (*,100)     '     oiceav_'//intvl,0,no
 c
 #ifdef TRACERS_OceanBiology
       no=no+1
       call r8tor4(ao_co2fluxav,real4)
       write (nop,rec=no) '  ao_co2flux'//intvl,1,real4
-      write (lp,100)     '  ao_co2flux'//intvl,0,no
+      write (*,100)     '  ao_co2flux'//intvl,0,no
 
       no=no+1
       call r8tor4(pco2av,real4)
       write (nop,rec=no) '      pco2av'//intvl,1,real4
-      write (lp,100)     '      pco2av'//intvl,0,no
+      write (*,100)     '      pco2av'//intvl,0,no
 
       no=no+1
       call r8tor4(pp2tot_dayav,real4)
       write (nop,rec=no) 'pp2tot_dayav'//intvl,1,real4
-      write (lp,100)     'pp2tot_dayav'//intvl,0,no
+      write (*,100)     'pp2tot_dayav'//intvl,0,no
 
       no=no+1
       write(*,*)'archyb1: ',cexpav(243,1)
       call r8tor4(cexpav,real4)
       write(*,*)'archyb2: ',real4(243,1)
       write (nop,rec=no) '      cexpav'//intvl,1,real4
-      write (lp,100)     '      cexpav'//intvl,0,no
+      write (*,100)     '      cexpav'//intvl,0,no
 
 #ifdef TRACERS_Alkalinity
       no=no+1
       call r8tor4(caexpav,real4)
       write (nop,rec=no) '     caexpav'//intvl,1,real4
-      write (lp,100)     '     caexpav'//intvl,0,no
+      write (*,100)     '     caexpav'//intvl,0,no
 #endif
 #endif
 c
@@ -400,27 +399,27 @@ c
       no=no+1
       call r8tor4(uav(1,1,k),real4)
       write (nop,rec=no) '        uav_'//intvl,k,real4
-      write (lp,100)     '        uav_'//intvl,k,no
+      write (*,100)     '        uav_'//intvl,k,no
       no=no+1
       call r8tor4(vav(1,1,k),real4)
       write (nop,rec=no) '        vav_'//intvl,k,real4
-      write (lp,100)     '        vav_'//intvl,k,no
+      write (*,100)     '        vav_'//intvl,k,no
       no=no+1
       call r8tor4(dpav(1,1,k),real4)
       write (nop,rec=no) '       dpav_'//intvl,k,real4
-      write (lp,100)     '       dpav_'//intvl,k,no
+      write (*,100)     '       dpav_'//intvl,k,no
       no=no+1
       call r8tor4(temav(1,1,k),real4)
       write (nop,rec=no) '      temav_'//intvl,k,real4
-      write (lp,100)     '      temav_'//intvl,k,no
+      write (*,100)     '      temav_'//intvl,k,no
       no=no+1
       call r8tor4(salav(1,1,k),real4)
       write (nop,rec=no) '      salav_'//intvl,k,real4
-      write (lp,100)     '      salav_'//intvl,k,no
+      write (*,100)     '      salav_'//intvl,k,no
       no=no+1
       call r8tor4(th3av(1,1,k),real4)
       write (nop,rec=no) '     th3dav_'//intvl,k,real4
-      write (lp,100)     '     th3dav_'//intvl,k,no
+      write (*,100)     '     th3dav_'//intvl,k,no
  57   continue
 c
 c --- time-averaged surface fluxes:
@@ -428,38 +427,38 @@ c --- time-averaged surface fluxes:
       call r8tor4(eminpav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) '  eminp m/s_'//intvl,0,real4
-      write (lp,100)     '  eminp m/s_'//intvl,0,no
+      write (*,100)     '  eminp m/s_'//intvl,0,no
       no=no+1
       call r8tor4(surflav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) ' htflx W/m2_'//intvl,0,real4
-      write (lp,100)     ' htflx W/m2_'//intvl,0,no
+      write (*,100)     ' htflx W/m2_'//intvl,0,no
       no=no+1
       call r8tor4(salflav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) ' sflx g/m2s_'//intvl,0,real4
-      write (lp,100)     ' sflx g/m2s_'//intvl,0,no
+      write (*,100)     ' sflx g/m2s_'//intvl,0,no
       no=no+1
       call r8tor4(brineav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) 'brine g/m2s_'//intvl,0,real4
-      write (lp,100)     'brine g/m2s_'//intvl,0,no
+      write (*,100)     'brine g/m2s_'//intvl,0,no
       no=no+1
       call r8tor4(tauxav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) ' Tau_x N/m2_'//intvl,0,real4
-      write (lp,100)     ' Tau_x N/m2_'//intvl,0,no
+      write (*,100)     ' Tau_x N/m2_'//intvl,0,no
       no=no+1
       call r8tor4(tauyav,real4)
       if (smooth) call psmoo4(real4)
       write (nop,rec=no) ' Tau_y N/m2_'//intvl,0,real4
-      write (lp,100)     ' Tau_y N/m2_'//intvl,0,no
+      write (*,100)     ' Tau_y N/m2_'//intvl,0,no
 c
       close (unit=nop)
  100  format (9x,a,' (layer',i3,') archived as record',i5)
-      write (lp,*) no,' records archived'
+      write (*,*) no,' records archived'
 c
-      end if	! if binary_output
+      end if   ! if binary_output
 
 !<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>-<>
       if (ncout) then                   ! archive data in netcdf format
@@ -485,9 +484,13 @@ c
         call out2cdf(ncid1,idm,jdm,dpmixlm,time,	! unit in m
      .    'zmixl','mixed layer depth','m')
         call out2cdf(ncid1,idm,jdm,oice,time,
-     .    'covice','ice coverage','m')
+     .    'covice','ice coverage','fraction')
         call out2cdf(ncid1,idm,jdm,omlhc,time,
-     .    'omlhc','omlhc','J/(m2*C)')
+     .    'omlhc','ocean mixed layer heat content','unk')
+        call out2cdf(ncid1,idm,jdm,util,time,
+     .    'loan_ice','auxiliary ice (energy loan)','W/m2')
+        call out2cdf(ncid1,idm,jdm,osalt,time,
+     .    'osalt','salt flux due to brine rejection','kg/s/m^2')
         call out3cdf(ncid1,idm,jdm,kdm,temp,time,
      .    'temp','potential temperature','deg C')
         call out3cdf(ncid1,idm,jdm,kdm,saln,time,
@@ -508,9 +511,9 @@ c
 !       call out2cdf(ncid1,idm,jdm,ticeav,time,
 !    .    'temiceav','monthly ice surface temp','deg C')
         call out2cdf(ncid1,idm,jdm,oiceav,time,
-     .    'coviceav','monthly ice coverage','m')
+     .    'coviceav','monthly ice coverage','fraction')
         call out2cdf(ncid1,idm,jdm,eminpav,time,
-     .    'eminpav','monthly eminp','m/s')
+     .    'eminpav','monthly eminp','mm/day')
         call out2cdf(ncid1,idm,jdm,surflav,time,
      .    'surflav','monthly net sfc htflx','W/m2')
         call out2cdf(ncid1,idm,jdm,salflav,time,

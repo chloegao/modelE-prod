@@ -52,14 +52,14 @@ c
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
          vrbos=i.eq.itest .and. j.eq.jtest
-         if (vrbos) write (lp,108) nstep,i,j,
+         if (vrbos) write (*,108) nstep,i,j,
      . '  entering mxkprf:  temp    saln    dens    thkns    dpth',
      .     (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-         if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
+         if (vrbos .and. dotrcr) write (*,110) nstep,i,j,
      . '  entering mxkprf:  thkns   tracer1    tracer2    tracer3',
      .     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-         if (vrbos) write (lp,109) nstep,i,j,
+         if (vrbos) write (*,109) nstep,i,j,
      . '  entering mxkprf:    u     dp_u         v     dp_v',(k,
      .     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
      .      dpv(i,j,k+nn)/onem,k=1,kk)
@@ -149,7 +149,7 @@ c
         dpmixl(i,j,n)=max(thkmin*onem,min(pbot(i,j),
      .   krturn(pres,dens,dpmixl(i,j,m),buoyfl,ustar(i,j),corio(i,j))))
 c
-        if (vrbos) write (lp,'(i7,2i4,a,2es11.2,f8.1)') nstep,i,j,
+        if (vrbos) write (*,'(i7,2i4,a,2es11.2,f8.1)') nstep,i,j,
      .   '   buoyfl,ustar,mldpth:',buoyfl,ustar(i,j),dpmixl(i,j,n)/onem
  13   continue
 c
@@ -210,7 +210,7 @@ c
         enddo
       end if       ! carry out mixing
 
-      if (dotrcr) write (lp,'(a)') 'tracer kpp mixing done'
+      if (dotrcr) write (*,'(a)') 'tracer kpp mixing done'
 c
 c --- mixed layer diagnostics
 c
@@ -234,7 +234,7 @@ c ---       this may not vectorize, but is used infrequently.
               sigmlj = max(sigmlj,tmljmp*0.03)  !cold-water fix
 *
               if (vrbos) then
-                write (lp,'(i9,2i5,i3,a,2f7.4)')
+                write (*,'(i9,2i5,i3,a,2f7.4)')
      &            nstep,i,j,k,
      &            '   sigmlj =',
      &            -tmljmp*dsigdt(temp(i,j,k1n),saln(i,j,k1n)),
@@ -272,7 +272,7 @@ c ---       this may not vectorize, but is used infrequently.
      &                         thjmp(k-1)) !stable profile simplifies the code
 *
                 if (vrbos) then
-                  write (lp,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
+                  write (*,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
      &              nstep,i,j,k,
      &              '   th,thsur,jmp,zc =',
      &              thloc(k),thsur,thjmp(k),-zgrid(i,j,k)
@@ -289,14 +289,14 @@ c ---               linear between cell centers
      &                                 dp(i,j,k1n)/
      &                                 max( dp(i,j,k1n  )+
      &                                      dp(i,j,k1n+1) ,
-     &                                      onemm )
+     &                                      onemu )
                   elseif (k.eq.klist(i,j)) then
 c ---               linear between cell centers
                     thtop = thjmp(k) + (thjmp(k-1)-thjmp(k))*
      &                                   dp(i,j,kn)/
      &                                   max( dp(i,j,kn  )+
      &                                        dp(i,j,kn-1) ,
-     &                                        onemm )
+     &                                        onemu )
                 else
                     thsur      = min(thloc(k+1),thsur)
                     thjmp(k+1) = max(thloc(k+1)-thsur,
@@ -333,7 +333,7 @@ c ---               linear between cell centers
                     thtop = max( thjmp(k-1), min( thjmp(k), thtop ) )
 *
                     if (vrbos) then
-                      write (lp,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
+                      write (*,'(i9,2i5,i3,a,2f7.3,f7.4,f9.2)')
      &                  nstep,i,j,k,
      &                  '  thi,thsur,jmp,zi =',
      &                  thtop,thsur,thjmp(k),-zintf
@@ -364,7 +364,7 @@ c --- enforce minimum thickness constraint
                   dpmixl(i,j,n) = max(dpmixl(i,j,n),bldmin*onem)
 c
                   if (vrbos) then
-                    write (lp,'(i9,2i5,i3,a,f7.3,f7.4,f9.2)')
+                    write (*,'(i9,2i5,i3,a,f7.3,f7.4,f9.2)')
      &                nstep,i,j,k,
      &                '   thsur,top,dpmixl =',
      &                thsur,thtop,dpmixl(i,j,n)/onem
@@ -410,7 +410,7 @@ c
               thmix(i,j)=sigocn(tmix(i,j),smix(i,j))
 *
               if (vrbos) then
-                write (lp,'(i9,2i5,i3,a,f9.2)')
+                write (*,'(i9,2i5,i3,a,f9.2)')
      &            nstep,i,j,k,
      &            '   dpmixl =',
      &            dpmixl(i,j,n)/onem
@@ -467,19 +467,23 @@ c
        do l=1,isp(j)
         do i=ifp(j,l),ilp(j,l)
          vrbos=i.eq.itest .and. j.eq.jtest
-         if (vrbos) write (lp,108) nstep,i,j,
+         if (vrbos) write (*,108) nstep,i,j,
      .'   exiting mxkprf:  temp    saln    dens    thkns    dpth',(k,
      .     temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .      dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
-         if (vrbos .and. dotrcr) write (lp,110) nstep,i,j,
+         if (vrbos .and. dotrcr) write (*,110) nstep,i,j,
      .'   exiting mxkprf:  thkns   tracer1    tracer2    tracer3',
      .     (k,dp(i,j,k+nn)/onem,(tracer(i,j,k,ntr),ntr=1,1),k=1,kk)
-         if (vrbos) write (lp,109) nstep,i,j,
+         if (vrbos) write (*,109) nstep,i,j,
      .'   exiting mxkprf:    u     dp_u         v     dp_v',(k,
      .     u(i,j,k+nn),dpu(i,j,k+nn)/onem,v(i,j,k+nn),
      .      dpv(i,j,k+nn)/onem,k=1,kk)
 c
          dpmxav(i,j)=dpmxav(i,j)+dpmixl(i,j,n)
+         surflav(i,j)=surflav(i,j)+surflx(i,j)
+         salflav(i,j)=salflav(i,j)+salflx(i,j)
+         eminpav(i,j)=eminpav(i,j)+oemnp(i,j)
+         oiceav(i,j)=oiceav(i,j)+oice(i,j)
         end do
        end do
       end do
@@ -632,8 +636,8 @@ c local variables for kpp mixing
       real dvsq(kdm)           ! squared current shear for bulk richardson no.
       real zgridb(kdm+1)       ! zgrid for bottom boundary layer
       real hwide(kdm)          ! layer thicknesses in m (minimum 1mm)
-      real dpmm(kdm)           !     max(onemm,dp(i,j,:,n))
-      real qdpmm(kdm)          ! 1.0/max(onemm,dp(i,j,:,n))
+      real dpmm(kdm)           !     max(onemu,dp(i,j,:,n))
+      real qdpmm(kdm)          ! 1.0/max(onemu,dp(i,j,:,n))
       real pij(kdm+1)          ! local copy of p(i,j,:)
       real case                ! 1 in case A; =0 in case B
       real hbl                 ! boundary layer depth
@@ -734,7 +738,7 @@ c --- locate lowest substantial mass-containing layer.
       pij(1)=p(i,j,1)
       do k=1,kk
         kn=k+nn
-        dpmm( k)  =max(onemm,dp(i,j,kn))
+        dpmm( k)  =max(onemu,dp(i,j,kn))
         qdpmm(k)  =1.0/dpmm(k)
         pij(  k+1)=pij(k)+dp(i,j,kn)
         p(i,j,k+1)=pij(k+1)
@@ -777,10 +781,10 @@ c --- evenly re-distribute the flux below the bottom
       swfbqp = swfbqp/pij(k+1)
 c
       if (vrbos) then
-        write (lp,'(a,4f10.4,i2)')
+        write (*,'(a,4f10.4,i2)')
      &   'frac[rb],beta[rb] =',
      &   frac_r,frac_b,onem*beta_r,onem*beta_b,jrlv
-        call sys_flush(lp)
+        call sys_flush(6)
       endif
 c
       do k=1,kk
@@ -802,18 +806,18 @@ c
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
             if (vrbos) then
-              write (lp,101) nstep,i,j,k,
+              write (*,101) nstep,i,j,k,
      &          1.0,swfrac(k+1),dtemp,dsaln
-              call sys_flush(lp)
+              call sys_flush(6)
             endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=0.0
             if (vrbos) then
-              write (lp,101) nstep,i,j,k,
+              write (*,101) nstep,i,j,k,
      &          swfrac(k),swfrac(k+1),dtemp
-              call sys_flush(lp)
+              call sys_flush(6)
             endif
           else !k.gt.klist(i,j)
             dtemp=0.0
@@ -942,17 +946,17 @@ c
 *
 *         if (vrbos) then
 *           if     (k.eq.1) then
-*             write(lp,'(3a)')
+*             write(*,'(3a)')
 *    &          ' k        z  zref',
 *    &          '      u   uref      v   vref',
 *    &          '      b   bref    ritop   dvsq'
 *           endif
-*           write(lp,'(i2,f9.2,f6.2,4f7.3,2f7.3,f9.4,f7.4)')
+*           write(*,'(i2,f9.2,f6.2,4f7.3,2f7.3,f9.4,f7.4)')
 *    &         k,zgrid(i,j,k),zref,
 *    &         uold(k),uref,vold(k),vref,
 *    &         -g*thref*thold(k),bref,
 *    &         ritop(k),dvsq(k)
-*           call flush(lp)
+*           call flush(6)
 *         endif
 c
           if     (zgrid(i,j,k)*onem*beta_r.gt.-10.0) then
@@ -965,10 +969,10 @@ c
           endif
           swfrac(k)=swfrac(k)-swfbqp*zgrid(i,j,k)*onem  !spread out bottom frac
           if (vrbos) then
-            write (lp,'(i9,2i5,i3,a,f8.2,f8.3)')
+            write (*,'(i9,2i5,i3,a,f8.2,f8.3)')
      &          nstep,i,j,k,
      &          '  z,swfrac =',zgrid(i,j,k),swfrac(k)
-            call sys_flush(lp)
+            call sys_flush(6)
           endif
         enddo  !k=1,klist
 c
@@ -1053,11 +1057,11 @@ c --- diffusive convection case
         endif
 c
         if (vrbos) then
-           write (lp,102) (nstep,iter,i,j,k,
+           write (*,102) (nstep,iter,i,j,k,
      &   hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &     k=1,kk  )  ! TNL
 CTNL &     k=1,kk+1)
-           call sys_flush(lp)
+           call sys_flush(6)
         endif
 c
         if (iocnmx.gt.4) then
@@ -1237,10 +1241,10 @@ c --- calculate swfrml, the fraction of solar radiation left at depth hbl
           endif
           swfrml=swfrml-swfbqp*hbl*onem  !spread out bottom frac
           if (vrbos) then
-            write (lp,'(i9,2i5,i3,a,4es8.1)')
+            write (*,'(i9,2i5,i3,a,4es8.1)')
      &          nstep,i,j,nbl,
      &          '  hbl,swfrml =',hbl,swfrml
-            call sys_flush(lp)
+            call sys_flush(6)
           endif
 c
 c --- limit check on hbl for negative (stablizing) surface buoyancy forcing
@@ -1276,10 +1280,10 @@ c --- find new nbl and re-calculate swfrml
         endif
         swfrml=swfrml-swfbqp*hbl*onem  !spread out bottom frac
         if (vrbos) then
-          write (lp,'(i9,2i5,i3,a,4e10.2)')
+          write (*,'(i9,2i5,i3,a,4e10.2)')
      &        nstep,i,j,nbl,
      &        '  hbl,swfrml =',hbl,swfrml
-          call sys_flush(lp)
+          call sys_flush(6)
         endif
 c
 c --- find forcing stability and buoyancy forcing for final hbl values
@@ -1435,11 +1439,11 @@ c --- combine interior and boundary layer coefficients and nonlocal term
         endif !.not.bblkpp
 c
         if (vrbos) then
-          write (lp,103) (nstep,iter,i,j,k,
+          write (*,103) (nstep,iter,i,j,k,
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &    ghats(i,j,k),k=1,kk  )  ! TNL
 CTNL &    ghats(i,j,k),k=1,kk+1)
-          call sys_flush(lp)
+          call sys_flush(6)
         endif
 c
 c --- save array dpbl=onem*hbl for ice, output and diagnosis
@@ -1765,10 +1769,10 @@ c --- select maximum viscosity/diffusivity at all interfaces
         enddo
 c
         if (vrbos) then
-          write (lp,103) (nstep,iter,i,j,k,
+          write (*,103) (nstep,iter,i,j,k,
      &  hwide(k),1.e4*vcty(i,j,k),1.e4*dift(i,j,k),1.e4*difs(i,j,k),
      &  ghats(i,j,k),k=kk,1,-1)
-          call sys_flush(lp)
+          call sys_flush(6)
         endif
         if(vrbos .and. mod(nstep,20).eq.0) then
           print *,'nbbl,hbbl',nbbl,hbbl
@@ -1790,7 +1794,7 @@ cc   .       ,i,j,k,klist(i,j)
 cc          print *,'q,dpmixl:',q,dpmixl(i,j,n)
 cc        end if
           klist(i,j)=min(k+1,klist(i,j))
-          if (vrbos) write (lp,'(i9,2i5,a,i3)') nstep,i,j,
+          if (vrbos) write (*,'(i9,2i5,a,i3)') nstep,i,j,
      .      '  no diffusion beyond layer',klist(i,j)
         end if                  ! iocnmx = 2
 c <><><><><><><><>  p a r t i a l   c o l u m n   k p p  <><><><><><><><>
@@ -1858,11 +1862,11 @@ c --- s solution
           call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,s1do,s1dn,diffs)
 c
           if (vrbos) then
-            write (lp,104) (nstep,iter,i,j,k,
+            write (*,104) (nstep,iter,i,j,k,
      &        hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
      &        0.0,0.0,
      &        k=1,nlayer)
-            call sys_flush(lp)
+            call sys_flush(6)
           endif
 c
 c --- u solution
@@ -1879,9 +1883,9 @@ c --- v solution
           call tridmat(tcu,tcc,tcl,nlayer,hm,rhs,v1do,v1dn,diffm)
 c
           if (vrbos) then
-            write (lp,105) (nstep,iter,i,j,k,
+            write (*,105) (nstep,iter,i,j,k,
      &        hm(k),u1do(k),u1dn(k),v1do(k),v1dn(k),k=1,nlayer)
-            call sys_flush(lp)
+            call sys_flush(6)
           endif
 c
 c --- reset old variables in preparation for next iteration
@@ -2040,8 +2044,8 @@ c
       real swfrac(kdm+1)       ! fractional surface shortwave radiation flux
       real swfrml              ! fractional surface sw rad flux at ml base
       real hwide(kdm)          ! layer thicknesses in m (minimum 1mm)
-      real dpmm(kdm)           !     max(onemm,dp(i,j,:,n))
-      real qdpmm(kdm)          ! 1.0/max(onemm,dp(i,j,:,n))
+      real dpmm(kdm)           !     max(onemu,dp(i,j,:,n))
+      real qdpmm(kdm)          ! 1.0/max(onemu,dp(i,j,:,n))
       real pij(kdm+1)          ! local copy of p(i,j,:)
 c
       real buoyfl,buoyfs,buoysw,dsgdt,smn,tmn
@@ -2066,14 +2070,14 @@ c
 c
 c --- set mid-time pressure array
 c --- locate lowest substantial mass-containing layer.
-      dpmm( 1)=max(onemm,dp(i,j,k1n))
+      dpmm( 1)=max(onemu,dp(i,j,k1n))
       qdpmm(1)=1.0/dpmm(1)
       pij(  1)=p(i,j,1)
       pij(  2)=pij(1)+dp(i,j,k1n)
       p(i,j,2)=pij(2)
       do k=2,kk
         kn=k+nn
-        dpmm( k)  =max(onemm,dp(i,j,kn))
+        dpmm( k)  =max(onemu,dp(i,j,kn))
         qdpmm(k)  =1.0/dpmm(k)
         pij(  k+1)=pij(k)+dp(i,j,kn)
         p(i,j,k+1)=pij(k+1)
@@ -2142,18 +2146,18 @@ c
             dsaln=salflx(i,j)*
      &            delt1*g*        qdpmm(k)
             if (vrbos) then
-              write (lp,101) nstep,i,j,k,
+              write (*,101) nstep,i,j,k,
      &          0.,1.-swfrac(k+1),dtemp,dsaln
-              call sys_flush(lp)
+              call sys_flush(6)
             endif
           elseif (k.le.klist(i,j)) then
             dtemp=(swfrac(k)-swfrac(k+1))*sswflx(i,j)*
      &            delt1*g*qspcifh*qdpmm(k)
             dsaln=0.0
             if (vrbos) then
-              write (lp,101) nstep,i,j,k,
+              write (*,101) nstep,i,j,k,
      &          1.-swfrac(k),1.-swfrac(k+1),dtemp
-              call sys_flush(lp)
+              call sys_flush(6)
             endif
           else !k.gt.klist(i,j)
             dtemp=0.0
@@ -2291,10 +2295,10 @@ c --- Write internal turbulence quantities to fort.91 when writing enabled.
 c ---  Headers for each outputstep.
 c ---  Add S_M,H,S to outputs.
       if (vrbos) then
-        write(lp,'(a,i9)') 'nstep = ',nstep
-        write(lp,*) 'hbl,al0 = ',hbl/onecm,al0
-        write(lp,*) 'b1 = ',b1
-        write(lp,'(a)')    "  z          al         slq2       "//
+        write(*,'(a,i9)') 'nstep = ',nstep
+        write(*,*) 'hbl,al0 = ',hbl/onecm,al0
+        write(*,*) 'b1 = ',b1
+        write(*,'(a)')    "  z          al         slq2       "//
      &                     "ri1        rid1       "//
      &                     "sm         sh         ss         "//
      &                     "v_back     t_back     s_back     "
@@ -2328,16 +2332,16 @@ c --- Interpolate 2D table for salinity-temperature model case.
 c
 c --- Check that "slq2" has been set to 0 where it might have been negative.
       if (slq2.lt.0.) then
-        write(lp,*) "************************************************"
-        write(lp,*) "Error detected in turbulence module."
-        write(lp,*) "'slq2' negative in turb_2 subroutine"
+        write(*,*) "************************************************"
+        write(*,*) "Error detected in turbulence module."
+        write(*,*) "'slq2' negative in turb_2 subroutine"
      &               //" after interpolation."
-        write(lp,*) "k=",k,"     slq2=",slq2
-        write(lp,*) "sm=",sm,"   sh=",sh,"   ss=",ss
-        write(lp,*) "ri1=",ri1,"    rid1=",rid1
-        write(lp,*) "dri=",dri
-        write(lp,*) "Program will stop."
-        call sys_flush(lp)
+        write(*,*) "k=",k,"     slq2=",slq2
+        write(*,*) "sm=",sm,"   sh=",sh,"   ss=",ss
+        write(*,*) "ri1=",ri1,"    rid1=",rid1
+        write(*,*) "dri=",dri
+        write(*,*) "Program will stop."
+        call sys_flush(6)
                stop '(mxgissaij)'
       endif
 c
@@ -2458,11 +2462,11 @@ c --- Make sure the right choice of arctan(Ri_C/Ri_T) [\theta_r] is made.
 c --- Arctan only covers the range (-pi/2,pi/2) which theta_r may be outside.
 c --- Want to consider statically stable case only: Ri > 0.
           if (abs(theta_r).gt.(pidbl/2.)) then
-            write(lp,*)
+            write(*,*)
      &       "************************************************"
-            write(lp,*) "Error detected in turbulence module."
-            write(lp,*) "theta_r (=",abs(theta_r),") too large"
-            call sys_flush(lp)
+            write(*,*) "Error detected in turbulence module."
+            write(*,*) "theta_r (=",abs(theta_r),") too large"
+            call sys_flush(6)
                    stop '(mxgissaij)'
           endif
           if (theta_r.lt.(-pidbl)/4.) then
@@ -2507,20 +2511,20 @@ c
 c --- Sound the alarm if have unrealizability outside expected range in angle.
           if ((itheta_r1.gt.3*n_theta_r_oct).or.
      &        (itheta_r0.lt. -n_theta_r_oct)    ) then
-               write(lp,*)
+               write(*,*)
      &         "************************************************"
-            write(lp,*) "Problem in turbulence module!"
-            write(lp,*) "Unrealizability outside Ri>0 region. "
-            write(lp,*) "slq2=",slq2,"    sm=",sm," sh=",sh," ss=",ss
-            write(lp,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
-            write(lp,*) "rit=",rit,"ric=",ric,"    theta_r=",theta_r
-            write(lp,*) "theta_r_deg =",theta_r_deg
-            write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
-            write(lp,*) "n_theta_r_oct=",n_theta_r_oct
-            write(lp,*) " "
-            write(lp,*) "i,j=",i,j
-            write(lp,*) "Program will stop."
-            call sys_flush(lp)
+            write(*,*) "Problem in turbulence module!"
+            write(*,*) "Unrealizability outside Ri>0 region. "
+            write(*,*) "slq2=",slq2,"    sm=",sm," sh=",sh," ss=",ss
+            write(*,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
+            write(*,*) "rit=",rit,"ric=",ric,"    theta_r=",theta_r
+            write(*,*) "theta_r_deg =",theta_r_deg
+            write(*,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
+            write(*,*) "n_theta_r_oct=",n_theta_r_oct
+            write(*,*) " "
+            write(*,*) "i,j=",i,j
+            write(*,*) "Program will stop."
+            call sys_flush(6)
                    stop '(mxgissaij)'
           endif
 c
@@ -2544,24 +2548,24 @@ c --- where have turbulence as Ri+> infinity.
          endif
 c
         if (back_ra_r1.lt.0.) then
-          write(lp,*)
+          write(*,*)
      &       "************************************************"
-          write(lp,*) "Problem in turbulence module!"
-          write(lp,*) "Negative bg ra_r \\equiv (Ri_T^2+Ri_C^2)^(1/2)"
-          write(lp,*) "back_ra_r1 =", back_ra_r1
-          write(lp,*) "theta_r =", theta_r
-          write(lp,*) " "
-          write(lp,*) "slq2=",slq2,"    sm=",sm," sh=",sh," ss=",ss
-          write(lp,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
-          write(lp,*) "rit=",rit,"ric=",ric
-          write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
-          write(lp,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
-          write(lp,*) "theta_r_deg =",theta_r_deg
-          write(lp,*) "n_theta_r_oct=",n_theta_r_oct
-          write(lp,*) " "
-          write(lp,*) "i,j=",i,j
-          write(lp,*) "Program will stop."
-          call sys_flush(lp)
+          write(*,*) "Problem in turbulence module!"
+          write(*,*) "Negative bg ra_r \\equiv (Ri_T^2+Ri_C^2)^(1/2)"
+          write(*,*) "back_ra_r1 =", back_ra_r1
+          write(*,*) "theta_r =", theta_r
+          write(*,*) " "
+          write(*,*) "slq2=",slq2,"    sm=",sm," sh=",sh," ss=",ss
+          write(*,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
+          write(*,*) "rit=",rit,"ric=",ric
+          write(*,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
+          write(*,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
+          write(*,*) "theta_r_deg =",theta_r_deg
+          write(*,*) "n_theta_r_oct=",n_theta_r_oct
+          write(*,*) " "
+          write(*,*) "i,j=",i,j
+          write(*,*) "Program will stop."
+          call sys_flush(6)
                  stop '(mxgissaij)'
         endif
 c
@@ -2592,14 +2596,14 @@ c --- Interpolate 1D table of background vs. theta_r instead.
 *         ! bugfix, potential I/O reduces the level of optimization
 *       if     ((iglobal.eq.344.and.jglobal.eq.  1) .or.
 *    &          (iglobal.eq.378.and.jglobal.eq. 32)     ) then
-*         write(lp,*) 'i,j,k   = ',iglobal,jglobal,k
-*         write(lp,*) '  ithet = ',itheta_r0,itheta_r1
-*         write(lp,*) '  theta = ',theta_r,deltheta_r
-*         write(lp,*) '  sm_r  = ',sm_r1(itheta_r0),sm_r1(itheta_r1)
-*         write(lp,*) '  sh_r  = ',sh_r1(itheta_r0),sh_r1(itheta_r1)
-*         write(lp,*) '  ss_r  = ',ss_r1(itheta_r0),ss_r1(itheta_r1)
-*         write(lp,*) 'slq2_r  = ',slq2_r1(itheta_r0),slq2_r1(itheta_r1)
-*         call sys_flush(lp)
+*         write(*,*) 'i,j,k   = ',iglobal,jglobal,k
+*         write(*,*) '  ithet = ',itheta_r0,itheta_r1
+*         write(*,*) '  theta = ',theta_r,deltheta_r
+*         write(*,*) '  sm_r  = ',sm_r1(itheta_r0),sm_r1(itheta_r1)
+*         write(*,*) '  sh_r  = ',sh_r1(itheta_r0),sh_r1(itheta_r1)
+*         write(*,*) '  ss_r  = ',ss_r1(itheta_r0),ss_r1(itheta_r1)
+*         write(*,*) 'slq2_r  = ',slq2_r1(itheta_r0),slq2_r1(itheta_r1)
+*         call sys_flush(6)
 *       endif
         deltheta_r1 = theta_r - itheta_r0*deltheta_r
         delsm_back = sm_r1(itheta_r1) - sm_r1(itheta_r0)
@@ -2619,11 +2623,11 @@ c --- Interpolate 1D table of background vs. theta_r instead.
         slq2_back = slq2_r1(itheta_r0) +
      &                   deltheta_r1*dslq2_back_o_dtheta
       else
-        write(lp,*) "Problem with choice of background interpolation."
-        write(lp,*) "ifbg_theta_interp=",ifbg_theta_interp
-        write(lp,*) "ifrafglt=",ifrafglt
-        write(lp,*) "Program is stopping."
-        call sys_flush(lp)
+        write(*,*) "Problem with choice of background interpolation."
+        write(*,*) "ifbg_theta_interp=",ifbg_theta_interp
+        write(*,*) "ifrafglt=",ifrafglt
+        write(*,*) "Program is stopping."
+        call sys_flush(6)
                stop '(mxgissaij)'
       endif
 c
@@ -2653,7 +2657,7 @@ c
            v_back=2.0e-1
            t_back=5.0e-2
            s_back=5.0e-2
-*          write(lp,'(i9,a,2i5,i3,a)')
+*          write(*,'(i9,a,2i5,i3,a)')
 *    &       nstep,' i,j,k=',i,j,k,' GISS neg. sX_back'
 c
 c --- Skip background lengthscale calculation when using K_X/(epsilon/N^2) .
@@ -2694,31 +2698,31 @@ c --- Stop if background diffusivities are negative.
         if ((v_back(k).lt.0.).or.
      &      (t_back(k).lt.0.).or.
      &      (s_back(k).lt.0.)    ) then
-               write(lp,*)
+               write(*,*)
      &         "************************************************"
-            write(lp,*) "Problem in turbulence module!"
-            write(lp,*) "Negative Background Diffusivity."
-            write(lp,*) "v_back=",v_back(k)
-            write(lp,*) "t_back=",t_back(k)
-            write(lp,*) "s_back=",s_back(k)
-            write(lp,*) " "
-            write(lp,*) "slq2_back=",slq2_back
-            write(lp,*) "sm_back=",sm_back
-            write(lp,*) "sh_back=",sh_back
-            write(lp,*) "ss_back=",ss_back
-            write(lp,*) " "
-            write(lp,*) "back_ra_r1 =", back_ra_r1
-            write(lp,*) "theta_r =", theta_r,
+            write(*,*) "Problem in turbulence module!"
+            write(*,*) "Negative Background Diffusivity."
+            write(*,*) "v_back=",v_back(k)
+            write(*,*) "t_back=",t_back(k)
+            write(*,*) "s_back=",s_back(k)
+            write(*,*) " "
+            write(*,*) "slq2_back=",slq2_back
+            write(*,*) "sm_back=",sm_back
+            write(*,*) "sh_back=",sh_back
+            write(*,*) "ss_back=",ss_back
+            write(*,*) " "
+            write(*,*) "back_ra_r1 =", back_ra_r1
+            write(*,*) "theta_r =", theta_r,
      &                   "   theta_r_deg=",theta_r_deg
-            write(lp,*) "back_rit1=",back_rit1,"back_ric1=",back_ric1
-            write(lp,*) "back_ri1=",back_ri1,"back_rid1=",back_rid1
-            write(lp,*) " "
-            write(lp,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
-            write(lp,*) "rit=",rit,"ric=",ric
-            write(lp,*) " "
-            write(lp,*) "i,j=",i,j
-            write(lp,*) "Program will stop."
-            call sys_flush(lp)
+            write(*,*) "back_rit1=",back_rit1,"back_ric1=",back_ric1
+            write(*,*) "back_ri1=",back_ri1,"back_rid1=",back_rid1
+            write(*,*) " "
+            write(*,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
+            write(*,*) "rit=",rit,"ric=",ric
+            write(*,*) " "
+            write(*,*) "i,j=",i,j
+            write(*,*) "Program will stop."
+            call sys_flush(6)
                    stop '(mxgissaij)'
           endif
 c
@@ -2728,52 +2732,52 @@ c --- Stop if background diffusivities are zero at positive Ri.
      &         (t_back(k).EQ.0.).or.
      &         (s_back(k).EQ.0.)    )) then
 c
-               write(lp,*)
+               write(*,*)
      &         "************************************************"
-            write(lp,*) "Problem in turbulence module!"
-            write(lp,*) "Zero Background Diffusivity in stable case."
-            write(lp,*) "v_back=",v_back(k),
+            write(*,*) "Problem in turbulence module!"
+            write(*,*) "Zero Background Diffusivity in stable case."
+            write(*,*) "v_back=",v_back(k),
      &                   " t_back=",t_back(k),
      &                   " s_back=",s_back(k)
 c Natassa
-              write(lp,*) "tmp_back=",tmp_back
-              write(lp,*) "b1=",b1
-              write(lp,*) "back_ri1=",back_ri1
-              write(lp,*) "epson2=",epson2
-              write(lp,*) "ri1=", ri1
+              write(*,*) "tmp_back=",tmp_back
+              write(*,*) "b1=",b1
+              write(*,*) "back_ri1=",back_ri1
+              write(*,*) "epson2=",epson2
+              write(*,*) "ri1=", ri1
 c
 c
-            write(lp,*) " "
-            write(lp,*) "slq2_back=",slq2_back
-            write(lp,*) "sm_back=",sm_back,
+            write(*,*) " "
+            write(*,*) "slq2_back=",slq2_back
+            write(*,*) "sm_back=",sm_back,
      &                   " sh_back=",sh_back,
      &                   " ss_back=",ss_back
-            write(lp,*) " "
-            write(lp,*) "slq2_r1(itheta_r0)=",slq2_r1(itheta_r0),
+            write(*,*) " "
+            write(*,*) "slq2_r1(itheta_r0)=",slq2_r1(itheta_r0),
      &                   " slq2_r1(itheta_r1)=",slq2_r1(itheta_r1)
-            write(lp,*) "sm_r1(itheta_r0)=",sm_r1(itheta_r0),
+            write(*,*) "sm_r1(itheta_r0)=",sm_r1(itheta_r0),
      &                   " sm_r1(itheta_r1)=",sm_r1(itheta_r1)
-            write(lp,*) "sh_r1(itheta_r0)=",sh_r1(itheta_r0),
+            write(*,*) "sh_r1(itheta_r0)=",sh_r1(itheta_r0),
      &                   " sh_r1(itheta_r1)=",sh_r1(itheta_r1)
-            write(lp,*) "ss_r1(itheta_r0)=",ss_r1(itheta_r0),
+            write(*,*) "ss_r1(itheta_r0)=",ss_r1(itheta_r0),
      &                   " ss_r1(itheta_r1)=",ss_r1(itheta_r1)
-            write(lp,*) " "
-            write(lp,*) "back_ra_r1 =", back_ra_r1
-            write(lp,*) "theta_r =", theta_r
-            write(lp,*) "theta_r_deg =", theta_r_deg
-            write(lp,*) "back_rit1=",back_rit1,"back_ric1=",back_ric1
-            write(lp,*) "back_ri1=",back_ri1,"back_rid1=",back_rid1
-            write(lp,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
-            write(lp,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
-            write(lp,*) "n_theta_r_oct=",n_theta_r_oct
-            write(lp,*) "deltheta_r=",deltheta_r
-            write(lp,*) " "
-            write(lp,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
-            write(lp,*) "rit=",rit,"ric=",ric
-            write(lp,*) " "
-            write(lp,*) "i,j=",i,j
-            write(lp,*) "Program will stop."
-            call sys_flush(lp)
+            write(*,*) " "
+            write(*,*) "back_ra_r1 =", back_ra_r1
+            write(*,*) "theta_r =", theta_r
+            write(*,*) "theta_r_deg =", theta_r_deg
+            write(*,*) "back_rit1=",back_rit1,"back_ric1=",back_ric1
+            write(*,*) "back_ri1=",back_ri1,"back_rid1=",back_rid1
+            write(*,*) "itheta_r0=",itheta_r0," itheta_r1=",itheta_r1
+            write(*,*) "jtheta_r0=",jtheta_r0," jtheta_r1=",jtheta_r1
+            write(*,*) "n_theta_r_oct=",n_theta_r_oct
+            write(*,*) "deltheta_r=",deltheta_r
+            write(*,*) " "
+            write(*,*) "k=",k,"  ria(k)=",ria(k),"  rid(k)=",rid(k)
+            write(*,*) "rit=",rit,"ric=",ric
+            write(*,*) " "
+            write(*,*) "i,j=",i,j
+            write(*,*) "Program will stop."
+            call sys_flush(6)
                    stop '(mxgissaij)'
           endif
         endif
@@ -2787,7 +2791,7 @@ c
 c --- Write internal turbulence quantities
 c --- Add S_M,H,S to outputs
       if (vrbos) then
-        write(lp,9000) z1d(k),al,slq2,ri1,rid1,sm,sh,ss,
+        write(*,9000) z1d(k),al,slq2,ri1,rid1,sm,sh,ss,
      &                 v_back(k),t_back(k),s_back(k)
       endif
 c
@@ -2846,16 +2850,16 @@ c
 c --- stop if DIFFUSIVITY IS NEGATIVE.
       do k =1,klist(i,j)-1
       if ((akm(k).lt.0.).or.(akh(k).lt.0.).or.(aks(k).lt.0.)) then
-          write(lp,*) "Diffusivity is negative."
-        write(lp,*) "k=",k
-        write(lp,*) "z[cm]      tem[C]     sal[ppt]   rho[g/cm3] "//
+          write(*,*) "Diffusivity is negative."
+        write(*,*) "k=",k
+        write(*,*) "z[cm]      tem[C]     sal[ppt]   rho[g/cm3] "//
      &                "Ri         Ri_d	   S^2[/s2]   "//
      &                "K_M[cm2/s] K_H[cm2/s] K_S[cm2/s] "
           write(*,9000) z1d(k),th1d(k),ria(k),rid(k),s2(k),
      &                  akm(k),akh(k),aks(k)
-        write(lp,*) " "
-        write(lp,*) "Program will stop."
-        call sys_flush(lp)
+        write(*,*) " "
+        write(*,*) "Program will stop."
+        call sys_flush(6)
                stop '(mxgissaij)'
       endif
       enddo
@@ -2969,7 +2973,7 @@ c
           tr1dn(k,ktr)=tr1do(k,ktr)
         enddo
         endif
-        hm(k)=max(onemm,dp(i,j,kn))/onem
+        hm(k)=max(onemu,dp(i,j,kn))/onem
         zm(k)=zgrid(i,j,k)
       enddo !k
 c
@@ -2995,10 +2999,10 @@ c
       enddo
 c
       if (vrbos) then
-          write (lp,102) (nstep,i,j,k,
-     &      hm(k),t1do(k),temp(i,j,kn),s1do(k),saln(i,j,kn),
+          write (*,102) (nstep,i,j,k,
+     &      hm(k),t1do(k),temp(i,j,k+nn),s1do(k),saln(i,j,k+nn),
      &      k=1,nlayer)
-          call sys_flush(lp)
+          call sys_flush(6)
  102    format(25x,
      &     '  thick   t old   t ijo   s old   s ijo'
      &     /(i9,2i5,i3,2x,f9.2,4f8.3))
@@ -3089,13 +3093,13 @@ cc          end if
       end if				! s1dn(1) < fresh
 
       if (vrbos) then
-          write (lp,103) (nstep,i,j,k,
+          write (*,103) (nstep,i,j,k,
      &    hm(max(1,k-1)),1.e4*difft(k),1.e4*diffs(k),
      &      ghat(k),k=1,nlayer+1)
-          write (lp,104) (nstep,i,j,k,
+          write (*,104) (nstep,i,j,k,
      &      hm(k),t1do(k),t1dn(k),s1do(k),s1dn(k),
      &      k=1,nlayer)
-          call sys_flush(lp)
+          call sys_flush(6)
  103    format(25x,'   thick    t diff    s diff   nonlocal'
      &     /(i9,2i5,i3,1x,3f10.2,f11.6))
  104    format(25x,
@@ -3160,16 +3164,16 @@ c --- check conservation of column integrals
       tndcys=tosaln-tosalo
       totemn=10.*pbot(i,j)
       tosaln=35.*pbot(i,j)
-      if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+      if (abs(tndcyt).gt.1.e-6*totemn) write (*,101) i,j,
      .  '  mxkprf - bad temp.intgl.',totemo,tndcyt,tndcyt/totemn
-      if (abs(tndcys).gt.1.e-6*tosaln) write (lp,101) i,j,
+      if (abs(tndcys).gt.1.e-6*tosaln) write (*,101) i,j,
      .  '  mxkprf - bad saln.intgl.',tosalo,tndcys,tndcys/tosaln
       if (dotrcr) then
         do ktr=1,ntrcr
           tndcyt=totrcn(ktr)-totrco(ktr)
           if (abs(tndcyt).lt.1.e-199) tndcyt=0.
           totemn=trscal(ktr)*pbot(i,j)
-          if (abs(tndcyt).gt.1.e-6*totemn) write (lp,101) i,j,
+          if (abs(tndcyt).gt.1.e-6*totemn) write (*,101) i,j,
      .    '  mxkprf - bad trcr.intgl.',totrco(ktr),tndcyt,tndcyt/totemn
         end do
       end if
@@ -3256,7 +3260,7 @@ c
         if (presu.lt.dpthmx) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i-1,j,k+1))
           u1do(k)=u(i,j,kn)
-          hm(k)=max(onemm,dpu(i,j,kn))/onem
+          hm(k)=max(onemu,dpu(i,j,kn))/onem
           if (k.eq.1) then
             zm(k)=-.5*hm(k)
           else
@@ -3296,9 +3300,9 @@ c --- solve the diffusion equation
       enddo
 c
       if (vrbos) then
-        write (lp,106) (nstep,i,j,k,
+        write (*,106) (nstep,i,j,k,
      &    hm(k),u1do(k),u1dn(k),k=1,nlayer)
-        call sys_flush(lp)
+        call sys_flush(6)
       endif
       return
  106  format(23x,'   thick   u old   u new'/(i9,2i5,i3,1x,f10.3,2f8.3))
@@ -3354,7 +3358,7 @@ c
         if (presv.lt.dpthmx) then
           diffm(k+1)=.5*(vcty(i,j,k+1)+vcty(i,ja ,k+1))
           v1do(k)=v(i,j,kn)
-          hm(k)=max(onemm,dpv(i,j,kn))/onem
+          hm(k)=max(onemu,dpv(i,j,kn))/onem
           if (k.eq.1) then
             zm(k)=-.5*hm(k)
           else
@@ -3395,9 +3399,9 @@ c --- solve the diffusion equation
       enddo
 c
       if (vrbos) then
-        write (lp,107) (nstep,i,j,k,
+        write (*,107) (nstep,i,j,k,
      &    hm(k),v1do(k),v1dn(k),k=1,nlayer)
-        call sys_flush(lp)
+        call sys_flush(6)
       endif
       return
  107  format(23x,'   thick   v old   v new'/(i9,2i5,i3,1x,f10.3,2f8.3))

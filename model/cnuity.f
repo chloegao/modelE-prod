@@ -8,8 +8,8 @@ c --- hycom version 0.9
      &     ,ip,idm,ii1,JDM
      &     ,jchunk
       USE HYCOM_DIM, only : ogrid,J_0,J_1,J_0H,J_1H
-      USE HYCOM_SCALARS, only : acurcy,nstep,delt1,lp,onecm,epsil,thkdff
-     &     ,sigjmp,onem,bolus_biharm_constant,bolus_laplc_constant 
+      USE HYCOM_SCALARS, only : acurcy,nstep,delt1,onecm,epsil,thkdff
+     &     ,sigjmp,onem,bolus_biharm_constant,bolus_laplc_constant
      &     ,bolus_laplc_exponential
       USE HYCOM_ARRAYS, only : utotn,vtotn,dp,utotm,u,ubavg,scuy,depthu
      &     ,uflux,uflux2,dpu,uflx,vtotm,v,scvx,depthv,vflux
@@ -27,7 +27,7 @@ c
       character text*20
       logical abort
 
-      integer, parameter :: itmax = 5
+      integer, parameter :: itmax = 15
       !!integer ja_,jb_
 cddd      integer my_pet
 c
@@ -162,7 +162,7 @@ c
         do 190 l=1,isp(j)
         do 190 i=ifp(j,l),ilp(j,l)
         if (dp(i,j,kn).eq.dpmin) then
-          write (lp,100) nstep,i,j,k,19,dpmin/onem
+          write (*,100) nstep,i,j,k,19,dpmin/onem
  100      format (i9,' i,j,k=',2i5,i3,' neg. dp (m) in loop ',i3,f9.2)
           iz=i
           jz=j
@@ -171,13 +171,13 @@ c
         call stencl(iz,jz,k,nn)
       end if
 c
-cdiag write (lp,*) 'time step',nstep,'    layer',k
+cdiag write (*,*) 'time step',nstep,'    layer',k
 cdiag do jcyc=jtest-1,jtest+1
 cdiag j =mod(jcyc-1+jj,jj)+1
 cdiag ja=mod(jcyc-2+jj,jj)+1
 cdiag jb=mod(jcyc     ,jj)+1
 cdiag do i=itest-1,itest+1
-cdiag write (lp,101) i,j,k,'old thknss','mid thknss,vel.',
+cdiag write (*,101) i,j,k,'old thknss','mid thknss,vel.',
 cdiag.'new thknss,fluxes',
 cdiag.dpold(i-1,j,k)/onem,u(i,j,km)+ubavg(i,j,m),uflux(i,j),
 cdiag.dpold(i,ja,k)/onem,dpold(i,j,k)/onem,dpold(i,jb,k)/onem,
@@ -306,7 +306,7 @@ c
       do 150 j=J_0,J_1
       do 150 l=1,isp(j)
       do 150 i=ifp(j,l),ilp(j,l)
-      if (dp(i,j,kn).eq.dpmin) write (lp,100) nstep,i,j,k,15,dpmin/onem
+      if (dp(i,j,kn).eq.dpmin) write (*,100) nstep,i,j,k,15,dpmin/onem
  150  continue
       end if
 c
@@ -378,7 +378,7 @@ c
       do 140 j=J_0,J_1
       do 140 l=1,isp(j)
       do 140 i=ifp(j,l),ilp(j,l)
-      if (dp(i,j,kn).eq.dpmin) write (lp,100) nstep,i,j,k,14,dpmin/onem
+      if (dp(i,j,kn).eq.dpmin) write (*,100) nstep,i,j,k,14,dpmin/onem
  140  continue
       end if
 c
@@ -416,7 +416,7 @@ c
       do 38 j=J_0,J_1
         do 38 l=1,isp(j)
         do 38 i=ifp(j,l),ilp(j,l)
-        if (abs(util3(i,j)).eq.dpmin) write (lp,105)
+        if (abs(util3(i,j)).eq.dpmin) write (*,105)
      .   nstep,i,j,'  largest pbot correction after',itmax,
      .    ' iterations:',scp2i(i,j)*util3(i,j)/onecm,' cm'
  105    format (i9,2i5,a,i3,a,f7.1,a)
@@ -785,7 +785,7 @@ c
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 c     if (diagno) then
 c       q=hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),32)
-c       write (lp,103) time,'  APE change due to intfc smoothing:',q
+c       write (*,103) time,'  APE change due to intfc smoothing:',q
 c     end if
  103  format (f9.1,a,-12p,f9.3,' TW')
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

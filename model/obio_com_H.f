@@ -9,7 +9,7 @@
 !     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
       USE hycom_dim_glob, only: kdm
-      use hycom_dim, only: idm,jdm
+      use hycom_dim, only: idm,jdm,ntrcr
 
       implicit none
 
@@ -57,6 +57,7 @@ c
 
       integer :: nstep0=0
 
+      integer:: num_tracers
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -146,6 +147,7 @@ C endif
       real*8, dimension(:, :, :), allocatable :: ze
 
       character(len=50) :: arg2d, arg3d
+
 
       contains
 

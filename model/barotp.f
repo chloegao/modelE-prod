@@ -145,13 +145,13 @@ c
      .  ,ubavg(ipacs,jpac,nl),ubavg(iatln,jatl,nl)
       endif  ! doThis
 c
-cdiag write (lp,100) nstep
+cdiag write (*,100) nstep
 cdiag do jcyc=jtest,jtest+1
 cdiag j =mod(jcyc-1+jj,jj)+1
 cdiag jb=mod(jcyc     ,jj)+1
 cdiag do i=itest,itest+1
 cdiag if (iu(i,j).gt.0) then
-cdiag write (lp,'(i3,2i5,2p,6f9.3)') lll,i,j,ubavg(i,j,ml),ubavg(i,j,nl)
+cdiag write (*,'(i3,2i5,2p,6f9.3)') lll,i,j,ubavg(i,j,ml),ubavg(i,j,nl)
 cdiag. ,-thref*(pbavg(i,j,nl)-pbavg(i-1,j,nl))*scuxi(i,j)*dlt,
 cdiag. (vbavg(i  ,j,mn)*depthv(i  ,j)+vbavg(i  ,jb ,mn)*depthv(i  ,jb )
 cdiag. +vbavg(i-1,j,mn)*depthv(i-1,j)+vbavg(i-1,jb ,mn)*depthv(i-1,jb ))
@@ -236,14 +236,14 @@ c
  842   vbavg(i,j,nl)=(1.-wbaro)*vbavg(i,j,ml)+wbaro*vbavg(i,j,nl)
      . +(1.+wbaro)*dlt*(vtndcy+vtotn(i,j)-util2(i,j))
 c
-cdiag write (lp,101) nstep
+cdiag write (*,101) nstep
 cdiag do jcyc=jtest,jtest+1
 cdiag ja=mod(jcyc-2+jj,jj)+1
 cdiag j =mod(jcyc-1+jj,jj)+1
 cdiag jb=mod(jcyc     ,jj)+1
 cdiag do i=itest,itest+1
 cdiag if (iv(i,j).gt.0) then
-cdiag write (lp,'(i3,2i5,2p,6f9.3)') lll,i,j,vbavg(i,j,ml),vbavg(i,j,nl)
+cdiag write (*,'(i3,2i5,2p,6f9.3)') lll,i,j,vbavg(i,j,ml),vbavg(i,j,nl)
 cdiag. ,-thref*(pbavg(i,j,nl)-pbavg(i,ja ,nl))*scvyi(i,j)*dlt,
 cdiag.-(ubavg(i,j  ,mn)*depthu(i,j  )+ubavg(i+1,j  ,mn)*depthu(i+1,j  )
 cdiag. +ubavg(i,ja ,mn)*depthu(i,ja )+ubavg(i+1,ja ,mn)*depthu(i+1,ja ))

@@ -4,7 +4,7 @@ c
 c --- hycom version 0.9.6
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
+      USE HYCOM_SCALARS, only : dotrcr,theta,onem,onecm,epsil,salmin
      &     ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,thref,g
      &     ,spcifh,thkdff,thkmin,baclin,itest,jtest
       USE HYCOM_ARRAYS
@@ -103,7 +103,7 @@ c --- extract single column from 3-d fields
  7    pres(k+1)=pres(k)+delp(k)
 c
  103  format (i9,2i5,a/(33x,i3,2f8.3,f8.3,f8.2,f8.1))
-      if (vrbos) write (lp,103) nstep,itest,jtest,
+      if (vrbos) write (*,103) nstep,itest,jtest,
      .'  entering mxlayr:  temp    saln    dens    thkns    dpth',(k,
      .ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
 c
@@ -264,7 +264,7 @@ c
       end if
  15   continue
 c
-      if (vrbos) write (lp,'(i9,2i5,a,2f9.3)')
+      if (vrbos) write (*,'(i9,2i5,a,2f9.3)')
      .  nstep,i,j,'  old/new mixed layer depth:',thkold/onem,thknew/onem
 c
 c --- distribute thermohaline forcing over new mixed layer depth
@@ -285,7 +285,7 @@ c
       else if (pres(k).lt.thknew) then
 c
         if (vrbos)
-     .  write (lp,'(i9,2i5,i3,a,3f9.3,25x,2f9.3)') nstep,i,j,k,
+     .  write (*,'(i9,2i5,i3,a,3f9.3,25x,2f9.3)') nstep,i,j,k,
      .   '  p_k,thknew,p_k+1,t_1,t_k=',pres(k)/onem,thknew/onem,
      .    pres(k+1)/onem,ttem(1),ttem(k)
 c
@@ -297,7 +297,7 @@ c
       end if
  14   continue
 c
-      if (vrbos) write (lp,103) nstep,itest,jtest,
+      if (vrbos) write (*,103) nstep,itest,jtest,
      .'  exiting mxlayr:   temp    saln    dens    thkns    dpth',(k,
      .ttem(k),ssal(k),dens(k),delp(k)/onem,pres(k+1)/onem,k=1,kk)
 c
@@ -314,12 +314,12 @@ c
         tndcyt=tndcyt-surflx(i,j)*delt1*g/spcifh
         tndcys=tndcys-salflx(i,j)*delt1*g
  101  format (2i5,a,1p,2e16.8,e9.1)
-        if (abs(tndcyt).gt.acurcy*totem) write (lp,101) i,j,
+        if (abs(tndcyt).gt.acurcy*totem) write (*,101) i,j,
      .  '  mxlayr - bad temp.intgl.',totem,tndcyt,tndcyt/totem
-        if (abs(tndcys).gt.acurcy*tosal) write (lp,101) i,j,
+        if (abs(tndcys).gt.acurcy*tosal) write (*,101) i,j,
      .  '  mxlayr - bad saln.intgl.',tosal,tndcys,tndcys/tosal
 ccc        if (max(abs(tndcyt/totem),abs(tndcys/tosal)).gt.
-ccc     .  1.e-9) write (lp,'(i9,2i5,3x,a,1p,3e10.2/22x,a,3e10.2)')
+ccc     .  1.e-9) write (*,'(i9,2i5,3x,a,1p,3e10.2/22x,a,3e10.2)')
 ccc     .  nstep,i,j,'total saln,srf.flux,tndcy:',tosal/g,
 ccc     .  salflx*delt1,tndcys/g,'total temp,srf.flux,tndcy:',
 ccc     .  totem/g,surflx*delt1,tndcyt*spcifh/g
@@ -422,7 +422,7 @@ c --- define 'bounding box'
           sup=s1
           slo=(s2*dpu(i,j,kn)-sup*zup)/zlo
           if (slo.gt.smin-small .and. slo.lt.smax+small) go to 36
-          write (lp,100) nstep,i,j,'  possible',' error in unmixing u',
+          write (*,100) nstep,i,j,'  possible',' error in unmixing u',
      .      dpu(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
      .      (s2*dpu(i,j,kn)-slo*zlo)/zup,(s2*dpu(i,j,kn)-sup*zup)/zlo
           sup=s2
@@ -494,7 +494,7 @@ c --- define 'bounding box'
           sup=s1
           slo=(s2*dpv(i,j,kn)-sup*zup)/zlo
           if (slo.gt.smin-small .and. slo.lt.smax+small) go to 56
-          write (lp,100) nstep,i,j,'  possible',' error in unmixing v',
+          write (*,100) nstep,i,j,'  possible',' error in unmixing v',
      .      dpv(i,j,kn)/onem,zup/onem,zlo/onem,s1,s2,s3,
      .      (s2*dpv(i,j,kn)-slo*zlo)/zup,(s2*dpv(i,j,kn)-sup*zup)/zlo
           sup=s2
