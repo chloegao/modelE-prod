@@ -28,7 +28,6 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_O18      ! Water isotopes
-#define RAD_O3_2010              ! 2010 ozone dataset
 End Preprocessor Options
 
 Object modules:

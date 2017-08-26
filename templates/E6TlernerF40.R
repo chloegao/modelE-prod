@@ -27,7 +27,6 @@ Preprocessor Options
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
 #define TRACERS_SF6              ! SF6 tracers
-#define RAD_O3_2010              ! 2010 ozone dataset
 End Preprocessor Options
 
 Object modules:
