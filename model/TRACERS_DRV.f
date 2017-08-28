@@ -4325,6 +4325,7 @@ C**** some tracer specific 3D arrays
           endif ! diag_aod_3d = 2 or 3
 
           if (diag_aod_3d==4 .or. diag_aod_3d==3) then
+          if (save_dry_aod>0) then
             k = k + 1
             ijlt_3DtauDRY(n)=k
             ia_ijlt(k) = ia_rad
@@ -4341,10 +4342,79 @@ C**** some tracer specific 3D arrays
             ijlt_power(k) = -2
             units_ijlt(k) = unit_string(ijlt_power(k),' ')
             scale_ijlt(k) = 10.**(-ijlt_power(k))
+          endif ! save_dry_aod>0
           endif ! diag_aod_3d = 4 or 3
 
         enddo ! nraero_aod
-      endif ! 0<diag_aod_3d<5
+      else if (diag_aod_3d<0 .and. diag_aod_3d>-5) then ! if negative, save total
+        allocate(ijlt_3Dtau(1))    ; ijlt_3Dtau = 0
+        allocate(ijlt_3DtauCS(1))  ; ijlt_3DtauCS = 0
+        allocate(ijlt_3DtauDRY(1))  ; ijlt_3DtauDRY = 0
+        allocate(ijlt_3Daaod(1))   ; ijlt_3Daaod = 0
+        allocate(ijlt_3DaaodCS(1)) ; ijlt_3DaaodCS = 0
+        allocate(ijlt_3DaaodDRY(1)) ; ijlt_3DaaodDRY = 0
+
+        if (diag_aod_3d==-1 .or. diag_aod_3d==-3) then
+          k = k + 1
+          ijlt_3Dtau(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'tau'
+          sname_ijlt(k) = 'tau_3D'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+          k = k + 1
+          ijlt_3Daaod(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'aaod'
+          sname_ijlt(k) = 'aaod_3D'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        endif ! diag_aod_3d = -1 or -3
+
+        if (diag_aod_3d==-2 .or. diag_aod_3d==-3) then
+          k = k + 1
+          ijlt_3DtauCS(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'CS tau'
+          sname_ijlt(k) = 'tau_3D_CS'
+          dname_ijlt(k) = 'clrsky2d'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+          k = k + 1
+          ijlt_3DaaodCS(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'CS aaod'
+          sname_ijlt(k) = 'aaod_3D_CS'
+          dname_ijlt(k) = 'clrsky2d'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        endif ! diag_aod_3d = -2 or -3
+
+        if (diag_aod_3d==-4 .or. diag_aod_3d==-3) then
+        if (save_dry_aod>0) then
+          k = k + 1
+          ijlt_3DtauDRY(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'DRY tau'
+          sname_ijlt(k) = 'tau_3D_DRY'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+          k = k + 1
+          ijlt_3DaaodDRY(1)=k
+          ia_ijlt(k) = ia_rad
+          lname_ijlt(k) = 'DRY aaod'
+          sname_ijlt(k) = 'aaod_3D_DRY'
+          ijlt_power(k) = -2
+          units_ijlt(k) = unit_string(ijlt_power(k),' ')
+          scale_ijlt(k) = 10.**(-ijlt_power(k))
+        endif ! save_dry_aod>0
+        endif ! diag_aod_3d = -4 or -3
+      endif ! 0<diag_aod_3d<5 or 0>diag_aod_3d>-5
 
       do n=1,NTM
         select case(trname(n))

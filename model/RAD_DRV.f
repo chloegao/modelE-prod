@@ -2955,7 +2955,30 @@ C**** Save optical depth diags
      *           taijls(i,j,1:lm,ijlt_3DtauDRY(n))
      *         =taijls(i,j,1:lm,ijlt_3DtauDRY(n))+
      *          aesqex_dry(1:lm,6,n)
-          endif ! 0<diag_aod_3d<5
+          else if (diag_aod_3d<0 .and. diag_aod_3d>-5) then ! if negative, save total
+            if (ijlt_3Daaod(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Daaod(1))
+     *           =taijls(i,j,1:lm,ijlt_3Daaod(1))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DaaodCS(1))
+     *           =taijls(i,j,1:lm,ijlt_3DaaodCS(1))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3DaaodDRY(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DaaodDRY(1))
+     *           =taijls(i,j,1:lm,ijlt_3DaaodDRY(1))+
+     *            (aesqex_dry(1:lm,6,n)-aesqsc_dry(1:lm,6,n))
+            if (ijlt_3Dtau(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3Dtau(1))
+     *         =taijls(i,j,1:lm,ijlt_3Dtau(1))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DtauCS(1))
+     *         =taijls(i,j,1:lm,ijlt_3DtauCS(1))+aesqex(1:lm,6,n)*OPNSKY
+            if (ijlt_3DtauDRY(1).gt.0)
+     *           taijls(i,j,1:lm,ijlt_3DtauDRY(1))
+     *         =taijls(i,j,1:lm,ijlt_3DtauDRY(1))+
+     *          aesqex_dry(1:lm,6,n)
+          endif ! 0<diag_aod_3d<5 or 0>diag_aod_3d>-5
 
 ! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
@@ -3062,7 +3085,29 @@ C**** Save optical depth diags
             if (ijlt_3DtauDRY(n).gt.0)
      &           taijls(i,j,1:lm,ijlt_3DtauDRY(n))
      &         =taijls(i,j,1:lm,ijlt_3DtauDRY(n))+aesqex_dry(1:lm,6,n)
-          endif ! 0<diag_aod_3d<5
+          else if (diag_aod_3d<0 .and. diag_aod_3d>-5) then ! if negative, save total
+            if (ijlt_3Daaod(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Daaod(1))
+     &           =taijls(i,j,1:lm,ijlt_3Daaod(1))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3DaaodCS(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DaaodCS(1))
+     &           =taijls(i,j,1:lm,ijlt_3DaaodCS(1))+
+     *            (aesqex(1:lm,6,n)-aesqsc(1:lm,6,n))*OPNSKY
+            if (ijlt_3DaaodDRY(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DaaodDRY(1))
+     &           =taijls(i,j,1:lm,ijlt_3DaaodDRY(1))+
+     *            (aesqex_dry(1:lm,6,n)-aesqsc(1:lm,6,n))
+            if (ijlt_3Dtau(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3Dtau(1))
+     &         =taijls(i,j,1:lm,ijlt_3Dtau(1))+aesqex(1:lm,6,n)
+            if (ijlt_3DtauCS(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DtauCS(1))
+     &         =taijls(i,j,1:lm,ijlt_3DtauCS(1))+aesqex(1:lm,6,n)*OPNSKY
+            if (ijlt_3DtauDRY(1).gt.0)
+     &           taijls(i,j,1:lm,ijlt_3DtauDRY(1))
+     &         =taijls(i,j,1:lm,ijlt_3DtauDRY(1))+aesqex_dry(1:lm,6,n)
+          endif ! 0<diag_aod_3d<5 or 0>diag_aod_3d>-5
 
 ! 2d aod, per band or just band6, depending on diag_rad
           IF (diag_rad /= 1) THEN
