@@ -28,8 +28,8 @@ C****
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age
-     &         ,n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_cfc,n_cfc12,n_sf6
-     &         ,n_abioDIC
+     &         ,n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_ocfc11,n_ocfc12
+     &         ,n_sf6,n_abioDIC
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
@@ -502,8 +502,8 @@ C        Call CARBON ('OCNMESO')
       if (n_wms1.gt.0) CALL OCN_TR_WaterMass(DTS)
       if (n_wms2.gt.0) CALL OCN_TR_WaterMass(DTS)
       if (n_wms3.gt.0) CALL OCN_TR_WaterMass(DTS)
-      if (n_cfc.gt.0) CALL OCN_TR_CFC(DTS,11)   !note n_cfc used by other parts of$
-      if (n_cfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
+      if (n_ocfc11.gt.0) CALL OCN_TR_CFC(DTS,11)   
+      if (n_ocfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
       if (n_sf6.gt.0) CALL OCN_TR_CFC(DTS,6)   
 !     if (n_abioDIC.gt.0) is defined in obio_carbon.f
 #ifdef TRACERS_AGE_OCEAN

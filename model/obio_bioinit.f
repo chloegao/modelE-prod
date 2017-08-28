@@ -378,8 +378,10 @@ c  Find nwater values corresponding to regions
         rlon=rlon2D(i,j)
         rlat=rlat2D(i,j)
  
+         if (AM_I_ROOT()) then
          if (i.eq.1) then
            write(*,*) 'rlon and rlat',i,j,rlon, rlat
+         endif
          endif
 
         if (rlon .gt. 180)rlon = rlon-360.0

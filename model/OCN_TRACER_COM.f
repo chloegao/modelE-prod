@@ -47,7 +47,8 @@
 
       integer :: n_water
       INTEGER :: n_age=0, n_obio=0, n_vent=0, n_wms1=0, n_wms2=0
-     .          ,n_wms3=0,n_cfc=0,n_gasx=0,n_cfc12=0,n_sf6=0,n_abioDIC=0
+     .          ,n_wms3=0,n_ocfc11=0,n_gasx=0,n_ocfc12=0,n_sf6=0
+     .          ,n_abioDIC=0
 
 
       REAL*8, allocatable, DIMENSION(:) :: expDecayRate
@@ -197,8 +198,8 @@
        if (entry%trname.eq.'WatrMass1') n_wms1 = n
        if (entry%trname.eq.'WatrMass2') n_wms2 = n
        if (entry%trname.eq.'WatrMass3') n_wms3 = n
-       if (entry%trname.eq.'aoCFC') n_cfc = n
-       if (entry%trname.eq.'aoCFC12') n_cfc12 = n
+       if (entry%trname.eq.'aoCFC') n_ocfc11 = n
+       if (entry%trname.eq.'aoCFC12') n_ocfc12 = n
        if (entry%trname.eq.'aoSF6') n_sf6 = n
        if (entry%trname.eq.'abioDIC') n_abioDIC = n
       enddo
@@ -208,7 +209,7 @@
      .'OCN_TRACER_COM: age=',n_age,'ventilation=',n_vent,'gasx=',n_gasx,
      .                'watermass1=',n_wms1,'watermass2=',n_wms2,
      .                'watermass3=',n_wms3,
-     .                'cfc11=',n_cfc,'cfc12=',n_cfc12,
+     .                'cfc11=',n_ocfc11,'cfc12=',n_ocfc12,
      .                'SF6=',n_sf6,
      .                'abioDIC=',n_abioDIC
       return

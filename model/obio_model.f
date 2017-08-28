@@ -84,7 +84,10 @@
       USE sw2ocean, only : lsrpd,fsr
       use OCEANRES, only : IM=>IMO,JM=>JMO
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
-      use obio_diag, only: oij=>obio_ij,ij_ph,ij_co3
+      use obio_diag, only: oij=>obio_ij,ij_ph
+#ifdef TRACERS_Alkalinity
+     .  ,ij_co3
+#endif
 #else
       USE hycom_dim, only: ogrid,im=>idm,jm=>jdm,kdm,ntrcr
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
@@ -148,7 +151,10 @@
       real :: SDIC(num_tracers)
       integer :: i_0,i_1,j_0,j_1
       integer :: n_co2n
-      real :: oij_pH,oij_co3
+      real :: oij_pH
+#ifdef TRACERS_Alkalinity
+      real :: oij_co3
+#endif
 
       if(.not.dobio) return
 
@@ -204,7 +210,8 @@ c
         caexpav_loc = 0
         pHav_loc = 0
 #endif
-        print*,nstep,'calling bioinit'
+        if (AM_I_ROOT())
+     .  print*,nstep,'calling bioinit'
 
 #ifdef OBIO_ON_RUSSELLocean
        rlon2D=transpose(spread(oLON_DG(:,1),DIM=1,NCOPIES=jm))
@@ -763,7 +770,6 @@ cdiag.                  tot,ichan=1,nlt)
           tirrq(k) = 0.0
          enddo
 
-         kpar(:) = 0.d0
          delta_temp1d(:) = 0.d0
 
          if (tot .ge. 0.1) then
@@ -771,15 +777,11 @@ cdiag.                  tot,ichan=1,nlt)
         call obio_edeu(kmax,vrbos,i,j,im,jm,kdm,
      &                   nstep)
         
-!#ifdef OBIO_ON_RUSSELLocean
-!#ifdef KPAR_2_OCEAN
-!            call obio_kpar(kmax,vrbos,i,j,im,jm,kdm,nstep,dtsrc,dxypo,
-!     &                     ogrid,mo,g0m,s0m,grav)
-!#endif
-!#endif
-         endif
-
 #ifdef OBIO_ON_RUSSELLocean
+#ifdef KPAR_2_OCEAN
+       call obio_kpar(kmax,vrbos,i,j,kdm,nstep,dtsrc,dxypo(j),
+     &               mo(i,j,:),g0m(i,j,:),s0m(i,j,:),grav,oAPRESS(i,j),
+     &               fsr,lsrpd)
        do k=1,kdm
        OIJL(I,J,k,IJL_kpar) = OIJL(I,J,k,IJL_kpar) + Kpar(k) !  kpar
      .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
@@ -787,7 +789,11 @@ cdiag.                  tot,ichan=1,nlt)
      .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
        enddo
 #endif
+#endif
+         endif
 
+
+        if (AM_I_ROOT()) then
          if (vrbos) then
 cdiag      write(*,107)nstep,
 cdiag.       '           k   avgq    tirrq',
@@ -798,6 +804,7 @@ cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
          write(*,'(a,4i5,2e12.5)')'obio_model,k,avgq,tirrq:',
      .       nstep,i,j,k,avgq1d(k),tirrq(k)
          enddo
+         endif
          endif
 
          if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
@@ -836,23 +843,26 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
         ddxypo=dxypo(j)
         SDIC=trmo(i,j,1,:)
         oij_pH=oij(i,j,ij_ph)
-        oij_co3=oij(i,j,ij_co3)
+!       oij_co3=oij(i,j,ij_co3)
 #else
         oij_pH=pHav_loc(i,j)
 #endif
        
         call obio_ptend(vrbos,kmax,i,j,kdm,nstep,n_co2n,
-     &                 DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC,
-     &                 oij_pH,oij_co3)
+     &                 DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC,oij_pH
+#ifdef TRACERS_Alkalinity
+     &                ,oij_co3
+#endif
+     &                 )
 #ifdef OBIO_ON_RUSSELLocean
 #ifdef TOPAZ_params
 #ifdef TRACERS_Alkalinity
        oij_co3 = oij_co3 + co3_conc
+        oij(i,j,ij_co3)=oij_co3
 #endif
 #endif
         oij_pH=oij_pH+pHsfc
         oij(i,j,ij_ph)=oij_pH
-        oij(i,j,ij_co3)=oij_co3
 #endif
        !------------------------------------------------------------
 cdiag  if (vrbos)then

@@ -461,7 +461,7 @@ C****
       USE Dictionary_mod, only : get_param
       USE MODEL_COM, only : itime,modelEclock
       USE CONSTANT,   only : grav
-      USE OCN_TRACER_COM, only : n_cfc,n_cfc12,n_sf6
+      USE OCN_TRACER_COM, only : n_ocfc11,n_ocfc12,n_sf6
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
@@ -512,9 +512,11 @@ C**** interpolate atmospheric values
       call modelEclock%get(year=year, month=month, date=date,
      &     dayOfYear=dayOfYear)
 
+      if (year<icfcyear(1).or.year>icfcyear(105)) return
+
 ! set the right tracer index
-      if (icfc==11) trac_ind=n_cfc
-      if (icfc==12) trac_ind=n_cfc12
+      if (icfc==11) trac_ind=n_ocfc11
+      if (icfc==12) trac_ind=n_ocfc12
       if (icfc==6)  trac_ind=n_sf6
       
       !pick appropriate values for each year
@@ -609,8 +611,8 @@ C**** at each time step set surface tracer conc=1+flux from atmos
 
 !     we do not set the moments for the tracer field here... 
 !     maybe we need to do that for the online gasexchange though...
-!     TXMO(I,J,1,n_cfc)=0
-!     TYMO(I,J,1,n_cfc)=0 ; TZMO(I,J,1,n_cfc)=0
+!     TXMO(I,J,1,n_ocfc11)=0
+!     TYMO(I,J,1,n_ocfc11)=0 ; TZMO(I,J,1,n_ocfc11)=0
 
        if (ocn_cfc) then
         if (icfc==11) then
