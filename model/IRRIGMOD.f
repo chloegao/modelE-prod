@@ -205,10 +205,11 @@
 ! fixed i,j arrays - feed in from call?
       USE GEOM, only : axyp
       USE GHY_COM, only : fearth
-
+      use dictionary_mod, only : get_param
       implicit none
       integer,intent(in):: i,j
-      integer :: jyear
+      integer :: jyear,master_yr
+      logical :: cyclic
 
 C**** Inputs
 !@var MWL,GML,MLDLK,tlake,flake local versions of lake variables
@@ -256,7 +257,21 @@ C**** set default output
       TRML_to_irrig = 0
 #endif
 
+! ->  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! ->  begin block copied here by MK for correctness/consistency
+! ->  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      ! If parameter irrig_yr exists, IRRIG data from that year is
+      ! selected  (if 0: time var, else cyclic)
+      ! Otherwise, irrig_yr is set to master_yr.
+      call get_param( "master_yr", master_yr )
+      call get_param( "irrig_yr", irrig_yr, default=master_yr )
+      cyclic = irrig_yr /= 0 ! irrig_yr==0 implies transient mode.
+      irrig_yr = abs(irrig_yr)
       call modelEclock%get(year=jyear)
+      if(cyclic)jyear = irrig_yr
+! ->  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! ->  end block copied here.  Todo: set effective year info in 1 place rather than 3!
+! ->  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !    Determine if we add water to the system (not conserving water) 
       if (jyear <yr_fossilGW) then
