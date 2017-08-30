@@ -72,7 +72,7 @@
       if (.not.regrid) regrid=all(abs(depth-
      &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
       if (regrid) then
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
         allocate(dummy(size(fldo, 3)))
         do i=ogrid%i_strt,ogrid%i_stop
           do j=ogrid%j_strt,ogrid%j_stop
@@ -249,7 +249,7 @@ c  Diatoms
 !change: March 15, 2010
 !     rmumax(nt) = 1.50       !u max in /day at 20C
       rmumax(nt) = 2.00       !u max in /day at 20C
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
 #else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008

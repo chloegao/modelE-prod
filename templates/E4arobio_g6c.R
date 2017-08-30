@@ -1,6 +1,6 @@
 E4arobio_g6c.R GISS Model E  coupled version          aromanou  08/04/2009
 
-E4arobio_g6c: obio in gary's ocean based on Larissa's E4F40o32.R
+E4arobio_g6c: obio in GISS ocean based on Larissa's E4F40o32.R
 E4F40o32: 2x2.5x40 layers modelE version, 1850 atm.;
    ocean: coupled to GISS ocean model (Russell - Schmidt),
    32 vert. layers in the ocean
@@ -15,8 +15,8 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
-#define OBIO_ON_GARYocean           ! obio on Russell ocean
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+#define OBIO_ON_GISSocean           ! obio on GISS ocean
+#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
@@ -110,7 +110,7 @@ eda_esa_ratios=eda_esa_ratios.asc        ! ratios of rad spectrl components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
 !! CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
-                                         !in Gary'socean grid
+                                         !in GISS ocean grid
                                          !to be used with CHL_from_SeaWIFs
 
 

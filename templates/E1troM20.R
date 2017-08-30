@@ -18,7 +18,7 @@ Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_WATER               ! TNL
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
