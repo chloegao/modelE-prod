@@ -69,7 +69,7 @@
       use exchange_types, only : atmocn_xchng_vars
       use runtimecontrols_mod, only: constco2
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       USE MODEL_COM,  only : nstep=>itime,itimei,dtsrc
       USE OCEAN,       only : oLON_DG,oLAT_DG,dlatm,DTS
       USE CONSTANT,   only : grav
@@ -124,7 +124,7 @@
       integer ll,ilim
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       Real*8,External   :: VOLGSP
       real*8 temgs,g,s,temgsp,pres
       real*8 time,dtr,ftr,rho_water
@@ -158,7 +158,7 @@
 
       if(.not.dobio) return
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       num_tracers=tracerlist%getsize()
 #else
       num_tracers=ntrcr
@@ -198,7 +198,7 @@ c
       !tracer array initialization.
       !note: we do not initialize obio_P,det and car
 
-#ifndef OBIO_ON_RUSSELLocean
+#ifndef OBIO_ON_GISSocean
         ao_co2fluxav_loc  = 0.
         pCO2av_loc = 0
         pp2tot_dayav_loc = 0
@@ -213,18 +213,18 @@ c
         if (AM_I_ROOT())
      .  print*,nstep,'calling bioinit'
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
        rlon2D=transpose(spread(oLON_DG(:,1),DIM=1,NCOPIES=jm))
        rlat2D=spread(oLAT_DG(:,1),DIM=1,NCOPIES=im)
 #else
        rlon2D=lonij(:,:,3)
        rlat2D=latij(:,:,3)
-       !lmm=0d0 this does not work because for RUSSELLocean is
+       !lmm=0d0 this does not work because for GISSocean is
 !passed from a module.  
 #endif 
        
        
-!NOTE: ip=>focean is real in RUSSELLocean but ip is integer in
+!NOTE: ip=>focean is real in GISSocean but ip is integer in
 !      hycom. It is passed as a real 2D array
 
 !NOT FOR HYCOM: mo, DXYPO, trmo,n_abioDIC,im,jm, number traces and lmm          passed to subroutine
@@ -239,7 +239,7 @@ c
 
 !Warm initialization
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       time = float(nstep)
 #endif
       if ((nstep0>0).and..not.initialized) then
@@ -258,7 +258,7 @@ c
       j_1=ogrid%J_STOP
 
       if (AM_I_ROOT()) then
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
      .      oLAT_DG(jtest,2),oLON_DG(itest,2)
 #else
@@ -300,7 +300,7 @@ c
       if (diagno_bio) then
       endif  !diagno_bio
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       if (AM_I_ROOT())
      .   write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
@@ -308,7 +308,7 @@ c
 
       !print out tracer integrals just before main loop
 
-#ifndef OBIO_ON_RUSSELLocean     /* HYCOM only */
+#ifndef OBIO_ON_GISSocean     /* HYCOM only */
       diag_counter=diag_counter+1
 #endif
 
@@ -348,7 +348,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      .           obio_P(1,1),obio_P(1,3),(1.-covice_ij),
      .           pCO2_ij,pHsfc,vrbos)
      
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
        pres = oAPRESS(i,j)    !surface atm. pressure
        do k=1,lmm(i,j)
          pres=pres+MO(I,J,k)*GRAV*.5
@@ -490,7 +490,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      . alk1d(1),ca_det_calc1d(1)
 #endif
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       kmax = lmm(i,j)
 cdiag if(vrbos)write(*,'(a,4i5)')'nstep,i,j,kmax= ',
 cdiag.         nstep,i,j,kmax
@@ -696,7 +696,7 @@ cdiag    enddo
      . write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
      .   nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
       endif
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
        !integrate over all ichan
          do ichan = 1,nlt
            OIJ(I,J,IJ_ed) = OIJ(I,J,IJ_ed) + Ed(ichan) ! direct sunlight
@@ -777,7 +777,7 @@ cdiag.                  tot,ichan=1,nlt)
         call obio_edeu(kmax,vrbos,i,j,im,jm,kdm,
      &                   nstep)
         
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
 #ifdef KPAR_2_OCEAN
        call obio_kpar(kmax,vrbos,i,j,kdm,nstep,dtsrc,dxypo(j),
      &               mo(i,j,:),g0m(i,j,:),s0m(i,j,:),grav,oAPRESS(i,j),
@@ -838,7 +838,7 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 
 
        n_co2n=ocnatm%n_co2n
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
         mmo=mo(i,j,1)
         ddxypo=dxypo(j)
         SDIC=trmo(i,j,1,:)
@@ -854,7 +854,7 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
      &                ,oij_co3
 #endif
      &                 )
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
 #ifdef TOPAZ_params
 #ifdef TRACERS_Alkalinity
        oij_co3 = oij_co3 + co3_conc
@@ -881,7 +881,7 @@ cdiag  endif
 
        !------------------------------------------------------------
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
        !update biology to new time level
        !also do phyto sinking and detrital settling here
        !MUST CALL sinksettl BEFORE update
@@ -992,7 +992,7 @@ c     endif
 
 c     call obio_chkbalances(vrbos,nstep,i,j)
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       do nt=1,ntrac
       do ll=1,17
       OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
@@ -1054,7 +1054,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
         tirrq3d(i,j,k)=tirrq(k)
        enddo !k
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
       !update trmo etc arrays
        do k=1,kmax
        do nt=1,ntrac
@@ -1125,7 +1125,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
 #endif
 
-#ifdef OBIO_ON_RUSSELLocean
+#ifdef OBIO_ON_GISSocean
 !diagnostics
        if (solz.gt.0) then
        OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0   !number of timesteps daylight   
@@ -1187,7 +1187,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        endif
 #endif
 
-#ifndef OBIO_ON_RUSSELLocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
+#ifndef OBIO_ON_GISSocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
       ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + co2flux
       pCO2av_loc(i,j)=pCO2av_loc(i,j)+pCO2_ij
       pp2tot_dayav_loc(i,j) = pp2tot_dayav_loc(i,j) 

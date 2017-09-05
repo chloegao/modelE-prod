@@ -18,8 +18,8 @@ Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define NEW_IO
 #define OCN_LAYERING L32
-#define OBIO_ON_GARYocean           ! obio on Russell ocean
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+#define OBIO_ON_GISSocean           ! obio on GISS ocean
+#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE
@@ -96,7 +96,7 @@ eda_esa_ratios=eda_esa_ratios.asc        ! ratios of rad spectrl components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
 !! CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
-                                         !in Gary'socean grid
+                                         !in GISS ocean grid
                                          !to be used with CHL_from_SeaWIFs
 cfcatm_data=CFC_ATM_Hist_2014.txt   !CFC concentrations in atmosphere
 
