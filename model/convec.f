@@ -32,7 +32,7 @@ c
       do 2 l=1,isp(j)
       do 2 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      . '  entering convec:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
@@ -59,7 +59,7 @@ c
         q2=max(dpu(i,j,kn  ),epsil)
         u(i,j,kn  )=(q1*u(i,j,kn-1)+q2*u(i,j,kn))/(q1+q2)
         u(i,j,kn-1)=u(i,j,kn)
-        if (vrbos) write (lp,100) nstep,i,j,1,k,
+        if (vrbos) write (*,100) nstep,i,j,1,k,
      .    '  upr,lwr,final u:',uup,ulo,u(i,j,kn),q2/(q1+q2)
       end if
  16   continue
@@ -80,7 +80,7 @@ c
         q2=max(dpv(i,j,kn  ),epsil)
         v(i,j,kn  )=(q1*v(i,j,kn-1)+q2*v(i,j,kn))/(q1+q2)
         v(i,j,kn-1)=v(i,j,kn)
-        if (vrbos) write (lp,100) nstep,i,j,1,k,
+        if (vrbos) write (*,100) nstep,i,j,1,k,
      .    '  upr,lwr,final v:',vup,vlo,v(i,j,kn),q2/(q1+q2)
       end if
  26   continue
@@ -137,7 +137,7 @@ c
         trac(kbase,:)=trc(:)
       end if
 c
-      if (vrbos) write (lp,100) nstep,i,j,kbase,
+      if (vrbos) write (*,100) nstep,i,j,kbase,
      . k,'  upr,lwr,final dens:',sigup,siglo,
      .  dens(k),q2/(q1+q2)
  100    format (i9,2i5,2i3,a,3f8.3,f5.2)
@@ -162,10 +162,10 @@ c
         tndcys=tndcys+ssal(k)*delp(k)
       end do
       if (abs(tndcyt).gt.acurcy*totem)
-     .  write (lp,'(2i5,a,1p,2e16.8,e9.1)') i,j,
+     .  write (*,'(2i5,a,1p,2e16.8,e9.1)') i,j,
      .  '  convec - bad temp.intgl.',totem,tndcyt,tndcyt/totem
       if (abs(tndcys).gt.acurcy*tosal)
-     .  write (lp,'(2i4,a,1p,2e16.8,e9.1)') i,j,
+     .  write (*,'(2i4,a,1p,2e16.8,e9.1)') i,j,
      .  '  convec - bad saln.intgl.',tosal,tndcys,tndcys/tosal
 c
 c --- put 1-d column back into 3-d grid
@@ -184,7 +184,7 @@ c
       do 3 l=1,isp(j)
       do 3 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      . '  exiting  convec:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)

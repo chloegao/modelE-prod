@@ -3641,6 +3641,7 @@ C**** some tracer specific 3D arrays
           endif ! diag_aod_3d = 2 or 3
 
           if (diag_aod_3d==4 .or. diag_aod_3d==3) then
+          if (save_dry_aod>0) then
             ijlt_3DtauDRY(n)=
      &        ijlt_diag(ia=ia_rad,
      &                  sname='tau_3D_DRY_'//trim(trname_curr),
@@ -3651,10 +3652,61 @@ C**** some tracer specific 3D arrays
      &                  sname='aaod_3D_DRY_'//trim(trname_curr),
      &                  lname=trim(trname_curr)//' DRY aaod',
      &                  units=' ', power=-2)
+          endif ! save_dry_aod>0
           endif ! diag_aod_3d = 4 or 3
 
         enddo ! nraero_aod
-      endif ! 0<diag_aod_3d<5
+      else if (diag_aod_3d<0 .and. diag_aod_3d>-5) then ! if negative, save total
+        allocate(ijlt_3Dtau(1))    ; ijlt_3Dtau = 0
+        allocate(ijlt_3DtauCS(1))  ; ijlt_3DtauCS = 0
+        allocate(ijlt_3DtauDRY(1))  ; ijlt_3DtauDRY = 0
+        allocate(ijlt_3Daaod(1))   ; ijlt_3Daaod = 0
+        allocate(ijlt_3DaaodCS(1)) ; ijlt_3DaaodCS = 0
+        allocate(ijlt_3DaaodDRY(1)) ; ijlt_3DaaodDRY = 0
+
+        if (diag_aod_3d==-1 .or. diag_aod_3d==-3) then
+          ijlt_3Dtau(1)=
+     &      ijlt_diag(ia=ia_rad,
+     &                sname='tau_3D',
+     &                lname='tau',
+     &                units=' ', power=-2)
+          ijlt_3Daaod(1)=
+     &      ijlt_diag(ia=ia_rad,
+     &                sname='aaod_3D',
+     &                lname='aaod',
+     &                units=' ', power=-2)
+        endif ! diag_aod_3d = -1 or -3
+
+        if (diag_aod_3d==-2 .or. diag_aod_3d==-3) then
+          ijlt_3DtauCS(1)=
+     &      ijlt_diag(ia=ia_rad,
+     &                sname='tau_3D_CS',
+     &                lname='CS tau',
+     &                units=' ', power=-2,
+     &                denom='clrsky2d')
+          ijlt_3DaaodCS(1)=
+     &      ijlt_diag(ia=ia_rad,
+     &                sname='aaod_3D_CS',
+     &                lname='CS aaod',
+     &                units=' ', power=-2,
+     &                denom='clrsky2d')
+        endif ! diag_aod_3d = -2 or -3
+
+        if (diag_aod_3d==-4 .or. diag_aod_3d==-3) then
+          if (save_dry_aod>0) then
+            ijlt_3DtauDRY(1)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='tau_3D_DRY',
+     &                  lname='DRY tau',
+     &                  units=' ', power=-2)
+            ijlt_3DaaodDRY(1)=
+     &        ijlt_diag(ia=ia_rad,
+     &                  sname='aaod_3D_DRY',
+     &                  lname='DRY aaod',
+     &                  units=' ', power=-2)
+          endif ! save_dry_aod>0
+        endif ! diag_aod_3d = -4 or -3
+      endif ! 0<diag_aod_3d<5 or 0>diag_aod_3d>-5
 
       do n=1,NTM
         select case(trname(n))
@@ -3693,22 +3745,21 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef ACCMIP_LIKE_DIAGS
-        ijlt_OH=
+        ijlt_OHvmr=
      &    ijlt_diag(sname='OH_vmr',
      &              lname='OH mixing ratio',
      &              units='V/V air', power=-10)
-#else
-        ijlt_OH=
-     &    ijlt_diag(sname='OH_con',
+#endif
+        ijlt_OHconc=
+     &    ijlt_diag(sname='OH_conc',
      &              lname='OH concentration',
      &              units='molecules cm-3', power=5)
-#endif
         ijlt_NO3=
-     &    ijlt_diag(sname='NO3_con',
+     &    ijlt_diag(sname='NO3_conc',
      &              lname='NO3 concentration',
      &              units='molecules cm-3', power=5)
         ijlt_HO2=
-     &    ijlt_diag(sname='HO2_con',
+     &    ijlt_diag(sname='HO2_conc',
      &              lname='HO2 concentration',
      &              units='molecules cm-3', power=7)
         ijlt_JO1D=

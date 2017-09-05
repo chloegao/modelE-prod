@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_oasimhr(ihr,i0,j0)
+      subroutine obio_oasimhr(ihr,i0,j0,idm,jdm,lmo)
 c
 c  Matches up OASIM spectral irradiance data (just above the surface)
 c  to the hour.
@@ -10,14 +10,11 @@ c
       USE obio_forc, only :Eda2,Esa2,Ed,Es
       USE obio_com,  only :inwst,inwnd,jnwst,jnwnd
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : idm=>imo,jdm=>jmo,lmo
-#else
-      USE hycom_dim_glob
-#endif
+!NEED TO CHECK FOR HYCOM (lMO)
 
       implicit none
 
+      integer, intent(in) :: idm,jdm,lmo
       integer ihr,ihs,nl,i0,j0
       real    tot
 

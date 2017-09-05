@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
-      subroutine obio_carbon(gro,vrbos,kmax,i,j)
+!NOT FOR HYCOM:dts,mo,dxypo, n_abioDIC, num_tracers,trmo and oij passed to the subroutine.
+      subroutine obio_carbon(gro,vrbos,kmax,i,j,nstep,kdm,n_co2n,
+     &                       DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC)
 c
 c  Computes carbon cycling.  Uses Aumont et al (2002; JGR) for
 c  semi-labile DOC (because of basic similarities in model
@@ -29,19 +31,6 @@ c
       use TimeConstants_mod, only: SECONDS_PER_HOUR, DAYS_PER_YEAR,
      &                             HOURS_PER_DAY
       
-#ifdef OBIO_ON_GARYocean
-      USE MODEL_COM, only : nstep=>itime
-      USE OCEANRES, only : kdm=>lmo
-      USE OCEAN,    only : DTS,mo,dxypo,trmo
-      USE OCN_TRACER_COM, only : n_abioDIC
-      use ofluxes, only : ocnatm
-      use obio_diag, only: oij=>obio_ij, ij_ph, ij_co3
-#else
-      USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep
-      use hycom_atm, only : ocnatm
-      use obio_com, only: phav_loc
-#endif
 
       use runtimecontrols_mod, only: constco2, pco2_online
       use dictionary_mod, only: get_param
@@ -49,6 +38,9 @@ c
 
       implicit none
 
+      integer,intent(in) :: kdm,nstep,n_co2n,n_abioDIC,num_tracers
+      real, intent(in) :: dts,mmo,ddxypo
+      real,intent(inout) :: SDIC(num_tracers)
 
 !     real, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
 !                                             !Wanninkof 1992, but adjusted
@@ -254,21 +246,10 @@ c pCO2
         endif
       endif
 
-#ifdef OBIO_ON_GARYocean
-      OIJ(I,J,IJ_pH) = OIJ(I,J,IJ_pH) + pHsfc
-#ifdef TOPAZ_params
-#ifdef TRACERS_Alkalinity
-      OIJ(I,J,IJ_co3) = OIJ(I,J,IJ_co3) + co3_conc
-#endif
-#endif
-#else
-      pHav_loc(i,j) = pHsfc
-#endif
-
 c Update DIC for sea-air flux of CO2
 
 !this is for gas exchange + ocean biology
-      if (ocnatm%n_co2n>0) then
+      if (n_co2n>0) then
         k = 1
         term = co2flux               ! mol/m2/s
 !    .     * SECONDS_PER_HOUR        ! mol/m2/hr    !comment out to keep in /s   July 2016
@@ -287,9 +268,11 @@ c Update DIC for sea-air flux of CO2
 
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
-          trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC) 
+          !trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
+          SDIC(n_abioDIC) = SDIC(n_abioDIC) 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
-     .                          * dxypo(j)*dp1d(1)
+     &                          *ddxypo*dp1d(1)
+!     .                          * dxypo(j)*dp1d(1)
 !    .                          * mo(i,j,1)*dxypo(j)/rho_water 
 !    .                          * mo(i,j,1)*dxypo(j)/1024.d0
       endif
@@ -352,10 +335,12 @@ c Update DIC for sea-air flux of CO2
 
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
-          trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC) 
+         ! trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
+          SDIC(n_abioDIC) = SDIC(n_abioDIC) 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
 !    .                          * mo(i,j,1)*dxypo(j)/rho_water 
-     .                          * mo(i,j,1)*dxypo(j)/1024.d0 
+!     .                          * mo(i,j,1)*dxypo(j)/1024.d0
+     &                          *mmo*ddxypo/1024.d0
       endif
       endif
 

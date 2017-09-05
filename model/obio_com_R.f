@@ -41,6 +41,7 @@ c
 
       integer :: nstep0=0
 
+      integer:: num_tracers
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -428,7 +429,6 @@ c**** Extract domain decomposition info
 
       ALLOCATE(tracer(i_0:i_1,j_0:j_1,kdm,ntrac))
 
-!NOT FOR HYCOM:idm and jdm were passed to the subroutine
       call alloc_obio_forc(kdm,ogrid,idm,jdm)
 
       ALLOCATE(tzoo2d(i_0:i_1,j_0:j_1))

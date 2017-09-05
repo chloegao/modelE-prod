@@ -7,7 +7,7 @@ c
 c
       USE HYCOM_DIM,only : isp,ifp,ilp,kk,idm,jchunk,
      *                     J_0,J_1,J_0H,J_1H
-      USE HYCOM_SCALARS, only : thkmin,onem,lp,nstep,delt1,g,spcifh
+      USE HYCOM_SCALARS, only : thkmin,onem,nstep,delt1,g,spcifh
      &     ,equatn,epsil,brntop,brnbot,itest,jtest
       USE HYCOM_ARRAYS
 c
@@ -64,7 +64,7 @@ c
 c
 c --- calculate hypothetical mixed-layer temp due to diab. forcing 
       if (dp(i,j,k1n).le.0.) then
-        write (lp,'(i9,2i5,a)') nstep,i,j,'  zero mxlayr thickness'
+        write (*,'(i9,2i5,a)') nstep,i,j,'  zero mxlayr thickness'
         stop '(eice error)'
       end if
 c
@@ -107,7 +107,7 @@ c --- build up time integrals of surface fluxes
 c
 c --- deposit brine from brntop to brnbot
 c
-      if (vrbos .and. pump) write (lp,103) nstep,i,j,
+      if (vrbos .and. pump) write (*,103) nstep,i,j,
      . '  entering eice:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)
@@ -127,7 +127,7 @@ c
         salflx(i,j)=salflx(i,j)+salflx2(i,j)
       end if
 c
-      if (vrbos .and. pump) write (lp,103) nstep,i,j,
+      if (vrbos .and. pump) write (*,103) nstep,i,j,
      . '  exiting  eice:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,p(i,j,k+1)/onem,k=1,kk)

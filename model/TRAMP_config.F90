@@ -1,14 +1,16 @@
 #include "rundeck_opts.h"
 
       MODULE AERO_CONFIG
+#ifdef TRACERS_AMP_M9
+      USE AERO_PARAM, ONLY: NM9
+#else
       USE AERO_PARAM, ONLY: NM1, NM2, NM3, NM4, NM5, NM6, NM7, NM8
+#endif
       IMPLICIT NONE
 !-------------------------------------------------------------------------------------------------------------------------
 !
 !     MATRIX CONFIGURATION MODULE.
 !
-!-------------------------------------------------------------------------------------------------------------------------
-!     1. Uncomment the line for the desired mechanism (1-8).
 !-------------------------------------------------------------------------------------------------------------------------
 #ifdef TRACERS_AMP_M1
      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
@@ -34,15 +36,21 @@
 #ifdef TRACERS_AMP_M8
      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
 #endif
+#ifdef TRACERS_AMP_M9
+     INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
+#endif
 !-------------------------------------------------------------------------------------------------------------------------
-!     2. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
+!     1. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, PARAMETER :: NPOINTS=1
 !-------------------------------------------------------------------------------------------------------------------------
-!     3. Select modes to undergo condensational growth for the desired mechanism (1-8). (Ignore other mechanisms.)
+!     2. Select modes to undergo condensational growth for the desired mechanism (1-8). (Ignore other mechanisms.)
 !        ICONDn(I)=1, condensational growth done; ICONDn(I)=0, condensational growth not done. 
 !        Ordinarily, all modes would undergo condenational growth.
 !-------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      INTEGER, SAVE, DIMENSION(NM9) :: ICOND9=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
+#else
       INTEGER, SAVE, DIMENSION(NM1) :: ICOND1=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 1
       INTEGER, SAVE, DIMENSION(NM2) :: ICOND2=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 2
       INTEGER, SAVE, DIMENSION(NM3) :: ICOND3=(/1,1,1,1,1,1,1,1,1,1,1,1,1/)        ! Mechanism 3
@@ -51,6 +59,7 @@
       INTEGER, SAVE, DIMENSION(NM6) :: ICOND6=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 6
       INTEGER, SAVE, DIMENSION(NM7) :: ICOND7=(/1,1,1,1,1,1,1,1,1,1,1/)            ! Mechanism 7
       INTEGER, SAVE, DIMENSION(NM8) :: ICOND8=(/1,1,1,1,1,1,1,1/)                  ! Mechanism 8
+#endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
 !-------------------------------------------------------------------------------------------------------------------------
@@ -58,11 +67,35 @@
       INTEGER, PARAMETER :: NWEIGHTS=NMODES*NPOINTS   
       INTEGER, PARAMETER :: NBINS = 30
 !-------------------------------------------------------------------------------------------------------------------------------------
-!     4. Optionally edit the table of coagulation interactions.
+!     3. Optionally edit the table of coagulation interactions.
 !        The donor modes may not be modified. Each receptor mode must contain all species present in either donor mode.
 !        Entering 'OFF' for the receptor mode name disables coagulation between the two donor modes.
 !-------------------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+!     Mechanism 9
 !
+!     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   BOC   BCS   MXX    SECOND
+!                                                                                                                          MODE
+!-------------------------------------------------------------------------------------------------------------------------------------
+      CHARACTER(LEN=3) :: CITABLE9(NM9,NM9)
+      DATA CITABLE9(1:NM9, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE9(1:NM9, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE9(1:NM9, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','DD1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE9(1:NM9, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','DS1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE9(1:NM9, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','DD2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
+      DATA CITABLE9(1:NM9, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','DS2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
+      DATA CITABLE9(1:NM9, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','SSA','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE9(1:NM9, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+!      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE9(1:NM9,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE9(1:NM9,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE9(1:NM9,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCS
+      DATA CITABLE9(1:NM9,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE9(1:NM9,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE9(1:NM9,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+#else
+!-------------------------------------------------------------------------------------------------------------------------------------
 !     Mechanism 1.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   BC3   DBC   BOC   BCS   MXX    SECOND
@@ -227,7 +260,7 @@
       DATA CITABLE8(1:NM8, 6)/'BC1','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
       DATA CITABLE8(1:NM8, 7)/'BC2','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
       DATA CITABLE8(1:NM8, 8)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
-
+#endif
       END MODULE AERO_CONFIG
 !-------------------------------------------------------------------------------------------------------------------------
 !
@@ -765,5 +798,83 @@
 !   BC2      7
 !   MXX      8
 !-------------------------------------------------------------------------------------------------------------------------
-
+!MECHANISM 9
+!-------------------------------------------------------------------------------------------------------------------------
+!
+!MODE #   MODE_NAME   CHEM_SPC #   CHEM_SPC_NAME   location in AERO         AERO_SPCS    TRACER NUMBER
+!
+!     0         NO3            0            ANO3                  1     MASS_NO3                     1
+!     0         NH4            0            ANH4                  2     MASS_NH4                     2
+!     0         H2O            0            AH2O                  3     MASS_H2O                     3
+!     1         AKK            1            SULF                  4     MASS_AKK_SULF                4
+!     1         AKK            1            NUMB                  5     NUMB_AKK_1                   5
+!     2         ACC            1            SULF                  6     MASS_ACC_SULF                6
+!     2         ACC            3            OCAR                  7     MASS_ACC_OCAR                6
+!     2         ACC            1            NUMB                  8     NUMB_ACC_1                   7
+!     3         DD1            1            SULF                  9     MASS_DD1_SULF                8
+!     3         DD1            4            DUST                 10     MASS_DD1_DUST                9
+!     3         DD1            1            NUMB                 11     NUMB_DD1_1                  10
+!     4         DS1            1            SULF                 12     MASS_DS1_SULF               11
+!     4         DS1            4            DUST                 13     MASS_DS1_DUST               12
+!     4         DS1            1            NUMB                 14     NUMB_DS1_1                  13 
+!     5         DD2            1            SULF                 15     MASS_DD2_SULF               14
+!     5         DD2            4            DUST                 16     MASS_DD2_DUST               15
+!     5         DD2            1            NUMB                 17     NUMB_DD2_1                  16
+!     6         DS2            1            SULF                 18     MASS_DS2_SULF               17
+!     6         DS2            4            DUST                 19     MASS_DS2_DUST               18
+!     6         DS2            1            NUMB                 20     NUMB_DS2_1                  19
+!     7         SSA            1            SULF                 21     MASS_SSA_SULF               20
+!     7         SSA            5            SEAS                 22     MASS_SSA_SEAS               21
+!     7         SSA            1            NUMB                 23     NUMB_SSA_1                    
+!     8         SSC            1            SULF                 24     MASS_SSC_SULF                         
+!     8         SSC            5            SEAS                 25     MASS_SSC_SEAS               22 
+!     8         SSC            1            NUMB                 26     NUMB_SSC_1                    
+!     9         OCC            1            SULF                 27     MASS_OCC_SULF               23
+!     9         OCC            3            OCAR                 28     MASS_OCC_OCAR               24
+!     9         OCC            1            NUMB                 29     NUMB_OCC_1                  25  
+!    10         BC1            1            SULF                 30     MASS_BC1_SULF               26
+!    10         BC1            2            BCAR                 31     MASS_BC1_BCAR               27
+!    10         BC1            3            OCAR                 32     MASS_BC1_OCAR               27
+!    10         BC1            1            NUMB                 33     NUMB_BC1_1                  28
+!    11         BC2            1            SULF                 34     MASS_BC2_SULF               29
+!    11         BC2            2            BCAR                 35     MASS_BC2_BCAR               30
+!    11         BC2            3            OCAR                 36     MASS_BC2_OCAR               30
+!    11         BC2            1            NUMB                 37     NUMB_BC2_1                  31
+!    12         OCS            1            SULF                 38     MASS_OCS_SULF               32 
+!    12         OCS            3            OCAR                 39     MASS_OCS_OCAR               33
+!    12         OCS            1            NUMB                 40     NUMB_OCS_1                  34
+!    13         BOC            1            SULF                 41     MASS_BOC_SULF               39
+!    13         BOC            2            BCAR                 42     MASS_BOC_BCAR               40
+!    13         BOC            3            OCAR                 43     MASS_BOC_OCAR               41
+!    13         BOC            1            NUMB                 44     NUMB_BOC_1                  42
+!    14         BCS            1            SULF                 45     MASS_BCS_SULF               43
+!    14         BCS            2            BCAR                 46     MASS_BCS_BCAR               44
+!    14         BCS            3            OCAR                 47     MASS_BCS_OCAR               44
+!    14         BCS            1            NUMB                 48     NUMB_BCS_1                  45
+!    15         MXX            1            SULF                 49     MASS_MXX_SULF               46
+!    15         MXX            2            BCAR                 50     MASS_MXX_BCAR               47
+!    15         MXX            3            OCAR                 51     MASS_MXX_OCAR               48
+!    15         MXX            4            DUST                 52     MASS_MXX_DUST               49
+!    15         MXX            5            SEAS                 53     MASS_MXX_SEAS               50
+!    15         MXX            1            NUMB                 54     NUMB_MXX_1                  51
+!
+!MODE_NAME  MODE NUMBER
+!
+!   AKK      1
+!   ACC      2
+!   DD1      3
+!   DS1      4
+!   DD2      5
+!   DS2      6
+!   SSA      7
+!   SSC      8
+!   OCC      9
+!   BC1     10
+!   BC2     11
+!   OCS     12
+!   BOC     13
+!   BCS     14
+!   MXX     15
+! 
+!-------------------------------------------------------------------------------------------------------------------------
 

@@ -9,6 +9,7 @@
 !     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
       USE hycom_dim_glob, only: kdm
+      use hycom_dim, only: idm,jdm,ntrcr
 
       implicit none
 
@@ -56,6 +57,7 @@ c
 
       integer :: nstep0=0
 
+      integer:: num_tracers
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -146,6 +148,7 @@ C endif
 
       character(len=50) :: arg2d, arg3d
 
+
       contains
 
       subroutine build_ze
@@ -163,7 +166,7 @@ C endif
      &                                ogrid%j_strt:ogrid%j_stop, 0:kdm))
       ze=0
       
-     do k=1, kdm
+      do k=1, kdm
         ze(:, :, k)=ze(:, :, k-1)+dpinit(ogrid%i_strt:ogrid%i_stop,
      &                 ogrid%j_strt:ogrid%j_stop, k)/onem
       end do
@@ -222,7 +225,7 @@ C endif
       type(cdl_type), allocatable, target ::
      &                         hycom_lons, hycom_lats, hycom_depths
       
-     contains
+      contains
 
 
       subroutine add_diag(lname, sname, units, dim3, idx)
@@ -283,7 +286,7 @@ C endif
         call add_coord(hycom_depths, 'zoc', kdm, units='m')
       endif
       
-     allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
+      allocate(obio_ij(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
       allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))

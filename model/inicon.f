@@ -45,48 +45,48 @@ c
 c
 c --- read 3-d temperature
 c
-        write (lp,'(2a)') 'get initial temperature from  ',flnmint
+        write (*,'(2a)') 'get initial temperature from  ',flnmint
         call findunit(iu1)
         open(unit=iu1,file=flnmint,form='formatted',status='old',
      .     action='read')
         read (iu1,'(a79)') (preambl(n),n=1,5)
-        write(lp,'(a79)') (preambl(n),n=1,5)
+        write(*,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
         read (iu1,'(10f8.4)') ((temp(i,j,k),i=1,idm),j=1,jdm)
         enddo
         close (iu1)
-        write (lp,100) 'temp field read, layers, 1 -',kk
+        write (*,100) 'temp field read, layers, 1 -',kk
         call zebra(temp(1,1,1),idm,ii1,jj)
 c
 c --- read 3-d salinity
 c
-        write (lp,'(2a)') 'get initial salinity from  ',flnmins
+        write (*,'(2a)') 'get initial salinity from  ',flnmins
         call findunit(iu2)
         open(unit=iu2,file=flnmins,form='formatted',status='old',
      .     action='read')
         read (iu2,'(a79)') (preambl(n),n=1,5)
-        write(lp,'(a79)') (preambl(n),n=1,5)
+        write(*,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
         read (iu2,'(10f8.4)') ((saln(i,j,k),i=1,idm),j=1,jdm)
         enddo
         close (iu2)
-        write (lp,100) 'saln field read, layers, 1 -',kk
+        write (*,100) 'saln field read, layers, 1 -',kk
         call zebra(saln(1,1,1),idm,ii1,jj)
  100    format (a,i4)
 c
 c --- read interface pressure
 c
-        write (lp,'(2a)') 'get initial pressure from  ',flnminp
+        write (*,'(2a)') 'get initial pressure from  ',flnminp
         call findunit(iu3)
         open(unit=iu3,file=flnminp,form='formatted',status='old',
      .     action='read')
         read (iu3,'(a79)') (preambl(n),n=1,5)
-        write (lp,'(a79)') (preambl(n),n=1,5)
+        write (*,'(a79)') (preambl(n),n=1,5)
         do k=1,kk
         read (iu3,'(10f8.4)') ((p(i,j,k+1),i=1,idm),j=1,jdm)
         enddo
         close (iu3)
-        write (lp,100) 'pres field read, levels 2 -',kk+1
+        write (*,100) 'pres field read, levels 2 -',kk+1
         call zebra(p(1,1,kk+1),idm,ii1,jj)
 c
         do i=1,ii
@@ -145,13 +145,13 @@ css      tracer(i,j,k)=0.                 ! moved to hycom.f temperarily
 c
       if (itest.gt.0.and.jtest.gt.0) then
         if (i.eq.itest.and.j.eq.jtest)
-     . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
+     . write (*,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
      .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
      .   ,thstar(i,j,k)-th3d(i,j,k)
      .   ,temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
       else
         if (i.eq.equatn.and.j.eq.3)
-     . write (lp,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
+     . write (*,'(2i4,i3,a,3f7.2,2x,2f7.3,f8.1)')
      .  i,j,k,' dens,thstar,kappa,t,s,p=',th3d(i,j,k),thstar(i,j,k)
      .   ,thstar(i,j,k)-th3d(i,j,k)
      .   ,temp(i,j,k),saln(i,j,k),p(i,j,k+1)/onem
@@ -191,7 +191,7 @@ c
       totl(k)=0
       do 18 j=1,jj
  18   totl(k)=totl(k)+totlj(j,k)
-      write (lp,'(a/(10i7))') 'static instability count by layer:',
+      write (*,'(a/(10i7))') 'static instability count by layer:',
      .  totl
 c
       do 50 j=1,jj
@@ -209,9 +209,9 @@ c
       else                                !  nstep0 > 0
 c
 c --- start from restart file prescribed
-      write (lp,'(2a)') 'get initial condition from restart file'
+      write (*,'(2a)') 'get initial condition from restart file'
 c
-      write (lp,111) nstep0,time0
+      write (*,111) nstep0,time0
  111  format (9x,'chk time step in restart file -',i9,5x,' day ',f9.2)
 c
       delt1=baclin+baclin
@@ -259,27 +259,29 @@ c
         i=itest
         j=jtest
       else
-        i=equatn
-        j=3
+        i=equatn; j=3
+        i=154; j=198
       endif
 
-      write (lp,'(a,2i4,4f8.2)') ' sig=',i,j,temp(i,j,1),saln(i,j,1),
+       call pr_9x9(temp(:,:,1),ii,jj,i,j,0.,1.,'sst ini')
+
+      write (*,'(a,2i4,4f8.2)') ' sig=',i,j,temp(i,j,1),saln(i,j,1),
      .   sigocn(temp(i,j,1),saln(i,j,1))
-      write (lp,103) nstep,i,j,
+      write (*,103) nstep,i,j,
      .  '  init.profile  temp    saln  thstar   thkns    dpth   montg',
      .  (k,temp(i,j,k),saln(i,j,k),thstar(i,j,k),dp(i,j,k)/onem,
      .  p(i,j,k+1)/onem,montg(i,j,k)/g,k=1,kk)
 c
       if (jerlv0.eq.0) then
 c ---   read-in monthly kpar file
-        write(lp,*) 'opening kpar '
+        write(*,*) 'opening kpar '
         real4=0.
         call findunit(iu4)
         open(iu4,file='kpar',form='unformatted',status='old')
         do k=1,12
-        write(lp,*) 'reading kpar mo=',k
+        write(*,*) 'reading kpar mo=',k
         read(iu4) title,real4
-        write(lp,*)'title=',title(1:60)
+        write(*,*)'title=',title(1:60)
         akpar(:,:,k)=real4(:,:)
         enddo
         close(iu4)

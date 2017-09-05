@@ -443,7 +443,12 @@ c -----------------------------------------------------------------
 !     Routine to calculate the total mass concentration of each model species:
 !     SULF, BCAR, OCAR, DUST, SEAS, NO3, NH4. Aerosol water is not treated. 
 !----------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP, OCM2_MAP,OCM1_MAP,OCM0_MAP,
+     &                      OCP1_MAP, OCP2_MAP, OCP3_MAP, OCP4_MAP, OCP5_MAP, OCP6_MAP
+#else
       USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
+#endif
       USE AERO_PARAM
       USE AERO_CONFIG
       IMPLICIT NONE
@@ -457,8 +462,17 @@ c -----------------------------------------------------------------
       SPCMASS(5) = SUM( AERO( SEAS_MAP(:) ) )
       SPCMASS(6) = AERO( MASS_NO3 )           + GAS( GAS_HNO3 )
       SPCMASS(7) = AERO( MASS_NH4 )           + GAS( GAS_NH3  )
-
- 
+#ifdef TRACERS_AMP_M9
+      SPCMASS(8) = SUM( AERO( OCM2_MAP(:) ) )
+      SPCMASS(9) = SUM( AERO( OCM1_MAP(:) ) )
+      SPCMASS(10) = SUM( AERO( OCM0_MAP(:) ) )
+      SPCMASS(11) = SUM( AERO( OCP1_MAP(:) ) )
+      SPCMASS(12) = SUM( AERO( OCP2_MAP(:) ) )
+      SPCMASS(13) = SUM( AERO( OCP3_MAP(:) ) )
+      SPCMASS(14) = SUM( AERO( OCP4_MAP(:) ) )
+      SPCMASS(15) = SUM( AERO( OCP5_MAP(:) ) )
+      SPCMASS(16) = SUM( AERO( OCP6_MAP(:) ) )
+#endif 
       RETURN
       END SUBROUTINE SPCMASSES
      

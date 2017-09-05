@@ -39,12 +39,12 @@
       !Schmidt number for gas
        Sc_gas=sc_co2(tg1)
 
-      !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
+             !wind speed ws: magn. of surf. wind modified by buoyancy flux (m/s)
       !compute transfer velocity Kw only over ocean
       if (Sc_gas .le. 0.) then
-        write(*,'(a,2i4,a,2f9.3)')
-     .          'warning: Sc_gas negtv, at ',ilong,jlat,
-     .          ', Sc_gas,temp_c=',Sc_gas,tg1
+!        write(*,'(a,2i4,a,2f9.3)')
+!     .          'warning: Sc_gas negtv, at ',ilong,jlat,
+!     .          ', Sc_gas,temp_c=',Sc_gas,tg1
          Kw_gas=1.e-10
       else
          Kw_gas=(Sc_gas/660.d0)**(-0.5d0) * ws * ws * awan !units of m/s
@@ -72,7 +72,7 @@
      .                * 1.0d6 / vol2mass(idx)    
 
         if (ilong.eq.1. .and. jlat.eq.45) then
-        write(*,'(a,2i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
+       write(*,'(a,2i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
 !       write(*,'(a,2i7,11e12.4)')'44444444444444444444444',  
      .   ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
      .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
@@ -151,7 +151,8 @@ c---------------------------------------------------
 !
 !     sc_co2 = 2073.1 - 125.62*t + 3.6276*t**2 - 0.043219*t**3
       !new OCMIP2016 values from Wanninkhof (2014)
-      sc_co2 = 2116.8 - 136.25*t + 4.7353*t**2 - 0.092307*t**3 + 0.0007555*t**4
+      sc_co2 = 2116.8d0 - 136.25d0*t + 4.7353d0*t**2d0 - 0.092307d0*t**3d0
+     &          + 0.0007555d0*t**4d0
 !
       RETURN 
       END 

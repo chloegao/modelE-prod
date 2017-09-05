@@ -1,19 +1,22 @@
 #include "rundeck_opts.h"
       module bio_inicond_mod
+      
       implicit none
 
       contains
 
-      subroutine bio_inicond_read(filename, array, depth)
+      subroutine bio_inicond_read(filename, array, depth,ogrid)
+
       use pario, only : par_open,par_close
      &     ,read_data,read_dist_data,get_dimlens
-#ifdef OBIO_ON_GARYocean
-      use oceanr_dim, only : ogrid
-#else
-      USE hycom_dim, only : ogrid
-#endif
+      USE DOMAIN_DECOMP_1D, only: DIST_GRID
+
+
       implicit none
+ 
+      type(DIST_GRID), intent(in), optional :: ogrid
       character(len=*), intent(in) :: filename
+
       real*8, dimension(:,:,:), allocatable, intent(out) :: array
       real*8, dimension(:), allocatable, intent(out), optional :: depth
       integer :: fid, dlens(7), ndims
@@ -32,37 +35,44 @@
       call par_close(ogrid, fid)
       end subroutine bio_inicond_read
 
-      subroutine bio_inicond(filename, fldo)
-      use obio_com, only: ze
-#ifdef OBIO_ON_GARYocean
-      use oceanres, only : kdm=>lmo
-      use oceanr_dim, only : ogrid
-      use ocean, only : ip=>focean, lmm
-#else
-      USE hycom_dim, only : kdm, ogrid, ip
-#endif
+!NOT FOR HYCOM: lmm passed to subroutine
+      subroutine bio_inicond(filename,fldo,kdm,im,ogrid,ip,lmm)
+
+      use obio_com, only: ze 
+      USE DOMAIN_DECOMP_1D, only :DIST_GRID
+
+
       implicit none
+  
+      type(DIST_GRID), intent(in) :: ogrid
+      integer, intent(in) :: kdm,im, 
+     &                  lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)      
+      real, intent(in) :: ip(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &                      ogrid%j_strt_halo:ogrid%j_stop_halo)
       character(len=*), intent(in) :: filename
       real, dimension(ogrid%i_strt:ogrid%i_stop,
      &    ogrid%j_strt:ogrid%j_stop, kdm), intent(out) ::  fldo
+
       real*8, dimension(:,:,:), allocatable :: array
       real*8, dimension(:), allocatable :: depth, nodc_d
       real*8, dimension(:), allocatable :: dummy
       logical :: regrid
       integer :: i, j, k, kmax, nodc_kmax
+
       interface
         Subroutine VLKtoLZ (KM,LM, MK,ME, RK, RL,RZ, missing, foo)
+        integer :: km,lm
         Real*8 MK(KM),ME(0:LM), RK(KM), RL(LM), RZ(LM), missing
         logical foo
         end Subroutine VLKtoLZ
       end interface
 
-      call bio_inicond_read(filename, array, depth)
+      call bio_inicond_read(filename, array, depth,ogrid)
       regrid=kdm/=size(depth)
       if (.not.regrid) regrid=all(abs(depth-
      &                      ze(ogrid%i_strt, ogrid%j_strt, :))<1d0)
       if (regrid) then
-#ifdef OBIO_ON_GARYocean
+#ifdef OBIO_ON_RUSSELLocean
         allocate(dummy(size(fldo, 3)))
         do i=ogrid%i_strt,ogrid%i_stop
           do j=ogrid%j_strt,ogrid%j_stop
@@ -102,12 +112,12 @@
 
 
 c ----------------------------------------------------------------
-      subroutine obio_init
+      subroutine obio_init(kdm,dtsrc,ogrid,dlatm)
 c --- biological/light setup
 c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit,file_exists
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, DIST_GRID
 
       USE obio_dim
       USE obio_incom
@@ -117,15 +127,6 @@ c
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat
      .                    ,sday
 
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-      USE MODEL_COM, only: dtsrc
-      USE OCEANR_DIM, only : ogrid
-#else
-      USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : baclin
-      USE hycom_dim, only : ogrid
-#endif
 #ifdef STANDALONE_OCEAN
       USE obio_forc, only: Eda,Esa
 #endif
@@ -134,6 +135,11 @@ c
       use ocalbedo_mod, only: lam, ocalbedo_init=>init
 
       implicit none  
+
+      integer,intent(in) :: kdm
+      real, intent(in) :: dtsrc,dlatm
+      type(DIST_GRID), intent(in) :: ogrid
+    
 
       integer i,j,k
       integer iu_bio
@@ -160,11 +166,7 @@ c
       if (AM_I_ROOT()) print*, 'Ocean Biology setup starts'
 
 ! time steps
-#ifdef OBIO_ON_GARYocean
       obio_deltath = dtsrc/3600.d0  !time step in hours
-#else
-      obio_deltath = baclin/3600.d0  !time step in hours
-#endif
       obio_deltat = obio_deltath*3600.d0    !time step in s  !July 2016
 
       if (AM_I_ROOT()) 
@@ -247,7 +249,7 @@ c  Diatoms
 !change: March 15, 2010
 !     rmumax(nt) = 1.50       !u max in /day at 20C
       rmumax(nt) = 2.00       !u max in /day at 20C
-#ifdef OBIO_ON_GARYocean
+#ifdef OBIO_ON_RUSSELLocean
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
 #else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
@@ -520,11 +522,11 @@ c  Read in factors to compute average irradiance
         call read_dist_data(ogrid,fid,'ironflux',atmFe)
         call par_close(ogrid,fid)
       else
-        call bio_inicond_read('atmFe_inicond', atmFe)
+        call bio_inicond_read('atmFe_inicond', atmFe,ogrid=ogrid)
 #ifdef Relax2SurfN
         allocate(surfn(ogrid%i_strt:ogrid%i_stop,
      &                       ogrid%j_strt:ogrid%j_stop))
-        call bio_surfN('nitrates_inicond',surfn)
+        call bio_surfN('nitrates_inicond',surfn,ogrid,dlatm)
 #endif
       endif ! netcdf iron or not
 
@@ -534,7 +536,7 @@ c  Read in factors to compute average irradiance
 #else
 !read in alkalinity annual mean file
       if (ALK_CLIM.eq.1) then      !read from climatology
-        call init_alk(alk)
+        call init_alk(alk,kdm,ogrid)
       else      !set to zero, obio_carbon sets alk=tabar*sal/sal_mean
         alk = 0.
       endif
@@ -641,20 +643,21 @@ c------------------------------------------------------------------------------
 
 c------------------------------------------------------------------------------
 
-      subroutine bio_surfn(filename, fldo)
+      subroutine bio_surfn(filename,fldo,ogrid,dlatm)
+ 
       use bio_inicond_mod, only: bio_inicond_read
       use dictionary_mod, only: sync_param
-#ifdef OBIO_ON_GARYocean
-      USE OCEANR_DIM, only : ogrid
-      USE OCEAN, only : dlatm
-#else
-      USE hycom_dim, only : ogrid
-      USE GEOM, only : dlatm
-#endif
+      USE DOMAIN_DECOMP_1D, only : DIST_GRID
+
+
       implicit none
+
+      type(DIST_GRID), intent(in) :: ogrid
       character(len=*), intent(in) :: filename
       real, intent(out) :: fldo(ogrid%I_STRT:ogrid%I_STOP,
      .          ogrid%J_STRT:ogrid%J_STOP)
+      real, intent(in) :: dlatm      
+
       real*8, dimension(:, :, :), allocatable :: array
 
       call bio_inicond_read(filename, array)
@@ -664,149 +667,4 @@ c------------------------------------------------------------------------------
 
 c------------------------------------------------------------------------------
 
-      subroutine setup_obio
-#ifdef OBIO_ON_GARYocean
-      use ocn_tracer_com, only: add_ocn_tracer
-#endif
-      use runtimecontrols_mod, only: tracers_alkalinity
-      use exchange_types, only: rad_coupling
-      use obio_dim, only: ntrac
-      use obio_diag
-      implicit none
-      integer, dimension(1) :: con_idx
-      character(len=10), dimension(1) :: con_str
-      integer :: nt, ilim, ll
-      character(len=5) :: str1
-      character(len=9) :: str2
-      character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)  ! diatoms, chloroph, cyanobact, coccoliths
-      character(len=4), parameter :: rhs_sym(15)=(/ 'nitr', 'ammo',
-     &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
-     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_' /)
 
-      con_idx=[12]
-      con_str=['OCN BIOL']
-      rad_coupling=.true.
-#ifdef OBIO_ON_GARYocean
-      call add_ocn_tracer('Nitr      ', i_ntrocn=-4, i_ntrocn_delta=-12,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Ammo      ', i_ntrocn=-6, i_ntrocn_delta=-14,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Sili      ', i_ntrocn=-4, i_ntrocn_delta=-12,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Iron      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Diat      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Chlo      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Cyan      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Cocc      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('Herb      ', i_ntrocn=-8, i_ntrocn_delta=-16,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('N_det     ', i_ntrocn=-6, i_ntrocn_delta=-14,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('S_det     ', i_ntrocn=-6, i_ntrocn_delta=-14,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('I_det     ', i_ntrocn=-10,i_ntrocn_delta=-18,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('DOC       ', i_ntrocn=-6, i_ntrocn_delta=-14,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      call add_ocn_tracer('DIC       ', i_ntrocn=-3, i_ntrocn_delta=-11,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-      if (tracers_alkalinity)
-     &  call add_ocn_tracer('Alk       ',i_ntrocn=-6,i_ntrocn_delta=-14,
-     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
-#endif   /* #ifdef OBIO_ON_GARYocean */
-#ifdef TOPAZ_params
-      call add_diag("co3 ", "oij_co3",
-     &              "????????", .false., IJ_co3)
-#endif
-      call add_diag("ocean surface pH", "oij_pH",
-     &              "pH units", .false., IJ_pH)
-      call add_diag("Cos Solar Zenith Angle", "oij_solz",
-     &              "xxxx", .false., IJ_solz)
-      call add_diag("Solar Zenith Angle", "oij_sunz",
-     &              "degrees", .false., IJ_sunz)
-      call add_diag("Daylight length", "oij_dayl",
-     &              "timesteps", .false., IJ_dayl)
-      call add_diag("Surface Ocean Direct Sunlight",
-     &              "oij_Ed", "quanta", .false., IJ_Ed)
-      call add_diag("Surface Ocean Diffuse Sunlight",
-     &              "oij_Es", "quanta", .false., IJ_Es)
-      call add_diag("Surface ocean Nitrates", "oij_nitr",
-     &              "uM", .false., IJ_nitr)
-      call add_diag("Surface ocean Ammonium", "oij_amm",
-     &              "uM", .false., IJ_amm)
-      call add_diag("Surface ocean Silicate", "oij_sil",
-     &              "uM", .false., IJ_sil)
-      call add_diag("Surface ocean Iron", "oij_iron",
-     &              "nM", .false., IJ_iron)
-      call add_diag("Surface ocean Diatoms", "oij_diat",
-     &              "mg/m3", .false., IJ_diat)
-      call add_diag("Surface ocean Chlorophytes", "oij_chlo",
-     &              "mg/m3", .false., IJ_chlo)
-      call add_diag("Surface ocean Cyanobacteria", "oij_cyan",
-     &              "mg/m3", .false., IJ_cyan)
-      call add_diag("Surface ocean Coccolithophores", "oij_cocc",
-     &              "mg/m3", .false., IJ_cocc)
-      call add_diag("Surface ocean Herbivores", "oij_herb",
-     &              "mg/m3", .false., IJ_herb)
-      call add_diag("Surface ocean DOC", "oij_doc",
-     &              "uM", .false., IJ_doc)
-      call add_diag("Surface ocean DIC", "oij_dic",
-     &              "uM", .false., IJ_dic)
-      call add_diag("Surface ocean partial CO2 pressure",
-     &              "oij_pCO2", "uatm", .false., IJ_pCO2)
-      call add_diag("Surface ocean alkalinity", "oij_alk",
-     &              "umol/kg", .false., IJ_alk)
-      call add_diag("AO Flux CO2 (gr,CO2 or mol,CO2/m2/yr)", "oij_flux",
-     &              "depends if on atm/ocean grid", .false., IJ_flux)
-      call add_diag("C export flux at compensation depth", "oij_cexp",
-     &              "PgC/yr", .false., IJ_cexp)
-      call add_diag("N/C detritus at 74m", "oij_ndet",
-     &              "ugC/l", .false., IJ_ndet)
-      call add_diag("settlvel n/cdet at 74m", "oij_setl",
-     &              "m/s", .false., IJ_setl)
-      call add_diag("sink vel phytopl at 74m", "oij_sink",
-     &              "m/s", .false., IJ_sink)
-      call add_diag("C export due to chloroph", "oij_xchl",
-     &              "kg,C*m/s", .false., IJ_xchl)
-      if (tracers_alkalinity) then
-        call add_diag("CaCO3 export flux at compensation depth",
-     &                "oij_fca", "mili-g,C/m2/s", .false., IJ_fca)
-      endif
-
-      call add_diag("Depth integrated PP", "oij_pp",
-     &              "mg,C/m2/day", .false., IJ_pp)
-      call add_diag("PP-diat", "oij_pp1",
-     &              "mg,C/m2/day", .false., IJ_pp1)
-      call add_diag("PP-chlor", "oij_pp2",
-     &              "mg,C/m2/day", .false., IJ_pp2)
-      call add_diag("PP-cyan", "oij_pp3",
-     &              "mg,C/m2/day", .false., IJ_pp3)
-      call add_diag("PP-cocc", "oij_pp4",
-     &              "mg,C/m2/day", .false., IJ_pp4)
-      do nt=1, 4
-        do ilim=1, 5
-          write(str1, '(A1,A3,I1)') lim_sym(nt), 'lim', ilim
-          call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
-        end do
-      end do
-      do nt=1, ntrac     
-        do ll=1, 17
-          write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
-          call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
-        end do
-      end do
-
-      call add_diag("Mean daily irradiance", "avgq",
-     &              "quanta", .true., IJL_avgq)
-      call add_diag("KPAR", "kpar",
-     &              "??", .true., IJL_kpar)
-      call add_diag("dtemp due to kpar", "dtemp_par",
-     &              "C", .true., IJL_dtemp)
-
-      return
-      end subroutine setup_obio

@@ -235,7 +235,9 @@ C****
 
       call setup_ocean()
 #ifdef TRACERS_OceanBiology
+#ifdef OBIO_ON_RUSSELLocean
       call setup_obio()
+#endif
 #endif
 
       call initializeModelE()

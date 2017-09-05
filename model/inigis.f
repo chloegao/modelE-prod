@@ -66,31 +66,31 @@ c --- set other parameters
 c
       ri0=- 4.0           !C     parameter(ri0=-20.D0)
       ebase=2.71828182845904509
-      ifback=5            !Temperature=Salt diffusivity model background 
-                          !model swith. 
+      ifback=5            !Temperature=Salt diffusivity model background
+                          !model swith.
                           ! K_H,K_S (S=N/sqrt(Ri)),Ri=backfrac*Ri_Cr)
       ifsali=1            !Salinity model switch (Canuto's)
-      ifepson2=2          !Background (epsilon/N^2) dimensionalization 
+      ifepson2=2          !Background (epsilon/N^2) dimensionalization
                           !of diffusivities switch.
                           !   cnst blw highst lvl frgr dies
       epson2_ref=.288     !reference value of dissipation/N**2
-                          !Value of (epsilon/N^2)/(1 cm/sec^2) used. 
+                          !Value of (epsilon/N^2)/(1 cm/sec^2) used.
                           !See Canuto et al. JPO 2002 Sections 8&9.
                           !040126 Actual (epsilon/N^2) can vary with z,N and f .
-      eps_bot0=2.e-5          !The value of epsilon at the bottom in cgs, 
+      eps_bot0=2.e-5          !The value of epsilon at the bottom in cgs,
                           !St.Laurent et al. JPO2001 give epsilon = 3to9e-9 W/kg
                           !for slopes and 2to5e-9 W/kg for crests and canyons.
-      scale_bot=5.e-4          !The scale (in cm) of exponential decrease of mixing 
+      scale_bot=5.e-4          !The scale (in cm) of exponential decrease of mixing
                           !above the bottom with height. St. Laurent et al. give
                           !150+-50 m for slopes, 500+-100 m for crests and canyons.
-      eplatidepmin=7.E-2 !Gregg et al. admit their formula eq.(2) for the 
-                          !latitude dependent factor L which scales turbulence 
-                          !won't work at the equator where it predicts epsilon=0. 
+      eplatidepmin=7.E-2 !Gregg et al. admit their formula eq.(2) for the
+                          !latitude dependent factor L which scales turbulence
+                          !won't work at the equator where it predicts epsilon=0.
                              !Introduce eplatidepmin, a minimum on the factor L .
       wave_30=(pi/43082.0)*acosh1(5.24e-3/(pi/43082.0))
                           !reference value at 30degN with N=5.24e-3
                           !from Garerett and Munk, as used by Gregg et. al.
-      ifrafgmax=1         !Switch for limiting BackGround ra_r 
+      ifrafgmax=1         !Switch for limiting BackGround ra_r
                           !to at most Foreground ra_r when Ri>0
                           !for R_r in the [R_r_crit_DoubleDiffusion,
                           !R_r_crit_SaltFingers] regime.
@@ -98,33 +98,33 @@ c
                           !int.wvS=N/(Ri_i^(1/2)),Ri_icnst,
                           !   ra_r_i=cnst*ra_r_crit.(theta_r)
       ifchengcon=0        !old ocean cnsts,near-surf prof assump
-      ifpolartablewrite=0 !Switch to write out polar 2D 
-                          !turbulence table . 
-      ifbg_theta_interp=1 !Introduce flag for use of \theta_r 
+      ifpolartablewrite=0 !Switch to write out polar 2D
+                          !turbulence table .
+      ifbg_theta_interp=1 !Introduce flag for use of \theta_r
                           !arrays to interpolate background.
                           !Intrplt 2D array
                           !(slq2_r1=array for (Sl/q)^2)
                           !with (Ri,Ri_d)indices
       back_ph_0=(6.e-5)*(1.e2/(2.e0*pidbl))
                           !for ifsalback=3 case.
-                          !Gargett et. al. JPO Vol.11 p.1258-71 gives 
+                          !Gargett et. al. JPO Vol.11 p.1258-71 gives
                           !for "the deep record",
-                          !\phi_0=6\times10^{-5}s^{-2}cpm^{-1}. 
+                          !\phi_0=6\times10^{-5}s^{-2}cpm^{-1}.
                           !"cpm" is 'cycles per meter'.
                           !\phi_0=6\times10^{-5}s^{-2}(2 pidbl/100)^{-1}cm
-      adjust_gargett=1.0  !Gargett et. al. favor the value, 
-                          !k_0 = 0.1 cpm. But k_0=0.05-0.2 cpm 
-                          !might be viable, see section 5 of their 
-                          !paper. Take k_0 = 0.1 cpm * adjust_gargett, 
+      adjust_gargett=1.0  !Gargett et. al. favor the value,
+                          !k_0 = 0.1 cpm. But k_0=0.05-0.2 cpm
+                          !might be viable, see section 5 of their
+                          !paper. Take k_0 = 0.1 cpm * adjust_gargett,
                           !where adjust_gargett is adjustable.
-                          !Convert to radians per cm: 
+                          !Convert to radians per cm:
                           !k_0 = 0.1 (2pi/100cm) * adjust_gargett.
-                          !used for ifsalback=4 case also, but set 
-                          !adjust_gargett=1 for ifsalback=4 
+                          !used for ifsalback=4 case also, but set
+                          !adjust_gargett=1 for ifsalback=4
       back_k_0=(0.1)*(2.0)*pidbl*(1.e-2)*adjust_gargett
-                          !Introduce the lengthscale 
+                          !Introduce the lengthscale
                           !\Delta_0 \equiv pi/k_0 .
-                          !The units of \Delta_0 are centimeters, 
+                          !The units of \Delta_0 are centimeters,
                           !with k_0 in radians per cm.
                           !`min turb' wvnmbr (cm^-1)
       back_del_0=pidbl/back_k_0
@@ -142,7 +142,7 @@ c
                           ! From the printed notes Canuto
                           ! gave Armando on 980601 have:
       sgmt=0.72           !Make "sgmt" a parameter.
-                          !Standard value was 0.72.      
+                          !Standard value was 0.72.
       tptot0=(1.0/5.0)*(1.0/(1.0+(1.0/sgmt)))
                           ! \tau_p\theta over \tau
       tpcot0=tptot0       !tau_pc over \tau
@@ -157,34 +157,34 @@ c
       tctot = tctot0
 c
 ccc     if (mnproc.eq.1) then
-ccc     write(lp,900)
+ccc     write(*,900)
 c900    format('nasa-giss mixed layer model selected'/
 ccc  & 'turbulence calculated by 040128 hycom version'/
 ccc  & 'stripped down from 030803 turb_2gi1a ncar')
 ccc     endif !1st proc
 c
 c --- START OF SALINITY MODEL BACKGROUND LENGTHSCALE CALCULATION SECTION.
-c --- ifsali.eq. 1  therefore:   
-c --- Calculate constant lengthscale for 
+c --- ifsali.eq. 1  therefore:
+c --- Calculate constant lengthscale for
 c --- the background for ifsalback=3,4,5
 c --- \Delta_0 ={B_1 pi \over (3 Ko)^{3/2}} l_0
 c --- l_0 = {(3 Ko)^{3/2} \over B_1 pi} \Delta_0
-c --- "back_l_0" is the constant background 
+c --- "back_l_0" is the constant background
 c --- l_0 in centimeters.
 c
-c --- pass back B_1 from oursal2. 
+c --- pass back B_1 from oursal2.
       call oursal2_1a(0.,0.,slq2b_00,smb_00,shb_00,ssb_00,
      &                c_y0,c_y00,0,0)
 c
       back_l_0 = (((3.*ako)**(3./2.))/(b1*pi))*back_del_0
 c
 ccc     if (mnproc.eq.1) then
-c       write(lp,*) "Dubovikov Internal wave constants for background."
-c       write(lp,*) "Ratio of Background to Critical ra_r"//
+c       write(*,*) "Dubovikov Internal wave constants for background."
+c       write(*,*) "Ratio of Background to Critical ra_r"//
 c    &                 " [\\equiv ({Ri_T}^2 + {Ri_C}^2)^(1/2)]",backfrac
-c       write(lp,*) "Lengthscale, del_0/(cm) =",back_del_0
-c       write(lp,*) "Lengthscale, l_0/(cm) =",back_l_0
-c       call flush(lp)
+c       write(*,*) "Lengthscale, del_0/(cm) =",back_del_0
+c       write(*,*) "Lengthscale, l_0/(cm) =",back_l_0
+c       call flush(6)
 ccc     endif !1st proc
 c
 c --- Set step-size for *both* dimensions of 2D table here.
@@ -195,7 +195,7 @@ c --- BUILD SALINITY MODEL TABLES VS. "Ri = Ri_T + Ri_C" AND "Ri_d = Ri_T - Ri_C
 c --- Use separate loops for calculation of independent table variables.
 c
       do iridsign=0,1
-      iridstep=(-1)**iridsign 
+      iridstep=(-1)**iridsign
       do irid= 0,mt*iridstep,iridstep
 c --- Set Ri_d table values. (See NBP59,63=p#A27,30.)
            if(abs(irid).le.mt0) then
@@ -215,11 +215,11 @@ c --- introduction of exponential absolute val table option.
            endif
            endif
 c
-      enddo 
+      enddo
       enddo
 c
       do irisign=0,1
-      iristep=(-1)**irisign 
+      iristep=(-1)**irisign
       do iri= 0,mt*iristep,iristep
 c --- Set Ri table values. (See NBP59,63=p#A27,30.)
            if(abs(iri).le.mt0) then
@@ -239,7 +239,7 @@ c --- introduction of exponential absolute val table option.
            endif
            endif
 c
-      enddo 
+      enddo
       enddo
 c
 c --- If using interp2d_expabs introduce ratio between adjacent Richardson
@@ -247,17 +247,17 @@ c --- numbers in nonlinear part of table.***
         rri = ribtbl(mt0)/ribtbl(mt0-1)
 c
       do iridsign=0,1
-      iridstep=(-1)**iridsign 
+      iridstep=(-1)**iridsign
       do irid= 0,mt*iridstep,iridstep
          do irisign=0,1
          iristep=(-1)**irisign
          do iri= 0,mt*iristep,iristep
-c --- Need to pass back the value of B_1 from oursal2 for use here. 
+c --- Need to pass back the value of B_1 from oursal2 for use here.
            call oursal2_1a(ribtbl(iri),ridb(irid),slq2b(iri,irid),
      &                     smb(iri,irid),shb(iri,irid),ssb(iri,irid),
      &                     c_y0,c_y00,iri,irid)
             if(slq2b(iri,irid).lt.0) then
-              irimax(irid) = iri - 1 
+              irimax(irid) = iri - 1
               go to  15
             endif
          enddo
@@ -269,15 +269,15 @@ c
 c
 c --- Add writes in salinity model case.
 cdiag   if (mnproc.eq.1) then
-cdiag   write(lp,*) "************************************************"
-cdiag   write(lp,*) "New Temperature-Salinity Model"
-cdiag   write(lp,*) "ifsali=",ifsali
-cdiag   write(lp,*) "ifsalback=",ifsalback
+cdiag   write(*,*) "************************************************"
+cdiag   write(*,*) "New Temperature-Salinity Model"
+cdiag   write(*,*) "ifsali=",ifsali
+cdiag   write(*,*) "ifsalback=",ifsalback
 c
-cdiag   write(lp,*) "ifepson2=",ifepson2
-cdiag   if(ifepson2.GT.0) then 
-cdiag        write(lp,*) "epson2_ref=",epson2_ref
-cdiag   WRITE(lp,*) "ifdeeplat=",ifdeeplat
+cdiag   write(*,*) "ifepson2=",ifepson2
+cdiag   if(ifepson2.GT.0) then
+cdiag        write(*,*) "epson2_ref=",epson2_ref
+cdiag   WRITE(*,*) "ifdeeplat=",ifdeeplat
 cdiag   IF(ifdeeplat.GT.0) THEN
 cdiag   WRITE(*,*) "eplatidepmin=",eplatidepmin
 cdiag   END IF
@@ -289,46 +289,46 @@ cdiag   END IF
 cdiag   END IF
 C*****CD
 c
-cdiag   write(lp,*)"ifrafgmax=",ifrafgmax
-cdiag   write(lp,*)"ifbg_theta_interp=",ifbg_theta_interp
-cdiag   write(lp,*) 
+cdiag   write(*,*)"ifrafgmax=",ifrafgmax
+cdiag   write(*,*)"ifbg_theta_interp=",ifbg_theta_interp
+cdiag   write(*,*)
 cdiag&   "    i      ",
 cdiag&   "    ribtbl(i)      ","    ridb(i)     ",
 cdiag&   "irimax(i)  "
 cdiag   do i= -mt,mt
-cdiag     write(lp,9050) i,ribtbl(i),ridb(i),irimax(i)
+cdiag     write(*,9050) i,ribtbl(i),ridb(i),irimax(i)
 cdiag   enddo
 c
-cdiag   write(lp,*) " "
-cdiag   write(lp,*) "irid       Ri_d        Ri(irimax)  "
+cdiag   write(*,*) " "
+cdiag   write(*,*) "irid       Ri_d        Ri(irimax)  "
 cdiag&                // "S_M        S_H        S_S        "
 cdiag&          // "S_M/S_H    S_S/S_H    "
 cdiag   do irid= -mt,mt
-cdiag     write(lp,9100) irid,ridb(irid),ribtbl(irimax(irid)),
+cdiag     write(*,9100) irid,ridb(irid),ribtbl(irimax(irid)),
 cdiag&           smb(irimax(irid),irid),
 cdiag&           shb(irimax(irid),irid),
 cdiag&           ssb(irimax(irid),irid),
 cdiag&             smb(irimax(irid),irid)/shb(irimax(irid),irid),
 cdiag&           ssb(irimax(irid),irid)/shb(irimax(irid),irid)
 cdiag   enddo
-cdiag   call flush(lp)
+cdiag   call flush(6)
 cdiag   endif !1st proc
 c
 c --- CALCULATE "R_r_Critical" USING CANUTO'S 000228 ANALYTIC FORMULA
 c --- FOR "R_rho_Critical". See NBp.000229-3 and 000316-4.
 c --- R_rho_Canuto \equiv -Ri_C/Ri_T \equiv -R_r .
 c --- In a sheet dated 000228 Canuto gave me:
-c --- "R_\rho^{cr} = {1 \over \Deta} [1 {+\over-} \sqrt{1 - \Delta^2}] 
+c --- "R_\rho^{cr} = {1 \over \Deta} [1 {+\over-} \sqrt{1 - \Delta^2}]
 c --- \Delta \equiv {{\pi_2(1 + {15 \over 7} \pi_3)} \over
 c --- {\pi_3 - \pi_2 + (15 \over 14} \pi_3^2}} ".
 c --- Note that the + and - choices are reciprocals so this covers
 c --- both the Salt Fingering and Double Diffusive Critical R_\rho's.
-c --- From Ocean Turbulence III paper have: 
-c --- \pi_{1,2,3,4,5} = 
-c --- (\tau_pc,\tau_c\theta,\tau_c,\tau_p\theta,\tau_\theta)/\tau 
+c --- From Ocean Turbulence III paper have:
+c --- \pi_{1,2,3,4,5} =
+c --- (\tau_pc,\tau_c\theta,\tau_c,\tau_p\theta,\tau_\theta)/\tau
 c --- R_r_Crit = [-1 -/+ \sqrt{1 - \Delta^2}]/Delta
 c --- \Delta = {{{\tau_c\theta \over \tau} ( 1 + (15/7)*{\tau_c \over \tau})}
-c --- \over {{\tau_c \over \tau} - {\tau_c\theta \over \tau} + 
+c --- \over {{\tau_c \over \tau} - {\tau_c\theta \over \tau} +
 c --- (15/14) {\tau_c \over \tau}^2}}
 c
       deltanum = tctot*(1. + ((15./7.)*tcot))
@@ -340,7 +340,7 @@ c
       theta_rcrp = atan(rrcrp)
 c
 c --- Make sure the right choice of arctan(R_r)=[\theta_r] is made.
-c --- Arctan covers the range (-pi/2,pi/2) while 
+c --- Arctan covers the range (-pi/2,pi/2) while
 c --- \theta_r_Crit must be in the range (-pi/4,3pi/4) (The range of Ri>0.)
 c
         if(theta_rcrn.lt.-pi/4.) theta_rcrn = theta_rcrn + pi
@@ -348,22 +348,22 @@ c
       theta_rcrn_deg = theta_rcrn*(180./pi)
       theta_rcrp_deg = theta_rcrp*(180./pi)
 cdiag   if (mnproc.eq.1) then
-cdiag   write(lp,*) "   "
-cdiag   write(lp,*) "   "
-cdiag   write(lp,*) "   "
-cdiag   write(lp,*) "   "
-cdiag   write(lp,*) "R_r_Crit+ =",rrcrp
-cdiag   write(lp,*) "R_r_Crit- =",rrcrn
-cdiag   write(lp,*) "\\theta_r_Crit+ =",theta_rcrp
-cdiag   write(lp,*) "\\theta_r_Crit- =",theta_rcrn
-cdiag   write(lp,*) "\\theta_r_Crit+ in degrees =",theta_rcrp_deg
-cdiag   write(lp,*) "\\theta_r_Crit- in degrees =",theta_rcrn_deg
-cdiag   write(lp,*) "   "
-cdiag   write(lp,*) "   "
+cdiag   write(*,*) "   "
+cdiag   write(*,*) "   "
+cdiag   write(*,*) "   "
+cdiag   write(*,*) "   "
+cdiag   write(*,*) "R_r_Crit+ =",rrcrp
+cdiag   write(*,*) "R_r_Crit- =",rrcrn
+cdiag   write(*,*) "\\theta_r_Crit+ =",theta_rcrp
+cdiag   write(*,*) "\\theta_r_Crit- =",theta_rcrn
+cdiag   write(*,*) "\\theta_r_Crit+ in degrees =",theta_rcrp_deg
+cdiag   write(*,*) "\\theta_r_Crit- in degrees =",theta_rcrn_deg
+cdiag   write(*,*) "   "
+cdiag   write(*,*) "   "
 c
-cdiag   write(lp,*) " "
-cdiag   write(lp,*) " "
-cdiag   call flush(lp)
+cdiag   write(*,*) " "
+cdiag   write(*,*) " "
+cdiag   call flush(6)
 cdiag   endif !1st proc
 c
 c --- Increments in radial and angular coordinates in (Ri_T,Ri_C) plane.
@@ -376,28 +376,28 @@ c       if (mnproc.eq.1) then
 c       write(53,*)nstep,igrid,jgrid,n_theta_r_oct,deltheta_r
 c       endif !1st proc
 c
-c --- Calculate the ratio \sigma_sa_max \equiv S_S/S_H as a function 
+c --- Calculate the ratio \sigma_sa_max \equiv S_S/S_H as a function
 c --- of the angle \theta_r in Ri_T,Ri_C space,
-c --- \theta_r \equiv arctan(Ri_C/Ri_T). 
-c --- The range of angles where unrealizability occurs is 
+c --- \theta_r \equiv arctan(Ri_C/Ri_T).
+c --- The range of angles where unrealizability occurs is
 c --- a subset of theta_r = -pi/4 to 3pi/4.
 c
 cdiag   if (mnproc.eq.1) then
-cdiag   write(lp,*) "S_S/S_H at pre-maximum Ri as a function of"
-cdiag&             // "\\theta_r \\equiv Arctan(Ri_C/Ri_T)" 
+cdiag   write(*,*) "S_S/S_H at pre-maximum Ri as a function of"
+cdiag&             // "\\theta_r \\equiv Arctan(Ri_C/Ri_T)"
 c
 c --- Absurd default on sisamax \equiv S_S/S_H.
-cdiag   write(lp,*) "Arbitrarily show the absurd value -99.999"
-cdiag   write(lp,*) "at angles where do not have "//
+cdiag   write(*,*) "Arbitrarily show the absurd value -99.999"
+cdiag   write(*,*) "at angles where do not have "//
 cdiag&  "a maximum Ri (or radius ra_r)."
-cdiag   write(lp,*) " "
-cdiag   write(lp,*) "  \\th_r ^o  ra_r      "
+cdiag   write(*,*) " "
+cdiag   write(*,*) "  \\th_r ^o  ra_r      "
 cdiag&          // "  Ri_T        Ri_C        Ri         Ri_d       "
 cdiag&          // "  S_M       S_H       S_S      S_S/S_H  "
-cdiag   call flush(lp)
+cdiag   call flush(6)
 cdiag   endif !1st proc
 c
-c --- For Ri_T and Ri_C positive find the realizability limits  
+c --- For Ri_T and Ri_C positive find the realizability limits
 c --- in polar coordinates in the (Ri_T,Ri_C) plane : (ra_r,theta_r).
 c
 ccc     if(ifpolartablewrite.eq. 1 .and. mnproc.eq.1) then
@@ -409,12 +409,12 @@ c          itheta_r=ihelp-n_theta_r_oct
          theta_r = float(itheta_r)*deltheta_r
          theta_r_deg = theta_r*(180./pi)
 c
-c --- Introduce jtheta_r, an angle index that begins at zero   
+c --- Introduce jtheta_r, an angle index that begins at zero
 c --- for the purposes of letting OURSAL2 know it starts at the origin.
 c
          jtheta_r = itheta_r + n_theta_r_oct
 c
-c --- Initialize sisamax to the impossible negative value of -99.999 to 
+c --- Initialize sisamax to the impossible negative value of -99.999 to
 c --- let places where the realizability limit is not reached stand out.
          sisamax(itheta_r) = -99.999
 c
@@ -452,7 +452,7 @@ c
      &                       c_y0,c_y00,ira_r,jtheta_r)
 c
 ccc           if(ifpolartablewrite.eq. 1 .and. mnproc.eq.1) then
-c               write(68,9001) 
+c               write(68,9001)
 c    &          itheta_r,theta_r_deg,ira_r,ra_r,slq2_r,sm_r,sh_r,ss_r
 ccc           endif
 c
@@ -476,10 +476,10 @@ c --- Use radius where dimensionless K_M falls below backfact*origin value.
               endif
             endif
 c
-            if(slq2_r.le.0.) then 
+            if(slq2_r.le.0.) then
 c --- Use value of last lattice point on this radius with "slq2" positive.
 c --- Calculate the ratio of the salt and heat diffusivities there.
-      sisamax(itheta_r) = ss_r0/sh_r0 
+      sisamax(itheta_r) = ss_r0/sh_r0
 c
 c --- Store in an array the maximum radius, ra_r, at this angle, theta_r,
 c --- in the polar (Ri_T,Ri_C) [that is the (theta_r,ra_r)] plane.
@@ -494,7 +494,7 @@ c
         back_ra_r(itheta_r) = ra_r1
       endif
 c
-      ifunreal = 1 
+      ifunreal = 1
 c
 c --- Skip straight to write out when last point reached.
       go to 16
@@ -518,9 +518,9 @@ c
 c --- Write out stability functions, the S's and sisamax.
   16    continue
 cdiag   if (mnproc.eq.1) then
-cdiag   write(lp,9150) theta_r_deg,ra_r0,rit0,ric0,ri_r0,rid_r0,
+cdiag   write(*,9150) theta_r_deg,ra_r0,rit0,ric0,ri_r0,rid_r0,
 cdiag&                 sm_r0,sh_r0,ss_r0,sisamax(itheta_r)
-cdiag   call flush(lp)
+cdiag   call flush(6)
 cdiag   endif !1st proc
 c
 c --- Set background ra_r large at angles where unrealizability doesn't occur.
@@ -528,10 +528,10 @@ c --- Make the ra_r max value not too large to try to avoid numerical trouble.
         if(ifunreal.eq. 0) then
            ipenra_r = (mt_ra_r**2)/4-1
          back_ra_r(itheta_r) = ((1.+delra_r)**(ipenra_r - mt_ra_r))
-     &                         *(float(mt_ra_r)*delra_r) 
+     &                         *(float(mt_ra_r)*delra_r)
       endif
 c
-c --- For ifsalback=5 case get value for initialization of c_y calculation. 
+c --- For ifsalback=5 case get value for initialization of c_y calculation.
             if(ifsalback.eq. 5) then
               if(jtheta_r.eq. 0) then
                 c_y001 = c_y0
@@ -573,45 +573,45 @@ c --- final realizable ra_r step at {\it this} angle in hope of more accuracy.
 c
 cdiag        if(itheta_r.eq. -n_theta_r_oct) then
 cdiag          if (mnproc.eq.1) then
-cdiag          write(lp,*) " "
-cdiag          write(lp,*) 
+cdiag          write(*,*) " "
+cdiag          write(*,*)
 cdiag&          "Values at background ra_r=(Ri_T^2 + Ri_C^2)^(1/2)"
-cdiag          write(lp,*) "\\th_r ^o   ra_r       "
+cdiag          write(*,*) "\\th_r ^o   ra_r       "
 cdiag&           // "Ri_T       Ri_C       Ri         Ri_d       "
 cdiag&           // "(Sl/q)^2   S_M       S_H       S_S       S_S/S_H  "
-cdiag          write(lp,*) " "
-cdiag          call flush(lp)
+cdiag          write(*,*) " "
+cdiag          call flush(6)
 cdiag          endif !1st proc
 cdiag        endif
 c
            sisa1 = ss_r1(itheta_r)/sh_r1(itheta_r)
 c
 *          if (mnproc.eq.1) then
-*          write(lp,*)
+*          write(*,*)
 *    &       'itheta_r,theta_r_deg = ',itheta_r,theta_r_deg
-*          write(lp,*)
+*          write(*,*)
 *    &       'back_ra_r,slq2_r1    = ',
 *    &        back_ra_r(itheta_r),slq2_r1(itheta_r)
-*          write(lp,*)
+*          write(*,*)
 *    &       'sm_r1,sh_r1,ss_r1    = ',
 *    &        sm_r1(itheta_r),sh_r1(itheta_r),ss_r1(itheta_r)
-*          call flush(lp)
+*          call flush(6)
 *          endif !1st proc
 cdiag        if (mnproc.eq.1) then
-cdiag             write(lp,9160) theta_r_deg,back_ra_r(itheta_r),
+cdiag             write(*,9160) theta_r_deg,back_ra_r(itheta_r),
 cdiag&                     rit1,ric1,ri_r1,rid_r1,slq2_r1(itheta_r),
 cdiag&                  sm_r1(itheta_r),sh_r1(itheta_r),ss_r1(itheta_r),
 cdiag&                  sisa1
-cdiag        call flush(lp)
+cdiag        call flush(6)
 cdiag        endif !1st proc
 c
            if(slq2_r1(itheta_r).lt.0.) then
 ccc        if (mnproc.eq.1) then
-c          write(lp,*) 
+c          write(*,*)
 c    &        "Negative (Sl/q)^2 in table of Background vs. \\theta_r."
-c          write(lp,*) "itheta_r=",itheta_r,
+c          write(*,*) "itheta_r=",itheta_r,
 c    &                         "   slq2_r1(itheta_r)=",slq2_r1(itheta_r)
-c          write(lp,*) "Program is stopping in turb_2."
+c          write(*,*) "Program is stopping in turb_2."
 ccc        endif !1st proc
 ccc        call xcstop('(inigiss)')
                   stop '(inigiss)'
@@ -641,8 +641,8 @@ c --- hycom version 1.0
       implicit none
 c
 c --- Replace the numerical value of 6.25 by 1/(tpvot**2) .
-c --- Version in which following OTsalche/plot000127 
-c --- the timescale ratios are calculated in the 'smshsc' routine 
+c --- Version in which following OTsalche/plot000127
+c --- the timescale ratios are calculated in the 'smshsc' routine
 c --- and passed back hrough the common block bb0/
 c --- to simplify the process of adjustment of timescale ratios.
 c --- Submodule to calculate turbulence functions (Sl/q)^2 and S_M,S_H,S_S
@@ -656,13 +656,13 @@ c --- Program to generate K_X/((l^2) S) for Canuto based on plot980609.f:
 c --- Program to generate data for plots of turbulence functions including
 c --- S_{M,H,C} and Canuto's new y = (\tau_pv S)^2
 c --- and n,c as functions of stability parameters in the concentration theory
-c --- (structure is a 1 point closure like the generalized Mellor-Yamada, 
+c --- (structure is a 1 point closure like the generalized Mellor-Yamada,
 c --- but the constants are derived based on Dubovikov's model according
 c --- to Ye Cheng). The concentration theory dimensionless parameters
-c --- associated with the squares of shear, temperature contribution to 
+c --- associated with the squares of shear, temperature contribution to
 c --- Brunt Vaisala frequency and concentration contribution to it,
 c --- the new y,n,c are represented in this program by the variables
-c --- c_y,c_n,c_c. 
+c --- c_y,c_n,c_c.
 c --- Adapted from Cheng's program mike_12.f_980528 for the Dubovikov model.
 
 c-----------------------------------------------------------------------
@@ -673,11 +673,11 @@ c --- km=e*tau*sm=1/2*(b1*l)**2*s/y**(1/2)*sm
 c --- kh=e*tau*sh=1/2*(b1*l)**2*s/y**(1/2)*sh
 c --- ks=e*tau*ss=1/2*(b1*l)**2*s/y**(1/2)*ss
 c
-c --- X = {M,H,C} . 
+c --- X = {M,H,C} .
 c --- Cheng above gives K_X = (1/2)((B_1*l)^2) (S/(((\tau S)**2)^(1/2))) S_X
-c --- The "old" y used above is (\tau S)^2. 
+c --- The "old" y used above is (\tau S)^2.
 c --- The "new" y (c_y in the program) is (\tau_pv S)^2.
-c --- The program variable "slq2" is (S l/q)^2 = y (B_1)^(-2), 
+c --- The program variable "slq2" is (S l/q)^2 = y (B_1)^(-2),
 c --- since \tau=B_1 l/q. (S l/q)^2 = (\tau \over \tau_pv)^2 c_y (B_1)^(-2) .
 c --- c_y = (S l/q)^2 * [(B_1)^2 * (\tau_pv \over \tau)^2] .
 c
@@ -693,13 +693,13 @@ c
       !Note: rit is the temperature's part of Ri
       !and ric the concentration's.
 c
-      parameter(c_yst0 = 8.527882) !Need a guess for c_y for the solver 
-     .                             !for the neutral case, c_yst. Take 
-                                   !c_yst = 8.527882, the approximate value 
-                                   !calculated at rit=ric=0. A variable c_y00 
-                                   !is intended to hold the Ri=0 value of c_y 
-                                   !from the previous Ri_d row in a table the 
-                                   !subroutine is being called to make and a 
+      parameter(c_yst0 = 8.527882) !Need a guess for c_y for the solver
+     .                             !for the neutral case, c_yst. Take
+                                   !c_yst = 8.527882, the approximate value
+                                   !calculated at rit=ric=0. A variable c_y00
+                                   !is intended to hold the Ri=0 value of c_y
+                                   !from the previous Ri_d row in a table the
+                                   !subroutine is being called to make and a
                                    !variable c_y0 is intended to hold the
                                    !previous Ri value from the current Ri_d
                                    !row of that table.
@@ -738,22 +738,22 @@ c --- Timescale ratios are now calculated in the 'smshsc' subroutine.
 c --- Make dummy call with c_y=c_n=c_c=0 to get their values for initial use.
       call smshsc_a3(0.,0.,0.,sm,sh,sc)
 c
-      eps=1.e-6                                              
-      iend=300                                              
+      eps=1.e-6
+      iend=300
 c
 c --- rimax= ?
-c --- rtwi finds the root of x=fct_sal(x)                     
+c --- rtwi finds the root of x=fct_sal(x)
 c --- Need a guess at the root, c_yst. Use neighboring solution.
 c --- Initial guess for c_yst for this value of Ri_d.
       if(iri.eq.0.and.irid.eq.0) then
       c_yst = c_yst0
       else if(iri.eq.0) then
       c_yst = c_y00
-      else 
+      else
       c_yst = c_y0
       endif
 c
-c --- Calculate Ri_T =(Ri + Ri_d)/2 and Ri_C =(Ri - Ri_d)/2.  
+c --- Calculate Ri_T =(Ri + Ri_d)/2 and Ri_C =(Ri - Ri_d)/2.
        rit = (ri + rid)/2.
        ric = (ri - rid)/2.
          call rtwi(c_y,val,c_yst,eps,sm,sh,sc,iend,ier)
@@ -761,13 +761,13 @@ c
          if(ier.ne.0) then
 c --- Make error message more specific.
 ccc       if (mnproc.eq.1) then
-c         write(lp,*) "In oursal2 subroutine"
-c         write(lp,*) "c_y00=",c_y00,"        c_y0=",c_y0
-c         write(lp,*) "ri=",ri,"        rid=",rid
-c         write(lp,*) "rit=",rit,"        ric=",ric
-c         write(lp,*) "Initial guess for rtwi c_yst=",c_yst
+c         write(*,*) "In oursal2 subroutine"
+c         write(*,*) "c_y00=",c_y00,"        c_y0=",c_y0
+c         write(*,*) "ri=",ri,"        rid=",rid
+c         write(*,*) "rit=",rit,"        ric=",ric
+c         write(*,*) "Initial guess for rtwi c_yst=",c_yst
 c
-c         write(lp,*) "rtwi call problem, ier=",ier
+c         write(*,*) "rtwi call problem, ier=",ier
 c         endif !1st proc
 c         call xcstop('(oursal2_1a)')
                  stop '(oursal2_1a)'
@@ -781,15 +781,15 @@ c
 c --- Store value of c_y for future guesses.
        if(c_y.ge.0) then
           c_y0=c_y
-       else 
+       else
 c --- Turbulence model becomes unphysical for c_y negative.
 c --- Realizability for negative Ri
            if(ri.lt.0) then
 c          if (mnproc.eq.1) then
-c          write(lp,*) "c_y negative at negative Ri"
-c          write(lp,*) "Ri=",ri,"         c_y=",c_y
-c          write(lp,*) "Unstable realizability limit unexpected:" 
-c          write(lp,*) "stopping in oursal2."
+c          write(*,*) "c_y negative at negative Ri"
+c          write(*,*) "Ri=",ri,"         c_y=",c_y
+c          write(*,*) "Unstable realizability limit unexpected:"
+c          write(*,*) "stopping in oursal2."
 c          endif !1st proc
 c          call xcstop('(oursal2_1a)')
                   stop '(oursal2_1a)'
@@ -800,17 +800,17 @@ c
        if((iri.eq.0).and.(irid.eq.0).and.
      .     (abs(c_y - c_yst0).gt.1.e-6)) then
 c        if (mnproc.eq.1) then
-c        write(lp,*) "Inconsistency in neutral value of c_y"
-c        write(lp,*) "Value used =",c_yst0
-c        write(lp,*) "Value calculated =",c_y
-c        write(lp,*) "Program stopping in oursal2"
+c        write(*,*) "Inconsistency in neutral value of c_y"
+c        write(*,*) "Value used =",c_yst0
+c        write(*,*) "Value calculated =",c_y
+c        write(*,*) "Program stopping in oursal2"
 c        endif !1st proc
 c        call xcstop('(oursal2_1a)')
                 stop '(oursal2_1a)'
        endif
 c
 c --- From last page (#5) of "980608 AH Concentration Work" handwritten
-c --- sheetsC have: 
+c --- sheetsC have:
 c --- n = -{{\tau_C \tau_{C\theta}} \over {\tau_{pv}}^2 } y Ri_T
 c --- c = - {{\tau_C}^2 \over {\tau_{pv}}^2} y Ri_C
 c --- Decide to use the parameter "tpvot" instead of its value 2/5 \tau .
@@ -827,14 +827,14 @@ c
  1004 format(12(1pe14.5))
       end
 c-----------------------------------------------------------------------
-      function fct_sal(sm,sh,sc,c_y)                              
+      function fct_sal(sm,sh,sc,c_y)
 c
 ccc   use mod_xc  ! HYCOM communication interface
 c
 c --- hycom version 1.0
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
-      implicit none  
+      implicit none
 c
       real fct_sal,c_n,c_c,c_y,sm,sh,sc,bb,rit,ric
 c
@@ -846,10 +846,10 @@ c --- Decide to use the parameter "tpvot" instead of its value 2/5 \tau .
       call smshsc_a3(c_y,c_n,c_c,sm,sh,sc)
 c
 c --- y(S_\nu - Ri_T S_h - Ri_C S_c) = 8/25 . 8/25 = 0.32 . S_\nu = sm.
-c --- y = 0.32/(S_\nu - Ri_T S_h - Ri_C S_c). 
+c --- y = 0.32/(S_\nu - Ri_T S_h - Ri_C S_c).
       fct_sal=(2.*(tpvot**2))/(sm-rit*sh-ric*sc)
-      return                                          
-      end                                            
+      return
+      end
 c-----------------------------------------------------------------------
       subroutine smshsc_a3(yyy,nnn,ccc,sm,sh,sc)
 c
@@ -858,7 +858,7 @@ c
 c --- hycom version 1.0
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
-      implicit none   
+      implicit none
 c
       include 'kprf_scalars.h'
 c
@@ -866,12 +866,12 @@ c --- .eW SUBROUTI.e WHICH calculates the "p's" from the timescale ratios.
 c --- BA.eD on "smshsc2":
 c --- SUBROUTI.e WHICH CALCULA.eS "p's" from "sgmt". BA.eD ON "smshsc1":
 c --- .eW SUBROUTI.e WHICH U.eS .e C.eNG'S .orTRAN CO.e TO CALCULA.e CONSTANTS
-c --- FROM T.e "p's" .eNT TO .e BY HIM TODAY. BA.eD ON "smshsc0". 
+c --- FROM T.e "p's" .eNT TO .e BY HIM TODAY. BA.eD ON "smshsc0".
 c --- **.or.eCT T.e VAL.e OF "p10".**
 c --- p_10 = {\tau_{p \theta} \tau_{c \theta}} \over {\tau_c ^ 2}
 c
 c --- Replace Cheng's smsh with  smshsc, which includes concentration.
-c --- The y,n,c used here are Canuto's "y,n,c" called c_y,c_n,c_c 
+c --- The y,n,c used here are Canuto's "y,n,c" called c_y,c_n,c_c
 c --- elsewhere in this program.
       real   yyy,nnn,ccc,sm,sh,sc
       real   Nm,Nh,Nc
@@ -950,54 +950,54 @@ c --- Write out the p's.
 c --- Writeout the timescale ratios as well.
         ifrecall=1
 ccc   if(ifrecall.eq.0 .and. mnproc.eq.1) then
-c       write(lp,*) "tau_pv/tau     =",tpvot 
-c       write(lp,*) "tau_ptheta/tau =",tptot
-c       write(lp,*) "tau_pc/tau =",tpcot
-c       write(lp,*) "tau_theta/tau  =",ttot
-c       write(lp,*) "tau_c/tau  =",tcot
-c       write(lp,*) "tau_ctheta/tau  =",tctot
-c       write(lp,*) " "
-c       write(lp,*) "p1 =",p1
-c       write(lp,*) "p2 =",p2
-c       write(lp,*) "p3 =",p3
-c       write(lp,*) "p4 =",p4
-c       write(lp,*) "p5 =",p5
-c       write(lp,*) "p6 =",p6
-c       write(lp,*) "p7 =",p7
-c       write(lp,*) "p8 =",p8
-c       write(lp,*) "p9 =",p9
-c       write(lp,*) "p10=",p10
-c       write(lp,*) "p11=",p11
+c       write(*,*) "tau_pv/tau     =",tpvot
+c       write(*,*) "tau_ptheta/tau =",tptot
+c       write(*,*) "tau_pc/tau =",tpcot
+c       write(*,*) "tau_theta/tau  =",ttot
+c       write(*,*) "tau_c/tau  =",tcot
+c       write(*,*) "tau_ctheta/tau  =",tctot
+c       write(*,*) " "
+c       write(*,*) "p1 =",p1
+c       write(*,*) "p2 =",p2
+c       write(*,*) "p3 =",p3
+c       write(*,*) "p4 =",p4
+c       write(*,*) "p5 =",p5
+c       write(*,*) "p6 =",p6
+c       write(*,*) "p7 =",p7
+c       write(*,*) "p8 =",p8
+c       write(*,*) "p9 =",p9
+c       write(*,*) "p10=",p10
+c       write(*,*) "p11=",p11
 c
 c --- Write out the a's and d's as well.
-c       write(lp,*) "a0=",a0
-c       write(lp,*) "a1=",a1
-c       write(lp,*) "a2=",a2
-c       write(lp,*) "a3=",a3
-c       write(lp,*) "a4=",a4
-c       write(lp,*) "a5=",a5
-c       write(lp,*) "d0=",d0
-c       write(lp,*) "d1=",d1
-c       write(lp,*) "d2=",d2
-c       write(lp,*) "d3=",d3
-c       write(lp,*) "d4=",d4
-c       write(lp,*) "d5=",d5
-c       write(lp,*) "d6=",d6
-c       write(lp,*) "d7=",d7
-c       write(lp,*) "d8=",d8
-c       write(lp,*) "d9=",d9
-c       write(lp,*) "d10=",d10
-c       write(lp,*) "d11=",d11
-c       write(lp,*) "d12=",d12
-c       write(lp,*) "d13=",d13
-c       write(lp,*) "d14=",d14
-c       write(lp,*) "d15=",d15
+c       write(*,*) "a0=",a0
+c       write(*,*) "a1=",a1
+c       write(*,*) "a2=",a2
+c       write(*,*) "a3=",a3
+c       write(*,*) "a4=",a4
+c       write(*,*) "a5=",a5
+c       write(*,*) "d0=",d0
+c       write(*,*) "d1=",d1
+c       write(*,*) "d2=",d2
+c       write(*,*) "d3=",d3
+c       write(*,*) "d4=",d4
+c       write(*,*) "d5=",d5
+c       write(*,*) "d6=",d6
+c       write(*,*) "d7=",d7
+c       write(*,*) "d8=",d8
+c       write(*,*) "d9=",d9
+c       write(*,*) "d10=",d10
+c       write(*,*) "d11=",d11
+c       write(*,*) "d12=",d12
+c       write(*,*) "d13=",d13
+c       write(*,*) "d14=",d14
+c       write(*,*) "d15=",d15
 c
 c --- Output p#, a# and d# to the file model_constants if the switch is set.
 c --- Writeout the timescale ratios as well.
 c         if(ifmodelconstout.eq.1 .and. mnproc.eq.1) then
 c           open(unit=66,file='model_constants',status='unknown')
-c           write(66,*) "tau_pv/tau     =",tpvot 
+c           write(66,*) "tau_pv/tau     =",tpvot
 c           write(66,*) "tau_ptheta/tau =",tptot
 c           write(66,*) "tau_pc/tau =",tpcot
 c           write(66,*) "tau_theta/tau  =",ttot
@@ -1080,7 +1080,7 @@ C*******************************************************************************
  1004 format(12(1pe14.5))
       end
 c-----------------------------------------------------------------------
-      subroutine rtwi(xx,val,xst,eps,sm,sh,sc,iend,ier)                      
+      subroutine rtwi(xx,val,xst,eps,sm,sh,sc,iend,ier)
 c
 ccc   use mod_xc  ! HYCOM communication interface
 c
@@ -1096,57 +1096,57 @@ c
       real tol,a,b,d,bb,rit,ric
       integer iend,ier
 c
-c --- to solve general nonlinear equations of the form x=fct_sal(x)       
-c --- by means of wegsteins iteration method                         
-c --- prepare iteration                                             
+c --- to solve general nonlinear equations of the form x=fct_sal(x)
+c --- by means of wegsteins iteration method
+c --- prepare iteration
 c
 c
-      ier=0                                                        
-      tol=xst                                                     
-      xx=fct_sal(sm,sh,sc,tol)                                                 
-      a=xx-xst                                                   
-      b=-a                                                     
-      tol=xx                                                   
+      ier=0
+      tol=xst
+      xx=fct_sal(sm,sh,sc,tol)
+      a=xx-xst
+      b=-a
+      tol=xx
       val=xx-fct_sal(sm,sh,sc,tol)
 c
-c --- start iteration loop                                 
-      do 6 i=1,iend                                       
+c --- start iteration loop
+      do 6 i=1,iend
 c
-c --- Crude fix to avoid mysterious problem which occurred 
+c --- Crude fix to avoid mysterious problem which occurred
 c --- with a close but not too close guess.
       if(abs(val).lt.1.e-12) val =0.
-      if(val) 1,7,1                                      
+      if(val) 1,7,1
 c
-c --- equation is not satisfied by x                    
- 1    b=b/val-1.                                       
-      if(b) 2,8,2                                     
+c --- equation is not satisfied by x
+ 1    b=b/val-1.
+      if(b) 2,8,2
 c
-c --- iteration is possible                          
- 2    a=a/b                                         
-      xx=xx+a                                        
-      b=val                                       
-      tol=xx                                      
-      val=xx-fct_sal(sm,sh,sc,tol) 
+c --- iteration is possible
+ 2    a=a/b
+      xx=xx+a
+      b=val
+      tol=xx
+      val=xx-fct_sal(sm,sh,sc,tol)
 c
-c --- test on satisfactory accuracy            
-      tol=eps                                 
-      d=abs(xx)                               
-      if(d-1.) 4,4,3                        
- 3    tol=tol*d                            
- 4    if(abs(a)-tol) 5,5,6                
- 5    if(abs(val)-10.*tol) 7,7,6         
- 6    continue                          
+c --- test on satisfactory accuracy
+      tol=eps
+      d=abs(xx)
+      if(d-1.) 4,4,3
+ 3    tol=tol*d
+ 4    if(abs(a)-tol) 5,5,6
+ 5    if(abs(val)-10.*tol) 7,7,6
+ 6    continue
 c
-c --- end of iteration loop                                           
-c --- no convergence after iend iteration steps. error return.       
-      ier=1                                          
- 7    return                                        
+c --- end of iteration loop
+c --- no convergence after iend iteration steps. error return.
+      ier=1
+ 7    return
 c
-c --- error return in case of zero divisor         
- 8    ier=2                                       
+c --- error return in case of zero divisor
+ 8    ier=2
 c
-      return                                     
-      end                                       
+      return
+      end
 c
       subroutine interp2d_expabs(ri,rid,slq2,sm,sh,ss,m,m0,delta,rat)
 c
@@ -1227,7 +1227,7 @@ c
 c
       endif
 c
-c --- It is conceivable that rounding errors may in borderline cases 
+c --- It is conceivable that rounding errors may in borderline cases
 c --- throw the calculated table indices for Ri_d off by one.
 c --- Check and allow moving one to either side to take care of this.
       if ((abs(ridb(lrid1))).lt.(abs(rid))) then
@@ -1239,7 +1239,7 @@ c
   250 continue
 c
 c --- Make lrid0 one less or greater than lrid1 according to sgn(rid).
-        lrid0 = lrid1 - nint(sign(float(1),rid)) 
+        lrid0 = lrid1 - nint(sign(float(1),rid))
 c
         if(rid.eq.0.0) lrid1 = 1
   252   continue
@@ -1250,18 +1250,18 @@ C --- Check that the Ri_d value falls within the interpolation interval.
      &   ( rid.lt.0.0.and.
      &    (rid.gt.ridb(lrid0).or.rid.lt.ridb(lrid1)))    ) then
 ccc    if (mnproc.eq.1) then
-c      WRITE(lp,*) "Ri_d is outside interpolation range in interp2d_e."
-c      WRITE(lp,*) "rid=  ",rid,"lrid0= ",lrid0,"lrid1= ",lrid1
-c      WRITE(lp,*) "ridb(lrid0)=  ",ridb(lrid0),
+c      WRITE(*,*) "Ri_d is outside interpolation range in interp2d_e."
+c      WRITE(*,*) "rid=  ",rid,"lrid0= ",lrid0,"lrid1= ",lrid1
+c      WRITE(*,*) "ridb(lrid0)=  ",ridb(lrid0),
 c    &                "   ridb(lrid1)= ",ridb(lrid1)
-c      WRITE(lp,*) "Program is stopping."
+c      WRITE(*,*) "Program is stopping."
 c      endif !1st proc
 c      call xcstop('(interp2d_expabs)')
               stop '(interp2d_expabs)'
       end if
 c
 c --- Artificially reduce Ri if it threatens to surpass Ri_max(Ri_d).
-c --- This is to conform to the 1D table's realizability limit treatment. 
+c --- This is to conform to the 1D table's realizability limit treatment.
 c --- if(ri.gt.MIN(ribtbl(irimax(lrid0)),ribtbl(irimax(lrid1)))) then
 c --- ri = MIN(ribtbl(irimax(lrid0)),ribtbl(irimax(lrid1)))
 c --- end if
@@ -1283,7 +1283,7 @@ c --- Find Interpolation points in the equally spaced Ri part of the table.
 c
 c --- Find Interpolation points in exponential absolute value spaced Ri
 c --- part of the table.
-      else if((abs(ri)).ge.(ribtbl(m))) 
+      else if((abs(ri)).ge.(ribtbl(m)))
      &   then
 c
 c --- Special case where have a value which falls at the limit of the table.
@@ -1300,7 +1300,7 @@ c
   270 continue
       end if
 c
-c --- It is conceivable that rounding errors will in borderline cases 
+c --- It is conceivable that rounding errors will in borderline cases
 c --- throw the calculated table indices for Ri off by one.
 c --- Check and allow moving one to either side to take care of this.
       if((abs(ribtbl(lri1))).lt.(abs(ri))) then
@@ -1310,7 +1310,7 @@ c --- Check and allow moving one to either side to take care of this.
       end if
 c
 c --- Make lri0 one less or greater than lri1 according to sgn(ri).
-        lri0 = lri1 - nint(sign(float(1),ri)) 
+        lri0 = lri1 - nint(sign(float(1),ri))
 c
         if(ri.eq.0.0) lri1 = 1
   272 continue
@@ -1320,11 +1320,11 @@ c --- check that the Ri_d value falls within the interpolation interval.
      &    .or.(ri.lt.0.0.and.(ri.gt.ribtbl(lri0)
      &    .or.ri.lt.ribtbl(lri1)))) then
 ccc    if (mnproc.eq.1) then
-c      WRITE(lp,*) "Ri is outside interpolation range in interp2d_e."
-c      WRITE(lp,*) "ri=  ",ri,"lri0= ",lri0,"lri1= ",lri1
-c      WRITE(lp,*) "ribtbl(lri0)=  ",ribtbl(lri0),
+c      WRITE(*,*) "Ri is outside interpolation range in interp2d_e."
+c      WRITE(*,*) "ri=  ",ri,"lri0= ",lri0,"lri1= ",lri1
+c      WRITE(*,*) "ribtbl(lri0)=  ",ribtbl(lri0),
 c    &                "   ribtbl(lri1)= ",ribtbl(lri1)
-c      WRITE(lp,*) "Program is stopping."
+c      WRITE(*,*) "Program is stopping."
 c      endif !1st proc
 c      call xcstop('(interp2d_expabs)')
               stop '(interp2d_expabs)'
@@ -1336,7 +1336,7 @@ c --- interpolate turbulence fields and introduce table spacing variables.
       deltarid = rid - ridb(lrid0)
       deltari  = ri - ribtbl(lri0)
 c
-c --- set delta field to zero in special cases falling at limit of the table. 
+c --- set delta field to zero in special cases falling at limit of the table.
       if(lrid1.eq.lrid0) then
         dslq2_rid = 0.0
       else
@@ -1364,7 +1364,7 @@ c --- sm
         dsm_ri = (smb(lri1,lrid0) - smb(lri0,lrid0))/
      &             deltarita
       end if
-      sm     = smb(lri0,lrid0) + 
+      sm     = smb(lri0,lrid0) +
      &            dsm_ri*deltari + dsm_rid*deltarid
 c
 c --- sh
@@ -1380,7 +1380,7 @@ c --- sh
         dsh_ri = (shb(lri1,lrid0) - shb(lri0,lrid0))/
      &              deltarita
       end if
-      sh     = shb(lri0,lrid0) + 
+      sh     = shb(lri0,lrid0) +
      &            dsh_ri*deltari + dsh_rid*deltarid
 c
 c --- ss
@@ -1397,7 +1397,7 @@ c --- ss
      &             deltarita
       end if
 c
-      ss     = ssb(lri0,lrid0) + 
+      ss     = ssb(lri0,lrid0) +
      &            dss_ri*deltari + dss_rid*deltarid
 c
       return

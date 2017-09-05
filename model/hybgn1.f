@@ -7,7 +7,7 @@ c --- this version allows switching between T/S and rho/S conservation
 c --- and between pcm and ppm
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : dotrcr,lp,theta,onem,onecm,epsil,salmin
+      USE HYCOM_SCALARS, only : dotrcr,theta,onem,onecm,epsil,salmin
      &  ,sigjmp,nstep,delt1,acurcy,time,onemm,huge,itest,jtest,dplist
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : HALO_UPDATE, SOUTH, GLOBALSUM,
@@ -59,12 +59,12 @@ c
       do 32 l=1,isp(j)
       do 32 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      .  '  entering hybgen:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),
      .  th3d(i,j,k+nn),dp(i,j,k+nn)/onem,
      .  p(i,j,k+1)/onem,k=1,kk)
-      if (vrbos) write (lp,106) nstep,i,j,
+      if (vrbos) write (*,106) nstep,i,j,
      .  '  entering hybgen:  dpthu      u    dpthv      v',
      .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
      .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
@@ -114,12 +114,12 @@ c
 c
       vrbos=i.eq.itest .and. j.eq.jtest
       if (vrbos) then
-        write (lp,99) nstep,i,j,'      o l d   p r o f i l e :'
+        write (*,99) nstep,i,j,'      o l d   p r o f i l e :'
         do k=1,kk,10
-        write (lp,100) (pres(k1)/onem,k1=k,min(kk+1,k+10))
-        write (lp,101) (dens(k1),k1=k,min(kk,k+9))
-        write (lp,102) (ttem(k1),k1=k,min(kk,k+9))
-        write (lp,102) (ssal(k1),k1=k,min(kk,k+9))
+        write (*,100) (pres(k1)/onem,k1=k,min(kk+1,k+10))
+        write (*,101) (dens(k1),k1=k,min(kk,k+9))
+        write (*,102) (ttem(k1),k1=k,min(kk,k+9))
+        write (*,102) (ssal(k1),k1=k,min(kk,k+9))
         end do
       end if
  99   format (i9,2i5,a)
@@ -148,7 +148,7 @@ c
         q2=max(   0.,pres(k+1)-pres(k ))
         q=q1/(q1+q2)
         if (q.lt.0. .or. q.gt.1.) then
-          write (lp,*) 'i,j,q1,q2,q=',i,j,q1,q2,q
+          write (*,*) 'i,j,q1,q2,q=',i,j,q1,q2,q
 ccc          abort=.true.
         end if
         ttem(kp)=ttem(kp)*q+ttem(k)*(1.-q)
@@ -163,7 +163,7 @@ ccc          abort=.true.
         end if
 c
         if (vrbos)
-     .   write (lp,'(i9,2i5,a,i3,a,i3,5x,a,f8.3)') nstep,i,j,
+     .   write (*,'(i9,2i5,a,i3,a,i3,5x,a,f8.3)') nstep,i,j,
      .    '  absorb layer',k,' in',kp,'new rho:',dens(kp)
       end if
  4    continue
@@ -217,19 +217,19 @@ c --- set properties in upper sublayer:
           end if
 c
           if (vrbos) then
-            write (lp,'(i9,2i5,i3,a,3f7.3,f8.2)') nstep,i,j,k,
+            write (*,'(i9,2i5,i3,a,3f7.3,f8.2)') nstep,i,j,k,
      .      '  t,s,th,dp in upper sblyr:',tem_up,sal_up,
      .      sigocn(tem_up,sal_up),(p_hat-pres(k))/onem
-            write (lp,'(22x,a,3f7.3,f8.2)')
+            write (*,'(22x,a,3f7.3,f8.2)')
      .      '  t,s,th,dp in lower sblyr:',tem_lo,sal_lo,
      .      rho_lo,(pres(k+1)-p_hat)/onem
-            write (lp,'(22x,a,1p,2e11.3)') '  scalt,scals =',scalt,scals
+            write (*,'(22x,a,1p,2e11.3)') '  scalt,scals =',scalt,scals
           end if
 c
 c --- combine upper sublayer with layer k-1
           q=(p_hat-pres(k))/max(p_hat-pres(k-1),epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'q out of range - i,j,k,p_hat,pres(k),q=',
+            write (*,*) 'q out of range - i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
 ccc            abort=.true.
           end if
@@ -242,7 +242,7 @@ ccc            abort=.true.
           if (dotrcr) trac(k-1,:)=trac(k,:)*q+trac(k-1,:)*(1.-q)
 c
           if (vrbos)
-     .      write (lp,'(22x,a,2f7.3)')
+     .      write (*,'(22x,a,2f7.3)')
      .     '  old/new th(k-1):',dens(k-1),sigocn(ttem(k-1),ssal(k-1)),
      .     '  old/new th(k  ):',dens(k  ),rho_lo
 c
@@ -295,13 +295,13 @@ c --- layer 1 is too thick. expell layer 1 water into layer 2
      .          min(-onecm,slakf(latij(i,j,3))*(p_hat-pres(2))))
           info='layer too thick '
 c
-          if (vrbos) write (lp,105)
+          if (vrbos) write (*,105)
      .     i,j,k,info,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
  105      format (2i5,i3,2x,a,'  try moving',2(1x,a,f9.3))
 c
           q=(pres(2)-p_hat)/max(pres(3)-p_hat,epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'i,j,k,pres(2),p_hat,q=',
+            write (*,*) 'i,j,k,pres(2),p_hat,q=',
      .                    i,j,k,pres(2),p_hat,q
 ccc            abort=.true.
           end if
@@ -348,7 +348,7 @@ c --- maintain minimum layer thickess of layer k-1
       p_hat=min(p_hat,.5*(pres(k-1)+pres(k+1)))
       info='layer too dense '
 c
-      if (vrbos) write (lp,105)
+      if (vrbos) write (*,105)
      . i,j,k,info,'upper intfc',pres(k)/onem,'=>',p_hat/onem
 c
       if (p_hat.lt.pres(k)) then
@@ -364,7 +364,7 @@ c
           displ(3)=p_hat-pres(k)
           displ(4)=0.
           if (vrbos)
-     .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer above'
+     .    write (*,'(2i5,i3,a)') i,j,k,'  entrain from layer above'
           call ppmad3(pres(k-2),displ,ssal(k-2),ssal(k-2),vrbos)
           if (tscnsv) then
             call ppmad3(pres(k-2),displ,ttem(k-2),ttem(k-2),vrbos)
@@ -378,7 +378,7 @@ c
         else        !  use pcm
           q=(pres(k)-p_hat)/max(pres(k+1)-p_hat,epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'i,j,k,p_hat,pres(k),q=',
+            write (*,*) 'i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
 ccc            abort=.true.
           end if
@@ -401,9 +401,9 @@ c --- move upper interface down and entrain layer k water into layer k-1
 c
         p_hat=min(p_hat,pres(k+1),pres(k)+
      .        max(onecm,slakf(latij(i,j,3))*(p_hat-pres(k))))
-        if (useppm .and. k.lt.kk) then				!  use ppm
+        if (useppm .and. k.lt.kk) then      !  use ppm
           if (vrbos)
-     .    write (lp,'(2i5,i3,a)') i,j,k,'  detrain into layer above'
+     .    write (*,'(2i5,i3,a)') i,j,k,'  detrain into layer above'
           displ(1)=0.
           displ(2)=p_hat-pres(k)
           displ(3)=0.
@@ -421,7 +421,7 @@ c
         else         !  use pcm
           q=(p_hat-pres(k))/max(p_hat-pres(k-1),epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'i,j,k,p_hat,pres(k),q=',
+            write (*,*) 'i,j,k,p_hat,pres(k),q=',
      .                    i,j,k,p_hat,pres(k),q
 ccc            abort=.true.
           end if
@@ -465,13 +465,13 @@ c
  5    p_hat=min(p_hat,pres(k+2))
       if (p_hat.gt.pres(k+1)+onemm) then
 c
-        if (vrbos) write (lp,105)
+        if (vrbos) write (*,105)
      .   i,j,k,info,'lower intfc',pres(k+1)/onem,'=>',p_hat/onem
 c
         if (useppm .and. k.lt.kk-1 .and.
-     .    abs(dens(k+1)-targt(k+1)).gt..1*sigjmp) then		!  use ppm
+     .    abs(dens(k+1)-targt(k+1)).gt..1*sigjmp) then   !  use ppm
           if (vrbos)
-     .    write (lp,'(2i5,i3,a)') i,j,k,'  entrain from layer below'
+     .    write (*,'(2i5,i3,a)') i,j,k,'  entrain from layer below'
           displ(1)=0.
           displ(2)=p_hat-pres(k+1)
           displ(3)=0.
@@ -486,10 +486,10 @@ c
             ttem(k  )=tofsig(dens(k  ),ssal(k  ))
             ttem(k+1)=tofsig(dens(k+1),ssal(k+1))
           end if
-        else							!  use pcm
+        else          !  use pcm
           q=(p_hat-pres(k+1))/max(p_hat-pres(k),epsil)
           if (q.lt.0. .or. q.gt.1.) then
-            write (lp,*) 'i,j,k,p_hat,pres(k+1),q=',
+            write (*,*) 'i,j,k,p_hat,pres(k+1),q=',
      .                    i,j,k,p_hat,pres(k+1),q
 ccc            abort=.true.
           end if
@@ -530,9 +530,9 @@ c
 c
           do k=1,kk-2
             if (pnew(k+1).lt.pnew(k) .or. pnew(k+1).gt.pold(k+2)) then
-ccc              write (lp,'(a,3i5)') 'trcr monotonicity problems at',i,j,k
-ccc              write (lp,'(a/(8f9.0))') 'pold:',pold
-ccc              write (lp,'(a/(8f9.0))') 'pnew:',pnew
+ccc              write (*,'(a,3i5)') 'trcr monotonicity problems at',i,j,k
+ccc              write (*,'(a/(8f9.0))') 'pold:',pold
+ccc              write (*,'(a/(8f9.0))') 'pnew:',pnew
               pnew(k+1)=max(pnew(k),min(pnew(k+1),pold(k+2)))
               displ(k+1)=pnew(k+1)-pold(k+1)
             end if
@@ -546,7 +546,7 @@ c
  20       tndtrc=tndtrc+trac(k,nt)*(pnew(k+1)-pnew(k))
 c
           if (abs(tndtrc)*kk.gt.acurcy*scale*pnew(kk+1))
-     .     write (lp,104) i,j,'  hybgen - bad trcr.intgl.:',totrc,
+     .     write (*,104) i,j,'  hybgen - bad trcr.intgl.:',totrc,
      .      tndtrc,tndtrc/(scale*pnew(kk+1))
         end do          !  ntrcr
       end if            !  dotrcr
@@ -561,25 +561,25 @@ c
       end do
       if (tscnsv) then
         if (abs(tndtem).gt.acurcy*10.*pres(kk+1))
-     .   write (lp,104) i,j,'  hybgen - bad temp.intgl.:',totem,
+     .   write (*,104) i,j,'  hybgen - bad temp.intgl.:',totem,
      .    tndtem,tndtem/(10.*pres(kk+1))
       else
         if (abs(tndrho).gt.acurcy*35.*pres(kk+1))
-     .   write (lp,104) i,j,'  hybgen - bad dens.intgl.:',torho,
+     .   write (*,104) i,j,'  hybgen - bad dens.intgl.:',torho,
      .    tndrho,tndrho/(35.*pres(kk+1))
       end if
       if (abs(tndsal).gt.acurcy*35.*pres(kk+1))
-     . write (lp,104) i,j,'  hybgen - bad saln.intgl.:',tosal,
+     . write (*,104) i,j,'  hybgen - bad saln.intgl.:',tosal,
      .  tndsal,tndsal/(35.*pres(kk+1))
  104  format (2i5,a,1p,2e15.7,e9.1)
 c
       if (vrbos) then
-        write (lp,99) nstep,i,j,'      n e w   p r o f i l e :'
+        write (*,99) nstep,i,j,'      n e w   p r o f i l e :'
         do k=1,kk,10
-        write (lp,100) (pres(k1)/onem,k1=k,min(kk+1,k+10))
-        write (lp,101) (dens(k1),k1=k,min(kk,k+9))
-        write (lp,102) (ttem(k1),k1=k,min(kk,k+9))
-        write (lp,102) (ssal(k1),k1=k,min(kk,k+9))
+        write (*,100) (pres(k1)/onem,k1=k,min(kk+1,k+10))
+        write (*,101) (dens(k1),k1=k,min(kk,k+9))
+        write (*,102) (ttem(k1),k1=k,min(kk,k+9))
+        write (*,102) (ssal(k1),k1=k,min(kk,k+9))
         end do
       end if
 c
@@ -672,7 +672,7 @@ c
  18   continue
 c
       if (abs(tdcyuv).gt.acurcy*uvscl*pold(kk+1))
-     . write (lp,104) i,j,'  hybgen - bad u intgl.',totuv,
+     . write (*,104) i,j,'  hybgen - bad u intgl.',totuv,
      .  tdcyuv,tdcyuv/(uvscl*pold(kk+1))
  14   continue
 c
@@ -712,7 +712,7 @@ c
  28   continue
 c
       if (abs(tdcyuv).gt.acurcy*uvscl*pold(kk+1))
-     . write (lp,104) i,j,'  hybgen - bad v intgl.',totuv,
+     . write (*,104) i,j,'  hybgen - bad v intgl.',totuv,
      .  tdcyuv,tdcyuv/(uvscl*pold(kk+1))
  24   continue
 c
@@ -723,12 +723,12 @@ c
       do 33 l=1,isp(j)
       do 33 i=ifp(j,l),ilp(j,l)
       vrbos=i.eq.itest .and. j.eq.jtest
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      .  '  exiting  hybgen:  temp    saln    dens    thkns    dpth',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),
      .  th3d(i,j,k+nn),dp(i,j,k+nn)/onem,
      .  p(i,j,k+1)/onem,k=1,kk)
-      if (vrbos) write (lp,106) nstep,i,j,
+      if (vrbos) write (*,106) nstep,i,j,
      .  '  exiting  hybgen:  dpthu      u    dpthv      v',
      .  (k,pu(i,j,k+1)/onem,u(i,j,k+nn),
      .     pv(i,j,k+1)/onem,v(i,j,k+nn),k=1,kk)
@@ -759,9 +759,9 @@ c
         if( AM_I_ROOT() ) ntot3 = anwrk+0.1
 
         if( AM_I_ROOT() ) then
-        write (lp,'(a,f6.1,a,i9,a)') 'hybgen - grid restoration at',
+        write (*,'(a,f6.1,a,i9,a)') 'hybgen - grid restoration at',
      .   100.*float(nwrk3)/float(ntot3),' per cent of',ntot3,' points'
-        write (lp,'(a,f6.1,a,i9,a)') 'hybgen - new bottom layer at',
+        write (*,'(a,f6.1,a,i9,a)') 'hybgen - new bottom layer at',
      .   100.*float(nwrk2)/float(ntot2),' per cent of',ntot2,' points'
         end if ! AM_I_ROOT
       end if

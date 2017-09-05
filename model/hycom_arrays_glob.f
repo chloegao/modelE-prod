@@ -157,8 +157,13 @@ cddd      public msk
       public sgain
       public surflx
       public salflx
+      public sflxcum
+      public hflxcum
       public odmsi
       public omlhc
+      public loan_ice
+      public idrift
+      public jdrift
       public dmfz
       public taux
       public tauy
@@ -267,30 +272,30 @@ c
 c
 !!      c o m m o n
       real, allocatable ::
-     . uja(:,:),ujb(:,:)		! velocities at lateral
-     .,via(:,:),vib(:,:)		!          neighbor points
-     .,pbot(:,:)			! bottom pressure at t=0
-     .,tracer(:,:,:,:)			! tracer
-     .,diadff(:,:,:)			!
-     .,tprime(:,:)			! temp.change due to surflx
-     .,sgain(:,:)			! salin.changes from diapyc.mix.
-     .,surflx(:,:)			! surface thermal energy flux
-     .,salflx(:,:)			! surface salinity flux
-c    .,thkice(:,:)			! grid-cell avg. ice thknss (cm)
-c    .,covice(:,:)			! ice coverage (rel.units)
-c    .,temice(:,:)			! ice surf.temp.
-c    .,odhsi(:,:)			! heat borrowed from frozen
-     .,odmsi(:,:)			! newly formed ice
+     . uja(:,:),ujb(:,:)    ! velocities at lateral
+     .,via(:,:),vib(:,:)    !          neighbor points
+     .,pbot(:,:)            ! bottom pressure at t=0
+     .,tracer(:,:,:,:)      ! tracer
+     .,diadff(:,:,:)        !
+     .,tprime(:,:)          ! temp.change due to surflx
+     .,sgain(:,:)           ! salin.changes from diapyc.mix.
+     .,surflx(:,:)          ! surface thermal energy flux
+     .,salflx(:,:)          ! surface salinity flux
+     .,sflxcum(:,:)         ! accumulated saltflux
+     .,hflxcum(:,:)         ! accumulated heatflux
+c    .,thkice(:,:)          ! grid-cell avg. ice thknss (cm)
+c    .,covice(:,:)          ! ice coverage (rel.units)
+c    .,temice(:,:)          ! ice surf.temp.
+c    .,odhsi(:,:)           ! heat borrowed from frozen
+     .,odmsi(:,:)           ! newly formed ice
      .,omlhc(:,:)
-     .,dmfz(:,:)			! ice mass due to freezing
-c
-!!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
-c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
-!!     .   ,odmsi,omlhc,dmfz
+     .,loan_ice(:,:)        ! heatflux to prevent SST below freezing, > 0
+     .,dmfz(:,:)            ! ice mass due to freezing
 c
       integer, allocatable, dimension (:,:) ::
-     .  klist				! k-index of layer below mixl'r
-     . ,ijlist				! global ij index
+     .  klist               ! k-index of layer below mixl'r
+     . ,ijlist              ! global ij index
+     . ,idrift,jdrift                   ! drift index for loan_ice
 c
 !!    common/int1/klist
 
@@ -449,8 +454,13 @@ c
       !!!call unpack_data( ogrid,  sgain, sgain_loc )
       call unpack_data( ogrid,  surflx, surflx_loc )
       call unpack_data( ogrid,  salflx, salflx_loc )
+      call unpack_data( ogrid,  sflxcum, sflxcum_loc )
+      call unpack_data( ogrid,  hflxcum, hflxcum_loc )
       call unpack_data( ogrid,  odmsi, odmsi_loc )
       call unpack_data( ogrid,  omlhc, omlhc_loc )
+      call unpack_data( ogrid,  loan_ice, loan_ice_loc )
+      call unpack_data( ogrid,  idrift, idrift_loc )
+      call unpack_data( ogrid,  jdrift, jdrift_loc )
       call unpack_data( ogrid,  dmfz, dmfz_loc )
       call unpack_data( ogrid,  taux, taux_loc )
       call unpack_data( ogrid,  tauy, tauy_loc )
@@ -590,8 +600,13 @@ c
       !!!call pack_data( ogrid,  sgain_loc, sgain )
       call pack_data( ogrid,  surflx_loc, surflx )
       call pack_data( ogrid,  salflx_loc, salflx )
+      call pack_data( ogrid,  sflxcum_loc, sflxcum )
+      call pack_data( ogrid,  hflxcum_loc, hflxcum )
       call pack_data( ogrid,  odmsi_loc, odmsi )
       call pack_data( ogrid,  omlhc_loc, omlhc )
+      call pack_data( ogrid,  loan_ice_loc, loan_ice )
+      call pack_data( ogrid,  idrift_loc, idrift )
+      call pack_data( ogrid,  jdrift_loc, jdrift )
       call pack_data( ogrid,  dmfz_loc, dmfz )
       call pack_data( ogrid,  taux_loc, taux )
       call pack_data( ogrid,  tauy_loc, tauy )
@@ -628,7 +643,7 @@ c
       endif
 
       allocate(
-     &     depths(idm_full,jdm_full) 
+     &     depths(idm_full,jdm_full)
      &     )
       depths = 0
 
@@ -712,16 +727,19 @@ c
      .,sgain(idm,kdm)
      .,surflx(idm,jdm)
      .,salflx(idm,jdm)
+     .,sflxcum(idm,jdm)
+     .,hflxcum(idm,jdm)
 c    .,thkice(idm,jdm)
 c    .,covice(idm,jdm)
 c    .,temice(idm,jdm)
 c    .,odhsi(idm,jdm)
      .,odmsi(idm,jdm)
      .,omlhc(idm,jdm)
+     .,loan_ice(idm,jdm)
      .,dmfz(idm,jdm) )
 c
-      allocate( klist(idm,jdm)
-     .  ,ijlist(idm,jdm)  )
+      allocate( klist(idm,jdm),ijlist(idm,jdm)
+     .        ,idrift(idm,jdm),jdrift(idm,jdm)  )
 c
       allocate(
      . taux(idm,jdm)
@@ -857,8 +875,13 @@ c
       sgain = 0
       surflx = 0
       salflx = 0
+      sflxcum = 0
+      hflxcum = 0
       odmsi = 0
       omlhc = 0
+      loan_ice = 0
+      idrift = 0
+      jdrift = 0
       dmfz = 0
       taux = 0
       tauy = 0
@@ -998,8 +1021,13 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(sgain(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(surflx(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(salflx(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(sflxcum(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(hflxcum(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odmsi(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(omlhc(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(loan_ice(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(idrift(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(jdrift(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dmfz(:,:))
 c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(klist(:,:))

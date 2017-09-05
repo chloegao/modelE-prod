@@ -11,7 +11,7 @@ c --- tradv2 - performs the actual transport operation
 c ---          (should be called immediately  b e f o r e  diapfl)
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp,oddev
+      USE HYCOM_SCALARS, only : oddev,onemu
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
@@ -36,7 +36,7 @@ c
  1    continue
       oddev=n
       if(AM_I_ROOT() )
-     &  write (lp,'(a)') 'tracer transport arrays initialized'
+     &  write (*,'(a)') 'tracer transport arrays initialized'
       return
       end
 c
@@ -47,14 +47,14 @@ c
 c --- build up time integrals of horiz. mass fluxes
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp,oddev,delt1
+      USE HYCOM_SCALARS, only : oddev,delt1,onemu
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
       integer i,j,k,l,n,nn
 c
       if (n.ne.oddev) then
-        write (lp,'(2(a,i2/))')
+        write (*,'(2(a,i2/))')
      .   'tracer advection time interval begins/ends at n =',oddev,
      .    '=> mass fluxes must be accumulated when n =',oddev
         stop '(n=oddev required in tradv1)'
@@ -72,7 +72,7 @@ c
  7    vfxcum(i,j,k)=vfxcum(i,j,k)+vflx(i,j,k)*delt1
  5    continue
       if(AM_I_ROOT() )
-     &  write (lp,'(a)') 'mass fluxes saved for tracer transport'
+     &  write (*,'(a)') 'mass fluxes saved for tracer transport'
       return
       end
 c
@@ -83,7 +83,7 @@ c
 c --- advect tracer over 'mixfrq' time steps
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp,oddev
+      USE HYCOM_SCALARS, only : oddev,onemu
       USE HYCOM_ARRAYS, only : ufxcum_loc => ufxcum,
      &     vfxcum_loc => vfxcum, p_loc => p, dp_loc => dp,
      &     scp2_loc => scp2,
@@ -94,7 +94,7 @@ c
       integer i,j,k,l,n,nn,ib,jb
 c
       real vertfx(idm,J_0H:J_1H,kdm),hordiv(idm,J_0H:J_1H,kdm),
-     .     coldiv(idm),verdiv,q,fluxdv,thkchg 
+     .     coldiv(idm),verdiv,q,fluxdv,thkchg
       real vertfx_glob(idm,jdm,kdm)
 
 !          trcold(jdm,kdm),prold(jdm,kdm+1),
@@ -103,7 +103,7 @@ c
       character string*18
 c
       if (n.ne.oddev) then
-        write (lp,'(2(a,i2))')
+        write (*,'(2(a,i2))')
      .   'tracer advection interval began at n =',n,
      .    '  and must end at n=',oddev
         stop '(n=oddev required in tradv2)'
@@ -134,7 +134,7 @@ c
      .            +vfxcum_loc(i,jb,k)-vfxcum_loc(i,j,k))*scp2i_loc(i,j)
       coldiv(i)=coldiv(i)+hordiv(i,j,k)
 c
-cdiag if (i.eq.itest .and. j.eq.jtest) write (lp,103) i,j,k,
+cdiag if (i.eq.itest .and. j.eq.jtest) write (*,103) i,j,k,
 cdiag. 'mass flux',ufxcum(i,j,k)*scp2i(i,j),vfxcum(i,j,k)*scp2i(i,j),
 cdiag.  coldiv(i),vfxcum(i,jb,k)*scp2i(i,j),ufxcum(ib,j,k)*scp2i(i,j)
  11   continue
@@ -172,7 +172,7 @@ cdiag i=itest
 cdiag j=jtest
 cdiag ib=mod(i,ii)+1
 cdiag jb=mod(j,jj)+1
-cdiag write (lp,'(2i5,a/a)') i,j,
+cdiag write (*,'(2i5,a/a)') i,j,
 cdiag. '  trcadv -- time-integrated continuity eqn diagnostics:',
 cdiag.  '     thknss_tndcy  horiz.flxdiv   vert.flxdiv      residuum'
 cdiag do k=1,kk
@@ -180,10 +180,10 @@ cdiag   thkchg=dp(i,j,k+nn)-dpinit(i,j,k)
 cdiag   fluxdv=(ufxcum(ib,j,k)-ufxcum(i,j,k)
 cdiag.         +vfxcum(i,jb,k)-vfxcum(i,j,k))*scp2i(i,j)
 cdiag   if (k.eq.1) then
-cdiag     write (lp,104) k,thkchg,fluxdv,vertfx(i,j,k),
+cdiag     write (*,104) k,thkchg,fluxdv,vertfx(i,j,k),
 cdiag.    thkchg+fluxdv+vertfx(i,j,k)
 cdiag   else
-cdiag     write (lp,104) k,thkchg,fluxdv,vertfx(i,j,k)-vertfx(i,j,k-1),
+cdiag     write (*,104) k,thkchg,fluxdv,vertfx(i,j,k)-vertfx(i,j,k-1),
 cdiag.    thkchg+fluxdv+vertfx(i,j,k)-vertfx(i,j,k-1)
 cdiag   end if
 cdiag end do
@@ -222,7 +222,7 @@ c
 cdiag call totals(dp(1,1,1+nn),tracer(1,1,1,1),
 cdiag.            dp(1,1,1+nn),tracer(1,1,1,2),'after fct3d')
 c
-      if (AM_I_ROOT()) write (lp,'(a)') 'tracer transport done'
+      if (AM_I_ROOT()) write (*,'(a)') 'tracer transport done'
 c
       return
       end
@@ -246,14 +246,14 @@ c  scali  - inverse of scal
 c  fco,fc - depth of the layer at previous and new time step
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp, itest, jtest
+      USE HYCOM_SCALARS, only : itest, jtest, onemu
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, HALO_UPDATE, NORTH, SOUTH,
      &                         haveLatitude, GLOBALSUM, broadcast
       implicit none
       integer i,j,k,l,ia,ib,ja,jb
 c
       real fld(idm,J_0H:J_1H,kdm),u(idm,J_0H:J_1H,kdm),
-     .     v(idm,J_0H:J_1H,kdm),w(idm,J_0H:J_1H,kdm), 
+     .     v(idm,J_0H:J_1H,kdm),w(idm,J_0H:J_1H,kdm),
      .     scal(idm,J_0H:J_1H),scali(idm,J_0H:J_1H),
      .     fco1(idm,J_0H:J_1H,kdm),fc1(idm,J_0H:J_1H,kdm)
 
@@ -280,7 +280,7 @@ c
       real fld2(idm,J_0H-1:J_1), tfld(idm,J_0H:J_1H)
 
       real a(kdm),b(kdm),c(kdm),athird,dx,fcdx,yl,yr
-      real onemu,q,clip,vlume,amount,bfore,after,slab,dslab,thkchg,
+      real q,clip,vlume,amount,bfore,after,slab,dslab,thkchg,
      .     fluxdv,epsil
       integer iord,ip1,im1,jp1,jm1,kp,jaa
       character string*16
@@ -289,7 +289,7 @@ c
       parameter (athird=1./3.)
 c
 c --- if iord=1, scheme reduces to simple donor cell scheme.
-      parameter (epsil=1.e-11,onemu=1.e-6)
+      parameter (epsil=1.e-11)
 
 !========================================================
 c
@@ -307,7 +307,7 @@ c --- optional: check mass conservation
 cdiag i=itest
 cdiag j=jtest
 cdiag jb=mod(j,jj)+1
-cdiag write (lp,'(2i5,a/a)') i,j,
+cdiag write (*,'(2i5,a/a)') i,j,
 cdiag. '  fct3d -- time-integrated continuity eqn diagnostics:',
 cdiag.  '     thknss_tndcy  horiz.flxdiv   vert.flxdiv      residuum'
 cdiag do k=1,kk
@@ -315,10 +315,10 @@ cdiag thkchg=fc(i,j,k)-fco(i,j,k)
 cdiag fluxdv=(u(i+1,j,k)-u(i,j,k)
 cdiag.       +v(i,jb ,k)-v(i,j,k))*scali(i,j)
 cdiag if (k.eq.1) then
-cdiag   write (lp,103) k,thkchg,fluxdv,w(i,j,k),
+cdiag   write (*,103) k,thkchg,fluxdv,w(i,j,k),
 cdiag.  thkchg+fluxdv+w(i,j,k)
 cdiag else
-cdiag   write (lp,103) k,thkchg,fluxdv,w(i,j,k)-w(i,j,k-1),
+cdiag   write (*,103) k,thkchg,fluxdv,w(i,j,k)-w(i,j,k-1),
 cdiag.  thkchg+fluxdv+w(i,j,k)-w(i,j,k-1)
 cdiag end if
 cdiag end do
@@ -342,7 +342,7 @@ cc      .    +w(i,j,k)-w(i,j,k-1)+fc(i,j,k)-fco(i,j,k)
 cc       end if
 cc  9    continue
 cc       call findmx(ip,flxdiv,idm,ii1,jj,'mass consv')
-cc       write (lp,*) 'shown below: mass consv. residual in layer',k
+cc       write (*,*) 'shown below: mass consv. residual in layer',k
 cc       call zebra(flxdiv,idm,idm-1,jdm)
 cc  5    continue
 c
@@ -493,8 +493,8 @@ c
 
       CALL HALO_UPDATE(ogrid,fld(:,:,k), FROM=NORTH)
       CALL HALO_UPDATE(ogrid,fld(:,:,k), FROM=SOUTH)
-       fld2(:,J_0H:J_1) = fld(:,J_0H:J_1,k) 
-       tfld(:,J_0:J_1)  = fld(:,J_0H:J_1-1,k) 
+       fld2(:,J_0H:J_1) = fld(:,J_0H:J_1,k)
+       tfld(:,J_0:J_1)  = fld(:,J_0H:J_1-1,k)
       CALL HALO_UPDATE(ogrid,tfld, FROM=SOUTH)
        fld2(:,J_0H-1) = tfld(:,J_0H)
 c
@@ -596,11 +596,11 @@ c
 c
 cdiag i=itest
 cdiag j=jtest
-cdiag write (lp,101) 'advem(1)',i,j,k,fld(i-1,j,k),u(i,j,k),
+cdiag write (*,101) 'advem(1)',i,j,k,fld(i-1,j,k),u(i,j,k),
 cdiag. fld(i,j-1,k),v(i,j,k),fld(i,j,k),v(i,j+1,k),fld(i,j+1,k),
 cdiag.  u(i+1,j,k),fld(i+1,j,k)
- 101  format(a,2i5,i3,f18.3/1pe39.2/0pf19.3,1pe11.2,0pf9.3,
-     .1pe11.2,0pf9.3/1pe39.2/0pf39.3)
+ 101  format(a,2i5,i3,f18.3/es39.2/f19.3,es11.2,f9.3,
+     .es11.2,f9.3/es39.2/f39.3)
 
       CALL HALO_UPDATE(ogrid,fly, FROM=NORTH)
 c
@@ -613,7 +613,7 @@ c
       flxdiv(i,j)=(flx(i+1,j)-flx(i,j)+fly(i,jb )-fly(i,j))*scali(i,j)
 c
 cdiag if (i.eq.itest .and. j.eq.jtest)
-cdiag. write (lp,'(2i5,i3,a,4f10.5,1pe9.2)') i,j,k,'  fc,fco,divs:',
+cdiag. write (*,'(2i5,i3,a,4f10.5,es9.2)') i,j,k,'  fc,fco,divs:',
 cdiag.  fc(i,j,k),fco(i,j,k),flxdiv(i,j),vertdv(i,j,k),
 cdiag.  fc(i,j,k)-fco(i,j,k)+flxdiv(i,j)+vertdv(i,j,k)
 c
@@ -679,7 +679,7 @@ c
 c
 cdiag i=itest
 cdiag j=jtest
-cdiag write (lp,101) 'advem(2)',i,j,k,fld(i-1,j,k),u(i,j,k),
+cdiag write (*,101) 'advem(2)',i,j,k,fld(i-1,j,k),u(i,j,k),
 cdiag. fld(i,j-1,k),v(i,j,k),fld(i,j,k),v(i,j+1,k),fld(i,j+1,k),
 cdiag.  u(i+1,j,k),fld(i+1,j,k)
 
@@ -715,7 +715,8 @@ c
 c
         if (vlume.ne.0.) then
           clip=clip/vlume
-          write (lp,'(i2,a,1pe11.3)') k,'  tracer drift in fct3d',-clip
+          write (*,'(a,i2,a,es11.3)') 'k=',k,'  tracer drift in fct3d',
+     .     -clip
           do 13 j=J_0, J_1
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)
@@ -731,17 +732,17 @@ c
 c
       call compBforeAfter(bfore,after,bforej,afterj)
 c
- 4    continue
+ 4    continue			! k loop
 
       call broadcast(ogrid, bfore)
       call broadcast(ogrid, after)
 c
       if (bfore.ne.0.)
-     . write (lp,'(a,1p,3e14.6,e11.1)') 'fct3d conservation:',
+     . write (*,'(a,3es14.6,es11.2)') 'fct3d conservation:',
      .  bfore,after,after-bfore,(after-bfore)/bfore
       q=1.
       if (after.ne.0.) q=bfore/after
-      write (lp,'(a,f11.6)') 'fct3d: multiply tracer field by',q
+      write (*,'(a,f11.6)') 'fct3d: multiply tracer field by',q
 ccc   if (q.gt.1.1 .or. q.lt..9) stop '(excessive nonconservation)'
       if (q.gt.2.0 .or. q.lt..5) stop '(excessive nonconservation)'
 c
@@ -756,7 +757,7 @@ c
 !========================================================
       subroutine compBforeAfter(bfore,after,bforej,afterj)
 
-      USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, jj, ogrid 
+      USE HYCOM_DIM, only : idm, jdm, kdm, J_0H,  J_1H, jj, ogrid
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
 

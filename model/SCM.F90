@@ -158,7 +158,14 @@
   enddo 
 
   ! initialize surface from run deck if requested
+  !      Note: for SCM we are overwriting surface coverage fractions for
+  !            land,ocean,landice that are read from GCM input files.
+  !            If your box could have land or ocean ice you can consider
+  !            how you want to treat that. For Ocean(or Lake) ice see
+  !            si_atm%rsi or si_ocn%rsi   where rsi is the ratio of ice 
+  !            coverage to water coverage.   
   write(6,*) ' ... SCM initializing surface state ...'
+  FLICE(1,1)=0.0
   if( SCMopt%sfc > 0 )then
     if( SCMopt%sfc==1 )then
       FLAND(1,1) = 1.
@@ -175,7 +182,7 @@
     FLAKE(1,1) = 0.
   endif
   FLAKE0(1,1) = FLAKE(1,1)
-  FEARTH(1,1) = FLAND(1,1) 
+  FEARTH(1,1) = FLAND(1,1)-FLICE(1,1) 
   FEARTH0(1,1) = FEARTH(1,1)
 
   if( SCMopt%Tskin )then

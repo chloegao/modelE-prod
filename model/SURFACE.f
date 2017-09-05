@@ -50,7 +50,7 @@ C****
       use OldTracer_mod, only: dodrydep
 #endif
 #ifdef TRACERS_WATER
-      use OldTracer_mod, only: nWATER,tr_wd_TYPE
+      use OldTracer_mod, only: nWATER,tr_wd_TYPE,trname
 #endif
 #endif
       USE SOCPBL, only : npbl=>n
@@ -170,6 +170,8 @@ c
       real*8, dimension(ntm) :: trgrnd,trgrnd2
 #ifdef TRACERS_WATER
       real*8, dimension(ntm) :: tevaplim
+      !(sub-)daily tracer evaporation variable name
+      character(len=20) :: trename
 #endif
 #ifdef TRACERS_DRYDEP
       real*8 tdryd, tdd, td1, rtsdt, rts, depvel, gsvel
@@ -1269,15 +1271,29 @@ C
         call inc_subdd(subdd,k,sddarr2d)
 C
       case ('evap')
-        do j=j_0,j_1; do i=i_0,imaxj(j)
-          sddarr2d(i,j) = -dtsurf*qflux1(i,j)
-        enddo;        enddo
-        call inc_subdd(subdd,k,sddarr2d) 
-C
+        call inc_subdd(subdd,k,atmsrf%evapor) 
 C
       end select
       enddo
       enddo
+
+#ifdef TRACERS_WATER
+      call find_groups('taijh',grpids,ngroups) !2-D tracer variables
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        do k=1,subdd%ndiags
+          ntm_loop: do n=1,ntm
+            !Set precipitation tracer name (sname):
+            trename = trim(trname(n))//'_in_evap'
+            !If name matches subdd name, then add to output and exit loop:
+            if(trename.eq.trim(subdd%name(k))) then
+              call inc_subdd(subdd,k,atmsrf%trevapor(n,:,:))
+              exit ntm_loop
+            end if
+          end do ntm_loop
+        end do !subdd diagnostics/variables
+      end do   !subdd groups
+#endif
 
 #endif
 

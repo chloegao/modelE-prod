@@ -277,6 +277,10 @@ subroutine CONDSE
 #endif
 
 #ifdef CACHED_SUBDD
+#ifdef TRACERS_WATER
+   !tracer precipitation variable name
+   character(len=20) :: trpname 
+#endif
 #ifdef SCM
    !  isccp diagnostics   save frequency histogram for subdd diagnostics
    !@var save_fq_isccp
@@ -2033,6 +2037,26 @@ subroutine CONDSE
   end select
   enddo
   enddo
+
+#ifdef TRACERS_WATER
+
+  call find_groups('taijh',grpids,ngroups) !2-D tracer variables
+  do igrp=1,ngroups
+    subdd => subdd_groups(grpids(igrp))
+    do k=1,subdd%ndiags
+      ntm_loop: do n=1,ntm
+        !Set precipitation tracer name (sname):
+        trpname = trim(trname(n))//'_in_prec'
+        !If name matches subdd name, then add to output and exit loop:
+        if(trpname.eq.trim(subdd%name(k))) then
+          call inc_subdd(subdd,k,trprec(n,:,:))
+          exit ntm_loop
+        end if 
+      end do ntm_loop
+    end do !subdd diagnostics/variables
+  end do   !subdd groups
+
+#endif
 
 #ifdef SCM
   if (isccp_diags.eq.1) then

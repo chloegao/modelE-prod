@@ -16,12 +16,12 @@ print "\n";
 # copies over accfiles, sumfiles for annual means, climaological means
 # and seasonal means, seasonal cycles and then deletes accfiles
 
-=pod
+###=pod
 chdir $myDir;
 print "Doing avgACC.s \n";
 do 'avgACC.s';
 print "\n";
-=cut
+###=cut
 
 ##### -------- mean annual cycle at a certain level  ------- #####
 chdir $myDir;

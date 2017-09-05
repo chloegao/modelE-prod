@@ -14,8 +14,8 @@ cddd      USE HYCOM_DIM_GLOB, only : ii,jj,kk,ii1,isp,ifp,ilp,ip,isq,ifq,ilq
 cddd     &     ,isu,ifu,ilu,jsv,jfv,jlv,ntrcr,jsp,jfp,jlp,msk,iio,jjo
 cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
-      USE HYCOM_SCALARS, only : lp,pi,area,avgbot,huge,flnmlat,flnmdep
-     &   ,flnmbas,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn
+      USE HYCOM_SCALARS, only : pi,area,avgbot,huge,flnmlat,flnmdep
+     &   ,flnmbas,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn,ocnvol
      &   ,init_pr1d
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
@@ -38,7 +38,7 @@ c --- 'glufac' = regional viscosity enhancement factor
 c
 c --- read basin depth array
       if (AM_I_ROOT())
-     .write (lp,'(2a)') ' reading bathymetry file from ',flnmdep
+     .write (*,'(2a)') ' reading bathymetry file from ',flnmdep
       call findunit(iu1)
       open (unit=iu1,file=flnmdep,form='unformatted',status='old'
      .     ,convert='big_endian')
@@ -46,7 +46,7 @@ c --- read basin depth array
       close (unit=iu1)
 
       if (iz.ne.idm .or. jz.ne.jdm) then
-        write (lp,'(2(a,2i5))') 'depth file dimensions',iz,jz,
+        write (*,'(2(a,2i5))') 'depth file dimensions',iz,jz,
      .   '  should be',idm,jdm
         stop '(geopar)'
       end if
@@ -73,7 +73,7 @@ c     end do
 c
       !write(0,*) "ok ",__FILE__,__LINE__
       if (AM_I_ROOT()) then ! print only on root
-        write (lp,*) 'shown below: bottom depth'
+        write (*,*) 'shown below: bottom depth'
         call zebra(depths,idm,ii1,jj)
       endif
 
@@ -89,10 +89,10 @@ c --- determine do-loop limits for u,v,p,q points
 
       if (AM_I_ROOT()) then
 ccc      do 3 i=1,ii1
-ccc 3    write (lp,'('' i='',i3,'' jfp,jlp='',7(1x,2i5))') i,
+ccc 3    write (*,'('' i='',i3,'' jfp,jlp='',7(1x,2i5))') i,
 ccc     . (jfp(i,l),jlp(i,l),l=1,jsp(i))
 ccc      do 5 j=1,jj
-ccc 5    write (lp,'('' j='',i3,'' ifp,ilp='',7(1x,2i5))') j,
+ccc 5    write (*,'('' j='',i3,'' ifp,ilp='',7(1x,2i5))') j,
 ccc     . (ifp(j,l),ilp(j,l),l=1,isp(j))
 c
 c --- smooth bottom topography (optional)
@@ -101,12 +101,12 @@ c
 c     call prtmsk(ip,depths,util1,idm,ii1,jj,0.,1.,
 c    .     'bottom depth (m)')
 c
-      write (lp,'(2a)') 'read lat/lon from ',flnmlat
+      write (*,'(2a)') 'read lat/lon from ',flnmlat
       call findunit(iu2)
       open (iu2,file=flnmlat,form='unformatted',status='old')
       read (iu2) iz,jz
       if (iz.ne.idm .or. jz.ne.jdm) then
-        write (lp,'(2(a,2i5))') 'error - idm,jdm =',iz,jz,
+        write (*,'(2(a,2i5))') 'error - idm,jdm =',iz,jz,
      .   ' in lat/lon file should be',idm,jdm
         stop '(geopar)'
       end if
@@ -120,9 +120,9 @@ c
       latij(i,j,n)=lat4(i,j,n)
  8    lonij(i,j,n)=lon4(i,j,n)
 c
-c     write (lp,*) 'shown below: latitude of vorticity points'
+c     write (*,*) 'shown below: latitude of vorticity points'
 c     call zebra(latij(1,1,4),idm,ii,jj)
-c     write (lp,*) 'shown below: longitude of vorticity points'
+c     write (*,*) 'shown below: longitude of vorticity points'
 c     call zebra(lonij(1,1,4),idm,ii,jj)
 c
 c --- define coriolis parameter and grid size
@@ -211,23 +211,23 @@ c
 c
       write(*,'(a,3f8.2)') 'lat/lon/depth of Bering Strait:'
      . ,latij(ipacs,jpac,3),lonij(ipacs,jpac,3),depths(ipacs,jpac)
-c     write (lp,'('' shown below: coriolis parameter'')')
+c     write (*,'('' shown below: coriolis parameter'')')
 c     call zebra(corio,idm,ii,jj)
-c     write (lp,'('' shown below: grid cell size'')')
+c     write (*,'('' shown below: grid cell size'')')
 c     call zebra(scp2,idm,ii,jj)
 c
       area=0.
       avgbot=0.
+      ocnvol=0.
 c
       do 57 j=1,jj
       do 57 l=1,isp(j)
       do 57 i=ifp(j,l),ilp(j,l)
-      avgbot=avgbot+depths(i,j)*scp2(i,j)
+      ocnvol=ocnvol+depths(i,j)*scp2(i,j)
  57   area=area+scp2(i,j)
-      avgbot=avgbot/area
-      write (lp,100) avgbot,area
- 100  format(' mean basin depth (m) and area (10^6 km^2):',f9.1,
-     .       -12p,f9.1)
+      avgbot=ocnvol/area
+      write (*,100) avgbot,area*1.e-12,ocnvol*1.e-18
+ 100  format('mean basin depth(m), area(mm^2) & volumn(mm^3):',3f9.3)
 c
 c --- initialize some arrays
 c
@@ -236,7 +236,7 @@ c
       ! uncommented by IA
       !if (nstep0.eq.0) then
       if (iniOCEAN) then
-      write (lp,*) 'laying out arrays in memory ...'
+      write (*,*) 'laying out arrays in memory ...'
       do 209 j=1,jj
       do 209 i=1,ii
       p(i,j,1)=huge
@@ -462,7 +462,7 @@ c
       vfxcum(i,j,k)=0.
       v(i,j,k   )=0.
  168  v(i,j,k+kk)=0.
-      write (lp,*) '... array layout completed'
+      write (*,*) '... array layout completed'
       ! uncommented by IA
       endif                    ! end of nstep=0
 c
@@ -560,8 +560,8 @@ c
         wgtkap(i,j)=4.
       endif
  159  continue
-      call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
-     .     'wgtkap')
+c     call prtmsk(ip,wgtkap,util1,idm,ii1,jj,0.,100.,
+c    .     'wgtkap')
 c
       endif ! AM_I_ROOT
 c

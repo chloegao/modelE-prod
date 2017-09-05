@@ -79,12 +79,17 @@ c
      .,sgain_loc => sgain
      .,surflx_loc => surflx
      .,salflx_loc => salflx
+     .,sflxcum_loc => sflxcum
+     .,hflxcum_loc => hflxcum
 c    .,thkice_loc => thkice
 c    .,covice_loc => covice
 c    .,temice_loc => temice
 c    .,odhsi_loc => odhsi
      .,odmsi_loc => odmsi
      .,omlhc_loc => omlhc
+     .,loan_ice_loc => loan_ice
+     .,idrift_loc => idrift
+     .,jdrift_loc => jdrift
      .,dmfz_loc => dmfz
 c
      &,klist_loc => klist
@@ -225,8 +230,13 @@ c
       public sgain_loc
       public surflx_loc
       public salflx_loc
+      public sflxcum_loc
+      public hflxcum_loc
       public odmsi_loc
       public omlhc_loc
+      public loan_ice_loc
+      public idrift_loc
+      public jdrift_loc
       public dmfz_loc
       public taux_loc
       public tauy_loc

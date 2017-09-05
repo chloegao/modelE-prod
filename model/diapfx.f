@@ -5,8 +5,8 @@ c --- hycom version 0.9.2
       USE HYCOM_DIM, only : jj,kk,isp,ifp,ilp,idm,kdm,ntrcr
      &     ,jchunk, J_0, J_1
       USE HYCOM_SCALARS, only : diapyc,nstep,dotrcr
-     &     ,onemm,g,baclin,onem, onecm 
-     &     ,epsil,mixfrq,sigjmp,thref,lp,acurcy,diapyn
+     &     ,onemm,g,baclin,onem, onecm ,onemu
+     &     ,epsil,mixfrq,sigjmp,thref,acurcy,diapyn
      &     ,itest,jtest
       USE HYCOM_ARRAYS
       implicit none
@@ -36,7 +36,7 @@ c --- if mixfrq > 1, apply mixing algorithm to both time levels
       froglp=max(2,mixfrq)
 c
 ccc   salt=0.
-c 
+c
       do 31 j=J_0, J_1
       do 31 l=1,isp(j)
       do 31 i=ifp(j,l),ilp(j,l)
@@ -72,7 +72,7 @@ c
         trflxu(kk+1,:)=0.
       end if
 c
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      . '  entering diapfl:  temp    saln    dens    thkns   tracer',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,tracer(i,j,k,1),k=1,kk)
@@ -92,7 +92,7 @@ c --- locate lowest mass-containing layer and upper edge of stratified region
       end if
  36   continue
 c
-      if (vrbos) write (lp,'(i9,2i5,a,2i5)') nstep,i,j,' kmin,kmax =',
+      if (vrbos) write (*,'(i9,2i5,a,2i5)') nstep,i,j,' kmin,kmax =',
      .  kmin,kmax
 c
 c --- find buoyancy frequency for each layer
@@ -103,7 +103,7 @@ c
 c --- ennsq = buoy.freq.^2 / g^2
         ennsq=max(0.,min(th3d(i,j,kn+1)-th3d(i,j,kn  ),
      .                   th3d(i,j,kn  )-th3d(i,j,kn-1)))
-     .    /max(p(i,j,k+1)-p(i,j,k),onemm)
+     .    /max(p(i,j,k+1)-p(i,j,k),onemu)
 c --- store (exch.coeff x buoy.freq.^2 / g x time step) in -flngth-
 c --- (dimensions of flngth: length in pressure units)
 c -----------------------------------------------------------------------
@@ -114,7 +114,7 @@ c --- use the following if exch.coeff. = diapyc
 ccc        flngth(k)=diapyc*ennsq*g * baclin*froglp * onem
 c -----------------------------------------------------------------------
         flngth(k)=max(diapyn*sqrt(ennsq),diapyc*ennsq*g)  ! max of two
-     .            * baclin*froglp * onem 
+     .            * baclin*froglp * onem
 c
       end if
  43   continue
@@ -151,11 +151,11 @@ c
 c --- now clip mass fluxes to prevent dp < 0
 c
       event=.false.
-      do iter=1,5		!  go up and down the column repeatedly
+      do iter=1,5      !  go up and down the column repeatedly
 c
       do 42 k=kk*mod(iter,2)+ 2*mod(iter-1,2),
      .         2*mod(iter,2)+kk*mod(iter-1,2),
-     .          -mod(iter,2)+   mod(iter-1,2) 
+     .          -mod(iter,2)+   mod(iter-1,2)
       kn=k+nn
       if (k.gt.kmin .and. k.le.kmax) then
         if (pdot(k).gt.0.) then
@@ -166,7 +166,7 @@ c
           end if
 c
           if (vrbos .and. clip(k  ).lt.1.)
-     .     write (lp,'(i3,a,5es10.2)') k,'  pdot,dp,flxu,flxl,clip=',
+     .     write (*,'(i3,a,5es10.2)') k,'  pdot,dp,flxu,flxl,clip=',
      .      pdot(k)/onem,dp(i,j,kn-1)/onem,flxu(k)/onem,
      .       flxl(k-1)/onem,clip(k  )
 c
@@ -178,7 +178,7 @@ c
           end if
 c
           if (vrbos .and. clip(k-1).lt.1.)
-     .     write (lp,'(i3,a,5es10.2)') k,'  pdot,dp,flxu,flxl,clip=',
+     .     write (*,'(i3,a,5es10.2)') k,'  pdot,dp,flxu,flxl,clip=',
      .      pdot(k)/onem,dp(i,j,kn  )/onem,flxu(k)/onem,
      .       flxl(k-1)/onem,clip(k-1)
 c
@@ -191,12 +191,12 @@ c
 c
       if (vrbos .and. clip(k  ).lt.1.) then
  101   format (i3,a,(2es10.2,2x))
-       write (lp,101) k-1,
+       write (*,101) k-1,
      .  ' flxu,flxl,clip:',flxu(k-1)/onem,flxl(k-1)/onem,
      .   flxu(k-1)*clip(k-1)/onem,flxl(k-1)*clip(k-1)/onem,clip(k-1)
-       write (lp,101) k  ,flxu(k  )/onem,flxl(k  )/onem,
+       write (*,101) k  ,flxu(k  )/onem,flxl(k  )/onem,
      .   flxu(k  )*clip(k  )/onem,flxl(k  )*clip(k  )/onem,clip(k  )
-       write (lp,101) k+1,flxu(k+1)/onem,flxl(k+1)/onem,
+       write (*,101) k+1,flxu(k+1)/onem,flxl(k+1)/onem,
      .   flxu(k+1)*clip(k+1)/onem,flxl(k+1)*clip(k+1)/onem,clip(k+1)
       end if
 c
@@ -208,7 +208,7 @@ c
  44   continue
 c
       if (.not.event) exit
-      end do			!  iter
+      end do       !  iter
 c
 c --- convert flxu,flxl into actual t/s (and tracer) fluxes
 c
@@ -311,7 +311,7 @@ c --- restore 'clipped' t/s amount to column
       th3d(i,j,kn)=sigocn(temp(i,j,kn),saln(i,j,kn))
       if (dotrcr) tracer(i,j,k,:)=tracer(i,j,k,:)+cliptr(:)
 c
-      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k))	! diapyc.flux
+      diaflx(i,j,k)=diaflx(i,j,k)+(dp(i,j,kn)-dpold(i,j,k)) ! diapyc.flux
 c --- make sure p is computed from dp, not the other way around (roundoff!)
  41   p(i,j,k+1)=p(i,j,k)+dp(i,j,kn)
 c
@@ -326,32 +326,32 @@ c --- t/s conservation diagnostics (optional):
         if (dotrcr) tndtra=tndtra+tracer(i,j,k,1)*dp(i,j,kn)
       end do
       if (abs(tndcyt).gt.acurcy*10.*pbot(i,j))
-     .  write (lp,100) i,j,
+     .  write (*,100) i,j,
      .   '  diapfl - bad temp.intgl.',totem,tndcyt,clipt
         if (abs(tndcys).gt.acurcy*35.*pbot(i,j))
-     .  write (lp,100) i,j,
+     .  write (*,100) i,j,
      .   '  diapfl - bad saln.intgl.',tosal,tndcys,clips
       if (dotrcr) then
         if (abs(tndtra)*kk.gt.acurcy*scale*pbot(i,j))
-     .  write (lp,100) i,j,
+     .  write (*,100) i,j,
      .   '  diapfl - bad trcr.intgl.',totra,tndtra,cliptr(1)
       end if
  100  format(2i5,a,1p,e16.8,2e13.5)
 c
-      if (vrbos) write (lp,103) nstep,i,j,
+      if (vrbos) write (*,103) nstep,i,j,
      . '  exiting  diapfl:  temp    saln    dens    thkns   tracer',
      .  (k,temp(i,j,k+nn),saln(i,j,k+nn),th3d(i,j,k+nn),
      .   dp(i,j,k+nn)/onem,tracer(i,j,k,1),k=1,kk)
 c
  31   continue
 c
-ccc   write (lp,'(i9,7x,1p,e9.2,a)') nstep,salt*1.e-6/g,
+ccc   write (*,'(i9,7x,1p,e9.2,a)') nstep,salt*1.e-6/g,
 ccc  .  ' kg salt added in diapfl'
 c
       call pardpudpv(nn)
 c
       if (dotrcr .and. AM_I_ROOT())
-     .  write (lp,'(a)') 'tracer diapycnal mixing done'
+     .  write (*,'(a)') 'tracer diapycnal mixing done'
       return
       end
 c

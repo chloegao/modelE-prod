@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_daysetbio(vrbos,i,j)
+      subroutine obio_daysetbio(vrbos,i,j,kdm,nstep)
 c
 c  Sets daily parameters for bio.
 c
@@ -10,14 +10,6 @@ c
      .                      ,Fescavrate,rik,obio_wss
       USE obio_com,   only : tfac,rmuplsr,rikd,wshc,Fescav
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo,sday
-
-#ifdef OBIO_ON_GARYocean
-      USE OCEANRES, only : kdm=>lmo
-      USE MODEL_COM,  only : nstep=>itime
-#else
-      USE hycom_dim_glob, only : kdm
-      USE hycom_scalars, only : nstep
-#endif
 
 
       implicit none
@@ -30,6 +22,8 @@ c
       real :: cchld       !mean C:chl ratio for the day
 
       logical vrbos
+
+      integer, intent (in) :: kdm,nstep
 
 !change: March 15, 2010
       tfac20 = 0.34722*0.851*1.066**20.0

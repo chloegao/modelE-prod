@@ -109,6 +109,8 @@ c
      .,sgain(:,:)                         ! salin.changes from diapyc.mix.
      .,surflx(:,:)                        ! surface thermal energy flux
      .,salflx(:,:)                        ! surface salinity flux
+     .,sflxcum(:,:)                       ! accumulated saltflux
+     .,hflxcum(:,:)                       ! accumulated heatflux
 c    .,thkice(:,:)                        ! grid-cell avg. ice thknss (cm)
 c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
@@ -116,15 +118,12 @@ c    .,odhsi(:,:)                         ! heat borrowed from frozen
      .,odmsi(:,:)                         ! newly formed ice
      .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
-c
-!!      real uja,ujb,via,vib,pbot,tracer,tprime,sgain,surflx,salflx
-c    .   ,thkice,covice,temice,omlhc,dmfz,odhsi
-!!     .   ,odmsi,omlhc,dmfz
+     .,loan_ice(:,:)                      ! heatflux to prevent SST below freezing, > 0
 c
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
      .,ijlist         !global ij index
-c
+     .,idrift,jdrift  !drift index for loan_ice
 !!    common/int1/klist
 
 c ---  s w i t c h e s    (if set to .true., then...)
@@ -249,16 +248,21 @@ c
      .,sgain(I_0H:I_1H,kdm)
      .,surflx(I_0H:I_1H,J_0H:J_1H)
      .,salflx(I_0H:I_1H,J_0H:J_1H)
+     .,sflxcum(I_0H:I_1H,J_0H:J_1H)
+     .,hflxcum(I_0H:I_1H,J_0H:J_1H)
 c    .,thkice(I_0H:I_1H,J_0H:J_1H)
 c    .,covice(I_0H:I_1H,J_0H:J_1H)
 c    .,temice(I_0H:I_1H,J_0H:J_1H)
 c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,odmsi(I_0H:I_1H,J_0H:J_1H)
      .,omlhc(I_0H:I_1H,J_0H:J_1H)
-     .,dmfz(I_0H:I_1H,J_0H:J_1H) )
+     .,dmfz(I_0H:I_1H,J_0H:J_1H)
+     .,loan_ice(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate( klist(I_0H:I_1H,J_0H:J_1H)
-     .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )
+     .        ,ijlist(I_0H:I_1H,J_0H:J_1H)
+     .        ,idrift(I_0H:I_1H,J_0H:J_1H)
+     .        ,jdrift(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate(
      . taux(I_0H:I_1H,J_0H:J_1H)
@@ -393,9 +397,14 @@ c
       sgain = 0
       surflx = 0
       salflx = 0
+      sflxcum = 0
+      hflxcum = 0
       odmsi = 0
       omlhc = 0
       dmfz = 0
+      loan_ice = 0
+      idrift = 0
+      jdrift = 0
       taux = 0
       tauy = 0
       oemnp = 0

@@ -10,7 +10,6 @@ c --- land barrier at i=ii and/or j=jj signals closed-basin conditions
 c
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, pack_data
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : lp
       implicit none
       integer i,j,k,l,ia,ib,ja,jb
 c
@@ -44,7 +43,7 @@ c --- fill single-width inlets
         if (depth(i,ja).le.0.) nzero=nzero+1
         if (depth(i,jb).le.0.) nzero=nzero+1
         if (nzero.ge.3) then
-          write (lp,'(a,i4,a,i4,a)') ' depth(',i,',',j,') set to zero'
+          write (*,'(a,i4,a,i4,a)') ' depth(',i,',',j,') set to zero'
           stop 'pre-process depth'
           depth(i,j)=0.
           nfill=nfill+1
@@ -89,7 +88,7 @@ c --- 'interior' q points require water on all 4 sides.
       if (min(ip(i,j),ip(ia,j),ip(i,ja),ip(ia,ja)).gt.0) iq(i,j)=1
   5   continue
 c
-c --- 'promontory' q points require water on 3 (or at least 2 diametrically 
+c --- 'promontory' q points require water on 3 (or at least 2 diametrically
 c --- opposed) sides
       do 10 j=J_0,J_1 !1,jj
       !ja=mod(j-2+jj,jj)+1
@@ -129,12 +128,15 @@ c --- data are written in strips 75 points wide
           jlast=min(jj,jfrst+75)
           write (char2,'(i2)') jlast-jfrst
           fmt(8:9)=char2
-          write (lp,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
-          write (lp,fmt) (i,(10*ip_glob(i,j),j=jfrst+1,jlast),i=1,ii)
- 9    continue  
+          write (*,'(''ip array, cols'',i5,'' --'',i5)') jfrst+1,jlast
+          write (*,fmt) (i,(10*ip_glob(i,j),j=jfrst+1,jlast),i=1,ii)
+ 9    continue
       endif
       deallocate( ip_glob )
 c
+c --- initialize arrays for equatorward ice export
+      call export_init
+
       return
       end
 c
@@ -147,7 +149,6 @@ c --- if(j,k) gives row index of first point in column j for k-th section
 c --- il(j,k) gives row index of last point
 c --- is(j) gives number of sections in column j (maximum: ms)
 c
-      USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
       integer i,j,k,l
@@ -167,8 +168,8 @@ c
       go to 1
  2    if (k.gt.ms) then
       write(0,*) "k,ms", k,ms
-      write (lp,'('' error in indxi - ms too small at i,j ='',2i5)') i,j
-      write (lp,'('' j-th line of ipt array:'',/(7(1x,10i1)))')
+      write (*,'('' error in indxi - ms too small at i,j ='',2i5)') i,j
+      write (*,'('' j-th line of ipt array:'',/(7(1x,10i1)))')
      .   (ipt(l,j),l=1,ii)
       stop '(indxi)'
       end if
@@ -197,7 +198,6 @@ c --- jl(i,k) gives column index of last point
 c --- js(i) gives number of sections in row i (maximum: ms)
 c
       USE DOMAIN_DECOMP_1D, only : pack_data, broadcast
-      USE HYCOM_SCALARS, only : lp
       USE HYCOM_DIM
       implicit none
       integer i,j,k,l
@@ -219,8 +219,8 @@ c
       if (j.le.jj) go to 3
       go to 1
  2    if (k.gt.ms) then
-      write (lp,'('' error in indxj - ms too small at i,j ='',2i5)') i,j
-      write (lp,'('' i-th line of jpt array:'',/(7(1x,10i1)))')
+      write (*,'('' error in indxj - ms too small at i,j ='',2i5)') i,j
+      write (*,'('' i-th line of jpt array:'',/(7(1x,10i1)))')
      .   (jpt(i,l),l=1,jj)
       stop '(indxj)'
       end if
