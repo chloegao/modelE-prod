@@ -16,12 +16,13 @@ print "\n";
 # copies over accfiles, sumfiles for annual means, climaological means
 # and seasonal means, seasonal cycles and then deletes accfiles
 
-###=pod
+
+=pod
 chdir $myDir;
 print "Doing avgACC.s \n";
 do 'avgACC.s';
 print "\n";
-###=cut
+=cut
 
 ##### -------- mean annual cycle at a certain level  ------- #####
 chdir $myDir;
@@ -31,7 +32,8 @@ do 'seasonalCycle.s';
 print "\n";
 $OutputFileName1 = "$OutputFileName";
 
-##### -------- mean annual cycle diff from obs    ------- #####
+
+##### -------- mean annual cycle from obs    ------- #####
 chdir $myDir;
 print "Doing seasonalCycleObs.s \n";
 print "$ObsDir$ObsFilename \n";
@@ -39,6 +41,12 @@ do 'seasonalCycleObs.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
 $new_variablename1 = "$new_variablename";
+
+##### -------- mean annual cycle diff from obs    ------- #####
+chdir $myDir;
+print "Doing diff_seasons.s \n";
+do 'diff_seasons.s';
+print "\n";
 
 print "datadir =  $DataDir \n";
 print "new_variablename = $new_variablename1 \n";
@@ -51,23 +59,15 @@ chdir $myDir;
 system "python3 plot_line.py $new_variablename1 $DataDir$OutputFileName1 $DataDir$OutputFileName2";
 ###### ------------------------------- ########
 
-
-chdir $myDir;
-print "Doing diff_seasons.s \n";
-do 'diff_seasons.s';
-print "\n";
-
-
-
-
 ##### -------- climatology maps at certain level  ------- #####
 chdir $myDir;
-print "Doing clim_maps.s \n";
+print "Doing clim_map.s \n";
 do 'clim_map.s';
 print "\n";
 $OutputFileName1 = "$OutputFileName";
 
-##### -------- difference maps from observations   ------- #####
+
+##### -------- maps from observations   ------- #####
 chdir $myDir;
 print "Doing obs_map.s \n";
 do 'obs_map.s';
@@ -81,12 +81,21 @@ do 'diff_maps.s';
 print "\n";
 $OutputFileName3 = "$OutputFileName";
 
+print "variable = $variable \n";
+print "outputfile1 = $DataDir$OutputFileName1 \n";
+print "variable_obs = $variable_obs \n";
+print "outputfile2 = $DataDir$OutputFileName2 \n";
+print "variable_diff = $variable$underscore$diff  \n";
+print "outputfile3 = $DataDir$OutputFileName3 \n";
+print "model run = $RUN \n";
+
+
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script
 chdir $myDir;
-system "python3 plot_map.py $DataDir$OutputFileName1 $DataDir$OutputFileName2 $DataDir$OutputFileName3";
-###### ------------------------------- ########
 
+system "python3 plot_map.py $variable $DataDir$OutputFileName1 $DataDir$OutputFileName2 $DataDir$OutputFileName3";
+###### ------------------------------- ########
 
 ##### -------- global averaged timeseries at a certain level   ------- #####
 chdir $myDir;
@@ -106,11 +115,13 @@ chdir $myDir;
 print "Doing basinAvg_obs.s \n";
 do 'basinAvg_obs.s';
 print "\n";
+$OutputFileName_obs="$DataDir$OutputFileName";
 
 chdir $myDir;
 print "Doing basinAvg_model.s \n";
 do 'basinAvg_model.s';
 print "\n";
+$OutputFileName_model="$DataDir$OutputFileName";
 
 chdir $myDir;
 print "Doing diffBasinAvg.s \n";
@@ -120,7 +131,17 @@ print "\n";
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script
 chdir $myDir;
-system "python3 plot_section.py $DataDir$OutputFileName";
+if ($area eq "oxyp"){
+system "python3 plot_section.py $variable $DataDir$OutputFileName";
+}else{
+$ann="ann";
+print "variable $variable \n";
+print "variable obs, $variable_obs$underscore$ann \n";
+print "file model, $OutputFileName_model \n";
+print "file obs, $OutputFileName_obs \n";
+
+system "python3 plot_surf_basin_avg.py $variable $OutputFileName_model $variable_obs$underscore$ann $OutputFileName_obs";
+}
 ###### ------------------------------- ########
 
 ##### -------- MOC vertical sections, all basins      ------- #####
@@ -132,9 +153,8 @@ system "python3 plot_section.py $DataDir$OutputFileName";
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script
 chdir $myDir;
-print "$DataDir$FileNameAtl \n";
-print "$DataDir$FileNamePac \n";
-system "python3 plot_moc.py $DataDir$FileNameAtl $DataDir$FileNamePac";
+print "$DataDir$OutputFileName";
+system "python3 plot_moc.py $DataDir$OutputFileName";
 ###### ------------------------------- ########
 
 ##### -------- AMOC max at 26N timeseries              ------- #####
@@ -149,6 +169,7 @@ chdir $myDir;
 system "python3 plot_linets.py sf_Atl $DataDir$OutputFileName";
 
 ###### ------------------------------- ########
+
 
 ##### -------- Current Transport timeseries ------- #####
 ## transports for Kuroshio, Gulf Stream and ACC

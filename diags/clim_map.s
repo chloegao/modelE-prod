@@ -34,4 +34,21 @@ if (defined($depth)){
   system "ncks -O -v $variable $months$yrin-$yrend.$nctag$RUN.nc $OutputFileName";
 }
 
+#rename lat/lon from lato/lono
+if ($lat ne "lat") {
+    system "ncrename -O -v $lat,lat -d $lat,lat $OutputFileName";
+    system "ncrename -O -v $lon,lon -d $lat,lat $OutputFileName";
 }
+}
+
+if ($variable eq "oij_pCO2"){
+  system "ncrename -v $variable,LandMask $OutputFileName dummy.nc";
+  $mask = "LandMask2D.nc";
+  system "ncbo --op_typ='+' $ObsDir$mask dummy.nc dummy1.nc";
+  system "ncrename -O -v LandMask,$variable dummy1.nc $OutputFileName";
+  system "ncatted -O -a _FillValue,$variable,c,f,-1e30 $OutputFileName";   
+  system "ncatted -O -a units,$lat,c,c,'degrees_north' $OutputFileName";
+  system "ncatted -O -a units,$lon,c,c,'degrees_east' $OutputFileName";
+  system "rm -R -f dummy*";
+}
+

@@ -13,6 +13,11 @@ $MonthlyFileName = "$variable.$yrini-$yrend.concattedMonths.$RUN.nc";
 $OutputFileName = "$variable.$yrini-$yrend.$computes.lev$ilev.$RUN.nc";
 print "Output Name $OutputFileName\n";
 
+# Create month.nc
+if (! -e month.nc){
+system "ncks -v mon $ObsDir$ObsFilename month.nc";
+}
+
 @months = qw(JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC);
 print "Averaging annual cycle for years $yrini to $yrend \n";
 
@@ -29,9 +34,14 @@ system "ncatted -O -a missing_value,$variable,d,f, $MonthlyFileName";
 system "ncatted -O -a _FillValue,$variable,c,f,-1e30 $MonthlyFileName";   
 
 #############
-if (! -e "$area$underscore$RUN.nc") {
-system "ncks -O -v $area JAN$yrini-$yrend.$nctag$RUN.nc $area$underscore$RUN.nc";
+if ($area eq "oxyp") {
+system "scaleacc JAN$yrini-$yrend.acc$RUN.nc oij";
+system "ncks -O -v $area JAN$yrini-$yrend.oij$RUN.nc $area$underscore$RUN.nc";
+}else{
+system "scaleacc JAN$yrini-$yrend.acc$RUN.nc aij";
+system "ncks -O -v $area JAN$yrini-$yrend.aij$RUN.nc $area$underscore$RUN.nc";
 }
+
 if (defined($depth)){
   # extract $depth at srf
   print "Extracting depth at level $ilev \n";
@@ -50,8 +60,12 @@ system "ncks -O -x -v $area $OutputFileName $OutputFileName";
 system "ncatted -O -a long_name,$variable,d,s, $OutputFileName";
 
 system "ncrename -O -h -v $variable,$new_variablename $OutputFileName";
+if (defined($depth)){
 system "ncrename -O -h -v zoc,dep -d zoc,dep $OutputFileName";
+}
 system "ncrename -d record,mon $OutputFileName";
+system "ncks -A -v mon month.nc $OutputFileName";
+system "ncatted -O -a _FillValue,$new_variablename,d,f, $OutputFileName";
 system "rm -f dummy.nc";
 
 
