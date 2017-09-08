@@ -20,7 +20,7 @@ NH3_09=NH3_grassfire_AR5_1900-2020_2x2.5_h
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
 ! -------- aerosol --------------
-DMS_SEA=DMS_Kettle_Andreae_2x2.5
+DMS_SEA=DMS_Kettle_Andreae_2x2.5.nc
 !--------AR5 inputs --------------------
 BCIA_AIRC=AR5_emis/F/T/BCIA_air_AR5_1910-2020_2x2.5
 BCII_01=BCII_awb_AR5_1850-2020_2x2.5_h

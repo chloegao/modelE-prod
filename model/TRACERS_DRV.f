@@ -4112,7 +4112,7 @@ c find indices of denominators
       USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
 #endif
-      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
 #ifdef TRACERS_SPECIAL_Shindell
       USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -4166,7 +4166,7 @@ c find indices of denominators
 #endif /* TRACERS_ON */
       use oldtracer_mod, only: src_dist_base, src_dist_index
       use tracer_com, only: xyztr
-
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt,ipatch
@@ -5133,13 +5133,19 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c read in DMS source
-      call openunit('DMS_SEA',iudms,.true.,.true.)
       DMSinput(:,:,:)= 0.d0
-      do mm=1,12
-        call readt_parallel(grid,iudms,nameunit(iudms),
-     *                      DMSinput(:,:,mm),0)
-      end do
-      call closeunit(iudms)
+      if(is_fbsa('DMS_SEA')) then
+        call openunit('DMS_SEA',iudms,.true.,.true.)
+        do mm=1,12
+          call readt_parallel(grid,iudms,nameunit(iudms),
+     *         DMSinput(:,:,mm),0)
+        end do
+        call closeunit(iudms)
+      else
+        iudms = par_open(grid,'DMS_SEA','read')
+        call read_dist_data(grid,iudms,'DMSwater',DMSinput)
+        call par_close(grid,iudms)
+      endif
  901  FORMAT(3X,3(I4),E11.3)
 
 c read in SO2 emissions

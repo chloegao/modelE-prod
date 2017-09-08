@@ -6,7 +6,7 @@ AMP_CORESHELL_TABLES=AMP_CORESHELL_TABLES.nc
 !---------- start aerosol emissions files --------------
 PSREF=ANN1960.E70F40pi.prsurf  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_2x2.5_pres.nc
-DMS_SEA=DMS_Kettle_Andreae_2x2.5
+DMS_SEA=DMS_Kettle_Andreae_2x2.5.nc
 NH3_AIRC=emis/CMIP6_AIR_2017-05-18_2.0x2.5
 NH3_01=emis/CMIP6_IND_2017-05-18_2.0x2.5
 NH3_02=emis/CMIP6_TRA_2017-05-18_2.0x2.5
