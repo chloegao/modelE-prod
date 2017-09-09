@@ -1,6 +1,6 @@
 ! files for dust tracers
-ERS=ERS1_1993_MONTHLY.144x90.threshold-13 ! ERS data
-DSRC=Ginoux_source_v2009_VegMask_144x90   ! preferred dust sources
+ERS=ERS1_1993_MONTHLY.144x90.threshold.nc ! ERS data
+DSRC=Ginoux_source_v2009_VegMask_144x90.nc   ! preferred dust sources
 ! alternative preferred dust source files:
 !  Ginoux2001_source_VegMask_144x90
 !  Ginoux_source_v2009_NoVegMask_144x90

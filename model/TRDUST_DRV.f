@@ -145,7 +145,8 @@ c tracer_ic_soildust
 !@auth Jan Perlwitz
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
-
+      use filemanager, only : is_fbsa
+      use pario, only : par_open,par_close,read_dist_data
       IMPLICIT NONE
 
       integer :: i, ierr, j, io_data, ib, k, k1, m, fid
@@ -312,12 +313,18 @@ c**** Probability density function scheme for dust emission
 
         if ( vegetationERS >= 1 ) then
 c**** Read input: ERS data
-          CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
-          DO k=1,INT_MONTHS_PER_YEAR
-            CALL dread_parallel(grid,io_data,nameunit(io_data),
+          if(is_fbsa('ERS')) then
+            CALL openunit('ERS',io_data,.TRUE.,.TRUE.)
+            DO k=1,INT_MONTHS_PER_YEAR
+              CALL dread_parallel(grid,io_data,nameunit(io_data),
      &           ers_data(:,:,k))
-          END DO
-          CALL closeunit(io_data)
+            END DO
+            CALL closeunit(io_data)
+          else ! netcdf
+            io_data = par_open(grid,'ERS','read')
+            call read_dist_data(grid,io_data,'ERS',ers_data)
+            call par_close(grid,io_data)
+          endif
         else
           call write_parallel (
      &         ' ERS vegetation proxy filter switched off', unit=6 )
@@ -325,10 +332,17 @@ c**** Read input: ERS data
 
         if ( prefDustSources >= 1 ) then
 c**** Read input: source function data
-          call openunit('DSRC',io_data,.true.,.true.)
-          call dread_parallel(grid,io_data,nameunit(io_data)
+          if(is_fbsa('DSRC')) then
+            call openunit('DSRC',io_data,.true.,.true.)
+            call dread_parallel(grid,io_data,nameunit(io_data)
      &         ,dustSourceFunction)
-          CALL closeunit(io_data)
+            CALL closeunit(io_data)
+          else ! netcdf
+            io_data = par_open(grid,'DSRC','read')
+            call read_dist_data(grid,io_data,'DustSource'
+     &           ,dustSourceFunction)
+            call par_close(grid,io_data)
+          endif
         else
           call write_parallel (
      &         ' Preferred dust sources filter switched off', unit=6 )
