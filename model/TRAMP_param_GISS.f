@@ -374,7 +374,7 @@ c     &               80.81, 85.58, 90./
       ! Nitrate, ammonium and water are not included here.
       !-------------------------------------------------------------------------------------------------------------------
 #ifdef TRACERS_AMP_M9
-      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS)&
+      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS)
      &                 = (/'SULF','BCAR','OCAR','DUST','SEAS','OCM2','OCM1','OCM0','OCP1','OCP2', 
      &                 'OCP3','OCP4','OCP5','OCP6'/)
 #else
