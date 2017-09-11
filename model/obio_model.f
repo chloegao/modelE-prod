@@ -35,6 +35,9 @@
 #ifdef TOPAZ_params
      .                    ,ca_det_calc1d
 #endif
+#ifdef TRACERS_Ocean_O2
+     .                    ,o21d
+#endif
       use obio_com, only: caexp
       use obio_com, only: build_ze
 
@@ -52,6 +55,9 @@
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
      .                 ,ij_rhs,ij_flux,ij_fca
+#ifdef TRACERS_Ocean_O2
+     .                 ,ij_o2
+#endif
 
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,ijl_dtemp
       use ocalbedo_mod, only: ocalbedo
@@ -108,7 +114,7 @@
       type(atmocn_xchng_vars) :: atm
 
       !molecular weights (gr/mole)
-      REAL*4, parameter  :: obio_tr_mm(15)= (/ 14.,   !nitrate
+      REAL*4, parameter  :: obio_tr_mm(16)= (/ 14.,   !nitrate
      &     14.,      !ammonium
      &     28.055,   !silicate
      &     55.845,   !iron
@@ -118,7 +124,8 @@
      &     55.845,   !idet
      &     12.,      !DOC
      &     12.,      !DIC
-     &     1. /)     !Alk
+     &     1.,       !Alk
+     &     16. /)    !O2 
       integer i,j,k,l,km,mm,JMON
       integer ihr,ichan,iyear,nt,ihr0,lgth,kmax
       integer ll,ilim
@@ -411,6 +418,14 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
 #endif
 #endif
+#ifdef TRACERS_Ocean_O2
+!placeholder
+           if (nt.eq.ntyp+ndet+ncar+nalk+no2)    !factor for oxygen 
+     .         trmo_unit_factor(k,nt) = 1.d0
+!          if (nt.eq.ntyp+ndet+ncar+nalk+no2)    !factor for oxygen 
+!    .         trmo_unit_factor(k,nt) = 1d-6*1d-3*obio_tr_mm(nt)      ! umol/kg=micro-mol/kg=> kg,trac/kg,air
+!    .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,air=> kg,trac
+#endif
 
            if (nstep0>0) then
               tracer(i,j,k,nt) = trmo(i,j,k,nt) / trmo_unit_factor(k,nt)
@@ -451,6 +466,9 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
 #else
               !NOT for INTERACTIVE alk
          alk1d(k)=alk(i,j,k)
+#endif
+#ifdef TRACERS_Ocean_O2
+         o21d(k)=tracer(i,j,k,ntyp+ndet+ncar+nalk+no2)
 #endif
               !----daysetbio/daysetrad arrays----!
          tzoo=tzoo2d(i,j)
@@ -1047,6 +1065,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
          tracer(i,j,k,ntyp+ndet+ncar+nt)=ca_det_calc1d(k)
 #endif
 #endif
+#ifdef TRACERS_Ocean_O2
+         tracer(i,j,k,ntyp+ndet+ncar+nalk+no2)=o21d(k)
+#endif
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
         OIJL(I,J,k,IJL_avgq)= OIJL(I,J,k,IJL_avgq) + avgq1d(k)
@@ -1180,11 +1201,17 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
 
        if (tracers_alkalinity) then
-         OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + tracer(i,j,1,16)    ! surf ocean alkalinity
+         OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) 
+     .          + tracer(i,j,1,nnut+nchl+nzoo+ndet+ncar+nalk)    ! surf ocean alkalinity
          OIJ(I,J,IJ_fca) = OIJ(I,J,IJ_fca) + caexp               ! carbonate export
        else
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
        endif
+
+#ifdef TRACERS_Ocean_O2
+         OIJ(I,J,IJ_o2) = OIJ(I,J,IJ_o2) 
+     .          + tracer(i,j,1,nnut+nchl+nzoo+ndet+ncar+nalk+no2) ! surf ocean oxygen concentration
+#endif
 #endif
 
 #ifndef OBIO_ON_GISSocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
