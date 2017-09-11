@@ -353,8 +353,6 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                 walltime = '02:00:00'
             elif re.search('vsd', deckName):
                 walltime = '02:00:00'
-            elif re.search('lerner', deckName):
-                walltime = '02:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
