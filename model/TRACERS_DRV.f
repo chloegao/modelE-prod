@@ -5210,12 +5210,18 @@ c NOTE: the input file specifies integrals over its gridboxes.
     (defined TRACERS_TOMAS)
 c Terpenes
       OCT_src(:,:,:)=0.d0
-      call openunit('Terpenes_01',iuc,.true.,.true.)
-      call skip_parallel(iuc)
-      do mm=1,12
-        call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
-      end do
-      call closeunit(iuc)
+      if(is_fbsa('Terpenes_01')) then
+        call openunit('Terpenes_01',iuc,.true.,.true.)
+        call skip_parallel(iuc)
+        do mm=1,12
+          call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
+        end do
+        call closeunit(iuc)
+      else ! netcdf
+        iuc = par_open(grid,'Terpenes_01','read')
+        call read_dist_data(grid,iuc,'Terpenes',OCT_src)
+        call par_close(grid,iuc)
+      endif
 c units are mg Terpene/m2/month
       do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
 ! 10% of terpenes end up being SOA
