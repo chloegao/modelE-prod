@@ -333,6 +333,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                     walltime = '04:00:00'
                 elif re.search('vsd', deckName):
                     walltime = '01:00:00'
+                elif re.search('lerner', deckName):
+                    walltime = '01:00:00'
 
             # Adjust the walltime for some rundecks
             if re.search('C12', deckName):
@@ -350,6 +352,8 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('Tmatrix', deckName):
                 walltime = '02:00:00'
             elif re.search('vsd', deckName):
+                walltime = '02:00:00'
+            elif re.search('lerner', deckName):
                 walltime = '02:00:00'
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
