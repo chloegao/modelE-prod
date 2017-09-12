@@ -76,7 +76,7 @@ c
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
-     .                 ,alk1d(kdm),flimit(kdm,nchl,5)
+     .                 ,alk1d(kdm),flimit(kdm,nchl,5),o21d(kdm)
 
       real atmFe_ij,covice_ij
 
@@ -89,6 +89,9 @@ c
 #ifdef TRACERS_Alkalinity
       real A_tend(kdm), co3_conc
       real ca_det_calc1d(kdm),Ca_tend(kdm)
+#endif
+#ifdef TRACERS_Ocean_O2
+      real O_tend(kdm)
 #endif
       real rmuplsr(kdm,nchl)                  !growth+resp 
       real D_tend(kdm,ndet)                   !detrtial tendency
@@ -204,6 +207,9 @@ C endif
      &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
      &   ij_rhs(ntrac, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
      &   ij_ph
+#ifdef TRACERS_Ocean_O2
+     &  ,ij_o2
+#endif
       integer, public :: ijl_avgq, ijl_kpar, ijl_dtemp
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
@@ -536,9 +542,9 @@ c**** Extract domain decomposition info
       character(len=9) :: str2
       character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)
 ! diatoms, chloroph, cyanobact, coccoliths
-      character(len=4), parameter :: rhs_sym(15)=(/ 'nitr', 'ammo',
+      character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
      &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
-     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_' /)
+     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_', 'o2__'/)
 
       con_idx=[12]
       con_str=['OCN BIOL']
@@ -575,6 +581,10 @@ c**** Extract domain decomposition info
       if (tracers_alkalinity)
      &  call add_ocn_tracer('Alk       ',i_ntrocn=-6,i_ntrocn_delta=-14,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+#ifdef TRACERS_Ocean_O2
+        call add_ocn_tracer('O2        ',i_ntrocn=-4,i_ntrocn_delta=-12,   !**check
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+#endif
 #ifdef TOPAZ_params
       call add_diag("co3 ", "oij_co3",
      &              "????????", .false., IJ_co3)
@@ -613,6 +623,8 @@ c**** Extract domain decomposition info
      &              "uM", .false., IJ_doc)
       call add_diag("Surface ocean DIC", "oij_dic",
      &              "uM", .false., IJ_dic)
+      call add_diag("Surface ocean O2", "oij_o2",
+     &              "uM", .false., IJ_o2)
       call add_diag("Surface ocean partial CO2 pressure",
      &              "oij_pCO2", "uatm", .false., IJ_pCO2)
       call add_diag("Surface ocean alkalinity", "oij_alk",

@@ -9,19 +9,24 @@ import matplotlib.pyplot as  plt
 import sys
 import os
 
-#filename =  "/discover/nobackup/aromanou/TESTNCO/pot_temp.ANN2191-2200.map_lev1.E190F40oQ32.nc"
-#nc = Dataset("/discover/nobackup/aromanou/TESTNCO/temp_mon.seasonalCycle_lev1.WOA13_AnnMon_onEgrid.nc")
-
-
 nc = Dataset(sys.argv[2])
-record = [1,2,3,4,5,6,7,8,9,10]
-values = nc[sys.argv[1]][:]
+var1=nc.variables[sys.argv[1]]
+record=np.arange(1, var1.shape[0]+1, 1)
+values=var1[:]
 title = sys.argv[2].split("/")[-1].replace(".nc","")
-plt.figure()
-plt.plot(record,values,label="model")
-plt.title(title)
+siz=16
 
-plt.savefig("glbavg_ts.ps")
+fig, ax=plt.subplots()
+plt.plot(record,values,linewidth=2,marker='o',label='model',color='black')
+plt.title(title,size=siz)
 
+ax.legend(loc='upper left')
+ax.set_xlabel('Year',size=siz)
+ax.grid(True)
+ax.set_xticks(np.arange(1, var1.shape[0]+1, 1))
+
+file = sys.argv[2].split("/")[-1].replace(".nc",".ps")
+plt.savefig(file)
 plt.show()
+
 

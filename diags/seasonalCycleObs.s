@@ -17,9 +17,10 @@ $OutputFileName = "$variable_obs.$computes.lev$ilev.$ObsFilename";
 print "$OutputFileName\n";
 
 system "ncks -O -v $area $area$underscore$RUN.nc dummy1.nc";
+if ($lat ne $lat_obs){
 system "ncrename -O -h -d $lat,$lat_obs -v $lat,$lat_obs dummy1.nc";
 system "ncrename -O -h -d $lon,$lon_obs -v $lon,$lon_obs dummy1.nc";
-
+}
 
 if (defined($depth)){
   # extract $depth at srf
@@ -29,14 +30,23 @@ if (defined($depth)){
   system "ncks -A -v $variable_obs $ObsDir$ObsFilename dummy1.nc";
 }
 
-system "ncwa -h -O -v $variable_obs -w $area -a $lat_obs,$lon_obs dummy1.nc $OutputFileName";
+# create record dimension to match model
+system "ncecat -O -h dummy1.nc dummy2.nc";
+system "ncpdq -O -h -a mon,record dummy2.nc dummy2.nc";
+system "ncwa -O -h -a record dummy2.nc dummy2.nc";
+
+system "ncwa -h -O -v $variable_obs -w $area -a $lat_obs,$lon_obs dummy2.nc $OutputFileName";
 
 # Remove unwanted terms
 system "ncks -O -x -v $lon_obs $OutputFileName $OutputFileName";
 system "ncks -O -x -v $lat_obs $OutputFileName $OutputFileName";
 
-system "ncrename -O -h -v zoc,dep -d zoc,dep $OutputFileName";
+# Average over depth so we can remove it
+system "ncwa -O -v $variable_obs -a zoc $OutputFileName $OutputFileName";
+system "ncks -O -x -v zoc $OutputFileName $OutputFileName";
+
 system "ncrename -O -h -v $variable_obs,$new_variablename $OutputFileName";
+system "ncatted -O -a _FillValue,$new_variablename,d,f, $OutputFileName";
 system "rm -f dummy*.nc";
 
 

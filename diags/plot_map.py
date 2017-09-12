@@ -9,57 +9,98 @@ import matplotlib.pyplot as  plt
 import sys
 import os
 
-vmin = -2
-vmax = 30
+# Suggested values for min and max values for plotting
+
+if sys.argv[1]=='pot_temp':
+    vmin = -4
+    vmax = 28
+if  sys.argv[1]=='salt':
+    vmin = 24 
+    vmax = 40
+if  sys.argv[1]=='Gas_Exchange_CO2n':
+    vmin = -3
+    vmax = 5
 
 ### figure 1
-nc = Dataset(sys.argv[1])
-lons = nc["lono"][:]
-lats = nc["lato"][:]
-values = nc["pot_temp"][:][0]
-title = sys.argv[1].split("/")[-1].replace(".nc","")
-plt.figure()
+nc = Dataset(sys.argv[2])
+var1=nc.variables[sys.argv[1]]
+if var1.ndim==3: # 3D fields, e.g. temp and salinity 
+    values=var1[:][0]
+if var1.ndim==2: # 2D fields, e.g. co2 flux
+    values=var1[:]
+lons = nc["lon"][:]
+lats = nc["lat"][:]
+title=''.join([sys.argv[1],"_",nc.xlabel])
+clabel=var1.units
+print(nc.xlabel)
+
 lons, lats = np.meshgrid(lons, lats)
 m = Basemap(projection='robin', lon_0=0, resolution='c')
 x, y = m(lons, lats)
+
+plt.figure()
 m.drawcoastlines()
-plt.contourf(x, y, values,vmax=vmax,vmin=vmin)
-plt.colorbar(orientation="horizontal")
+plt.contourf(x, y, values,50,cmap=plt.cm.Spectral_r)
+cbar=plt.colorbar(orientation="horizontal")
+plt.clim(vmin,vmax) 
+siz=16
+cbar.set_label(clabel,size=siz,rotation=0,labelpad=20)
 plt.title(title)
-plt.savefig("map1.ps")
+file=''.join([sys.argv[1],"_",nc.xlabel,".ps"])
+plt.savefig(file)
 
-#### figure 2
-nc = Dataset(sys.argv[2])
-lons = nc["lon"][:]
-lats = nc["lat"][:]
-values = nc["temp_ann"][:][0]
-title = sys.argv[2].split("/")[-1].replace(".nc","")
-plt.figure()
-lons, lats = np.meshgrid(lons, lats)
-m1 = Basemap(projection='robin', lon_0=0, resolution='c')
-x, y = m1(lons, lats)
-m1.drawcoastlines()
-plt.contourf(x, y, values,vmax=vmax,vmin=vmin)
-plt.colorbar(orientation="horizontal")
-plt.title(title)
-plt.savefig("map2.ps")
-
-#### figure 3
+### figure 2 
 nc = Dataset(sys.argv[3])
+var1=nc.variables[sys.argv[1]]
+if var1.ndim==3: #3D fields, e.g. temp and salinity
+    values=var1[:][0]
+if var1.ndim==2: #2D fields, e.g. co2 flux
+    values=var1[:]
 lons = nc["lon"][:]
 lats = nc["lat"][:]
-values = nc["diff"][:][0]
-title = sys.argv[3].split("/")[-1].replace(".nc","")
-plt.figure()
 lons, lats = np.meshgrid(lons, lats)
-m1 = Basemap(projection='robin', lon_0=0, resolution='c')
-x, y = m1(lons, lats)
-m1.drawcoastlines()
-plt.contourf(x, y, values)
-plt.colorbar(orientation="horizontal")
-plt.title(title)
-plt.savefig("map3.ps")
+title = sys.argv[3].split("/")[-1].replace(".nc","")
+clabel=var1.units
 
+m = Basemap(projection='robin', lon_0=0, resolution='c')
+x, y = m(lons, lats)
+plt.figure()
+m.drawcoastlines()
+plt.contourf(x, y, values,50,cmap=plt.cm.Spectral_r)
+cbar=plt.colorbar(orientation="horizontal")
+plt.clim(vmin,vmax)
+siz=16
+cbar.set_label(clabel,size=siz,rotation=0,labelpad=20)
+plt.title(title)
+file = sys.argv[3].split("/")[-1].replace(".nc",".ps")
+plt.savefig(file)
+
+
+### figure 3 
+nc = Dataset(sys.argv[4])
+var1=nc.variables[''.join([sys.argv[1],"_diff"])]
+if var1.ndim==3: #3D fields,e.g. temp and salinity
+        values=var1[:][0]
+if var1.ndim==2: #2D fields, e.g. co2 flux
+        values=var1[:]
+lons = nc["lon"][:]
+lats = nc["lat"][:]
+title=''.join([sys.argv[1],"_diff"])
+clabel=var1.units
+
+lons, lats = np.meshgrid(lons, lats)
+m = Basemap(projection='robin', lon_0=0, resolution='c')
+x, y = m(lons, lats)
+
+plt.figure()
+m.drawcoastlines()
+plt.contourf(x, y, values,50,cmap=plt.cm.RdBu)
+cbar=plt.colorbar(orientation="horizontal")
+siz=16
+cbar.set_label(clabel,size=siz,rotation=0,labelpad=20)
+plt.title(title)
+file=''.join([sys.argv[1],"_diff",".ps"])
+plt.savefig(file)
 
 plt.show()
 

@@ -23,6 +23,7 @@
 !  pCO2 (uatm)
 !  alk  (umolC/kg)
 !  Ca_det_calc   Ca in detritus calcite
+!  O(1) = oxygen (uM)
 
       implicit none
 
@@ -38,11 +39,19 @@
 #else
      .                     ,nalk=1   ! 1- alk
 #endif
+#else
+     .                     ,nalk=0   ! alkalinity as a function of salinity
+#endif
+#ifdef TRACERS_Ocean_O2
+     .                     ,no2=1    ! oxygen
 #endif
 
       integer, parameter :: ntrac = nnut+nchl+nzoo+ndet+ncar
 #ifdef TRACERS_Alkalinity
      .                            + nalk
+#endif
+#ifdef TRACERS_Ocean_O2
+     .                            + no2
 #endif
 
 

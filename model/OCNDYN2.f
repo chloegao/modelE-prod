@@ -1420,7 +1420,7 @@ C****
       Real*8,External   :: VOLGSP
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      *          P
-      Real*8 :: PUP,PDN, VUP,VDN
+      Real*8 :: PUP,PDN, VUP,VDN, smean
 C****
 C**** Extract domain decomposition band parameters
 C****                          Band1  Band2  BandM
@@ -1468,6 +1468,9 @@ C****
               GDN(I,J,L) = (G0M(I,J,L) + 2*z12eH*GZM(I,J,L))/MMI(I,J,L)
               SUP(I,J,L) = (S0M(I,J,L) - 2*z12eH*SZM(I,J,L))/MMI(I,J,L)
               SDN(I,J,L) = (S0M(I,J,L) + 2*z12eH*SZM(I,J,L))/MMI(I,J,L)
+              smean = s0m(i,j,l)/mmi(i,j,l)
+              SUP(I,J,L) = MAX(SUP(I,J,L), .5d0*smean)
+              SDN(I,J,L) = MAX(SDN(I,J,L), .5d0*smean)
               PUP = P(I,J,L) - MO(I,J,L)*GRAV*z12eH
               PDN = P(I,J,L) + MO(I,J,L)*GRAV*z12eH
               VUP = VOLGSP (GUP(I,J,L),SUP(I,J,L),PUP)
