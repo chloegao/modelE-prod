@@ -201,6 +201,7 @@
 #ifdef TRACERS_WATER
       USE TRACER_COM, only : ntm
       USE FLUXES, only : atmlnd
+      use OldTracer_mod, only: nWATER, tr_wd_TYPE
 #endif
 ! fixed i,j arrays - feed in from call?
       USE GEOM, only : axyp
@@ -246,6 +247,7 @@ C**** Outputs
       real*8 :: m_to_kg
 !@param Flag for external irrigation source (from deep aquifers - not modeled) 
       integer :: flag_irrig_grndwat  ! =1 use ground water
+      integer :: n
 
 C**** set default output
       irrig_water_act = 0.d0 ; irrig_energy_act = 0.d0
@@ -322,8 +324,16 @@ C**** set default output
                irrig_gw        = irrig_water_act
                irrig_gw_energy = irrig_energy_act
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*atmlnd%gtracer(:,i,j)
-               irrig_gw_tracer  = irrig_gw*atmlnd%gtracer(:,i,j)
+               do n=1,ntm
+                 if ( tr_wd_TYPE(n)==nWATER ) then
+                   irrig_tracer_act(n) =
+     &                  irrig_water_act*atmlnd%gtracer(n,i,j)
+                   irrig_gw_tracer(n) = irrig_gw*atmlnd%gtracer(n,i,j)
+                 else
+                   irrig_tracer_act(n) = 0.d0
+                   irrig_gw_tracer(n) = 0.d0
+                 endif
+               enddo
 #endif
             else
                irrig_water_act = 0.d0
@@ -401,10 +411,20 @@ C**** set default output
                irrig_gw_energy  = irrig_energy_act - gml_to_irrig*rhow /
      *              (m_to_kg*dtsrc)  
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*(trml_to_irrig(:,1)
-     *              +trml_to_irrig(:,2)) / mwl_to_irrig
-               irrig_gw_tracer = irrig_tracer_act - (trml_to_irrig(:,1)
-     *              +trml_to_irrig(:,2)) / (m_to_kg*dtsrc)
+               do n=1,ntm
+                 if ( tr_wd_TYPE(n)==nWATER ) then
+                   irrig_tracer_act(n) =
+     &                  irrig_water_act*(trml_to_irrig(n,1)
+     *                  +trml_to_irrig(n,2)) / mwl_to_irrig
+                   irrig_gw_tracer(n) =
+     &                  irrig_tracer_act(n) - (trml_to_irrig(n,1)
+     *                  +trml_to_irrig(n,2)) / (m_to_kg*dtsrc)
+                 else
+                   irrig_tracer_act(n) =  (trml_to_irrig(n,1)
+     *                  +trml_to_irrig(n,2)) / (m_to_kg*dtsrc)
+                   irrig_gw_tracer(n) = 0.d0
+                 endif
+               enddo
 #endif
              else
                irrig_water_act  = m_avail / (m_to_kg*dtsrc) 
