@@ -20,6 +20,9 @@ if  sys.argv[1]=='salt':
 if  sys.argv[1]=='Gas_Exchange_CO2n':
     vmin = -3
     vmax = 5
+if  sys.argv[1]=='oicefr':
+    vmin = -1
+    vmax = 1
 
 ### figure 1
 nc = Dataset(sys.argv[2])

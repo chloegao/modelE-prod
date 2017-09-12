@@ -42,8 +42,10 @@ system "ncks -O -x -v $lon_obs $OutputFileName $OutputFileName";
 system "ncks -O -x -v $lat_obs $OutputFileName $OutputFileName";
 
 # Average over depth so we can remove it
+if (defined($depth)){
 system "ncwa -O -v $variable_obs -a zoc $OutputFileName $OutputFileName";
 system "ncks -O -x -v zoc $OutputFileName $OutputFileName";
+}
 
 system "ncrename -O -h -v $variable_obs,$new_variablename $OutputFileName";
 system "ncatted -O -a _FillValue,$new_variablename,d,f, $OutputFileName";
