@@ -76,7 +76,10 @@ c
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
-     .                 ,alk1d(kdm),flimit(kdm,nchl,5),o21d(kdm)
+     .                 ,alk1d(kdm),flimit(kdm,nchl,5)
+#ifdef TRACERS_Ocean_O2
+     .                 ,o21d(kdm)
+#endif
 
       real atmFe_ij,covice_ij
 
@@ -544,7 +547,10 @@ c**** Extract domain decomposition info
 ! diatoms, chloroph, cyanobact, coccoliths
       character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
      &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
-     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_', 'o2__'/)
+     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_'
+#ifdef TRACERS_Ocean_O2
+     &   , 'o2__'/)
+#endif
 
       con_idx=[12]
       con_str=['OCN BIOL']
@@ -623,8 +629,10 @@ c**** Extract domain decomposition info
      &              "uM", .false., IJ_doc)
       call add_diag("Surface ocean DIC", "oij_dic",
      &              "uM", .false., IJ_dic)
+#ifdef TRACERS_Ocean_O2
       call add_diag("Surface ocean O2", "oij_o2",
      &              "uM", .false., IJ_o2)
+#endif
       call add_diag("Surface ocean partial CO2 pressure",
      &              "oij_pCO2", "uatm", .false., IJ_pCO2)
       call add_diag("Surface ocean alkalinity", "oij_alk",
