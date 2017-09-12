@@ -476,10 +476,8 @@ contains
     end if
 
     if ( tracers_amp_m4 .or. tracers_amp_m8) then ! cases not tested
-      !n_M_SSS_SU = AMP_SetSpec('SSS','SU') ! need rundeck with these
-      !n_M_SSS_SS = AMP_SetSpec('SSS','SS') ! settings
-      call  M_SSS_SU_setSpec('M_SSS_SU')
-      call  M_SSS_SS_setSpec('M_SSS_SS')
+      n_M_SSS_SU = AMP_SetSpec('SSS','SU') ! need rundeck with these
+      n_M_SSS_SS = AMP_SetSpec('SSS','SS') ! settings
     end if
 
     n_M_OCC_SU = AMP_SetSpec('OCC','SU')
@@ -506,9 +504,7 @@ contains
 
     if ( tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m6) then
       n_M_DBC_SU = AMP_SetSpec('DBC','SU') 
-      !n_M_DBC_BC = AMP_SetSpec('DBC','BC')
-      ! for reproducibility:
-      call  M_DBC_BC_setSpec('M_DBC_BC')
+      n_M_DBC_BC = AMP_SetSpec('DBC','BC')
       n_M_DBC_DU = AMP_SetSpec('DBC','DU') 
       n_N_DBC_1  = AMP_SetSpec('DBC','1' ) 
     end if
@@ -604,47 +600,6 @@ contains
       call set_fq_aer(n, 1.d+0)
       call set_tr_wd_type(n, npart) !nWater
     end subroutine M_H2O_setSpec
-
-    ! not tested
-    subroutine M_SSS_SS_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_M_SSS_SS = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 75.d0)
-      call set_trpdens(n, DENS_SEAS)
-      call set_trradius(n, DG_SSS * .5d-6)
-      call set_fq_aer(n, SOLU_SSS)
-      call set_tr_wd_type(n, npart)
-    end subroutine M_SSS_SS_setSpec
-
-    ! not tested
-    subroutine M_SSS_SU_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_M_SSS_SU = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 75.d0)
-      call set_trpdens(n, DENS_SULF)
-      call set_trradius(n, DG_SSS * .5d-6)
-      call set_fq_aer(n, SOLU_SSS)
-      call set_tr_wd_type(n, npart)
-    end subroutine M_SSS_SU_setSpec
-
-    ! for reproducibility use:
-    subroutine M_DBC_BC_setSpec(name)
-      USE AERO_PARAM, only: DG_DBC, SOLU_DBC
-      USE AERO_ACTV, only: DENS_BCAR
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_M_DBC_BC = n
-      call set_ntm_power(n, -11)
-      call set_tr_mm(n, 96.d0)
-      call set_trpdens(n, DENS_BCAR)
-      call set_trradius(n, DG_DBC * .5d-6)
-      call set_fq_aer(n,  SOLU_DBC)
-      call set_tr_wd_type(n, npart)
-    end subroutine M_DBC_BC_setSpec
 
 !------------------------------------------------------------------------------
     function AMP_setSpec(mode, component) result (tracerIndex)
