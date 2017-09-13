@@ -548,9 +548,7 @@ c**** Extract domain decomposition info
       character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
      &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
      &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_'
-#ifdef TRACERS_Ocean_O2
      &   , 'o2__'/)
-#endif
 
       con_idx=[12]
       con_str=['OCN BIOL']
