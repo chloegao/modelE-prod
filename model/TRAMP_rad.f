@@ -328,7 +328,7 @@ c -----------------------------------------------------------------
 
       USE AMP_AEROSOL, only: DIAM,Reff_LEV, NUMB_LEV, RindexAMP,
      +  dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_dens, AMP_RAD_KEY
-      USE AmpTracersMetadata_mod,  only: AMP_AERO_MAP, AMP_NUMB_MAP,
+      USE AmpTracersMetadata_mod,  only: AMP_NUMB_MAP,
      +  AMP_MODES_MAP
       USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe
       USE AERO_CONFIG, only: NMODES
