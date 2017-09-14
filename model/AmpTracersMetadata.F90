@@ -100,8 +100,8 @@ module AmpTracersMetadata_mod
     ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, & !DD2,DS2,SSA
     ntm_chem+20,ntm_chem+20,ntm_chem+23,ntm_chem+23,             & !SSA,SSC
     ntm_chem+25,ntm_chem+25,ntm_chem+25,ntm_chem+28,ntm_chem+28, & !OCC,BC1
-    ntm_chem+28,ntm_chem+31,ntm_chem+31,ntm_chem+31,ntm_chem+35, & !BC1,BC2,BC3
-    ntm_chem+35,ntm_chem+35,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
+    ntm_chem+28,ntm_chem+31,ntm_chem+31,ntm_chem+31,ntm_chem+34, & !BC1,BC2,BC3
+    ntm_chem+34,ntm_chem+34,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
     ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, & !DBC,BOC
     ntm_chem+45,ntm_chem+45,ntm_chem+45,ntm_chem+48,ntm_chem+48, & !BCS,MXX
     ntm_chem+48,ntm_chem+48,ntm_chem+48,ntm_chem+48/)
