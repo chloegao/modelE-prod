@@ -54,6 +54,7 @@ module AmpTracersMetadata_mod
   use OldTracer_mod, only: set_tr_wd_type
   use OldTracer_mod, only: set_has_chemistry
   use OldTracer_mod, only: oldAddTracer
+  use OldTracer_mod, only: trname, MAX_LEN_NAME
   use Tracer_mod, only: Tracer
 
   implicit none
@@ -61,341 +62,16 @@ module AmpTracersMetadata_mod
 
   public AMP_initMetadata
 
-#ifdef TRACERS_AMP_M1
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,5 ,5,  & !DS1,DD2
-    5 ,6 ,6 ,6 ,7,  & !DD2,DS2,SSA
-    7 ,7, 8, 8,     & !SSA,SSC
-    9 ,9 ,9 ,10,10, & !OCC,BC1
-    10,11,11,11,12, & !BC1,BC2,BC3
-    12,12,13,13,13, & !BC3,DBC
-    13,14,14,14,14, & !DBC,BOC
-    15,15,15,16,16, & !BCS,MXX
-    16,16,16,16/)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,0 ,0,  & !DS1,DD2
-    5 ,0 ,0 ,6 ,0,  & !DD2,DS2,SSA
-    0 ,7 ,0 ,8 ,    & !SSA,SSC
-    0 ,0 ,9 ,0 ,0 , & !OCC,BC1
-    10,0 ,0 ,11,0 , & !BC1,BC2,BC3
-    0 ,12,0 ,0 ,0 , & !BC3,DBC
-    13,0 ,0 ,0 ,14, & !DBC,BOC
-    0 ,0 ,15,0 ,0 , & !BCS,MXX
-    0 ,0 , 0,16/)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,16,17,18,19,20, &
-    21,22,   24,25,26,27,28,29,30, &
-    31,32,33,34,35,36,37,38,39,40, &
-    41,42,43,44,45,46,47,48,49,50, &
-    51,52,53,54   /)
-  integer, parameter :: AMP_trm_nm1(ntmAMP)=(/ &
-    0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  & !AKK
-    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+8 ,ntm_chem+8 ,ntm_chem+8,  & !ACC,DD1
-    ntm_chem+11,ntm_chem+11,ntm_chem+11,ntm_chem+14,ntm_chem+14, & !DS1,DD2
-    ntm_chem+14,ntm_chem+17,ntm_chem+17,ntm_chem+17,ntm_chem+20, & !DD2,DS2,SSA
-    ntm_chem+20,ntm_chem+20,ntm_chem+23,ntm_chem+23,             & !SSA,SSC
-    ntm_chem+25,ntm_chem+25,ntm_chem+25,ntm_chem+28,ntm_chem+28, & !OCC,BC1
-    ntm_chem+28,ntm_chem+31,ntm_chem+31,ntm_chem+31,ntm_chem+34, & !BC1,BC2,BC3
-    ntm_chem+34,ntm_chem+34,ntm_chem+37,ntm_chem+37,ntm_chem+37, & !BC3,DBC
-    ntm_chem+37,ntm_chem+41,ntm_chem+41,ntm_chem+41,ntm_chem+41, & !DBC,BOC
-    ntm_chem+45,ntm_chem+45,ntm_chem+45,ntm_chem+48,ntm_chem+48, & !BCS,MXX
-    ntm_chem+48,ntm_chem+48,ntm_chem+48,ntm_chem+48/)
-  integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
-    0 ,         0 ,         0 ,ntm_chem+4 ,ntm_chem+4,  & !AKK
-    ntm_chem+6 ,ntm_chem+6 ,ntm_chem+9 ,ntm_chem+9 ,ntm_chem+9,  & !ACC,DD1
-    ntm_chem+12,ntm_chem+12,ntm_chem+12,ntm_chem+15,ntm_chem+15, & !DS1,DD2
-    ntm_chem+15,ntm_chem+18,ntm_chem+18,ntm_chem+18,ntm_chem+21, & !DD2,DS2,SSA
-    ntm_chem+21,ntm_chem+21,ntm_chem+23,ntm_chem+23,             & !SSA,SSC
-    ntm_chem+26,ntm_chem+26,ntm_chem+26,ntm_chem+29,ntm_chem+29, & !OCC,BC1
-    ntm_chem+29,ntm_chem+32,ntm_chem+32,ntm_chem+32,ntm_chem+35, & !BC1,BC2,BC3
-    ntm_chem+35,ntm_chem+35,ntm_chem+39,ntm_chem+39,ntm_chem+39, & !BC3,DBC
-    ntm_chem+39,ntm_chem+43,ntm_chem+43,ntm_chem+43,ntm_chem+43, & !DBC,BOC
-    ntm_chem+46,ntm_chem+46,ntm_chem+46,ntm_chem+52,ntm_chem+52, & !BCS,MXX
-    ntm_chem+52,ntm_chem+52,ntm_chem+52,ntm_chem+52/)
-#endif
-#ifdef TRACERS_AMP_M2
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,5 ,5,  & !DS1,DD2
-    5 ,6 ,6 ,6 ,7,  & !DD2,DS2,SSA
-    7 ,8,           & !SSA,SSC
-    9 ,9 ,9 ,10,10, & !OCC,BC1
-    10,11,11,11,12, & !BC1,BC2,OSC
-    12,12,13,13,13, & !BC3,DBC
-    13,14,14,14,14, & !DBC,BOC
-    15,15,15,16,16, & !BCS,MXX
-    16,16,16,16/)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,0 ,0,  & !DS1,DD2
-    5 ,0 ,0 ,6 ,0,  & !DD2,DS2,SSA
-    0 ,0,           & !SSA,SSC
-    0 ,0 ,9 ,0 , 0, & !OCC,BC1
-    10,0 ,0 ,11,0 , & !BC1,BC2,OSC
-    0 ,12,0 ,0 ,0 , & !DBC
-    13,0 ,0 ,0 ,14, & !DBC,BOC
-    0 ,0 ,15,0 ,0 , & !BCS,MXX
-    0 ,0 ,0 ,16/)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,16,17,18,19,20, &
-    21,      24,  26,27,28,29,30, &
-    31,32,33,34,35,36,37,38,39,40, &
-    41,42,43,44,45,46,47,48,49,50, &
-    51,52,53,54   /)
-
-  integer, parameter :: AMP_trm_nm1(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,8 ,8 ,8,  & !ACC,DD1
-    11,11,11,14,14, & !DS1,DD2
-    14,17,17,17,20, & !DD2,DS2,SSA
-    20,22,          & !SSA,SSC
-    23,23,23,26,26, & !OCC,BC1
-    26,29,29,29,32, & !BC1,BC2
-    32,32,35,35,35, & !OSC,DBC
-    35,39,39,39,39, & !DBC,BOC
-    43,43,43,46,46, & !BCS,MXX
-    46,46,46,46/)
-  integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,9 ,9 ,9,  & !ACC,DD1
-    12,12,12,15,15, & !DS1,DD2
-    15,18,18,18,21, & !DD2,DS2,SSA
-    21,22,          & !SSA,SSC
-    24,24,24,27,27, & !OCC,BC1
-    27,30,30,30,33, & !BC1,BC2
-    33,33,37,37,37, & !OCS,DBC
-    37,41,41,41,41, & !DBC,BOC
-    44,44,44,50,50, & !BCS,MXX
-    50,50,50,50/)
-#endif
-#ifdef TRACERS_AMP_M3
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,5 ,5,  & !DS1,DD2
-    5 ,6 ,6 ,6 ,7,  & !DD2,DS2,SSA
-    7 ,8,           & !SSA,SSC
-    9 ,9 ,9 ,10,10, & !OCC,BC1
-    10,11,11,11,12, & !BC1,BC2,BOc
-    12,12,12,13,13, & !BOC,MXX
-    13,13,13,13/)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,0 ,0,  & !DS1,DD2
-    5 ,0 ,0 ,6 ,0,  & !DD2,DS2,SSA
-    0 ,0,           & !SSA,SSC
-    0 ,0 ,9 ,0 ,0 , & !OCC,BC1
-    10,0 ,0 ,11,0 , & !BC1,BC2,BOc
-    0 ,0 ,12,0 ,0 , & !BOC,MXX
-    0 ,0 ,0 ,13/)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15      ,18   ,20, &
-    21,22,23,24,25,26,27,28,29,30, &
-    31,32,33,34,35,36,37,38,39,40, &
-    41,42,43,44  /)
-
-  integer, parameter :: AMP_trm_nm1(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,8 ,8 ,8,  & !ACC,DD1
-    11,11,11,14,14, & !DS1,DD2
-    14,17,17,17,20, & !DD2,DS2,SSA
-    20,22,          & !SSA,SSC
-    23,23,23,26,26, & !OCC,BC1
-    26,29,29,29,32, & !BC1,BC2,BOC
-    32,32,32,36,36, & !BOC,MXX
-    36,36,36,36/)
-
-  integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !AKK
-    6 ,6 ,9 ,9 ,9,  & !ACC,DD1
-    12,12,12,15,15, & !DS1,DD2
-    15,18,18,18,21, & !DD2,DS2,SSA
-    21,22,          & !SSA,SSC
-    24,24,24,27,27, & !OCC,BC1
-    27,30,30,30,34, & !BC1,BC2,BOC
-    34,34,34,40,40, & !BOC,MXX
-    40,40,40,40/)
-
-#endif
-#ifdef TRACERS_AMP_M4
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !ACC
-    2 ,2 ,2 ,3 ,3,  & !DD1,DS1
-    3 ,4 ,4 ,4 ,5,  & !DS1,DD2,DS2
-    5 ,5 ,6 ,6,     & !DS2,SSS
-    7 ,7 ,7 ,8 ,8,  & !OCC,BC1
-    8 ,9 ,9 ,9 ,10, & !BC1,BC2,MXX
-    10,10,10,10,10  & !MXX
-    /)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !ACC
-    0 ,0 ,2 ,0 ,0,  & !DD1,DS1
-    3 ,0 ,0 ,4 ,0,  & !DS1,DD2,DS2
-    0 ,5 ,0 ,0,     & !DS2,SSS
-    0 ,0 ,6 ,0 ,0,  & !OCC,BC1
-    7 ,0 ,0 ,8 ,0,  & !BC1,BC2,MXX
-    0, 0, 0 ,0 ,9  & !MXX
-    /)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,16,17,18,19, &
-    21,22,23,24,25,26,27,28,29,30, &
-    31,32,33,34,35   /)
-  integer, parameter :: AMP_trm_nm1(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !ACC
-    6 ,6 ,6 ,9 ,9,  & !DD1
-    9 ,12,12,12,15, & !DS1,DD2
-    15,15,18,18,    & !DD2,DS2,SSA
-    20,20,20,23,23, & !SSA,SSC
-    23,26,26,26,29, & !OCC,BC1
-    29,29,29,29,29/)
-
-  integer, parameter :: AMP_trm_nm2(ntmAMP)=(/ &
-    0 ,0 ,0 ,4 ,4,  & !ACC
-    7 ,7 ,7 ,10,10,  & !DD1
-    10,13,13,13,16, & !DS1,DD2
-    16,16,19,19,    & !DD2,DS2,SSA
-    21,21,21,24,24, & !SSA,SSC
-    24,27,27,27,33, & !OCC,BC1
-    33,33,33,33,33/)
-
-#endif
-#ifdef TRACERS_AMP_M5
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,       & !DS1
-    5 ,             & !SSA
-    5 ,6 ,          & !SSA,SSC
-    7 ,7 ,7, 8, 8,  & !OCC,BC1
-    8, 9, 9, 9,10,  & !BC1,BC2,BC3
-    10,10,11,11,11, & !BC3,DBC
-    11,12,12,12,12, & !DBC,BOC
-    13,13,13,14,14, & !BCS,MXX
-    14,14,14,14/)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,       & !DS1
-    0 ,             & !SSA
-    0 ,0 ,          & !SSA,SSC
-    0 ,0 ,7, 0, 0,  & !OCC,BC1
-    8, 0, 0, 9, 0,  & !BC1,BC2,BC3
-    0, 10,0 ,0 ,0, & !BC3,DBC
-    11,0 ,0 ,0 ,12, & !DBC,BOC
-    0, 0, 13,0 ,0, & !BCS,MXX
-    0,0,0,14/)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,      18,   20, &
-    21,22,23,24,25,26,27,28,29,30, &
-    31,32,33,34,35,36,37,38,39,40, &
-    41,42,43,44,45,46,47,48   /)
-#endif
-#ifdef TRACERS_AMP_M6
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,       & !DS1
-    5 ,             & !SSA
-    5 ,6 ,          & !SSA,SSC
-    7 ,7 ,7, 8, 8,  & !OCC,BC1
-    8, 9, 9, 9,10,  & !BC1,BC2,OCS
-    10,10,11,11,11, & !OCS,DBC
-    11,12,12,12,12, & !DBC,BOC
-    13,13,13,14,14, & !BCS,MXX
-    14,14,14,14/)
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,       & !DS1
-    0 ,             & !SSA
-    0 ,0 ,          & !SSA,SSC
-    0 ,0 ,7, 0, 0,  & !OCC,BC1
-    8, 0, 0, 9, 0,  & !BC1,BC2,OCS
-    0 ,10,0 ,0 ,0 , & !OCS,DBC
-    11,0 ,0 ,0 ,12, & !DBC,BOC
-    0 ,0 ,13,0 ,0 , & !BCS,MXX
-    0 ,0 ,0 ,14/)
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,      18,   20, &
-    21,22,23,24,25,26,27,28,29,30, &
-    31,32,33,34,35,36,37,38,39,40, &
-    41,42,43,44,45,46,47,48   /)
-#endif
-#ifdef TRACERS_AMP_M7
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,1 ,1,  & !AKK
-    2 ,2 ,3 ,3 ,3,  & !ACC,DD1
-    4 ,4 ,4 ,       & !DS1
-    5 ,             & !SSA
-    5 ,6 ,          & !SSA,SSC
-    7 ,7 ,7, 8, 8,  & !OCC,BC1
-    8, 9, 9, 9,     & !BC1,BC2
-    10,10,10,10,    & !OCS,DBC
-    11,11,          & !MXX
-    11,11,11,11/)   !MXX
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,0 ,1,  & !AKK
-    0 ,2 ,0 ,0 ,3,  & !ACC,DD1
-    0 ,0 ,4 ,       & !DS1
-    0 ,             & !SSA
-    0 ,0 ,          & !SSA,SSC
-    0 ,0 ,7, 0, 0,  & !OCC,BC1
-    8, 0, 0, 9,     & !BC1,BC2
-    0, 0, 0,10,    & !OCS,DBC
-    0, 0,          & !MXX
-    0, 0, 0,11/)   !MXX
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
-    11,12,13,14,15,      18,   20, &
-    21,22,23,24,25,26,27,28,29,30, &
-    31,32,33,34,35,36,37,38/)
-#endif
-#ifdef TRACERS_AMP_M8
-  integer, parameter :: AMP_MODES_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,       & !
-    1 ,1 ,2 ,2 ,2,  & !ACC,DD1
-    3 ,3 ,3 ,       & !DS1
-    4 ,             & !SSS
-    4 ,5 ,          & !SSS
-    5 ,5 ,5, 6, 6,  & !OCC,BC1
-    6, 7, 7, 7, 8,  & !BC1,BC2
-    8,8,8,8,8/)    !MXX
-  integer, parameter :: AMP_NUMB_MAP(ntmAMP)=(/ &
-    0 ,0 ,0 ,       & !
-    0 ,1 ,0 ,0 ,2,  & !ACC,DD1
-    0 ,0 ,3 ,       & !DS1
-    0 ,             & !SSS
-    0 ,0 ,          & !SSS
-    0 ,0 ,5, 0, 0,  & !OCC,BC1
-    6, 0, 0, 7, 0,  & !BC1,BC2
-    0,0,0,0,8/)    !MXX
-  integer, parameter :: AMP_AERO_MAP(ntmAMP)=(/ &
-    1 ,2 ,3 ,4 ,5 , &
-    6 ,7 ,8 ,9 ,10, &
-    11,12,13,15,16, &
-    17,18,19,20,21, &
-    22,23,24,25,26, &
-    27,28,29   /)
-#endif
-
-  public AMP_MODES_MAP
-  public AMP_NUMB_MAP
-  public AMP_AERO_MAP
-  public AMP_TRM_NM1
-  public AMP_TRM_NM2
+!@var AMP_AERO_MAP Map of indices of transported tracers in AMP (?) (1-based)
+  integer, allocatable, dimension(:), public :: AMP_AERO_MAP
+!@var AMP_NUMB_MAP Enumeration of number concentrations in populations, zero elsewhere (1-based)
+  integer, allocatable, dimension(:), public :: AMP_NUMB_MAP
+!@var AMP_MODES_MAP Enumeration of all tracers in a population, zero elsewhere (1-based)
+  integer, allocatable, dimension(:), public :: AMP_MODES_MAP
+!@var AMP_trm_nm1 Index of first mass tracer in a population (ntm-based)
+  integer, allocatable, dimension(:), public :: AMP_trm_nm1
+!@var AMP_trm_nm2 Index of last mass tracer in a population (ntm-based)
+  integer, allocatable, dimension(:), public :: AMP_trm_nm2
 
   real(8), parameter :: microns2meters = 1.0d-6
   REAL(8), PARAMETER :: RG_AKK = microns2meters*DG_AKK/2.0d0 
@@ -423,7 +99,8 @@ module AmpTracersMetadata_mod
   real(8), parameter :: BCAR_MolecMass = 12.0d0
   real(8), parameter :: OCAR_MolecMass = 12.0d0
 
-  integer :: n ! class scoped temporary tracer index
+  character(len=MAX_LEN_NAME) :: trname_curr
+  integer :: n,nn,nAMP,imode,itr
 
 !------------------------------------------------------------------------------
 contains
@@ -432,6 +109,7 @@ contains
 !------------------------------------------------------------------------------
   subroutine AMP_initMetadata(pTracer)
 !------------------------------------------------------------------------------
+    implicit none
     class (Tracer), pointer :: pTracer
 
     !**** Tracers for Scheme AMP: Aerosol Microphysics (Mechanism M1 - M8)
@@ -439,9 +117,12 @@ contains
     call  M_NH4_setSpec('M_NH4')
     call  M_H2O_setSpec('M_H2O')
 
-    if ( tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m3 &
-      .or. tracers_amp_m5 .or. tracers_amp_m6 .or.  &
-      tracers_amp_m7) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m3 .or. &
+        tracers_amp_m5 .or. &
+        tracers_amp_m6 .or. &
+        tracers_amp_m7) then
       n_M_AKK_SU = AMP_SetSpec('AKK', 'SU')
       n_N_AKK_1  = AMP_SetSpec('AKK', '1' )
     end if
@@ -455,8 +136,10 @@ contains
     n_M_DS1_DU = AMP_SetSpec('DS1', 'DU')
     n_N_DS1_1  = AMP_SetSpec('DS1', '1' )
 
-    if (tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m3 &
-      .or. tracers_amp_m4) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m3 .or. &
+        tracers_amp_m4) then
       n_M_DD2_SU = AMP_SetSpec('DD2','SU')
       n_M_DD2_DU = AMP_SetSpec('DD2','DU')
       n_N_DD2_1  = AMP_SetSpec('DD2','1' )
@@ -465,9 +148,12 @@ contains
       n_N_DS2_1  = AMP_SetSpec('DS2','1' )
     end if
 
-    if (tracers_amp_m1 .or.  tracers_amp_m2 .or. tracers_amp_m3 &
-      .or. tracers_amp_m5 .or.  tracers_amp_m6 .or.  &
-      tracers_amp_m7) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m3 .or. &
+        tracers_amp_m5 .or. &
+        tracers_amp_m6 .or. &
+        tracers_amp_m7) then
       n_M_SSA_SU = AMP_SetSpec('SSA','SU')
       n_M_SSA_SS = AMP_SetSpec('SSA','SS')
       n_N_SSA_1  = AMP_SetSpec('SSA','1' )
@@ -475,7 +161,8 @@ contains
       n_N_SSC_1  = AMP_SetSpec('SSC','1' )
     end if
 
-    if ( tracers_amp_m4 .or. tracers_amp_m8) then ! cases not tested
+    if (tracers_amp_m4 .or. &
+        tracers_amp_m8) then ! cases not tested
       n_M_SSS_SU = AMP_SetSpec('SSS','SU') ! need rundeck with these
       n_M_SSS_SS = AMP_SetSpec('SSS','SS') ! settings
     end if
@@ -490,35 +177,44 @@ contains
     n_M_BC2_BC = AMP_SetSpec('BC2','BC')
     n_N_BC2_1  = AMP_SetSpec('BC2','1' )
 
-    if ( tracers_amp_m1 .or. tracers_amp_m5) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m5) then
       n_M_BC3_SU = AMP_SetSpec('BC3','SU')
       n_M_BC3_BC = AMP_SetSpec('BC3','BC')
       n_N_BC3_1  = AMP_SetSpec('BC3','1' )
     end if
 
-    if ( tracers_amp_m2 .or. tracers_amp_m6) then
+    if (tracers_amp_m2 .or. &
+        tracers_amp_m6) then
       n_M_OCS_SU = AMP_SetSpec('OCS','SU')
       n_M_OCS_OC = AMP_SetSpec('OCS','OC')
       n_N_OCS_1  = AMP_SetSpec('OCS','1' )
     end if
 
-    if ( tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m6) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m6) then
       n_M_DBC_SU = AMP_SetSpec('DBC','SU') 
       n_M_DBC_BC = AMP_SetSpec('DBC','BC')
       n_M_DBC_DU = AMP_SetSpec('DBC','DU') 
       n_N_DBC_1  = AMP_SetSpec('DBC','1' ) 
     end if
 
-    if (tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m3 &
-      .or. tracers_amp_m6 .or. tracers_amp_m7) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m3 .or. &
+        tracers_amp_m6 .or. &
+        tracers_amp_m7) then
       n_M_BOC_SU = AMP_SetSpec('BOC','SU')
       n_M_BOC_BC = AMP_SetSpec('BOC','BC')
       n_M_BOC_OC = AMP_SetSpec('BOC','OC')
       n_N_BOC_1  = AMP_SetSpec('BOC','1' )
     end if
 
-    if ( tracers_amp_m1 .or. tracers_amp_m2 .or. tracers_amp_m5 &
-      .or. TRACERS_AMP_M6) then
+    if (tracers_amp_m1 .or. &
+        tracers_amp_m2 .or. &
+        tracers_amp_m5 .or. &
+        tracers_amp_m6) then
       n_M_BCS_SU = AMP_SetSpec('BCS','SU')
       n_M_BCS_BC = AMP_SetSpec('BCS','BC')
       n_N_BCS_1  = AMP_SetSpec('BCS','1' )
@@ -544,6 +240,115 @@ contains
     if (tracers_nitrate) then
       call stop_model('contradictory tracer specs', 255)
     end if
+
+! create AMP maps
+    allocate(AMP_AERO_MAP(ntmAMP))
+    allocate(AMP_NUMB_MAP(ntmAMP))
+    allocate(AMP_MODES_MAP(ntmAMP))
+    allocate(AMP_trm_nm1(ntmAMP))
+    allocate(AMP_trm_nm2(ntmAMP))
+    AMP_NUMB_MAP=0 ! only this needs to be zeroed out
+
+#ifdef TRACERS_AMP_M1
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,16,17,18,19,20, &
+      21,22,   24,25,26,27,28,29,30, &
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48,49,50, &
+      51,52,53,54                  /)
+#elif TRACERS_AMP_M2
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,16,17,18,19,20, &
+      21,      24,   26,27,28,29,30, &
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48,49,50, &
+      51,52,53,54                  /)
+#elif TRACERS_AMP_M3
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15      ,18   ,20, &
+      21,22,23,24,25,26,27,28,29,30, &
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44                  /)
+#elif TRACERS_AMP_M4
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,16,17,18,19,    &
+      21,22,23,24,25,26,27,28,29,30, &
+      31,32,33,34,35               /)
+#elif TRACERS_AMP_M5
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,      18,   20, &
+      21,22,23,24,25,26,27,28,29,30, &
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48      /)
+#elif TRACERS_AMP_M6
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,      18,   20, &
+      21,22,23,24,25,26,27,28,29,30, &
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48      /)
+#elif TRACERS_AMP_M7
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,      18,   20, &
+      21,22,23,24,25,26,27,28,29,30, &
+      31,32,33,34,35,36,37,38      /)
+#elif TRACERS_AMP_M8
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,   15,16,17,18,19,20, &
+      21,22,23,24,25,26,27,28,29   /)
+#else
+    call stop_model('AMP_AERO_MAP needs to be defined.', 255)
+#endif
+
+    imode=1
+    itr=0 ! this will become the index of the first mass in a population
+    do n=ntmAMPi,ntmAMPe
+      nAMP=n-ntmAMPi+1
+      trname_curr=trim(trname(n))
+
+      select case (trname_curr(1:2))
+      case ('N_')
+        AMP_NUMB_MAP(nAMP)=maxval(AMP_NUMB_MAP)+1
+      end select
+
+      select case (trname_curr)
+      case ('M_NO3','M_NH4','M_H2O')
+        AMP_MODES_MAP(nAMP)=0
+      case default
+        AMP_MODES_MAP(nAMP)=imode
+        select case (trname_curr(1:2))
+        case ('N_')
+          imode=imode+1 ! increase index for next mode
+        end select
+      end select
+
+      select case (trname_curr)
+      case ('M_NO3','M_NH4','M_H2O')
+        AMP_trm_nm1(nAMP)=0
+        AMP_trm_nm2(nAMP)=0
+      case default
+        if (itr==0) then
+          itr=ntm_chem+nAMP
+        endif
+        AMP_trm_nm1(nAMP)=itr
+        select case (trname_curr(1:2))
+        case ('N_')
+          itr=0 ! reset for next mode
+          do nn=1,nAMP
+            if (AMP_trm_nm1(nn)==AMP_trm_nm1(nAMP)) then
+              AMP_trm_nm2(nn)=ntm_chem+nAMP-1
+            endif
+          enddo
+        end select
+      end select
+    enddo
 
 !------------------------------------------------------------------------------
   contains
@@ -602,7 +407,7 @@ contains
     end subroutine M_H2O_setSpec
 
 !------------------------------------------------------------------------------
-    function AMP_setSpec(mode, component) result (tracerIndex)
+    function AMP_SetSpec(mode, component) result (tracerIndex)
 !------------------------------------------------------------------------------
       use OldTracer_mod, only: om2oc, set_om2oc
       use Dictionary_mod, only: sync_param
@@ -624,8 +429,7 @@ contains
 
       if (trim(tracerName) == 'N_MXX_1') then
         ntmAMPe = tracerIndex     ! always the last tracer in AMP
-        if (ntmAMPi + ntmAMP-1 /= ntmAMPe) &
-          call stop_model( 'ntmAMPi+ntmAMP-1 /= ntmAMPe', 255 )
+        ntmAMP = ntmAMPe-ntmAMPi+1
       end if
 
       if (trim(tracerName) == 'M_BC1_BC') then
@@ -698,7 +502,7 @@ contains
       call set_fq_aer(tracerIndex, getSolubility(mode))
       call set_tr_wd_type(tracerIndex, nPART)
 
-    end function AMP_setSpec
+    end function AMP_SetSpec
 
 !------------------------------------------------------------------------------
     function getTracerPrefix(component) result (unitPrefix)

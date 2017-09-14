@@ -281,39 +281,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_air=0
 #endif  /* TRACERS_AIR */
-#ifdef TRACERS_AMP
-#ifdef TRACERS_AMP_M1
-      integer, parameter :: ntmAMP=53
-#endif  /* TRACERS_AMP_M1 */
-#ifdef TRACERS_AMP_M2
-      integer, parameter :: ntmAMP=51
-#endif  /* TRACERS_AMP_M2 */
-#ifdef TRACERS_AMP_M3
-      integer, parameter :: ntmAMP=41
-#endif  /* TRACERS_AMP_M3 */
-#ifdef TRACERS_AMP_M4
-      integer, parameter :: ntmAMP=34
-#endif  /* TRACERS_AMP_M4 */
-#ifdef TRACERS_AMP_M5
-      integer, parameter :: ntmAMP=45
-#endif  /* TRACERS_AMP_M5 */
-#ifdef TRACERS_AMP_M6
-      integer, parameter :: ntmAMP=45
-#endif  /* TRACERS_AMP_M6 */
-#ifdef TRACERS_AMP_M7
-      integer, parameter :: ntmAMP=35
-#endif  /* TRACERS_AMP_M7 */
-#ifdef TRACERS_AMP_M8
-      integer, parameter :: ntmAMP=28
-#endif  /* TRACERS_AMP_M8 */
-#ifdef TRACERS_SPECIAL_Shindell
-      integer, parameter :: ntm_amp=ntmAMP+4
-#else
-      integer, parameter :: ntm_amp=ntmAMP+5
-#endif  /* TRACERS_SPECIAL_Shindell */
-#else
-      integer, parameter :: ntm_amp=0
-#endif  /* TRACERS_AMP */
 
 !@param ntm_chem number of drew-only tracers
       integer, parameter :: ntm_chem=ntm_shindell_trop+
@@ -484,7 +451,8 @@ C**** Each tracer has a variable name and a unique index
 #ifdef TRACERS_AMP
 !@var ntmAMPi Index of the first AMP tracer
 !@var ntmAMPe Index of the last AMP tracer
-      integer :: ntmAMPi=0,ntmAMPe=0
+!@var ntmAMP Total number of AMP tracers
+      integer :: ntmAMPi=0,ntmAMPe=0,ntmAMP=0
 #endif
 
 C**** standard tracer and tracer moment arrays
