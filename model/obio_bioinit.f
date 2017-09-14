@@ -68,7 +68,10 @@
       integer nir(nrg),nt,I_0,I_1,J_0,J_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
-      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic,o2_frac
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
+#ifdef TRACERS_Ocean_O2
+      real,  ALLOCATABLE, DIMENSION(:,:,:) :: o2_frac
+#endif
 
       I_0 = ogrid%I_STRT
       I_1 = ogrid%I_STOP
@@ -78,7 +81,9 @@
       ALLOCATE(ir(i_0:i_1,j_0:j_1))
       ALLOCATE(fer(i_0:i_1,j_0:j_1,kdm))
       allocate(dic(i_0:i_1,j_0:j_1,kdm))
+#ifdef TRACERS_Ocean_O2
       allocate(o2_frac(i_0:i_1,j_0:j_1,kdm))
+#endif
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
@@ -88,8 +93,10 @@
      &                 kdm,im,ogrid,ip,lmm)
       call bio_inicond('silicate_inicond',tracer(:,:,:,3),
      &                 kdm,im,ogrid,ip,lmm)
+#ifdef TRACERS_Ocean_O2
       call bio_inicond('oxygen_inicond',
      &     o2_frac(:,:,:),kdm,im,ogrid,ip,lmm)
+#endif
 
 
 #ifdef obio_TRANSIENTRUNS
@@ -243,8 +250,10 @@ c    conversion from uM to mg/m3
       if (n_abioDIC.ne.0) 
      .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
      .                          * 1.d-06 * 12.d0* MO(I,J,K)*DXYPO(J)/1024.d0
+#ifdef TRACERS_Ocean_O2
           !oxygen   
           tracer(i,j,k,ntyp+ndet+ncar+nalk) = o2_frac(i,j,k)  !*solubility to convert to o2
+#endif
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
