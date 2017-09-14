@@ -315,9 +315,9 @@ c**** Calculates concentration in per mille units
 
       select case(trname(n))
       case('H2O18')
-        call get_param("H2O18_in_aquifer", in_permil, default=-10.d0)
+        call get_param("H2O18_in_aquifer", in_permil, default=-8.d0)
       case('HDO')
-        call get_param("HDO_in_aquifer", in_permil, default=-70.d0)
+        call get_param("HDO_in_aquifer", in_permil, default=-54.d0)
       case default
         c = 0.d0
         return
