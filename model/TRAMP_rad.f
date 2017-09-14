@@ -28,6 +28,7 @@ c -----------------------------------------------------------------
       USE AERO_PARAM,  only: DG_AKK,DG_ACC,DG_DD1,DG_DS1,DG_DD2, 
      +                       DG_DS2,DG_SSA,DG_SSC,DG_OCC,DG_BC1,
      +                       DG_BC2,DG_BC3,DG_DBC,DG_BOC,DG_BCS,DG_MXX
+      USE AERO_SETUP,  only: MODE_NAME
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
@@ -64,9 +65,6 @@ c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,  
      +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
      +                 0.100D+00, 0.100D+00, 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/    
   
-      CHARACTER*3 :: MODE_NAME(nmodes)=(/'AKK','ACC','DD1','DS1','DD2',
-     +                             'DS2','SSA','SSC','OCC','BC1','BC2',
-     +                                   'BC3','DBC','BOC','BCS','MXX'/)
 c                   NA1= SO4  NA2=SS  NA3=NO3 NA4=OC NA5=BC NA6=DU
 
       EXT(:,:)    = 0.d0
@@ -333,6 +331,7 @@ c -----------------------------------------------------------------
       USE TRACER_COM,  only: TRM, ntmAMPi,ntmAMPe
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
+      USE AERO_SETUP,  only: MODE_NAME
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
 
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,DENS_SEAS, DENS_BCAR, DENS_OCAR
@@ -352,9 +351,6 @@ c -----------------------------------------------------------------
 c     Variables for Maxwell Garnett:
       REAL*8                           :: V_bc, V_host
       COMPLEX*8                        :: M_mg, M_bc, M_host
-      CHARACTER*3 :: MODE_NAME(nmodes)=(/'AKK','ACC','DD1','DS1','DD2',
-     +                             'DS2','SSA','SSC','OCC','BC1','BC2',
-     +                                   'BC3','DBC','BOC','BCS','MXX'/)
 c Andies data incl Solar weighting - integral over 6 radiation band
       DATA Ri/(1.46099,    0.0764233)  ,(1.48313,  0.000516502),    !Su
      &        (1.49719,  1.98240e-05)  ,(1.50793,  1.64469e-06),
