@@ -63,7 +63,7 @@ print "Will store the data files  in: $data_dir\n";
 if ( $opt_y ) {
     $years = $opt_y;
 } else {
-    $years = "1850:1850";
+    $years = "-100000:100000";
 }
 
 if ( -f "$runID.R" ) { $rundeck = "$runID.R"; }
@@ -122,17 +122,23 @@ foreach $str (@a) {
 		    mkdir "$data_dir/$filename" or
 			die "Can't create $full_filename\n";
 		}
+		my @years_in_toc = ($dirlist_str =~ /^\.\/$filename\/(\d+).nc/mg );
 		my $year_start, $year_end;
 		($year_start,$year_end) = split /:/, $years;
-		for($y=$year_start; $y<=$year_end; $y++) {
+		if ( !$year_end ) { $year_end = $year_start; }
+		##for($y=$year_start; $y<=$year_end; $y++) {
+		foreach $y (@years_in_toc) {
 		    # print "checking: $data_dir/$filename/$y.nc\n"; 
-		    if ( ! ($dirlist_str =~ /^\.\/$filename\/$y.nc/m) ) {
-			print "Not present on server: $filename/$y.nc - skipping\n";
-			next;
-		    }
+		    ##if ( ! ($dirlist_str =~ /^\.\/$filename\/$y.nc/m) ) {
+		    ##	print "Not present on server: $filename/$y.nc - skipping\n";
+		    ##	next;
+		    ##}
+		    next if ( $y<$year_start || $y>$year_end);
 		    if ( ! -f "$data_dir/$filename/$y.nc" ) {
 			print "Downloading:     $filename/$y.nc\n";
-			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc`;
+			# hack to prevent incomplete downloads
+			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc -O tmp.nc`;
+			`cd $data_dir/$filename && mv tmp.nc $y.nc`;
 		    } else {
 			print "Already present:     $filename/$y.nc\n";
 		    }
@@ -170,8 +176,13 @@ foreach $str (@a) {
 		    while (my $file = readdir(DIR)) {
 			next unless ($file =~ m/\d\d\d\d\.nc$/);
 			print "$file\n";
-			copy( "$full_filename/$file", "$data_dir/$filename") or
-			die "Can't copy $full_filename\n";
+			if( ! -f "$data_dir/$filename/$file") {
+			    print "copying $data_dir/$filename/$file\n";
+			    copy( "$full_filename/$file", "$data_dir/$filename") or
+				die "Can't copy $full_filename\n";
+			} else {
+			    print "already present\n";
+			}
 		    }
 		    $success = 1;
 		    last;		    
