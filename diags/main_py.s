@@ -24,6 +24,7 @@ do 'avgACC.s';
 print "\n";
 =cut
 
+=pod
 ##### -------- mean annual cycle at a certain level  ------- #####
 chdir $myDir;
 print "nctag is $nctag\n";
@@ -58,14 +59,15 @@ print "outputfilename2 =  $OutputFileName2 \n";
 chdir $myDir;
 system "python3 plot_line.py $new_variablename1 $DataDir$OutputFileName1 $DataDir$OutputFileName2";
 ###### ------------------------------- ########
+=cut
 
+=pod
 ##### -------- climatology maps at certain level  ------- #####
 chdir $myDir;
 print "Doing clim_map.s \n";
 do 'clim_map.s';
 print "\n";
 $OutputFileName1 = "$OutputFileName";
-
 
 ##### -------- maps from observations   ------- #####
 chdir $myDir;
@@ -74,6 +76,7 @@ do 'obs_map.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
 
+=cut
 
 chdir $myDir;
 print "Doing diff_maps.s \n";
@@ -96,6 +99,7 @@ chdir $myDir;
 
 system "python3 plot_map.py $variable $DataDir$OutputFileName1 $DataDir$OutputFileName2 $DataDir$OutputFileName3";
 ###### ------------------------------- ########
+=pod
 
 ##### -------- global averaged timeseries at a certain level   ------- #####
 chdir $myDir;
@@ -187,3 +191,4 @@ $KS = Kuroshio;
 $DP = DrakesPassage;
 system "python3 plot_text.py $DataDir$GS$yrini-$yrend.txt $DataDir$KS$yrini-$yrend.txt $DataDir$DP$yrini-$yrend.txt";
 ###### ------------------------------- ########
+=cut

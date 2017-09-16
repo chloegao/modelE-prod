@@ -27,6 +27,10 @@
 
       logical :: irrig_exists=.true.
 
+#ifdef TRACERS_WATER
+      real*8, dimension(:), allocatable :: tr_conc_in_aquifer
+#endif
+
       contains
 
       subroutine init_irrigmod
@@ -91,7 +95,39 @@
 
       call read_irrig(.false.)
 
+#ifdef TRACERS_WATER
+      call init_irrigmod_tracers
+#endif
+
       end subroutine init_irrigmod
+
+
+#ifdef TRACERS_WATER
+      subroutine init_irrigmod_tracers
+      USE TRACER_COM, only : ntm, n_H2O18, n_HDO, n_HTO, n_Water
+#ifdef TRACERS_SPECIAL_O18
+      real*8, external :: water_iso_conc_in_aquifer
+#endif
+      integer :: n
+
+      allocate(tr_conc_in_aquifer(ntm))
+
+      ! by defaut nothing is present in aquifer water except regular water
+      tr_conc_in_aquifer(:) = 0.0
+      if ( n_Water > 0 ) then
+        tr_conc_in_aquifer(n_Water) = 1.d0
+      endif
+
+#ifdef TRACERS_SPECIAL_O18
+      do n=1,ntm
+        if ( n==n_H2O18 .or. n==n_HDO .or. n==n_HTO ) then
+          tr_conc_in_aquifer(n) = water_iso_conc_in_aquifer(n)
+        endif
+      enddo
+#endif
+
+      end subroutine init_irrigmod_tracers
+#endif
 
 
       subroutine read_irrig(end_of_day)
@@ -322,8 +358,9 @@ C**** set default output
                irrig_gw        = irrig_water_act
                irrig_gw_energy = irrig_energy_act
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*atmlnd%gtracer(:,i,j)
-               irrig_gw_tracer  = irrig_gw*atmlnd%gtracer(:,i,j)
+               irrig_tracer_act(:) =
+     &              irrig_water_act*tr_conc_in_aquifer(:)
+               irrig_gw_tracer(:) = irrig_gw*tr_conc_in_aquifer(:)
 #endif
             else
                irrig_water_act = 0.d0
@@ -401,10 +438,10 @@ C**** set default output
                irrig_gw_energy  = irrig_energy_act - gml_to_irrig*rhow /
      *              (m_to_kg*dtsrc)  
 #ifdef TRACERS_WATER
-               irrig_tracer_act = irrig_water_act*(trml_to_irrig(:,1)
-     *              +trml_to_irrig(:,2)) / mwl_to_irrig
-               irrig_gw_tracer = irrig_tracer_act - (trml_to_irrig(:,1)
-     *              +trml_to_irrig(:,2)) / (m_to_kg*dtsrc)
+               irrig_gw_tracer(:) = irrig_gw*tr_conc_in_aquifer(:)
+               irrig_tracer_act(:) =  (trml_to_irrig(:,1)
+     *              + trml_to_irrig(:,2)) / (m_to_kg*dtsrc)
+     &              + irrig_gw_tracer(:)
 #endif
              else
                irrig_water_act  = m_avail / (m_to_kg*dtsrc) 
