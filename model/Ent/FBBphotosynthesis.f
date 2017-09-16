@@ -1433,7 +1433,6 @@ cddd      endif
       x2tmp = A_d_asymp
       if( x2tmp > 0.d0 ) x2save = min( x2save, x2tmp )
       x2save = x2save - .0000001d0
-      x2 = min( x2, a1 - Rd)
       xacc = .0001d0
       !xacc = .01d0
 cddd      if ( pspar%reset_ci_cubic1 == .false. ) then

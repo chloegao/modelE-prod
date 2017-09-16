@@ -14,13 +14,16 @@ c  leap frog method.
      .                   ,Ca_tend,ca_det_calc1d
 #endif
 #endif
+#ifdef TRACERS_Ocean_O2
+     .                   ,O_tend,o21d
+#endif
 
       implicit none
 
       integer :: i,j,k
  
       integer :: nt,kmax
-      real    :: Pnew,Dnew,Cnew,Anew,Canew
+      real    :: Pnew,Dnew,Cnew,Anew,Canew,O2new
       logical :: vrbos
  
 c  Loop to update
@@ -53,6 +56,11 @@ c   in update.F, but P has not been updated yet
          Canew = (ca_det_calc1d(k) +  Ca_tend(k)*obio_deltat)
          ca_det_calc1d(k) = Canew
 #endif
+#endif
+
+#ifdef TRACERS_Ocean_O2
+         O2new = (o21d(k) +  O_tend(k)*obio_deltat)
+         o21d(k) = O2new
 #endif
 
  1000 continue

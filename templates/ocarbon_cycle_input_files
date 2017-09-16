@@ -20,6 +20,6 @@ eda_esa_ratios=eda_esa_ratios.asc        ! ratios of rad spectrl components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 CHL_DATA=CHL_WG_2x2.5zavg                !CHL_WG_4x5 or CHL_WG_2x2.5
 !! CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
-                                         !in Gary'socean grid
+                                         !in GISS ocean grid
                                          !to be used with CHL_from_SeaWIFs
 

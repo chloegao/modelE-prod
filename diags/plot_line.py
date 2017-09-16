@@ -9,28 +9,33 @@ import matplotlib.pyplot as  plt
 import sys
 import os
 
-#filename =  "/discover/nobackup/aromanou/TESTNCO/pot_temp.ANN2191-2200.map_lev1.E190F40oQ32.nc"
-#nc = Dataset("/discover/nobackup/aromanou/TESTNCO/temp_mon.seasonalCycle_lev1.WOA13_AnnMon_onEgrid.nc")
-
 nc = Dataset(sys.argv[2])
-record = [1,2,3,4,5,6,7,8,9,10,11,12]
-#values = nc["seasonalCycle_ts"][:]
-#values = nc["pot_temp_seasonalCycle_ts"][:]
-values = nc[sys.argv[1]][:]
-title = sys.argv[1].split("/")[-1].replace(".nc","")
-plt.figure()
-plt.plot(record,values,label="model")
-plt.title(title)
+var1=nc.variables[sys.argv[1]]
+record=np.arange(1, var1.shape[0]+1, 1)
+values=var1[:]
+title=''.join([sys.argv[1],"_",nc.xlabel])
+ylabel=var1.units
+xlabel=var1.dimensions[0]
+siz=16
+
+fig, ax=plt.subplots()
+plt.plot(record,values,linewidth=2,marker='o',label='Model',color='black')
+plt.title(title,size=siz)
+
+ax.legend(loc='upper left')
+ax.set_xlabel(xlabel,size=siz)
+ax.set_ylabel(ylabel,size=siz)
+ax.grid(True)
+ax.set_xticks(record)
 
 nc = Dataset(sys.argv[3])
-#values = nc["seasonalCycle_ts"][:]
-#values = nc["pot_temp_seasonalCycle_ts"][:]
-values = nc[sys.argv[1]][:]
-plt.plot(record,values,label="obs")
+var1=nc.variables[sys.argv[1]]
+values=var1[:]
+record=np.arange(1, var1.shape[0]+1, 1)
+
+plt.plot(record,values,linewidth=2,marker='o',label='Obs.',color='blue')
 plt.legend()
-plt.savefig("test3.ps")
-
-
+file=''.join([sys.argv[1],".ps"])
+plt.savefig(file)
 
 plt.show()
-

@@ -4,8 +4,11 @@
 # in different ocean basins, Pacific and Atlantic
 
 ##### -------- Inputs ------- #####
+do 'user_input.s';
+
 $Atl = "Atl";
 $Pac = "Pac";
+$ann = "ann";
 
 if (index($variable_obs, "_mon") != -1) {
    print "'$variable_obs' contains mon.\n";
@@ -16,9 +19,9 @@ $FirstInput = "$variable.ANN$yrini-$yrend.Basin.$RUN.nc";
 $varAtl1 = "$variable$Atl";
 $varPac1 = "$variable$Pac";
 
-$SecondInput = "$variable_obs.Basin.$RUN2.nc";
-$varAtl2 = "$variable_obs$Atl";
-$varPac2 = "$variable_obs$Pac";
+$SecondInput = "$variable_obs$underscore$ann.Basin.$RUN2.nc";
+$varAtl2 = "$variable_obs$underscore$ann$Atl";
+$varPac2 = "$variable_obs$underscore$ann$Pac";
 $OutputFileName = "$variable.ANN$yrini-$yrend.BasinDiff.$RUN$underscore$RUN2.nc";
 
 

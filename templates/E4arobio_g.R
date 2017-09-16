@@ -20,8 +20,8 @@ Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L32
 #define TRACERS_ON                  ! include tracers code
-#define OBIO_ON_GARYocean           ! obio on Russell ocean
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+#define OBIO_ON_GISSocean           ! obio on GISS ocean
+#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 #define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 #define TRACERS_OceanBiology
 #define pCO2_ONLINE

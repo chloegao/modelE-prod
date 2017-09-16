@@ -28,8 +28,8 @@ C****
       USE OFLUXES, only : ocnatm
 #ifdef TRACERS_OCEAN
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry,n_age
-     &         ,n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_cfc,n_cfc12,n_sf6
-     &         ,n_abioDIC
+     &         ,n_vent,n_gasx,n_wms1,n_wms2,n_wms3,n_ocfc11,n_ocfc12
+     &         ,n_sf6,n_abioDIC
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
@@ -502,8 +502,8 @@ C        Call CARBON ('OCNMESO')
       if (n_wms1.gt.0) CALL OCN_TR_WaterMass(DTS)
       if (n_wms2.gt.0) CALL OCN_TR_WaterMass(DTS)
       if (n_wms3.gt.0) CALL OCN_TR_WaterMass(DTS)
-      if (n_cfc.gt.0) CALL OCN_TR_CFC(DTS,11)   !note n_cfc used by other parts of$
-      if (n_cfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
+      if (n_ocfc11.gt.0) CALL OCN_TR_CFC(DTS,11)   
+      if (n_ocfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
       if (n_sf6.gt.0) CALL OCN_TR_CFC(DTS,6)   
 !     if (n_abioDIC.gt.0) is defined in obio_carbon.f
 #ifdef TRACERS_AGE_OCEAN
@@ -1420,7 +1420,7 @@ C****
       Real*8,External   :: VOLGSP
       Real*8,Dimension(IM,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LMO) ::
      *          P
-      Real*8 :: PUP,PDN, VUP,VDN
+      Real*8 :: PUP,PDN, VUP,VDN, smean
 C****
 C**** Extract domain decomposition band parameters
 C****                          Band1  Band2  BandM
@@ -1468,6 +1468,9 @@ C****
               GDN(I,J,L) = (G0M(I,J,L) + 2*z12eH*GZM(I,J,L))/MMI(I,J,L)
               SUP(I,J,L) = (S0M(I,J,L) - 2*z12eH*SZM(I,J,L))/MMI(I,J,L)
               SDN(I,J,L) = (S0M(I,J,L) + 2*z12eH*SZM(I,J,L))/MMI(I,J,L)
+              smean = s0m(i,j,l)/mmi(i,j,l)
+              SUP(I,J,L) = MAX(SUP(I,J,L), .5d0*smean)
+              SDN(I,J,L) = MAX(SDN(I,J,L), .5d0*smean)
               PUP = P(I,J,L) - MO(I,J,L)*GRAV*z12eH
               PDN = P(I,J,L) + MO(I,J,L)*GRAV*z12eH
               VUP = VOLGSP (GUP(I,J,L),SUP(I,J,L),PUP)

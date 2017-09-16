@@ -17,7 +17,7 @@ filters: U,V in E-W direction (after every dynamics time step)              ?
 Preprocessor Options
 #define TRACERS_ON                  ! include tracers code
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 #define TRACERS_GASEXCH_Natassa     ! special tracers to be passed to ocean
 End Preprocessor Options
 

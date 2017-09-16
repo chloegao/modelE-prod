@@ -228,6 +228,11 @@ ccc tracers variables
         ! to tracer flux due to irrigation
 #ifdef IRRIGATION_ON
         ghy_tr%trirrig(nx) = irrig_tracer_act(n,i,j)*rhow/ ptype ! tracers in irrigation kg/m^2 s
+#ifdef TRACERS_IRRIGATION_WATER_ONLY
+        if ( tr_wd_TYPE(n) .ne. nWATER) then
+          ghy_tr%trirrig(nx) = 0.d0
+        endif
+#endif
 #else
         ghy_tr%trirrig(nx) = 0.
 #endif

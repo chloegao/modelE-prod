@@ -39,12 +39,19 @@ $basin = "Atl";
 
 # Rename variable in model so we can multiply the two files
 system "ncrename -v $variable,AtlMask modDummy.nc";
-if (defined($depth)){
+if ($area eq "oxyp"){
   $mask = "AtlMaskO.nc";
   }else{
   $mask = "AtlMaskA.nc";
 }
+
   system "ncbo --op_typ=multiply $ObsDir$mask modDummy.nc dummy.nc";
+
+if ($area eq "oxyp"){
+  if (! defined($depth)){
+  system "ncks -O -F -d zoc,1,1,1 -v AtlMask dummy.nc dummy.nc";
+}
+}
 
 # Average over longitude
 system "ncwa -v AtlMask -a lon dummy.nc dummy1.nc";
@@ -56,7 +63,8 @@ system "ncrename -v AtlMask,$variable_new dummy1.nc";
 
 # Remove unwanted terms
 system "ncks -O -x -v lon dummy1.nc $OutputFileName";
-
+system "ncatted -O -a _FillValue,$variable_new,d,f, $OutputFileName"; 
+system "ncatted -O -a _FillValue,$variable_new,c,f,-1e30 $OutputFileName"; 
 system "rm -R -f *dummy*";
 
 
@@ -67,13 +75,18 @@ $basin = "Pac";
 
 system "ncrename -v AtlMask,PacMask modDummy.nc";
 
-if (defined($depth)) {
+if ($area eq "oxyp") {
    $mask = "PacMaskO.nc";
    }else{
    $mask = "PacMaskA.nc";
    }
   system "ncbo --op_typ=multiply $ObsDir$mask modDummy.nc dummy.nc";
 
+if ($area eq "oxyp"){
+  if (! defined($depth)){
+  system "ncks -O -F -d zoc,1,1,1 -v PacMask dummy.nc dummy.nc";
+}
+}
 system "ncwa -v PacMask -a lon dummy.nc dummy1.nc";
 
 # rename new variable
@@ -86,6 +99,7 @@ system "ncks -O -x -v lon dummy1.nc dummyPac.nc";
 
 #combine
 system "ncks -A -v $variable_new dummyPac.nc $OutputFileName";
-
+system "ncatted -O -a _FillValue,$variable_new,d,f, $OutputFileName"; 
+system "ncatted -O -a _FillValue,$variable_new,c,f,-1e30 $OutputFileName"; 
 system "rm -R -f *dummy* *modDummy*";
 

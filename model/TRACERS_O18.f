@@ -302,3 +302,28 @@ c**** Calculates concentration in per mille units
       return
       end function
      
+      function water_iso_conc_in_aquifer(n) Result(c)
+!@sum returns concentration of tracer n in aquifer (kg/kg)
+!@+   This is a slow function. Do not use it in loops!
+      USE TRACER_COM, only : trw0
+      use OldTracer_mod, only: trname
+      USE Dictionary_mod, only : get_param
+      implicit none
+      integer, intent(in) :: n !@var tracer number
+      real*8 :: c !@var concentration of this tracer in water (kg/kg)
+      real*8 :: in_permil
+
+      select case(trname(n))
+      case('H2O18')
+        call get_param("H2O18_in_aquifer", in_permil, default=-8.d0)
+      case('HDO')
+        call get_param("HDO_in_aquifer", in_permil, default=-54.d0)
+      case default
+        c = 0.d0
+        return
+      end select
+
+      c = (1.d0 + in_permil*1.d-3) * trw0(n)
+
+      end function water_iso_conc_in_aquifer
+

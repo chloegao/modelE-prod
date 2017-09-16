@@ -36,16 +36,18 @@ for my $months (@data_array){
   print "Second file $SecondFileName \n";
 
   $OutputFileName = "$new_variable.$months$yrin-$yrend.diffMap_lev$ilev.$RUN$underscore$RUN2.nc";
-
+   print "output file $OutputFileName \n";
+ 
   # Make all variables have the same name to use ncdiff
   system "ncrename -v $variable_obs,$new_variable $SecondFileName dummy2.nc";  
   system "ncrename -v $variable,$new_variable $FirstFileName dummy1.nc";                      
 
   #rename lat/lon from lato/lono
-  if ($nctag eq "taij") {
+  if ($lat_obs ne "lat") {
     system "ncrename -O -v $lat_obs,lat -d $lat_obs,lat dummy2.nc";  
     system "ncrename -O -v $lon_obs,lon -d $lon_obs,lon dummy2.nc";
-  }else{
+  }
+  if ($lat ne "lat") {
     system "ncrename -O -v $lat,lat -d $lat,lat dummy1.nc";  
     system "ncrename -O -v $lon,lon -d $lon,lon dummy1.nc";  
   }
@@ -53,3 +55,4 @@ for my $months (@data_array){
   system "ncdiff -v $new_variable dummy1.nc dummy2.nc $OutputFileName";
   system "rm dummy*";
 }
+

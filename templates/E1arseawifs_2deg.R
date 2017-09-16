@@ -1,6 +1,6 @@
 test3a.R GISS Model E  coupled version          aromanou  02/14/2009
 
-test3a: obio in gary's ocean based on Larissa's E1F40o32.R
+test3a: obio in GISS ocean based on Larissa's E1F40o32.R
    2x2.5x40 layers modelE version, 1850 atm.; 32 layers in the ocean
           NOTE: new ocean initial condition OIC=OIC.WOA98.2HX2.L32.D1201
 modelE1 (3.0) 4x5 hor. grid with 20 lyrs, top at .1 mb (+ 3 rad.lyrs)       ?
@@ -16,10 +16,10 @@ STACKSIZE=524288
 
 Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
-!#define TRACERS_OCEAN               ! Gary's Ocean tracers activated
+!#define TRACERS_OCEAN               ! GISS Ocean tracers activated
 !#define TRACERS_OCEAN_INDEP         ! independently defined ocn tracers
 !#define TRACERS_OceanBiology
-!#define OBIO_ON_GARYocean
+!#define OBIO_ON_GISSocean
 !#define pCO2_ONLINE
 !!!!#define CHL_from_SeaWIFs - replaced by run-time parameter
 #define OCN_LAYERING L32
@@ -156,7 +156,7 @@ eda_esa_ratios=eda_esa_ratios.asc        ! ratios of radiation spectral
 components
 !!!!!!!!!!!!!!!!!!! obio_rad  input data   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 CHL_DATA=CHL_WG_2x2.5                    !CHL_WG_4x5 or CHL_WG_2x2.5
-                                         !in Gary'socean grid
+                                         !in GISS ocean grid
                                          !to be used with CHL_from_SeaWIFs
 
 Label and Namelist:
