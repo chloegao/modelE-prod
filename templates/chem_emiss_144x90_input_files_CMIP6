@@ -25,8 +25,8 @@ NOx_10=emis/CMIP6_BBURN_v1.2_2.0x2.5
 ! if BIOGENIC_EMISSIONS or PS_BVOC are defined, and only one
 ! Terpenes file is available, the Isoprene file is needed too
 ! Isoprene_01=ORCHIDEE_Isoprene_1990_2x2.5_h
-Terpenes_01=ORCHIDEE_Terpenes_1990_2x2.5_h
-Terpenes_02=ORCHIDEE_ORVOC_1990_2x2.5_h
+Terpenes_01=emisnc/F/OTHER/ORCHIDEE_Terpenes_1990_2x2.5_h.nc
+Terpenes_02=emisnc/F/OTHER/ORCHIDEE_ORVOC_1990_2x2.5_h.nc
 ! === If you add any of your own Alkenes or Paraffin emissions ===
 ! === please remember they are to be emitted with molecular wt ===
 ! === of 1.0. In other words in Kmole m-2 s-1 units            ===
