@@ -409,10 +409,10 @@ C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 !      REAL*8 DDJDAY(9,8,72,46)                                     !ron
 
 C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
-      REAL*8 FDATA(80),GDATA(80)
-     C      ,HTFLAT(49,4),SIZLAT(49),TAULAT(49)
-      real*8, dimension(:,:,:), allocatable :: V4TAUR               !rjh
-      INTEGER JVOLYI,JVOLYE,NVOLMON
+      INTEGER JVOLYI,JVOLYE,NVOLMON,NVOLLAT,NVOLK
+      real*8, dimension(:), allocatable :: ELATVOL,HVOLKM
+      real*8, dimension(:,:,:), allocatable :: VTauTJK ! (NVOLMON,NVOLLAT,NVOLK)
+      real*8, dimension(:,:), allocatable :: VReffTJ   ! (NVOLMON,NVOLLAT)
 
 
 C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
@@ -870,8 +870,9 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
       CHARACTER*80 EPSTAG,TITLE
 
       REAL*4 OZONLJ(44,46),R72X46(72,46)
-      real*4, dimension(:,:), allocatable :: VTAUR4               !rjh
-      REAL*8 :: EJMLAT(47),E20LAT(20)
+      real*4, dimension(:,:), allocatable :: VTAUR4              !rjh
+      real*4, allocatable :: vtau4(:,:,:),vreff4(:,:),hv4(:),lat4(:)
+
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,KK,NN,IYEAR,IMONTH,JJDAYS,JYEARS
      *     ,JJDAYG,JYEARG,yr2S0i
       REAL*8 :: WAVNA,WAVNB,PFWI,TKOFPF,SUMV,EPK,EPL,DEP,SFNORM,D,O,Q,S
@@ -1259,30 +1260,63 @@ C                        -----------------------------------------------
 
 C-----------------------------------------------------------------------
 CR(7)        Read Stratospheric Volcanic binary data
-C            (NVOLMON months (years JVOLYI to JVOLYE) x 24 latitudes)
+C            (NVOLMON months (years JVOLYI to JVOLYE) x NVOLLAT latitudes)
 C            If KyearV<0 use the NVOLMON-month mean as background aerosol
 C            ---------------------------------------------------------
-      IF(MADVOL < 1) GO TO 799
       NRFU=NRFUN(7)
-      READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE
-      IF(TITLE(1:9).ne.'OD Header')
-     &     call stop_model('rcomp1: use new RADN7 header file',255)
-      ALLOCATE (V4TAUR(NVOLMON,24,5),VTAUR4(NVOLMON,24))
-      DO K=1,5
+      if(madvol==1) then
+        READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE
+        NVolLat = 24 ; NVolK = 4
+        IF(TITLE(1:9).ne.'OD Header')
+     &      call stop_model('rcomp1: use new RADN7 header file',255)
+        ALLOCATE (VTauTJK(NVOLMON,NVolLat,NVolK), HVolKM(NVolK+1))
+        ALLOCATE (VReffTJ(NVOLMON,NVolLat), VTAUR4(NVOLMON,NVolLat))
+        DO K=1,NVolK
+          READ (NRFU) TITLE,VTAUR4
+          DO J=1,NVolLat
+            SUMV=0.
+            DO I=1,NVOLMON
+              VTauTJK(I,J,K)=VTAUR4(I,J)
+              SUMV=SUMV+VTAUR4(I,J)
+            END DO
+            if(kyearv < 0) VTauTJK(1,J,K)=SUMV/NVOLMON
+          END DO
+        END DO
         READ (NRFU) TITLE,VTAUR4
-        DO J=1,24
+        DO J=1,NVolLat
           SUMV=0.
-        DO I=1,NVOLMON
-          V4TAUR(I,J,K)=VTAUR4(I,J)
-          SUMV=SUMV+VTAUR4(I,J)
+          DO I=1,NVOLMON
+            VReffTJ(I,J)=VTAUR4(I,J)
+            SUMV=SUMV+VTAUR4(I,J)
+          END DO
+          if(kyearv < 0) VReffTJ(1,J)=SUMV/NVOLMON
         END DO
-          if(kyearv < 0) V4TAUR(1,J,K)=SUMV/NVOLMON
-        END DO
-      END DO
-
-
-  799 CONTINUE
-
+        deallocate (VTAUR4)
+      else if(madvol==2) then
+        READ (NRFU) TITLE ; rewind NRFU
+        IF(TITLE(1:12).ne.'CMIP6 Header')
+     &      call stop_model('rcomp1: use CMIP6 RADN7 header file',255)
+        READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE,NVolLat,NVolK
+        ALLOCATE (VTauTJK(NVOLMON,NVolLat,NVolK))
+        ALLOCATE (VTau4(NVOLMON,NVolLat,NVolK))
+        ALLOCATE (VReff4(NVOLMON,NVolLat))
+        ALLOCATE (VReffTJ(NVOLMON,NVolLat))
+        ALLOCATE (HVOLKM(NVolK+1),ELATVOL(NVolLat+1))
+        ALLOCATE (hv4(NVolK+1),LAT4(NVolLat+1))
+        READ (NRFU) TITLE,VTau4  ; VTauTJK = VTau4
+        READ (NRFU) TITLE,VReff4 ; VReffTJ = VReff4
+        READ (NRFU) TITLE,hv4    ; HVOLKM  = hv4
+        READ (NRFU) TITLE,LAT4   ; ELATVOL = lat4
+        deallocate (VTau4,VReff4,hv4,LAT4)
+        if(kyearv < 0) then
+          do j=1,NVolLat
+          VReffTJ(1,J)=sum(VReffTJ(:,j))/nvolmon
+            do k=1,NVolK
+            VTauTJK(1,J,K)=sum(VTauTJK(:,j,k))/nvolmon
+            end do
+          end do
+        end if
+      end if
 C-----------------------------------------------------------------------
 CR(8)  ISCCP Derived Cloud Variance (EPSILON) Cloud Optical Depth Factor
 C      Low, Mid, High  Cloud Optical Depths are Reduced by (1 - EPSILON)
@@ -3192,17 +3226,19 @@ C                              ----------------------------------------
       SUBROUTINE SETVOL(JYEARV,JDAYVA,GETVOL_flag)
       IMPLICIT NONE
 
-      REAL*8, SAVE :: E24LAT(25),EJMLAT(47)
-      REAL*8  HLATTF(4),HTPROF(LX+1)
-      REAL*8, PARAMETER :: HLATKM(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
+
+      REAL*8, SAVE :: E46LAT(47),SIZLAT(46),TAULAT(46)
+      INTEGER, SAVE :: NJ46
+      REAL*8, PARAMETER :: HVOL00(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
 cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
 
 !nu   REAL*8, PARAMETER :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
-      INTEGER, SAVE :: NJ25,NJJM
       INTEGER, INTENT(IN), optional :: JYEARV,JDAYVA,GETVOL_flag
       INTEGER J,L,MI,MJ,K
       REAL*8 XYYEAR,XYI,WMI,WMJ,SIZVOL !nu ,SUMHTF
+      REAL*8, save, allocatable :: gdata(:), hlattf(:), HTFLAT(:,:)
+      REAL*8, save, allocatable :: HTPROF(:)
 #ifdef HEALY_LM_DIAGS
       INTEGER, SAVE :: NJDG
       REAL*8, SAVE :: EDGLAT(JM_DIAG)
@@ -3233,18 +3269,21 @@ C     -----------------------------------------------------------------
 
 C                   Set Grid-Box Edge Latitudes for Data Repartitioning
 C                   ---------------------------------------------------
-      NJ25=25
-      DO 110 J=2,24
-      E24LAT(J)=-90.D0+(J-1.5D0)*180.D0/23.D0
-  110 CONTINUE
-      E24LAT( 1)=-90.D0
-      E24LAT(25)= 90.D0
-      NJJM=46+1
-      DO 120 J=2,46
-      EJMLAT(J)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
-  120 CONTINUE
-      EJMLAT(   1)=-90.D0
-      EJMLAT(NJJM)= 90.D0
+      if(madvol==1) then
+        allocate(ELATVOL(NVolLat+1))
+        DO J=2,24 ! NVolLat
+          ELATVOL(J)=-90.D0+(J-1.5D0)*180.D0/23.D0
+        END DO
+        ELATVol( 1)=-90.D0
+        ELATVol(25)= 90.D0
+        HVolKM = HVol00
+      end if
+      NJ46=46+1
+      DO J=2,46
+        E46LAT(J)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
+      END DO
+      E46LAT(   1)=-90.D0
+      E46LAT(NJ46)= 90.D0
 #ifdef  HEALY_LM_DIAGS
       NJDG=JM_DIAG+1
       DO J=2,JM_DIAG
@@ -3253,6 +3292,8 @@ C                   ---------------------------------------------------
       EDGLAT(   1)=-90.D0
       EDGLAT(NJDG)= 90.D0
 #endif
+      allocate (gdata(NVolLat),hlattf(NVolK),HTFLAT(NJ46,NVOLK))
+      allocate (HTPROF(NL))
 
       HTPROF(:)=0
 
@@ -3283,25 +3324,25 @@ C                                          -------------------------
       WMJ=XYI-MI
       WMI=1.D0-WMJ
       MJ=MI+1
-      DO 250 J=1,24
-      GDATA(J)=WMI*V4TAUR(MI,J,5)+WMJ*V4TAUR(MJ,J,5)
+      DO 250 J=1,NVolLat
+      GDATA(J)=WMI*VReffTJ(MI,J)+WMJ*VReffTJ(MJ,J)
 !!    write(6,'(a,2I7,2f8.1,2f10.4)')'VOLCREFF:: ',MI,MJ,
-!!   . XYYEAR,XYI,V4TAUR(MI,J,5),V4TAUR(MJ,J,5)
+!!   . XYYEAR,XYI,VReffTJ(MI,J),VReffTJ(MJ,J)
   250 CONTINUE
-      CALL RETERP(GDATA,E24LAT,NJ25,SIZLAT,EJMLAT,NJJM)
-      DO 270 K=1,4
-      DO 260 J=1,24
-      FDATA(J)=WMI*V4TAUR(MI,J,K)+WMJ*V4TAUR(MJ,J,K)
+      CALL RETERP(GDATA,ELATVol,NVolLat+1,SIZLAT,E46LAT,NJ46)
+      DO 270 K=1,NVOLK
+      DO 260 J=1,NVolLat
+      GDATA(J)=WMI*VTauTJK(MI,J,K)+WMJ*VTauTJK(MJ,J,K)
 !!    write(6,'(a,3I7,2f8.1,2F10.4)')'VOLCAER:: ',K,MI,MJ,
-!!   . XYYEAR,XYI,V4TAUR(MI,J,K),V4TAUR(MJ,J,K)
+!!   . XYYEAR,XYI,VTauTJK(MI,J,K),VTauTJK(MJ,J,K)
   260 CONTINUE
-      CALL RETERP(FDATA,E24LAT,NJ25,HTFLAT(1,K),EJMLAT,NJJM)
+      CALL RETERP(GDATA,ELATVOL,NVolLat+1,HTFLAT(1,K),E46LAT,NJ46)
   270 CONTINUE
+#ifdef HEALY_LM_DIAGS
       DO J=1,46
       TAULAT(J) = SUM (HTFLAT(J,:))
       END DO
-#ifdef HEALY_LM_DIAGS
-      CALL RETERP(TAULAT,EJMLAT,NJJM,VTAULAT,EDGLAT,NJDG)
+      CALL RETERP(TAULAT,E46LAT,NJ46,VTAULAT,EDGLAT,NJDG)
 #endif
 
 
@@ -3319,8 +3360,8 @@ C                      Set JLAT Dependent Aerosol Distribution and Size
 C                      ------------------------------------------------
 cx300 CONTINUE
 
-      HLATTF(1:4)=HTFLAT(JLAT,1:4)
-      CALL REPART(HLATTF,HLATKM,5,HTPROF,HLB0,NL+1)
+      HLATTF(1:NVolK)=HTFLAT(JLAT,1:NVolK)
+      CALL REPART(HLATTF,HVOLKM,NVolK+1,HTPROF,HLB0,NL+1)
 !nu   LHPMAX=0       ! not used
 !nu   LHPMIN=NL      ! not used
 !nu   DO L=L1,NL
