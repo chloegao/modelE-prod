@@ -5599,10 +5599,12 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 
         case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
-            sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
-     &                          ntsurfsrc(n)+nBBsources(n))=
-     &      sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
-     &                          ntsurfsrc(n)+nBBsources(n)-1)
+            if (ntsurfsrc(n)>1) then
+              sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
+     &                            ntsurfsrc(n)+nBBsources(n))=
+     &        sfc_src(:,J_0:J_1,n,ntsurfsrc(n)-1:
+     &                            ntsurfsrc(n)+nBBsources(n)-1)
+            endif ! else there is only the terpene source
             sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
           endif
         end select
