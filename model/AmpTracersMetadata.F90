@@ -7,6 +7,7 @@ module AmpTracersMetadata_mod
   use sharedTracersMetadata_mod, only: DMS_setspec, &
     SO2_setspec, H2O2_s_setspec, NH3_setspec
   USE CONSTANT, only: mwat
+  USE AERO_CONFIG, only: nmodes
   USE AERO_PARAM, only: &
     SOLU_DD1, SOLU_DD2, SOLU_AKK, SOLU_ACC, &
     SOLU_DS1, SOLU_DS2, SOLU_SSA, SOLU_SSC, &
@@ -129,6 +130,8 @@ module AmpTracersMetadata_mod
   integer, allocatable, dimension(:), public :: AMP_trm_nm1
 !@var AMP_trm_nm2 Index of last mass tracer in a population (ntm-based)
   integer, allocatable, dimension(:), public :: AMP_trm_nm2
+!@var iNamp indices of number concentration tracers
+  integer, dimension(nmodes), public :: iNamp=0
 
   real(8), parameter :: microns2meters = 1.0d-6
   REAL(8), PARAMETER :: RG_AKK = microns2meters*DG_AKK/2.0d0 
@@ -666,10 +669,21 @@ contains
       integer :: tracerIndex
       real*8 :: tmp
       integer :: lc ! length of component string or 2, whichever is smaller
+      integer :: i
 
       prefix = getTracerPrefix(component)
       tracerName = prefix // "_" // mode // "_" // component
       tracerIndex = oldAddTracer(trim(tracerName))
+
+! create array with number concentration indices, based on ntm
+      if (trim(component) == '1') then
+        do i=1,nmodes ! brute force, but only happens once
+          if (iNamp(i)==0) then
+            iNamp(i)=tracerIndex
+            exit
+          endif
+        enddo
+      endif
 
       if (trim(tracerName) == 'N_MXX_1') then
         ntmAMPe = tracerIndex     ! always the last tracer in AMP

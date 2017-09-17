@@ -149,11 +149,7 @@ C****
 #endif
 #ifdef TRACERS_AMP
       USE AERO_CONFIG, only: nmodes
-      USE TRACER_COM, only:
-     *     n_N_AKK_1 ,n_N_ACC_1 ,n_N_DD1_1 ,n_N_DS1_1 ,n_N_DD2_1,
-     *     n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1,
-     *     n_N_BC2_1 ,n_N_BC3_1,
-     *     n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, n_N_MXX_1
+      USE AmpTracersMetadata_mod, only: iNamp
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only: icomp
@@ -941,17 +937,13 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         endif
       endif
 !-----------------------------------------------------------------------
-#if (defined TRACERS_AMP) || (defined TRACERS_AMP_M1)
+#ifdef TRACERS_AMP
       if (nraero_AMP > 0) then
         if (rad_interact_aer > 0) then
           FS8OPX(1:7)=0.d0
           FT8OPX(1:7)=0.d0
         endif
-        ntrix_aod(n+1:n+nraero_AMP)=
-     &     (/n_N_AKK_1, n_N_ACC_1, n_N_DD1_1, n_N_DS1_1, n_N_DD2_1,
-     &       n_N_DS2_1, n_N_SSA_1, n_N_SSC_1, n_N_OCC_1, n_N_BC1_1, 
-     &       n_N_BC2_1 ,n_N_BC3_1, n_N_DBC_1, n_N_BOC_1, n_N_BCS_1, 
-     &       n_N_MXX_1/)
+        ntrix_aod(n+1:n+nraero_AMP)=iNamp
         if (diag_fc==2) then
           ntrix_rf(n+1:n+nraero_AMP)=ntrix_aod(n+1:n+nraero_AMP)
         else if (diag_fc==1) then
@@ -959,7 +951,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         endif
       endif
       n=n+nraero_AMP
-#endif  /* (defined TRACERS_AMP) || (defined TRACERS_AMP_M1) */
+#endif  /* TRACERS_AMP */
 !-----------------------------------------------------------------------
 #ifdef TRACERS_TOMAS
       if (nraero_TOMAS > 0) then
