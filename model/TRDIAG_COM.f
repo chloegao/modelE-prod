@@ -346,10 +346,12 @@ C**** TAJLN
 C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - do not bother with pp options
-#ifndef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktajls=1350
+#ifdef TRACERS_TOMAS
+      INTEGER,PARAMETER :: ktajls=3285
+#elif defined TRACERS_AMP_M9
+      INTEGER,PARAMETER :: ktajls=3000
 #else
-      INTEGER,PARAMETER :: ktajls=3285 
+      INTEGER,PARAMETER :: ktajls=1350
 #endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_O3vmr
