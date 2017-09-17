@@ -230,7 +230,7 @@ c
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
      &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
      &                        n_M_SSA_SU,n_M_OCC_SU,n_M_BC1_SU,
-     &                        n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU,
+     &             n_M_BC2_SU,n_M_BC3_SU,n_M_OCS_SU,n_M_DBC_SU,
      &                        n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU
 #endif
 #ifdef TRACERS_TOMAS
@@ -933,7 +933,15 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
      &    trm_col(L,n_M_DD2_SU)+trm_col(L,n_M_DS2_SU)+
      &    trm_col(L,n_M_SSA_SU)+trm_col(L,n_M_OCC_SU)+
      &    trm_col(L,n_M_BC1_SU)+trm_col(L,n_M_BC2_SU)+
-     &    trm_col(L,n_M_BC3_SU)+trm_col(L,n_M_DBC_SU)+
+#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M5)
+     &    trm_col(L,n_M_BC3_SU)+
+#endif
+#if (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6) || (defined TRACERS_AMP_M9)
+     &    trm_col(L,n_M_OCS_SU)+
+#endif
+#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6)
+     &    trm_col(L,n_M_DBC_SU)+
+#endif
      &    trm_col(L,n_M_BOC_SU)+trm_col(L,n_M_BCS_SU)+
      &    trm_col(L,n_M_MXX_SU)
 #elif (defined TRACERS_AEROSOLS_Koch)
@@ -2676,7 +2684,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU
      &                     ,n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU
      &                     ,n_M_SSA_SU,n_M_OCC_SU,n_M_BC1_SU
-     &                     ,n_M_BC2_SU,n_M_BC3_SU,n_M_DBC_SU
+     &          ,n_M_BC2_SU,n_M_BC3_SU,n_M_OCS_SU,n_M_DBC_SU
      &                     ,n_M_BOC_SU,n_M_BCS_SU,n_M_MXX_SU
 #endif
 #ifdef TRACERS_TOMAS
@@ -2894,7 +2902,15 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
      &      trm_col(L,n_M_DD2_SU)+trm_col(L,n_M_DS2_SU)+
      &      trm_col(L,n_M_SSA_SU)+trm_col(L,n_M_OCC_SU)+
      &      trm_col(L,n_M_BC1_SU)+trm_col(L,n_M_BC2_SU)+
-     &      trm_col(L,n_M_BC3_SU)+trm_col(L,n_M_DBC_SU)+
+#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M5)
+     &      trm_col(L,n_M_BC3_SU)+
+#endif
+#if (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6) || (defined TRACERS_AMP_M9)
+     &      trm_col(L,n_M_OCS_SU)+
+#endif
+#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6)
+     &      trm_col(L,n_M_DBC_SU)+
+#endif
      &      trm_col(L,n_M_BOC_SU)+trm_col(L,n_M_BCS_SU)+
      &      trm_col(L,n_M_MXX_SU)
 #elif (defined TRACERS_AEROSOLS_Koch)
