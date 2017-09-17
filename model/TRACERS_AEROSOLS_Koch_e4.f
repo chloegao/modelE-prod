@@ -1259,13 +1259,14 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       spBC(3)=n_BCB
 #endif
 #ifdef TRACERS_AMP
-      spBC(1)=n_M_BC1_BC
-      spBC(2)=n_M_BC2_BC
-      spBC(3)=n_M_BC3_BC
-      spBC(4)=n_M_DBC_BC
-      spBC(5)=n_M_BOC_BC
-      spBC(6)=n_M_BCS_BC
-      spBC(7)=n_M_MXX_BC
+      spBC(:)=0
+      if (n_M_BC1_BC>0) spBC(1)=n_M_BC1_BC
+      if (n_M_BC2_BC>0) spBC(2)=n_M_BC2_BC
+      if (n_M_BC3_BC>0) spBC(3)=n_M_BC3_BC
+      if (n_M_DBC_BC>0) spBC(4)=n_M_DBC_BC
+      if (n_M_BOC_BC>0) spBC(5)=n_M_BOC_BC
+      if (n_M_BCS_BC>0) spBC(6)=n_M_BCS_BC
+      if (n_M_MXX_BC>0) spBC(7)=n_M_MXX_BC
 #endif
 #ifdef TRACERS_TOMAS
       do n=1,nbins
@@ -1291,7 +1292,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       if (wsn_ij(1,1,i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
-          bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
+          if (spBC(n)>0) bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
         enddo
         sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
       endif
@@ -1300,7 +1301,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       if (wsn_ij(1,2,i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
-          bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
+          if (spBC(n)>0) bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
         enddo
         sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
@@ -1312,7 +1313,7 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       if (si_atm%snowi(i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
         do n=1,nspBC
-          icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
+          if (spBC(n)>0) icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
         enddo
       endif
 
