@@ -36,12 +36,69 @@ module AmpTracersMetadata_mod
     n_M_MXX_SS,n_N_MXX_1 ,n_M_OCS_SU,n_M_OCS_OC, &
     n_N_OCS_1,n_M_SSS_SS,n_M_SSS_SU,             &
     n_H2SO4, n_N_SSA_1, n_N_SSC_1
+  use TRACER_COM, only: &
+    n_M_ACC_OCM2, n_M_ACC_OCM1, n_M_ACC_OCM0, &
+    n_M_ACC_OCP1, n_M_ACC_OCP2, n_M_ACC_OCP3, &
+    n_M_ACC_OCP4, n_M_ACC_OCP5, n_M_ACC_OCP6
+  use TRACER_COM, only: &
+    n_M_DD1_OCM2, n_M_DD1_OCM1, n_M_DD1_OCM0, &
+    n_M_DD1_OCP1, n_M_DD1_OCP2, n_M_DD1_OCP3, &
+    n_M_DD1_OCP4, n_M_DD1_OCP5, n_M_DD1_OCP6
+  use TRACER_COM, only: &
+    n_M_DS1_OCM2, n_M_DS1_OCM1, n_M_DS1_OCM0, &
+    n_M_DS1_OCP1, n_M_DS1_OCP2, n_M_DS1_OCP3, &
+    n_M_DS1_OCP4, n_M_DS1_OCP5, n_M_DS1_OCP6
+  use TRACER_COM, only: &
+    n_M_DD2_OCM2, n_M_DD2_OCM1, n_M_DD2_OCM0, &
+    n_M_DD2_OCP1, n_M_DD2_OCP2, n_M_DD2_OCP3, &
+    n_M_DD2_OCP4, n_M_DD2_OCP5, n_M_DD2_OCP6
+  use TRACER_COM, only: &
+    n_M_DS2_OCM2, n_M_DS2_OCM1, n_M_DS2_OCM0, &
+    n_M_DS2_OCP1, n_M_DS2_OCP2, n_M_DS2_OCP3, &
+    n_M_DS2_OCP4, n_M_DS2_OCP5, n_M_DS2_OCP6
+  use TRACER_COM, only: &
+    n_M_SSA_OCM2, n_M_SSA_OCM1, n_M_SSA_OCM0, &
+    n_M_SSA_OCP1, n_M_SSA_OCP2, n_M_SSA_OCP3, &
+    n_M_SSA_OCP4, n_M_SSA_OCP5, n_M_SSA_OCP6
+  use TRACER_COM, only: &
+    n_M_SSC_OCM2, n_M_SSC_OCM1, n_M_SSC_OCM0, &
+    n_M_SSC_OCP1, n_M_SSC_OCP2, n_M_SSC_OCP3, &
+    n_M_SSC_OCP4, n_M_SSC_OCP5, n_M_SSC_OCP6
+  use TRACER_COM, only: &
+    n_M_OCC_OCM2, n_M_OCC_OCM1, n_M_OCC_OCM0, &
+    n_M_OCC_OCP1, n_M_OCC_OCP2, n_M_OCC_OCP3, &
+    n_M_OCC_OCP4, n_M_OCC_OCP5, n_M_OCC_OCP6
+  use TRACER_COM, only: &
+    n_M_BC1_OCM2, n_M_BC1_OCM1, n_M_BC1_OCM0, &
+    n_M_BC1_OCP1, n_M_BC1_OCP2, n_M_BC1_OCP3, &
+    n_M_BC1_OCP4, n_M_BC1_OCP5, n_M_BC1_OCP6
+  use TRACER_COM, only: &
+    n_M_BC2_OCM2, n_M_BC2_OCM1, n_M_BC2_OCM0, &
+    n_M_BC2_OCP1, n_M_BC2_OCP2, n_M_BC2_OCP3, &
+    n_M_BC2_OCP4, n_M_BC2_OCP5, n_M_BC2_OCP6
+  use TRACER_COM, only: &
+    n_M_OCS_OCM2, n_M_OCS_OCM1, n_M_OCS_OCM0, &
+    n_M_OCS_OCP1, n_M_OCS_OCP2, n_M_OCS_OCP3, &
+    n_M_OCS_OCP4, n_M_OCS_OCP5, n_M_OCS_OCP6
+  use TRACER_COM, only: &
+    n_M_BOC_OCM2, n_M_BOC_OCM1, n_M_BOC_OCM0, &
+    n_M_BOC_OCP1, n_M_BOC_OCP2, n_M_BOC_OCP3, &
+    n_M_BOC_OCP4, n_M_BOC_OCP5, n_M_BOC_OCP6
+  use TRACER_COM, only: &
+    n_M_BCS_OCM2, n_M_BCS_OCM1, n_M_BCS_OCM0, &
+    n_M_BCS_OCP1, n_M_BCS_OCP2, n_M_BCS_OCP3, &
+    n_M_BCS_OCP4, n_M_BCS_OCP5, n_M_BCS_OCP6
+  use TRACER_COM, only: &
+    n_M_MXX_OCM2, n_M_MXX_OCM1, n_M_MXX_OCM0, &
+    n_M_MXX_OCP1, n_M_MXX_OCP2, n_M_MXX_OCP3, &
+    n_M_MXX_OCP4, n_M_MXX_OCP5, n_M_MXX_OCP6
   use RunTimeControls_mod, only: &
     tracers_nitrate, tracers_aerosols_koch, tracers_aerosols_seasalt, &
     tracers_amp_m1, tracers_amp_m2,         &
     tracers_amp_m3, tracers_amp_m4,         &
     tracers_amp_m5, tracers_amp_m6,         &
     tracers_amp_m7, tracers_amp_m8,         &
+    tracers_amp_m9,                         &
     tracers_special_shindell
   use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem, coupled_chem
   use OldTracer_mod, only: set_needtrs
@@ -122,29 +179,89 @@ contains
         tracers_amp_m3 .or. &
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m7) then
+        tracers_amp_m7 .or. &
+        tracers_amp_m9) then
       n_M_AKK_SU = AMP_SetSpec('AKK', 'SU')
       n_N_AKK_1  = AMP_SetSpec('AKK', '1' )
     end if
 
     n_M_ACC_SU = AMP_SetSpec('ACC', 'SU')
+    if (tracers_amp_m9) then
+      n_M_ACC_OCM2 = AMP_SetSpec('ACC', 'OCM2')
+      n_M_ACC_OCM1 = AMP_SetSpec('ACC', 'OCM1')
+      n_M_ACC_OCM0 = AMP_SetSpec('ACC', 'OCM0')
+      n_M_ACC_OCP1 = AMP_SetSpec('ACC', 'OCP1')
+      n_M_ACC_OCP2 = AMP_SetSpec('ACC', 'OCP2')
+      n_M_ACC_OCP3 = AMP_SetSpec('ACC', 'OCP3')
+      n_M_ACC_OCP4 = AMP_SetSpec('ACC', 'OCP4')
+      n_M_ACC_OCP5 = AMP_SetSpec('ACC', 'OCP5')
+      n_M_ACC_OCP6 = AMP_SetSpec('ACC', 'OCP6')
+    endif
     n_N_ACC_1  = AMP_SetSpec('ACC', '1' )
+
     n_M_DD1_SU = AMP_SetSpec('DD1', 'SU')
     n_M_DD1_DU = AMP_SetSpec('DD1', 'DU')
+    if (tracers_amp_m9) then
+      n_M_DD1_OCM2 = AMP_SetSpec('DD1', 'OCM2')
+      n_M_DD1_OCM1 = AMP_SetSpec('DD1', 'OCM1')
+      n_M_DD1_OCM0 = AMP_SetSpec('DD1', 'OCM0')
+      n_M_DD1_OCP1 = AMP_SetSpec('DD1', 'OCP1')
+      n_M_DD1_OCP2 = AMP_SetSpec('DD1', 'OCP2')
+      n_M_DD1_OCP3 = AMP_SetSpec('DD1', 'OCP3')
+      n_M_DD1_OCP4 = AMP_SetSpec('DD1', 'OCP4')
+      n_M_DD1_OCP5 = AMP_SetSpec('DD1', 'OCP5')
+      n_M_DD1_OCP6 = AMP_SetSpec('DD1', 'OCP6')
+    endif
     n_N_DD1_1  = AMP_SetSpec('DD1', '1' )
+
     n_M_DS1_SU = AMP_SetSpec('DS1', 'SU')
     n_M_DS1_DU = AMP_SetSpec('DS1', 'DU')
+    if (tracers_amp_m9) then
+      n_M_DS1_OCM2 = AMP_SetSpec('DS1', 'OCM2')
+      n_M_DS1_OCM1 = AMP_SetSpec('DS1', 'OCM1')
+      n_M_DS1_OCM0 = AMP_SetSpec('DS1', 'OCM0')
+      n_M_DS1_OCP1 = AMP_SetSpec('DS1', 'OCP1')
+      n_M_DS1_OCP2 = AMP_SetSpec('DS1', 'OCP2')
+      n_M_DS1_OCP3 = AMP_SetSpec('DS1', 'OCP3')
+      n_M_DS1_OCP4 = AMP_SetSpec('DS1', 'OCP4')
+      n_M_DS1_OCP5 = AMP_SetSpec('DS1', 'OCP5')
+      n_M_DS1_OCP6 = AMP_SetSpec('DS1', 'OCP6')
+    endif
     n_N_DS1_1  = AMP_SetSpec('DS1', '1' )
 
     if (tracers_amp_m1 .or. &
         tracers_amp_m2 .or. &
         tracers_amp_m3 .or. &
-        tracers_amp_m4) then
+        tracers_amp_m4 .or. &
+        tracers_amp_m9) then
       n_M_DD2_SU = AMP_SetSpec('DD2','SU')
       n_M_DD2_DU = AMP_SetSpec('DD2','DU')
+      if (tracers_amp_m9) then
+        n_M_DD2_OCM2 = AMP_SetSpec('DD2', 'OCM2')
+        n_M_DD2_OCM1 = AMP_SetSpec('DD2', 'OCM1')
+        n_M_DD2_OCM0 = AMP_SetSpec('DD2', 'OCM0')
+        n_M_DD2_OCP1 = AMP_SetSpec('DD2', 'OCP1')
+        n_M_DD2_OCP2 = AMP_SetSpec('DD2', 'OCP2')
+        n_M_DD2_OCP3 = AMP_SetSpec('DD2', 'OCP3')
+        n_M_DD2_OCP4 = AMP_SetSpec('DD2', 'OCP4')
+        n_M_DD2_OCP5 = AMP_SetSpec('DD2', 'OCP5')
+        n_M_DD2_OCP6 = AMP_SetSpec('DD2', 'OCP6')
+      endif
       n_N_DD2_1  = AMP_SetSpec('DD2','1' )
+
       n_M_DS2_SU = AMP_SetSpec('DS2','SU')
       n_M_DS2_DU = AMP_SetSpec('DS2','DU')
+      if (tracers_amp_m9) then
+        n_M_DS2_OCM2 = AMP_SetSpec('DS2', 'OCM2')
+        n_M_DS2_OCM1 = AMP_SetSpec('DS2', 'OCM1')
+        n_M_DS2_OCM0 = AMP_SetSpec('DS2', 'OCM0')
+        n_M_DS2_OCP1 = AMP_SetSpec('DS2', 'OCP1')
+        n_M_DS2_OCP2 = AMP_SetSpec('DS2', 'OCP2')
+        n_M_DS2_OCP3 = AMP_SetSpec('DS2', 'OCP3')
+        n_M_DS2_OCP4 = AMP_SetSpec('DS2', 'OCP4')
+        n_M_DS2_OCP5 = AMP_SetSpec('DS2', 'OCP5')
+        n_M_DS2_OCP6 = AMP_SetSpec('DS2', 'OCP6')
+      endif
       n_N_DS2_1  = AMP_SetSpec('DS2','1' )
     end if
 
@@ -153,11 +270,35 @@ contains
         tracers_amp_m3 .or. &
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m7) then
+        tracers_amp_m7 .or. &
+        tracers_amp_m9) then
       n_M_SSA_SU = AMP_SetSpec('SSA','SU')
       n_M_SSA_SS = AMP_SetSpec('SSA','SS')
+      if (tracers_amp_m9) then
+        n_M_SSA_OCM2 = AMP_SetSpec('SSA', 'OCM2')
+        n_M_SSA_OCM1 = AMP_SetSpec('SSA', 'OCM1')
+        n_M_SSA_OCM0 = AMP_SetSpec('SSA', 'OCM0')
+        n_M_SSA_OCP1 = AMP_SetSpec('SSA', 'OCP1')
+        n_M_SSA_OCP2 = AMP_SetSpec('SSA', 'OCP2')
+        n_M_SSA_OCP3 = AMP_SetSpec('SSA', 'OCP3')
+        n_M_SSA_OCP4 = AMP_SetSpec('SSA', 'OCP4')
+        n_M_SSA_OCP5 = AMP_SetSpec('SSA', 'OCP5')
+        n_M_SSA_OCP6 = AMP_SetSpec('SSA', 'OCP6')
+      endif
       n_N_SSA_1  = AMP_SetSpec('SSA','1' )
+
       n_M_SSC_SS = AMP_SetSpec('SSC','SS')
+      if (tracers_amp_m9) then
+        n_M_SSC_OCM2 = AMP_SetSpec('SSC', 'OCM2')
+        n_M_SSC_OCM1 = AMP_SetSpec('SSC', 'OCM1')
+        n_M_SSC_OCM0 = AMP_SetSpec('SSC', 'OCM0')
+        n_M_SSC_OCP1 = AMP_SetSpec('SSC', 'OCP1')
+        n_M_SSC_OCP2 = AMP_SetSpec('SSC', 'OCP2')
+        n_M_SSC_OCP3 = AMP_SetSpec('SSC', 'OCP3')
+        n_M_SSC_OCP4 = AMP_SetSpec('SSC', 'OCP4')
+        n_M_SSC_OCP5 = AMP_SetSpec('SSC', 'OCP5')
+        n_M_SSC_OCP6 = AMP_SetSpec('SSC', 'OCP6')
+      endif
       n_N_SSC_1  = AMP_SetSpec('SSC','1' )
     end if
 
@@ -169,12 +310,47 @@ contains
 
     n_M_OCC_SU = AMP_SetSpec('OCC','SU')
     n_M_OCC_OC = AMP_SetSpec('OCC','OC')
+    if (tracers_amp_m9) then
+      n_M_OCC_OCM2 = AMP_SetSpec('OCC', 'OCM2')
+      n_M_OCC_OCM1 = AMP_SetSpec('OCC', 'OCM1')
+      n_M_OCC_OCM0 = AMP_SetSpec('OCC', 'OCM0')
+      n_M_OCC_OCP1 = AMP_SetSpec('OCC', 'OCP1')
+      n_M_OCC_OCP2 = AMP_SetSpec('OCC', 'OCP2')
+      n_M_OCC_OCP3 = AMP_SetSpec('OCC', 'OCP3')
+      n_M_OCC_OCP4 = AMP_SetSpec('OCC', 'OCP4')
+      n_M_OCC_OCP5 = AMP_SetSpec('OCC', 'OCP5')
+      n_M_OCC_OCP6 = AMP_SetSpec('OCC', 'OCP6')
+    endif
     n_N_OCC_1  = AMP_SetSpec('OCC','1' )
+
     n_M_BC1_SU = AMP_SetSpec('BC1','SU')
     n_M_BC1_BC = AMP_SetSpec('BC1','BC')
+    if (tracers_amp_m9) then
+      n_M_BC1_OCM2 = AMP_SetSpec('BC1', 'OCM2')
+      n_M_BC1_OCM1 = AMP_SetSpec('BC1', 'OCM1')
+      n_M_BC1_OCM0 = AMP_SetSpec('BC1', 'OCM0')
+      n_M_BC1_OCP1 = AMP_SetSpec('BC1', 'OCP1')
+      n_M_BC1_OCP2 = AMP_SetSpec('BC1', 'OCP2')
+      n_M_BC1_OCP3 = AMP_SetSpec('BC1', 'OCP3')
+      n_M_BC1_OCP4 = AMP_SetSpec('BC1', 'OCP4')
+      n_M_BC1_OCP5 = AMP_SetSpec('BC1', 'OCP5')
+      n_M_BC1_OCP6 = AMP_SetSpec('BC1', 'OCP6')
+    endif
     n_N_BC1_1  = AMP_SetSpec('BC1','1' )
+
     n_M_BC2_SU = AMP_SetSpec('BC2','SU')
     n_M_BC2_BC = AMP_SetSpec('BC2','BC')
+    if (tracers_amp_m9) then
+      n_M_BC2_OCM2 = AMP_SetSpec('BC2', 'OCM2')
+      n_M_BC2_OCM1 = AMP_SetSpec('BC2', 'OCM1')
+      n_M_BC2_OCM0 = AMP_SetSpec('BC2', 'OCM0')
+      n_M_BC2_OCP1 = AMP_SetSpec('BC2', 'OCP1')
+      n_M_BC2_OCP2 = AMP_SetSpec('BC2', 'OCP2')
+      n_M_BC2_OCP3 = AMP_SetSpec('BC2', 'OCP3')
+      n_M_BC2_OCP4 = AMP_SetSpec('BC2', 'OCP4')
+      n_M_BC2_OCP5 = AMP_SetSpec('BC2', 'OCP5')
+      n_M_BC2_OCP6 = AMP_SetSpec('BC2', 'OCP6')
+    endif
     n_N_BC2_1  = AMP_SetSpec('BC2','1' )
 
     if (tracers_amp_m1 .or. &
@@ -185,9 +361,21 @@ contains
     end if
 
     if (tracers_amp_m2 .or. &
-        tracers_amp_m6) then
+        tracers_amp_m6 .or. &
+        tracers_amp_m9) then
       n_M_OCS_SU = AMP_SetSpec('OCS','SU')
       n_M_OCS_OC = AMP_SetSpec('OCS','OC')
+      if (tracers_amp_m9) then
+        n_M_OCS_OCM2 = AMP_SetSpec('OCS', 'OCM2')
+        n_M_OCS_OCM1 = AMP_SetSpec('OCS', 'OCM1')
+        n_M_OCS_OCM0 = AMP_SetSpec('OCS', 'OCM0')
+        n_M_OCS_OCP1 = AMP_SetSpec('OCS', 'OCP1')
+        n_M_OCS_OCP2 = AMP_SetSpec('OCS', 'OCP2')
+        n_M_OCS_OCP3 = AMP_SetSpec('OCS', 'OCP3')
+        n_M_OCS_OCP4 = AMP_SetSpec('OCS', 'OCP4')
+        n_M_OCS_OCP5 = AMP_SetSpec('OCS', 'OCP5')
+        n_M_OCS_OCP6 = AMP_SetSpec('OCS', 'OCP6')
+      endif
       n_N_OCS_1  = AMP_SetSpec('OCS','1' )
     end if
 
@@ -204,19 +392,43 @@ contains
         tracers_amp_m2 .or. &
         tracers_amp_m3 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m7) then
+        tracers_amp_m7 .or. &
+        tracers_amp_m9) then
       n_M_BOC_SU = AMP_SetSpec('BOC','SU')
       n_M_BOC_BC = AMP_SetSpec('BOC','BC')
       n_M_BOC_OC = AMP_SetSpec('BOC','OC')
+      if (tracers_amp_m9) then
+        n_M_BOC_OCM2 = AMP_SetSpec('BOC', 'OCM2')
+        n_M_BOC_OCM1 = AMP_SetSpec('BOC', 'OCM1')
+        n_M_BOC_OCM0 = AMP_SetSpec('BOC', 'OCM0')
+        n_M_BOC_OCP1 = AMP_SetSpec('BOC', 'OCP1')
+        n_M_BOC_OCP2 = AMP_SetSpec('BOC', 'OCP2')
+        n_M_BOC_OCP3 = AMP_SetSpec('BOC', 'OCP3')
+        n_M_BOC_OCP4 = AMP_SetSpec('BOC', 'OCP4')
+        n_M_BOC_OCP5 = AMP_SetSpec('BOC', 'OCP5')
+        n_M_BOC_OCP6 = AMP_SetSpec('BOC', 'OCP6')
+      endif
       n_N_BOC_1  = AMP_SetSpec('BOC','1' )
     end if
 
     if (tracers_amp_m1 .or. &
         tracers_amp_m2 .or. &
         tracers_amp_m5 .or. &
-        tracers_amp_m6) then
+        tracers_amp_m6 .or. &
+        tracers_amp_m9) then
       n_M_BCS_SU = AMP_SetSpec('BCS','SU')
       n_M_BCS_BC = AMP_SetSpec('BCS','BC')
+      if (tracers_amp_m9) then
+        n_M_BCS_OCM2 = AMP_SetSpec('BCS', 'OCM2')
+        n_M_BCS_OCM1 = AMP_SetSpec('BCS', 'OCM1')
+        n_M_BCS_OCM0 = AMP_SetSpec('BCS', 'OCM0')
+        n_M_BCS_OCP1 = AMP_SetSpec('BCS', 'OCP1')
+        n_M_BCS_OCP2 = AMP_SetSpec('BCS', 'OCP2')
+        n_M_BCS_OCP3 = AMP_SetSpec('BCS', 'OCP3')
+        n_M_BCS_OCP4 = AMP_SetSpec('BCS', 'OCP4')
+        n_M_BCS_OCP5 = AMP_SetSpec('BCS', 'OCP5')
+        n_M_BCS_OCP6 = AMP_SetSpec('BCS', 'OCP6')
+      endif
       n_N_BCS_1  = AMP_SetSpec('BCS','1' )
     end if
 
@@ -225,6 +437,17 @@ contains
     n_M_MXX_OC = AMP_SetSpec('MXX','OC')
     n_M_MXX_DU = AMP_SetSpec('MXX','DU')
     n_M_MXX_SS = AMP_SetSpec('MXX','SS')
+    if (tracers_amp_m9) then
+      n_M_MXX_OCM2 = AMP_SetSpec('MXX', 'OCM2')
+      n_M_MXX_OCM1 = AMP_SetSpec('MXX', 'OCM1')
+      n_M_MXX_OCM0 = AMP_SetSpec('MXX', 'OCM0')
+      n_M_MXX_OCP1 = AMP_SetSpec('MXX', 'OCP1')
+      n_M_MXX_OCP2 = AMP_SetSpec('MXX', 'OCP2')
+      n_M_MXX_OCP3 = AMP_SetSpec('MXX', 'OCP3')
+      n_M_MXX_OCP4 = AMP_SetSpec('MXX', 'OCP4')
+      n_M_MXX_OCP5 = AMP_SetSpec('MXX', 'OCP5')
+      n_M_MXX_OCP6 = AMP_SetSpec('MXX', 'OCP6')
+    endif
     n_N_MXX_1  = AMP_SetSpec('MXX','1' )
 
     call  H2SO4_setSpec('H2SO4')
@@ -303,6 +526,26 @@ contains
       1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
       11,12,13,   15,16,17,18,19,20, &
       21,22,23,24,25,26,27,28,29   /)
+#elif defined TRACERS_AMP_M9
+    AMP_AERO_MAP=(/ &
+        1,  2,  3,  4,  5,  6,  7,  8,  9, 10, &
+       11, 12, 13, 14, 15, 16, 17, 18, 19, 20, &
+       21, 22, 23, 24, 25, 26, 27, 28, 29, 30, &
+       31, 32, 33, 34, 35, 36, 37, 38, 39, 40, &
+       41, 42, 43, 44, 45, 46, 47, 48, 49, 50, &
+       51, 52, 53, 54, 55, 56, 57, 58, 59, 60, &
+       61, 62, 63, 64, 65, 66, 67, 68, 69, 70, &
+       71, 72, 73, 74,     76, 77, 78, 79, 80, & ! skip M_SSC_SU
+       81, 82, 83, 84, 85, 86, 87, 88, 89, 90, &
+       91, 92, 93, 94, 95, 96, 97, 98, 99,100, &
+      101,102,103,104,105,106,107,108,109,110, &
+      111,112,113,114,115,116,117,118,119,120, &
+      121,122,123,124,125,126,127,128,129,130, &
+      131,132,133,134,135,136,137,138,139,140, &
+      141,142,143,144,145,146,147,148,149,150, &
+      151,152,153,154,155,156,157,158,159,160, &
+      161,162,163,164,165,166,167,168,169,170, &
+      171,172,173,174                        /)
 #else
     call stop_model('AMP_AERO_MAP needs to be defined.', 255)
 #endif
@@ -422,6 +665,7 @@ contains
       character(len=64) :: tracerName
       integer :: tracerIndex
       real*8 :: tmp
+      integer :: lc ! length of component string or 2, whichever is smaller
 
       prefix = getTracerPrefix(component)
       tracerName = prefix // "_" // mode // "_" // component
@@ -484,20 +728,21 @@ contains
 #endif
       end if
 
-      if (trim(component) == 'OC') then
+      lc=min(2,len(component)) ! this is to convert OCM2,OCM1 etc. to OC for M9
+      if (component(1:lc) == 'OC') then
         call set_om2oc(tracerIndex, 1.4d0)
         tmp = om2oc(tracerIndex)
         call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
       endif
       call set_ntm_power(tracerIndex, -11)
-      if (trim(component) == 'OC') then
-        tmp = getMolecularMass(component) * om2oc(tracerIndex)
+      if (component(1:lc) == 'OC') then
+        tmp = getMolecularMass(component(1:lc)) * om2oc(tracerIndex)
       else
-        tmp = getMolecularMass(component)
+        tmp = getMolecularMass(component(1:lc))
       endif
       call set_tr_mm(tracerIndex, tmp)
-      call set_trpdens(tracerIndex, getDensity(component))
+      call set_trpdens(tracerIndex, getDensity(component(1:lc)))
       call set_trradius(tracerIndex, getRadius(mode))
       call set_fq_aer(tracerIndex, getSolubility(mode))
       call set_tr_wd_type(tracerIndex, nPART)
