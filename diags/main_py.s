@@ -16,7 +16,6 @@ print "\n";
 # copies over accfiles, sumfiles for annual means, climaological means
 # and seasonal means, seasonal cycles and then deletes accfiles
 
-
 =pod
 chdir $myDir;
 print "Doing avgACC.s \n";
@@ -31,8 +30,7 @@ print "nctag is $nctag\n";
 print "Doing seasonalCycle.s \n";
 do 'seasonalCycle.s';
 print "\n";
-$OutputFileName1 = "$OutputFileName";
-
+$FileName1 = "$variable.$yrini-$yrend.$computes.lev$ilev.$RUN";
 
 ##### -------- mean annual cycle from obs    ------- #####
 chdir $myDir;
@@ -40,8 +38,9 @@ print "Doing seasonalCycleObs.s \n";
 print "$ObsDir$ObsFilename \n";
 do 'seasonalCycleObs.s';
 print "\n";
-$OutputFileName2 = "$OutputFileName";
 $new_variablename1 = "$new_variablename";
+$FileName2 = "$variable_obs.$computes.lev$ilev.$ObsFilename";
+substr($FileName2,rindex $FileName2,'.') = '';
 
 ##### -------- mean annual cycle diff from obs    ------- #####
 chdir $myDir;
@@ -51,23 +50,31 @@ print "\n";
 
 print "datadir =  $DataDir \n";
 print "new_variablename = $new_variablename1 \n";
-print "outputfilename1 =  $OutputFileName1 \n";
-print "outputfilename2 =  $OutputFileName2 \n";
+print "filename1 =  $FileName1 \n";
+print "filename2 =  $FileName2 \n";
 
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script to plot model seasonal cycle
 chdir $myDir;
-system "python3 plot_line.py $new_variablename1 $DataDir$OutputFileName1 $DataDir$OutputFileName2";
-###### ------------------------------- ########
+
+if ($variable ne "oicefr"){
+    system "python3 plot_line.py $new_variablename1 $DataDir$FileName1.nc $DataDir$FileName2.nc";
+
+} else{
+    system "python3 plot_line.py $new_variablename1$underscore$NH $DataDir$FileName1.$NH.nc $DataDir$FileName2.$NH.nc";
+
+    system "python3 plot_line.py $new_variablename1$underscore$SH $DataDir$FileName1.$SH.nc $DataDir$FileName2.$SH.nc";
+} 
 =cut
 
+###### ------------------------------- ########
 =pod
 ##### -------- climatology maps at certain level  ------- #####
 chdir $myDir;
 print "Doing clim_map.s \n";
 do 'clim_map.s';
 print "\n";
-$OutputFileName1 = "$OutputFileName";
+$OutputFileName1 = "$OutputFileName1";
 
 ##### -------- maps from observations   ------- #####
 chdir $myDir;
@@ -76,7 +83,6 @@ do 'obs_map.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
 
-=cut
 
 chdir $myDir;
 print "Doing diff_maps.s \n";
@@ -99,7 +105,7 @@ chdir $myDir;
 
 system "python3 plot_map.py $variable $DataDir$OutputFileName1 $DataDir$OutputFileName2 $DataDir$OutputFileName3";
 ###### ------------------------------- ########
-=pod
+=cut
 
 ##### -------- global averaged timeseries at a certain level   ------- #####
 chdir $myDir;
@@ -191,4 +197,3 @@ $KS = Kuroshio;
 $DP = DrakesPassage;
 system "python3 plot_text.py $DataDir$GS$yrini-$yrend.txt $DataDir$KS$yrini-$yrend.txt $DataDir$DP$yrini-$yrend.txt";
 ###### ------------------------------- ########
-=cut

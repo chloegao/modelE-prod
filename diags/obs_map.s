@@ -8,6 +8,7 @@ do 'user_input.s';
 chdir $DataDir;
 
 print "obs: $ObsDir$ObsFilename \n";
+print "variable_obs $variable_obs \n";
 
 @data_array = ("DJF","JJA");
 for my $months (@data_array){
@@ -21,6 +22,7 @@ for my $months (@data_array){
   }else{
     system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
   }
+
   if ($months eq "DJF"){
     system "ncks -O -F -d mon,1,2 -v $variable_obs dummy.nc dummy1.nc";
     system "ncks -A -F -d mon,11,11 -v $variable_obs dummy.nc dummy1.nc";
@@ -44,13 +46,14 @@ if ($lat_obs ne "lat") {
 }
 
 #rename variable_obs to variable
+if ($variable_obs ne $variable) {
 system "ncrename -O -v $variable_obs,$variable $OutputFileName";
 }
-
-
+}
 
 #####
 $months = "ANN";
+print "$months \n";
 
 if (index($variable_obs, "_mon") != -1) {
    print "'$variable_obs' contains mon.\n";
@@ -71,6 +74,7 @@ if (defined($depth)){
 }else{
   system "ncks -O -v $variable_obs $ObsDir$ObsFilename $OutputFileName";
 }
+
 system "ncatted -O -a _FillValue,$variable_obs,d,f, $OutputFileName";
 system "ncatted -O -a _FillValue,$variable_obs,c,f,-1e30 $OutputFileName";   
 system "ncatted -O -a units,$lat_obs,c,c,'degrees_north' $OutputFileName";
@@ -85,4 +89,6 @@ if ($lat_obs ne "lat") {
 }
 
 #rename variable_obs to variable
+if ($variable_obs ne $variable) {
 system "ncrename -O -v $variable_obs,$variable $OutputFileName";
+}

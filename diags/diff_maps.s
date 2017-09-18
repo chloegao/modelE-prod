@@ -52,7 +52,8 @@ for my $months (@data_array){
     system "ncrename -O -v $lon,lon -d $lon,lon dummy1.nc";  
   }
 
+  print "breaking here??";
   system "ncdiff -v $new_variable dummy1.nc dummy2.nc $OutputFileName";
-  system "rm dummy*";
+  #system "rm dummy*";
 }
 

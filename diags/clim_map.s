@@ -20,11 +20,15 @@ if ($months eq "DJF"){
 
 $InputFileName = "$months$yrin-$yrend.acc$RUN.nc";
 print "$InputFileName \n";
-
+ 
 system "scaleacc $DataDir$InputFileName $nctag";
 
 $OutputFileName = "$variable.$months$yrin-$yrend.map_lev$ilev.$RUN.nc";
 print "$OutputFileName.\n";
+
+if ($months eq "ANN"){
+  $OutputFileName1=$OutputFileName;
+}
 
 if (defined($depth)){
   # extract $depth at srf

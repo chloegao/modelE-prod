@@ -7,11 +7,11 @@ $myDir = getcwd;
 
 ##### ----------Model-------- #####
 
-$ACCDataDir = "/discover/nobackup/aromanou/Earobio4/ACC";      #TO BE CHANGED BY USER
-$DataDir = "/discover/nobackup/aromanou/TESTNCO/";       #TO BE CHANGED BY USER
-$RUN = Earobio4;                               #TO BE CHANGED BY USER
-$yrini = 1859;                                          #TO BE CHANGED BY USER
-$yrend = 1868;                                           #TO BE CHANGED BY USER
+$ACCDataDir = "/discover/nobackup/maristiz/Emaobio_08152017/"; #TO BE CHANGED BY USER
+$DataDir = "/discover/nobackup/maristiz/Diagnostics/";       #TO BE CHANGED BY USER
+$RUN = Emaobio_08152017;                               #TO BE CHANGED BY USER
+$yrini = 1850;                                          #TO BE CHANGED BY USER
+$yrend = 1859;                                           #TO BE CHANGED BY USER
 
 #### pot_temp
 #$variable = pot_temp;                                  #TO BE CHANGED BY USER
@@ -80,11 +80,10 @@ $area = axyp;                                           #TO BE CHANGED BY USER
 $ObsDir = "/discover/nobackup/projects/giss/OBS/"; #TO BE CHANGED BY USER
 $RUN2 = "HadISST_onEgrid";                        #TO BE CHANGED BY USER
 $ObsFilename = "$RUN2.nc";
-print "$ObsFilename \n";
 $variable_obs = $variable;                            #TO BE CHANGED BY USER
-print "nctag is $nctag\n";
 $lon_obs = lon;   #TO BE CHANGED BY USER
 $lat_obs = lat;   #TO BE CHANGED BY USER
+$mon = mon;
 
 
 $underscore = "_";
