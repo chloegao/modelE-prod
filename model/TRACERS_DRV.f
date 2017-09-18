@@ -4249,14 +4249,9 @@ c find indices of denominators
 #endif
 #if defined (TRACERS_AEROSOLS_Koch) || defined (TRACERS_AMP) ||\
     defined (TRACERS_TOMAS)
-#ifdef CUBED_SPHERE /* 1-deg volc. emiss */
+      ! 1-deg volc. emiss
       real*8 :: volc_lons(360),volc_lats(180),
      &     volc_pup(360,180),volc_emiss(360,180)
-#else /* volc. emiss on model grid, 1 extra lat at SP */
-      real*8 :: volc_lons(Im)
-      real*8, allocatable, dimension(:)   ::volc_lats
-      real*8, allocatable, dimension(:,:) ::volc_pup, volc_emiss
-#endif
       real*8 :: x1d(lm),amref(lm),pednref(lm+1),amsum
       real*8, allocatable, dimension(:,:) :: psref
       integer :: iu_ps,file_id,vid,ilon,jlat,volc_ij(2)
@@ -5213,19 +5208,13 @@ c read lat-lon netcdf file and convert lat,lon,pres to i,j,l.
 c NOTE: the input file specifies integrals over its gridboxes.
       ALLOCATE(  psref(grid%i_strt_halo:grid%i_stop_halo,
      &                 grid%j_strt_halo:grid%j_stop_halo) )
-      call openunit('PSREF',iu_ps,.true.,.true.)
-      CALL READT_PARALLEL(grid,iu_ps,'PSREF',psref,1)
-      call closeunit(iu_ps)
+      iu_ps = par_open(grid,'PSREF','read')
+      call read_dist_data(grid,iu_ps,'prsurf',psref)
+      call par_close(grid,iu_ps)
       status = nf_open('SO2_VOLCANO',nf_nowrite,file_id)
       status = nf_inq_varid(file_id,'lon',vid)
       status = nf_get_var_double(file_id,vid,volc_lons)
       status = nf_inq_varid(file_id,'lat',vid)
-#ifndef CUBED_SPHERE
-      status = nf_inq_dimlen(file_id,vid,lat_val)
-      allocate(volc_lats(lat_val))
-      allocate(volc_pup(im,lat_val))
-      allocate(volc_emiss(im,lat_val))
-#endif
       status = nf_get_var_double(file_id,vid,volc_lats)
       status = nf_inq_varid(file_id,'Pres_CONTmax',vid)
       status = nf_get_var_double(file_id,vid,volc_pup)
@@ -5254,9 +5243,6 @@ c NOTE: the input file specifies integrals over its gridboxes.
           enddo
         enddo
       enddo
-#ifndef CUBED_SPHERE
-      deallocate(volc_lats, volc_pup, volc_emiss)
-#endif
       deallocate(psref)
       endif ! iso2volcano>0
 #endif
