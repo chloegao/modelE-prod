@@ -2672,7 +2672,35 @@ c put in production of SO4 from gas phase
      *    'N_DBC_1 ','M_BOC_SU','M_BOC_BC','M_BOC_OC','N_BOC_1 ',!DBC,BOC
      *    'M_BCS_SU','M_BCS_BC','N_BCS_1 ','M_MXX_SU','M_MXX_BC',!BCS,MXX
      *    'M_MXX_OC','M_MXX_DU','M_MXX_SS','N_MXX_1 ','M_OCS_SU',
-     *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU')
+     *    'M_OCS_OC','N_OCS_1 ','M_SSS_SS','M_SSS_SU',
+     * 'M_ACC_OCM2','M_ACC_OCM1','M_ACC_OCM0','M_ACC_OCP1','M_ACC_OCP2',
+     * 'M_ACC_OCP3','M_ACC_OCP4','M_ACC_OCP5','M_ACC_OCP6',
+     * 'M_DD1_OCM2','M_DD1_OCM1','M_DD1_OCM0','M_DD1_OCP1','M_DD1_OCP2',
+     * 'M_DD1_OCP3','M_DD1_OCP4','M_DD1_OCP5','M_DD1_OCP6',
+     * 'M_DS1_OCM2','M_DS1_OCM1','M_DS1_OCM0','M_DS1_OCP1','M_DS1_OCP2',
+     * 'M_DS1_OCP3','M_DS1_OCP4','M_DS1_OCP5','M_DS1_OCP6',
+     * 'M_DD2_OCM2','M_DD2_OCM1','M_DD2_OCM0','M_DD2_OCP1','M_DD2_OCP2',
+     * 'M_DD2_OCP3','M_DD2_OCP4','M_DD2_OCP5','M_DD2_OCP6',
+     * 'M_DS2_OCM2','M_DS2_OCM1','M_DS2_OCM0','M_DS2_OCP1','M_DS2_OCP2',
+     * 'M_DS2_OCP3','M_DS2_OCP4','M_DS2_OCP5','M_DS2_OCP6',
+     * 'M_SSA_OCM2','M_SSA_OCM1','M_SSA_OCM0','M_SSA_OCP1','M_SSA_OCP2',
+     * 'M_SSA_OCP3','M_SSA_OCP4','M_SSA_OCP5','M_SSA_OCP6',
+     * 'M_SSC_OCM2','M_SSC_OCM1','M_SSC_OCM0','M_SSC_OCP1','M_SSC_OCP2',
+     * 'M_SSC_OCP3','M_SSC_OCP4','M_SSC_OCP5','M_SSC_OCP6',
+     * 'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0','M_OCC_OCP1','M_OCC_OCP2',
+     * 'M_OCC_OCP3','M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6',
+     * 'M_BC1_OCM2','M_BC1_OCM1','M_BC1_OCM0','M_BC1_OCP1','M_BC1_OCP2',
+     * 'M_BC1_OCP3','M_BC1_OCP4','M_BC1_OCP5','M_BC1_OCP6',
+     * 'M_BC2_OCM2','M_BC2_OCM1','M_BC2_OCM0','M_BC2_OCP1','M_BC2_OCP2',
+     * 'M_BC2_OCP3','M_BC2_OCP4','M_BC2_OCP5','M_BC2_OCP6',
+     * 'M_OCS_OCM2','M_OCS_OCM1','M_OCS_OCM0','M_OCS_OCP1','M_OCS_OCP2',
+     * 'M_OCS_OCP3','M_OCS_OCP4','M_OCS_OCP5','M_OCS_OCP6',
+     * 'M_BOC_OCM2','M_BOC_OCM1','M_BOC_OCM0','M_BOC_OCP1','M_BOC_OCP2',
+     * 'M_BOC_OCP3','M_BOC_OCP4','M_BOC_OCP5','M_BOC_OCP6',
+     * 'M_BCS_OCM2','M_BCS_OCM1','M_BCS_OCM0','M_BCS_OCP1','M_BCS_OCP2',
+     * 'M_BCS_OCP3','M_BCS_OCP4','M_BCS_OCP5','M_BCS_OCP6',
+     * 'M_MXX_OCM2','M_MXX_OCM1','M_MXX_OCM0','M_MXX_OCP1','M_MXX_OCP2',
+     * 'M_MXX_OCP3','M_MXX_OCP4','M_MXX_OCP5','M_MXX_OCP6')
         select case (trname(n))
         case ('M_NO3', 'M_NH4', 'M_H2O')
           ijts_3Dsource(nThermo,n)=
