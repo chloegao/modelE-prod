@@ -293,39 +293,39 @@
 !     6         DS2            1            NUMB                 19     NUMB_DS2_1                  19   
 !     7         SSA            1            SULF                 20     MASS_SSA_SULF               20   
 !     7         SSA            5            SEAS                 21     MASS_SSA_SEAS               21   
-!     7         SSA            1            NUMB                 22     NUMB_SSA_1                       
+!     7         SSA            1            NUMB                 22     NUMB_SSA_1                  22   
 !     8         SSC            1            SULF                 23     MASS_SSC_SULF                    
-!     8         SSC            5            SEAS                 24     MASS_SSC_SEAS               22   
-!     8         SSC            1            NUMB                 25     NUMB_SSC_1                       
-!     9         OCC            1            SULF                 26     MASS_OCC_SULF               23   
-!     9         OCC            3            OCAR                 27     MASS_OCC_OCAR               24   
-!     9         OCC            1            NUMB                 28     NUMB_OCC_1                  25   
-!    10         BC1            1            SULF                 29     MASS_BC1_SULF               26   
-!    10         BC1            2            BCAR                 30     MASS_BC1_BCAR               27   
-!    10         BC1            1            NUMB                 31     NUMB_BC1_1                  28   
-!    11         BC2            1            SULF                 32     MASS_BC2_SULF               29   
-!    11         BC2            2            BCAR                 33     MASS_BC2_BCAR               30   
-!    11         BC2            1            NUMB                 34     NUMB_BC2_1                  31   
-!    12         BC3            1            SULF                 35     MASS_BC3_SULF               32   
-!    12         BC3            2            BCAR                 36     MASS_BC3_BCAR               33   
-!    12         BC3            1            NUMB                 37     NUMB_BC3_1                  34   
-!    13         DBC            1            SULF                 38     MASS_DBC_SULF               35   
-!    13         DBC            2            BCAR                 39     MASS_DBC_BCAR               36   
-!    13         DBC            4            DUST                 40     MASS_DBC_DUST               37   
-!    13         DBC            1            NUMB                 41     NUMB_DBC_1                  38   
-!    14         BOC            1            SULF                 42     MASS_BOC_SULF               39   
-!    14         BOC            2            BCAR                 43     MASS_BOC_BCAR               40   
-!    14         BOC            3            OCAR                 44     MASS_BOC_OCAR               41   
-!    14         BOC            1            NUMB                 45     NUMB_BOC_1                  42   
-!    15         BCS            1            SULF                 46     MASS_BCS_SULF               43   
-!    15         BCS            2            BCAR                 47     MASS_BCS_BCAR               44   
-!    15         BCS            1            NUMB                 48     NUMB_BCS_1                  45   
-!    16         MXX            1            SULF                 49     MASS_MXX_SULF               46   
-!    16         MXX            2            BCAR                 50     MASS_MXX_BCAR               47   
-!    16         MXX            3            OCAR                 51     MASS_MXX_OCAR               48   
-!    16         MXX            4            DUST                 52     MASS_MXX_DUST               49   
-!    16         MXX            5            SEAS                 53     MASS_MXX_SEAS               50   
-!    16         MXX            1            NUMB                 54     NUMB_MXX_1                  51
+!     8         SSC            5            SEAS                 24     MASS_SSC_SEAS               23   
+!     8         SSC            1            NUMB                 25     NUMB_SSC_1                  24   
+!     9         OCC            1            SULF                 26     MASS_OCC_SULF               25   
+!     9         OCC            3            OCAR                 27     MASS_OCC_OCAR               26   
+!     9         OCC            1            NUMB                 28     NUMB_OCC_1                  27   
+!    10         BC1            1            SULF                 29     MASS_BC1_SULF               28   
+!    10         BC1            2            BCAR                 30     MASS_BC1_BCAR               29   
+!    10         BC1            1            NUMB                 31     NUMB_BC1_1                  30   
+!    11         BC2            1            SULF                 32     MASS_BC2_SULF               31   
+!    11         BC2            2            BCAR                 33     MASS_BC2_BCAR               32   
+!    11         BC2            1            NUMB                 34     NUMB_BC2_1                  33   
+!    12         BC3            1            SULF                 35     MASS_BC3_SULF               34   
+!    12         BC3            2            BCAR                 36     MASS_BC3_BCAR               35   
+!    12         BC3            1            NUMB                 37     NUMB_BC3_1                  36   
+!    13         DBC            1            SULF                 38     MASS_DBC_SULF               37   
+!    13         DBC            2            BCAR                 39     MASS_DBC_BCAR               38   
+!    13         DBC            4            DUST                 40     MASS_DBC_DUST               39   
+!    13         DBC            1            NUMB                 41     NUMB_DBC_1                  40   
+!    14         BOC            1            SULF                 42     MASS_BOC_SULF               41   
+!    14         BOC            2            BCAR                 43     MASS_BOC_BCAR               42   
+!    14         BOC            3            OCAR                 44     MASS_BOC_OCAR               43   
+!    14         BOC            1            NUMB                 45     NUMB_BOC_1                  44   
+!    15         BCS            1            SULF                 46     MASS_BCS_SULF               45   
+!    15         BCS            2            BCAR                 47     MASS_BCS_BCAR               46   
+!    15         BCS            1            NUMB                 48     NUMB_BCS_1                  47   
+!    16         MXX            1            SULF                 49     MASS_MXX_SULF               48   
+!    16         MXX            2            BCAR                 50     MASS_MXX_BCAR               49   
+!    16         MXX            3            OCAR                 51     MASS_MXX_OCAR               50   
+!    16         MXX            4            DUST                 52     MASS_MXX_DUST               51   
+!    16         MXX            5            SEAS                 53     MASS_MXX_SEAS               52   
+!    16         MXX            1            NUMB                 54     NUMB_MXX_1                  53
 !
 !MODE_NAME  MODE NUMBER
 !
