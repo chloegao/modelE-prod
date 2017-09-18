@@ -1,6 +1,7 @@
-E6TmatrixF40_2000.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm MATRIX tracers
+E6TmatrixF40clim2000.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm MATRIX tracers
 
-E6TmatrixF40_2000: E6TmatrixF40clim but year 2000 settings
+E6TmatrixF40clim2000: E6TmatrixF40clim but year 2000 settings
+               (e.g. 9-year averages centered around nominal date)
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -108,7 +109,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TmatrixF40_2000 (climatological prescribed ocean atmospheric tracer model with MATRIX and Shindell chemistry)
+E6TmatrixF40clim2000 (climatological prescribed ocean atmospheric tracer model with MATRIX and Shindell chemistry)
 
 &&PARAMETERS
 #include "static_ocn_params"
