@@ -35,7 +35,6 @@
 !@+         used indpendently from TRACERS_OCEAN if a surface boundary 
 !@+         condition is all that is required)
 !@+   Use "TRACERS_OCEAN_INDEP" for independently defined ocn tracers
-!@+        "TRACERS_AGE_OCEAN" is one partciularly case
 !@param conc_from_fw definition for defining surface ocean conc
 !@dbparam to_per_mil For printout of tracer concentration in permil
 

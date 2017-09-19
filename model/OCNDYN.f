@@ -277,15 +277,12 @@
 !      END SUBROUTINE OCEANS_old
 
       subroutine setup_ocean
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+#ifdef TRACERS_ZEBRA
       use ocn_tracer_com, only: add_ocn_tracer
 #endif
       implicit none
 
 #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
-#ifdef TRACERS_AGE_OCEAN
-      call add_ocn_tracer('Age       ')
-#endif
 #ifdef TRACERS_ZEBRA
       call add_ocn_tracer('zebraL06  ')
       call add_ocn_tracer('zebraL07  ')
