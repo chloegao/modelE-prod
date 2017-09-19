@@ -5023,7 +5023,7 @@ c**** earth
             trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-13
           end do; end do; end do
 
-#ifdef TRACERS_AMP
+#ifndef TRACERS_TOMAS
         case('MSA', 'SO2', 'SO4', 'SO4_d1', 'SO4_d2', 'SO4_d3',
      *         'N_d1','N_d2','N_d3','NH3','NH4','NO3p',
      *         'BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB', 'H2O2_s',
