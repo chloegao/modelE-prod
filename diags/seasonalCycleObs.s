@@ -14,7 +14,8 @@ $computes = "seasonalCycle_ts";
 $new_variablename = "$variable$underscore$computes";
 chdir $DataDir;
 $OutputFileName = "$variable_obs.$computes.lev$ilev.$ObsFilename";
-print "$OutputFileName\n";
+#substr($OutputFileName,rindex $OutputFileName,'.nc') = '';
+#print "HERE $OutputFileName \n";
 
 system "ncks -O -v $area $area$underscore$RUN.nc dummy1.nc";
 if ($lat ne $lat_obs){
@@ -47,9 +48,31 @@ system "ncwa -O -v $variable_obs -a zoc $OutputFileName $OutputFileName";
 system "ncks -O -x -v zoc $OutputFileName $OutputFileName";
 }
 
+print("$variable_obs \n");
+print("$new_variablename \n");
+print("$OutputFileName \n");
 system "ncrename -O -h -v $variable_obs,$new_variablename $OutputFileName";
 system "ncatted -O -a _FillValue,$new_variablename,d,f, $OutputFileName";
-system "rm -f dummy*.nc";
 
+# Computes the northern and southern hermisphere averages
+if ($variable eq "oicefr"){
+   $NH="NortH";
+   $SH="SoutH";
+   $OutputFileName_noext = "$variable_obs.$computes.lev$ilev.$ObsFilename";
+   substr($OutputFileName_noext,rindex $OutputFileName_noext,'.nc') = '';
+   
+   system "ncwa -h -O -w $area -a $lat,$lon --mask_condition '$lat>0' dummy1.nc dummy3.nc";
+   system "ncrename -v $variable,$new_variablename$underscore$NH dummy3.nc";
+   $OutputFileName ="$OutputFileName_noext.$NH.nc";
+   print "$OutputFileName \n";
+   system "ncks -h dummy3.nc $OutputFileName";
+   system "ncwa -h -O -w $area -a $lat,$lon --mask_condition '$lat<0' dummy1.nc dummy4.nc";
+   $OutputFileName ="$OutputFileName_noext.$SH.nc";
+   system "ncrename -v $variable,$new_variablename$underscore$SH dummy4.nc";
+   system "ncks -h dummy4.nc $OutputFileName";
+   print "$OutputFileName \n";
+}
+
+system "rm -f dummy*.nc";
 
 

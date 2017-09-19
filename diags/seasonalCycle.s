@@ -66,6 +66,22 @@ system "ncrename -O -h -v zoc,dep -d zoc,dep $OutputFileName";
 system "ncrename -d record,mon $OutputFileName";
 system "ncks -A -v mon month.nc $OutputFileName";
 system "ncatted -O -a _FillValue,$new_variablename,d,f, $OutputFileName";
+
+# Computes the northern and southern hermisphere averages
+if ($variable eq "oicefr"){
+   $NH="NortH";
+   $SH="SoutH";
+   system "ncwa -h -O -w $area -a $lat,$lon --mask_condition '$lat>0' dummy.nc dummy1.nc";
+   system "ncrename -v $variable,$new_variablename$underscore$NH dummy1.nc";
+   $OutputFileName = "$variable.$yrini-$yrend.$computes.lev$ilev.$RUN.$NH.nc";
+   system "ncks -h dummy1.nc $OutputFileName";
+   system "ncwa -h -O -w $area -a $lat,$lon --mask_condition '$lat<0' dummy.nc dummy2.nc";
+   $OutputFileName = "$variable.$yrini-$yrend.$computes.lev$ilev.$RUN.$SH.nc";
+   system "ncrename -v $variable,$new_variablename$underscore$SH dummy2.nc";
+   system "ncks -h dummy2.nc $OutputFileName";
+   print "$OutputFileName \n";
+}
+
 system "rm -f dummy.nc";
 
 

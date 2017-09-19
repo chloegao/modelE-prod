@@ -520,6 +520,7 @@ C****                                         even if the year is fixed
       if(KYEARD.gt.0) KYEARD=-KYEARD              ! use ONLY KYEARD-data
       KYEARV=Volc_yr ; KJDAYV=Volc_day
       if(file_exists('RADN7')) MADVOL=1   ! Volc. Aerosols
+      call sync_param( "MADVOL", MADVOL )
 !***  KYEARV=0 : use current year
 !***  KYEARV<0 : use long term mean stratospheric aerosols (use -1)
 !     Hack: KYEARV= -2000 and -2010 were used for 2 specific runs that
@@ -596,7 +597,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
         IF (nraero_AMP .gt. 0) nraero_rf=nraero_rf+1
       ENDIF
 #elif defined(TRACERS_TOMAS)
-!TOMAS does not include NO3 AND VOL, which use its default radiation. 
+!TOMAS does not include NO3 AND VOL, which use its default radiation.
 #ifndef TRACERS_NITRATE
       nraero_TOMAS=icomp-2
 #else
@@ -1024,7 +1025,7 @@ C**** set up unit numbers for 14 more radiation input files
       if(madvol == 0) nrfun(7) = donotread
       if(madeps == 0) nrfun(8) = donotread
 !      if(ksolar < 0)  nrfun(9) = donotread
-      nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1  
+      nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1
       DO IU=1,14
         if(nrfun(iu) == donotread) cycle
         call openunit(RUNSTR(IU),NRFUN(IU),QBIN(IU),.true.)
@@ -1132,7 +1133,7 @@ C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
         endif
         if(file_exists('VISAODangstr')) then
           set_aerosols_internally = .false.
-c          fid = par_open(grid,'VISAODangstr','read')          
+c          fid = par_open(grid,'VISAODangstr','read')
 c          not needed for initial CIRC cases which have zero aerosol
 c          todo:  read optical depths and scale with Angstrom exponent
 c          weighted by solar flux
@@ -1234,7 +1235,7 @@ C**** Update time dependent radiative parameters each day
 !     Optional scaling of the observed value only in case it was (re)set
       if(.not. end_of_day .and. H2OstratX.GE.0.)
      *   FULGAS(1)=FULGAS(1)*H2OstratX
-      if(.not. end_of_day .or. O3_yr==0.) 
+      if(.not. end_of_day .or. O3_yr==0.)
      *   FULGAS(3)=FULGAS(3)*O3X
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X
@@ -1444,11 +1445,11 @@ C**** Update orbital parameters at start of year
          call useOrbit%setYear(real(year,kind=8))
       end if
 
-      ! Use time for the _middle_ of the day to compute 
+      ! Use time for the _middle_ of the day to compute
       ! zenith angle:
 
       halfDay = TimeInterval(useOrbit%getMeanDay() / 2)
-      t = newBaseTime(modelEClock%getTimeAtBeginningOfCurrentDay() + 
+      t = newBaseTime(modelEClock%getTimeAtBeginningOfCurrentDay() +
      *                halfDay)
 
       sinD = useOrbit%getSinDeclinationAngle(t)
@@ -1637,7 +1638,7 @@ C     OUTPUT DATA
 #ifdef TRACERS_ON
       use rad_com, only: tau_as,tau_cs,tau_dry,nraero_rf
 #ifdef CACHED_SUBDD
-      USE CONSTANT, only : grav,Rgas 
+      USE CONSTANT, only : grav,Rgas
       use rad_com, only: abstau_as,abstau_cs,abstau_dry,swfrc,lwfrc
       use RunTimeControls_mod, only: tracers_amp, tracers_tomas
 #endif  /* CACHED_SUBDD */
@@ -2129,7 +2130,7 @@ C**** SS clouds are considered as a block for each continuous cloud
       GFrefY=1850; GFrefD=182     ! ghg forcing refrnce year, day
       GFnowY=JyearR; GFnowD=JdayR ! ghg current desired year, day
       if(KJDAYG > 0) GFnowD=KJDAYG ! unless presribed in deck
-      if(KYEARG > 0) GFnowY=KYEARG !           
+      if(KYEARG > 0) GFnowY=KYEARG !
       call updghg(GFrefY,GFrefD)
       sv_fulgas_ref(1:4)=fulgas(nfghg(1:4))
       call updghg(GFnowY,GFnowD)
@@ -3318,12 +3319,12 @@ c**** difference of net flux over layer
         ! cumulative cloud water paths * extinction coefficient
         q_above(LM+1) = 0.
         do L=LM,1,-1
-          q_above(L) = q_above(L+1) + 
+          q_above(L) = q_above(L+1) +
      &      SCMin%BeersLaw_kappa*MA(L,i,j)*QCL(i,j,L)
         enddo
         q_below(1) = 0.
         do L=1,LM
-          q_below(L+1) = q_below(L) + 
+          q_below(L+1) = q_below(L) +
      &      SCMin%BeersLaw_kappa*MA(L,i,j)*QCL(i,j,L)
         enddo
         ! net upward radiative flux at layer edges
@@ -3665,27 +3666,27 @@ c shortwave forcing (TOA or TROPO) of Clay sub size classes
                  if (ijts_fcsub(1,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(1,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(1
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) +
      &               rsign_aer
      &                *(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2
 c longwave forcing  (TOA or TROPO) of Clay size sub classes
                  if (ijts_fcsub(2,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(2,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(2
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) -
      &               rsign_aer
      &                *(tnfst(2,n,i,j)-tnfs(lfrc,i,j))
 c shortwave forcing (TOA or TROPO) clear sky of Clay sub size classes
                  if (ijts_fcsub(5,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(5,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(5
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) +
      &               rsign_aer
      &                *(snfst(2,n,i,j)-snfs(lfrc,i,j))*csz2 * (1.D0
      &                -cfrac(i,j))
@@ -3693,9 +3694,9 @@ c longwave forcing  (TOA or TROPO) clear sky of Clay sub size classes
                  if (ijts_fcsub(6,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(6,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(6
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) -
      &               rsign_aer
      &                *(tnfst(2,n,i,j)-tnfs(lfrc,i,j)) * (1.D0-cfrac(i
      &                ,j))
@@ -3703,25 +3704,25 @@ c shortwave forcing at surface (if required) of Clay sub size classes
                  if (ijts_fcsub(3,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(3,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(3
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) + 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) +
      &               rsign_aer
      &                *(snfst(1,n,i,j)-snfs(1,i,j))*csz2
 c longwave forcing at surface (if required) of Clay sub size classes
                  if (ijts_fcsub(4,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(4,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(4
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) -
      &               rsign_aer
      &                *(tnfst(1,n,i,j)-tnfs(1,i,j))
 c shortwave forcing at surface clear sky (if required) of Clay sub size classes
                  if (ijts_fcsub(7,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(7,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(7
      &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) +
      &               rsign_aer
@@ -3731,9 +3732,9 @@ c longwave forcing at surface clear sky (if required) of Clay sub size classes
                  if (ijts_fcsub(8,ntrix_rf(n),
      &               nsub_ntrix(ntrix_rf(n))) > 0)
      &                taijs(i,j,ijts_fcsub(8,ntrix_rf(n)
-     &                ,nsub_ntrix(ntrix_rf(n)))) = 
+     &                ,nsub_ntrix(ntrix_rf(n)))) =
      &               taijs(i,j,ijts_fcsub(8
-     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) - 
+     &                ,ntrix_rf(n),nsub_ntrix(ntrix_rf(n)))) -
      &               rsign_aer
      &                *(tnfst(1,n,i,j)-tnfs(1,i,j)) * (1.D0-cfrac(i,j))
                CASE DEFAULT
@@ -4112,7 +4113,7 @@ C****
               else
                 sddarr3d=sum(sddarr4d,dim=4)
               endif
-              do j=j_0,j_1 
+              do j=j_0,j_1
                  do i=i_0,imaxj(j)
                     do l=1,lm
                        tlm(l) = T(i,j,l)*pk(l,i,j)
@@ -5135,9 +5136,9 @@ c
      *     ,HOURI,DATEI,MONTHI,YEARI
       use MODEL_COM, only: modelEclock, calendar
       use ModelClock_mod, only: ModelClock
-      use Time_mod 
-      use BaseTime_mod 
-      use Rational_mod 
+      use Time_mod
+      use BaseTime_mod
+      use Rational_mod
       use TimeInterval_mod
       implicit none
 

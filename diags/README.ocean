@@ -1,7 +1,10 @@
 Instructions for doing ocean diags
 
 **** To be able to execute the following commands, please log in to dali
-**** comments/suggestions/errors to Natassa Romanou (ar2235@columbia.edu)
+**** comments/suggestions/errors to Natassa Romanou
+(ar2235@columbia.edu)
+
+Warning (Aug 31 2017): acc files need to be scaled ("scaleacc") outside the python environment.
 
 1. Edit script user_input.s  for the model run to be analyzed and the observations to be used
 
