@@ -1,12 +1,7 @@
       MODULE AERO_ACTV
-!      USE AMP_AEROSOL, ONLY: NACTV
       USE AERO_PARAM,  ONLY: NLAYS, AUNIT1
       USE AERO_CONFIG, ONLY: NMODES
 !-------------------------------------------------------------------------------------------------------------------------
-!@sum     The array NACTV(X,Y,Z,I) contains current values of the number of aerosol particles 
-!@+       activated in clouds for each mode I for use outside of the MATRIX microphysical module.
-!@+       Values in NACTV are saved in subr. MATRIX at each time step. 
-!
 !@auth    Susanne Bauer/Doug Wright
 !
 !-------------------------------------------------------------------------------------------------------------------------
