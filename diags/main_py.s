@@ -23,7 +23,6 @@ do 'avgACC.s';
 print "\n";
 =cut
 
-=pod
 ##### -------- mean annual cycle at a certain level  ------- #####
 chdir $myDir;
 print "nctag is $nctag\n";
@@ -65,10 +64,8 @@ if ($variable ne "oicefr"){
 
     system "python3 plot_line.py $new_variablename1$underscore$SH $DataDir$FileName1.$SH.nc $DataDir$FileName2.$SH.nc";
 } 
-=cut
 
 ###### ------------------------------- ########
-=pod
 ##### -------- climatology maps at certain level  ------- #####
 chdir $myDir;
 print "Doing clim_map.s \n";
@@ -82,7 +79,6 @@ print "Doing obs_map.s \n";
 do 'obs_map.s';
 print "\n";
 $OutputFileName2 = "$OutputFileName";
-
 
 chdir $myDir;
 print "Doing diff_maps.s \n";
@@ -98,14 +94,12 @@ print "variable_diff = $variable$underscore$diff  \n";
 print "outputfile3 = $DataDir$OutputFileName3 \n";
 print "model run = $RUN \n";
 
-
 ###### ---------PYTHON Script--------- ########
 ##invoke the python script
 chdir $myDir;
 
 system "python3 plot_map.py $variable $DataDir$OutputFileName1 $DataDir$OutputFileName2 $DataDir$OutputFileName3";
 ###### ------------------------------- ########
-=cut
 
 ##### -------- global averaged timeseries at a certain level   ------- #####
 chdir $myDir;
@@ -146,11 +140,11 @@ system "python3 plot_section.py $variable $DataDir$OutputFileName";
 }else{
 $ann="ann";
 print "variable $variable \n";
-print "variable obs, $variable_obs$underscore$ann \n";
-print "file model, $OutputFileName_model \n";
-print "file obs, $OutputFileName_obs \n";
+print "variable obs $variable_obs \n";
+print "file model $OutputFileName_model \n";
+print "file obs $OutputFileName_obs \n";
 
-system "python3 plot_surf_basin_avg.py $variable $OutputFileName_model $variable_obs$underscore$ann $OutputFileName_obs";
+system "python3 plot_surf_basin_avg.py $variable $OutputFileName_model $variable_obs $OutputFileName_obs";
 }
 ###### ------------------------------- ########
 

@@ -39,9 +39,10 @@ for my $months (@data_array){
    print "output file $OutputFileName \n";
  
   # Make all variables have the same name to use ncdiff
-  system "ncrename -v $variable_obs,$new_variable $SecondFileName dummy2.nc";  
+  #system "ncrename -v $variable_obs,$new_variable $SecondFileName dummy2.nc";  
+  system "ncrename -v $variable,$new_variable $SecondFileName dummy2.nc";  
   system "ncrename -v $variable,$new_variable $FirstFileName dummy1.nc";                      
-
+=pod
   #rename lat/lon from lato/lono
   if ($lat_obs ne "lat") {
     system "ncrename -O -v $lat_obs,lat -d $lat_obs,lat dummy2.nc";  
@@ -51,9 +52,9 @@ for my $months (@data_array){
     system "ncrename -O -v $lat,lat -d $lat,lat dummy1.nc";  
     system "ncrename -O -v $lon,lon -d $lon,lon dummy1.nc";  
   }
+=cut
 
-  print "breaking here??";
   system "ncdiff -v $new_variable dummy1.nc dummy2.nc $OutputFileName";
-  #system "rm dummy*";
+  system "rm dummy*";
 }
 

@@ -14,12 +14,16 @@ if (index($variable_obs, "_mon") != -1) {
 }
 
 $ann="ann";
-print "variable_obs $variable_obs$underscore$ann \n";
+if ($variable_obs eq "flux_molCm2yr_tak") {
+    $variable_obs = "$variable_obs$underscore$ann";
+}  
+ 
+print "variable_obs $variable_obs \n";
 print "obsfilename $ObsFilename\n";
 print "extract the variable_obs \n";
-system "ncks -O -v $variable_obs$underscore$ann $ObsDir$ObsFilename dummy.nc";
+system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
 
-$OutputFileName = "$variable_obs$underscore$ann.Basin.$RUN2.nc";
+$OutputFileName = "$variable_obs.Basin.$RUN2.nc";
 print "outputfilename $OutputFileName\n";
 
 
@@ -34,7 +38,8 @@ if ($nctag eq "taij"){
 
 $basin = "Atl";
 print "$basin\n";
-system "ncrename -v $variable_obs$underscore$ann,AtlMask dummy.nc";
+
+system "ncrename -v $variable_obs,AtlMask dummy.nc";
 
 if ($RUN2 eq "Takahashi_onEgrid"){
   print "Rename the lat/lon in dummy.nc\n";
@@ -54,7 +59,7 @@ if ($area eq "oxyp"){
 }
 
 system "ncwa -v AtlMask -a lon dummy1.nc dummy2.nc";
-$variable_obs_new = "$variable_obs$underscore$ann$basin";
+$variable_obs_new = "$variable_obs$basin";
 print "$variable_obs_new \n";
 system "ncrename -v AtlMask,$variable_obs_new dummy2.nc dummy3.nc";
 # Remove unwanted terms
@@ -66,15 +71,14 @@ system "ncatted -O -a _FillValue,$variable_obs_new,d,f, $OutputFileName";
 system "ncatted -O -a _FillValue,$variable_obs_new,c,f,-1e30 $OutputFileName"; 
 system "rm -R -f dummy*";
 
-
 ###### ---------Pacific Basin
 $basin = "Pac";
 print "$basin\n";
 
 print "extract the variable_obs \n";
-system "ncks -O -v $variable_obs$underscore$ann $ObsDir$ObsFilename dummy.nc";
+system "ncks -O -v $variable_obs $ObsDir$ObsFilename dummy.nc";
 print "$ObsFilename\n";
-system "ncrename -v $variable_obs$underscore$ann,PacMask dummy.nc";
+system "ncrename -v $variable_obs,PacMask dummy.nc";
 
 if ($RUN2 eq "Takahashi_onEgrid"){
   print "Rename the lat/lon in dummy.nc\n";
@@ -95,7 +99,7 @@ if ($area eq "oxyp"){
 
 system "ncwa -v PacMask -a lon dummy1.nc dummy2.nc";
 $ann="ann";
-$variable_obs_new = "$variable_obs$underscore$ann$basin";
+$variable_obs_new = "$variable_obs$basin";
 print "$variable_obs_new \n";
 system "ncrename -v PacMask,$variable_obs_new dummy2.nc";
 # Remove unwanted terms

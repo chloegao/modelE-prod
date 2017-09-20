@@ -4,7 +4,12 @@ Instructions for doing ocean diags
 **** comments/suggestions/errors to Natassa Romanou
 (ar2235@columbia.edu)
 
-Warning (Aug 31 2017): acc files need to be scaled ("scaleacc") outside the python environment.
+Warning (Sep 20 2017): To run the Python scripts (from dali) included in this packet, load the following module:
+"other/SSSO_Ana-PyD/SApd_2.4.0_py3.5"
+It seems that this Python version already includes the netCDF4 library. 
+Additionally, do not load the module "other/ncl-6.3.0", which creates conflicts
+with the NCO toolkit.
+
 
 1. Edit script user_input.s  for the model run to be analyzed and the observations to be used
 

@@ -19,9 +19,15 @@ $FirstInput = "$variable.ANN$yrini-$yrend.Basin.$RUN.nc";
 $varAtl1 = "$variable$Atl";
 $varPac1 = "$variable$Pac";
 
-$SecondInput = "$variable_obs$underscore$ann.Basin.$RUN2.nc";
-$varAtl2 = "$variable_obs$underscore$ann$Atl";
-$varPac2 = "$variable_obs$underscore$ann$Pac";
+$ann="ann";
+if ($variable_obs eq "flux_molCm2yr_tak") {
+    $variable_obs = "$variable_obs$underscore$ann";
+}
+
+$SecondInput = "$variable_obs.Basin.$RUN2.nc";
+print "second input $SecondInput";
+$varAtl2 = "$variable_obs$Atl";
+$varPac2 = "$variable_obs$Pac";
 $OutputFileName = "$variable.ANN$yrini-$yrend.BasinDiff.$RUN$underscore$RUN2.nc";
 
 
