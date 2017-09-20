@@ -35,8 +35,9 @@ c
 
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
       real, ALLOCATABLE, DIMENSION(:,:)::  Edz,Euz,Esz
-      real, ALLOCATABLE, DIMENSION(:,:)::  Kd       !absorption+scattering in seawater due to chl
+      real, ALLOCATABLE, DIMENSION(:,:)::  Kd,Kd_qm2s !absorption+scattering in seawater due to chl
       real, ALLOCATABLE, DIMENSION(:)::  Kpar     !kpar from NBOM
+      real, ALLOCATABLE, DIMENSION(:)::  Kpar_qm2s !kpar from NBOM in quanta/m2/s
       real, ALLOCATABLE, DIMENSION(:)::  delta_temp1d  !change in T due to kpar
 
       integer :: nstep0=0
@@ -213,7 +214,7 @@ C endif
 #ifdef TRACERS_Ocean_O2
      &  ,ij_o2
 #endif
-      integer, public :: ijl_avgq, ijl_kpar, ijl_dtemp
+      integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_qm2s, ijl_dtemp
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
       type(vector_str80) :: lname_ij, lname_ijl
@@ -461,7 +462,9 @@ c**** Extract domain decomposition info
       ALLOCATE(Esz(nlt,kdm))
       ALLOCATE(Euz(nlt,kdm))
       ALLOCATE(Kd(nlt,kdm))
+      ALLOCATE(Kd_qm2s(nlt,kdm))
       ALLOCATE(Kpar(kdm))
+      ALLOCATE(Kpar_qm2s(kdm))
       ALLOCATE(delta_temp1d(kdm))
 
       call init_obio_diag
@@ -679,6 +682,8 @@ c**** Extract domain decomposition info
      &              "quanta", .true., IJL_avgq)
       call add_diag("KPAR", "kpar",
      &              "??", .true., IJL_kpar)
+      call add_diag("KPAR_QM2S", "kpar_qm2s",
+     &              "??", .true., IJL_kpar_qm2s)
       call add_diag("dtemp due to kpar", "dtemp_par",
      &              "C", .true., IJL_dtemp)
 

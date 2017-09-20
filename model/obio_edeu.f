@@ -18,7 +18,7 @@ c  final is quanta for phytoplankton growth.
       use ocalbedo_mod, only: aw, bw, lam, nlt
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
-     .                      ,obio_P,p1d,Kd
+     .                      ,obio_P,p1d,Kd,Kd_qm2s
 
 !      USE DOMAIN_DECOMP_1D, only : DIST_GRID
 
@@ -111,7 +111,7 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
      .                     * WtoQ(nl)*1.0E6
 
              if (p1d(k+1).le.zd) then
-             !!!!Kd(nl,k) = (a + bb) / rmus    !in quanta/m2/s
+             Kd_qm2s(nl,k) = (a + bb) / rmus    !in quanta/m2/s
              Kd(nl,k) = Edz(nl,k)+Esz(nl,k)+Euz(nl,k)    !in W/m2
              endif
 
