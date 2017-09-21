@@ -7,24 +7,59 @@
 !     MATRIX CONFIGURATION MODULE.
 !
 !-------------------------------------------------------------------------------------------------------------------------
+!@param NMODES_MAX Maximum number of modes possible
+!@param MNAME Aerosol mode names (and numbers) that might appear in one or more
+!@+           mechanisms. These mode number only pertain to this set of all
+!@+           possible modes, and are not the mode numbers used for any specific
+!@+           mechanism.
+      INTEGER, PARAMETER :: NMODES_MAX=18 
+      CHARACTER(LEN=3), PARAMETER, DIMENSION(NMODES_MAX) :: &
+        MNAME=(/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','SSS', &
+                'OCC','BC1','BC2','BC3','OCS','DBC','BOC','BCS','MXX'/)
+      ! Mode #    1     2     3     4     5     6     7     8     9    ! # for IMODES below
+      ! Mode #   10    11    12    13    14    15    16    17    18    ! # for IMODES below
+!-------------------------------------------------------------------------------------------------------------------------
+!@param MECH MATRIX mechanism selected.
+!@param NAEROVARS Number of aerosol tracers in MATRIX with microphysics.
+!@param NEXTRA Number of aerosol tracers in MATRIX without microphysics.
+!@param NMODES Number of modes active in selected mechanism.
+!@param IMODES Indices of modes currently active, selected from MNAME.
 #ifdef TRACERS_AMP_M1
       INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/)
 #elif defined TRACERS_AMP_M2
       INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 2
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,15,16,17,18/)
 #elif defined TRACERS_AMP_M3
       INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13   ! Mechanism 3  
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,16,18/)
 #elif defined TRACERS_AMP_M4
       INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10   ! Mechanism 4 
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 2, 3, 4, 5, 6, 9,10,11,12,18/)
 #elif defined TRACERS_AMP_M5
       INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 5
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,13,15,16,17,18/)
 #elif defined TRACERS_AMP_M6
       INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 6 
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/)
 #elif defined TRACERS_AMP_M7
       INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11   ! Mechanism 7  
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/)
 #elif defined TRACERS_AMP_M8
       INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 2, 3, 4, 9,10,11,12,18/)
 #elif defined TRACERS_AMP_M9
       INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     1. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
@@ -57,6 +92,7 @@
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
 !-------------------------------------------------------------------------------------------------------------------------
+      CHARACTER(LEN=3), PARAMETER, DIMENSION(NMODES) :: MODE_NAME=MNAME(IMODES)
       INTEGER, PARAMETER :: NAEROBOX=NAEROVARS+NEXTRA 
       INTEGER, PARAMETER :: NWEIGHTS=NMODES*NPOINTS   
       INTEGER, PARAMETER :: NBINS = 30

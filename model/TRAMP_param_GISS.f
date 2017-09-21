@@ -4,6 +4,7 @@
 !@sum     AEROSOL PARAMETERS AND VARIABLES THAT ARE INDEPENDENT OF CONFIGURATION. 
 !@auth    Susanne Bauer/Doug Wright
 !------------------------------------------------------------------------------------------------------------------------  
+      use AERO_CONFIG, only: NMODES_MAX
       IMPLICIT NONE
 !-------------------------------------------------------------------------------------------------------------------------
 !
@@ -398,17 +399,6 @@ c     &               80.81, 85.58, 90./
       INTEGER, SAVE :: IXXX, IYYY, ILAY    ! current grid cell indices 
       LOGICAL, SAVE :: INCLUDE_BC3         ! true if mechanism includes mode BC3; false otherwise
 !-------------------------------------------------------------------------------------------------------------------------
-!     Aerosol mode names (and numbers) that might appear in one or more mechanisms.
-!     These mode number only pertain to this set of all possible modes, and are not the mode numbers
-!     used for any specific mechanism.
-!-------------------------------------------------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NMODES_MAX=18 
-      CHARACTER(LEN=3) :: MNAME(NMODES_MAX)
-      ! Mode #     1     2     3     4     5     6     7     8     9    ! # to identify the mode in MODES1, etc. below. 
-      DATA MNAME/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','SSS',
-     &           'OCC','BC1','BC2','BC3','OCS','DBC','BOC','BCS','MXX'/
-      ! Mode #     10    11    12    13    14    15    16    17    18   ! # to identify the mode in MODES1, etc. below. 
-!-------------------------------------------------------------------------------------------------------------------------
 !     Aerosol species defined for each mode in each mechanism.
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, SAVE :: MSPCS(NMASS_SPCS,NMODES_MAX) 
@@ -432,24 +422,6 @@ c     &               80.81, 85.58, 90./
       DATA MSPCS(4,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
       DATA MSPCS(5,1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
 #endif
-!-------------------------------------------------------------------------------------------------------------------------
-!     Aerosol modes used for each mechanism.
-!-------------------------------------------------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NM1=16,NM2=16,NM3=13,NM4=10
-      INTEGER, PARAMETER :: NM5=14,NM6=14,NM7=11,NM8=8
-      INTEGER, PARAMETER :: NM9=15
-      INTEGER :: MODES1(NM1),MODES2(NM2),MODES3(NM3),MODES4(NM4)
-      INTEGER :: MODES5(NM5),MODES6(NM6),MODES7(NM7),MODES8(NM8)
-      INTEGER :: MODES9(NM9)
-      DATA MODES1/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/
-      DATA MODES2/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,15,16,17,18/
-      DATA MODES3/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,16,18/
-      DATA MODES4/ 2, 3, 4, 5, 6, 9,10,11,12,18/
-      DATA MODES5/ 1, 2, 3, 4, 7, 8,10,11,12,13,15,16,17,18/
-      DATA MODES6/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/
-      DATA MODES7/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/
-      DATA MODES8/ 2, 3, 4, 9,10,11,12,18/
-      DATA MODES9/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/
 !-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
 !-------------------------------------------------------------------------------------------------------------------------

@@ -6,7 +6,8 @@
 !@auth    Susanne Bauer/Doug Wright
 !-------------------------------------------------------------------------------
       USE AERO_PARAM
-      USE AERO_CONFIG, only: MECH,NMODES,NPOINTS,NAEROBOX,NWEIGHTS,ICOND,CITABLE
+      USE AERO_CONFIG, only: MECH,NMODES,NPOINTS,NAEROBOX,NWEIGHTS,
+     &                       IMODES,MODE_NAME,ICOND,CITABLE
       IMPLICIT NONE
 
       INTEGER, SAVE :: MODE_NUMB_AKK, MODE_NUMB_ACC, MODE_NUMB_DD1, MODE_NUMB_DD2
@@ -130,7 +131,6 @@
       ! The dimensions of these arrays depends upon mechanism.
       ! SEAS_MAP(I) is the mean mass per particle for sea salt mode I.
       !-------------------------------------------------------------------------
-      CHARACTER(LEN= 3), SAVE, ALLOCATABLE :: MODE_NAME(:)      
       INTEGER,           SAVE, ALLOCATABLE :: MODE_SPCS(:,:)
       CHARACTER(LEN=16), SAVE, ALLOCATABLE :: AERO_SPCS(:)
       REAL,              SAVE, ALLOCATABLE :: RECIP_SEAS_MPP(:)         ! [1/ug]
@@ -163,14 +163,12 @@
       INTEGER :: I,J,K,INDEX
       LOGICAL :: FOUND
 
-      IF (.not. allocated(mode_name)) THEN
+      IF (.not. allocated(mode_spcs)) THEN
         !-----------------------------------------------------------------------
         ! Allocate nmodes-sized arrays and give a default value
         !-----------------------------------------------------------------------
-        ALLOCATE( MODE_NAME(NMODES) )
         ALLOCATE( MODE_SPCS(NMASS_SPCS,NMODES) )
         ALLOCATE( AERO_SPCS(NAEROBOX) )
-        MODE_NAME(:)   = '   '
         MODE_SPCS(:,:) = 0
         AERO_SPCS(:)   = '                '     
       ENDIF
@@ -180,41 +178,32 @@
       ! selected mechanism.
       !-------------------------------------------------------------------------
       IF     ( MECH .EQ. 1 ) THEN
-        MODE_NAME(:) = MNAME(MODES1(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES1(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .TRUE.
       ELSEIF ( MECH .EQ. 2 ) THEN
-        MODE_NAME(:) = MNAME(MODES2(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES2(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 3 ) THEN
-        MODE_NAME(:) = MNAME(MODES3(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES3(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 4 ) THEN
-        MODE_NAME(:) = MNAME(MODES4(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES4(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 5 ) THEN
-        MODE_NAME(:) = MNAME(MODES5(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES5(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .TRUE.  
       ELSEIF ( MECH .EQ. 6 ) THEN
-        MODE_NAME(:) = MNAME(MODES6(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES6(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 7 ) THEN
-        MODE_NAME(:) = MNAME(MODES7(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES7(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 8 ) THEN
-        MODE_NAME(:) = MNAME(MODES8(:))
-        MODE_SPCS(:,:) = MSPCS(:,MODES8(:))
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 9 ) THEN
-         MODE_NAME(:) = MNAME(MODES9(:))
-         MODE_SPCS(:,:) = MSPCS(:,MODES9(:))
-         INCLUDE_BC3 = .FALSE.
+        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
+        INCLUDE_BC3 = .FALSE.
       ENDIF
       !-------------------------------------------------------------------------
       ! Set INTERMODAL_TRANSFER according to setting in aero_param.f.
