@@ -971,7 +971,7 @@
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 #ifdef TRACERS_AMP_M9
-      DO i=1,NWEIGHTS
+      DO i=1,NMODES_MAX
         IF (MSPCS(PROD_INDEX_OCM2,i) .eq. 0) CYCLE  !mspcs(nmass_spcs,nmodes_max),determine if vbs species is 0 or 1
         PIQ (i,PROD_INDEX_OCM2)=PIQ (i,PROD_INDEX_OCM2)+VBS_FLUXES(i,PROD_INDEX_OCM2)
         PIQ (i,PROD_INDEX_OCM1)=PIQ (i,PROD_INDEX_OCM1)+VBS_FLUXES(i,PROD_INDEX_OCM1)
