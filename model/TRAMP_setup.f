@@ -169,30 +169,6 @@
         AERO_SPCS(:)   = '                '     
       ENDIF
       !-------------------------------------------------------------------------
-      ! Initialize arrays for coagulation interactions, mode names, mode
-      ! species, condensation flags, and whether mode BC3 is present in the
-      ! selected mechanism.
-      !-------------------------------------------------------------------------
-      IF     ( MECH .EQ. 1 ) THEN
-        INCLUDE_BC3 = .TRUE.
-      ELSEIF ( MECH .EQ. 2 ) THEN
-        INCLUDE_BC3 = .FALSE.
-      ELSEIF ( MECH .EQ. 3 ) THEN
-        INCLUDE_BC3 = .FALSE.
-      ELSEIF ( MECH .EQ. 4 ) THEN
-        INCLUDE_BC3 = .FALSE.
-      ELSEIF ( MECH .EQ. 5 ) THEN
-        INCLUDE_BC3 = .TRUE.  
-      ELSEIF ( MECH .EQ. 6 ) THEN
-        INCLUDE_BC3 = .FALSE. 
-      ELSEIF ( MECH .EQ. 7 ) THEN
-        INCLUDE_BC3 = .FALSE. 
-      ELSEIF ( MECH .EQ. 8 ) THEN
-        INCLUDE_BC3 = .FALSE. 
-      ELSEIF ( MECH .EQ. 9 ) THEN
-        INCLUDE_BC3 = .FALSE.
-      ENDIF
-      !-------------------------------------------------------------------------
       ! Set INTERMODAL_TRANSFER according to setting in aero_param.f.
       ! If mode AKK is not present in the current mechanism, set to .FALSE.
       !-------------------------------------------------------------------------

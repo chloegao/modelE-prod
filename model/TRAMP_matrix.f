@@ -1283,7 +1283,7 @@
         !--------------------------------------------------------------------------------------------------------------
         ! Transfer mode BC2 to mode BC3.
         !--------------------------------------------------------------------------------------------------------------
-        IF( INCLUDE_BC3 ) THEN
+        IF( MODE_NUMB_BC3 .GT. 0 ) THEN
           AERO(MASS_BC3_SULF) = AERO(MASS_BC3_SULF) + AERO(MASS_BC2_SULF)
           AERO(MASS_BC3_BCAR) = AERO(MASS_BC3_BCAR) + AERO(MASS_BC2_BCAR)
           AERO(NUMB_BC3_1   ) = AERO(NUMB_BC3_1   ) + AERO(NUMB_BC2_1   )
