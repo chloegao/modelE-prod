@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+#ifdef TRACERS_AMP
       SUBROUTINE GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
@@ -6,6 +7,7 @@
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
       USE TRACER_COM, only: ntm_ococean, ntm_soa
+      USE AERO_CONFIG, only: MODE_NAME
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
@@ -92,11 +94,9 @@ c     SSMAO=SSMAL+SSM2                        ! Land aerosols (SSMAL) + Sea-salt
 C*************Use matrix activated fraction for aerosol conc. 
       do nm=1,nmodes
 C** here we do not want sea-salt contribution for land aerosols
-!       Mode #     1     2     3     4     5     6     7     8     9    ! # to identify the mode in MODES1, etc. below.
-!     DATA MNAME/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','SSS',
-!    &           'OCC','BC1','BC2','BC3','OCS','DBC','BOC','BCS','MXX'/
-!       Mode #     10    11    12    13    14    15    16    17    18   ! # t
-       if( nm.eq.7 .or. nm.eq.8) ncaero(nm)=1.d-30
+       if(MODE_NAME(nm).eq.'SSA' .or.
+     &    MODE_NAME(nm).eq.'SSC' .or.
+     &    MODE_NAME(nm).eq.'SSS') ncaero(nm)=1.d-30
        SSMAL= SSMAL + (ncaero(nm)) 
 c      if(ncaero(nm).gt.1.e-04)
 c    * write(6,*)"incldmat",ncaero(nm),nm,SSMAL
@@ -117,6 +117,7 @@ c     endif
 c
       RETURN
       END SUBROUTINE GET_CC_CDNC_MX 
+#endif  /* TRACERS_AMP */
 C****************************************************************************
 c
       SUBROUTINE GET_CC_CDNC(L,AIRM,DXYPJ,PL,TL,DSS,MCDNL1,MCDNO1)
