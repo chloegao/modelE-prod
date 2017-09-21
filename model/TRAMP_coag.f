@@ -233,14 +233,14 @@
 
       ! Local variables.
 
-      INTEGER, PARAMETER :: NPOINTS = 4         ! number of quadrature points for each mode
+      INTEGER, PARAMETER :: NQUADR = 4         ! number of quadrature points for each mode
 
       INTEGER :: I, J, K, L                     ! loop indices
       REAL(8) :: SGI, SGJ                       ! [1] function of geometric standard deviation
-      REAL(8) :: UKI(2*NPOINTS)                 ! [um^k] normalized moments for mode I
-      REAL(8) :: UKJ(2*NPOINTS)                 ! [um^k] normalized moments for mode J
-      REAL(8) :: XI(NPOINTS), XJ(NPOINTS)       ! [um] quadrature abscissas for modes I and J
-      REAL(8) :: WI(NPOINTS), WJ(NPOINTS)       ! [1] normalized quadrature weights for modes I and J
+      REAL(8) :: UKI(2*NQUADR)                 ! [um^k] normalized moments for mode I
+      REAL(8) :: UKJ(2*NQUADR)                 ! [um^k] normalized moments for mode J
+      REAL(8) :: XI(NQUADR), XJ(NQUADR)       ! [um] quadrature abscissas for modes I and J
+      REAL(8) :: WI(NQUADR), WJ(NQUADR)       ! [1] normalized quadrature weights for modes I and J
       REAL(8) :: ZFI, ZFJ                       ! [1] flags for failed quadrature inversion
       REAL(8) :: K0IJ_TMP, K3IJ_TMP             ! [m^3/s] double precision accumulators for K0IJ and K3IJ
       REAL(4) :: DI, DJ                         ! [um] single precision particle diameters for modes I and J
@@ -254,9 +254,9 @@
       !-------------------------------------------------------------------------
 
       !-------------------------------------------------------------------------
-      ! Compute the first 2*NPOINTS diameter moments for each lognormal mode.
+      ! Compute the first 2*NQUADR diameter moments for each lognormal mode.
       !-------------------------------------------------------------------------
-      DO L=1, 2*NPOINTS
+      DO L=1, 2*NQUADR
         K = L-1
         UKI(L) = DBLE(DGI)**K * SGI**(K*K)
         UKJ(L) = DBLE(DGJ)**K * SGJ**(K*K)
@@ -268,14 +268,14 @@
       !-------------------------------------------------------------------------
       ! Get the quadrature abscissas and weights for modes I and J.
       !-------------------------------------------------------------------------
-      CALL GAUSS(NPOINTS,UKI,XI,WI,ZFI)
+      CALL GAUSS(NQUADR,UKI,XI,WI,ZFI)
       IF( ZFI .GT. 1.0D-15 ) THEN
         WRITE(*,*)'Failed quadrature for mode I in subr. GET_KNIJ'
         WRITE(*,*)'ABSCISSAS = ', XI(:)
         WRITE(*,*)'WEIGHTS   = ', WI(:)
         STOP
       ENDIF
-      CALL GAUSS(NPOINTS,UKJ,XJ,WJ,ZFJ)
+      CALL GAUSS(NQUADR,UKJ,XJ,WJ,ZFJ)
       IF( ZFJ .GT. 1.0D-15 ) THEN
         WRITE(*,*)'Failed quadrature for mode J in subr. GET_KNIJ'
         WRITE(*,*)'ABSCISSAS = ', XJ(:)
@@ -286,7 +286,7 @@
       !-------------------------------------------------------------------------
       ! Write the abscissas and weights for modes I and J.
       !-------------------------------------------------------------------------
-      ! DO L=1, NPOINTS
+      ! DO L=1, NQUADR
       !   WRITE(*,'(I6,4D15.5)') L, XI(L), WI(L), XJ(L), WJ(L)
       ! ENDDO
       !-------------------------------------------------------------------------
@@ -294,8 +294,8 @@
       K0IJ_TMP = 0.0D+00
       K3IJ_TMP = 0.0D+00
 
-      DO I=1, NPOINTS
-      DO J=1, NPOINTS
+      DO I=1, NQUADR
+      DO J=1, NQUADR
         DI = REAL(XI(I))                                           ! convert to single precision
         DJ = REAL(XJ(J))                                           ! convert to single precision
 !       CALL BROWNIAN_COAG_COEF( DI, DJ, TEMP, PRES, BETAIJ )      ! all variables single precision
