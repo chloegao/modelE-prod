@@ -1026,6 +1026,7 @@
         IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(8) = I
         IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(9) = I
         IF( MODE_NAME(I) .EQ. 'DD2' ) EMIS_MODE_MAP(10) = I
+#ifdef TRACERS_AMP_M9
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(11) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(12) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(13) = I
@@ -1035,6 +1036,7 @@
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(17) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(18) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(19) = I
+#endif
       ENDDO
       !-------------------------------------------------------------------------
       ! If the mechanism does not have the mode BOC to receive the 
