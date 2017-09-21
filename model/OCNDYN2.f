@@ -506,9 +506,6 @@ C        Call CARBON ('OCNMESO')
       if (n_ocfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
       if (n_sf6.gt.0) CALL OCN_TR_CFC(DTS,6)   
 !     if (n_abioDIC.gt.0) is defined in obio_carbon.f
-#ifdef TRACERS_AGE_OCEAN
-      if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
-#endif
 #endif
 
       CALL TIMER (NOW,MSGSO)

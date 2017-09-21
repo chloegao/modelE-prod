@@ -40,9 +40,10 @@ system "ncatted -O -a units,$lon_obs,c,c,'degrees_east' $OutputFileName";
 system "rm -R -f dummy*.nc";
 
 #rename lat_obs/lon_obs to "lat" and "lon"
+print "outputfile $OutputFileName";
 if ($lat_obs ne "lat") {
     system "ncrename -O -v $lat_obs,lat -d $lat_obs,lat $OutputFileName";
-    system "ncrename -O -v $lon_obs,lon -d $lat_obs,lat $OutputFileName";
+    system "ncrename -O -v $lon_obs,lon -d $lon_obs,lon $OutputFileName";
 }
 
 #rename variable_obs to variable
@@ -84,8 +85,8 @@ system "rm -R -f dummy*.nc";
 
 #rename lat_obs/lon_obs to "lat" and "lon"
 if ($lat_obs ne "lat") {
-    system "ncrename -O -v $lat_obs,lat $OutputFileName";
-    system "ncrename -O -v $lon_obs,lon $OutputFileName";
+    system "ncrename -O -v $lat_obs,lat -d $lat_obs,lat $OutputFileName";
+    system "ncrename -O -v $lon_obs,lon -d $lon_obs,lon $OutputFileName";
 }
 
 #rename variable_obs to variable

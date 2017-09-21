@@ -29,7 +29,7 @@
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
-     .                    ,rhs_obio,chng_by,Kpar,Edz,Esz,Euz
+     .                    ,rhs_obio,chng_by,Kpar,Kpar_qm2s,Edz,Esz,Euz
      .                    ,delta_temp1d,sday
      .                    ,num_tracers
 #ifdef TOPAZ_params
@@ -59,7 +59,8 @@
      .                 ,ij_o2
 #endif
 
-      USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,ijl_dtemp
+      USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,
+     .                            ijl_kpar_qm2s,ijl_dtemp
       use ocalbedo_mod, only: ocalbedo
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,
@@ -802,9 +803,9 @@ cdiag.                  tot,ichan=1,nlt)
      &               fsr,lsrpd)
        do k=1,kdm
        OIJL(I,J,k,IJL_kpar) = OIJL(I,J,k,IJL_kpar) + Kpar(k) !  kpar
-     .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
+       OIJL(I,J,k,IJL_kpar_qm2s) = OIJL(I,J,k,IJL_kpar_qm2s) 
+     .                           + Kpar_qm2s(k) !  kpar in quanta/m2/s
        OIJL(I,J,k,IJL_dtemp) = OIJL(I,J,k,IJL_dtemp) + delta_temp1d(k) !  change in T due to kpar
-     .                      * MO(i,j,k) * dxypo(j)    !in order to get landmask-have to set denom_ijl in odiag_com
        enddo
 #endif
 #endif

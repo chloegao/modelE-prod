@@ -476,7 +476,7 @@ C**** TCONSRV
       integer, parameter :: maxntmocn=3
 #else 
 #ifdef TRACERS_OCEAN
-      integer, parameter :: maxntmocn=21
+      integer, parameter :: maxntmocn=25
 #else
       integer, parameter :: maxntmocn=0
 #endif

@@ -4,7 +4,7 @@
      &                     mo,g0m,s0m,grav,oAPRESS,fsr,lsrpd)
  
       USE obio_dim
-      USE obio_com,   only : npst,npnd,p1d,Kd,Kpar
+      USE obio_com,   only : npst,npnd,p1d,Kd,Kd_qm2s,Kpar,Kpar_qm2s
      .                      ,delta_temp1d,temp1d
 
       USE DOMAIN_DECOMP_1D, only : DIST_GRID
@@ -46,9 +46,11 @@
       do k = 1,kmax
           !integrate kd to get kpar
           Kpar(k) = 0.0d0
+          Kpar_qm2s(k) = 0.0d0
           delta_temp1d(k) = 0.0d0
           do nl = npst,npnd
              Kpar(k) = Kpar(k) + Kd(nl,k)   !in W/m2
+             Kpar_qm2s(k) = Kpar_qm2s(k) + Kd_qm2s(nl,k)   !in quanta/m2/s
           enddo !nl
           pres=pres+MO(k)*GRAV*.5d0
           g=G0M(k)/(MO(k)*DXYPO)

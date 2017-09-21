@@ -41,7 +41,7 @@ if (defined($depth)){
 #rename lat/lon from lato/lono
 if ($lat ne "lat") {
     system "ncrename -O -v $lat,lat -d $lat,lat $OutputFileName";
-    system "ncrename -O -v $lon,lon -d $lat,lat $OutputFileName";
+    system "ncrename -O -v $lon,lon -d $lon,lon $OutputFileName";
 }
 }
 
