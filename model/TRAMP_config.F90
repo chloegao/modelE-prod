@@ -1,7 +1,6 @@
 #include "rundeck_opts.h"
 
       MODULE AERO_CONFIG
-      USE AERO_PARAM, ONLY: NM1, NM2, NM3, NM4, NM5, NM6, NM7, NM8, NM9
       IMPLICIT NONE
 !-------------------------------------------------------------------------------------------------------------------------
 !
@@ -9,23 +8,23 @@
 !
 !-------------------------------------------------------------------------------------------------------------------------
 #ifdef TRACERS_AMP_M1
-     INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
+      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
 #elif defined TRACERS_AMP_M2
-     INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 2
+      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 2
 #elif defined TRACERS_AMP_M3
-     INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13   ! Mechanism 3  
+      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13   ! Mechanism 3  
 #elif defined TRACERS_AMP_M4
-     INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10   ! Mechanism 4 
+      INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10   ! Mechanism 4 
 #elif defined TRACERS_AMP_M5
-     INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 5
+      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 5
 #elif defined TRACERS_AMP_M6
-     INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 6 
+      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 6 
 #elif defined TRACERS_AMP_M7
-     INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11   ! Mechanism 7  
+      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11   ! Mechanism 7  
 #elif defined TRACERS_AMP_M8
-     INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
+      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
 #elif defined TRACERS_AMP_M9
-     INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
+      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     1. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
@@ -36,15 +35,25 @@
 !        ICONDn(I)=1, condensational growth done; ICONDn(I)=0, condensational growth not done. 
 !        Ordinarily, all modes would undergo condenational growth.
 !-------------------------------------------------------------------------------------------------------------------------
-      INTEGER, SAVE, DIMENSION(NM1) :: ICOND1=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 1
-      INTEGER, SAVE, DIMENSION(NM2) :: ICOND2=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 2
-      INTEGER, SAVE, DIMENSION(NM3) :: ICOND3=(/1,1,1,1,1,1,1,1,1,1,1,1,1/)        ! Mechanism 3
-      INTEGER, SAVE, DIMENSION(NM4) :: ICOND4=(/1,1,1,1,1,1,1,1,1,1/)              ! Mechanism 4
-      INTEGER, SAVE, DIMENSION(NM5) :: ICOND5=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 5
-      INTEGER, SAVE, DIMENSION(NM6) :: ICOND6=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 6
-      INTEGER, SAVE, DIMENSION(NM7) :: ICOND7=(/1,1,1,1,1,1,1,1,1,1,1/)            ! Mechanism 7
-      INTEGER, SAVE, DIMENSION(NM8) :: ICOND8=(/1,1,1,1,1,1,1,1/)                  ! Mechanism 8
-      INTEGER, SAVE, DIMENSION(NM9) :: ICOND9=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
+#ifdef TRACERS_AMP_M1
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 1
+#elif defined TRACERS_AMP_M2
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 2
+#elif defined TRACERS_AMP_M3
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1/)        ! Mechanism 3
+#elif defined TRACERS_AMP_M4
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1/)              ! Mechanism 4
+#elif defined TRACERS_AMP_M5
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 5
+#elif defined TRACERS_AMP_M6
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 6
+#elif defined TRACERS_AMP_M7
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1/)            ! Mechanism 7
+#elif defined TRACERS_AMP_M8
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1/)                  ! Mechanism 8
+#elif defined TRACERS_AMP_M9
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
+#endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
 !-------------------------------------------------------------------------------------------------------------------------
@@ -56,194 +65,204 @@
 !        The donor modes may not be modified. Each receptor mode must contain all species present in either donor mode.
 !        Entering 'OFF' for the receptor mode name disables coagulation between the two donor modes.
 !-------------------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M1
 !     Mechanism 1.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   BC3   DBC   BOC   BCS   MXX    SECOND
 !                                                                                                                                MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE1(NM1,NM1)
-      DATA CITABLE1(1:NM1, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE1(1:NM1, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE1(1:NM1, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
-      DATA CITABLE1(1:NM1, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
-      DATA CITABLE1(1:NM1, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD2
-      DATA CITABLE1(1:NM1, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS2
-      DATA CITABLE1(1:NM1, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE1(1:NM1, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE1(1:NM1, 9)/'OCC','OCC','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE1(1:NM1,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE1(1:NM1,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE1(1:NM1,12)/'BC3','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
-      DATA CITABLE1(1:NM1,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
-      DATA CITABLE1(1:NM1,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE1(1:NM1,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
-      DATA CITABLE1(1:NM1,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD2
+      DATA CITABLE(1:NMODES, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 9)/'OCC','OCC','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,12)/'BC3','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
+      DATA CITABLE(1:NMODES,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
+      DATA CITABLE(1:NMODES,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE(1:NMODES,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M2
 !
 !     Mechanism 2.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   DBC   BOC   BCS   MXX    SECOND
 !                                                                                                                                MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE2(NM2,NM2)
-      DATA CITABLE2(1:NM2, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE2(1:NM2, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE2(1:NM2, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
-      DATA CITABLE2(1:NM2, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS1
-      DATA CITABLE2(1:NM2, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD2
-      DATA CITABLE2(1:NM2, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
-      DATA CITABLE2(1:NM2, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE2(1:NM2, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE2(1:NM2, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE2(1:NM2,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE2(1:NM2,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE2(1:NM2,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCS 
-      DATA CITABLE2(1:NM2,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DBC
-      DATA CITABLE2(1:NM2,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE2(1:NM2,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BOC','DBC','BOC','BCS','MXX'/ ! BCS
-      DATA CITABLE2(1:NM2,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD2
+      DATA CITABLE(1:NMODES, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES,10)/'BC1','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES,11)/'BC2','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCS 
+      DATA CITABLE(1:NMODES,13)/'DBC','DBC','DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DBC
+      DATA CITABLE(1:NMODES,14)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BOC','DBC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE(1:NMODES,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M3
 !
 !     Mechanism 3.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   BOC   MXX    SECOND
 !                                                                                                              MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE3(NM3,NM3)
-      DATA CITABLE3(1:NM3, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! AKK
-      DATA CITABLE3(1:NM3, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! ACC
-      DATA CITABLE3(1:NM3, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE3(1:NM3, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE3(1:NM3, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
-      DATA CITABLE3(1:NM3, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
-      DATA CITABLE3(1:NM3, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE3(1:NM3, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE3(1:NM3, 9)/'OCC','OCC','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE3(1:NM3,10)/'BC1','BC1','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','MXX'/ ! BC1
-      DATA CITABLE3(1:NM3,11)/'BC2','BC2','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','MXX'/ ! BC2
-      DATA CITABLE3(1:NM3,12)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE3(1:NM3,13)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
+      DATA CITABLE(1:NMODES, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 9)/'OCC','OCC','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES,10)/'BC1','BC1','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES,11)/'BC2','BC2','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,12)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,13)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M4
 !
 !     Mechanism 4.
 !
 !     FIRST MODE               ACC   DD1   DS1   DD2   DS2   SSS   OCC   BC1   BC2   MXX    SECOND
 !                                                                                            MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE4(NM4,NM4)
-      DATA CITABLE4(1:NM4, 1)/'ACC','DD1','DS1','DD2','DS2','SSS','OCC','BC1','BC2','MXX'/ ! ACC
-      DATA CITABLE4(1:NM4, 2)/'DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE4(1:NM4, 3)/'DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE4(1:NM4, 4)/'DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','MXX','MXX'/ ! DD2
-      DATA CITABLE4(1:NM4, 5)/'DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','MXX','MXX'/ ! DS2
-      DATA CITABLE4(1:NM4, 6)/'SSS','MXX','MXX','MXX','MXX','SSS','MXX','MXX','MXX','MXX'/ ! SSS
-      DATA CITABLE4(1:NM4, 7)/'OCC','MXX','MXX','MXX','MXX','MXX','OCC','MXX','MXX','MXX'/ ! OCC
-      DATA CITABLE4(1:NM4, 8)/'BC1','MXX','MXX','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
-      DATA CITABLE4(1:NM4, 9)/'BC2','MXX','MXX','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
-      DATA CITABLE4(1:NM4,10)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'ACC','DD1','DS1','DD2','DS2','SSS','OCC','BC1','BC2','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 2)/'DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 3)/'DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 4)/'DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','MXX','MXX'/ ! DD2
+      DATA CITABLE(1:NMODES, 5)/'DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','MXX','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 6)/'SSS','MXX','MXX','MXX','MXX','SSS','MXX','MXX','MXX','MXX'/ ! SSS
+      DATA CITABLE(1:NMODES, 7)/'OCC','MXX','MXX','MXX','MXX','MXX','OCC','MXX','MXX','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 8)/'BC1','MXX','MXX','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES, 9)/'BC2','MXX','MXX','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,10)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M5
 !
 !     Mechanism 5.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   SSA   SSC   OCC   BC1   BC2   BC3   DBC   BOC   BCS   MXX    SECOND
 !                                                                                                                    MODE
 !-------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE5(NM5,NM5)
-      DATA CITABLE5(1:NM5, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE5(1:NM5, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE5(1:NM5, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
-      DATA CITABLE5(1:NM5, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
-      DATA CITABLE5(1:NM5, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE5(1:NM5, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE5(1:NM5, 7)/'OCC','OCC','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE5(1:NM5, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE5(1:NM5, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE5(1:NM5,10)/'BC3','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
-      DATA CITABLE5(1:NM5,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
-      DATA CITABLE5(1:NM5,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE5(1:NM5,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
-      DATA CITABLE5(1:NM5,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 7)/'OCC','OCC','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BC1','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC2','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,10)/'BC3','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/ ! BC3
+      DATA CITABLE(1:NMODES,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','DBC','DBC','MXX','DBC','MXX'/ ! DBC
+      DATA CITABLE(1:NMODES,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE(1:NMODES,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M6
 !
 !     Mechanism 6.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   SSA   SSC   OCC   BC1   BC2   OCS   DBC   BOC   BCS   MXX    SECOND
 !                                                                                                                    MODE
 !-------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE6(NM6,NM6)
-      DATA CITABLE6(1:NM6, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE6(1:NM6, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE6(1:NM6, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
-      DATA CITABLE6(1:NM6, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
-      DATA CITABLE6(1:NM6, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE6(1:NM6, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE6(1:NM6, 7)/'OCC','OCS','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE6(1:NM6, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE6(1:NM6, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE6(1:NM6,10)/'OCS','OCS','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','MXX','MXX','MXX'/ ! OCS 
-      DATA CITABLE6(1:NM6,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','MXX','MXX'/ ! DBC
-      DATA CITABLE6(1:NM6,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','MXX','MXX','BOC','MXX','MXX'/ ! BOC
-      DATA CITABLE6(1:NM6,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','MXX','MXX','MXX','BCS','MXX'/ ! BCS
-      DATA CITABLE6(1:NM6,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','OCS','DBC','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCS','BCS','BCS','OCS','DBC','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','DBC','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 7)/'OCC','OCS','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','MXX','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 8)/'BC1','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC1','BOC','DBC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES, 9)/'BC2','BCS','DBC','DBC','MXX','MXX','BOC','BC1','BC2','BOC','DBC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,10)/'OCS','OCS','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','MXX','MXX','MXX','MXX'/ ! OCS 
+      DATA CITABLE(1:NMODES,11)/'DBC','DBC','DBC','DBC','MXX','MXX','MXX','DBC','DBC','MXX','DBC','MXX','MXX','MXX'/ ! DBC
+      DATA CITABLE(1:NMODES,12)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','MXX','MXX','BOC','MXX','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','MXX','MXX','MXX','BCS','MXX'/ ! BCS
+      DATA CITABLE(1:NMODES,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M7
 !
 !     Mechanism 7.
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   SSA   SSC   OCC   BC1   BC2   BOC  MXX     SECOND
 !                                                                                                  MODE
 !-------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE7(NM7,NM7)
-      DATA CITABLE7(1:NM7, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! AKK
-      DATA CITABLE7(1:NM7, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! ACC
-      DATA CITABLE7(1:NM7, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE7(1:NM7, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE7(1:NM7, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE7(1:NM7, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-      DATA CITABLE7(1:NM7, 7)/'OCC','OCC','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE7(1:NM7, 8)/'BC1','BC1','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','MXX'/ ! BC1
-      DATA CITABLE7(1:NM7, 9)/'BC2','BC2','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','MXX'/ ! BC2
-      DATA CITABLE7(1:NM7,10)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE7(1:NM7,11)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','SSA','SSC','OCC','BC1','BC2','BOC','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'SSA','SSA','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 6)/'SSC','SSC','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+      DATA CITABLE(1:NMODES, 7)/'OCC','OCC','MXX','MXX','MXX','MXX','OCC','BOC','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 8)/'BC1','BC1','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES, 9)/'BC2','BC2','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,10)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,11)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M8
 !
 !     Mechanism 8.
 !
 !     FIRST MODE               ACC   DD1   DS1   SSS   OCC   BC1   BC2   MXX    SECOND
 !                                                                                MODE
 !-------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE8(NM8,NM8)
-      DATA CITABLE8(1:NM8, 1)/'ACC','DD1','DS1','SSS','OCC','BC1','BC2','MXX'/ ! ACC
-      DATA CITABLE8(1:NM8, 2)/'DD1','DD1','DD1','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE8(1:NM8, 3)/'DS1','DD1','DS1','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE8(1:NM8, 4)/'SSS','MXX','MXX','SSS','MXX','MXX','MXX','MXX'/ ! SSS
-      DATA CITABLE8(1:NM8, 5)/'OCC','MXX','MXX','MXX','OCC','MXX','MXX','MXX'/ ! OCC
-      DATA CITABLE8(1:NM8, 6)/'BC1','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
-      DATA CITABLE8(1:NM8, 7)/'BC2','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
-      DATA CITABLE8(1:NM8, 8)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'ACC','DD1','DS1','SSS','OCC','BC1','BC2','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 2)/'DD1','DD1','DD1','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 3)/'DS1','DD1','DS1','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 4)/'SSS','MXX','MXX','SSS','MXX','MXX','MXX','MXX'/ ! SSS
+      DATA CITABLE(1:NMODES, 5)/'OCC','MXX','MXX','MXX','OCC','MXX','MXX','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 6)/'BC1','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES, 7)/'BC2','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES, 8)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif TRACERS_AMP_M9
 !     Mechanism 9
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   BOC   BCS   MXX    SECOND
 !                                                                                                                          MODE
 !-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE9(NM9,NM9)
-      DATA CITABLE9(1:NM9, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE9(1:NM9, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE9(1:NM9, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','DD1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE9(1:NM9, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','DS1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE9(1:NM9, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','DD2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
-      DATA CITABLE9(1:NM9, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','DS2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
-      DATA CITABLE9(1:NM9, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','SSA','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE9(1:NM9, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-!      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE9(1:NM9,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE9(1:NM9,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE9(1:NM9,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCS
-      DATA CITABLE9(1:NM9,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE9(1:NM9,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
-      DATA CITABLE9(1:NM9,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','DD1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','DS1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE(1:NMODES, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','DD2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
+      DATA CITABLE(1:NMODES, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','DS2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
+      DATA CITABLE(1:NMODES, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','SSA','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE(1:NMODES, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+!      DATA CITABLE(1:NMODES, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES, 9)/'OCC','OCS','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE(1:NMODES,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE(1:NMODES,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE(1:NMODES,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCS
+      DATA CITABLE(1:NMODES,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE(1:NMODES,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE(1:NMODES,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#endif
       END MODULE AERO_CONFIG
 !
 ! Information for the transported species for each mechanism. 

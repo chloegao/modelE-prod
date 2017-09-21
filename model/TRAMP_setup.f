@@ -6,7 +6,7 @@
 !@auth    Susanne Bauer/Doug Wright
 !-------------------------------------------------------------------------------
       USE AERO_PARAM
-      USE AERO_CONFIG
+      USE AERO_CONFIG, only: MECH,NMODES,NPOINTS,NAEROBOX,NWEIGHTS,ICOND,CITABLE
       IMPLICIT NONE
 
       INTEGER, SAVE :: MODE_NUMB_AKK, MODE_NUMB_ACC, MODE_NUMB_DD1, MODE_NUMB_DD2
@@ -133,9 +133,7 @@
       CHARACTER(LEN= 3), SAVE, ALLOCATABLE :: MODE_NAME(:)      
       INTEGER,           SAVE, ALLOCATABLE :: MODE_SPCS(:,:)
       CHARACTER(LEN=16), SAVE, ALLOCATABLE :: AERO_SPCS(:)
-      INTEGER,           SAVE, ALLOCATABLE :: ICOND(:)
       REAL,              SAVE, ALLOCATABLE :: RECIP_SEAS_MPP(:)         ! [1/ug]
-      CHARACTER(LEN=3),  SAVE, ALLOCATABLE :: CITABLE(:,:)
       LOGICAL,                        SAVE :: INTERMODAL_TRANSFER
       !-------------------------------------------------------------------------------------------------------------------
       ! Diameter of average mass, averaged over all modes, used in the KK02 parameterization in subr. NPFRATE.
@@ -162,38 +160,19 @@
 !     Routine to initialize variables that depend upon choice of mechanism.
 !-------------------------------------------------------------------------------
       IMPLICIT NONE
-      INTEGER :: I,J,K,INDEX,IDIM
+      INTEGER :: I,J,K,INDEX
       LOGICAL :: FOUND
-      LOGICAL, SAVE :: FIRSTIME = .TRUE.
-      IF ( FIRSTIME ) THEN
-        FIRSTIME = .FALSE.
+
+      IF (.not. allocated(mode_name)) THEN
         !-----------------------------------------------------------------------
-        ! Get the number of modes in the selected mechanism.
+        ! Allocate nmodes-sized arrays and give a default value
         !-----------------------------------------------------------------------
-        IDIM = 0    
-        IF ( MECH .EQ. 1 ) IDIM = NM1
-        IF ( MECH .EQ. 2 ) IDIM = NM2
-        IF ( MECH .EQ. 3 ) IDIM = NM3
-        IF ( MECH .EQ. 4 ) IDIM = NM4
-        IF ( MECH .EQ. 5 ) IDIM = NM5
-        IF ( MECH .EQ. 6 ) IDIM = NM6
-        IF ( MECH .EQ. 7 ) IDIM = NM7
-        IF ( MECH .EQ. 8 ) IDIM = NM8
-        IF ( MECH .EQ. 9 ) IDIM = NM9
-        IF ( IDIM .NE. NMODES ) THEN
-          WRITE(*,*)'ERROR in mechanism number MECH: MECH = ', MECH
-          STOP
-        ENDIF
-        ALLOCATE( MODE_NAME(IDIM) )      
-        ALLOCATE( MODE_SPCS(NMASS_SPCS,IDIM) )
-        ALLOCATE( AERO_SPCS(NAEROBOX) )      
-        ALLOCATE( ICOND(IDIM) )      
-        ALLOCATE( CITABLE(IDIM,IDIM) )
+        ALLOCATE( MODE_NAME(NMODES) )
+        ALLOCATE( MODE_SPCS(NMASS_SPCS,NMODES) )
+        ALLOCATE( AERO_SPCS(NAEROBOX) )
         MODE_NAME(:)   = '   '
         MODE_SPCS(:,:) = 0
         AERO_SPCS(:)   = '                '     
-        ICOND(:)       = 0
-        CITABLE(:,:)   = '   '
       ENDIF
       !-------------------------------------------------------------------------
       ! Initialize arrays for coagulation interactions, mode names, mode
@@ -201,58 +180,40 @@
       ! selected mechanism.
       !-------------------------------------------------------------------------
       IF     ( MECH .EQ. 1 ) THEN
-        CITABLE(:,:) = CITABLE1(:,:)
         MODE_NAME(:) = MNAME(MODES1(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES1(:))
-        ICOND(:) = ICOND1(:)
         INCLUDE_BC3 = .TRUE.
       ELSEIF ( MECH .EQ. 2 ) THEN
-        CITABLE(:,:) = CITABLE2(:,:)
         MODE_NAME(:) = MNAME(MODES2(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES2(:))
-        ICOND(:) = ICOND2(:)
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 3 ) THEN
-        CITABLE(:,:) = CITABLE3(:,:)
         MODE_NAME(:) = MNAME(MODES3(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES3(:))
-        ICOND(:) = ICOND3(:)
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 4 ) THEN
-        CITABLE(:,:) = CITABLE4(:,:)
         MODE_NAME(:) = MNAME(MODES4(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES4(:))
-        ICOND(:) = ICOND4(:)
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 5 ) THEN
-        CITABLE(:,:) = CITABLE5(:,:)
         MODE_NAME(:) = MNAME(MODES5(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES5(:))
-        ICOND(:) = ICOND5(:)
         INCLUDE_BC3 = .TRUE.  
       ELSEIF ( MECH .EQ. 6 ) THEN
-        CITABLE(:,:) = CITABLE6(:,:)
         MODE_NAME(:) = MNAME(MODES6(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES6(:))
-        ICOND(:) = ICOND6(:)
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 7 ) THEN
-        CITABLE(:,:) = CITABLE7(:,:)
         MODE_NAME(:) = MNAME(MODES7(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES7(:))
-        ICOND(:) = ICOND7(:)
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 8 ) THEN
-        CITABLE(:,:) = CITABLE8(:,:)
         MODE_NAME(:) = MNAME(MODES8(:))
         MODE_SPCS(:,:) = MSPCS(:,MODES8(:))
-        ICOND(:) = ICOND8(:)
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 9 ) THEN
-         CITABLE(:,:) = CITABLE9(:,:)
          MODE_NAME(:) = MNAME(MODES9(:))
          MODE_SPCS(:,:) = MSPCS(:,MODES9(:))
-         ICOND(:) = ICOND9(:)
          INCLUDE_BC3 = .FALSE.
       ENDIF
       !-------------------------------------------------------------------------
