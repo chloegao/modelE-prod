@@ -7,6 +7,25 @@
 !     MATRIX CONFIGURATION MODULE.
 !
 !-------------------------------------------------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
+      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !-
+      INTEGER, PARAMETER :: GAS_HNO3   = 2      !-indices in the GAS array
+      INTEGER, PARAMETER :: GAS_NH3    = 3      !-
+      INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_BCAR = 2 ! BCAR index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_DUST = 4 ! DUST index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_SEAS = 5 ! SEAS index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCM2 = 6 ! OCM2 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCM1 = 7 ! OCM1 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCM0 = 8 ! OCM0 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP1 = 9 ! OCP1 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP2 = 10! OCP2 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP3 = 11! OCP3 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP4 = 12! OCP4 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP5 = 13! OCP5 index in PROD_INDEX(:,:)
+      INTEGER, PARAMETER :: PROD_INDEX_OCP6 = 14! OCP6 index in PROD_INDEX(:,:)
+!-------------------------------------------------------------------------------------------------------------------------
 !@param NMODES_MAX Maximum number of modes possible
 !@param MNAME Aerosol mode names (and numbers) that might appear in one or more
 !@+           mechanisms. These mode number only pertain to this set of all
@@ -19,47 +38,91 @@
       ! Mode #    1     2     3     4     5     6     7     8     9    ! # for IMODES below
       ! Mode #   10    11    12    13    14    15    16    17    18    ! # for IMODES below
 !-------------------------------------------------------------------------------------------------------------------------
+!@param NMASS_SPCS_MAX Maximum number of mass tracers per mode.
+!@param CHEM_SPC_NAME_ALL Names of all possible species. Nitrate, ammonium and water
+!@+                       are not included here.
+!@var MSPCS Map of species that can be present per mode (NMASS_SPCS_MAX,NMODES_MAX).
+!@+         =0 species not present in mode, =1 species present in mode.
+      INTEGER, PARAMETER :: NMASS_SPCS_MAX=14
+      CHARACTER(LEN=4), PARAMETER, DIMENSION(NMASS_SPCS_MAX) :: &
+        CHEM_SPC_NAME_ALL=(/'SULF','BCAR','OCAR','DUST','SEAS','OCM2','OCM1', &
+                            'OCM0','OCP1','OCP2','OCP3','OCP4','OCP5','OCP6'/)
+      INTEGER, SAVE :: MSPCS(NMASS_SPCS_MAX,NMODES_MAX)
+      DATA MSPCS(PROD_INDEX_SULF,1:NMODES_MAX)/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/
+      DATA MSPCS(PROD_INDEX_BCAR,1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCAR,1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/
+      DATA MSPCS(PROD_INDEX_DUST,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/
+      DATA MSPCS(PROD_INDEX_SEAS,1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/
+      DATA MSPCS(PROD_INDEX_OCM2,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCM1,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCM0,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP1,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP2,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP3,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP4,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP5,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+      DATA MSPCS(PROD_INDEX_OCP6,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+!-------------------------------------------------------------------------------------------------------------------------
 !@param MECH MATRIX mechanism selected.
 !@param NAEROVARS Number of aerosol tracers in MATRIX with microphysics.
 !@param NEXTRA Number of aerosol tracers in MATRIX without microphysics.
 !@param NMODES Number of modes active in selected mechanism.
+!@param NMASS_SPCS Number of mass species active in selected mechanism.
 !@param IMODES Indices of modes currently active, selected from MNAME.
 #ifdef TRACERS_AMP_M1
-      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
+      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16,NMASS_SPCS=5 ! Mechanism 1
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M2
-      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 2
+      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16,NMASS_SPCS=5 ! Mechanism 2
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,15,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M3
-      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13   ! Mechanism 3  
+      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13,NMASS_SPCS=5 ! Mechanism 3  
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,16,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M4
-      INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10   ! Mechanism 4 
+      INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10,NMASS_SPCS=5 ! Mechanism 4 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 2, 3, 4, 5, 6, 9,10,11,12,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M5
-      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 5
+      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14,NMASS_SPCS=5 ! Mechanism 5
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,13,15,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M6
-      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 6 
+      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14,NMASS_SPCS=5 ! Mechanism 6 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M7
-      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11   ! Mechanism 7  
+      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11,NMASS_SPCS=5 ! Mechanism 7  
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M8
-      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
+      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8,NMASS_SPCS=5 ! Mechanism 8 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 2, 3, 4, 9,10,11,12,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M9
-      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
+      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15,NMASS_SPCS=14 ! Mechanism 9
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14/)
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     1. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
@@ -92,7 +155,10 @@
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
 !-------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3), PARAMETER, DIMENSION(NMODES) :: MODE_NAME=MNAME(IMODES)
+!@param MODE_NAME Names of modes for current mechanism
+!@param CHEM_SPC_NAME Names of mass species for current mechanism
+      CHARACTER(LEN=3), PARAMETER, DIMENSION(NMODES)     :: MODE_NAME=MNAME(IMODES)
+      CHARACTER(LEN=4), PARAMETER, DIMENSION(NMASS_SPCS) :: CHEM_SPC_NAME=CHEM_SPC_NAME_ALL(ISPCS)
       INTEGER, PARAMETER :: NAEROBOX=NAEROVARS+NEXTRA 
       INTEGER, PARAMETER :: NWEIGHTS=NMODES*NPOINTS   
       INTEGER, PARAMETER :: NBINS = 30

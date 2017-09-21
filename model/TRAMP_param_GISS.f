@@ -4,7 +4,6 @@
 !@sum     AEROSOL PARAMETERS AND VARIABLES THAT ARE INDEPENDENT OF CONFIGURATION. 
 !@auth    Susanne Bauer/Doug Wright
 !------------------------------------------------------------------------------------------------------------------------  
-      use AERO_CONFIG, only: NMODES_MAX
       IMPLICIT NONE
 !-------------------------------------------------------------------------------------------------------------------------
 !
@@ -300,32 +299,6 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: SOLU_MXX = 1.0D+00
 !-------------------------------------------------------------------------------------------------------------------------
 !
-!     MODEL PARAMETERS AND VARIABLES THAT PROBABLY DO NOT NEED TO BE CHANGED.
-!
-!-------------------------------------------------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
-#ifdef TRACERS_AMP_M9
-      INTEGER, PARAMETER :: NMASS_SPCS = 14     ! total number of mass species for mechanism 9
-#else
-      INTEGER, PARAMETER :: NMASS_SPCS = 5      ! total number of mass species for mechanisms 1-8
-#endif
-      INTEGER, PARAMETER :: GAS_H2SO4  = 1      !-
-      INTEGER, PARAMETER :: GAS_HNO3   = 2      !-indices in the GAS array
-      INTEGER, PARAMETER :: GAS_NH3    = 3      !-
-      INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_BCAR = 2 ! BCAR index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_DUST = 4 ! DUST index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_SEAS = 5 ! SEAS index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCM2 = 6 ! OCM2 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCM1 = 7 ! OCM1 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCM0 = 8 ! OCM0 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP1 = 9 ! OCP1 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP2 = 10! OCP2 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP3 = 11! OCP3 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP4 = 12! OCP4 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP5 = 13! OCP5 index in PROD_INDEX(:,:)
-      INTEGER, PARAMETER :: PROD_INDEX_OCP6 = 14! OCP6 index in PROD_INDEX(:,:)
       !-------------------------------------------------------------------------------------------------------------------
       ! EMIS_DENS_XXXX is the dry particle density of emitted species XXXX.
       !
@@ -369,17 +342,6 @@ c     &               80.81, 85.58, 90./
      &               EMIS_DENS_BOCC, EMIS_DENS_BOCC, EMIS_DENS_DUST /)
 #endif
       !-------------------------------------------------------------------------------------------------------------------
-      ! The aerosol chemical species are SO4, BC, OC, mineral dust, and sea salt.
-      ! Nitrate, ammonium and water are not included here.
-      !-------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS)
-     &                 = (/'SULF','BCAR','OCAR','DUST','SEAS','OCM2','OCM1','OCM0','OCP1','OCP2', 
-     &                 'OCP3','OCP4','OCP5','OCP6'/)
-#else
-      CHARACTER(LEN=4) :: CHEM_SPC_NAME(NMASS_SPCS) = (/'SULF','BCAR','OCAR','DUST','SEAS'/)
-#endif
-      !-------------------------------------------------------------------------------------------------------------------
       ! The Maximum Inorganic Mass Ratio (MIMR) in modes DD1, DD2, BC1, and BC2.
       ! 
       ! The above MIVF values are converted to MIMR values for computational efficiency.
@@ -398,26 +360,6 @@ c     &               80.81, 85.58, 90./
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, SAVE :: IXXX, IYYY, ILAY    ! current grid cell indices 
       LOGICAL, SAVE :: INCLUDE_BC3         ! true if mechanism includes mode BC3; false otherwise
-!-------------------------------------------------------------------------------------------------------------------------
-!     Aerosol species defined for each mode in each mechanism.
-!-------------------------------------------------------------------------------------------------------------------------
-      INTEGER, SAVE :: MSPCS(NMASS_SPCS,NMODES_MAX) 
-      DATA MSPCS(1, 1:NMODES_MAX)/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/   ! SULF: =0 no sulfate, =1 has sulfate
-      DATA MSPCS(2, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1/   ! BCAR: =0 no BC     , =1 has BC
-      DATA MSPCS(3, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
-      DATA MSPCS(4, 1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
-      DATA MSPCS(5, 1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
-#ifdef TRACERS_AMP_M9
-      DATA MSPCS(6, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM2: =0 no OC     , =1 has OC
-      DATA MSPCS(7, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM1: =0 no OC     , =1 has OC
-      DATA MSPCS(8, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM0: =0 no OC     , =1 has OC
-      DATA MSPCS(9, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP1: =0 no OC     , =1 has OC
-      DATA MSPCS(10,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP2: =0 no OC     , =1 has OC
-      DATA MSPCS(11,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP3: =0 no OC     , =1 has OC
-      DATA MSPCS(12,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP4: =0 no OC     , =1 has OC
-      DATA MSPCS(13,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP5: =0 no OC     , =1 has OC
-      DATA MSPCS(14,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP6: =0 no OC     , =1 has OC
-#endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
 !-------------------------------------------------------------------------------------------------------------------------

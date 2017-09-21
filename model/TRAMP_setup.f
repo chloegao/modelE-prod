@@ -6,8 +6,7 @@
 !@auth    Susanne Bauer/Doug Wright
 !-------------------------------------------------------------------------------
       USE AERO_PARAM
-      USE AERO_CONFIG, only: MECH,NMODES,NPOINTS,NAEROBOX,NWEIGHTS,
-     &                       IMODES,MODE_NAME,ICOND,CITABLE
+      USE AERO_CONFIG
       IMPLICIT NONE
 
       INTEGER, SAVE :: MODE_NUMB_AKK, MODE_NUMB_ACC, MODE_NUMB_DD1, MODE_NUMB_DD2
@@ -131,7 +130,6 @@
       ! The dimensions of these arrays depends upon mechanism.
       ! SEAS_MAP(I) is the mean mass per particle for sea salt mode I.
       !-------------------------------------------------------------------------
-      INTEGER,           SAVE, ALLOCATABLE :: MODE_SPCS(:,:)
       CHARACTER(LEN=16), SAVE, ALLOCATABLE :: AERO_SPCS(:)
       REAL,              SAVE, ALLOCATABLE :: RECIP_SEAS_MPP(:)         ! [1/ug]
       LOGICAL,                        SAVE :: INTERMODAL_TRANSFER
@@ -163,13 +161,11 @@
       INTEGER :: I,J,K,INDEX
       LOGICAL :: FOUND
 
-      IF (.not. allocated(mode_spcs)) THEN
+      IF (.not. allocated(AERO_SPCS)) THEN
         !-----------------------------------------------------------------------
         ! Allocate nmodes-sized arrays and give a default value
         !-----------------------------------------------------------------------
-        ALLOCATE( MODE_SPCS(NMASS_SPCS,NMODES) )
         ALLOCATE( AERO_SPCS(NAEROBOX) )
-        MODE_SPCS(:,:) = 0
         AERO_SPCS(:)   = '                '     
       ENDIF
       !-------------------------------------------------------------------------
@@ -178,31 +174,22 @@
       ! selected mechanism.
       !-------------------------------------------------------------------------
       IF     ( MECH .EQ. 1 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .TRUE.
       ELSEIF ( MECH .EQ. 2 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 3 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 4 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ELSEIF ( MECH .EQ. 5 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .TRUE.  
       ELSEIF ( MECH .EQ. 6 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 7 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 8 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE. 
       ELSEIF ( MECH .EQ. 9 ) THEN
-        MODE_SPCS(:,:) = MSPCS(:,IMODES(:))
         INCLUDE_BC3 = .FALSE.
       ENDIF
       !-------------------------------------------------------------------------
@@ -263,7 +250,7 @@
       ENDIF
       DO I=1, NMODES
         DO J=1, NMASS_SPCS
-          IF ( MODE_SPCS(J,I) .GT. 0 ) THEN  ! This mode contains species J.
+          IF ( MSPCS(ISPCS(J),IMODES(I)) .GT. 0 ) THEN  ! This mode contains species J.
             INDEX = INDEX + 1
             CALL SETUP_INDICES(I,J,INDEX,0)
             AERO_SPCS(INDEX) = 'MASS_'//MODE_NAME(I)//'_'//CHEM_SPC_NAME(J)
