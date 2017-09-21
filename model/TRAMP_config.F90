@@ -191,7 +191,7 @@
       DATA CITABLE(1:NMODES,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
       DATA CITABLE(1:NMODES,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M2
+#elif defined TRACERS_AMP_M2
 !
 !     Mechanism 2.
 !
@@ -216,7 +216,7 @@
       DATA CITABLE(1:NMODES,15)/'BCS','BCS','DBC','DBC','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BOC','DBC','BOC','BCS','MXX'/ ! BCS
       DATA CITABLE(1:NMODES,16)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M3
+#elif defined TRACERS_AMP_M3
 !
 !     Mechanism 3.
 !
@@ -238,7 +238,7 @@
       DATA CITABLE(1:NMODES,12)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
       DATA CITABLE(1:NMODES,13)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M4
+#elif defined TRACERS_AMP_M4
 !
 !     Mechanism 4.
 !
@@ -257,7 +257,7 @@
       DATA CITABLE(1:NMODES, 9)/'BC2','MXX','MXX','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
       DATA CITABLE(1:NMODES,10)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M5
+#elif defined TRACERS_AMP_M5
 !
 !     Mechanism 5.
 !
@@ -280,7 +280,7 @@
       DATA CITABLE(1:NMODES,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','BCS','DBC','BOC','BCS','MXX'/ ! BCS
       DATA CITABLE(1:NMODES,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M6
+#elif defined TRACERS_AMP_M6
 !
 !     Mechanism 6.
 !
@@ -303,7 +303,7 @@
       DATA CITABLE(1:NMODES,13)/'BCS','BCS','DBC','DBC','MXX','MXX','BOC','BCS','BCS','MXX','MXX','MXX','BCS','MXX'/ ! BCS
       DATA CITABLE(1:NMODES,14)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M7
+#elif defined TRACERS_AMP_M7
 !
 !     Mechanism 7.
 !
@@ -323,7 +323,7 @@
       DATA CITABLE(1:NMODES,10)/'BOC','BOC','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','MXX'/ ! BOC
       DATA CITABLE(1:NMODES,11)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M8
+#elif defined TRACERS_AMP_M8
 !
 !     Mechanism 8.
 !
@@ -340,7 +340,7 @@
       DATA CITABLE(1:NMODES, 7)/'BC2','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
       DATA CITABLE(1:NMODES, 8)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
-#elif TRACERS_AMP_M9
+#elif defined TRACERS_AMP_M9
 !     Mechanism 9
 !
 !     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   BOC   BCS   MXX    SECOND
