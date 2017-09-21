@@ -44,49 +44,63 @@
       do i = 1, NMASS_SPCS+2
         if (SPCMASS2(i) == 0.d0) SPCMASS2(i) = TINYNUMER
       enddo
-      SCALEMASS(1) = ( SPCMASS1(1) + ( AQSO4RATE + EMIS_MASS(1) + EMIS_MASS(2)  ) * TSTEP ) / SPCMASS2(1) 
-      SCALEMASS(2) = ( SPCMASS1(2) + (             EMIS_MASS(3) + EMIS_MASS(8)  ) * TSTEP ) / SPCMASS2(2) 
-      SCALEMASS(3) = ( SPCMASS1(3) + (             EMIS_MASS(4) + EMIS_MASS(9)  ) * TSTEP ) / SPCMASS2(3) 
-      SCALEMASS(4) = ( SPCMASS1(4) + (             EMIS_MASS(5) + EMIS_MASS(10) ) * TSTEP ) / SPCMASS2(4) 
-      SCALEMASS(5) = ( SPCMASS1(5) + (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(5) 
-      SCALEMASS(6) = ( SPCMASS1(6)                                                        ) / SPCMASS2(6) 
-      SCALEMASS(7) = ( SPCMASS1(7)                                                        ) / SPCMASS2(7) 
+      SCALEMASS(PROD_INDEX_SULF) = ( SPCMASS1(PROD_INDEX_SULF) +
+     &  ( AQSO4RATE + EMIS_MASS(1) + EMIS_MASS(2)  ) * TSTEP ) / SPCMASS2(PROD_INDEX_SULF) 
+      SCALEMASS(PROD_INDEX_BCAR) = ( SPCMASS1(PROD_INDEX_BCAR) +
+     &  (             EMIS_MASS(3) + EMIS_MASS(8)  ) * TSTEP ) / SPCMASS2(PROD_INDEX_BCAR) 
+      SCALEMASS(PROD_INDEX_OCAR) = ( SPCMASS1(PROD_INDEX_OCAR) +
+     &  (             EMIS_MASS(4) + EMIS_MASS(9)  ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCAR) 
+      SCALEMASS(PROD_INDEX_DUST) = ( SPCMASS1(PROD_INDEX_DUST) +
+     &  (             EMIS_MASS(5) + EMIS_MASS(10) ) * TSTEP ) / SPCMASS2(PROD_INDEX_DUST) 
+      SCALEMASS(PROD_INDEX_SEAS) = ( SPCMASS1(PROD_INDEX_SEAS) +
+     &  (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(PROD_INDEX_SEAS) 
 #ifdef TRACERS_AMP_M9
-      SCALEMASS(8) = ( SPCMASS1(8) +                              EMIS_MASS(11)   * TSTEP ) / SPCMASS2(8)
-      SCALEMASS(9) = ( SPCMASS1(9) +                              EMIS_MASS(12)   * TSTEP ) / SPCMASS2(9)
-      SCALEMASS(10) = ( SPCMASS1(10) +                            EMIS_MASS(13)   * TSTEP ) / SPCMASS2(10)
-      SCALEMASS(11) = ( SPCMASS1(11) +                            EMIS_MASS(14)   * TSTEP ) / SPCMASS2(11)
-      SCALEMASS(12) = ( SPCMASS1(12) +                            EMIS_MASS(15)   * TSTEP ) / SPCMASS2(12)
-      SCALEMASS(13) = ( SPCMASS1(13) +                            EMIS_MASS(16)   * TSTEP ) / SPCMASS2(13)
-      SCALEMASS(14) = ( SPCMASS1(14) +                            EMIS_MASS(17)   * TSTEP ) / SPCMASS2(14)
-      SCALEMASS(15) = ( SPCMASS1(15) +                            EMIS_MASS(18)   * TSTEP ) / SPCMASS2(15)
-      SCALEMASS(16) = ( SPCMASS1(16) +                            EMIS_MASS(19)   * TSTEP ) / SPCMASS2(16)
+      SCALEMASS(PROD_INDEX_OCM2) = ( SPCMASS1(PROD_INDEX_OCM2) +
+     &                               EMIS_MASS(11)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM2)
+      SCALEMASS(PROD_INDEX_OCM1) = ( SPCMASS1(PROD_INDEX_OCM1) +
+     &                               EMIS_MASS(12)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM1)
+      SCALEMASS(PROD_INDEX_OCM0) = ( SPCMASS1(PROD_INDEX_OCM0) +
+     &                               EMIS_MASS(13)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM0)
+      SCALEMASS(PROD_INDEX_OCP1) = ( SPCMASS1(PROD_INDEX_OCP1) +
+     &                               EMIS_MASS(14)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP1)
+      SCALEMASS(PROD_INDEX_OCP2) = ( SPCMASS1(PROD_INDEX_OCP2) +
+     &                               EMIS_MASS(15)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP2)
+      SCALEMASS(PROD_INDEX_OCP3) = ( SPCMASS1(PROD_INDEX_OCP3) +
+     &                               EMIS_MASS(16)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP3)
+      SCALEMASS(PROD_INDEX_OCP4) = ( SPCMASS1(PROD_INDEX_OCP4) +
+     &                               EMIS_MASS(17)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP4)
+      SCALEMASS(PROD_INDEX_OCP5) = ( SPCMASS1(PROD_INDEX_OCP5) +
+     &                               EMIS_MASS(18)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP5)
+      SCALEMASS(PROD_INDEX_OCP6) = ( SPCMASS1(PROD_INDEX_OCP6) +
+     &                               EMIS_MASS(19)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP6)
 #endif
+      SCALEMASS(NMASS_SPCS+1) = ( SPCMASS1(NMASS_SPCS+1) ) / SPCMASS2(NMASS_SPCS+1) 
+      SCALEMASS(NMASS_SPCS+2) = ( SPCMASS1(NMASS_SPCS+2) ) / SPCMASS2(NMASS_SPCS+2) 
       ! WRITE(*,'(7F14.9)') SCALEMASS(:)
-      ! WRITE(*,'(7E14.6)') SPCMASS1(6), SPCMASS2(6), SPCMASS1(7), SPCMASS2(7)
+      ! WRITE(*,'(7E14.6)') SPCMASS1(NMASS_SPCS+1), SPCMASS2(NMASS_SPCS+1), SPCMASS1(NMASS_SPCS+2), SPCMASS2(NMASS_SPCS+2)
       !----------------------------------------------------------------------------------------------------------------
 
-      AERO( SULF_MAP(:) ) = AERO( SULF_MAP(:) ) * SCALEMASS(1)
-      AERO( BCAR_MAP(:) ) = AERO( BCAR_MAP(:) ) * SCALEMASS(2)
-      AERO( OCAR_MAP(:) ) = AERO( OCAR_MAP(:) ) * SCALEMASS(3)
-      AERO( DUST_MAP(:) ) = AERO( DUST_MAP(:) ) * SCALEMASS(4)
-      AERO( SEAS_MAP(:) ) = AERO( SEAS_MAP(:) ) * SCALEMASS(5)
-      AERO( MASS_NO3    ) = AERO( MASS_NO3    ) * SCALEMASS(6)
-      AERO( MASS_NH4    ) = AERO( MASS_NH4    ) * SCALEMASS(7)
+      AERO( SULF_MAP(:) ) = AERO( SULF_MAP(:) ) * SCALEMASS(PROD_INDEX_SULF)
+      AERO( BCAR_MAP(:) ) = AERO( BCAR_MAP(:) ) * SCALEMASS(PROD_INDEX_BCAR)
+      AERO( OCAR_MAP(:) ) = AERO( OCAR_MAP(:) ) * SCALEMASS(PROD_INDEX_OCAR)
+      AERO( DUST_MAP(:) ) = AERO( DUST_MAP(:) ) * SCALEMASS(PROD_INDEX_DUST)
+      AERO( SEAS_MAP(:) ) = AERO( SEAS_MAP(:) ) * SCALEMASS(PROD_INDEX_SEAS)
 #ifdef TRACERS_AMP_M9
-      AERO( OCM2_MAP(:) ) = AERO( OCM2_MAP(:) ) * SCALEMASS(8)
-      AERO( OCM1_MAP(:) ) = AERO( OCM1_MAP(:) ) * SCALEMASS(9)
-      AERO( OCM0_MAP(:) ) = AERO( OCM0_MAP(:) ) * SCALEMASS(10)
-      AERO( OCP1_MAP(:) ) = AERO( OCP1_MAP(:) ) * SCALEMASS(11)
-      AERO( OCP2_MAP(:) ) = AERO( OCP2_MAP(:) ) * SCALEMASS(12)
-      AERO( OCP3_MAP(:) ) = AERO( OCP3_MAP(:) ) * SCALEMASS(13)
-      AERO( OCP4_MAP(:) ) = AERO( OCP4_MAP(:) ) * SCALEMASS(14)
-      AERO( OCP5_MAP(:) ) = AERO( OCP5_MAP(:) ) * SCALEMASS(15)
-      AERO( OCP6_MAP(:) ) = AERO( OCP6_MAP(:) ) * SCALEMASS(16)
+      AERO( OCM2_MAP(:) ) = AERO( OCM2_MAP(:) ) * SCALEMASS(PROD_INDEX_OCM2)
+      AERO( OCM1_MAP(:) ) = AERO( OCM1_MAP(:) ) * SCALEMASS(PROD_INDEX_OCM1)
+      AERO( OCM0_MAP(:) ) = AERO( OCM0_MAP(:) ) * SCALEMASS(PROD_INDEX_OCM0)
+      AERO( OCP1_MAP(:) ) = AERO( OCP1_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP1)
+      AERO( OCP2_MAP(:) ) = AERO( OCP2_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP2)
+      AERO( OCP3_MAP(:) ) = AERO( OCP3_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP3)
+      AERO( OCP4_MAP(:) ) = AERO( OCP4_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP4)
+      AERO( OCP5_MAP(:) ) = AERO( OCP5_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP5)
+      AERO( OCP6_MAP(:) ) = AERO( OCP6_MAP(:) ) * SCALEMASS(PROD_INDEX_OCP6)
 #endif
-      GAS ( GAS_H2SO4   ) = GAS ( GAS_H2SO4   ) * SCALEMASS(1)
-      GAS ( GAS_HNO3    ) = GAS ( GAS_HNO3    ) * SCALEMASS(6)
-      GAS ( GAS_NH3     ) = GAS ( GAS_NH3     ) * SCALEMASS(7)
+      AERO( MASS_NO3    ) = AERO( MASS_NO3    ) * SCALEMASS(NMASS_SPCS+1)
+      AERO( MASS_NH4    ) = AERO( MASS_NH4    ) * SCALEMASS(NMASS_SPCS+2)
+      GAS ( GAS_H2SO4   ) = GAS ( GAS_H2SO4   ) * SCALEMASS(PROD_INDEX_SULF)
+      GAS ( GAS_HNO3    ) = GAS ( GAS_HNO3    ) * SCALEMASS(NMASS_SPCS+1)
+      GAS ( GAS_NH3     ) = GAS ( GAS_NH3     ) * SCALEMASS(NMASS_SPCS+2)
        
       
 !----------------------------------------------------------------------------------------------------------------------
