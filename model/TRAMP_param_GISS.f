@@ -404,10 +404,10 @@ c     &               80.81, 85.58, 90./
       INTEGER, SAVE :: MSPCS(NMASS_SPCS,NMODES_MAX) 
       DATA MSPCS(1, 1:NMODES_MAX)/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/   ! SULF: =0 no sulfate, =1 has sulfate
       DATA MSPCS(2, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,1,1/   ! BCAR: =0 no BC     , =1 has BC
-#ifdef TRACERS_AMP_M9
       DATA MSPCS(3, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
       DATA MSPCS(4, 1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
       DATA MSPCS(5, 1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
+#ifdef TRACERS_AMP_M9
       DATA MSPCS(6, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM2: =0 no OC     , =1 has OC
       DATA MSPCS(7, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM1: =0 no OC     , =1 has OC
       DATA MSPCS(8, 1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCM0: =0 no OC     , =1 has OC
@@ -417,10 +417,6 @@ c     &               80.81, 85.58, 90./
       DATA MSPCS(12,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP4: =0 no OC     , =1 has OC
       DATA MSPCS(13,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP5: =0 no OC     , =1 has OC
       DATA MSPCS(14,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/  ! OCP6: =0 no OC     , =1 has OC
-#else
-      DATA MSPCS(3, 1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/   ! OCAR: =0 no OC     , =1 has OC
-      DATA MSPCS(4,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/   ! DUST: =0 no dust   , =1 has dust
-      DATA MSPCS(5,1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/   ! SEAS: =0 no seasalt, =1 has seasalt
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
