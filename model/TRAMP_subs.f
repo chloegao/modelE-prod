@@ -33,7 +33,7 @@
       ! Local variables.
 
       INTEGER       :: I
-      REAL(8)       :: SCALE(NMASS_SPCS+2)             ! scale factor for mass adjustment
+      REAL(8)       :: SCALEMASS(NMASS_SPCS+2)         ! scale factor for mass adjustment
       REAL(8), SAVE :: SCALEMAX = 1.0D-80
       REAL(8), SAVE :: SCALEMIN = 1.0D+80
       
@@ -44,49 +44,49 @@
       do i = 1, NMASS_SPCS+2
         if (SPCMASS2(i) == 0.d0) SPCMASS2(i) = TINYNUMER
       enddo
-      SCALE(1) = ( SPCMASS1(1) + ( AQSO4RATE + EMIS_MASS(1) + EMIS_MASS(2)  ) * TSTEP ) / SPCMASS2(1) 
-      SCALE(2) = ( SPCMASS1(2) + (             EMIS_MASS(3) + EMIS_MASS(8)  ) * TSTEP ) / SPCMASS2(2) 
-      SCALE(3) = ( SPCMASS1(3) + (             EMIS_MASS(4) + EMIS_MASS(9)  ) * TSTEP ) / SPCMASS2(3) 
-      SCALE(4) = ( SPCMASS1(4) + (             EMIS_MASS(5) + EMIS_MASS(10) ) * TSTEP ) / SPCMASS2(4) 
-      SCALE(5) = ( SPCMASS1(5) + (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(5) 
-      SCALE(6) = ( SPCMASS1(6)                                                        ) / SPCMASS2(6) 
-      SCALE(7) = ( SPCMASS1(7)                                                        ) / SPCMASS2(7) 
+      SCALEMASS(1) = ( SPCMASS1(1) + ( AQSO4RATE + EMIS_MASS(1) + EMIS_MASS(2)  ) * TSTEP ) / SPCMASS2(1) 
+      SCALEMASS(2) = ( SPCMASS1(2) + (             EMIS_MASS(3) + EMIS_MASS(8)  ) * TSTEP ) / SPCMASS2(2) 
+      SCALEMASS(3) = ( SPCMASS1(3) + (             EMIS_MASS(4) + EMIS_MASS(9)  ) * TSTEP ) / SPCMASS2(3) 
+      SCALEMASS(4) = ( SPCMASS1(4) + (             EMIS_MASS(5) + EMIS_MASS(10) ) * TSTEP ) / SPCMASS2(4) 
+      SCALEMASS(5) = ( SPCMASS1(5) + (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(5) 
+      SCALEMASS(6) = ( SPCMASS1(6)                                                        ) / SPCMASS2(6) 
+      SCALEMASS(7) = ( SPCMASS1(7)                                                        ) / SPCMASS2(7) 
 #ifdef TRACERS_AMP_M9
-      SCALE(8) = ( SPCMASS1(8) +                              EMIS_MASS(11)   * TSTEP ) / SPCMASS2(8)
-      SCALE(9) = ( SPCMASS1(9) +                              EMIS_MASS(12)   * TSTEP ) / SPCMASS2(9)
-      SCALE(10) = ( SPCMASS1(10) +                            EMIS_MASS(13)   * TSTEP ) / SPCMASS2(10)
-      SCALE(11) = ( SPCMASS1(11) +                            EMIS_MASS(14)   * TSTEP ) / SPCMASS2(11)
-      SCALE(12) = ( SPCMASS1(12) +                            EMIS_MASS(15)   * TSTEP ) / SPCMASS2(12)
-      SCALE(13) = ( SPCMASS1(13) +                            EMIS_MASS(16)   * TSTEP ) / SPCMASS2(13)
-      SCALE(14) = ( SPCMASS1(14) +                            EMIS_MASS(17)   * TSTEP ) / SPCMASS2(14)
-      SCALE(15) = ( SPCMASS1(15) +                            EMIS_MASS(18)   * TSTEP ) / SPCMASS2(15)
-      SCALE(16) = ( SPCMASS1(16) +                            EMIS_MASS(19)   * TSTEP ) / SPCMASS2(16)
+      SCALEMASS(8) = ( SPCMASS1(8) +                              EMIS_MASS(11)   * TSTEP ) / SPCMASS2(8)
+      SCALEMASS(9) = ( SPCMASS1(9) +                              EMIS_MASS(12)   * TSTEP ) / SPCMASS2(9)
+      SCALEMASS(10) = ( SPCMASS1(10) +                            EMIS_MASS(13)   * TSTEP ) / SPCMASS2(10)
+      SCALEMASS(11) = ( SPCMASS1(11) +                            EMIS_MASS(14)   * TSTEP ) / SPCMASS2(11)
+      SCALEMASS(12) = ( SPCMASS1(12) +                            EMIS_MASS(15)   * TSTEP ) / SPCMASS2(12)
+      SCALEMASS(13) = ( SPCMASS1(13) +                            EMIS_MASS(16)   * TSTEP ) / SPCMASS2(13)
+      SCALEMASS(14) = ( SPCMASS1(14) +                            EMIS_MASS(17)   * TSTEP ) / SPCMASS2(14)
+      SCALEMASS(15) = ( SPCMASS1(15) +                            EMIS_MASS(18)   * TSTEP ) / SPCMASS2(15)
+      SCALEMASS(16) = ( SPCMASS1(16) +                            EMIS_MASS(19)   * TSTEP ) / SPCMASS2(16)
 #endif
-      ! WRITE(*,'(7F14.9)') SCALE(:)
+      ! WRITE(*,'(7F14.9)') SCALEMASS(:)
       ! WRITE(*,'(7E14.6)') SPCMASS1(6), SPCMASS2(6), SPCMASS1(7), SPCMASS2(7)
       !----------------------------------------------------------------------------------------------------------------
 
-      AERO( SULF_MAP(:) ) = AERO( SULF_MAP(:) ) * SCALE(1)
-      AERO( BCAR_MAP(:) ) = AERO( BCAR_MAP(:) ) * SCALE(2)
-      AERO( OCAR_MAP(:) ) = AERO( OCAR_MAP(:) ) * SCALE(3)
-      AERO( DUST_MAP(:) ) = AERO( DUST_MAP(:) ) * SCALE(4)
-      AERO( SEAS_MAP(:) ) = AERO( SEAS_MAP(:) ) * SCALE(5)
-      AERO( MASS_NO3    ) = AERO( MASS_NO3    ) * SCALE(6)
-      AERO( MASS_NH4    ) = AERO( MASS_NH4    ) * SCALE(7)
+      AERO( SULF_MAP(:) ) = AERO( SULF_MAP(:) ) * SCALEMASS(1)
+      AERO( BCAR_MAP(:) ) = AERO( BCAR_MAP(:) ) * SCALEMASS(2)
+      AERO( OCAR_MAP(:) ) = AERO( OCAR_MAP(:) ) * SCALEMASS(3)
+      AERO( DUST_MAP(:) ) = AERO( DUST_MAP(:) ) * SCALEMASS(4)
+      AERO( SEAS_MAP(:) ) = AERO( SEAS_MAP(:) ) * SCALEMASS(5)
+      AERO( MASS_NO3    ) = AERO( MASS_NO3    ) * SCALEMASS(6)
+      AERO( MASS_NH4    ) = AERO( MASS_NH4    ) * SCALEMASS(7)
 #ifdef TRACERS_AMP_M9
-      AERO( OCM2_MAP(:) ) = AERO( OCM2_MAP(:) ) * SCALE(8)
-      AERO( OCM1_MAP(:) ) = AERO( OCM1_MAP(:) ) * SCALE(9)
-      AERO( OCM0_MAP(:) ) = AERO( OCM0_MAP(:) ) * SCALE(10)
-      AERO( OCP1_MAP(:) ) = AERO( OCP1_MAP(:) ) * SCALE(11)
-      AERO( OCP2_MAP(:) ) = AERO( OCP2_MAP(:) ) * SCALE(12)
-      AERO( OCP3_MAP(:) ) = AERO( OCP3_MAP(:) ) * SCALE(13)
-      AERO( OCP4_MAP(:) ) = AERO( OCP4_MAP(:) ) * SCALE(14)
-      AERO( OCP5_MAP(:) ) = AERO( OCP5_MAP(:) ) * SCALE(15)
-      AERO( OCP6_MAP(:) ) = AERO( OCP6_MAP(:) ) * SCALE(16)
+      AERO( OCM2_MAP(:) ) = AERO( OCM2_MAP(:) ) * SCALEMASS(8)
+      AERO( OCM1_MAP(:) ) = AERO( OCM1_MAP(:) ) * SCALEMASS(9)
+      AERO( OCM0_MAP(:) ) = AERO( OCM0_MAP(:) ) * SCALEMASS(10)
+      AERO( OCP1_MAP(:) ) = AERO( OCP1_MAP(:) ) * SCALEMASS(11)
+      AERO( OCP2_MAP(:) ) = AERO( OCP2_MAP(:) ) * SCALEMASS(12)
+      AERO( OCP3_MAP(:) ) = AERO( OCP3_MAP(:) ) * SCALEMASS(13)
+      AERO( OCP4_MAP(:) ) = AERO( OCP4_MAP(:) ) * SCALEMASS(14)
+      AERO( OCP5_MAP(:) ) = AERO( OCP5_MAP(:) ) * SCALEMASS(15)
+      AERO( OCP6_MAP(:) ) = AERO( OCP6_MAP(:) ) * SCALEMASS(16)
 #endif
-      GAS ( GAS_H2SO4   ) = GAS ( GAS_H2SO4   ) * SCALE(1)
-      GAS ( GAS_HNO3    ) = GAS ( GAS_HNO3    ) * SCALE(6)
-      GAS ( GAS_NH3     ) = GAS ( GAS_NH3     ) * SCALE(7)
+      GAS ( GAS_H2SO4   ) = GAS ( GAS_H2SO4   ) * SCALEMASS(1)
+      GAS ( GAS_HNO3    ) = GAS ( GAS_HNO3    ) * SCALEMASS(6)
+      GAS ( GAS_NH3     ) = GAS ( GAS_NH3     ) * SCALEMASS(7)
        
       
 !----------------------------------------------------------------------------------------------------------------------
@@ -95,16 +95,16 @@
       IF( WRITE_LOG ) THEN  
         WRITE(31,90000) SPCMASS1(:)
         WRITE(31,90000) SPCMASS2(:)
-        WRITE(31,90000) SCALE(:)
+        WRITE(31,90000) SCALEMASS(:)
         WRITE(31,*) '  '
-        WRITE(32,90000) SCALE(:)
+        WRITE(32,90000) SCALEMASS(:)
         DO I=1, NMASS_SPCS+2
-          IF(     SCALE(I) .GT. SCALEMAX ) THEN
-            SCALEMAX = SCALE(I)
-            WRITE(33,90001) SCALE(I), SCALEMAX, SCALEMIN, I, SPCMASS1(I), SPCMASS2(I)
-          ELSEIF( SCALE(I) .LT. SCALEMIN ) THEN
-            SCALEMIN = SCALE(I)
-            WRITE(33,90001) SCALE(I), SCALEMAX, SCALEMIN, I, SPCMASS1(I), SPCMASS2(I)
+          IF(     SCALEMASS(I) .GT. SCALEMAX ) THEN
+            SCALEMAX = SCALEMASS(I)
+            WRITE(33,90001) SCALEMASS(I), SCALEMAX, SCALEMIN, I, SPCMASS1(I), SPCMASS2(I)
+          ELSEIF( SCALEMASS(I) .LT. SCALEMIN ) THEN
+            SCALEMIN = SCALEMASS(I)
+            WRITE(33,90001) SCALEMASS(I), SCALEMAX, SCALEMIN, I, SPCMASS1(I), SPCMASS2(I)
           ENDIF
         ENDDO
       ENDIF
