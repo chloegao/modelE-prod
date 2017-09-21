@@ -449,12 +449,9 @@ c -----------------------------------------------------------------
 !     Routine to calculate the total mass concentration of each model species:
 !     SULF, BCAR, OCAR, DUST, SEAS, NO3, NH4. Aerosol water is not treated. 
 !----------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP, OCM2_MAP,OCM1_MAP,OCM0_MAP,
-     &                      OCP1_MAP, OCP2_MAP, OCP3_MAP, OCP4_MAP, OCP5_MAP, OCP6_MAP
-#else
       USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
-#endif
+      USE AERO_SETUP, ONLY: OCM2_MAP,OCM1_MAP,OCM0_MAP,OCP1_MAP,OCP2_MAP,
+     &                      OCP3_MAP,OCP4_MAP,OCP5_MAP,OCP6_MAP
       USE AERO_PARAM
       USE AERO_CONFIG
       IMPLICIT NONE

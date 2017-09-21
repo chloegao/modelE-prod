@@ -15,12 +15,9 @@
 !     This routine rescales all aerosol and gas-phase species to enforce
 !     mass conservation to machine precision.
 !----------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP, OCM2_MAP,OCM1_MAP,OCM0_MAP,
-     &                      OCP1_MAP, OCP2_MAP, OCP3_MAP, OCP4_MAP, OCP5_MAP, OCP6_MAP
-#else
       USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
-#endif
+      USE AERO_SETUP, ONLY: OCM2_MAP,OCM1_MAP,OCM0_MAP,OCP1_MAP,OCP2_MAP,
+     &                      OCP3_MAP,OCP4_MAP,OCP5_MAP,OCP6_MAP
       IMPLICIT NONE
 
       ! Arguments.

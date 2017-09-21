@@ -21,13 +21,9 @@
       ! NUMBER_OF_SEASALT_MODES is the number of sea salt modes, either 1 (SSS)
       !                         or 2 (SSA and SSC).
       !-------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      INTEGER, SAVE :: NMODES_SULF, NMODES_BCAR, NMODES_OCAR, NMODES_DUST, NMODES_SEAS, 
-     &                  NMODES_OCM2, NMODES_OCM1, NMODES_OCM0, NMODES_OCP1, NMODES_OCP2, 
-     &                  NMODES_OCP3, NMODES_OCP4, NMODES_OCP5, NMODES_OCP6
-#else
       INTEGER, SAVE :: NMODES_SULF, NMODES_BCAR, NMODES_OCAR, NMODES_DUST, NMODES_SEAS
-#endif
+      INTEGER, SAVE :: NMODES_OCM2, NMODES_OCM1, NMODES_OCM0, NMODES_OCP1, NMODES_OCP2, 
+     &                 NMODES_OCP3, NMODES_OCP4, NMODES_OCP5, NMODES_OCP6
       INTEGER, SAVE :: NUMBER_OF_SEASALT_MODES
       INTEGER, SAVE :: NUMB_MAP(NWEIGHTS)                           ! [1]
       INTEGER, SAVE :: MASS_MAP(NWEIGHTS,NMASS_SPCS)                ! [1]
@@ -40,7 +36,6 @@
       INTEGER, SAVE, ALLOCATABLE :: SEAS_MODE_MAP(:)                ! [1]
       INTEGER, SAVE, ALLOCATABLE :: SEAS_MODE_MASS_MAP(:)           ! [1]
       INTEGER, SAVE, ALLOCATABLE :: MODE_NUMB_SEAS(:)               ! [1]
-#ifdef TRACERS_AMP_M9
       INTEGER, SAVE, ALLOCATABLE :: OCM2_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: OCM1_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: OCM0_MAP(:)                     ! [1]
@@ -50,7 +45,6 @@
       INTEGER, SAVE, ALLOCATABLE :: OCP4_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: OCP5_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: OCP6_MAP(:)                     ! [1]
-#endif
       INTEGER, SAVE :: NM(NWEIGHTS)                                 ! [1]
       CHARACTER(LEN=4), SAVE :: NM_SPC_NAME(NWEIGHTS,NMASS_SPCS)
 
@@ -177,9 +171,6 @@
         ! Get the number of modes in the selected mechanism.
         !-----------------------------------------------------------------------
         IDIM = 0    
-#ifdef TRACERS_AMP_M9
-        IF ( MECH .EQ. 9 ) IDIM = NM9
-#else
         IF ( MECH .EQ. 1 ) IDIM = NM1
         IF ( MECH .EQ. 2 ) IDIM = NM2
         IF ( MECH .EQ. 3 ) IDIM = NM3
@@ -188,7 +179,7 @@
         IF ( MECH .EQ. 6 ) IDIM = NM6
         IF ( MECH .EQ. 7 ) IDIM = NM7
         IF ( MECH .EQ. 8 ) IDIM = NM8
-#endif    
+        IF ( MECH .EQ. 9 ) IDIM = NM9
         IF ( IDIM .NE. NMODES ) THEN
           WRITE(*,*)'ERROR in mechanism number MECH: MECH = ', MECH
           STOP
@@ -209,15 +200,6 @@
       ! species, condensation flags, and whether mode BC3 is present in the
       ! selected mechanism.
       !-------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      IF ( MECH .EQ. 9 ) THEN
-         CITABLE(:,:) = CITABLE9(:,:)
-         MODE_NAME(:) = MNAME(MODES9(:))
-         MODE_SPCS(:,:) = MSPCS(:,MODES9(:))
-         ICOND(:) = ICOND9(:)
-         INCLUDE_BC3 = .FALSE.
-      ENDIF
-#else
       IF     ( MECH .EQ. 1 ) THEN
         CITABLE(:,:) = CITABLE1(:,:)
         MODE_NAME(:) = MNAME(MODES1(:))
@@ -266,8 +248,13 @@
         MODE_SPCS(:,:) = MSPCS(:,MODES8(:))
         ICOND(:) = ICOND8(:)
         INCLUDE_BC3 = .FALSE. 
+      ELSEIF ( MECH .EQ. 9 ) THEN
+         CITABLE(:,:) = CITABLE9(:,:)
+         MODE_NAME(:) = MNAME(MODES9(:))
+         MODE_SPCS(:,:) = MSPCS(:,MODES9(:))
+         ICOND(:) = ICOND9(:)
+         INCLUDE_BC3 = .FALSE.
       ENDIF
-#endif
       !-------------------------------------------------------------------------
       ! Set INTERMODAL_TRANSFER according to setting in aero_param.f.
       ! If mode AKK is not present in the current mechanism, set to .FALSE.
@@ -401,7 +388,6 @@
         MASS_AKK_SULF = OMIT
         NUMB_AKK_1    = OMIT
         MASS_ACC_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_ACC_OCM2 = OMIT
         MASS_ACC_OCM1 = OMIT
         MASS_ACC_OCM0 = OMIT
@@ -411,10 +397,8 @@
         MASS_ACC_OCP4 = OMIT
         MASS_ACC_OCP5 = OMIT
         MASS_ACC_OCP6 = OMIT
-#endif
         NUMB_ACC_1    = OMIT
         MASS_DD1_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_DD1_OCM2 = OMIT
         MASS_DD1_OCM1 = OMIT
         MASS_DD1_OCM0 = OMIT
@@ -424,11 +408,9 @@
         MASS_DD1_OCP4 = OMIT
         MASS_DD1_OCP5 = OMIT
         MASS_DD1_OCP6 = OMIT
-#endif
         MASS_DD1_DUST = OMIT
         NUMB_DD1_1    = OMIT
         MASS_DS1_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_DS1_OCM2 = OMIT
         MASS_DS1_OCM1 = OMIT
         MASS_DS1_OCM0 = OMIT
@@ -438,11 +420,9 @@
         MASS_DS1_OCP4 = OMIT
         MASS_DS1_OCP5 = OMIT
         MASS_DS1_OCP6 = OMIT
-#endif
         MASS_DS1_DUST = OMIT
         NUMB_DS1_1    = OMIT
         MASS_DD2_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_DD2_OCM2 = OMIT
         MASS_DD2_OCM1 = OMIT
         MASS_DD2_OCM0 = OMIT
@@ -452,11 +432,9 @@
         MASS_DD2_OCP4 = OMIT
         MASS_DD2_OCP5 = OMIT
         MASS_DD2_OCP6 = OMIT
-#endif
         MASS_DD2_DUST = OMIT
         NUMB_DD2_1    = OMIT
         MASS_DS2_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_DS2_OCM2 = OMIT
         MASS_DS2_OCM1 = OMIT
         MASS_DS2_OCM0 = OMIT
@@ -466,11 +444,9 @@
         MASS_DS2_OCP4 = OMIT
         MASS_DS2_OCP5 = OMIT
         MASS_DS2_OCP6 = OMIT
-#endif
         MASS_DS2_DUST = OMIT
         NUMB_DS2_1    = OMIT
         MASS_SSA_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_SSA_OCM2 = OMIT
         MASS_SSA_OCM1 = OMIT
         MASS_SSA_OCM0 = OMIT
@@ -480,11 +456,9 @@
         MASS_SSA_OCP4 = OMIT
         MASS_SSA_OCP5 = OMIT
         MASS_SSA_OCP6 = OMIT
-#endif
         MASS_SSA_SEAS = OMIT
         NUMB_SSA_1    = OMIT
         MASS_SSC_SULF = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_SSC_OCM2 = OMIT
         MASS_SSC_OCM1 = OMIT
         MASS_SSC_OCM0 = OMIT
@@ -494,7 +468,6 @@
         MASS_SSC_OCP4 = OMIT
         MASS_SSC_OCP5 = OMIT
         MASS_SSC_OCP6 = OMIT
-#endif
         MASS_SSC_SEAS = OMIT
         NUMB_SSC_1    = OMIT
         MASS_SSS_SULF = OMIT
@@ -502,7 +475,6 @@
         NUMB_SSS_1    = OMIT
         MASS_OCC_SULF = OMIT
         MASS_OCC_OCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_OCC_OCM2 = OMIT
         MASS_OCC_OCM1 = OMIT
         MASS_OCC_OCM0 = OMIT
@@ -512,11 +484,9 @@
         MASS_OCC_OCP4 = OMIT
         MASS_OCC_OCP5 = OMIT
         MASS_OCC_OCP6 = OMIT
-#endif
         NUMB_OCC_1    = OMIT
         MASS_BC1_SULF = OMIT
         MASS_BC1_BCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_BC1_OCM2 = OMIT
         MASS_BC1_OCM1 = OMIT
         MASS_BC1_OCM0 = OMIT
@@ -526,11 +496,9 @@
         MASS_BC1_OCP4 = OMIT
         MASS_BC1_OCP5 = OMIT
         MASS_BC1_OCP6 = OMIT
-#endif
         NUMB_BC1_1    = OMIT
         MASS_BC2_SULF = OMIT
         MASS_BC2_BCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_BC2_OCM2 = OMIT
         MASS_BC2_OCM1 = OMIT
         MASS_BC2_OCM0 = OMIT
@@ -540,7 +508,6 @@
         MASS_BC2_OCP4 = OMIT
         MASS_BC2_OCP5 = OMIT
         MASS_BC2_OCP6 = OMIT
-#endif
         NUMB_BC2_1    = OMIT
         MASS_BC3_SULF = OMIT
         MASS_BC3_BCAR = OMIT
@@ -552,7 +519,6 @@
         MASS_BOC_SULF = OMIT
         MASS_BOC_BCAR = OMIT
         MASS_BOC_OCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_BOC_OCM2 = OMIT
         MASS_BOC_OCM1 = OMIT
         MASS_BOC_OCM0 = OMIT
@@ -562,11 +528,9 @@
         MASS_BOC_OCP4 = OMIT
         MASS_BOC_OCP5 = OMIT
         MASS_BOC_OCP6 = OMIT
-#endif
         NUMB_BOC_1    = OMIT
         MASS_BCS_SULF = OMIT
         MASS_BCS_BCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_BCS_OCM2 = OMIT
         MASS_BCS_OCM1 = OMIT
         MASS_BCS_OCM0 = OMIT
@@ -576,11 +540,9 @@
         MASS_BCS_OCP4 = OMIT
         MASS_BCS_OCP5 = OMIT
         MASS_BCS_OCP6 = OMIT
-#endif
         NUMB_BCS_1    = OMIT
         MASS_OCS_SULF = OMIT
         MASS_OCS_OCAR = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_OCS_OCM2 = OMIT
         MASS_OCS_OCM1 = OMIT
         MASS_OCS_OCM0 = OMIT
@@ -590,14 +552,12 @@
         MASS_OCS_OCP4 = OMIT
         MASS_OCS_OCP5 = OMIT
         MASS_OCS_OCP6 = OMIT
-#endif
         NUMB_OCS_1    = OMIT
         MASS_MXX_SULF = OMIT
         MASS_MXX_BCAR = OMIT
         MASS_MXX_OCAR = OMIT
         MASS_MXX_DUST = OMIT
         MASS_MXX_SEAS = OMIT
-#ifdef TRACERS_AMP_M9
         MASS_MXX_OCM2 = OMIT
         MASS_MXX_OCM1 = OMIT
         MASS_MXX_OCM0 = OMIT
@@ -607,13 +567,11 @@
         MASS_MXX_OCP4 = OMIT
         MASS_MXX_OCP5 = OMIT
         MASS_MXX_OCP6 = OMIT
-#endif
         NUMB_MXX_1    = OMIT
       ENDIF
       IF ( IN .EQ. 0 ) THEN       ! This is a mass concentration.
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'AKK_SULF' ) MASS_AKK_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_SULF' ) MASS_ACC_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCM2' ) MASS_ACC_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCM1' ) MASS_ACC_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCM0' ) MASS_ACC_OCM0 = INDEX
@@ -623,9 +581,7 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCP4' ) MASS_ACC_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCP5' ) MASS_ACC_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'ACC_OCP6' ) MASS_ACC_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_SULF' ) MASS_DD1_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCM2' ) MASS_DD1_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCM1' ) MASS_DD1_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCM0' ) MASS_DD1_OCM0 = INDEX
@@ -635,10 +591,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCP4' ) MASS_DD1_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCP5' ) MASS_DD1_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_OCP6' ) MASS_DD1_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD1_DUST' ) MASS_DD1_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_SULF' ) MASS_DS1_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCM2' ) MASS_DS1_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCM1' ) MASS_DS1_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCM0' ) MASS_DS1_OCM0 = INDEX
@@ -648,10 +602,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCP4' ) MASS_DS1_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCP5' ) MASS_DS1_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_OCP6' ) MASS_DS1_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS1_DUST' ) MASS_DS1_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_SULF' ) MASS_DD2_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCM2' ) MASS_DD2_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCM1' ) MASS_DD2_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCM0' ) MASS_DD2_OCM0 = INDEX
@@ -661,10 +613,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCP4' ) MASS_DD2_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCP5' ) MASS_DD2_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_OCP6' ) MASS_DD2_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DD2_DUST' ) MASS_DD2_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_SULF' ) MASS_DS2_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCM2' ) MASS_DS2_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCM1' ) MASS_DS2_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCM0' ) MASS_DS2_OCM0 = INDEX
@@ -674,10 +624,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCP4' ) MASS_DS2_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCP5' ) MASS_DS2_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_OCP6' ) MASS_DS2_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DS2_DUST' ) MASS_DS2_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_SULF' ) MASS_SSA_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCM2' ) MASS_SSA_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCM1' ) MASS_SSA_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCM0' ) MASS_SSA_OCM0 = INDEX
@@ -687,10 +635,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCP4' ) MASS_SSA_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCP5' ) MASS_SSA_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_OCP6' ) MASS_SSA_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSA_SEAS' ) MASS_SSA_SEAS = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_SULF' ) MASS_SSC_SULF = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCM2' ) MASS_SSC_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCM1' ) MASS_SSC_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCM0' ) MASS_SSC_OCM0 = INDEX
@@ -700,13 +646,11 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCP4' ) MASS_SSC_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCP5' ) MASS_SSC_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_OCP6' ) MASS_SSC_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSC_SEAS' ) MASS_SSC_SEAS = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSS_SULF' ) MASS_SSS_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'SSS_SEAS' ) MASS_SSS_SEAS = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_SULF' ) MASS_OCC_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCAR' ) MASS_OCC_OCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCM2' ) MASS_OCC_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCM1' ) MASS_OCC_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCM0' ) MASS_OCC_OCM0 = INDEX
@@ -716,10 +660,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCP4' ) MASS_OCC_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCP5' ) MASS_OCC_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCC_OCP6' ) MASS_OCC_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_SULF' ) MASS_BC1_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_BCAR' ) MASS_BC1_BCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCM2' ) MASS_BC1_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCM1' ) MASS_BC1_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCM0' ) MASS_BC1_OCM0 = INDEX
@@ -729,10 +671,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCP4' ) MASS_BC1_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCP5' ) MASS_BC1_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC1_OCP6' ) MASS_BC1_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_SULF' ) MASS_BC2_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_BCAR' ) MASS_BC2_BCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCM2' ) MASS_BC2_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCM1' ) MASS_BC2_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCM0' ) MASS_BC2_OCM0 = INDEX
@@ -742,12 +682,10 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCP4' ) MASS_BC2_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCP5' ) MASS_BC2_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC2_OCP6' ) MASS_BC2_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC3_SULF' ) MASS_BC3_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BC3_BCAR' ) MASS_BC3_BCAR = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_SULF' ) MASS_OCS_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCAR' ) MASS_OCS_OCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCM2' ) MASS_OCS_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCM1' ) MASS_OCS_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCM0' ) MASS_OCS_OCM0 = INDEX
@@ -757,14 +695,12 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCP4' ) MASS_OCS_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCP5' ) MASS_OCS_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'OCS_OCP6' ) MASS_OCS_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DBC_SULF' ) MASS_DBC_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DBC_BCAR' ) MASS_DBC_BCAR = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'DBC_DUST' ) MASS_DBC_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_SULF' ) MASS_BOC_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_BCAR' ) MASS_BOC_BCAR = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCAR' ) MASS_BOC_OCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCM2' ) MASS_BOC_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCM1' ) MASS_BOC_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCM0' ) MASS_BOC_OCM0 = INDEX
@@ -774,10 +710,8 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCP4' ) MASS_BOC_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCP5' ) MASS_BOC_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BOC_OCP6' ) MASS_BOC_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_SULF' ) MASS_BCS_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_BCAR' ) MASS_BCS_BCAR = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCM2' ) MASS_BCS_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCM1' ) MASS_BCS_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCM0' ) MASS_BCS_OCM0 = INDEX
@@ -787,13 +721,11 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCP4' ) MASS_BCS_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCP5' ) MASS_BCS_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'BCS_OCP6' ) MASS_BCS_OCP6 = INDEX
-#endif
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_SULF' ) MASS_MXX_SULF = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_BCAR' ) MASS_MXX_BCAR = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCAR' ) MASS_MXX_OCAR = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_DUST' ) MASS_MXX_DUST = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_SEAS' ) MASS_MXX_SEAS = INDEX
-#ifdef TRACERS_AMP_M9
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCM2' ) MASS_MXX_OCM2 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCM1' ) MASS_MXX_OCM1 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCM0' ) MASS_MXX_OCM0 = INDEX
@@ -803,7 +735,6 @@
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCP4' ) MASS_MXX_OCP4 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCP5' ) MASS_MXX_OCP5 = INDEX
         IF ( MODE_NAME(I)//'_'//CHEM_SPC_NAME(J) .EQ. 'MXX_OCP6' ) MASS_MXX_OCP6 = INDEX
-#endif
       ELSEIF ( IN .EQ. 1 ) THEN   ! This is a number concentration.
         IF ( MODE_NAME(I).EQ.'AKK' .AND. J.EQ.1 ) NUMB_AKK_1 = INDEX     
         IF ( MODE_NAME(I).EQ.'AKK' .AND. J.EQ.2 ) NUMB_AKK_2 = INDEX     
@@ -855,12 +786,8 @@
 !-------------------------------------------------------------------------------
       IMPLICIT NONE
       INTEGER :: I,J
-#ifdef TRACERS_AMP_M9
-      INTEGER :: ISULF,IBCAR,IOCAR,IDUST,ISEAS,IOCM2,IOCM1,IOCM0,IOCP1,IOCP2, 
-     &           IOCP3, IOCP4, IOCP5, IOCP6, INM
-#else
       INTEGER :: ISULF,IBCAR,IOCAR,IDUST,ISEAS, INM
-#endif
+      INTEGER :: IOCM2,IOCM1,IOCM0,IOCP1,IOCP2,IOCP3,IOCP4,IOCP5,IOCP6
       INTEGER, PARAMETER :: INACTIVE = 0
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
       IF ( FIRSTIME ) THEN
@@ -874,7 +801,6 @@
         IOCAR = 0
         IDUST = 0
         ISEAS = 0
-#ifdef TRACERS_AMP_M9
         IOCM2 = 0
         IOCM1 = 0
         IOCM0 = 0
@@ -884,7 +810,6 @@
         IOCP4 = 0
         IOCP5 = 0
         IOCP6 = 0
-#endif
         DO I=1, NMODES
           DO J=1, NAEROBOX
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_SULF' ) ISULF=ISULF+1
@@ -892,7 +817,6 @@
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCAR' ) IOCAR=IOCAR+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_DUST' ) IDUST=IDUST+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_SEAS' ) ISEAS=ISEAS+1
-#ifdef TRACERS_AMP_M9
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCM2' ) IOCM2=IOCM2+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCM1' ) IOCM1=IOCM1+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCM0' ) IOCM0=IOCM0+1
@@ -902,7 +826,6 @@
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCP4' ) IOCP4=IOCP4+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCP5' ) IOCP5=IOCP5+1
             IF ( AERO_SPCS(J)(1:13).EQ.'MASS_'//MODE_NAME(I)//'_OCP6' ) IOCP6=IOCP6+1
-#endif
           ENDDO
         ENDDO
         IF( WRITE_LOG ) THEN
@@ -914,7 +837,6 @@
         NMODES_OCAR = IOCAR
         NMODES_DUST = IDUST
         NMODES_SEAS = ISEAS
-#ifdef TRACERS_AMP_M9
         NMODES_OCM2 = IOCM2
         NMODES_OCM1 = IOCM1
         NMODES_OCM0 = IOCM0
@@ -924,14 +846,12 @@
         NMODES_OCP4 = IOCP4
         NMODES_OCP5 = IOCP5
         NMODES_OCP6 = IOCP6
-#endif
         ALLOCATE ( SULF_MAP(NMODES_SULF) ) 
         ALLOCATE ( BCAR_MAP(NMODES_BCAR) ) 
         ALLOCATE ( OCAR_MAP(NMODES_OCAR) ) 
         ALLOCATE ( DUST_MAP(NMODES_DUST) ) 
         ALLOCATE ( SEAS_MAP(NMODES_SEAS) ) 
         ALLOCATE ( MODE_NUMB_SEAS(NMODES_SEAS) ) 
-#ifdef TRACERS_AMP_M9
         ALLOCATE ( OCM2_MAP(NMODES_OCM2) ) 
         ALLOCATE ( OCM1_MAP(NMODES_OCM1) ) 
         ALLOCATE ( OCM0_MAP(NMODES_OCM0) ) 
@@ -941,14 +861,12 @@
         ALLOCATE ( OCP4_MAP(NMODES_OCP4) ) 
         ALLOCATE ( OCP5_MAP(NMODES_OCP5) ) 
         ALLOCATE ( OCP6_MAP(NMODES_OCP6) ) 
-#endif
         SULF_MAP(:) = 0
         BCAR_MAP(:) = 0
         OCAR_MAP(:) = 0
         DUST_MAP(:) = 0
         SEAS_MAP(:) = 0
         MODE_NUMB_SEAS(:) = 0
-#ifdef TRACERS_AMP_M9
         OCM2_MAP(:) = 0
         OCM1_MAP(:) = 0
         OCM0_MAP(:) = 0
@@ -958,7 +876,6 @@
         OCP4_MAP(:) = 0
         OCP5_MAP(:) = 0
         OCP6_MAP(:) = 0
-#endif
       ENDIF
       !-------------------------------------------------------------------------
       ! Assign a mode number to each mode.
@@ -1072,7 +989,6 @@
       IOCAR = 1
       IDUST = 1
       ISEAS = 1
-#ifdef TRACERS_AMP_M9
       IOCM2 = 1
       IOCM1 = 1
       IOCM0 = 1
@@ -1082,7 +998,6 @@
       IOCP4 = 1
       IOCP5 = 1
       IOCP6 = 1
-#endif
       NM(:) = 0
       NM_SPC_NAME(:,:) = '    '     ! LEN=4 character variable.
       DO I=1, NMODES
@@ -1107,7 +1022,6 @@
             MODE_NUMB_SEAS(ISEAS) = I    ! mode number for this sea salt-containing mode
             ISEAS = ISEAS + 1
           ENDIF
-#ifdef TRACERS_AMP_M9
           IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCM2' ) THEN
             OCM2_MAP(IOCM2) = J          ! location of this mass conc. in the AERO array
             IOCM2 = IOCM2 + 1
@@ -1144,7 +1058,6 @@
             OCP6_MAP(IOCP6) = J          ! location of this mass conc. in the AERO array
             IOCP6 = IOCP6 + 1
          ENDIF
-#endif
           IF ( AERO_SPCS(J)(1:8) .EQ. 'MASS_'//MODE_NAME(I) ) THEN
             INM = INM + 1
             NM_SPC_NAME(I,INM) = AERO_SPCS(J)(10:13)
@@ -1159,7 +1072,6 @@
         WRITE(AUNIT1,'(/A11,16I4)') 'OCAR_MAP = ', OCAR_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'DUST_MAP = ', DUST_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'SEAS_MAP = ', SEAS_MAP(:)
-#ifdef TRACERS_AMP_M9
         WRITE(AUNIT1,'(/A11,16I4)') 'OCM2_MAP = ', OCM2_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'OCM1_MAP = ', OCM1_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'OCM0_MAP = ', OCM0_MAP(:)
@@ -1169,7 +1081,6 @@
         WRITE(AUNIT1,'(/A11,16I4)') 'OCP4_MAP = ', OCP4_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'OCP5_MAP = ', OCP5_MAP(:)
         WRITE(AUNIT1,'(/A11,16I4)') 'OCP6_MAP = ', OCP6_MAP(:)
-#endif
         WRITE(AUNIT1,'(/A11,16I4)') 'NM(I)    = ', NM(:)
         DO I=1, NMODES
           WRITE(AUNIT1,'(/A40,A5,I4,5A5)') 'MODE_NAME(I), NM(I), NM_SPC_NAME(I,:) = ', MODE_NAME(I), NM(I), NM_SPC_NAME(I,:)
@@ -1202,7 +1113,6 @@
         IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(8) = I
         IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(9) = I
         IF( MODE_NAME(I) .EQ. 'DD2' ) EMIS_MODE_MAP(10) = I
-#ifdef TRACERS_AMP_M9
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(11) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(12) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(13) = I
@@ -1212,7 +1122,6 @@
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(17) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(18) = I
         IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(19) = I
-#endif
       ENDDO
       !-------------------------------------------------------------------------
       ! If the mechanism does not have the mode BOC to receive the 
@@ -1993,7 +1902,6 @@
             IF ( AERO_SPCS(J)(10:13) .EQ. 'SEAS' ) THEN      ! This mass species is sea salt.
               PROD_INDEX(I,Q) = PROD_INDEX_SEAS
             ENDIF
-#ifdef TRACERS_AMP_M9
             IF ( AERO_SPCS(J)(10:13) .EQ. 'OCM2' ) THEN      
               PROD_INDEX(I,Q) = PROD_INDEX_OCM2
             ENDIF
@@ -2021,7 +1929,6 @@
             IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP6' ) THEN      
               PROD_INDEX(I,Q) = PROD_INDEX_OCP6
             ENDIF
-#endif
             IF( WRITE_LOG ) WRITE(AUNIT1,90000)I,J,Q,MODE_NAME(I),AERO_SPCS(J),PROD_INDEX(I,Q),MASS_MAP(I,Q)
             Q = Q + 1
             IF (Q .GT. NM(I) ) GOTO 10

@@ -1,11 +1,7 @@
 #include "rundeck_opts.h"
 
       MODULE AERO_CONFIG
-#ifdef TRACERS_AMP_M9
-      USE AERO_PARAM, ONLY: NM9
-#else
-      USE AERO_PARAM, ONLY: NM1, NM2, NM3, NM4, NM5, NM6, NM7, NM8
-#endif
+      USE AERO_PARAM, ONLY: NM1, NM2, NM3, NM4, NM5, NM6, NM7, NM8, NM9
       IMPLICIT NONE
 !-------------------------------------------------------------------------------------------------------------------------
 !
@@ -14,29 +10,21 @@
 !-------------------------------------------------------------------------------------------------------------------------
 #ifdef TRACERS_AMP_M1
      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 1
-#endif
-#ifdef TRACERS_AMP_M2
+#elif defined TRACERS_AMP_M2
      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16   ! Mechanism 2
-#endif
-#ifdef TRACERS_AMP_M3
+#elif defined TRACERS_AMP_M3
      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13   ! Mechanism 3  
-#endif
-#ifdef TRACERS_AMP_M4
+#elif defined TRACERS_AMP_M4
      INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10   ! Mechanism 4 
-#endif
-#ifdef TRACERS_AMP_M5
+#elif defined TRACERS_AMP_M5
      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 5
-#endif
-#ifdef TRACERS_AMP_M6
+#elif defined TRACERS_AMP_M6
      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14   ! Mechanism 6 
-#endif
-#ifdef TRACERS_AMP_M7
+#elif defined TRACERS_AMP_M7
      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11   ! Mechanism 7  
-#endif
-#ifdef TRACERS_AMP_M8
+#elif defined TRACERS_AMP_M8
      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8   ! Mechanism 8 
-#endif
-#ifdef TRACERS_AMP_M9
+#elif defined TRACERS_AMP_M9
      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15  ! Mechanism 9
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
@@ -48,9 +36,6 @@
 !        ICONDn(I)=1, condensational growth done; ICONDn(I)=0, condensational growth not done. 
 !        Ordinarily, all modes would undergo condenational growth.
 !-------------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      INTEGER, SAVE, DIMENSION(NM9) :: ICOND9=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
-#else
       INTEGER, SAVE, DIMENSION(NM1) :: ICOND1=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 1
       INTEGER, SAVE, DIMENSION(NM2) :: ICOND2=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)  ! Mechanism 2
       INTEGER, SAVE, DIMENSION(NM3) :: ICOND3=(/1,1,1,1,1,1,1,1,1,1,1,1,1/)        ! Mechanism 3
@@ -59,7 +44,7 @@
       INTEGER, SAVE, DIMENSION(NM6) :: ICOND6=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1/)      ! Mechanism 6
       INTEGER, SAVE, DIMENSION(NM7) :: ICOND7=(/1,1,1,1,1,1,1,1,1,1,1/)            ! Mechanism 7
       INTEGER, SAVE, DIMENSION(NM8) :: ICOND8=(/1,1,1,1,1,1,1,1/)                  ! Mechanism 8
-#endif
+      INTEGER, SAVE, DIMENSION(NM9) :: ICOND9=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
 !-------------------------------------------------------------------------------------------------------------------------
@@ -70,31 +55,6 @@
 !     3. Optionally edit the table of coagulation interactions.
 !        The donor modes may not be modified. Each receptor mode must contain all species present in either donor mode.
 !        Entering 'OFF' for the receptor mode name disables coagulation between the two donor modes.
-!-------------------------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-!     Mechanism 9
-!
-!     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   BOC   BCS   MXX    SECOND
-!                                                                                                                          MODE
-!-------------------------------------------------------------------------------------------------------------------------------------
-      CHARACTER(LEN=3) :: CITABLE9(NM9,NM9)
-      DATA CITABLE9(1:NM9, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/ ! AKK
-      DATA CITABLE9(1:NM9, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/ ! ACC
-      DATA CITABLE9(1:NM9, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','DD1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
-      DATA CITABLE9(1:NM9, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','DS1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
-      DATA CITABLE9(1:NM9, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','DD2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
-      DATA CITABLE9(1:NM9, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','DS2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
-      DATA CITABLE9(1:NM9, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','SSA','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
-      DATA CITABLE9(1:NM9, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
-!      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
-      DATA CITABLE9(1:NM9,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/ ! BC1
-      DATA CITABLE9(1:NM9,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/ ! BC2
-      DATA CITABLE9(1:NM9,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCS
-      DATA CITABLE9(1:NM9,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/ ! BOC
-      DATA CITABLE9(1:NM9,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
-      DATA CITABLE9(1:NM9,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
-#else
 !-------------------------------------------------------------------------------------------------------------------------------------
 !     Mechanism 1.
 !
@@ -260,9 +220,31 @@
       DATA CITABLE8(1:NM8, 6)/'BC1','MXX','MXX','MXX','MXX','BC1','BC1','MXX'/ ! BC1
       DATA CITABLE8(1:NM8, 7)/'BC2','MXX','MXX','MXX','MXX','BC1','BC2','MXX'/ ! BC2
       DATA CITABLE8(1:NM8, 8)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
-#endif
-      END MODULE AERO_CONFIG
 !-------------------------------------------------------------------------------------------------------------------------
+!     Mechanism 9
+!
+!     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS   BOC   BCS   MXX    SECOND
+!                                                                                                                          MODE
+!-------------------------------------------------------------------------------------------------------------------------------------
+      CHARACTER(LEN=3) :: CITABLE9(NM9,NM9)
+      DATA CITABLE9(1:NM9, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/ ! AKK
+      DATA CITABLE9(1:NM9, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/ ! ACC
+      DATA CITABLE9(1:NM9, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','DD1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD1
+      DATA CITABLE9(1:NM9, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','DS1','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS1
+      DATA CITABLE9(1:NM9, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','DD2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DD2
+      DATA CITABLE9(1:NM9, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','DS2','MXX','MXX','MXX','MXX','MXX','MXX'/ ! DS2
+      DATA CITABLE9(1:NM9, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','SSA','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSA
+      DATA CITABLE9(1:NM9, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX'/ ! SSC
+!      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE9(1:NM9, 9)/'OCC','OCS','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCC
+      DATA CITABLE9(1:NM9,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/ ! BC1
+      DATA CITABLE9(1:NM9,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/ ! BC2
+      DATA CITABLE9(1:NM9,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/ ! OCS
+      DATA CITABLE9(1:NM9,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/ ! BOC
+      DATA CITABLE9(1:NM9,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
+      DATA CITABLE9(1:NM9,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
+!-------------------------------------------------------------------------------------------------------------------------
+      END MODULE AERO_CONFIG
 !
 ! Information for the transported species for each mechanism. 
 !

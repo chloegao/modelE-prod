@@ -316,7 +316,6 @@ c     &               80.81, 85.58, 90./
       INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_DUST = 4 ! DUST index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_SEAS = 5 ! SEAS index in PROD_INDEX(:,:)
-#ifdef TRACERS_AMP_M9
       INTEGER, PARAMETER :: PROD_INDEX_OCM2 = 6 ! OCM2 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCM1 = 7 ! OCM1 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCM0 = 8 ! OCM0 index in PROD_INDEX(:,:)
@@ -326,7 +325,6 @@ c     &               80.81, 85.58, 90./
       INTEGER, PARAMETER :: PROD_INDEX_OCP4 = 12! OCP4 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCP5 = 13! OCP5 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCP6 = 14! OCP6 index in PROD_INDEX(:,:)
-#endif
       !-------------------------------------------------------------------------------------------------------------------
       ! EMIS_DENS_XXXX is the dry particle density of emitted species XXXX.
       !
@@ -346,7 +344,6 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: EMIS_DENS_SEAS = 2.165D+00  ! [g/cm^3] - NaCl
       REAL(8), PARAMETER :: EMIS_DENS_BOCC = 0.50D+00   ! [g/cm^3] - average
      &                                     * ( EMIS_DENS_BCAR + EMIS_DENS_OCAR ) 
-#ifdef TRACERS_AMP_M9
       REAL(8), PARAMETER :: EMIS_DENS_OCM2 = 1.00D+00 ! [g/cm^3]
       REAL(8), PARAMETER :: EMIS_DENS_OCM1 = 1.00D+00   ! [g/cm^3]
       REAL(8), PARAMETER :: EMIS_DENS_OCM0 = 1.00D+00   ! [g/cm^3]
@@ -356,6 +353,7 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: EMIS_DENS_OCP4 = 1.00D+00   ! [g/cm^3]
       REAL(8), PARAMETER :: EMIS_DENS_OCP5 = 1.00D+00   ! [g/cm^3]
       REAL(8), PARAMETER :: EMIS_DENS_OCP6 = 1.00D+00   ! [g/cm^3]
+#ifdef TRACERS_AMP_M9
       REAL, DIMENSION(NEMIS_SPCS) :: EMIS_DENS = (/  EMIS_DENS_SULF,
      &               EMIS_DENS_SULF, EMIS_DENS_BCAR, EMIS_DENS_OCAR,
      &               EMIS_DENS_DUST, EMIS_DENS_SEAS, EMIS_DENS_SEAS,
@@ -437,15 +435,12 @@ c     &               80.81, 85.58, 90./
 !-------------------------------------------------------------------------------------------------------------------------
 !     Aerosol modes used for each mechanism.
 !-------------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      INTEGER, PARAMETER :: NM9=15
-      INTEGER ::MODES9(NM9)
-      DATA MODES9/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/
-#else
       INTEGER, PARAMETER :: NM1=16,NM2=16,NM3=13,NM4=10
       INTEGER, PARAMETER :: NM5=14,NM6=14,NM7=11,NM8=8
+      INTEGER, PARAMETER :: NM9=15
       INTEGER :: MODES1(NM1),MODES2(NM2),MODES3(NM3),MODES4(NM4)
       INTEGER :: MODES5(NM5),MODES6(NM6),MODES7(NM7),MODES8(NM8)
+      INTEGER :: MODES9(NM9)
       DATA MODES1/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/
       DATA MODES2/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,15,16,17,18/
       DATA MODES3/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,16,18/
@@ -454,77 +449,55 @@ c     &               80.81, 85.58, 90./
       DATA MODES6/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/
       DATA MODES7/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/
       DATA MODES8/ 2, 3, 4, 9,10,11,12,18/
-#endif
+      DATA MODES9/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/
 !-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
 !-------------------------------------------------------------------------------------------------------------------------
-#ifdef TRACERS_AMP_M9
-      INTEGER       :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3 
-      INTEGER, SAVE :: NUMB_AKK_1, NUMB_AKK_2, MASS_AKK_SULF, 
-     &                  NUMB_ACC_1, NUMB_ACC_2, MASS_ACC_SULF, 
-     &                  MASS_ACC_OCM2, MASS_ACC_OCM1, MASS_ACC_OCM0, MASS_ACC_OCP1, MASS_ACC_OCP2, 
-     &                  MASS_ACC_OCP3, MASS_ACC_OCP4, MASS_ACC_OCP5, MASS_ACC_OCP6, 
-     &                  NUMB_DD1_1, NUMB_DD1_2, MASS_DD1_SULF, 
-     &                  MASS_DD1_OCM2, MASS_DD1_OCM1, MASS_DD1_OCM0, MASS_DD1_OCP1, MASS_DD1_OCP2, 
-     &                  MASS_DD1_OCP3, MASS_DD1_OCP4, MASS_DD1_OCP5, MASS_DD1_OCP6,           MASS_DD1_DUST,
-     &                  NUMB_DS1_1, NUMB_DS1_2, MASS_DS1_SULF, 
-     &                  MASS_DS1_OCM2, MASS_DS1_OCM1, MASS_DS1_OCM0, MASS_DS1_OCP1, MASS_DS1_OCP2, 
-     &                  MASS_DS1_OCP3, MASS_DS1_OCP4, MASS_DS1_OCP5, MASS_DS1_OCP6,           MASS_DS1_DUST,
-     &                  NUMB_DD2_1, NUMB_DD2_2, MASS_DD2_SULF, 
-     &                  MASS_DD2_OCM2, MASS_DD2_OCM1, MASS_DD2_OCM0, MASS_DD2_OCP1, MASS_DD2_OCP2, 
-     &                  MASS_DD2_OCP3, MASS_DD2_OCP4, MASS_DD2_OCP5, MASS_DD2_OCP6,           MASS_DD2_DUST,
-     &                  NUMB_DS2_1, NUMB_DS2_2, MASS_DS2_SULF, 
-     &                  MASS_DS2_OCM2, MASS_DS2_OCM1, MASS_DS2_OCM0, MASS_DS2_OCP1, MASS_DS2_OCP2, 
-     &                  MASS_DS2_OCP3, MASS_DS2_OCP4, MASS_DS2_OCP5, MASS_DS2_OCP6,           MASS_DS2_DUST,
-     &                  NUMB_SSA_1, NUMB_SSA_2, MASS_SSA_SULF, 
-     &                  MASS_SSA_OCM2, MASS_SSA_OCM1, MASS_SSA_OCM0, MASS_SSA_OCP1, MASS_SSA_OCP2, 
-     &                  MASS_SSA_OCP3, MASS_SSA_OCP4, MASS_SSA_OCP5, MASS_SSA_OCP6,                          MASS_SSA_SEAS,
-     &                  NUMB_SSC_1, NUMB_SSC_2, MASS_SSC_SULF, 
-     &                  MASS_SSC_OCM2, MASS_SSC_OCM1, MASS_SSC_OCM0, MASS_SSC_OCP1, MASS_SSC_OCP2, 
-     &                  MASS_SSC_OCP3, MASS_SSC_OCP4, MASS_SSC_OCP5, MASS_SSC_OCP6,                          MASS_SSC_SEAS,
-     &                  NUMB_SSS_1, NUMB_SSS_2, MASS_SSS_SULF,                                               MASS_SSS_SEAS,
-     &                  NUMB_OCC_1, NUMB_OCC_2, MASS_OCC_SULF,                MASS_OCC_OCAR, 
-     &                  MASS_OCC_OCM2, MASS_OCC_OCM1, MASS_OCC_OCM0, MASS_OCC_OCP1, MASS_OCC_OCP2, 
-     &                  MASS_OCC_OCP3, MASS_OCC_OCP4, MASS_OCC_OCP5, MASS_OCC_OCP6, 
-     &                  NUMB_BC1_1, NUMB_BC1_2, MASS_BC1_SULF, MASS_BC1_BCAR, 
-     &                  MASS_BC1_OCM2, MASS_BC1_OCM1, MASS_BC1_OCM0, MASS_BC1_OCP1, MASS_BC1_OCP2, 
-     &                  MASS_BC1_OCP3, MASS_BC1_OCP4, MASS_BC1_OCP5, MASS_BC1_OCP6, 
-     &                  NUMB_BC2_1, NUMB_BC2_2, MASS_BC2_SULF, MASS_BC2_BCAR, 
-     &                  MASS_BC2_OCM2, MASS_BC2_OCM1, MASS_BC2_OCM0, MASS_BC2_OCP1, MASS_BC2_OCP2, 
-     &                  MASS_BC2_OCP3, MASS_BC2_OCP4, MASS_BC2_OCP5, MASS_BC2_OCP6, 
-     &                  NUMB_BC3_1, NUMB_BC3_2, MASS_BC3_SULF, MASS_BC3_BCAR, 
-     &                  NUMB_OCS_1, NUMB_OCS_2, MASS_OCS_SULF,                MASS_OCS_OCAR, 
-     &                  MASS_OCS_OCM2, MASS_OCS_OCM1, MASS_OCS_OCM0, MASS_OCS_OCP1, MASS_OCS_OCP2, 
-     &                  MASS_OCS_OCP3, MASS_OCS_OCP4, MASS_OCS_OCP5, MASS_OCS_OCP6, 
-     &                  NUMB_DBC_1, NUMB_DBC_2, MASS_DBC_SULF, MASS_DBC_BCAR,                 MASS_DBC_DUST, 
-     &                  NUMB_BOC_1, NUMB_BOC_2, MASS_BOC_SULF, MASS_BOC_BCAR, MASS_BOC_OCAR, 
-     &                  MASS_BOC_OCM2, MASS_BOC_OCM1, MASS_BOC_OCM0, MASS_BOC_OCP1, MASS_BOC_OCP2, 
-     &                  MASS_BOC_OCP3, MASS_BOC_OCP4, MASS_BOC_OCP5, MASS_BOC_OCP6, 
-     &                  NUMB_BCS_1, NUMB_BCS_2, MASS_BCS_SULF, MASS_BCS_BCAR, 
-     &                  MASS_BCS_OCM2, MASS_BCS_OCM1, MASS_BCS_OCM0, MASS_BCS_OCP1, MASS_BCS_OCP2, 
-     &                  MASS_BCS_OCP3, MASS_BCS_OCP4, MASS_BCS_OCP5, MASS_BCS_OCP6, 
-     &                  NUMB_MXX_1, NUMB_MXX_2, MASS_MXX_SULF, MASS_MXX_BCAR, MASS_MXX_OCAR,  MASS_MXX_DUST, MASS_MXX_SEAS, 
-     &                  MASS_MXX_OCM2, MASS_MXX_OCM1, MASS_MXX_OCM0, MASS_MXX_OCP1, MASS_MXX_OCP2, 
-     &                  MASS_MXX_OCP3, MASS_MXX_OCP4, MASS_MXX_OCP5, MASS_MXX_OCP6
-#else
       INTEGER       :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3 
       INTEGER, SAVE :: NUMB_AKK_1, NUMB_AKK_2, MASS_AKK_SULF,  
      &                 NUMB_ACC_1, NUMB_ACC_2, MASS_ACC_SULF,
-     &                 NUMB_DD1_1, NUMB_DD1_2, MASS_DD1_SULF,                               MASS_DD1_DUST, 
-     &                 NUMB_DS1_1, NUMB_DS1_2, MASS_DS1_SULF,                               MASS_DS1_DUST, 
-     &                 NUMB_DD2_1, NUMB_DD2_2, MASS_DD2_SULF,                               MASS_DD2_DUST, 
-     &                 NUMB_DS2_1, NUMB_DS2_2, MASS_DS2_SULF,                               MASS_DS2_DUST, 
-     &                 NUMB_SSA_1, NUMB_SSA_2, MASS_SSA_SULF,                                              MASS_SSA_SEAS, 
-     &                 NUMB_SSC_1, NUMB_SSC_2, MASS_SSC_SULF,                                              MASS_SSC_SEAS,
-     &                 NUMB_SSS_1, NUMB_SSS_2, MASS_SSS_SULF,                                              MASS_SSS_SEAS,
-     &                 NUMB_OCC_1, NUMB_OCC_2, MASS_OCC_SULF,                MASS_OCC_OCAR,
+     &                 NUMB_DD1_1, NUMB_DD1_2, MASS_DD1_SULF, MASS_DD1_DUST, 
+     &                 NUMB_DS1_1, NUMB_DS1_2, MASS_DS1_SULF, MASS_DS1_DUST, 
+     &                 NUMB_DD2_1, NUMB_DD2_2, MASS_DD2_SULF, MASS_DD2_DUST, 
+     &                 NUMB_DS2_1, NUMB_DS2_2, MASS_DS2_SULF, MASS_DS2_DUST, 
+     &                 NUMB_SSA_1, NUMB_SSA_2, MASS_SSA_SULF, MASS_SSA_SEAS, 
+     &                 NUMB_SSC_1, NUMB_SSC_2, MASS_SSC_SULF, MASS_SSC_SEAS,
+     &                 NUMB_SSS_1, NUMB_SSS_2, MASS_SSS_SULF, MASS_SSS_SEAS,
+     &                 NUMB_OCC_1, NUMB_OCC_2, MASS_OCC_SULF, MASS_OCC_OCAR,
      &                 NUMB_BC1_1, NUMB_BC1_2, MASS_BC1_SULF, MASS_BC1_BCAR,
      &                 NUMB_BC2_1, NUMB_BC2_2, MASS_BC2_SULF, MASS_BC2_BCAR,
      &                 NUMB_BC3_1, NUMB_BC3_2, MASS_BC3_SULF, MASS_BC3_BCAR,
-     &                 NUMB_OCS_1, NUMB_OCS_2, MASS_OCS_SULF,                MASS_OCS_OCAR,
-     &                 NUMB_DBC_1, NUMB_DBC_2, MASS_DBC_SULF, MASS_DBC_BCAR,                MASS_DBC_DUST,
+     &                 NUMB_OCS_1, NUMB_OCS_2, MASS_OCS_SULF, MASS_OCS_OCAR,
+     &                 NUMB_DBC_1, NUMB_DBC_2, MASS_DBC_SULF, MASS_DBC_BCAR, MASS_DBC_DUST,
      &                 NUMB_BOC_1, NUMB_BOC_2, MASS_BOC_SULF, MASS_BOC_BCAR, MASS_BOC_OCAR,
      &                 NUMB_BCS_1, NUMB_BCS_2, MASS_BCS_SULF, MASS_BCS_BCAR,
      &                 NUMB_MXX_1, NUMB_MXX_2, MASS_MXX_SULF, MASS_MXX_BCAR, MASS_MXX_OCAR, MASS_MXX_DUST, MASS_MXX_SEAS
-#endif
+      INTEGER, SAVE :: MASS_ACC_OCM2, MASS_ACC_OCM1, MASS_ACC_OCM0, MASS_ACC_OCP1, MASS_ACC_OCP2, 
+     &                 MASS_ACC_OCP3, MASS_ACC_OCP4, MASS_ACC_OCP5, MASS_ACC_OCP6, 
+     &                 MASS_DD1_OCM2, MASS_DD1_OCM1, MASS_DD1_OCM0, MASS_DD1_OCP1, MASS_DD1_OCP2, 
+     &                 MASS_DD1_OCP3, MASS_DD1_OCP4, MASS_DD1_OCP5, MASS_DD1_OCP6,
+     &                 MASS_DS1_OCM2, MASS_DS1_OCM1, MASS_DS1_OCM0, MASS_DS1_OCP1, MASS_DS1_OCP2, 
+     &                 MASS_DS1_OCP3, MASS_DS1_OCP4, MASS_DS1_OCP5, MASS_DS1_OCP6,
+     &                 MASS_DD2_OCM2, MASS_DD2_OCM1, MASS_DD2_OCM0, MASS_DD2_OCP1, MASS_DD2_OCP2, 
+     &                 MASS_DD2_OCP3, MASS_DD2_OCP4, MASS_DD2_OCP5, MASS_DD2_OCP6,
+     &                 MASS_DS2_OCM2, MASS_DS2_OCM1, MASS_DS2_OCM0, MASS_DS2_OCP1, MASS_DS2_OCP2, 
+     &                 MASS_DS2_OCP3, MASS_DS2_OCP4, MASS_DS2_OCP5, MASS_DS2_OCP6,
+     &                 MASS_SSA_OCM2, MASS_SSA_OCM1, MASS_SSA_OCM0, MASS_SSA_OCP1, MASS_SSA_OCP2, 
+     &                 MASS_SSA_OCP3, MASS_SSA_OCP4, MASS_SSA_OCP5, MASS_SSA_OCP6,
+     &                 MASS_SSC_OCM2, MASS_SSC_OCM1, MASS_SSC_OCM0, MASS_SSC_OCP1, MASS_SSC_OCP2, 
+     &                 MASS_SSC_OCP3, MASS_SSC_OCP4, MASS_SSC_OCP5, MASS_SSC_OCP6,
+     &                 MASS_OCC_OCM2, MASS_OCC_OCM1, MASS_OCC_OCM0, MASS_OCC_OCP1, MASS_OCC_OCP2, 
+     &                 MASS_OCC_OCP3, MASS_OCC_OCP4, MASS_OCC_OCP5, MASS_OCC_OCP6, 
+     &                 MASS_BC1_OCM2, MASS_BC1_OCM1, MASS_BC1_OCM0, MASS_BC1_OCP1, MASS_BC1_OCP2, 
+     &                 MASS_BC1_OCP3, MASS_BC1_OCP4, MASS_BC1_OCP5, MASS_BC1_OCP6, 
+     &                 MASS_BC2_OCM2, MASS_BC2_OCM1, MASS_BC2_OCM0, MASS_BC2_OCP1, MASS_BC2_OCP2, 
+     &                 MASS_BC2_OCP3, MASS_BC2_OCP4, MASS_BC2_OCP5, MASS_BC2_OCP6, 
+     &                 MASS_OCS_OCM2, MASS_OCS_OCM1, MASS_OCS_OCM0, MASS_OCS_OCP1, MASS_OCS_OCP2, 
+     &                 MASS_OCS_OCP3, MASS_OCS_OCP4, MASS_OCS_OCP5, MASS_OCS_OCP6, 
+     &                 MASS_BOC_OCM2, MASS_BOC_OCM1, MASS_BOC_OCM0, MASS_BOC_OCP1, MASS_BOC_OCP2, 
+     &                 MASS_BOC_OCP3, MASS_BOC_OCP4, MASS_BOC_OCP5, MASS_BOC_OCP6, 
+     &                 MASS_BCS_OCM2, MASS_BCS_OCM1, MASS_BCS_OCM0, MASS_BCS_OCP1, MASS_BCS_OCP2, 
+     &                 MASS_BCS_OCP3, MASS_BCS_OCP4, MASS_BCS_OCP5, MASS_BCS_OCP6, 
+     &                 MASS_MXX_OCM2, MASS_MXX_OCM1, MASS_MXX_OCM0, MASS_MXX_OCP1, MASS_MXX_OCP2, 
+     &                 MASS_MXX_OCP3, MASS_MXX_OCP4, MASS_MXX_OCP5, MASS_MXX_OCP6
       END MODULE AERO_PARAM  
