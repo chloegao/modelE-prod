@@ -970,7 +970,7 @@
           IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP6' ) THEN
             OCP6_MAP(IOCP6) = J          ! location of this mass conc. in the AERO array
             IOCP6 = IOCP6 + 1
-         ENDIF
+          ENDIF
           IF ( AERO_SPCS(J)(1:8) .EQ. 'MASS_'//MODE_NAME(I) ) THEN
             INM = INM + 1
             NM_SPC_NAME(I,INM) = AERO_SPCS(J)(10:13)
@@ -1802,51 +1802,42 @@
           IF ( AERO_SPCS(J)(6:8) .NE. MODE_NAME(I) ) CYCLE   ! This AERO species is not for mode I.
           IF ( AERO_SPCS(J)(1:4) .EQ. 'MASS' ) THEN          ! This is a mass species for mode I. 
             IF ( AERO_SPCS(J)(10:13) .EQ. NM_SPC_NAME(I,Q) ) MASS_MAP(I,Q) = J  ! location of this species in AERO
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'SULF' ) THEN      ! This mass species is sulfate.
+            select case (AERO_SPCS(J)(10:13))
+            case ('SULF')
               PROD_INDEX(I,Q) = PROD_INDEX_SULF
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'BCAR' ) THEN      ! This mass species is BC.
+            case ('BCAR')
               PROD_INDEX(I,Q) = PROD_INDEX_BCAR
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCAR' ) THEN      ! This mass species is OC.
+            case ('OCAR')
               PROD_INDEX(I,Q) = PROD_INDEX_OCAR
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'DUST' ) THEN      ! This mass species is dust.
+            case ('DUST')
               PROD_INDEX(I,Q) = PROD_INDEX_DUST
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'SEAS' ) THEN      ! This mass species is sea salt.
+            case ('SEAS')
               PROD_INDEX(I,Q) = PROD_INDEX_SEAS
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCM2' ) THEN      
+            case ('OCM2')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM2
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCM1' ) THEN      
+            case ('OCM1')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM1
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCM0' ) THEN      
+            case ('OCM0')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM0
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP1' ) THEN      
+            case ('OCP1')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP1
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP2' ) THEN      
+            case ('OCP2')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP2
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP3' ) THEN      
+            case ('OCP3')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP3
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP4' ) THEN      
+            case ('OCP4')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP4
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP5' ) THEN      
+            case ('OCP5')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP5
-            ENDIF
-            IF ( AERO_SPCS(J)(10:13) .EQ. 'OCP6' ) THEN      
+            case ('OCP6')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP6
-            ENDIF
+            case default
+              stop 'Unknown AERO_SPCS in SETUP_AERO_MASS_MAP'
+            end select
+
             IF( WRITE_LOG ) WRITE(AUNIT1,90000)I,J,Q,MODE_NAME(I),AERO_SPCS(J),PROD_INDEX(I,Q),MASS_MAP(I,Q)
             Q = Q + 1
-            IF (Q .GT. NM(I) ) GOTO 10
+            IF (Q .GT. NM(I) ) GOTO 10 ! all species in this mode processed, go to next mode
           ENDIF
         ENDDO
 10      CONTINUE
