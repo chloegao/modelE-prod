@@ -898,6 +898,7 @@
       ! Setup NM(I):       number of mass concs. defined for mode I      
       ! Setup NM_SPC_NAME(I,J): name of the Jth mass conc. in mode I
       !-------------------------------------------------------------------------
+      ISULF = 1
       IBCAR = 1
       IOCAR = 1
       IDUST = 1
@@ -916,61 +917,52 @@
       DO I=1, NMODES
         INM = 0
         DO J=1, NAEROBOX
-          IF ( AERO_SPCS(J)(1:8)  .EQ. 'NUMB_'//MODE_NAME(I) )          NUMB_MAP(I) = J
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_SULF' ) SULF_MAP(I) = J
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_BCAR' ) THEN
-            BCAR_MAP(IBCAR) = J          ! location of this mass conc. in the AERO array
-            IBCAR = IBCAR + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCAR' ) THEN
-            OCAR_MAP(IOCAR) = J          ! location of this mass conc. in the AERO array
-            IOCAR = IOCAR + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_DUST' ) THEN
-            DUST_MAP(IDUST) = J          ! location of this mass conc. in the AERO array
-            IDUST = IDUST + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_SEAS' ) THEN
-            SEAS_MAP(ISEAS) = J          ! location of this mass conc. in the AERO array
-            MODE_NUMB_SEAS(ISEAS) = I    ! mode number for this sea salt-containing mode
-            ISEAS = ISEAS + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCM2' ) THEN
-            OCM2_MAP(IOCM2) = J          ! location of this mass conc. in the AERO array
-            IOCM2 = IOCM2 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCM1' ) THEN
-            OCM1_MAP(IOCM1) = J          ! location of this mass conc. in the AERO array
-            IOCM1 = IOCM1 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCM0' ) THEN
-            OCM0_MAP(IOCM0) = J          ! location of this mass conc. in the AERO array
-            IOCM0 = IOCM0 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP1' ) THEN
-            OCP1_MAP(IOCP1) = J          ! location of this mass conc. in the AERO array
-            IOCP1 = IOCP1 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP2' ) THEN
-            OCP2_MAP(IOCP2) = J          ! location of this mass conc. in the AERO array
-            IOCP2 = IOCP2 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP3' ) THEN
-            OCP3_MAP(IOCP3) = J          ! location of this mass conc. in the AERO array
-            IOCP3 = IOCP3 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP4' ) THEN
-            OCP4_MAP(IOCP4) = J          ! location of this mass conc. in the AERO array
-            IOCP4 = IOCP4 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP5' ) THEN
-            OCP5_MAP(IOCP5) = J          ! location of this mass conc. in the AERO array
-            IOCP5 = IOCP5 + 1
-          ENDIF
-          IF ( AERO_SPCS(J)(1:13) .EQ. 'MASS_'//MODE_NAME(I)//'_OCP6' ) THEN
-            OCP6_MAP(IOCP6) = J          ! location of this mass conc. in the AERO array
-            IOCP6 = IOCP6 + 1
-          ENDIF
+          if (trim(AERO_SPCS(J))=='NUMB_'//MODE_NAME(I)//'_1') then
+            NUMB_MAP(I)=J
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_SULF') then
+            SULF_MAP(ISULF)=J ! location of this mass conc. in the AERO array
+            ISULF=ISULF+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_BCAR') then
+            BCAR_MAP(IBCAR)=J ! location of this mass conc. in the AERO array
+            IBCAR=IBCAR+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCAR') then
+            OCAR_MAP(IOCAR)=J ! location of this mass conc. in the AERO array
+            IOCAR=IOCAR+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_DUST') then
+            DUST_MAP(IDUST)=J ! location of this mass conc. in the AERO array
+            IDUST=IDUST+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_SEAS') then
+            SEAS_MAP(ISEAS)=J ! location of this mass conc. in the AERO array
+            MODE_NUMB_SEAS(ISEAS)=I ! mode number for this sea salt-containing mode
+            ISEAS=ISEAS+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCM2') then
+            OCM2_MAP(IOCM2)=J ! location of this mass conc. in the AERO array
+            IOCM2=IOCM2+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCM1') then
+            OCM1_MAP(IOCM1)=J ! location of this mass conc. in the AERO array
+            IOCM1=IOCM1+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCM0') then
+            OCM0_MAP(IOCM0)=J ! location of this mass conc. in the AERO array
+            IOCM0=IOCM0+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP1') then
+            OCP1_MAP(IOCP1)=J ! location of this mass conc. in the AERO array
+            IOCP1=IOCP1+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP2') then
+            OCP2_MAP(IOCP2)=J ! location of this mass conc. in the AERO array
+            IOCP2=IOCP2+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP3') then
+            OCP3_MAP(IOCP3)=J ! location of this mass conc. in the AERO array
+            IOCP3=IOCP3+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP4') then
+            OCP4_MAP(IOCP4)=J ! location of this mass conc. in the AERO array
+            IOCP4=IOCP4+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP5') then
+            OCP5_MAP(IOCP5)=J ! location of this mass conc. in the AERO array
+            IOCP5=IOCP5+1
+          else if (trim(AERO_SPCS(J))=='MASS_'//MODE_NAME(I)//'_OCP6') then
+            OCP6_MAP(IOCP6)=J ! location of this mass conc. in the AERO array
+            IOCP6=IOCP6+1
+          endif
           IF ( AERO_SPCS(J)(1:8) .EQ. 'MASS_'//MODE_NAME(I) ) THEN
             INM = INM + 1
             NM_SPC_NAME(I,INM) = AERO_SPCS(J)(10:13)
