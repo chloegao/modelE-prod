@@ -16,7 +16,7 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       USE HYCOM_DIM_GLOB
       USE HYCOM_SCALARS, only : pi,area,avgbot,huge,flnmlat,flnmdep
      &   ,flnmbas,ipacn,ipacs,jpac,iatln,iatls,jatl,beropn,ocnvol
-     &   ,init_pr1d
+     &   ,init_pr1d,zonarea
       USE HYCOM_ARRAYS_GLOB
       USE KPRF_ARRAYS
       USE HYCOM_CPLER
@@ -217,17 +217,32 @@ c     write (*,'('' shown below: grid cell size'')')
 c     call zebra(scp2,idm,ii,jj)
 c
       area=0.
+      zonarea(:)=0.
       avgbot=0.
       ocnvol=0.
+      zone(:,:,:)=0.
 c
       do 57 j=1,jj
       do 57 l=1,isp(j)
       do 57 i=ifp(j,l),ilp(j,l)
       ocnvol=ocnvol+depths(i,j)*scp2(i,j)
- 57   area=area+scp2(i,j)
+      area=area+scp2(i,j)
+      if (latij(i,j,3).gt.50.) then		! arctic zone
+        zone(i,j,1)=1.
+        zonarea(1)=zonarea(1)+scp2(i,j)
+      else if (latij(i,j,3).lt.-50.) then	! antarctic zone
+        zone(i,j,3)=1.
+        zonarea(3)=zonarea(3)+scp2(i,j)
+      else					! remaining area
+        zone(i,j,2)=1.
+        zonarea(2)=zonarea(2)+scp2(i,j)
+      end if
+ 57   continue
       avgbot=ocnvol/area
       write (*,100) avgbot,area*1.e-12,ocnvol*1.e-18
- 100  format('mean basin depth(m), area(mm^2) & volumn(mm^3):',3f9.3)
+ 100  format('mean basin depth(m), area(Mm^2) & volumn(Mm^3):',3f9.3)
+      write (*,101) (zonarea(l)*1.e-12,l=1,3)
+ 101  format ('latitude zones (arctic,antarctic,other):',3f9.3)
 c
 c --- initialize some arrays
 c

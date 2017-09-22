@@ -68,6 +68,7 @@ c
      .,depths_loc => depths
      .,drag_loc => drag
      .,glue_loc => glue
+     .,zone_loc => zone
      .,dampu_loc => dampu,dampv_loc => dampv
 c
      .,uja_loc => uja,ujb_loc => ujb
@@ -84,12 +85,8 @@ c
 c    .,thkice_loc => thkice
 c    .,covice_loc => covice
 c    .,temice_loc => temice
-c    .,odhsi_loc => odhsi
-     .,odmsi_loc => odmsi
+     .,odhsi_loc => odhsi
      .,omlhc_loc => omlhc
-     .,loan_ice_loc => loan_ice
-     .,idrift_loc => idrift
-     .,jdrift_loc => jdrift
      .,dmfz_loc => dmfz
 c
      &,klist_loc => klist
@@ -103,6 +100,7 @@ c    .,vapmix_loc => vapmix
 c    .,oprec_loc => oprec
 c    .,oevap_loc => oevap
      .,oemnp_loc => oemnp
+     .,oicemlt_loc => oicemlt
      .,oflxa2o_loc => oflxa2o,oice_loc => oice
      .,ustar_loc => ustar
      .,ustarb_loc => ustarb
@@ -110,6 +108,10 @@ c    .,oevap_loc => oevap
 c
      .,freshw_loc => freshw
      .,diafor_loc => diafor
+     .,diag1_loc => diag1
+     .,diag2_loc => diag2
+     .,diag3_loc => diag3
+     .,diag4_loc => diag4
 
       implicit none
 
@@ -217,6 +219,7 @@ c
       public depths_loc
       public drag_loc
       public glue_loc
+      public zone_loc
       public dampu_loc
       public dampv_loc
       public uja_loc
@@ -232,15 +235,13 @@ c
       public salflx_loc
       public sflxcum_loc
       public hflxcum_loc
-      public odmsi_loc
+      public odhsi_loc
       public omlhc_loc
-      public loan_ice_loc
-      public idrift_loc
-      public jdrift_loc
       public dmfz_loc
       public taux_loc
       public tauy_loc
       public oemnp_loc
+      public oicemlt_loc
       public oflxa2o_loc
       public oice_loc
       public ustar_loc
@@ -250,6 +251,7 @@ c
       public diafor_loc
       public klist_loc
       public ijlist_loc
+      public diag1_loc,diag2_loc,diag3_loc,diag4_loc
 
       end module hycom_arrays_glob_renamer
 

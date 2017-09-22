@@ -31,13 +31,13 @@
      &     jfu => jfu,
      &     jlu => jlu,
      &     jsu => jsu,
-     .     ifv_loc => ifv,
+     &     ifv_loc => ifv,
      &     ilv_loc => ilv,
      &     isv_loc => isv,
      &     jfv => jfv,
      &     jlv => jlv,
      &     jsv => jsv,
-     .     msk_loc => msk
+     &     msk_loc => msk
 ccc
 cddd     &     ip => ip,
 cddd     &     iu => iu,
@@ -191,23 +191,23 @@ cddd     .     msk
       !call broadcast ( ogrid,  jsv, jsv_loc )
       call pack_data( ogrid, msk_loc,  msk )
 
-cddd       ip= ip_loc 
-cddd       iu= iu_loc 
-cddd       iv= iv_loc 
-cddd       iq= iq_loc 
+cddd       ip= ip_loc
+cddd       iu= iu_loc
+cddd       iv= iv_loc
+cddd       iq= iq_loc
 cddd
-cddd        ifp= ifp_loc 
-cddd        ilp= ilp_loc 
-cddd       isp= isp_loc 
-cddd        ifq= ifq_loc 
-cddd        ilq= ilq_loc 
-cddd       isq= isq_loc 
-cddd        ifu= ifu_loc 
-cddd        ilu= ilu_loc 
+cddd        ifp= ifp_loc
+cddd        ilp= ilp_loc
+cddd       isp= isp_loc
+cddd        ifq= ifq_loc
+cddd        ilq= ilq_loc
+cddd       isq= isq_loc
+cddd        ifu= ifu_loc
+cddd        ilu= ilu_loc
 cddd       isu= isu_loc
-cddd        ifv= ifv_loc 
-cddd        ilv= ilv_loc 
-cddd       isv= isv_loc 
+cddd        ifv= ifv_loc
+cddd        ilv= ilv_loc
+cddd       isv= isv_loc
 cddd
 cddd       msk= msk_loc
 
@@ -227,6 +227,6 @@ cddd       msk= msk_loc
 
       end subroutine alloc_hycom_dim_glob
 
-      
+
 
       end module hycom_dim_glob
