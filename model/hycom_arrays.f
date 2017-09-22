@@ -87,10 +87,11 @@ c
      .,pgfx(:,:),pgfy(:,:)            ! horiz. presssure gradient
      .,gradx(:,:),grady(:,:)          ! horiz. presssure gradient
      .,depthu(:,:),depthv(:,:)        ! bottom pres. at u,v points
-     .,pvtrop(:,:)                        ! pot.vort. of barotropic flow
-     .,depths(:,:)                        ! water depth
-     .,drag(:,:)                          ! bottom drag
-     .,glue(:,:)                          ! regional viscosity enhancement
+     .,pvtrop(:,:)                    ! pot.vort. of barotropic flow
+     .,depths(:,:)                    ! water depth
+     .,drag(:,:)                      ! bottom drag
+     .,glue(:,:)                      ! regional viscosity enhancement
+     .,zone(:,:,:)                    ! zone of arctic/main/antarctic
      .,dampu(:,:),dampv(:,:)          ! coastal wave damping coeff.
 c
 !!      real util1,util2,util3,util4,scpx,scpy,scux,scuy,scvx,scvy,
@@ -109,21 +110,20 @@ c
      .,sgain(:,:)                         ! salin.changes from diapyc.mix.
      .,surflx(:,:)                        ! surface thermal energy flux
      .,salflx(:,:)                        ! surface salinity flux
+     .,brnflx(:,:)                        ! induced salinity flux (brine flux)
+     .,sqiflx(:,:)                        ! sequestered salinity flux
      .,sflxcum(:,:)                       ! accumulated saltflux
      .,hflxcum(:,:)                       ! accumulated heatflux
 c    .,thkice(:,:)                        ! grid-cell avg. ice thknss (cm)
 c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
-c    .,odhsi(:,:)                         ! heat borrowed from frozen
-     .,odmsi(:,:)                         ! newly formed ice
+     .,odhsi(:,:)                         ! heat borrowed from frozen
      .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
-     .,loan_ice(:,:)                      ! heatflux to prevent SST below freezing, > 0
 c
       integer, allocatable, dimension (:,:) ::
      .  klist         !k-index of layer below mixl'r
      .,ijlist         !global ij index
-     .,idrift,jdrift  !drift index for loan_ice
 !!    common/int1/klist
 
 c ---  s w i t c h e s    (if set to .true., then...)
@@ -147,15 +147,15 @@ c    .,vapmix(:,:,:)                      !  atmosph. vapor mixing ratio
 c    .,oprec(:,:)                         !  precipitation
 c    .,oevap(:,:)                         !  evaportation
      .,oemnp(:,:)                         !  e - p
+     .,oicemlt(:,:)                       !  ice melt on o-grid
      .,oflxa2o(:,:),oice(:,:)
      .,ustar(:,:)                         ! surface friction velocity
      .,ustarb(:,:)                        ! bottom friction velocity
      .,osalt(:,:)                         ! saltflux from SI(kg/m*m)
-c
      .,freshw(:,:)                        !  river & glacier runoff
      .,diafor(:,:)                        !  imposed diapycnal forcing
+     .,diag1(:,:),diag2(:,:),diag3(:,:),diag4(:,:)
 c
-
       contains
 
       subroutine alloc_hycom_arrays
@@ -236,6 +236,7 @@ c
      .,depths(I_0H:I_1H,J_0H:J_1H)
      .,drag(I_0H:I_1H,J_0H:J_1H)
      .,glue(I_0H:I_1H,J_0H:J_1H)
+     .,zone(I_0H:I_1H,J_0H:J_1H,3)
      .,dampu(I_0H:I_1H,J_0H:J_1H),dampv(I_0H:I_1H,J_0H:J_1H) )
 c
        allocate(
@@ -248,21 +249,19 @@ c
      .,sgain(I_0H:I_1H,kdm)
      .,surflx(I_0H:I_1H,J_0H:J_1H)
      .,salflx(I_0H:I_1H,J_0H:J_1H)
+     .,brnflx(I_0H:I_1H,J_0H:J_1H)
+     .,sqiflx(I_0H:I_1H,J_0H:J_1H)
      .,sflxcum(I_0H:I_1H,J_0H:J_1H)
      .,hflxcum(I_0H:I_1H,J_0H:J_1H)
 c    .,thkice(I_0H:I_1H,J_0H:J_1H)
 c    .,covice(I_0H:I_1H,J_0H:J_1H)
 c    .,temice(I_0H:I_1H,J_0H:J_1H)
-c    .,odhsi(I_0H:I_1H,J_0H:J_1H)
-     .,odmsi(I_0H:I_1H,J_0H:J_1H)
+     .,odhsi(I_0H:I_1H,J_0H:J_1H)
      .,omlhc(I_0H:I_1H,J_0H:J_1H)
-     .,dmfz(I_0H:I_1H,J_0H:J_1H)
-     .,loan_ice(I_0H:I_1H,J_0H:J_1H) )
+     .,dmfz(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate( klist(I_0H:I_1H,J_0H:J_1H)
-     .        ,ijlist(I_0H:I_1H,J_0H:J_1H)
-     .        ,idrift(I_0H:I_1H,J_0H:J_1H)
-     .        ,jdrift(I_0H:I_1H,J_0H:J_1H) )
+     .        ,ijlist(I_0H:I_1H,J_0H:J_1H) )
 c
       allocate(
      . taux(I_0H:I_1H,J_0H:J_1H)
@@ -273,13 +272,17 @@ c    .,vapmix(I_0H:I_1H,J_0H:J_1H,4)
 c    .,oprec(I_0H:I_1H,J_0H:J_1H)
 c    .,oevap(I_0H:I_1H,J_0H:J_1H)
      .,oemnp(I_0H:I_1H,J_0H:J_1H)
+     .,oicemlt(I_0H:I_1H,J_0H:J_1H)
      .,oflxa2o(I_0H:I_1H,J_0H:J_1H),oice(I_0H:I_1H,J_0H:J_1H)
      .,ustar(I_0H:I_1H,J_0H:J_1H)
      .,ustarb(I_0H:I_1H,J_0H:J_1H)
      .,osalt(I_0H:I_1H,J_0H:J_1H)
-c
      .,freshw(I_0H:I_1H,J_0H:J_1H)
-     .,diafor(I_0H:I_1H,J_0H:J_1H) )
+     .,diafor(I_0H:I_1H,J_0H:J_1H)
+     .,diag1(I_0H:I_1H,J_0H:J_1H)
+     .,diag2(I_0H:I_1H,J_0H:J_1H)
+     .,diag3(I_0H:I_1H,J_0H:J_1H)
+     .,diag4(I_0H:I_1H,J_0H:J_1H) )
 c
 
       u = 0
@@ -384,6 +387,7 @@ c
       depths = 0
       drag = 0
       glue = 0
+      zone = 0
       dampu = 0
       dampv = 0
       uja = 0
@@ -397,17 +401,17 @@ c
       sgain = 0
       surflx = 0
       salflx = 0
+      brnflx = 0
+      sqiflx = 0
       sflxcum = 0
       hflxcum = 0
-      odmsi = 0
+      odhsi = 0
       omlhc = 0
       dmfz = 0
-      loan_ice = 0
-      idrift = 0
-      jdrift = 0
       taux = 0
       tauy = 0
       oemnp = 0
+      oicemlt = 0
       oflxa2o = 0
       oice = 0
       ustar = 0
@@ -417,6 +421,10 @@ c
       diafor = 0
       ijlist = 0
       klist = 0
+      diag1 = 0
+      diag2 = 0
+      diag3 = 0
+      diag4 = 0
 
       end subroutine alloc_hycom_arrays
 

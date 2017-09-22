@@ -134,9 +134,6 @@ c --- data are written in strips 75 points wide
       endif
       deallocate( ip_glob )
 c
-c --- initialize arrays for equatorward ice export
-      call export_init
-
       return
       end
 c
