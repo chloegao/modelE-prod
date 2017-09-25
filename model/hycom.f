@@ -170,14 +170,10 @@ c
       integer after,before,rate,bfogcm
       integer :: year, month, dayOfYear, date, hour
 c
-      real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila_loc
-      real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm)
-     . ,oogeoza(idm,jdm),usf(idm,jdm),vsf(idm,jdm)
-     . ,usf_loc(idm,J_0H:J_1H),vsf_loc(idm,J_0H:J_1H)
-c    . ,omlhc_loc(idm,J_0H:J_1H),omlhc(idm,jdm)
-      real, dimension(idm,J_0H:J_1H) :: tauxi_loc,tauyi_loc,ustari_loc
-      real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
-     &    osiav_loc(idm,J_0H:J_1H), oogeoza_loc(idm,J_0H:J_1H)
+      real, dimension(idm,jdm) :: osst, osss, oogeoza,usf,vsf
+      real, dimension(idm,J_0H:J_1H) :: osst_loc,osss_loc,oogeoza_loc
+     &   ,usf_loc,vsf_loc,tauxi_loc,tauyi_loc,ustari_loc
+      real, dimension(aI_0H:aI_1H,aJ_0H:aJ_1H) :: utila
 #ifdef TRACERS_GASEXCH_ocean
       real, allocatable :: otrac_loc(:,:,:) !(idm,J_0H:J_1H,ntm)
 #endif
@@ -188,7 +184,7 @@ c    . ,omlhc_loc(idm,J_0H:J_1H),omlhc(idm,jdm)
      &     dmua_loc,dmva_loc,e0_loc,egmelt_loc,eflowo_loc,
      &     prec_loc,eprec_loc,evapor_loc,flowo_loc,gmelt_loc,
      &     melti_loc,emelti_loc,smelti_loc,
-     &     runosi_loc,erunosi_loc,srunosi_loc,
+     &     runosi_loc,erunosi_loc,   srunosi_loc,
      &     runpsi_loc,erunpsi_loc,srunpsi_loc,mlhc_loc,
      &     sss_loc,ogeoza_loc,uosurf_loc,vosurf_loc,gtemp_loc,gtempr_loc
       real*8, dimension(:,:,:), pointer :: dmsi_loc,dhsi_loc,dssi_loc
@@ -284,6 +280,7 @@ c
           atauy_loc(ia,ja)=0.
         aflxa2o_loc(ia,ja)=0.
           aemnp_loc(ia,ja)=0.
+        aicemlt_loc(ia,ja)=0.
           asalt_loc(ia,ja)=0.
            aice_loc(ia,ja)=0.
          austar_loc(ia,ja)=0.
@@ -352,6 +349,7 @@ c
         ipa_loc(ia,ja)=0
         aflxa2o_loc(ia,ja)=huge
          aemnp_loc(ia,ja)=huge
+       aicemlt_loc(ia,ja)=huge
         austar_loc(ia,ja)=huge
         aswflx_loc(ia,ja)=huge
          asalt_loc(ia,ja)=huge
@@ -361,32 +359,36 @@ c
       else
         ipa_loc(ia,ja)=1.
 c --- accumulate
-        aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                              ! J/m2 => W/m2
-     . +((e0_loc(ia,ja)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))            ! ocean water
-     . + egmelt_loc(ia,ja)+emelti_loc(ia,ja)/focean_loc(ia,ja)           ! ocn or ice
+        aflxa2o_loc(ia,ja)=aflxa2o_loc(ia,ja)                      ! J/m2 => W/m2
+     . +((e0_loc(ia,ja)+eprec_loc(ia,ja))*(1.-rsi_loc(ia,ja))      ! ocean water
+     . + egmelt_loc(ia,ja)+emelti_loc(ia,ja)/focean_loc(ia,ja)     ! ocn or ice
      . + eflow_gl/area
-     . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))          ! ice
+     . +(erunosi_loc(ia,ja)+erunpsi_loc(ia,ja))*rsi_loc(ia,ja))    ! ice
      . /(SECONDS_PER_HOUR*real(nhr))
-        aemnp_loc(ia,ja)=aemnp_loc(ia,ja)                                  ! kg/m2 => m/s
-     .  +((prec_loc(ia,ja)-evapor_loc(ia,ja))*(1.-rsi_loc(ia,ja))          ! open water
-     .  +flowo_loc(ia,ja)+gmelt_loc(ia,ja)+melti_loc(ia,ja)/
-     .     focean_loc(ia,ja)    !ocn/ice
-     .  +(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref       ! ice
+        aemnp_loc(ia,ja)=aemnp_loc(ia,ja)				! kg/m2 => m/s
+     .  +((prec_loc(ia,ja)-evapor_loc(ia,ja))*(1.-rsi_loc(ia,ja))	! open water
+     .  +flowo_loc(ia,ja)+gmelt_loc(ia,ja)				! river/glacial
+     .  +melti_loc(ia,ja)/focean_loc(ia,ja)				! meltice
+     .  +(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref	! ice runoff
+     .  /(SECONDS_PER_HOUR*real(nhr))
+        aicemlt_loc(ia,ja)=aicemlt_loc(ia,ja)				! kg/m2 => m/s
+     .  +(melti_loc(ia,ja)/focean_loc(ia,ja)				! meltice
+     .  +(runosi_loc(ia,ja)+runpsi_loc(ia,ja))*rsi_loc(ia,ja))*thref	! ice runoff
      .  /(SECONDS_PER_HOUR*real(nhr))
         austar_loc(ia,ja)=austar_loc(ia,ja)+(
      . sqrt(sqrt((dmua_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .          +(admui_loc(ia,ja)+admui_loc(iam1,ja))*.5)**2
      .          +(dmva_loc(ia,ja)*(1d0-rsi_loc(ia,ja))
      .          +(admvi_loc(ia,ja)+admvi_loc(ia,max(1,ja-1)))*.5)**2)
-     .          /dtsrc*thref))                                           ! sqrt(T/r)=>m/s
+     .          /dtsrc*thref))                      ! sqrt(T/r)=>m/s
      .          *dtsrc/(real(nhr)*SECONDS_PER_HOUR)
         aswflx_loc(ia,ja)=aswflx_loc(ia,ja)+(atmocn%solar(ia,ja)*
-     .                         (1.-rsi_loc(ia,ja))                       !J/m*m=>W/m*m
+     .                         (1.-rsi_loc(ia,ja))          !J/m*m=>W/m*m
      .                         +iceocn%solar(ia,ja)*rsi_loc(ia,ja))
      .                         /(SECONDS_PER_HOUR*real(nhr))
-        asalt_loc(ia,ja)=asalt_loc(ia,ja)                                  ! kg/m2/sec salt
-     . +((srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja)
-     . +smelti_loc(ia,ja)/(focean_loc(ia,ja)))
+        asalt_loc(ia,ja)=asalt_loc(ia,ja)				! salflx kg/m2 => kg/m2/sec
+     . +( smelti_loc(ia,ja)/focean_loc(ia,ja)				! meltice
+     . +(srunosi_loc(ia,ja)+srunpsi_loc(ia,ja))*rsi_loc(ia,ja))		! ice runoff
      . /(SECONDS_PER_HOUR*real(nhr))
         aice_loc(ia,ja)= aice_loc(ia,ja) + rsi_loc(ia,ja)*
      .                             dtsrc/(real(nhr)*SECONDS_PER_HOUR)
@@ -446,11 +448,14 @@ c
       end if
       nsavea=0
 c
+c --- pass ice/atmo fields to ocean
+
       call vec_a2o(ataux_loc,atauy_loc,taux_loc,tauy_loc) !wind stress
       call fld_a2o( aice_loc, oice_loc,'icecv')		!ice coverage
       call fld_a2o(aflxa2o_loc,oflxa2o_loc,'surfl')	!heatflux everywhere
-      call fld_a2o(asalt_loc,osalt_loc,'osalt')		!saltflux from SI
+      call fld_a2o(asalt_loc,osalt_loc,'osalt')		!ice->ocn saltflux
       call fld_a2o(aemnp_loc,oemnp_loc,'eminp')         !E - P everywhere
+      call fld_a2o(aicemlt_loc,oicemlt_loc,'icemt')     !ice melt (diag)
       call fld_a2o(austar_loc,ustar_loc,'ustar')        !friction velocity
       call fld_a2o(aswflx_loc,sswflx_loc,'shtwv')       !shortwave flux
 #ifdef CUBED_SPHERE
@@ -660,7 +665,7 @@ c     call zebra(aflxa2o,iia,iia,jja)
 c
       osst=0.  ;   osst_loc=0.;
       osss=0.  ;   osss_loc=0.;
-      osiav=0. ;  osiav_loc=0.;
+      odhsi=0. ;  odhsi_loc=0.;
 
       CALL HALO_UPDATE(ogrid,corio_loc,     FROM=NORTH)
       hekman_loc=0.;
@@ -817,10 +822,9 @@ c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
  103  format (f9.1,a,-12p,f9.3,' TW')
 c
       if (chksum) call glbsum(mm,nn,' new timestep',0.,0.)
-      call system_clock(before)
 
+      call system_clock(before)
       call cnuity(m,n,mm,nn,k1m,k1n)
-c
 CTNL  call hycom_arrays_checksum     ! save CPU's time
       call system_clock(after)
       cnuity_time = real(after-before)/real(rate)
@@ -877,21 +881,16 @@ ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call momtum(m,n,mm,nn,k1m,k1n)
-
 cdiag if (AM_I_ROOT()) print *,'passed momtum'
-c
       call system_clock(after)
       momtum_time = real(after-before)/real(rate)
-c
 ccc      write (string,'(a12,i8)') 'momtum, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       before = after
       call barotp(m,n,mm,nn,k1m,k1n)
-
       call system_clock(after)
       barotp_time = real(after-before)/real(rate)
-c
 ccc      write (string,'(a12,i8)') 'barotp, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
@@ -932,18 +931,17 @@ c
       before = after
       call thermf(m,n,mm,nn,k1m,k1n,
      .  sss_restore_dt,sss_restore_dtice)
+
       if (chksum) call glbsum(mm,nn,'aft thermf',0.,0.)
-c
       call system_clock(after)
       thermf_time = real(after-before)/real(rate)
 c
 ccc      write (string,'(a12,i8)') 'thermf, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
-c     before = after
-c     call enloan(m,n,mm,nn,k1m,k1n)	! temporarily deactivated
-c     if (chksum) call glbsum(mm,nn,'aft enloan',0.,0.)
-
+      before = after
+      call enloan(m,n,mm,nn,k1m,k1n)
+      if (chksum) call glbsum(mm,nn,'aft enloan',0.,0.)
       call system_clock(after)
       enloan_time = real(after-before)/real(rate)
 c
@@ -953,13 +951,12 @@ c       call mxlayr(m,n,mm,nn,k1m,k1n)
 c     else	! after 12 hrs
          call mxkprf(m,n,mm,nn,k1m,k1n)
          if (chksum) then
-           h_glb_cum(m)=h_glb_cum(m)+glob2d(surflx_loc)*g*delt1 !surflx=oflxa2o+loan_ice
+           h_glb_cum(m)=h_glb_cum(m)+glob2d(surflx_loc)*g*delt1
            s_glb_cum(m)=s_glb_cum(m)+glob2d(salflx_loc)*g*delt1
            call glbsum(mm,nn,'aft mxkprf',h_glb_cum(m),s_glb_cum(m))
          end if
 c     end if
 c     if (AM_I_ROOT())  print *,'passed mxkprf'
-c
       call system_clock(after)
       mxlayr_time = real(after-before)/real(rate)
 
@@ -967,28 +964,24 @@ c     call sstbud(4,'  air-sea fluxes',tprime)
 c     call sstbud(5,'     entrainment',temp(1,1,k1n))
 
       if (AM_I_ROOT()) then
-
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (diag_ape)
      . write (501,103) time,'  APE change due to thermal forcing:',
      .  hyc_pechg2(dp(1,1,k1n),th3d(1,1,k1n),31)
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-c
 ccc      write (string,'(a12,i8)') 'mxlayr, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
 c
       end if ! AM_I_ROOT
-      before = after
 
+      before = after
       call hybgen(m,n,mm,nn,k1m,k1n)
       if (chksum) call glbsum(mm,nn,'aft hybgen',0.,0.)
-
       call system_clock(after)
       hybgen_time = real(after-before)/real(rate)
 c
 ccc      write (string,'(a12,i8)') 'hybgrd, step',nstep
 ccc      call comparall(m,n,mm,nn,string)
-
 
 c - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
       if (AM_I_ROOT()) then
@@ -1217,8 +1210,6 @@ c --- accumulate fields for agcm
      &              (SECONDS_PER_HOUR*real(nhr))
       osss_loc(i,j)=osss_loc(i,j)+saln_loc(i,j,k1n)*baclin/
      &              (SECONDS_PER_HOUR*real(nhr))
-      osiav_loc(i,j)=osiav_loc(i,j)+odmsi_loc(i,j)*baclin*dtsrc/
-     &               (SECONDS_PER_HOUR*real(nhr))          !kg/m2=>kg*.5*hr/m2
       omlhc_loc(i,j)=spcifh*max(dp_loc(i,j,k1n)/onem,thkmin)/thref  ! J/(m2*C)
       oogeoza_loc(i,j)=(montg_loc(i,j,1)+thref*pbavg_loc(i,j,m))*
      &                 g/(thref*onem)                               ! m^2/s^2
@@ -1251,8 +1242,8 @@ c
       end if
       nsaveo=0
 
-      call gather6hycom(osst,osss,osiav,oogeoza,
-     &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
+      call gather6hycom(osst,osss,odhsi,oogeoza,
+     &         osst_loc,osss_loc,odhsi_loc,oogeoza_loc)
 c
       do 88 j=J_0,J_1
       do 88 i=1,ii
@@ -1270,14 +1261,18 @@ c     call findmx(iv,vsf,ii,ii,jj,'v_ocn')
 c
 c      endif
 
-      utila_loc(:,:)=0.
+c --- pass ocean fields to ice/atmo
+
+      utila(:,:)=0.
       call fld_o2a(osst_loc,atmocn%work1,'s s t')
       call tempr_o2a(osst_loc,atmocn%work2)
       call fld_o2a(osss_loc,sss_loc,'s s s')
-c     call fld_o2a(omlhc_loc,mlhc_loc,'omlhc')
+css   call fld_o2a(omlhc_loc,mlhc_loc,'omlhc')
       call fld_o2a(oogeoza_loc,ogeoza_loc,'geoza')
-c     call fld_o2a(osiav_loc,utila_loc,'newic')                 !kg/m*m per agcm time step
+c --- sign convention: ocn heat gain -> dhsi<0
+      call fld_o2a(odhsi_loc,utila,' dhsi')	! <0 J/m2 per agcm time step
       call vec_o2a(usf_loc,vsf_loc,uosurf_loc,vosurf_loc)
+      odhsi=0. ;  odhsi_loc=0.;
 #ifdef CUBED_SPHERE
       call vec_o2i(usf_loc,vsf_loc,dynsice%uosurf,dynsice%vosurf)
 #else
@@ -1302,17 +1297,20 @@ cdiag. , (vosurf(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 cdiag. ,((aice(i,j)*100.,  i=iatest-2,iatest+2)
 cdiag. , (focean(i,j)*100.,i=iatest-2,iatest+2),j=jatest+2,jatest-2,-1)
 c
-      utila_loc(:,:)=0.
       do 204 ja=aJ_0,aJ_1
       do 204 ia=aI_0,aI_1
       if (focean_loc(ia,ja).gt.0.) then
         gtemp_loc(ia,ja)=atmocn%work1(ia,ja)
         gtempr_loc(ia,ja)=atmocn%work2(ia,ja)
         tf=tfrez(sss_loc(ia,ja),0.)
-        dmsi_loc(1,ia,ja)=utila_loc(ia,ja)                        !kg/m2 per agcm step
-c --- this should be accumulated separately, no?
-        dhsi_loc(1,ia,ja)=utila_loc(ia,ja)*Ei(tf,fsss*sss_loc(ia,ja)) !J/m2 per agcm step
-        dssi_loc(1,ia,ja)=1.d-3*dmsi_loc(1,ia,ja)*sss_loc(ia,ja)*fsss !kg/m2 per agcm step
+	dhsi_loc(1,ia,ja)=utila(ia,ja)                 !<0 J/m2 per agcm step
+c --- 'dmsi' is the new mass (ice & salt) releasing thermal energy 'dhsi'
+c --- sign convention: ice mass gain -> dmsi>0
+c --- sign convention: ice salt gain -> dssi>0
+	dmsi_loc(1,ia,ja)=-dhsi_loc(1,ia,ja)/
+     .    (tf*spcifh-Ei(tf,fsss*sss_loc(ia,ja))) !>0 kg/m2 per agcm step
+c --- 'dssi' is the salt amount sequestered in new ice (eq.9 in Schmidt et al)
+        dssi_loc(1,ia,ja)=dmsi_loc(1,ia,ja)*fsss*stdsal*1.e-3 !>0 kg/m2 per agcm step
 c --- evenly distribute new ice over open water and sea ice
 c --- this is not necessarily a good idea. What about weighting it
 c --- with respect to the ice/openwater flux ratio?
@@ -1322,15 +1320,23 @@ c --- with respect to the ice/openwater flux ratio?
           dssi_loc(2,ia,ja)=dssi_loc(1,ia,ja)
         endif
 
-      if (vrbos) then
-        if (ia==54 .and. ja==7) then
-          write (*,104) nstep,ia,ja,
-     .  'hflx',aflxa2o_loc(ia,ja),' SST',gtemp_loc(ia,ja),
-     .  'ice%',aice_loc(ia,ja)*100,'tfrz',tfrez(sss_loc(ia,ja),0.)
- 104    format (i8,' (atm) ia,ja ='2i5,(8(a5,'=',es9.2)))
-        end if ! ia,ja
-       end if  ! vrbos
-      end if   ! focean
+c       if (ia==138 .and. (ja==75 .or. ja==70 .or. ja==65)) then
+c         write (*,104) nstep,ia,ja,
+c    .  'aflx',aflxa2o_loc(ia,ja),' SST',gtemp_loc(ia,ja)
+c    .  'ice%',aice_loc(ia,ja)*100
+c    . ,'J/m2',dhsi_loc(1,ia,ja)
+c    . ,'runo',runosi_loc(ia,ja)*rsi_loc(ia,ja)
+c    . ,'runp',runpsi_loc(ia,ja)*rsi_loc(ia,ja)
+c    . ,'mlti', melti_loc(ia,ja)/focean_loc(ia,ja)
+c    . ,'icem',aicemlt_loc(ia,ja)
+c    . ,'s1', srunosi_loc(ia,ja)*rsi_loc(ia,ja)
+c    . ,'s2', srunpsi_loc(ia,ja)*rsi_loc(ia,ja)
+c    . ,'s3',  smelti_loc(ia,ja)/focean_loc(ia,ja)
+c    . ,'aslt',asalt_loc(ia,ja)
+c104    format (i8,' (atm) ia,ja ='2i3,(20(a5,'=',es9.2)))
+c       end if
+
+      end if
  204  continue
 
 #ifdef TRACERS_GASEXCH_ocean
@@ -1399,7 +1405,6 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  th3d_loc, th3d )
       call pack_data( ogrid,  dpmixl_loc, dpmixl )
       call pack_data( ogrid,  srfhgt_loc, srfhgt )
-      call pack_data( ogrid,  loan_ice_loc, loan_ice )
       call pack_data( ogrid,  ubavg_loc, ubavg )
       call pack_data( ogrid,  vbavg_loc, vbavg )
       call pack_data( ogrid,  uav_loc, uav )
@@ -1430,7 +1435,6 @@ c------------------------------------------------------------------
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  util1_loc, util1 )
       call pack_data( ogrid,  osalt_loc, osalt )
-      call pack_data( ogrid,  loan_ice_loc, loan_ice )
 
       end subroutine gather_before_archive
 c------------------------------------------------------------------
@@ -1491,19 +1495,19 @@ c
 
       end subroutine set_data_after_archiv
 c------------------------------------------------------------------
-      subroutine gather6hycom(osst,osss,osiav,oogeoza,
-     &         osst_loc,osss_loc,osiav_loc,oogeoza_loc)
+      subroutine gather6hycom(osst,osss,odhsi,oogeoza,
+     &         osst_loc,osss_loc,odhsi_loc,oogeoza_loc)
 
       USE HYCOM_DIM, only : idm, jdm, J_0H,  J_1H, ogrid
       USE DOMAIN_DECOMP_1D, ONLY: PACK_DATA
       implicit none
-      real osst(idm,jdm),osss(idm,jdm),osiav(idm,jdm),oogeoza(idm,jdm)
+      real osst(idm,jdm),osss(idm,jdm),odhsi(idm,jdm),oogeoza(idm,jdm)
       real osst_loc(idm,J_0H:J_1H),osss_loc(idm,J_0H:J_1H),
-     &     osiav_loc(idm,J_0H:J_1H),oogeoza_loc(idm,J_0H:J_1H)
+     &     odhsi_loc(idm,J_0H:J_1H),oogeoza_loc(idm,J_0H:J_1H)
 
       call pack_data( ogrid,  osst_loc,      osst    )
       call pack_data( ogrid,  osss_loc,      osss    )
-      call pack_data( ogrid,  osiav_loc,     osiav   )
+      call pack_data( ogrid,  odhsi_loc,     odhsi   )
       call pack_data( ogrid,  oogeoza_loc,   oogeoza )
 
       end subroutine gather6hycom
@@ -1874,7 +1878,7 @@ c
       call GLOBALSUM( ogrid, salflx, arraysum )   ! sum(salflx(:,:))
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
-      call GLOBALSUM( ogrid, odmsi, arraysum )   ! sum(odmsi(:,:))
+      call GLOBALSUM( ogrid, odhsi, arraysum )   ! sum(odhsi(:,:))
       if(AM_I_ROOT()) write(801,*) 'hycom.f ',__LINE__, arraySum
 
       call GLOBALSUM( ogrid, dmfz, arraysum )   ! sum(dmfz(:,:))

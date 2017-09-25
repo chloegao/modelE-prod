@@ -77,13 +77,16 @@ c     integer :: iotest=154,jotest=198,iatest,jatest
         allocate(flda(1,1),fldo(1,1))
       endif
 
-      call pack_data(ogrid,fldo_loc,fldo)
       call pack_data(agrid,flda_loc,flda)
+      call pack_data(ogrid,fldo_loc,fldo)
 c
       if (am_i_root()) then
        if (vrbos) then
-        call oij2aij(iotest,jotest,iatest,jatest)
-        peak=1.e-6
+        if (iotest==-1)
+     .    call aij2oij(iatest,jatest,iotest,jotest)
+        if (iatest==-1)
+     .    call oij2aij(iotest,jotest,iatest,jatest)
+        peak=1.e-8
        end if
        do 16 ja=1,jja
        do 16 ia=1,iia
@@ -102,7 +105,7 @@ c
  17     flda(ia,ja)=flda(ia,ja)+
      .     fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
         if (vrbos) then
-         peak=max(peak,flda(ia,ja))
+         peak=max(peak,abs(flda(ia,ja)))
          if (totwgt.gt.0. .and. abs(totwgt-1.).gt.1.e-7) then
           print '(2i5,a,f13.7)',ia,ja,' sum of o2a intp.weights not 1:',
      .    totwgt
@@ -228,14 +231,17 @@ c     integer :: iotest=154,jotest=198,iatest,jatest
         allocate(flda(1,1),fldo(1,1))
       endif
 
-      call pack_data(agrid,flda_loc,flda)
       call pack_data(ogrid,fldo_loc,fldo)
+      call pack_data(agrid,flda_loc,flda)
 c
       if (am_i_root()) then
        if (vrbos) then
-        call oij2aij(iotest,jotest,iatest,jatest)
+        if (iotest==-1)
+     .    call aij2oij(iatest,jatest,iotest,jotest)
+        if (iatest==-1)
+     .    call oij2aij(iotest,jotest,iatest,jatest)
         fldo(:,:)=huge			! turn land points into **** in printout
-        peak=1.e-6
+        peak=1.e-8
        end if
        do 8 j=1,jj
        do 8 l=1,isp(j)
@@ -511,6 +517,27 @@ c --- find 'a' point nearest prescribed 'o' point
       return
       end subroutine oij2aij
 
+
+      subroutine aij2oij(ia,ja,io,jo)
+c --- find 'o' point nearest prescribed 'a' point
+      integer,intent(IN)  :: ia,ja
+      integer,intent(OUT) :: io,jo
+      real wmax
+      wmax=0.
+      io=-1
+      jo=-1
+      do 8 j=1,jja
+      do 8 i=1,iia
+      do 8 n=1,nlisto2a(i,j)
+      if (i.eq.ia .and. j.eq.ja .and.wlisto2a(i,j,n).gt.wmax) then
+        wmax=wlisto2a(i,j,n)
+        io=ilisto2a(i,j,n)
+        jo=jlisto2a(i,j,n)
+      end if
+ 8    continue
+      print '(2(a,2i5))','o-point nearest a-point',ia,ja,'  is',io,jo
+      return
+      end subroutine aij2oij
       end module hycom_cpler
 
 !--<>--<>--<>--<>--<>--<>--<>--<>--<>--<>---<>--<>--<>--<>--<>--<>--<>

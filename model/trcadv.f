@@ -715,8 +715,8 @@ c
 c
         if (vlume.ne.0.) then
           clip=clip/vlume
-          write (*,'(a,i2,a,es11.3)') 'k=',k,'  tracer drift in fct3d',
-     .     -clip
+cdiag     write (*,'(a,i2,a,es11.3)') 'k=',k,'  tracer drift in fct3d',
+cdiag.     -clip
           do 13 j=J_0, J_1
           do 13 l=1,isp(j)
           do 13 i=ifp(j,l),ilp(j,l)

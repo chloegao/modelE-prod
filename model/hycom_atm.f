@@ -15,7 +15,7 @@
       public alloc_hycom_atm
 
       public ataux_loc,atauy_loc,aflxa2o_loc
-     .     ,aemnp_loc,aice_loc,asalt_loc
+     .     ,aemnp_loc,aicemlt_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc
 
@@ -27,7 +27,7 @@
       ! (shouldn't these actually be accumulated on ocean grid
       !  and then interpolated to atmospheric grid?)
       real*8, allocatable, dimension(:,:) :: ataux_loc,atauy_loc
-     .     ,aflxa2o_loc,aemnp_loc,aice_loc,asalt_loc
+     .     ,aflxa2o_loc,aemnp_loc,aicemlt_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
 
@@ -57,6 +57,7 @@
      &     atauy_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aflxa2o_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aemnp_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     aicemlt_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aice_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     asalt_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     austar_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
