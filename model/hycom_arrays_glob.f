@@ -144,6 +144,7 @@ cddd      public msk
       public depths
       public drag
       public glue
+      public zone
       public dampu
       public dampv
       public uja
@@ -159,15 +160,13 @@ cddd      public msk
       public salflx
       public sflxcum
       public hflxcum
-      public odmsi
+      public odhsi
       public omlhc
-      public loan_ice
-      public idrift
-      public jdrift
       public dmfz
       public taux
       public tauy
       public oemnp
+      public oicemlt
       public oflxa2o
       public oice
       public ustar
@@ -177,6 +176,7 @@ cddd      public msk
       public diafor
       public klist
       public ijlist
+      public diag1,diag2,diag3,diag4
 
 
 !!      c o m m o n
@@ -263,6 +263,7 @@ c
      .,depths(:,:)			! water depth
      .,drag(:,:)			! bottom drag
      .,glue(:,:)			! regional viscosity enhancement
+     .,zone(:,:,:)			! zone of arctic/main/antarctic
      .,dampu(:,:),dampv(:,:)		! coastal wave damping coeff.
 c
 !!      real util1,util2,util3,util4,scpx,scpy,scux,scuy,scvx,scvy,
@@ -272,30 +273,27 @@ c
 c
 !!      c o m m o n
       real, allocatable ::
-     . uja(:,:),ujb(:,:)    ! velocities at lateral
-     .,via(:,:),vib(:,:)    !          neighbor points
-     .,pbot(:,:)            ! bottom pressure at t=0
-     .,tracer(:,:,:,:)      ! tracer
-     .,diadff(:,:,:)        !
-     .,tprime(:,:)          ! temp.change due to surflx
-     .,sgain(:,:)           ! salin.changes from diapyc.mix.
-     .,surflx(:,:)          ! surface thermal energy flux
-     .,salflx(:,:)          ! surface salinity flux
-     .,sflxcum(:,:)         ! accumulated saltflux
-     .,hflxcum(:,:)         ! accumulated heatflux
-c    .,thkice(:,:)          ! grid-cell avg. ice thknss (cm)
-c    .,covice(:,:)          ! ice coverage (rel.units)
-c    .,temice(:,:)          ! ice surf.temp.
-c    .,odhsi(:,:)           ! heat borrowed from frozen
-     .,odmsi(:,:)           ! newly formed ice
+     . uja(:,:),ujb(:,:)		! velocities at lateral
+     .,via(:,:),vib(:,:)		!          neighbor points
+     .,pbot(:,:)			! bottom pressure at t=0
+     .,tracer(:,:,:,:)			! tracer
+     .,diadff(:,:,:)			!
+     .,tprime(:,:)			! temp.change due to surflx
+     .,sgain(:,:)			! salin.changes from diapyc.mix.
+     .,surflx(:,:)			! surface thermal energy flux
+     .,salflx(:,:)			! surface salinity flux
+     .,sflxcum(:,:)			! accumulated saltflux
+     .,hflxcum(:,:)			! accumulated heatflux
+c    .,thkice(:,:)			! grid-cell avg. ice thknss (cm)
+c    .,covice(:,:)			! ice coverage (rel.units)
+c    .,temice(:,:)			! ice surf.temp.
+     .,odhsi(:,:)			! heat borrowed from frozen
      .,omlhc(:,:)
-     .,loan_ice(:,:)        ! heatflux to prevent SST below freezing, > 0
      .,dmfz(:,:)            ! ice mass due to freezing
 c
       integer, allocatable, dimension (:,:) ::
      .  klist               ! k-index of layer below mixl'r
      . ,ijlist              ! global ij index
-     . ,idrift,jdrift                   ! drift index for loan_ice
 c
 !!    common/int1/klist
 
@@ -320,15 +318,15 @@ c    .,vapmix(:,:,:)                      !  atmosph. vapor mixing ratio
 c    .,oprec(:,:)                         !  precipitation
 c    .,oevap(:,:)                         !  evaportation
      .,oemnp(:,:)                         !  e - p
+     .,oicemlt(:,:)                       !  ice melt on o-grid
      .,oflxa2o(:,:),oice(:,:)
      .,ustar(:,:)                         ! surface friction velocity
      .,ustarb(:,:)                        ! bottom friction velocity
      .,osalt(:,:)                         ! saltflux from SI(kg/m*m)
-c
      .,freshw(:,:)                        !  river & glacier runoff
      .,diafor(:,:)                        !  imposed diapycnal forcing
+     .,diag1(:,:),diag2(:,:),diag3(:,:),diag4(:,:)
 c
-
       contains
 
       subroutine scatter_hycom_arrays
@@ -338,7 +336,6 @@ c
 
       !return
 
-      !!!call unpack_data( ogrid,  u, u_loc )
       call unpack_data( ogrid,  u, u_loc )
       call unpack_data( ogrid,  v, v_loc )
       call unpack_data( ogrid,  dp, dp_loc )
@@ -441,6 +438,7 @@ c
       call unpack_data( ogrid,  depths, depths_loc )
       call unpack_data( ogrid,  drag, drag_loc )
       call unpack_data( ogrid,  glue, glue_loc )
+      call unpack_data( ogrid,  zone, zone_loc )
       call unpack_data( ogrid,  dampu, dampu_loc )
       call unpack_data( ogrid,  dampv, dampv_loc )
       call unpack_data( ogrid,  uja, uja_loc )
@@ -456,15 +454,13 @@ c
       call unpack_data( ogrid,  salflx, salflx_loc )
       call unpack_data( ogrid,  sflxcum, sflxcum_loc )
       call unpack_data( ogrid,  hflxcum, hflxcum_loc )
-      call unpack_data( ogrid,  odmsi, odmsi_loc )
+      call unpack_data( ogrid,  odhsi, odhsi_loc )
       call unpack_data( ogrid,  omlhc, omlhc_loc )
-      call unpack_data( ogrid,  loan_ice, loan_ice_loc )
-      call unpack_data( ogrid,  idrift, idrift_loc )
-      call unpack_data( ogrid,  jdrift, jdrift_loc )
       call unpack_data( ogrid,  dmfz, dmfz_loc )
       call unpack_data( ogrid,  taux, taux_loc )
       call unpack_data( ogrid,  tauy, tauy_loc )
       call unpack_data( ogrid,  oemnp, oemnp_loc )
+      call unpack_data( ogrid,  oicemlt, oicemlt_loc )
       call unpack_data( ogrid,  oflxa2o, oflxa2o_loc )
       call unpack_data( ogrid,  oice, oice_loc )
       call unpack_data( ogrid,  ustar, ustar_loc )
@@ -474,6 +470,10 @@ c
       call unpack_data( ogrid,  diafor, diafor_loc )
       call unpack_data( ogrid,  klist, klist_loc )
       call unpack_data( ogrid,  ijlist,ijlist_loc )
+      call unpack_data( ogrid,  diag1,diag1_loc )
+      call unpack_data( ogrid,  diag2,diag2_loc )
+      call unpack_data( ogrid,  diag3,diag3_loc )
+      call unpack_data( ogrid,  diag4,diag4_loc )
 
       end subroutine scatter_hycom_arrays
 
@@ -587,6 +587,7 @@ c
       call pack_data( ogrid,  depths_loc, depths )
       call pack_data( ogrid,  drag_loc, drag )
       call pack_data( ogrid,  glue_loc, glue )
+      call pack_data( ogrid,  zone_loc, zone )
       call pack_data( ogrid,  dampu_loc, dampu )
       call pack_data( ogrid,  dampv_loc, dampv )
       call pack_data( ogrid,  uja_loc, uja )
@@ -602,15 +603,13 @@ c
       call pack_data( ogrid,  salflx_loc, salflx )
       call pack_data( ogrid,  sflxcum_loc, sflxcum )
       call pack_data( ogrid,  hflxcum_loc, hflxcum )
-      call pack_data( ogrid,  odmsi_loc, odmsi )
+      call pack_data( ogrid,  odhsi_loc, odhsi )
       call pack_data( ogrid,  omlhc_loc, omlhc )
-      call pack_data( ogrid,  loan_ice_loc, loan_ice )
-      call pack_data( ogrid,  idrift_loc, idrift )
-      call pack_data( ogrid,  jdrift_loc, jdrift )
       call pack_data( ogrid,  dmfz_loc, dmfz )
       call pack_data( ogrid,  taux_loc, taux )
       call pack_data( ogrid,  tauy_loc, tauy )
       call pack_data( ogrid,  oemnp_loc, oemnp )
+      call pack_data( ogrid,  oicemlt_loc, oicemlt )
       call pack_data( ogrid,  oflxa2o_loc, oflxa2o )
       call pack_data( ogrid,  oice_loc, oice )
       call pack_data( ogrid,  ustar_loc, ustar )
@@ -620,6 +619,10 @@ c
       call pack_data( ogrid,  diafor_loc, diafor )
       call pack_data( ogrid,  klist_loc, klist )
       call pack_data( ogrid,  ijlist_loc, ijlist )
+      call pack_data( ogrid,  diag1_loc, diag1 )
+      call pack_data( ogrid,  diag2_loc, diag2 )
+      call pack_data( ogrid,  diag3_loc, diag3 )
+      call pack_data( ogrid,  diag4_loc, diag4 )
 
       end subroutine gather_hycom_arrays
 
@@ -715,6 +718,7 @@ c
      .,pvtrop(idm,jdm)
      .,drag(idm,jdm)
      .,glue(idm,jdm)
+     .,zone(idm,jdm,3)
      .,dampu(idm,jdm),dampv(idm,jdm) )
 c
        allocate(
@@ -732,14 +736,11 @@ c
 c    .,thkice(idm,jdm)
 c    .,covice(idm,jdm)
 c    .,temice(idm,jdm)
-c    .,odhsi(idm,jdm)
-     .,odmsi(idm,jdm)
+     .,odhsi(idm,jdm)
      .,omlhc(idm,jdm)
-     .,loan_ice(idm,jdm)
      .,dmfz(idm,jdm) )
 c
-      allocate( klist(idm,jdm),ijlist(idm,jdm)
-     .        ,idrift(idm,jdm),jdrift(idm,jdm)  )
+      allocate( klist(idm,jdm),ijlist(idm,jdm) )
 c
       allocate(
      . taux(idm,jdm)
@@ -750,12 +751,13 @@ c    .,vapmix(idm,jdm,4)
 c    .,oprec(idm,jdm)
 c    .,oevap(idm,jdm)
      .,oemnp(idm,jdm)
+     .,oicemlt(idm,jdm)
      .,oflxa2o(idm,jdm),oice(idm,jdm)
      .,ustar(idm,jdm)
      .,ustarb(idm,jdm)
      .,osalt(idm,jdm)
-c
      .,freshw(idm,jdm)
+     .,diag1(idm,jdm),diag2(idm,jdm),diag3(idm,jdm),diag4(idm,jdm)
      .,diafor(idm,jdm) )
 c
 
@@ -862,6 +864,7 @@ c
       pvtrop = 0
       drag = 0
       glue = 0
+      zone = 0
       dampu = 0
       dampv = 0
       uja = 0
@@ -877,15 +880,13 @@ c
       salflx = 0
       sflxcum = 0
       hflxcum = 0
-      odmsi = 0
+      odhsi = 0
       omlhc = 0
-      loan_ice = 0
-      idrift = 0
-      jdrift = 0
       dmfz = 0
       taux = 0
       tauy = 0
       oemnp = 0
+      oicemlt = 0
       oflxa2o = 0
       oice = 0
       ustar = 0
@@ -895,6 +896,7 @@ c
       diafor = 0
       klist = 0
       ijlist = 0
+      diag1=0.; diag2=0.; diag3=0.; diag4=0.
 
       end subroutine alloc_hycom_arrays_glob
 
@@ -1007,6 +1009,7 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(depths(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(drag(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(glue(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(zone(:,:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dampu(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dampv(:,:))
 c
@@ -1023,11 +1026,8 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(salflx(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(sflxcum(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(hflxcum(:,:))
-      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odmsi(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odhsi(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(omlhc(:,:))
-      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(loan_ice(:,:))
-      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(idrift(:,:))
-      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(jdrift(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dmfz(:,:))
 c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(klist(:,:))
@@ -1036,6 +1036,7 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(taux(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(tauy(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(oemnp(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(oicemlt(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(oflxa2o(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(oice(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(ustar(:,:))

@@ -21,8 +21,9 @@
      &  , bolus_laplc_exponential
 
       USE HYCOM_ARRAYS_GLOB, only: scatter_hycom_arrays
-      USE HYCOM_CPLER,       only: tempr_o2a, fld_o2a
-      USE DOMAIN_DECOMP_ATM, only: agrid => grid
+CTNL  USE HYCOM_CPLER, only : agrid, tempr_o2a, fld_o2a
+      USE HYCOM_CPLER, only : tempr_o2a, fld_o2a
+      USE DOMAIN_DECOMP_ATM, only : agrid=>grid
 
       USE hycom_arrays_glob_renamer, only : temp_loc,saln_loc
       USE HYCOM_ATM, only : alloc_hycom_atm
@@ -38,6 +39,8 @@
       integer i,j,ia,ja
 
       atmocn%need_eflow_gl = .true. ! tell atm that eflow_gl is needed
+
+CTNL  agrid => atmocn%grid ! grid used for pack_data/unpack_data in cpler
 
       aJ_0 = atmocn%J_0
       aJ_1 = atmocn%J_1
@@ -309,7 +312,6 @@ c
       call defvar(grid,fid,tauyav,'tauyav'//str2d)
       call defvar(grid,fid,dpmxav,'dpmxav'//str2d)
       call defvar(grid,fid,oiceav,'oiceav'//str2d)
-      call defvar(grid,fid,loan_ice,'loan_ice'//str2d)
 
 c write:
 c        WRITE (kunit,err=10) nstep,time
@@ -392,7 +394,6 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call write_dist_data(grid,fid,'tauyav',tauyav)
         call write_dist_data(grid,fid,'dpmxav',dpmxav)
         call write_dist_data(grid,fid,'oiceav',oiceav)
-        call write_dist_data(grid,fid,'loan_ice',loan_ice)
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'nstep',nstep0,bcast_all=.true.)
         call read_data(grid,fid,'time',time0,bcast_all=.true.)
@@ -440,7 +441,6 @@ c     . ,asst,atempr,sss,ogeoza,uosurf,vosurf,dhsi,dmsi,dssi  ! agcm grid
         call read_dist_data(grid,fid,'tauyav',tauyav)
         call read_dist_data(grid,fid,'dpmxav',dpmxav)
         call read_dist_data(grid,fid,'oiceav',oiceav)
-        call read_dist_data(grid,fid,'loan_ice',loan_ice)
 c certain initialization routines still work with global
 c arrays, so we have to gather
         call gather_checkpointed_hycom_arrays
@@ -496,7 +496,6 @@ CTNL  call pack_data( ogrid,  vbavav_loc, vbavav )
       call pack_data( ogrid,  tauyav_loc, tauyav )
       call pack_data( ogrid,  dpmxav_loc, dpmxav )
       call pack_data( ogrid,  oiceav_loc, oiceav )
-      call pack_data( ogrid,  loan_ice_loc, loan_ice )
       return
       end subroutine gather_checkpointed_hycom_arrays
 
@@ -674,7 +673,6 @@ c
       sfhtav(i,j)=huge
       dpmxav(i,j)=huge
       oiceav(i,j)=huge
-      loan_ice(i,j)=huge
       eminpav(i,j)=huge
       surflav(i,j)=huge
       tauxav(i,j)=huge

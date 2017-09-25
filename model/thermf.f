@@ -7,23 +7,28 @@ c --- hycom version 0.9
       USE HYCOM_DIM
       USE HYCOM_SCALARS, only : baclin,thref,slfcum,watcum,empcum,nstep
      & ,nstep0,diagno,area,spcifh,avgbot,g,onem,delt1,itest,jtest
-     & ,stdsal
+     & ,stdsal,zonarea,zonwat,zonemp,zonsfl,zonbrn,zonsqi
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, GLOBALSUM
       use TimeConstants_mod, only: SECONDS_PER_DAY
+      use mdul_glbdia,only: glbsum,glob2d
 c
       implicit none
       integer i,j,k,l,m,n,mm,nn,kn,k1m,k1n
       logical vrbos
       real thknss,radfl,radflw,radfli,vpmx,prcp,prcpw,prcpi,
-     .     evap,evapw,evapi,exchng,target,old,
-     .     rmean,tmean,smean,vmean,boxvol,fxbias,
+     &     evap,evapw,evapi,exchng,target,old,
+     &     rmean,tmean,smean,vmean,boxvol,fxbias,
      &     slfcol(J_0H:J_1H),watcol(J_0H:J_1H),empcol(J_0H:J_1H),
      &     rhocol(J_0H:J_1H),temcol(J_0H:J_1H),salcol(J_0H:J_1H),
      &     sf1col(J_0H:J_1H),sf2col(J_0H:J_1H),clpcol(J_0H:J_1H),
-     &     numcol(J_0H:J_1H),fxbiasj(J_0H:J_1H)
+     &     numcol(J_0H:J_1H),fxbiasj(J_0H:J_1H),
+     &     zonwatc(J_0H:J_1H,3),zonempc(J_0H:J_1H,3),
+     &     zonsflc(J_0H:J_1H,3),zonbrnc(J_0H:J_1H,3),
+     &     zonsqic(J_0H:J_1H,3)
       integer iprime,ktop
-      real qsatur,totl,eptt,salrlx,sf1cum,sf2cum,bias,numcum
+      real qsatur,totl,eptt,salrlx,sf1sum,sf2sum,bias,numsum
+     &   ,q1,q2,q3,q4
       external qsatur
       data ktop/3/
 ccc      data ktop/2/                        !  normally set to 3
@@ -71,17 +76,19 @@ c --- --------------------------------
 c
 c --- for conservation reasons, (E-P)-induced global virtual salt flux must
 c --- be proportional to global E-P. this requires a global corrrection.
-c --- sf1cum,sf2cum are the uncorrected and corrected global salt fluxes.
+c --- sf1sum,sf2sum are the uncorrected and corrected global salt fluxes.
 c
       do 82 j=J_0,J_1
       sf2col(j)=0.
       fxbiasj(j)=0.
       do 82 l=1,isp(j)
       do 82 i=ifp(j,l),ilp(j,l)
+c --- sign convention: ocn freshwater gain -> oemnp>0
+c --- sign convention: ocn salt gain -> osalt>0
  82   sf2col(j)=sf2col(j)+(-stdsal*oemnp(i,j)/thref+osalt(i,j)*1.e3)
      .  *scp2(i,j)
 c
-      call GLOBALSUM(ogrid,sf2col,sf2cum, all=.true.)	! desired glob.saltflx
+      call GLOBALSUM(ogrid,sf2col,sf2sum, all=.true.)	! desired glob.saltflx
 c
       do 85 j=J_0,J_1
 c
@@ -92,13 +99,15 @@ c
       temcol(j)=0.
       salcol(j)=0.
       numcol(j)=0.
+      zonwatc(j,:)=0.
+      zonempc(j,:)=0.
+      zonsflc(j,:)=0.
+      zonbrnc(j,:)=0.
+      zonsqic(j,:)=0.
 c
       do 85 l=1,isp(j)
       do 85 i=ifp(j,l),ilp(j,l)
-      vrbos=i.eq.itest .and. j.eq.jtest
-c     vrbos=nstep.gt.23000 .and. i.eq.357 .and. j.eq.167
-c     vrbos=i.eq.154 .and. j.eq.198
-c     vrbos=i.eq.354 .and. j.eq.315
+      vrbos = i==itest .and. j==jtest
       surflx(i,j)=oflxa2o(i,j)				! heat flux
 c
 c --- oemnp = evaporation minus precipitation over open water (m/sec)
@@ -151,34 +160,59 @@ c --- clip pos.(incoming) salt flux to prevent S > 40 in top layer
       end if
 c
       if (vrbos) write (*,103) nstep,i,j,
-     .  'hflx',surflx(i,j),'sflx',salflx(i,j),'sst',temp(i,j,k1n),
-     .  'sss',saln(i,j,k1n),'oemp',oemnp(i,j),'oslt',osalt(i,j),
-     .  'ice%',oice(i,j)*100.,'loan',loan_ice(i,j)
- 103  format (i8,' (thermf) i,j ='2i5/(8(a5,'=',es9.2)))
+     .  'oflx',surflx(i,j),'sflx',salflx(i,j),'sst',temp(i,j,k1n),
+     .  'sss',saln(i,j,k1n),'oemp',oemnp(i,j),'osalt',osalt(i,j),
+     .  'melt',oicemlt(i,j),'ice%',oice(i,j)*100.
+ 103  format (i8,' (thermf) i,j ='2i5/(5(a6,'=',es9.2)))
 c -+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
 c
       sf1col(j)=sf1col(j)+salflx(i,j)*scp2(i,j)
       watcol(j)=watcol(j)+surflx(i,j)*scp2(i,j)
-      empcol(j)=empcol(j)+oemnp(i,j)*scp2(i,j)
+      empcol(j)=empcol(j)+oemnp (i,j)*scp2(i,j)
       rhocol(j)=rhocol(j)+th3d(i,j,k1n)*scp2(i,j)
       temcol(j)=temcol(j)+temp(i,j,k1n)*scp2(i,j)
       salcol(j)=salcol(j)+saln(i,j,k1n)*scp2(i,j)
+      zonwatc(j,:)=zonwatc(j,:)+surflx(i,j)*scp2(i,j)*zone(i,j,:)
+      zonempc(j,:)=zonempc(j,:)+oemnp (i,j)*scp2(i,j)*zone(i,j,:)
+      zonsflc(j,:)=zonsflc(j,:)+salflx(i,j)*scp2(i,j)*zone(i,j,:)
+
+! --- add salt flux (both induced and sequestered) from ice melt
+      brnflx(i,j)=brnflx(i,j)-oicemlt(i,j)*stdsal/thref		! g/m^2/sec
+      sqiflx(i,j)=sqiflx(i,j)+osalt(i,j)*1.e3			! g/m^2/sec
+      zonbrnc(j,:)=zonbrnc(j,:)+brnflx(i,j)*scp2(i,j)*zone(i,j,:)
+      zonsqic(j,:)=zonsqic(j,:)+sqiflx(i,j)*scp2(i,j)*zone(i,j,:)
  85   continue
 c
-      call GLOBALSUM(ogrid,watcol,watcum, all=.true.)
-      call GLOBALSUM(ogrid,empcol,empcum, all=.true.)
-      call GLOBALSUM(ogrid,sf1col,sf1cum, all=.true.)
-      call GLOBALSUM(ogrid,numcol,numcum, all=.true.)
+      call GLOBALSUM(ogrid,watcol,totl, all=.true.)
+      if (am_i_root()) watcum=watcum+totl		! accumulate in time
+      call GLOBALSUM(ogrid,empcol,totl, all=.true.)
+      if (am_i_root()) empcum=empcum+totl
+      call GLOBALSUM(ogrid,sf1col,sf1sum, all=.true.)
+      if (am_i_root()) slfcum=slfcum+sf1sum
+      call GLOBALSUM(ogrid,numcol,numsum, all=.true.)
+c
+      do l=1,3
+        call GLOBALSUM(ogrid,zonwatc(:,l),totl,all=.true.)
+        if (am_i_root()) zonwat(l)=zonwat(l)+totl
+        call GLOBALSUM(ogrid,zonempc(:,l),totl,all=.true.)
+        if (am_i_root()) zonemp(l)=zonemp(l)+totl
+        call GLOBALSUM(ogrid,zonsflc(:,l),totl,all=.true.)
+        if (am_i_root()) zonsfl(l)=zonsfl(l)+totl
+        call GLOBALSUM(ogrid,zonbrnc(:,l),totl,all=.true.)
+        if (am_i_root()) zonbrn(l)=zonbrn(l)+totl
+        call GLOBALSUM(ogrid,zonsqic(:,l),totl,all=.true.)
+        if (am_i_root()) zonsqi(l)=zonsqi(l)+totl
+      end do
 c
 c --- now apply global salt flux constraint to compensate for (a) use of
 c --- local salinity, (b) local clipping to prevent S < 0 or S > Smax
-      bias=(sf2cum-sf1cum)/area
+      bias=(sf2sum-sf1sum)/area
 
 c --- optional, diagnostic use only:
       if( AM_I_ROOT() ) then
         print '(a,2es15.7,a,es11.3)','actual/desired avg.salt flux:',
-     .    sf1cum/area,sf2cum/area,' => bias =',bias
-        print '(a,i4,a)','salt flux clipped at',nint(numcum),' points'
+     .    sf1sum/area,sf2sum/area,' => bias =',bias
+        print '(a,i4,a)','salt flux clipped at',nint(numsum),' points'
       end if
 c
       do 83 j=J_0,J_1
@@ -192,24 +226,49 @@ c
       call GLOBALSUM(ogrid,temcol,tmean, all=.true.)
       call GLOBALSUM(ogrid,salcol,smean, all=.true.)
 c
+c --- optional, diagnostic use only:
       if( AM_I_ROOT() ) then
-      write (*,'(i9,''energy residual (w/m^2)'',f9.2)') nstep,
-     .  watcum/(area*(nstep-nstep0))
-      write (*,'(9x,''resulting temp drift (deg/century):'',f9.3)')
-     .  watcum*thref/(spcifh*avgbot*area*(nstep-nstep0)) *
-     &  36500.*SECONDS_PER_DAY
-      write (*,'(i9,''e - p residual (mm/year)'',f9.2)') nstep,
-     .  empcum/(area*(nstep-nstep0))*SECONDS_PER_DAY*365000.
-      write (*,'(9x,''saln drift resulting from e-p (psu/century):''
-     .                                                     ,f9.3)')
-     .  -empcum*35./(avgbot*area*(nstep-nstep0)) *36500.*SECONDS_PER_DAY
-css   write (*,'(i9,''salt residual (T/year)'',3f9.2)') nstep,
-css  .  sf1cum*365.*SECONDS_PER_DAY*g/onem
-      write (*,'(7x,''saln drift resulting from salfl (psu/century):''
-     .                                                     ,f9.3)')
-     .  sf1cum*36500.*SECONDS_PER_DAY*g/(avgbot*area*onem)
-      write (*,'(i9,a,3f9.3)') nstep,' mean surf. sig,temp,saln:',
-     .    rmean/area,tmean/area,smean/area
+ 100    format ('day',i6,a42,3f9.2)
+        write (*,100) nstep/48,' energy residual (W/m^2)',
+     .    watcum/(area*(nstep-nstep0))
+
+        write (*,100) nstep/48,' e - p residual (mm/yr)',
+     .    empcum/(area*(nstep-nstep0))*SECONDS_PER_DAY*365.e3
+
+        write (*,100) nstep/48,' resulting temp drift (deg/century)',
+     .    watcum*thref/(spcifh*avgbot*area*(nstep-nstep0))*365.e2
+     .    *SECONDS_PER_DAY
+
+        write (*,100) nstep/48,
+     .    ' saln drift from e - p (psu/century)',
+     .    -empcum*stdsal*365.e2*SECONDS_PER_DAY/
+     .     (avgbot*area*(nstep-nstep0))
+
+        write (*,100) nstep/48,
+     .    ' saln drift from salfl (psu/century)',
+     .    slfcum*365.e2*SECONDS_PER_DAY*thref/
+     .    (avgbot*area*(nstep-nstep0))
+
+        write (*,100) nstep/48,' 3-zone energy residual (W/m^2)',
+     .    (zonwat(l)/(area*(nstep-nstep0)),l=1,3)
+
+        write (*,100) nstep/48,' 3-zone e - p residual (mm/yr)',
+     .    (zonemp(l)*365.e3*SECONDS_PER_DAY/(area*(nstep-nstep0)),l=1,3)
+
+        write (*,100) nstep/48,' 3-zone saln drift from salfl (psu/cen)'
+     .    ,(zonsfl(l)*365.e2*SECONDS_PER_DAY*thref/(avgbot*area*
+     .    (nstep-nstep0)),l=1,3)
+
+        write (*,100) nstep/48,' 3-zone brnflx residual (psu/century)'
+     .    ,(zonbrn(l)*365.e2*SECONDS_PER_DAY*thref/(avgbot*area*
+     .    (nstep-nstep0)),l=1,3)
+
+        write (*,100) nstep/48,' 3-zone sqiflx residual (psu/century)'
+     .    ,(zonsqi(l)*365.e2*SECONDS_PER_DAY*thref/(avgbot*area*
+     .    (nstep-nstep0)),l=1,3)
+
+        write (*,'(a,i6,a,3f9.3)') 'step=',nstep,
+     .    ' mean surf. sig,temp,saln:',rmean/area,tmean/area,smean/area
       end if ! AM_I_ROOT
 c
       rmean=0.
@@ -241,11 +300,19 @@ c
       call GLOBALSUM(ogrid,temcol,tmean, all=.true.)
       call GLOBALSUM(ogrid,watcol,vmean, all=.true.)
 c
-      if( AM_I_ROOT() )
-     .    write (*,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
+      if( AM_I_ROOT() ) then
+        write (*,'(i9,a,3f9.3)') nstep,' mean basin sig,temp,saln:',
      .    rmean/vmean,tmean/vmean,smean/vmean
-      end if                                !  diagno = .true.
+      end if    ! am_i_root
 c
+c       q1=glob2d(diag1)
+c       q2=glob2d(diag2)
+c       q3=glob2d(diag3)
+c       q4=glob2d(diag4)
+c       if( AM_I_ROOT() )
+c    .  write(*,'(a,i5,10es10.1)')'qqq salflx ',nstep
+c    . ,q1,q2,q3,q4,q2-q1,q4-q3,q2-q1+q4-q3
+      end if	!  diagno = .true.
       return
       end
 c

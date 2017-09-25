@@ -34,7 +34,7 @@ c
       character flnm*40,intvl*4,flnm_nc*40
       character what*16
       real*4 real4(idm,jdm),time4,thref4,theta4(kdm),unused,pr1d4(kdm)
-      real utotal(idm,jdm,kdm), vtotal(idm,jdm,kdm),util(idm,jdm)
+      real utotal(idm,jdm,kdm), vtotal(idm,jdm,kdm)
      .       ,dpm(idm,jdm,kdm),dpmixlm(idm,jdm)
       integer*4 length4,idm4,jdm4,kdm4,nstep4
       integer*4 irecl ! specific record lenth, machine dependent
@@ -319,7 +319,6 @@ c
       sfhtav(i,j)=sfhtav(i,j)*factor      ! in meter
       dpmxav(i,j)=dpmxav(i,j)*factor/onem ! in meter
       oiceav(i,j)=oiceav(i,j)*factor
-      util(i,j)=loan_ice(i,j)/(delt1*scp2(i,j)) !=> W/m2
  56   continue
 c
       end if      ! nstep > 1
@@ -487,8 +486,6 @@ c
      .    'covice','ice coverage','fraction')
         call out2cdf(ncid1,idm,jdm,omlhc,time,
      .    'omlhc','ocean mixed layer heat content','unk')
-        call out2cdf(ncid1,idm,jdm,util,time,
-     .    'loan_ice','auxiliary ice (energy loan)','W/m2')
         call out2cdf(ncid1,idm,jdm,osalt,time,
      .    'osalt','salt flux due to brine rejection','kg/s/m^2')
         call out3cdf(ncid1,idm,jdm,kdm,temp,time,

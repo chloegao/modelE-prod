@@ -17,8 +17,10 @@ c
       logical, public:: diagno,thermo,windf,relax,trcout,dotrcr
 c
       real, public :: time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
-     . area,avgbot,ocnvol,slfcum,watcum,empcum,sala2o,tavini,
-     . tmean0=0,smean0=0
+     . area,avgbot,ocnvol,watcum=0.,empcum=0.,slfcum=0.,brncum=0.,
+     . sala2o,tavini,tmean0=0,smean0=0,
+     . zonarea(3)=0.,zonwat(3)=0.,zonemp(3)=0.,zonsfl(3)=0.,
+     . zonbrn(3)=0.,zonsqi(3)=0.
 c
       integer, public ::  nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
      .             ,ls2,ls3,oddev
