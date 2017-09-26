@@ -1,4 +1,5 @@
 #include "rundeck_opts.h"
+#ifdef TRACERS_AMP
       SUBROUTINE GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
@@ -117,8 +118,11 @@ c     endif
 c
       RETURN
       END SUBROUTINE GET_CC_CDNC_MX 
+#endif  /* TRACERS_AMP */
 C****************************************************************************
 c
+#ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
       SUBROUTINE GET_CC_CDNC(L,AIRM,DXYPJ,PL,TL,DSS,MCDNL1,MCDNO1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
@@ -126,6 +130,8 @@ c
 !@when using mass based aerosols
       USE CLOUDS_COM
       USE TRACER_COM, only: n_seasalt1, n_seasalt2, ntm_ococean
+      USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       use TRACER_COM, only: ntm_soa
       use OldTracer_mod, only: fq_aer
       USE CONSTANT,only:mb2kg,RGAS
@@ -181,16 +187,21 @@ C** but including nitrates
 c     SSM2 = 1.94d11*DSU(2)         ! SS 0.01-1 um
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 0.01-1 um
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um
-      SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
-      SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.8!*fq_aer(n_BCB) ! BCB
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
+      SSM4 = 1.70d12*DSU(4)*fq_aer(n_OCIA)! OCIA aged industrial OC
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
+      SSM6 = 1.70d12*DSU(6)*fq_aer(n_BCIA)! BCIA aged industrial BC
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
-     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
-     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
      &               )! SOA
 #else
@@ -218,6 +229,8 @@ c     write(6,*)"CDNC for MC Clds",MCDNL1,MCDNO1,SSMAL,SSMAO,L
 c
       RETURN
       END SUBROUTINE GET_CC_CDNC
+#endif  /* not TRACERS_TOMAS */
+#endif  /* not TRACERS_AMP */
 
 C****************************************************************************
 c
@@ -284,8 +297,10 @@ c     write(6,*)"CDNC for MC Clds",MCDNL1,MCDNO1,SSMAL,SSMAO,L
 c
       RETURN
       END SUBROUTINE GET_CC_CDNC_TOMAS
-#endif
+#endif  /* TRACERS_TOMAS */
 
+#ifndef TRACERS_AMP
+#ifndef TRACERS_TOMAS
 C************************************************************************************
 C** For large-scale stratus clouds
 C*************************************************************************************
@@ -300,6 +315,8 @@ C*******************************************************************************
       USE CLOUDS_COM
       use OldTracer_mod, only: fq_aer
       USE TRACER_COM, only: ntm_ococean, ntm_soa, n_seasalt1
+      USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
@@ -363,16 +380,21 @@ c     SSM8 = 2.98d11*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
-      SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
-      SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.8!*fq_aer(n_BCB) ! BCB
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
+      SSM4 = 1.70d12*DSU(4)*fq_aer(n_OCIA)! OCIA aged industrial OC
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
+      SSM6 = 1.70d12*DSU(6)*fq_aer(n_BCIA)! BCIA aged industrial BC
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
-     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
-     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
      &               )! SOA with 100% solubility
 #else
@@ -515,6 +537,8 @@ C**************************************************************************
       USE CONSTANT,only:LHE,LHS
       use OldTracer_mod, only: fq_aer
       USE TRACER_COM, only: ntm_soa, ntm_ococean, n_seasalt1
+      USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
+      USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       IMPLICIT NONE
       real*8 ::CLDSSL,CLDSAVL,WMX
      *,OLDCDL,VVEL,SME,WTURB
@@ -556,16 +580,21 @@ c     SSM8 = 2.98d10*(DSU(18)+DSU(19)+DSU(20)+DSU(21))! SOA with 100% solubility
 c     SSM2 = 1.94d11*DSU(2)         ! SS 01.-1 um 
       SSM2 = 1.89d10*DSU(2)*fq_ssoc_ss ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
-      SSM4 = 1.70d12*DSU(4)         ! OCIA aged industrial OC
-      SSM5 = 1.70d12*DSU(5)*0.8!*fq_aer(n_OCB) ! OCB
-      SSM6 = 1.70d12*DSU(6)         ! BCIA aged industrial BC
-      SSM7 = 1.70d12*DSU(7)*0.8!*fq_aer(n_BCB) ! BCB
+#ifdef TRACERS_AEROSOLS_VBS
+      SSM4 = 1.70d12*sum(DSU(23:31))
+      SSM5 = 0.d0
+#else
+      SSM4 = 1.70d12*DSU(4)*fq_aer(n_OCIA)! OCIA aged industrial OC
+      SSM5 = 1.70d12*DSU(5)*fq_aer(n_OCB) ! OCB
+#endif
+      SSM6 = 1.70d12*DSU(6)*fq_aer(n_BCIA)! BCIA aged industrial BC
+      SSM7 = 1.70d12*DSU(7)*fq_aer(n_BCB) ! BCB
 #ifdef TRACERS_AEROSOLS_SOA
-      SSM8 = 1.70d12*(DSU(18)*0.8!*fq_aer(n_isopp1a)
-     &               +DSU(19)*0.8!*fq_aer(n_isopp2a)
+      SSM8 = 1.70d12*(DSU(18)*fq_aer(n_isopp1a)
+     &               +DSU(19)*fq_aer(n_isopp2a)
 #ifdef TRACERS_TERP
-     &               +DSU(20)*0.8!*fq_aer(n_apinp1a)
-     &               +DSU(21)*0.8!*fq_aer(n_apinp2a)
+     &               +DSU(20)*fq_aer(n_apinp1a)
+     &               +DSU(21)*fq_aer(n_apinp2a)
 #endif
      &               )! SOA
 #else
@@ -619,3 +648,5 @@ c     endif
       RETURN
 
       END SUBROUTINE GET_CDNC_UPD
+#endif  /* not TRACERS_TOMAS */
+#endif  /* not TRACERS_AMP */
