@@ -4023,14 +4023,11 @@ c      enddo
               ijts_tausub(s,n,n1) = k
               sn1=char(48+n1)
             end if
+            ia_ijts(k)=ia_rad
             sname_ijts(k) = 'tau_'//trim(sascs(s))//trim(trname(n))//
      &           trim(sn1)
-            if (trim(sascs(s))/='') then
-              lname_ijts(k) = trim(trname(n))//trim(sn1)//' '//
-     &             trim(lascs(s))//' aerosol optical depth'
-            else
-              lname_ijts(k) = trim(trname(n))//' aerosol optical depth'
-            endif
+            lname_ijts(k) = trim(trname(n))//trim(sn1)//' '//
+     &           trim(lascs(s))//' aerosol optical depth'
             if (trim(sascs(s))=='CS_') dname_ijts(k) = trim(dname)
             ijts_power(k) = -2
             units_ijts(k) = unit_string(ijts_power(k),' ')
@@ -4053,13 +4050,8 @@ c      enddo
               ia_ijts(k)=ia_rad
               sname_ijts(k)='ext_'//trim(sascs(s))//'band'//skr//'_'//
      &                    trim(trname(n))//trim(sn1)
-              if (trim(sascs(s))/='') then
-                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
-     &               trim(lascs(s))//' SW extinction band '//skr
-              else
-                lname_ijts(k)=trim(trname(n))//
-     &                      ' SW extinction band '//skr
-              endif
+              lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &             trim(lascs(s))//' SW extinction band '//skr
               if (trim(sascs(s))=='CS_') dname_ijts(k) = trim(dname)
               ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
@@ -4077,13 +4069,8 @@ c      enddo
               ia_ijts(k)=ia_rad
               sname_ijts(k)='sct_'//trim(sascs(s))//'band'//skr//'_'//
      &             trim(trname(n))//trim(sn1)
-              if (trim(sascs(s))/='') then
-                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
-     &               trim(lascs(s))//' SW scattering band '//skr
-              else
-                lname_ijts(k)=trim(trname(n))//
-     &               ' SW scattering band '//skr
-              endif
+              lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &             trim(lascs(s))//' SW scattering band '//skr
               if (trim(sascs(s))=='CS_') dname_ijts(k) = trim(dname)
               ijts_power(k) = -4
               units_ijts(k) = unit_string(ijts_power(k),' ')
@@ -4101,13 +4088,8 @@ c      enddo
               ia_ijts(k)=ia_rad
               sname_ijts(k)='asf_'//trim(sascs(s))//'band'//skr//'_'//
      &             trim(trname(n))//(trim(sn1))
-              if (trim(sascs(s))/='') then
-                lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
-     &               trim(lascs(s))//' SW assymetry factor band '//skr
-              else
-                lname_ijts(k)=trim(trname(n))//
-     &               ' SW assymetry factor band '//skr
-              endif
+              lname_ijts(k)=trim(trname(n))//trim(sn1)//' '//
+     &             trim(lascs(s))//' SW assymetry factor band '//skr
               if (trim(sascs(s))=='CS_') dname_ijts(k) = trim(dname)
               ijts_power(k) = -2
               units_ijts(k) = unit_string(ijts_power(k),' ')
