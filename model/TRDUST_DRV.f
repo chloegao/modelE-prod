@@ -141,7 +141,7 @@ c**** insert to_conc_soildust into to_conc
 c tracer_ic_soildust
       subroutine tracer_ic_soildust
 !@sum  tracer_ic_soildust reads in source and parameter files for
-!@+    dust/mineral tracer at itime_tr0
+!@+    dust/mineral tracers at their initialization and every restart
 !@auth Jan Perlwitz
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS) 
@@ -388,13 +388,11 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
      &     read_mineralfractions_netcdf
 
 #ifdef TRACERS_MINERALS
-!     calculate some parameters (weighting of sub clay minerals,
-!     effective radii of minerals) for radiation derived from volume
-!     distribution of minerals using data by Kandler et al., Tellus B,
-!     (2009)
-      call calcMineralRadiationParameters
+!     calculate some parameters for radiation derived from size distribution
+!     of minerals
+!      call calcMineralRadiationParameters
 
-!     calculate fractions of aggregates between minerals and iron oxides
+!     calculate fractions of accretions between minerals and iron oxides
 !     from mineral fractions at emission
       call calcIronOxideAggregates
 #endif /* TRACERS_MINERAL */
@@ -887,10 +885,10 @@ c**** normalized to unity for each size bin.
 #ifdef TRACERS_MINERALS
 c calcMineralRadiationParameters
       subroutine calcMineralRadiationParameters
-!@sum calcMineralRadiationParameters  calculates mineral tracers missing
-!@+     in the clay or silt size class in Claquin's MMT, using as constraint
-!@+     the volume fractions of minerals and size distribution information
-!@+     provided by Kandler et al., Tellus B (2009)
+!@sum calcMineralRadiationParameters calculate some parameters for radiation
+!@+     derived from size distribution of minerals
+!@+     (based on Kok, PNAS (2011) and Kandler et al., Tellus B (2009)
+!@+     (currently not used)
 !@auth jan perlwitz
 
       implicit none
@@ -1555,7 +1553,7 @@ c getBins1toBins2_ln
 
 c calcIronOxideAggregates
       subroutine calcIronOxideAggregates
-!@sum calcIronOxideAggregates calculates aggregates of minerals with Iron
+!@sum calcIronOxideAggregates calculates accretions of minerals with iron
 !@+     oxides from mineral fractions at emission
 !@auth jan perlwitz
 
