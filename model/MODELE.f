@@ -1326,9 +1326,9 @@ C****
 #endif
 #ifdef TRACERS_AEROSOLS_Koch
       write(6,*) '...and Dorothy Koch aerosols'
+#endif
 #ifdef TRACERS_AEROSOLS_VBS
       write(6,*) '...and VBS organics'
-#endif
 #endif
 #ifdef TRACERS_AEROSOLS_SEASALT
       write(6,*) '...and sea salt aerosols'
