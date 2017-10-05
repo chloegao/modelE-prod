@@ -274,7 +274,7 @@
 
         ! Calculate and store dry deposition velocities for the entire X-Y grid. 
 
-        CALL GET_AERO_DEPV(NMODES,TEMP_DDEP,RHOA_DDEP,LAMB_DDEP,DVIS_DDEP,
+        CALL GET_AERO_DEPV(TEMP_DDEP,RHOA_DDEP,LAMB_DDEP,DVIS_DDEP,
      &                     WSTR_DDEP,USTR_DDEP,RAER_DDEP,DGN0,LNSIG0,DENSPI)
         DO I=1, NMODES   ! Initialize entire X-Y grid. 
           VDDEP_AERO(:,:,I,1) = VDDEP_AERO(IXXX,IYYY,I,1)  ! For deposition of number concentrations; [m/s]. 
@@ -564,7 +564,7 @@
       ! Update the dry deposition velocities if desired. 
       !----------------------------------------------------------------------------------------------------------------
       IF( UPDATE_VDEP .AND. ILAY .EQ. 1 ) THEN
-        CALL GET_AERO_DEPV(NMODES,TEMP_DDEP,RHOA_DDEP,LAMB_DDEP,DVIS_DDEP,
+        CALL GET_AERO_DEPV(TEMP_DDEP,RHOA_DDEP,LAMB_DDEP,DVIS_DDEP,
      &                     WSTR_DDEP,USTR_DDEP,RAER_DDEP,DGN,LNSIG0,DENSPI)
         IF( GET_DEP_VEL_ONLY ) RETURN
       ENDIF

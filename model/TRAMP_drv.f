@@ -29,9 +29,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
 
 !-------------------------------------------------------------------------------------------------------------------------
-!     The array VDDEP_AERO(X,Y,Z,I,1) contains current values for the dry deposition velocities 
+!     The array VDDEP_AERO(X,Y,I,1) contains current values for the dry deposition velocities 
 !     for aerosol number concentrations for mode I. 
-!     The array VDDEP_AERO(X,Y,Z,I,2) contains current values for the dry deposition velocities 
+!     The array VDDEP_AERO(X,Y,I,2) contains current values for the dry deposition velocities 
 !     for aerosol mass   concentrations for mode I. 
 !     Values in VDDEP_AERO are saved in subr. MATRIX at each time step. 
 !-------------------------------------------------------------------------------------------------------------------------

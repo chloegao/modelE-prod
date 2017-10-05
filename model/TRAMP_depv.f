@@ -3,9 +3,9 @@
       USE AERO_CONFIG, ONLY: NMODES
       USE AMP_AEROSOL, ONLY: VDDEP_AERO
 !-------------------------------------------------------------------------------------------------------------------------
-!     The array VDDEP_AERO(X,Y,Z,I,1) contains current values for the dry deposition velocities 
+!     The array VDDEP_AERO(X,Y,I,1) contains current values for the dry deposition velocities 
 !     for aerosol number concentrations for mode I. 
-!     The array VDDEP_AERO(X,Y,Z,I,2) contains current values for the dry deposition velocities 
+!     The array VDDEP_AERO(X,Y,I,2) contains current values for the dry deposition velocities 
 !     for aerosol mass   concentrations for mode I. 
 !     Values in VDDEP_AERO are saved in subr. MATRIX at each time step. 
 !-------------------------------------------------------------------------------------------------------------------------
@@ -13,7 +13,7 @@
       CONTAINS
 
 
-      SUBROUTINE GET_AERO_DEPV(N,TK,RHOA,XLM,AMU,WSTAR,USTAR,RA,DGN_DDEP,XLS_DDEP,DEN_DDEP)
+      SUBROUTINE GET_AERO_DEPV(TK,RHOA,XLM,AMU,WSTAR,USTAR,RA,DGN_DDEP,XLS_DDEP,DEN_DDEP)
 !----------------------------------------------------------------------------------------------------------------------
 !     Calculate deposition velocity for Aitken, accumulation, and coarse modes.
 !     Reference: Binkowski F. S., and U. Shankar, The regional particulate model 
@@ -25,7 +25,6 @@
 
       ! Arguments. 
 
-      INTEGER :: N                    ! number of modes [1]
       REAL(8) :: TK                   ! air temperature [K]
       REAL(8) :: RHOA                 ! air density  [kg/m^3]
       REAL(8) :: XLM                  ! atmospheric mean free path [m]
@@ -33,9 +32,9 @@
       REAL(8) :: WSTAR                ! convective velocity scale [m/s]
       REAL(8) :: USTAR                ! friction velocity [m/s]
       REAL(8) :: RA                   ! aerodynamic resistance [s/m]
-      REAL(8) :: DGN_DDEP(N)          ! geo. mean diameter    for each mode [um] 
-      REAL(8) :: XLS_DDEP(N)          ! ln(geo. std. dev.)    for each mode [1]
-      REAL(8) :: DEN_DDEP(N)          ! avg. particle density for each mode [g/cm^3]
+      REAL(8) :: DGN_DDEP(NMODES)     ! geo. mean diameter    for each mode [um] 
+      REAL(8) :: XLS_DDEP(NMODES)     ! ln(geo. std. dev.)    for each mode [1]
+      REAL(8) :: DEN_DDEP(NMODES)     ! avg. particle density for each mode [g/cm^3]
 
       ! Local variables. 
 
@@ -45,7 +44,7 @@
       REAL(8) :: VDEP(2)              ! deposition velocities [m/s]
 
 
-      DO I=1, N
+      DO I=1, NMODES
         DGN_M    = DGN_DDEP(I) * 1.0D-06    ! convert from [um] to [m]
         DEN_KGM3 = DEN_DDEP(I) * 1.0D+03    ! convert from [g/cm^3] to [kg/m^3]
         CALL GETDEP_V( TK, RHOA, XLM, AMU, WSTAR, USTAR, RA, DGN_M, XLS_DDEP(I), DEN_KGM3, VDEP )
