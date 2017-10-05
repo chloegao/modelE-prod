@@ -333,20 +333,21 @@ c -----------------------------------------------------------------
 
 
 c -----------------------------------------------------------------
-      SUBROUTINE AMPtrdens(i,j,l,n)
+      SUBROUTINE AMPtrdens(i,j,l,n,from_trm_col)
 !----------------------------------------------------------------------------------------------------------------------
 !     Routine to calculate the actual density per mode
 !----------------------------------------------------------------------------------------------------------------------
       USE OldTracer_mod, only: trpdens
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
+      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm, trm_col
       USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
       Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: trpdens_local
+      logical, intent(in) :: from_trm_col
 
       allocate(trpdens_local(NTM))
       do x=1,NTM
@@ -354,11 +355,19 @@ c -----------------------------------------------------------------
       enddo
  
       nAMP=n-ntmAMPi+1
-      if(AMP_MODES_MAP(nAMP).gt.0)
-     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+      if(AMP_MODES_MAP(nAMP).gt.0) then
+      if (from_trm_col) then
+        AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
+     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &  trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     & / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+      else
+        AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
      &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
      &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
      & / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+      endif
+      endif
       if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
      &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
      &  trpdens_local(AMP_MODES_MAP(nAMP))
@@ -368,45 +377,6 @@ c -----------------------------------------------------------------
       RETURN
       END SUBROUTINE AMPtrdens
 
-c ----------------------------------------------------------------
-      ! temporary clone of AMPtrdens which can be invoked from within
-      ! loops in which trm_col is the definitive instance of the tracer mass.
-      ! Duplication to be addressed ASAP.
-      SUBROUTINE AMPtrdens_from_column_trm(i,j,l,n)
-!----------------------------------------------------------------------------------------------------------------------
-!     Routine to calculate the actual density per mode
-!----------------------------------------------------------------------------------------------------------------------
-      USE OldTracer_mod, only: trpdens
-      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
-     *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm_col
-      USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
-      USE AERO_CONFIG, ONLY: NMODES
-
-      IMPLICIT NONE
-      Integer :: i,j,l,n,x,nAMP
-      real*8, dimension(:), allocatable :: trpdens_local
-
-      allocate(trpdens_local(NTM))
-      do x=1,NTM
-        trpdens_local(x)=trpdens(x)
-      enddo
- 
-      nAMP=n-ntmAMPi+1
-      if(AMP_MODES_MAP(nAMP).gt.0)
-     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &  trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     & / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
-      if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
-     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  trpdens_local(AMP_MODES_MAP(nAMP))
-
-      deallocate(trpdens_local)
-
-      RETURN
-      END SUBROUTINE AMPtrdens_from_column_trm
-c -----------------------------------------------------------------
 c -----------------------------------------------------------------
       SUBROUTINE AMPtrmass(i,j,l,n)
 !----------------------------------------------------------------------------------------------------------------------

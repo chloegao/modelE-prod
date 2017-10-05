@@ -972,7 +972,7 @@ C**** set particle properties
      +                   *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
                   endif
                   
-                  call AMPtrdens_from_column_trm(i,j,l,n)
+                  call AMPtrdens(i,j,l,n,.true.)
                   tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
                 endif
               endif

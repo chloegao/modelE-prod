@@ -283,7 +283,7 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
      +               *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
           endif
 
-           call AMPtrdens(i,j,1,n)
+           call AMPtrdens(i,j,1,n,.false.)
            call AMPtrmass(i,j,1,n)
 
           trndens(n) =AMP_dens(i,j,1,AMP_MODES_MAP(nAMP))
