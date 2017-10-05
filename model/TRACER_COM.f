@@ -47,9 +47,6 @@ C
       use OldTracer_mod, only: trli0
       use OldTracer_mod, only: trsi0
       use timestream_mod, only : timestream
-#ifdef TRACERS_AEROSOLS_VBS
-      use TRACERS_VBS, only: vbs_bins
-#endif
 
       use TracerBundle_mod, only: TracerBundle, newTracerBundle
       use TracerSource_mod, only: N_MAX_SECT
@@ -131,7 +128,6 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_shindell_extra=0
 #endif  /* SHINDELL_STRAT_EXTRA */
 !@var ntm_koch: Number of TRACERS_AEROSOLS_Koch tracers.
-!@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch
 #ifdef SULF_ONLY_AEROSOLS
 #ifdef TRACERS_SPECIAL_Shindell
@@ -139,25 +135,21 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_koch=5
 #endif  /* TRACERS_SPECIAL_Shindell */
-      integer, parameter :: ntm_vbs=0
 #elif (defined TRACERS_AEROSOLS_VBS)
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: ntm_koch=7
 #else
       integer, parameter :: ntm_koch=8
 #endif  /* TRACERS_SPECIAL_Shindell */
-      integer, parameter :: ntm_vbs=2*vbs_bins
 #else
 #ifdef TRACERS_SPECIAL_Shindell
       integer, parameter :: ntm_koch=10
 #else
       integer, parameter :: ntm_koch=11
 #endif  /* TRACERS_SPECIAL_Shindell */
-      integer, parameter :: ntm_vbs=0
-#endif  /* SULF_ONLY_AEROSOLS or TRACERS_AEROSOLS_VBS */
+#endif  /* SULF_ONLY_AEROSOLS */
 #else
       integer, parameter :: ntm_koch=0
-      integer, parameter :: ntm_vbs=0
 #endif  /* TRACERS_AEROSOLS_Koch */
 !@var ntm_ss: Number of TRACERS_AEROSOLS_SEASALT tracers.
 #ifdef TRACERS_AEROSOLS_SEASALT
