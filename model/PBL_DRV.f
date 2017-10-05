@@ -60,10 +60,7 @@
 #endif
 #endif
 #ifdef TRACERS_AMP
-      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP
       USE TRACER_COM, only: ntmAMPi, ntmAMPe
-      USE AMP_AEROSOL, only : DIAM, AMP_dens,AMP_TR_MM
-      USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
 #ifdef SCM
       USE SCM_COM, only : SCMopt,SCMin
@@ -87,9 +84,6 @@ c     lmonin=-133.d0
 
 #ifdef TRACERS_ON
       integer nx,n
-#ifndef TRACERS_TOMAS
-     *     ,nAMP
-#endif
 #endif
 
 c
@@ -155,6 +149,9 @@ c      logical pole
       real*8, dimension(npbl,pbl_args%ntx) :: tr
       real*8, dimension(ntm) :: trnradius,trndens,trnmm
       real*8 :: rts,rtsdt
+#endif
+#ifdef TRACERS_AMP
+      real*8 :: AMPtrradius,AMPtrdens,AMPtrmass
 #endif
       real*8 dbls,ustar,lmonin
       integer ldbls,ldbl
@@ -273,23 +270,9 @@ c    &     pbl_args%TGV = 1.0001d0*pbl_args%TGV
 #endif
 #ifdef TRACERS_AMP
        if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
-         nAMP=n-ntmAMPi+1
-        if(AMP_MODES_MAP(nAMP).gt.0) then
-         if(DIAM(i,j,1,AMP_MODES_MAP(nAMP)).gt.0.) then
-          if(AMP_NUMB_MAP(nAMP).eq. 0) then    ! Mass
-        trnradius(n)=0.5*DIAM(i,j,1,AMP_MODES_MAP(nAMP))
-          else                              ! Number
-        trnradius(n)=0.5*DIAM(i,j,1,AMP_MODES_MAP(nAMP))
-     +               *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
-          endif
-
-           call AMPtrdens(i,j,1,n,.false.)
-           call AMPtrmass(i,j,1,n)
-
-          trndens(n) =AMP_dens(i,j,1,AMP_MODES_MAP(nAMP))
-          trnmm(n)   =AMP_TR_MM(i,j,1,AMP_MODES_MAP(nAMP))
-        endif   
-        endif   
+         trnradius(n)=AMPtrradius(i,j,1,n)
+         trndens(n) =AMPtrdens(i,j,1,n,.false.)
+         trnmm(n)=AMPtrmass(i,j,1,n)
        endif 
 #endif  
       enddo

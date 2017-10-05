@@ -25,8 +25,6 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
 
@@ -119,8 +117,6 @@ C**** functions
       NACTV(I,J,:,:)      = 0.d0 
       VDDEP_AERO(I,J,:,:) = 0.d0 
       DIAM(I,J,:,:)       = 0.d0
-      AMP_dens(I,J,:,:)   = 0.d0
-      AMP_TR_MM(I,J,:,:)  = 0.d0
 
       IXXX = I
       IYYY = J
@@ -332,8 +328,39 @@ c -----------------------------------------------------------------
       end subroutine matrix_post
 
 
+!=======================================================================
+! Get AMP radius for tracer with index n at gridbox i,j,l
+!=======================================================================
+      real*8 function AMPtrradius(i,j,l,n) result(radius)
+!=======================================================================
+      use OldTracer_mod, only: trradius
+      USE AmpTracersMetadata_mod, only: AMP_NUMB_MAP
+      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP
+      USE AERO_SETUP, only: CONV_DPAM_TO_DGN
+      USE AMP_AEROSOL, only: DIAM
+      use TRACER_COM, only: ntmAMPi
+
+      implicit none
+      integer, intent(in) :: i,j,l,n
+      integer :: nAMP
+
+      nAMP=n-ntmAMPi+1
+      if (AMP_MODES_MAP(nAMP).gt.0) then
+        if(AMP_NUMB_MAP(nAMP).eq.0) then ! Mass
+          radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+        else                             ! Number
+          radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+     &          *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
+        endif
+      else
+        radius=trradius(n)
+      endif
+!=======================================================================
+      end function AMPtrradius
+!=======================================================================
+
 c -----------------------------------------------------------------
-      SUBROUTINE AMPtrdens(i,j,l,n,from_trm_col)
+      real*8 function AMPtrdens(i,j,l,n,from_trm_col) result(density)
 !----------------------------------------------------------------------------------------------------------------------
 !     Routine to calculate the actual density per mode
 !----------------------------------------------------------------------------------------------------------------------
@@ -341,7 +368,6 @@ c -----------------------------------------------------------------
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
       USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm, trm_col
-      USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
@@ -355,30 +381,31 @@ c -----------------------------------------------------------------
       enddo
  
       nAMP=n-ntmAMPi+1
+      density=0.d0
       if(AMP_MODES_MAP(nAMP).gt.0) then
-      if (from_trm_col) then
-        AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &  trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     & / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+        if (from_trm_col) then
+          density=
+     &    sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &    trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     &   / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+        else
+          density=
+     &    sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
+     &    trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
+     &   / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+        endif
       else
-        AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     & / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+        density=trpdens(n)
       endif
-      endif
-      if (AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
-     &  AMP_dens(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  trpdens_local(AMP_MODES_MAP(nAMP))
+      if (density.le.0) density=trpdens_local(AMP_MODES_MAP(nAMP))
 
       deallocate(trpdens_local)
 
       RETURN
-      END SUBROUTINE AMPtrdens
+      END function AMPtrdens
 
 c -----------------------------------------------------------------
-      SUBROUTINE AMPtrmass(i,j,l,n)
+      real*8 function AMPtrmass(i,j,l,n) result(trmass)
 !----------------------------------------------------------------------------------------------------------------------
 !     Routine to calculate the actual molecular mass per mode
 !----------------------------------------------------------------------------------------------------------------------
@@ -387,11 +414,11 @@ c -----------------------------------------------------------------
      *  AMP_trm_nm2
       USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
       USE AERO_CONFIG, ONLY: NMODES
-      USE AMP_AEROSOL, only : AMP_TR_MM
 
       IMPLICIT NONE
       Integer :: i,j,l,n,x,nAMP
       real*8, dimension(:), allocatable :: tr_mm_local
+      real*8 :: trsum
 
       allocate(tr_mm_local(NTM))
       do x=1,NTM 
@@ -399,20 +426,19 @@ c -----------------------------------------------------------------
       enddo
 
       nAMP=n-ntmAMPi+1
-      if(AMP_MODES_MAP(nAMP) > 0 .and.
-     &  sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) > 0. )
-     &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &  trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     & / sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
-      if (AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)).le.0) 
-     &  AMP_TR_MM(i,j,l,AMP_MODES_MAP(nAMP)) = 
-     &  tr_mm_local(AMP_MODES_MAP(nAMP))
+      trmass=0.d0
+      trsum=sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
+      if(AMP_MODES_MAP(nAMP) > 0 .and. trsum > 0. ) then
+        trmass=sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))
+     &             *trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) )
+     &         /trsum
+      endif
+      if (trmass.le.0) trmass=tr_mm_local(AMP_MODES_MAP(nAMP))
 
       deallocate(tr_mm_local)
 
       RETURN
-      END SUBROUTINE AMPtrmass
+      END function AMPtrmass
 c -----------------------------------------------------------------
       SUBROUTINE SPCMASSES(AERO,GAS,SPCMASS)
 !----------------------------------------------------------------------------------------------------------------------
@@ -557,8 +583,6 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
       allocate(  VDDEP_AERO(I_0H:I_1H,J_0H:J_1H,nmodes,2))
 

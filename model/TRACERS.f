@@ -896,9 +896,6 @@ C****
       USE TRACER_COM, only : NTM,trm_col,trmom_col
 #ifdef TRACERS_AMP
       USE TRACER_COM, only : ntmAMPi,ntmAMPe
-      USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP
-      USE AMP_AEROSOL, only : DIAM, AMP_dens
-      USE AERO_SETUP,  only : CONV_DPAM_TO_DGN
 #endif
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only : nbins,n_ASO4,xk
@@ -912,9 +909,6 @@ C****
       real*8, dimension(lm) :: told,airden,visc,rh,gbygz
       real*8 :: fluxd, fluxu
       integer n,najl,l
-#ifndef TRACERS_TOMAS
-     &     ,nAMP
-#endif
       logical :: hydrate
 #ifdef TRACERS_TOMAS
       integer binnum,k
@@ -925,6 +919,9 @@ C****
       real*8 density_gr(nbins)  !density (kg/m3) of current size bin
       real*8 mp                 !particle mass (kg)
       real*8 mu                 !air viscosity (kg/m s)
+#endif
+#ifdef TRACERS_AMP
+      real*8 :: AMPtrradius,AMPtrdens
 #endif
 
 C**** Calculate some tracer independent arrays      
@@ -962,20 +959,8 @@ C**** set particle properties
 
 #ifdef TRACERS_AMP
             if (n.ge.ntmAMPi.and.n.le.ntmAMPe) then
-              nAMP=n-ntmAMPi+1
-              if(AMP_MODES_MAP(nAMP).gt.0) then
-                if(DIAM(i,j,l,AMP_MODES_MAP(nAMP)).gt.0.) then
-                  if(AMP_NUMB_MAP(nAMP).eq. 0) then ! Mass
-                    tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-                  else          ! Number
-                    tr_radius=0.5*DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-     +                   *CONV_DPAM_TO_DGN(AMP_MODES_MAP(nAMP))
-                  endif
-                  
-                  call AMPtrdens(i,j,l,n,.true.)
-                  tr_dens =AMP_dens(i,j,l,AMP_MODES_MAP(nAMP))
-                endif
-              endif
+              tr_dens =AMPtrdens(i,j,l,n,.true.)
+              tr_radius=AMPtrradius(i,j,l,n)
             endif
 #endif
 
