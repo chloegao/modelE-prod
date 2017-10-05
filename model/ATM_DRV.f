@@ -1167,7 +1167,7 @@ C**** check tracers
 
       subroutine read_aic
 !@sum read_AIC for a cold start, read the atmospheric IC file.
-!@+   Two input options are currently recognized
+!@+   Three input options are currently recognized
 !@+      (1) The input file has already been remapped to the model layering
 !@+          and contains the variables traditionally expected by the model
 !@+          (winds, temperature, specific humidity, surface pressure).
@@ -1182,6 +1182,13 @@ C**** check tracers
 !@+          assumed vertical structure of RH above the upper troposphere
 !@+          will be made more configurable as AIC files with better-quality
 !@+          RH data (than the historical AIC) become available.
+!@+      (3) Surface pressure, winds, temperature, humidity on "standard-hybrid"
+!@+          layers, where the pressure of the kth input layer at horizontal
+!@+          location i,j is equal to hyam(k) + hybm(k)*srfp(i,j) and srfp is
+!@+          the surface pressure. Remapping to model layering is performed.
+!@+          Condensate species are also (optionally) read on other branches,
+!@+          but not here (yet), for reasons including the inability of liquid
+!@+          and ice to coexist under the cloud microphysics on this branch.
 !@+
 !@+   Logic will be added to handle other possible input layerings and
 !@+   combinations of available fields.
@@ -1193,31 +1200,35 @@ C**** check tracers
       use atm_com, only : traditional_coldstart_aic
       use fluxes, only : atmsrf
       use pario, only : par_open,par_close,read_data,read_dist_data
-     &     ,get_dimlens,variable_exists
-      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds, globalmax,
-     &     am_i_root,halo_update_column
+     &     ,get_dimlen,get_dimlens,variable_exists
+      Use DOMAIN_DECOMP_ATM, Only: GRID, GetDomainBounds,
+     &     am_i_root,halo_update_column,hasnorthpole,hassouthpole
       implicit none
-      real*8, parameter :: GBYR  = GRAV/RGAS
 
-      real*8, dimension(:,:,:), allocatable ::
-     &     uin,vin,tin,zin,rh1,rhin
-      real*8, dimension(:,:), allocatable :: ptrop,ttrop,zsrf
+      real*8, dimension(:,:,:), allocatable :: uin,vin,tin
 
-      real*8, dimension(:), allocatable :: u,v,t,rh,p,plev
+      real*8, dimension(:), allocatable :: u,v,t,p,plev
       real*8 :: pe(0:lm)
       real*8, dimension(lm) :: pmid, MAdum,PDSIGdum
 
-      real*8, dimension(lm) :: xa,xb
-      REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN
-      REAL*8 QSAT ! external function
-      real*8 :: max_loc,max_zsrf,max_zin,max_ptrop,max_psrat
-      INTEGER :: I,J,L,K,K1,KK,KMZIN,KMTROP,KMRH,KMIN,KM,N
+      INTEGER :: I,J,L,K,N,KM
       integer :: dlens(7)
       integer :: i_0h,i_1h,j_0h,j_1h
       integer :: i_0,i_1,j_0,j_1
       integer :: j_0stg,j_1stg
-
+      logical :: hybridlayer_input
       integer :: fid
+
+      Call GetDomainBounds(GRID,
+     &     I_STRT=I_0,I_STOP=I_1,
+     &     J_STRT=J_0,J_STOP=J_1)
+
+      Call GetDomainBounds(GRID,
+     &     I_STRT_HALO=I_0H,I_STOP_HALO=I_1H,
+     &     J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
+
+      Call GetDomainBounds(GRID,
+     &     J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
 
       fid = par_open(grid,'AIC','read')
 
@@ -1228,21 +1239,137 @@ C**** check tracers
      &     .and. variable_exists(grid,fid,'p')
      &     .and. variable_exists(grid,fid,'q')
 
-      if(traditional_coldstart_aic) then
+
+      hybridlayer_input =
+     &           variable_exists(grid,fid,'hyam')
+     &     .and. variable_exists(grid,fid,'ps_a') ! change this name soon
+
+      if(traditional_coldstart_aic) then ! option 1 in subr. header comments
         call read_dist_data(grid,fid,'u',uout)
         call read_dist_data(grid,fid,'v',vout)
         call read_dist_data(grid,fid,'t',tout)
         call read_dist_data(grid,fid,'p',psrf)
         call read_dist_data(grid,fid,'q',qout)
-        call par_close(grid,fid)
-        return
+      elseif(hybridlayer_input) then     ! option 3 in subr. header comments
+        call relayer_hybridlayer_input
+      else                               ! option 2 in subr. header comments
+        call read_pzrh_input
       endif
 
-      Call GetDomainBounds(GRID,
-     &     I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
+      call par_close(grid,fid)
 
-      Call GetDomainBounds(GRID,
-     &     I_STRT=I_0H,I_STOP=I_1H, J_STRT=J_0H,J_STOP=J_1H)
+      contains
+
+      subroutine relayer_hybridlayer_input  ! option 3 in subr. header comments
+!@sum relayer_hybridlayer_input read and relayer atm state on standard hybrid layers
+!@+   to whatever the model layering is.   Relayering currently performed by vint_logp
+!@+   for historical continuity with hindcasting runs that performed the relayering
+!@+   with external codes; this means that the relayering is not conservative.
+!@+   Other continuity choices:
+!@+   - reading u,v at B-grid locations (and aux B-grid surface pressure for relayering)
+!@+   - vertically interpolate log(q) rather than q.
+      use resolution, only : im
+      implicit none
+      real*8, dimension(:,:,:), allocatable :: qin
+      real*8, dimension(:,:), allocatable :: psrfb
+      real*8, dimension(:), allocatable :: hyam,hybm,xin,xout
+      real*8 :: byim
+
+      byim = 1d0/real(im,kind=8)
+      km = get_dimlen(grid,fid,'level')
+
+      allocate(hyam(km),hybm(km),p(km),xin(km),xout(lm))
+      allocate(
+     &     uin(i_0h:i_1h,j_0h:j_1h,km),
+     &     vin(i_0h:i_1h,j_0h:j_1h,km),
+     &     tin(i_0h:i_1h,j_0h:j_1h,km),
+     &     qin(i_0h:i_1h,j_0h:j_1h,km),
+     &     psrfb(i_0h:i_1h,j_0h:j_1h)
+     &     )
+
+      call read_data(grid,fid,'hyam',hyam,bcast_all=.true.)
+      call read_data(grid,fid,'hybm',hybm,bcast_all=.true.)
+
+      call read_dist_data(grid,fid,'ps_a',psrf)
+      call read_dist_data(grid,fid,'ps_b',psrfb)
+      call read_dist_data(grid,fid,'u',uin)
+      call read_dist_data(grid,fid,'v',vin)
+      call read_dist_data(grid,fid,'t',tin)
+      call read_dist_data(grid,fid,'q',qin)
+
+      hyam  = hyam*.01d0  ! Pa -> hPa
+      psrf  = psrf*.01d0  ! Pa -> hPa
+      psrfb = psrfb*.01d0 ! Pa -> hPa
+
+      if(hasSouthPole(grid)) then
+        psrf(:,j_0) = sum(psrf(:,j_0))*byim
+        do k=1,km
+          tin(:,j_0,k) = sum(tin(:,j_0,k))*byim
+          qin(:,j_0,k) = sum(qin(:,j_0,k))*byim
+        enddo
+      endif
+      if(hasNorthPole(grid)) then
+        psrf(:,j_1) = sum(psrf(:,j_1))*byim
+        do k=1,km
+          tin(:,j_1,k) = sum(tin(:,j_1,k))*byim
+          qin(:,j_1,k) = sum(qin(:,j_1,k))*byim
+        enddo
+      endif
+
+C****
+C**** Perform vertical interpolation from input pressures to model pressures.
+C****
+
+      do j=j_0,j_1
+      do i=i_0,i_1
+        call calc_vert_amp(psrf(i,j),lm, madum,pdsigdum,pe,pmid)
+        p = hyam + hybm*psrf(i,j)
+        ! temperature
+        xin = tin(i,j,:)
+        call vint_logp(km,lm,p,pmid,xin,xout)
+        tout(i,j,:) = xout
+        ! humidity
+        xin = qin(i,j,:)
+        xin = log(max(xin,1d-7)) ! to interpolate log(q)
+        call vint_logp(km,lm,p,pmid,xin,xout)
+        xout = exp(xout)         ! to interpolate log(q)
+        qout(i,j,:) = xout
+      enddo
+      enddo
+
+      do j=j_0stg,j_1stg
+      do i=i_0,i_1
+        call calc_vert_amp(psrfb(i,j),lm, madum,pdsigdum,pe,pmid)
+        p = hyam + hybm*psrfb(i,j)
+        ! u-wind
+        xin = uin(i,j,:)
+        call vint_logp(km,lm,p,pmid,xin,xout)
+        uout(i,j,:) = xout
+        ! v-wind
+        xin = vin(i,j,:)
+        call vint_logp(km,lm,p,pmid,xin,xout)
+        vout(i,j,:) = xout
+      enddo
+      enddo
+      call recalc_agrid_uv
+
+      atmsrf%TSAVG = tout(:,:,1) ! improved estimate during PBL init
+
+      end subroutine relayer_hybridlayer_input
+
+      subroutine read_pzrh_input  ! option 2 in subr. header comments
+      Use DOMAIN_DECOMP_ATM, Only: globalmax
+      implicit none
+      real*8, dimension(:), allocatable :: rh
+      real*8, dimension(:,:,:), allocatable :: zin,rh1,rhin
+      real*8, dimension(:,:), allocatable :: ptrop,ttrop,zsrf
+      INTEGER :: K1,KK,KMZIN,KMTROP,KMRH,KMIN
+      real*8, dimension(lm) :: xa,xb
+      REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN
+      real*8 :: max_loc,max_zsrf,max_zin,max_ptrop,max_psrat
+      real*8, parameter :: GBYR  = GRAV/RGAS
+
+      REAL*8 QSAT ! external function
 
       UALIJ = 0.
       VALIJ = 0.
@@ -1285,7 +1412,6 @@ C****   TTROP = tropopause temperature (K)
       ptrop = 0. ! if ptrop not present, it is assumed to be zero.
       call read_dist_data(grid,fid,'ptrop',ptrop)
       call read_dist_data(grid,fid,'ttrop',ttrop)
-      call par_close(grid,fid)
 
       do k=1,kmrh
         rhin(:,:,k) = rh1(:,:,k)
@@ -1455,8 +1581,6 @@ c A-grid winds.  No insertion of tropopause values.
       ! convert velocities to their native grid/orientation
       ! for the moment, this only applies to the B-grid
       ! dynamics scheme.  The cubed-sphere case is handled elsewhere.
-      Call GetDomainBounds(GRID,
-     &     J_STRT_STGR=J_0STG,J_STOP_STGR=J_1STG)
       call halo_update_column(grid,ualij)
       call halo_update_column(grid,valij)
       do l=1,lm
@@ -1480,7 +1604,7 @@ c A-grid winds.  No insertion of tropopause values.
       enddo
 #endif
 
-      contains
+      end subroutine read_pzrh_input
 
       SUBROUTINE VNTRP1 (KM,P,AIN,  LMA,PE,AOUT)
 C**** Vertically interpolates a 1-D array
@@ -1535,8 +1659,43 @@ C****
       RETURN
       END SUBROUTINE VNTRP1
 
-      end subroutine read_aic
+      subroutine vint_logp(kmi,kmo,pi,po,input,output)
+!@sum vint_logp linear interpolation in log(p)-space
+      implicit none
+      integer, intent(in):: kmi,kmo ! number of input,output levels
+      real*8, dimension(kmi), intent(in) :: pi ! input pressures
+      real*8, dimension(kmo), intent(in) :: po ! output pressures
+      real*8, dimension(kmi), intent(in) :: input
+      real*8, dimension(kmo), intent(out) :: output
+      !real*8, dimension(:), allocatable :: lnpi,lnpo
+      real*8 :: wtdn
+      integer:: ki, ko, kolin1
 
+      !allocate(lnpi(kmi),lnpo(kmo))
+      !lnpi=log(pi)
+      !lnpo=log(po)
+
+      do kolin1=1,kmo
+        if(po(kolin1).le.pi(1)) exit
+      enddo
+      do ko=1,kolin1-1
+        output(ko)=input(1)
+      enddo
+      !if(kolin1.gt.1) write(6,*) 'KOLIN1 > 1'
+
+      ki = 1
+      do ko=kolin1,kmo
+        do while(pi(ki+1).gt.po(ko))
+          ki = ki + 1
+        enddo
+        !wtdn=(lnpo(ko)-lnpi(ki+1))/(lnpi(ki)-lnpi(ki+1))
+        wtdn = log(po(ko)/pi(ki+1))/log(pi(ki)/pi(ki+1))
+        output(ko)=wtdn*input(ki)+(1d0-wtdn)*input(ki+1)
+      enddo
+      return
+      end subroutine vint_logp
+
+      end subroutine read_aic
 
 #ifdef CACHED_SUBDD
       subroutine accum_subdd_atm
