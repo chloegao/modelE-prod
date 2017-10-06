@@ -11,6 +11,7 @@
       REAL(8), PARAMETER :: DENS_OCAR = 1.00D+03    ! [kg/m^3] Ghan et al. (2001) - MIRAGE
       REAL(8), PARAMETER :: DENS_DUST = 2.60D+03    ! [kg/m^3] Ghan et al. (2001) - MIRAGE
       REAL(8), PARAMETER :: DENS_SEAS = 2.165D+03   ! [kg/m^3] NaCl, Ghan et al. (2001) used 1.90D+03
+      REAL(8) :: NACTIV(NMODES)       ! for use in other subroutines
 
       CONTAINS
 

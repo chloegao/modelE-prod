@@ -31,7 +31,6 @@ C**************  Latitude-Dependant (allocatable) *******************
 !-------------------------------------------------------------------------------------------------------------------------
 !     The array NACTV(X,Y,Z,I) contains current values of the number of aerosol particles 
 !     activated in clouds for each mode I for use outside of the MATRIX microphysical module.
-!     Values in NACTV are saved in subr. MATRIX at each time step. 
 !-------------------------------------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------------------------------------      
 !     1 - BC  2-BCmix 3-OC 4-OCmix 5-SS1  6-SS2 7-D1 8-D2
@@ -82,6 +81,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
       USE AERO_DIAM, only: DP
+      USE AERO_ACTV, only: NACTIV
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
 
@@ -217,6 +217,7 @@ c     Biomass BC OC is NOT mixed
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)
+         NACTV(i,j,l,n)=NACTIV(n)
        enddo
  
        DO n=ntmAMPi,ntmAMPe

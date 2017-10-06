@@ -62,8 +62,7 @@
       USE AERO_COAG,   ONLY: SETUP_KIJ_DIAMETERS, SETUP_KIJ_TABLES, GET_KBARNIJ
       USE AERO_NPF,    ONLY: DNU, NPFRATE, SETUP_NPFMASS, STEADY_STATE_H2SO4   
       USE AERO_DIAM,   ONLY: DP, DP_DRY!, DIAM_HISTOGRAM
-      USE AERO_ACTV,   ONLY: GETACTFRAC 
-      USE AMP_AEROSOL, ONLY: NACTV
+      USE AERO_ACTV,   ONLY: GETACTFRAC, NACTIV
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
       IMPLICIT NONE
 
@@ -870,7 +869,7 @@
           NSOL(:) = KAPPAI(:)*NI(:)
           RSUM_ACTIV = 1.0D+00 / SUM( NSOL(:) + TINYDENOM ) 
           PIQTMP(:,PROD_INDEX_SULF) = ( KAPPAI(:)*NI(:)*RSUM_ACTIV ) * AQSO4RATE
-          NACTV(IXXX,IYYY,ILAY,:) = NSOL(:)       ! [#/m] - Store for use outside this routine.
+          NACTIV(:) = NSOL(:) ! [#/m] - Store for use outside this routine.
           !------------------------------------------------------------------------------------------------------------
           ! WRITE(40,'(/A,F15.6/)')'Total number soluble (#/cm^3) = ', 1.0D-06/RSUM_ACTIV 
           ! DO I=1, NMODES
@@ -884,7 +883,7 @@
           CALL GETACTFRAC(NMODES,NI,MI5,0.5D+00*DGN_DRY,SIG0,TK,PRES,WUPDRAFT,AC,FRACACTN,FRACACTM,NACT,MACT)
           RSUM_ACTIV = 1.0D+00 / SUM ( NACT(:) + TINYDENOM ) 
           PIQTMP(:,PROD_INDEX_SULF) = ( NACT(:)*RSUM_ACTIV ) * AQSO4RATE
-          NACTV(IXXX,IYYY,ILAY,:) = NACT(:)       ! [#/m] - Store for use outside this routine.
+          NACTIV(:) = NACT(:) ! [#/m] - Store for use outside this routine.
           !------------------------------------------------------------------------------------------------------------
           ! WRITE(40,'(/A,F15.6/)')'Total number activated (#/cm^3) = ', 1.0D-06/RSUM_ACTIV 
           ! DO I=1, NMODES
@@ -899,6 +898,7 @@
         ELSE                                     ! Mode AKK does not exist and mode ACC has mode number = 1.
           PIQTMP(1,PROD_INDEX_SULF) = AQSO4RATE  ! [ugSO4/m^3/s]
         ENDIF      
+        NACTIV(:) = 0.d0
       ENDIF
       PIQ(:,PROD_INDEX_SULF) = PIQ(:,PROD_INDEX_SULF) + PIQTMP(:,PROD_INDEX_SULF) 
       DIAGTMP1(12,MASS_MAP(:,PROD_INDEX_SULF)) = PIQTMP(:,PROD_INDEX_SULF)  
