@@ -63,7 +63,7 @@
       USE AERO_NPF,    ONLY: DNU, NPFRATE, SETUP_NPFMASS, STEADY_STATE_H2SO4   
       USE AERO_DIAM,   ONLY: DP, DP_DRY!, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
-      USE AMP_AEROSOL, ONLY: NACTV, VDDEP_AERO
+      USE AMP_AEROSOL, ONLY: NACTV
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
       IMPLICIT NONE
 
@@ -268,16 +268,6 @@
         ELSE
           IF( WRITE_LOG ) WRITE(AUNIT1,'(/A/)') 'INTERMODAL TRANSFER (AKK->ACC) IS TURNED OFF.'
         ENDIF
-
-
-        ! Calculate and store dry deposition velocities for the entire X-Y grid. 
-
-        CALL GET_AERO_DEPV(TEMP_DDEP,RHOA_DDEP,LAMB_DDEP,DVIS_DDEP,
-     &                     WSTR_DDEP,USTR_DDEP,RAER_DDEP,DGN0,LNSIG0,DENSPI)
-        DO I=1, NMODES   ! Initialize entire X-Y grid. 
-          VDDEP_AERO(:,:,I,1) = VDDEP_AERO(IXXX,IYYY,I,1)  ! For deposition of number concentrations; [m/s]. 
-          VDDEP_AERO(:,:,I,2) = VDDEP_AERO(IXXX,IYYY,I,2)  ! For deposition of mass   concentrations; [m/s].
-        ENDDO
       ENDIF                           
 
       !----------------------------------------------------------------------------------------------------------------

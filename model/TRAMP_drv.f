@@ -26,14 +26,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
 
-!-------------------------------------------------------------------------------------------------------------------------
-!     The array VDDEP_AERO(X,Y,I,1) contains current values for the dry deposition velocities 
-!     for aerosol number concentrations for mode I. 
-!     The array VDDEP_AERO(X,Y,I,2) contains current values for the dry deposition velocities 
-!     for aerosol mass   concentrations for mode I. 
-!     Values in VDDEP_AERO are saved in subr. MATRIX at each time step. 
 !-------------------------------------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------------------------------------
 !     The array NACTV(X,Y,Z,I) contains current values of the number of aerosol particles 
@@ -114,7 +107,6 @@ C**** functions
 #endif
 
       NACTV(I,J,:,:)      = 0.d0 
-      VDDEP_AERO(I,J,:,:) = 0.d0 
       DIAM(I,J,:,:)       = 0.d0
 
       IXXX = I
@@ -586,7 +578,6 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 ! other dimensions
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
-      allocate(  VDDEP_AERO(I_0H:I_1H,J_0H:J_1H,nmodes,2))
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30

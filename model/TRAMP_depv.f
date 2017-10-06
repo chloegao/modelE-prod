@@ -1,13 +1,6 @@
       MODULE AERO_DEPV
       USE AERO_PARAM,  ONLY: NLAYS, IXXX, IYYY, ILAY
       USE AERO_CONFIG, ONLY: NMODES
-      USE AMP_AEROSOL, ONLY: VDDEP_AERO
-!-------------------------------------------------------------------------------------------------------------------------
-!     The array VDDEP_AERO(X,Y,I,1) contains current values for the dry deposition velocities 
-!     for aerosol number concentrations for mode I. 
-!     The array VDDEP_AERO(X,Y,I,2) contains current values for the dry deposition velocities 
-!     for aerosol mass   concentrations for mode I. 
-!     Values in VDDEP_AERO are saved in subr. MATRIX at each time step. 
 !-------------------------------------------------------------------------------------------------------------------------
       
       CONTAINS
@@ -49,8 +42,6 @@
         DEN_KGM3 = DEN_DDEP(I) * 1.0D+03    ! convert from [g/cm^3] to [kg/m^3]
         CALL GETDEP_V( TK, RHOA, XLM, AMU, WSTAR, USTAR, RA, DGN_M, XLS_DDEP(I), DEN_KGM3, VDEP )
 !       VDEP(:) = MIN( VDEP(:), 10.0D+00 )  ! cap at 10 [m/s] = 1000 [cm/s]; should have no effect 
-        VDDEP_AERO(IXXX,IYYY,I,1) = VDEP(1) ! for deposition of number [m/s]
-        VDDEP_AERO(IXXX,IYYY,I,2) = VDEP(2) ! for deposition of mass   [m/s]
       ENDDO
 
       RETURN
