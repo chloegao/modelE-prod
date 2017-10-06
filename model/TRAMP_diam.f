@@ -1,8 +1,7 @@
       MODULE AERO_DIAM
       USE AERO_PARAM,  ONLY: NLAYS, AUNIT1, WRITE_LOG
-      USE AERO_CONFIG, ONLY: NMODES, MECH
+      USE AERO_CONFIG, ONLY: NMODES, MECH, NWEIGHTS
       USE AERO_SETUP,  ONLY: N_DP_CONDTABLE, DP_CONDTABLE, MODE_NAME
-      USE AMP_AEROSOL, ONLY: DIAM
 !-------------------------------------------------------------------------------------------------------------------------
 !     The array DIAM(x,y,z) contains current values of some measure of average ambient mode diameter for each mode  
 !       for use outside of the MATRIX microphysical module where it is calculated. 
@@ -18,6 +17,8 @@
 !-------------------------------------------------------------------------------------------------------------------------
       IMPLICIT NONE
 !      REAL(8) :: DIAM_HISTOGRAM(NMODES,N_DP_CONDTABLE,2)    ! [1]
+      REAL(8) :: DP(NWEIGHTS)              ! ambient diameter of average mass of the number distribution for each mode [m]
+      REAL(8) :: DP_DRY(NWEIGHTS)          ! dry diameter of average mass of the number distribution for each mode [m]
 
       CONTAINS
 
@@ -31,12 +32,12 @@
       USE AERO_SETUP, ONLY: DGN0, SIG0
       INTEGER :: I
       REAL(8) :: SG, D_NUMBER_MEAN
-      IF( WRITE_LOG ) WRITE(AUNIT1,'(/A/)') 'I,DGN0(I),SIG0(I),SG,DIAM(1,1,1,I)*1.0D+06,D_NUMBER_MEAN'
+      IF( WRITE_LOG ) WRITE(AUNIT1,'(/A/)') 'I,DGN0(I),SIG0(I),SG,DP(I)*1.0D+06,D_NUMBER_MEAN'
       DO I=1, NMODES
         SG = EXP( 0.5d+00*( LOG(SIG0(I)) )**2 )
-        DIAM(:,:,:,I) = 1.0D-06 * DGN0(I)*SG**3           ! convert from [um] to [m]
+        DP(I) = 1.0D-06 * DGN0(I)*SG**3           ! convert from [um] to [m]
         D_NUMBER_MEAN =           DGN0(I)*SG             
-        IF( WRITE_LOG ) WRITE(AUNIT1,90) I,DGN0(I),SIG0(I),SG,DIAM(1,1,1,I)*1.0D+06,D_NUMBER_MEAN
+        IF( WRITE_LOG ) WRITE(AUNIT1,90) I,DGN0(I),SIG0(I),SG,DP(I)*1.0D+06,D_NUMBER_MEAN
       ENDDO
       WRITE(AUNIT1,'(A)') '  '
 

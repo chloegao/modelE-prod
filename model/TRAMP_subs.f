@@ -176,7 +176,7 @@
         DUPPER(I) = DGRID(I) * SCALE**0.5D+00             ! [um]
         MGRID(I)  = 1.0D-06 * DENSP * PI6 * DGRID(I)**3   ! [ug/particle]
         DO N=1, NMODES
-          DG = 1.0D+06 * DIAM(IXXX,IYYY,ILAY,N) * CONV_DPAM_TO_DGN(N)   ! convert [m] to [um] and Dbar to Dg
+          DG = 1.0D+06 * DP(N) * CONV_DPAM_TO_DGN(N)   ! convert [m] to [um] and Dbar to Dg
           NTOT(N) = AERO( NUMB_MAP(N) )
           F = NTOT(N) * FLN( DGRID(I), DG, SIG0(N) )
           PDF(I,1,N) = F * ( DUPPER(I) - DLOWER(I) )

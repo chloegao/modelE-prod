@@ -44,14 +44,12 @@ C**************  Latitude-Dependant (allocatable) *******************
 !     1 - BC  2-BCmix 3-OC 4-OCmix 5-SS1  6-SS2 7-D1 8-D2
 !-------------------------------------------------------------------------------------------------------------------------      
 !-------------------------------------------------------------------------------------------------------------------------
-!     The array DIAM(x,y,z) contains current values of some measure of average ambient mode diameter for each mode  
+!     The array DIAM(x,y,z,n) contains current values of some measure of average ambient mode diameter for each mode  
 !       for use outside of the MATRIX microphysical module where it is calculated. 
-!       Values in DIAM are saved at the top of the subr. MATRIX before microphysical evolution 
-!       for the current time step is done. 
 !
 !     The current measure of particle diameter is the diameter of average mass:
 ! 
-!        DIAM(x,y,z) = [ (6/pi) * (Mi/Ni) * (1/D) ]^(1/3)
+!        DIAM(x,y,z,n) = [ (6/pi) * (Mi/Ni) * (1/D) ]^(1/3)
 !
 !     with Mi the total mass concentration (including water) in mode i, Ni the number concentration in mode i, and
 !     D a constant ambient particle density, currently set to D = DENSP = 1.4 g/cm^3. 
@@ -90,6 +88,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_CONFIG
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
+      USE AERO_DIAM, only: DP
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
 
@@ -224,6 +223,9 @@ c     Biomass BC OC is NOT mixed
 #endif
      &            )
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
+       do n=1,nweights
+         DIAM(i,j,l,n)=DP(n)
+       enddo
  
        DO n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1

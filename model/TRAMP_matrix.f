@@ -61,7 +61,7 @@
       USE AERO_SUBS  
       USE AERO_COAG,   ONLY: SETUP_KIJ_DIAMETERS, SETUP_KIJ_TABLES, GET_KBARNIJ
       USE AERO_NPF,    ONLY: DNU, NPFRATE, SETUP_NPFMASS, STEADY_STATE_H2SO4   
-      USE AERO_DIAM,   ONLY: DIAM!, DIAM_HISTOGRAM
+      USE AERO_DIAM,   ONLY: DP, DP_DRY!, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
       USE AMP_AEROSOL, ONLY: NACTV, VDDEP_AERO
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
@@ -113,8 +113,6 @@
       REAL(8) :: RHC                       ! crystallization RH [0-1]
       REAL(8) :: DGN(NWEIGHTS)             ! ambient geometric mean diameter of the number distribution for each mode [m]
       REAL(8) :: DGN_DRY(NWEIGHTS)         ! geometric mean dry diameter of the number distribution for each mode [m]
-      REAL(8) :: DP(NWEIGHTS)              ! ambient diameter of average mass of the number distribution for each mode [m]
-      REAL(8) :: DP_DRY(NWEIGHTS)          ! dry diameter of average mass of the number distribution for each mode [m]
       REAL(8) :: P_EMIS_NUMB(NMODES)       ! number emission rates [#/m^3/s]       
       REAL(8) :: SPCMASS1(NMASS_SPCS+2)    ! initial total mass conc. of each model species [ug/m^3]
       REAL(8) :: SPCMASS2(NMASS_SPCS+2)    ! final   total mass conc. of each model species [ug/m^3]
@@ -508,7 +506,6 @@
           ! IF( DP(I) .GT. DPMAX_GLOBAL ) WRITE(*,'(I4,3D15.5)') I,DP(I),NI(I),TOT_MASS(I)
           DP    (I) = MIN( MAX( DP    (I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
           DP_DRY(I) = MIN( MAX( DP_DRY(I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
-         DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
           !------------------------------------------------------------------------------------------------------------
           ! Update values of KCI_COEF_DP(I) for the current diameter of average mass for each mode.
           ! THETA_POLY(I) prevents excessive condensation due to treating the mode as monodisperse.
@@ -542,10 +539,6 @@
           ENDDO
         ENDIF
         AVG_DP_OF_AVG_MASS_METERS = SUM( DP(:)*NI(:) ) / SUM( NI(:) )  ! [m] used in AERO_NPF, KK02 gamma expression 
-      ELSE
-         DO I=1,NWEIGHTS
-          DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
-         ENDDO
       ENDIF
       
       !----------------------------------------------------------------------------------------------------------------

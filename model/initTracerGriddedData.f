@@ -41,7 +41,8 @@
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
       USE AERO_NPF, only: SETUP_NPFMASS
-      USE AERO_DIAM, only: SETUP_DIAM
+      USE AERO_DIAM, only: SETUP_DIAM,DP
+      USE AMP_AEROSOL, only: DIAM
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit
 
@@ -240,8 +241,12 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       CALL SETUP_EMIS
       CALL SETUP_KCI
       CALL SETUP_NPFMASS
-      if(is_coldstart) ! do not overwrite diam during warm starts
-     &     CALL SETUP_DIAM
+      if (is_coldstart) then ! do not overwrite diam during warm starts
+        CALL SETUP_DIAM
+        do n=1,nmodes
+          DIAM(:,:,:,n)=DP(n) ! all gridboxes get the default value at init
+        enddo
+      endif
       CALL SETUP_RAD
 #endif
 
