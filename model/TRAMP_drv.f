@@ -84,6 +84,8 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AERO_ACTV, only: NACTIV
       USE AERO_SETUP 
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
+      USE AERO_SUBS, only: SPCMASSES
+!      USE AERO_SUBS, only:  SIZE_PDFS
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
@@ -434,124 +436,7 @@ c -----------------------------------------------------------------
 
       RETURN
       END function AMPtrmass
-c -----------------------------------------------------------------
-      SUBROUTINE SPCMASSES(AERO,GAS,SPCMASS)
-!----------------------------------------------------------------------------------------------------------------------
-!     Routine to calculate the total mass concentration of each model species:
-!     SULF, BCAR, OCAR, DUST, SEAS, NO3, NH4. Aerosol water is not treated. 
-!----------------------------------------------------------------------------------------------------------------------
-      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
-      USE AERO_SETUP, ONLY: OCM2_MAP,OCM1_MAP,OCM0_MAP,OCP1_MAP,OCP2_MAP,
-     &                      OCP3_MAP,OCP4_MAP,OCP5_MAP,OCP6_MAP
-      USE AERO_PARAM
-      USE AERO_CONFIG
-      IMPLICIT NONE
-      REAL(8) :: AERO(NAEROBOX)
-      REAL(8) :: GAS(NGASES)    
-      REAL(8) :: SPCMASS(NMASS_SPCS+2)
-      SPCMASS(PROD_INDEX_SULF) = SUM( AERO( SULF_MAP(:) ) ) + GAS( GAS_H2SO4 )
-      SPCMASS(PROD_INDEX_BCAR) = SUM( AERO( BCAR_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCAR) = SUM( AERO( OCAR_MAP(:) ) )
-      SPCMASS(PROD_INDEX_DUST) = SUM( AERO( DUST_MAP(:) ) )
-      SPCMASS(PROD_INDEX_SEAS) = SUM( AERO( SEAS_MAP(:) ) )
-#ifdef TRACERS_AMP_M9
-      SPCMASS(PROD_INDEX_OCM2) = SUM( AERO( OCM2_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCM1) = SUM( AERO( OCM1_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCM0) = SUM( AERO( OCM0_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP1) = SUM( AERO( OCP1_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP2) = SUM( AERO( OCP2_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP3) = SUM( AERO( OCP3_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP4) = SUM( AERO( OCP4_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP5) = SUM( AERO( OCP5_MAP(:) ) )
-      SPCMASS(PROD_INDEX_OCP6) = SUM( AERO( OCP6_MAP(:) ) )
-#endif 
-      SPCMASS(NMASS_SPCS+1) = AERO( MASS_NO3 ) + GAS( GAS_HNO3 )
-      SPCMASS(NMASS_SPCS+2) = AERO( MASS_NH4 ) + GAS( GAS_NH3  )
-      RETURN
-      END SUBROUTINE SPCMASSES
-     
-      SUBROUTINE SIZE_PDFS(AERO,PDF1,PDF2)
-      USE AERO_PARAM, ONLY: PI6, DENSP, IXXX, IYYY, ILAY
-      USE AERO_CONFIG, ONLY: NMODES, NAEROBOX,NBINS
-      USE AERO_SETUP, ONLY: SIG0, CONV_DPAM_TO_DGN, NUMB_MAP, MODE_NAME
-      USE AMP_AEROSOL, only: DIAM
-      IMPLICIT NONE
 
-      ! Arguments.
-       REAL(8), INTENT(IN) :: AERO(NAEROBOX)! aerosol conc. [ug/m^3] or [#/m^3]
-
-      ! Local variables. 
-
-      INTEGER :: I, N
-!      INTEGER, PARAMETER :: NBINS = 30! 200    ! number of bins [1]     defined in config 
-      REAL(8) :: DGRID(NBINS)              ! fixed diameter        grid [um]
-      REAL(8) :: MGRID(NBINS)              ! fixed mass/particle   grid [ug/particle]
-      REAL(8) :: DLOWER(NBINS)             ! lower boundary fixed diameter grid [um]
-      REAL(8) :: DUPPER(NBINS)             ! upper boundary fixed diameter grid [um]
-      REAL(8) :: NTOT(NMODES)              ! number concentration for each mode [#/m^3]
-      REAL(8) :: PDF(NBINS,2,NMODES)       ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
-      REAL(8) :: DNDLOGD(NMODES)           ! dN/dlog10(Dp) [ #/m^3]
-      REAL(8) :: DMDLOGD(NMODES)           ! dM/dlog10(Dp) [ug/m^3]
-      REAL(8) :: RDMIN                     ! reciprocal of DMIN to optimize coagulation [1/um]
-      REAL(8) :: RDLOGDSC                  ! reciprocal of log10 of the grid spacing [1]
-      REAL(8) :: SCALE, F, SUM1, SUM2      ! scratch variables 
-      REAL(8) :: DMINL, DMAXL, DG          ! diameters [um]  
-      REAL(8) :: FLN                       ! function for lognormal distribution [1]  
-      REAL(8), PARAMETER :: DMIN =  0.001D+00   ! smallest particle diameter of the discrete grid [um]
-      REAL(8), PARAMETER :: DMAX = 20.000D+00   ! largest  particle diameter of the discrete grid [um]
-
-
-        DMAXL = DMAX
-        DMINL = DMIN
-
-      SCALE    = ( DMAXL / DMINL )**(1.0D+00/REAL(NBINS-1))
-      RDLOGDSC = 1.0D+00 / LOG10( SCALE )
-      RDMIN    = 1.0D+00 / DMINL
-      DO I=1, NBINS
-        DGRID(I)  = DMINL * SCALE**(I-1)                  ! [um]
-        DLOWER(I) = DGRID(I) / SCALE**0.5D+00             ! [um]
-        DUPPER(I) = DGRID(I) * SCALE**0.5D+00             ! [um]
-        MGRID(I)  = 1.0D-06 * DENSP * PI6 * DGRID(I)**3   ! [ug/particle]
-        DO N=1, NMODES
-          DG = 1.0D+06 * DIAM(IXXX,IYYY,ILAY,N) * CONV_DPAM_TO_DGN(N)   ! convert [m] to [um] and Dbar to Dg
-          NTOT(N) = AERO( NUMB_MAP(N) )
-          F = NTOT(N) * FLN( DGRID(I), DG, SIG0(N) )
-          PDF(I,1,N) = F * ( DUPPER(I) - DLOWER(I) )
-          PDF(I,2,N) = PDF(I,1,N) * MGRID(I)
-          DNDLOGD(N) = PDF(I,1,N) * RDLOGDSC * 1.0D-06           ! convert from [#/m^3] to [#/cm^3]
-          DNDLOGD(N) = MAX( DNDLOGD(N), 1.0D-30 )
-          DMDLOGD(N) = PDF(I,2,N) * RDLOGDSC                     ! [ug/m^3]
-          DMDLOGD(N) = MAX( DMDLOGD(N), 1.0D-30 )
-        ENDDO
-c        WRITE(IUNIT,91) I, DGRID(I), DNDLOGD(:)
-c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
-      ENDDO
-
-        PDF1(:) = 0.0D+00
-        PDF2(:) = 0.0D+00
-      DO N=1, NMODES
-        DO I=1, NBINS
-          PDF1(I) = PDF1(I)  + PDF(I,1,N)
-          PDF2(I) = PDF2(I)  + PDF(I,2,N)
-          SUM1 = SUM1 + PDF(I,1,N)
-          SUM2 = SUM2 + PDF(I,2,N)
-        ENDDO
-      ENDDO
-
-      RETURN 
-      END SUBROUTINE SIZE_PDFS
-
-
-      REAL(8) FUNCTION FLN(X,XG,SIGMAG)
-      REAL(8) :: X      ! particle radius or diameter [any units]
-      REAL(8) :: XG     ! geometric mean radius or diameter [any units]
-      REAL(8) :: SIGMAG ! geometric standard deviation [monodisperse = 1.0]
-      REAL(8), PARAMETER :: SQRTTWOPI = 2.506628275D+00
-      FLN = EXP(-0.5D+00*(LOG(X/XG)/LOG(SIGMAG))**2) / (X*LOG(SIGMAG)*SQRTTWOPI)
-      RETURN
-      END FUNCTION FLN
       subroutine alloc_tracer_amp_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time

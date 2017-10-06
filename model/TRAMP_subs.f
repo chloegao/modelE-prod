@@ -128,6 +128,41 @@
       RETURN
       END SUBROUTINE MASSADJ
 
+c -----------------------------------------------------------------
+      SUBROUTINE SPCMASSES(AERO,GAS,SPCMASS)
+!----------------------------------------------------------------------------------------------------------------------
+!     Routine to calculate the total mass concentration of each model species:
+!     SULF, BCAR, OCAR, DUST, SEAS, NO3, NH4. Aerosol water is not treated. 
+!----------------------------------------------------------------------------------------------------------------------
+      USE AERO_SETUP, ONLY: SULF_MAP, BCAR_MAP, OCAR_MAP, DUST_MAP, SEAS_MAP
+      USE AERO_SETUP, ONLY: OCM2_MAP,OCM1_MAP,OCM0_MAP,OCP1_MAP,OCP2_MAP,
+     &                      OCP3_MAP,OCP4_MAP,OCP5_MAP,OCP6_MAP
+      USE AERO_PARAM
+      USE AERO_CONFIG
+      IMPLICIT NONE
+      REAL(8) :: AERO(NAEROBOX)
+      REAL(8) :: GAS(NGASES)    
+      REAL(8) :: SPCMASS(NMASS_SPCS+2)
+      SPCMASS(PROD_INDEX_SULF) = SUM( AERO( SULF_MAP(:) ) ) + GAS( GAS_H2SO4 )
+      SPCMASS(PROD_INDEX_BCAR) = SUM( AERO( BCAR_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCAR) = SUM( AERO( OCAR_MAP(:) ) )
+      SPCMASS(PROD_INDEX_DUST) = SUM( AERO( DUST_MAP(:) ) )
+      SPCMASS(PROD_INDEX_SEAS) = SUM( AERO( SEAS_MAP(:) ) )
+#ifdef TRACERS_AMP_M9
+      SPCMASS(PROD_INDEX_OCM2) = SUM( AERO( OCM2_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCM1) = SUM( AERO( OCM1_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCM0) = SUM( AERO( OCM0_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP1) = SUM( AERO( OCP1_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP2) = SUM( AERO( OCP2_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP3) = SUM( AERO( OCP3_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP4) = SUM( AERO( OCP4_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP5) = SUM( AERO( OCP5_MAP(:) ) )
+      SPCMASS(PROD_INDEX_OCP6) = SUM( AERO( OCP6_MAP(:) ) )
+#endif 
+      SPCMASS(NMASS_SPCS+1) = AERO( MASS_NO3 ) + GAS( GAS_HNO3 )
+      SPCMASS(NMASS_SPCS+2) = AERO( MASS_NH4 ) + GAS( GAS_NH3  )
+      RETURN
+      END SUBROUTINE SPCMASSES
 
 
       
@@ -159,7 +194,6 @@
       REAL(8) :: RDLOGDSC                  ! reciprocal of log10 of the grid spacing [1]
       REAL(8) :: SCALE, F, SUM1, SUM2      ! scratch variables 
       REAL(8) :: DMINL, DMAXL, DG          ! diameters [um]  
-      REAL(8) :: FLN                       ! function for lognormal distribution [1]  
       REAL(8), PARAMETER :: DMIN =  0.001D+00   ! smallest particle diameter of the discrete grid [um]
       REAL(8), PARAMETER :: DMAX = 20.000D+00   ! largest  particle diameter of the discrete grid [um]
 
