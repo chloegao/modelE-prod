@@ -423,14 +423,15 @@ c -----------------------------------------------------------------
       enddo
 
       nAMP=n-ntmAMPi+1
-      trmass=0.d0
-      trsum=sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
-      if(AMP_MODES_MAP(nAMP) > 0 .and. trsum > 0. ) then
-        trmass=sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))
-     &             *trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) )
-     &         /trsum
+      trmass=tr_mm_local(n) ! default, for tracers not belonging to a mode
+      if(AMP_MODES_MAP(nAMP) > 0) then
+        trsum=sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
+        if (trsum > 0.) then
+          trmass=sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))
+     &               *trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) )
+     &           /trsum
+        endif
       endif
-      if (trmass.le.0) trmass=tr_mm_local(AMP_MODES_MAP(nAMP))
 
       deallocate(tr_mm_local)
 
