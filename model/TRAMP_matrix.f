@@ -1,10 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG
-#ifdef TRACERS_AMP_M9
-     &                  ,VBS_FLUXES)
-#else
-     &                             )
-#endif
+      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG,VBS_FLUXES)
 !-----------------------------------------------------------------------------------------------------------------------
 !
 !@sum     This is the top-level routine of the MATRIX aerosol microphysical module.
@@ -78,9 +73,7 @@
       REAL(8), INTENT(IN)    :: AQSO4RATE                  ! in-cloud SO4 production rate [ug/m^3/s]
       REAL(8), INTENT(IN)    :: WUPDRAFT                   ! cloud updraft velocity [m/s]
       REAL(8), INTENT(INOUT) :: DIAG(NDIAG_AERO,NAEROBOX)  ! budget or tendency diagnostics [ug/m^3/s] or [#/m^3/s]
-#ifdef TRACERS_AMP_M9
-      REAL(8), INTENT(IN)    :: VBS_FLUXES(NMODES,NMASS_SPCS)
-#endif
+      REAL(8), INTENT(IN), optional :: VBS_FLUXES(NMODES,NMASS_SPCS)
       ! Local variables.
 
       INTEGER :: I,J,K,L,Q,QQ,PR           ! indices
@@ -275,11 +268,11 @@
       !---------------------------------------------------------------------------------------------------------------- 
       IF( NO_MICROPHYSICS ) THEN
          EMIS_MASS(:) = 0.0D+00 
-        CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,
-#ifdef TRACERS_AMP_M9
-     &                           VBS_FLUXES,
-#endif
-     &                           AQSO4RATE)
+        if (present(VBS_FLUXES)) then
+          CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,VBS_FLUXES)
+        else
+          CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE)
+        endif
         RETURN
       ENDIF
 
@@ -958,13 +951,15 @@
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 #ifdef TRACERS_AMP_M9
-      DO i=1,NMODES
-        IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
-        DO PR=PROD_INDEX_OCM2,PROD_INDEX_OCP6
-          PIQ(i,PR)=PIQ(i,PR)+VBS_FLUXES(i,PR)
-          DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,PR)))=VBS_FLUXES(I,PR)
+      if (present(VBS_FLUXES)) then
+        DO i=1,NMODES
+          IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
+          DO PR=PROD_INDEX_OCM2,PROD_INDEX_OCP6
+            PIQ(i,PR)=PIQ(i,PR)+VBS_FLUXES(i,PR)
+            DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,PR)))=VBS_FLUXES(I,PR)
+          ENDDO
         ENDDO
-      ENDDO
+      endif
 #endif
       IF( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(/A,5X,3D15.8)')'XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH = ', XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH
@@ -1372,11 +1367,11 @@
       ! WRITE(*,*)'TOT_SULF 1 = ',SUM( AERO( SULF_MAP(:)) )
       IF( MASS_ADJ ) THEN
         CALL SPCMASSES(AERO,GAS,SPCMASS2)
-        CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,
-#ifdef TRACERS_AMP_M9
-     &               VBS_FLUXES,
-#endif
-     &               AQSO4RATE,TSTEP)
+        if (present(VBS_FLUXES)) then
+          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP,VBS_FLUXES)
+        else
+          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP)
+        endif
       ENDIF
       ! WRITE(*,*)'TOT_SULF 2 = ',SUM( AERO( SULF_MAP(:)) )
 

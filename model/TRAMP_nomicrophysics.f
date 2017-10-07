@@ -1,9 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,
-#ifdef TRACERS_AMP_M9
-     &                               VBS_FLUXES,
-#endif
-     &                               AQSO4RATE)
+      SUBROUTINE AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,VBS_FLUXES)
 !-------------------------------------------------------------------------------------------------------------
 !     DLW, 092106: Routine for the no-microphysics option.
 !
@@ -26,10 +22,8 @@
       REAL(8), INTENT(IN)    :: TK                    ! absolute temperature [K]
       REAL(8), INTENT(IN)    :: RH                    ! relative humidity [0-1]
       REAL(8), INTENT(IN)    :: PRES                  ! ambient pressure [Pa]  
-#ifdef TRACERS_AMP_M9
-      REAL(8), INTENT(IN)    :: VBS_FLUXES(NMODES,NMASS_SPCS)
-#endif
       REAL(8), INTENT(IN)    :: AQSO4RATE             ! in-cloud SO4 production rate [ug/m^3/s]
+      REAL(8), INTENT(IN), optional :: VBS_FLUXES(NMODES,NMASS_SPCS)
 
       ! Local variables.
 
@@ -188,11 +182,11 @@
       !-------------------------------------------------------------------------------------------------------
       IF ( MASS_ADJ ) THEN
         CALL SPCMASSES(AERO,GAS,SPCMASS2)
-        CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,
-#ifdef TRACERS_AMP_M9
-     &               VBS_FLUXES,
-#endif
-     &               AQSO4RATE,TSTEP)
+        if (present(VBS_FLUXES)) then
+          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP, VBS_FLUXES)
+        else
+          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP)
+        endif
       ENDIF
 
       !-------------------------------------------------------------------------------------------------------
