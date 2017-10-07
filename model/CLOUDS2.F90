@@ -1339,6 +1339,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             FLAMG=(400.d0*PI*CN0G/(CONDMU+teeny))**.25
             FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
+#ifndef TRACERS_AMP
 #if defined(CLD_AER_CDNC) && \
    (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
@@ -1348,6 +1349,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             DSS(1:SNTM) = 1d-10
             DSGL(L,1:SNTM) = 1d-10
 #endif
+#endif  /* not TRACERS_AMP */
 
 #if defined(CLD_AER_CDNC) && defined(ALT_CDNC_INPUTS)
             ! aerosols in the updraft
@@ -1362,6 +1364,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #endif
 
 !**** Here we change convective precip due to aerosols
+#ifndef TRACERS_AMP
 #if defined(CLD_AER_CDNC) && \
    (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
@@ -1493,6 +1496,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
               end select
             end do      !end of n loop for tracers
 #endif  /* CLD_AER_CDNC */
+#endif  /* not TRACERS_AMP */
 
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
 #if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
@@ -3584,6 +3588,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
 #ifdef CLD_AER_CDNC
 
+#ifndef TRACERS_AMP
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
     defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
@@ -3597,6 +3602,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
        oldcdn,newcdn & ! output affecting koch/seasalt EC_IN_OPTICS
        )
 #endif
+#endif  /* not TRACERS_AMP */
 
       ! Call blk_2mom for two (hopefully) temporary reasons:
       !  (1) get scdncw,scdnci for EC_IN_OPTICS

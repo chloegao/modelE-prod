@@ -34,9 +34,11 @@
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_init
 #endif  /* TRACERS_AEROSOLS_VBS */
+#endif  /* not TRACERS_AMP */
 #if (defined TRACERS_AMP)
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
@@ -196,9 +198,11 @@ C          read the CFC initial conditions:
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
+#ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
       call vbs_init(ntm)
 #endif  /* TRACERS_AEROSOLS_VBS */
+#endif  /* not TRACERS_AMP */
 C**** Get to_volume_MixRat from rundecks if it exists
       call syncProperty(tracers, "to_volume_MixRat",
      &     set_to_volume_MixRat,to_volume_MixRat())

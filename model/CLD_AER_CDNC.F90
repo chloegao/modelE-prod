@@ -16,12 +16,14 @@ module cld_aer_cdnc_mod
   public :: sntm,cld_aer_cdnc_block1,cld_aer_cdnc_block2
   integer, parameter :: SNTM=31
 
+#ifndef TRACERS_AMP
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
     defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
     defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS)
   public :: cld_aer_cdnc_block0
 #endif
+#endif  /* not TRACERS_AMP */
 
     integer,parameter         :: mkx=1   ! lm
     real*8,parameter          :: mw0 = 2.094395148947515E-15
@@ -57,6 +59,7 @@ module cld_aer_cdnc_mod
 
 contains
 
+#ifndef TRACERS_AMP
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
     defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
@@ -195,6 +198,7 @@ contains
   end subroutine cld_aer_cdnc_block0
 
 #endif
+#endif  /* not TRACERS_AMP */
 
   subroutine cld_aer_cdnc_block1( &
        i_debug,j_debug, &
