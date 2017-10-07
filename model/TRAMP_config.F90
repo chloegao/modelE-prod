@@ -16,6 +16,7 @@
       INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_DUST = 4 ! DUST index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_SEAS = 5 ! SEAS index in PROD_INDEX(:,:)
+#ifdef TRACERS_AMP_M9
       INTEGER, PARAMETER :: PROD_INDEX_OCM2 = 6 ! OCM2 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCM1 = 7 ! OCM1 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCM0 = 8 ! OCM0 index in PROD_INDEX(:,:)
@@ -25,6 +26,7 @@
       INTEGER, PARAMETER :: PROD_INDEX_OCP4 = 12! OCP4 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCP5 = 13! OCP5 index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCP6 = 14! OCP6 index in PROD_INDEX(:,:)
+#endif  /* TRACERS_AMP_M9 */
 !-------------------------------------------------------------------------------------------------------------------------
 !@param NMODES_MAX Maximum number of modes possible
 !@param MNAME Aerosol mode names (and numbers) that might appear in one or more
@@ -53,6 +55,7 @@
       DATA MSPCS(PROD_INDEX_OCAR,1:NMODES_MAX)/0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1/
       DATA MSPCS(PROD_INDEX_DUST,1:NMODES_MAX)/0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,1/
       DATA MSPCS(PROD_INDEX_SEAS,1:NMODES_MAX)/0,0,0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,1/
+#ifdef TRACERS_AMP_M9
       DATA MSPCS(PROD_INDEX_OCM2,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
       DATA MSPCS(PROD_INDEX_OCM1,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
       DATA MSPCS(PROD_INDEX_OCM0,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
@@ -62,6 +65,7 @@
       DATA MSPCS(PROD_INDEX_OCP4,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
       DATA MSPCS(PROD_INDEX_OCP5,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
       DATA MSPCS(PROD_INDEX_OCP6,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
+#endif  /* TRACERS_AMP_M9 */
 !-------------------------------------------------------------------------------------------------------------------------
 !@param MECH MATRIX mechanism selected.
 !@param NAEROVARS Number of aerosol tracers in MATRIX with microphysics.

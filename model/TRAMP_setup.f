@@ -1815,6 +1815,7 @@
             case ('SEAS')
               PROD_INDEX(I,Q) = PROD_INDEX_SEAS
               PROD_INDEX_INV(I,PROD_INDEX_SEAS) = Q
+#ifdef TRACERS_AMP_M9
             case ('OCM2')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM2
               PROD_INDEX_INV(I,PROD_INDEX_OCM2) = Q
@@ -1842,6 +1843,7 @@
             case ('OCP6')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP6
               PROD_INDEX_INV(I,PROD_INDEX_OCP6) = Q
+#endif  /* TRACERS_AMP_M9 */
             case default
               stop 'Unknown AERO_SPCS in SETUP_AERO_MASS_MAP'
             end select
