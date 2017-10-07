@@ -83,7 +83,7 @@
 #endif
       ! Local variables.
 
-      INTEGER :: I,J,K,L,Q,QQ              ! indices
+      INTEGER :: I,J,K,L,Q,QQ,PR           ! indices
       INTEGER :: INDEX_DP!, INDEX_DP_DRY    ! index for condensation factor lookup table
       INTEGER :: IBRANCH                   ! scratch debugging variable [1]
       REAL(8) :: BI(NWEIGHTS)              ! number conc. coefficients [1/s]
@@ -275,7 +275,11 @@
       !---------------------------------------------------------------------------------------------------------------- 
       IF( NO_MICROPHYSICS ) THEN
          EMIS_MASS(:) = 0.0D+00 
-        CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE)
+        CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,
+#ifdef TRACERS_AMP_M9
+     &                           VBS_FLUXES,
+#endif
+     &                           AQSO4RATE)
         RETURN
       ENDIF
 
@@ -407,7 +411,7 @@
       !   These species are sulfate, BC, OC, dust, and sea salt.
       !
       ! MASS_MAP(I,Q) is the location in AERO(:) of the Qth mass in mode I.
-      ! Mode I has NM(I) mass species defined for it, and NM(I) varies between 1 and NMASS_SPCS (=5).
+      ! Mode I has NM(I) mass species defined for it, and NM(I) varies between 1 and NMASS_SPCS
       ! The second index of PROD_INDEX has NMASS_SPCS (=5) values:
       !   1=sulfate, 2=BC, 3=OC, 4=dust, 5=sea salt.
       ! The second index of MJQ also has these same NMASS_SPCS (=5) values.
@@ -954,26 +958,12 @@
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 #ifdef TRACERS_AMP_M9
-      DO i=1,NMODES_MAX
-        IF (MSPCS(PROD_INDEX_OCM2,i) .eq. 0) CYCLE  !mspcs(nmass_spcs,nmodes_max),determine if vbs species is 0 or 1
-        PIQ (i,PROD_INDEX_OCM2)=PIQ (i,PROD_INDEX_OCM2)+VBS_FLUXES(i,PROD_INDEX_OCM2)
-        PIQ (i,PROD_INDEX_OCM1)=PIQ (i,PROD_INDEX_OCM1)+VBS_FLUXES(i,PROD_INDEX_OCM1)
-        PIQ (i,PROD_INDEX_OCM0)=PIQ (i,PROD_INDEX_OCM0)+VBS_FLUXES(i,PROD_INDEX_OCM0)
-        PIQ (i,PROD_INDEX_OCP1)=PIQ (i,PROD_INDEX_OCP1)+VBS_FLUXES(i,PROD_INDEX_OCP1)
-        PIQ (i,PROD_INDEX_OCP2)=PIQ (i,PROD_INDEX_OCP2)+VBS_FLUXES(i,PROD_INDEX_OCP2)
-        PIQ (i,PROD_INDEX_OCP3)=PIQ (i,PROD_INDEX_OCP3)+VBS_FLUXES(i,PROD_INDEX_OCP3)
-        PIQ (i,PROD_INDEX_OCP4)=PIQ (i,PROD_INDEX_OCP4)+VBS_FLUXES(i,PROD_INDEX_OCP4)
-        PIQ (i,PROD_INDEX_OCP5)=PIQ (i,PROD_INDEX_OCP5)+VBS_FLUXES(i,PROD_INDEX_OCP5)
-        PIQ (i,PROD_INDEX_OCP6)=PIQ (i,PROD_INDEX_OCP6)+VBS_FLUXES(i,PROD_INDEX_OCP6)
-          DIAGTMP1(11,OCM2_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM2)
-          DIAGTMP1(11,OCM1_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM1)
-          DIAGTMP1(11,OCM0_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCM0)
-          DIAGTMP1(11,OCP1_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP1)
-          DIAGTMP1(11,OCP2_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP2)
-          DIAGTMP1(11,OCP3_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP3)
-          DIAGTMP1(11,OCP4_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP4)
-          DIAGTMP1(11,OCP5_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP5)
-          DIAGTMP1(11,OCP6_MAP(i)) = VBS_FLUXES(I,PROD_INDEX_OCP6)
+      DO i=1,NMODES
+        IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
+        DO PR=PROD_INDEX_OCM2,PROD_INDEX_OCP6
+          PIQ(i,PR)=PIQ(i,PR)+VBS_FLUXES(i,PR)
+          DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,PR)))=VBS_FLUXES(I,PR)
+        ENDDO
       ENDDO
 #endif
       IF( WRITE_LOG ) THEN
@@ -1030,9 +1020,9 @@
       !
       ! MASS_MAP(I,Q) is the location in AERO(:) of the Qth mass in mode I.
       ! Mode I has NM(I) mass species defined for it, and NM(I) varies between
-      !   1 and NMASS_SPCS (=5).
+      !   1 and NMASS_SPCS
       !
-      ! The second index of PROD_INDEX has NMASS_SPCS (=5) values:
+      ! The second index of PROD_INDEX has NMASS_SPCS values:
       !   1=sulfate, 2=BC, 3=OC, 4=dust, 5=sea salt.
       !   PROD_INDEX(I,Q) is the location in array PIQ(I,Q) of chemical species
       !   CHEM_SPC_NAME(Q) for mode (quadrature weight) I.
@@ -1382,7 +1372,11 @@
       ! WRITE(*,*)'TOT_SULF 1 = ',SUM( AERO( SULF_MAP(:)) )
       IF( MASS_ADJ ) THEN
         CALL SPCMASSES(AERO,GAS,SPCMASS2)
-        CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP)
+        CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,
+#ifdef TRACERS_AMP_M9
+     &               VBS_FLUXES,
+#endif
+     &               AQSO4RATE,TSTEP)
       ENDIF
       ! WRITE(*,*)'TOT_SULF 2 = ',SUM( AERO( SULF_MAP(:)) )
 

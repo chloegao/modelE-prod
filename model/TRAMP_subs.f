@@ -10,7 +10,11 @@
       CONTAINS
 
 
-      SUBROUTINE MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP)
+      SUBROUTINE MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,
+#ifdef TRACERS_AMP_M9
+     &                   VBS_FLUXES,
+#endif
+     &                   AQSO4RATE,TSTEP)
 !----------------------------------------------------------------------------------------------------------------------
 !     This routine rescales all aerosol and gas-phase species to enforce
 !     mass conservation to machine precision.
@@ -27,6 +31,9 @@
       REAL(8), INTENT(IN)    :: SPCMASS1(NMASS_SPCS+2) ! initial total mass spc. conc. [ug/m^3]
       REAL(8), INTENT(INOUT) :: SPCMASS2(NMASS_SPCS+2) ! final   total mass spc. conc. [ug/m^3]
       REAL(8), INTENT(IN)    :: EMIS_MASS(NEMIS_SPCS)  ! mass emission rates [ug/m^3/s]
+#ifdef TRACERS_AMP_M9
+      REAL(8), INTENT(IN)    :: VBS_FLUXES(NMODES,NMASS_SPCS)
+#endif
       REAL(8), INTENT(IN)    :: AQSO4RATE              ! in-cloud SO4 production rate [ug/m^3/s]
       REAL(8), INTENT(IN)    :: TSTEP                  ! model physics time step [s]
 
@@ -56,23 +63,23 @@
      &  (             EMIS_MASS(6) + EMIS_MASS(7)  ) * TSTEP ) / SPCMASS2(PROD_INDEX_SEAS) 
 #ifdef TRACERS_AMP_M9
       SCALEMASS(PROD_INDEX_OCM2) = ( SPCMASS1(PROD_INDEX_OCM2) +
-     &                               EMIS_MASS(11)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM2)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCM2)) + EMIS_MASS(11) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCM2)
       SCALEMASS(PROD_INDEX_OCM1) = ( SPCMASS1(PROD_INDEX_OCM1) +
-     &                               EMIS_MASS(12)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM1)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCM1)) + EMIS_MASS(12) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCM1)
       SCALEMASS(PROD_INDEX_OCM0) = ( SPCMASS1(PROD_INDEX_OCM0) +
-     &                               EMIS_MASS(13)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCM0)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCM0)) + EMIS_MASS(13) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCM0)
       SCALEMASS(PROD_INDEX_OCP1) = ( SPCMASS1(PROD_INDEX_OCP1) +
-     &                               EMIS_MASS(14)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP1)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP1)) + EMIS_MASS(14) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP1)
       SCALEMASS(PROD_INDEX_OCP2) = ( SPCMASS1(PROD_INDEX_OCP2) +
-     &                               EMIS_MASS(15)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP2)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP2)) + EMIS_MASS(15) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP2)
       SCALEMASS(PROD_INDEX_OCP3) = ( SPCMASS1(PROD_INDEX_OCP3) +
-     &                               EMIS_MASS(16)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP3)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP3)) + EMIS_MASS(16) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP3)
       SCALEMASS(PROD_INDEX_OCP4) = ( SPCMASS1(PROD_INDEX_OCP4) +
-     &                               EMIS_MASS(17)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP4)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP4)) + EMIS_MASS(17) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP4)
       SCALEMASS(PROD_INDEX_OCP5) = ( SPCMASS1(PROD_INDEX_OCP5) +
-     &                               EMIS_MASS(18)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP5)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP5)) + EMIS_MASS(18) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP5)
       SCALEMASS(PROD_INDEX_OCP6) = ( SPCMASS1(PROD_INDEX_OCP6) +
-     &                               EMIS_MASS(19)   * TSTEP ) / SPCMASS2(PROD_INDEX_OCP6)
+     &  ( SUM(VBS_FLUXES(:,PROD_INDEX_OCP6)) + EMIS_MASS(19) ) * TSTEP ) / SPCMASS2(PROD_INDEX_OCP6)
 #endif
       SCALEMASS(NMASS_SPCS+1) = ( SPCMASS1(NMASS_SPCS+1) ) / SPCMASS2(NMASS_SPCS+1) 
       SCALEMASS(NMASS_SPCS+2) = ( SPCMASS1(NMASS_SPCS+2) ) / SPCMASS2(NMASS_SPCS+2) 

@@ -28,6 +28,7 @@
       INTEGER, SAVE :: NUMB_MAP(NWEIGHTS)                           ! [1]
       INTEGER, SAVE :: MASS_MAP(NWEIGHTS,NMASS_SPCS)                ! [1]
       INTEGER, SAVE :: PROD_INDEX(NWEIGHTS,NMASS_SPCS)              ! [1]
+      INTEGER, SAVE :: PROD_INDEX_INV(NWEIGHTS,NMASS_SPCS)          ! [1]
       INTEGER, SAVE, ALLOCATABLE :: SULF_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: BCAR_MAP(:)                     ! [1]
       INTEGER, SAVE, ALLOCATABLE :: OCAR_MAP(:)                     ! [1]
@@ -1779,12 +1780,16 @@
 !
 !     PROD_INDEX(I,Q) is the location in array PIQ(I,Q) of chemical species
 !       CHEM_SPC_NAME(Q) for mode (quadrature weight) I.
+!     PROD_INDEX_INV(I,PROD_INDEX_XXXX) is the location in NM(I)-indexed arrays
+!       like MASS_MAP that shows in which index of the 1:NM(I) range the species
+!       PROD_INDEX_XXXX is.
 !-------------------------------------------------------------------------------
       IMPLICIT NONE
       INTEGER :: I,Q,J
 
       MASS_MAP(:,:) = 0
       PROD_INDEX(:,:) = 0
+      PROD_INDEX_INV(:,:) = 0
 
       IF( WRITE_LOG ) WRITE(AUNIT1,'(/A/)')'I,J,Q,MODE_NAME(I),AERO_SPCS(J),PROD_INDEX(I,Q),MASS_MAP(I,Q)'
 
@@ -1797,32 +1802,46 @@
             select case (AERO_SPCS(J)(10:13))
             case ('SULF')
               PROD_INDEX(I,Q) = PROD_INDEX_SULF
+              PROD_INDEX_INV(I,PROD_INDEX_SULF) = Q
             case ('BCAR')
               PROD_INDEX(I,Q) = PROD_INDEX_BCAR
+              PROD_INDEX_INV(I,PROD_INDEX_BCAR) = Q
             case ('OCAR')
               PROD_INDEX(I,Q) = PROD_INDEX_OCAR
+              PROD_INDEX_INV(I,PROD_INDEX_OCAR) = Q
             case ('DUST')
               PROD_INDEX(I,Q) = PROD_INDEX_DUST
+              PROD_INDEX_INV(I,PROD_INDEX_DUST) = Q
             case ('SEAS')
               PROD_INDEX(I,Q) = PROD_INDEX_SEAS
+              PROD_INDEX_INV(I,PROD_INDEX_SEAS) = Q
             case ('OCM2')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM2
+              PROD_INDEX_INV(I,PROD_INDEX_OCM2) = Q
             case ('OCM1')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM1
+              PROD_INDEX_INV(I,PROD_INDEX_OCM1) = Q
             case ('OCM0')
               PROD_INDEX(I,Q) = PROD_INDEX_OCM0
+              PROD_INDEX_INV(I,PROD_INDEX_OCM0) = Q
             case ('OCP1')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP1
+              PROD_INDEX_INV(I,PROD_INDEX_OCP1) = Q
             case ('OCP2')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP2
+              PROD_INDEX_INV(I,PROD_INDEX_OCP2) = Q
             case ('OCP3')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP3
+              PROD_INDEX_INV(I,PROD_INDEX_OCP3) = Q
             case ('OCP4')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP4
+              PROD_INDEX_INV(I,PROD_INDEX_OCP4) = Q
             case ('OCP5')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP5
+              PROD_INDEX_INV(I,PROD_INDEX_OCP5) = Q
             case ('OCP6')
               PROD_INDEX(I,Q) = PROD_INDEX_OCP6
+              PROD_INDEX_INV(I,PROD_INDEX_OCP6) = Q
             case default
               stop 'Unknown AERO_SPCS in SETUP_AERO_MASS_MAP'
             end select
