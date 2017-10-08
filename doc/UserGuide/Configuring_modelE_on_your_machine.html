@@ -55,13 +55,33 @@ all necessary binary packages with:
    yum install openmpi.x86_64
    yum install openmpi-devel.x86_64
 </pre></code>
-On Linux if using yum package for MPI typically you have to enable it 
+On Linux, if using yum package for MPI, typically you have to enable it 
 with something like
 <pre>
    module load openmpi-x86_64
 </pre>
 before you can use in in your shell window. (you may want to add this 
 command to your ~/.profile).
+
+<P>
+On enterprise Linux platforms (such as RedHat or CentOS) the version
+of the default compiler may be too old to be compatible with current
+modelE source code. In such case you may need to install the latest
+Developmant Tool Set. On CentOS you can do it with
+<pre><code>
+   yum install centos-release-scl
+   yum install devtoolset-6
+</pre></code>
+To use it in your current shell, you will need to enable it with
+<pre><code>
+   scl enable devtoolset-6 bash
+</pre></code>
+(make sure that your ~/.bashrc doesn't break it) or you can add
+<pre><code>
+   source /opt/rh/devtoolset-6/enable
+</pre></code>
+to your ~/.bashrc file, so that it is enabled automatically each time
+you start a new shell.
 
 <P>
 Once all necessary software is installed you can proceed to
