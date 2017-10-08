@@ -43,6 +43,7 @@ module TracerBundle_mod
     procedure :: addMandatoryAttribute
     procedure :: writeFormatted
     procedure :: writeUnformatted => writeUnformatted_bundle
+    procedure :: makeSubset
   end type TracerBundle
 
   interface clean

@@ -29,6 +29,7 @@ module TomasTracersMetadata_mod
   use TRACER_COM, only: n_ASO4, n_ANACL, n_AECIL, n_AECOB, &
     n_AOCIL, n_ADUST, n_ANUM, n_AOCOB, n_AH2O, n_SOAgas
   use TRACER_COM, only: set_ntsurfsrc
+  use TRACER_COM, only: tracers
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
   use RunTimeControls_mod, only: tracers_aerosols_soa
   use RunTimeControls_mod, only: tracers_special_shindell
@@ -117,6 +118,7 @@ contains
       character(len=*), intent(in) :: name
       integer, intent(in) :: nbins
       integer :: indices(nbins)
+      type (Tracer), pointer :: t
 
       integer :: bin
       character(len=len_trim(name) + 4) :: fullName
@@ -128,6 +130,11 @@ contains
           write(fullName,'(a,"__",i2.2)') trim(name), bin
         end if
         indices(bin) = func(fullName, bin)
+
+        if ((trim(name)=='AECIL').or.(trim(name)=='AECOB')) then
+          t => tracers%getReference(trim(fullName))
+          call t%insert('BC',.true.)
+        endif
       end do
 
     end function TOMAS_setSpec

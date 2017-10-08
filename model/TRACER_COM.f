@@ -678,6 +678,7 @@ c note: not applying CPP when declaring counts/lists.
       integer, dimension(:), allocatable ::
      &     active_list,gases_list,aero_list,water_list,
      &     hlaw_list,aqchem_list
+      integer, allocatable, dimension(:) :: itrBC
 
       ! temporary support of legacy interface
       interface ntsurfsrc
@@ -813,6 +814,8 @@ c note: not applying CPP when declaring counts/lists.
         aqchem_list = tmplist_aqchem(1:aqchem_count)
       endif
 
+      call get_tracer_subset_indices(tracers, 'BC', itrBC)
+
       return
       end subroutine remake_tracer_lists
 
@@ -939,6 +942,44 @@ C****
       end do
 
       end subroutine syncProperty
+
+
+      subroutine get_tracer_subset_indices(bundle, property, indices)
+
+      use TracerBundle_mod
+      use TracerHashMap_mod
+      use Attributes_mod
+      use Tracer_mod
+
+      implicit none
+
+      type (TracerBundle), intent(in) :: bundle
+      character(len=*), intent(in) :: property
+      integer, allocatable, dimension(:) :: indices
+
+      type (TracerBundle), target :: subset
+      type (TracerIterator) :: iter
+      integer :: i, n
+      type (Tracer), pointer :: p
+      class (AbstractAttribute), pointer :: pattr
+
+      if (allocated(indices)) deallocate(indices)
+
+      subset = tracers%makeSubset(property)
+      n = subset%size()
+      allocate(indices(n))
+
+      i = 1
+      iter = subset%begin()
+      do while (iter /= subset%last())
+        p => iter%value()
+        pattr => p%getReference('index')
+        call toType(indices(i), pattr) ! cast to integer
+        i = i + 1
+        call iter%next()
+      end do
+
+      end subroutine get_tracer_subset_indices
 
       END MODULE TRACER_COM
 
