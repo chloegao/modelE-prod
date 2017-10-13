@@ -7429,6 +7429,9 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
     (defined TRACERS_TOMAS)
       USE TRACER_COM, only: aer_int_yr
 #endif
+#ifdef TRACERS_AEROSOLS_VBS
+      USE TRACERS_VBS, only: vbs_tr
+#endif  /* TRACERS_AEROSOLS_VBS */
       USE TRACER_COM, only: ntm, sfc_src, trm
       use TRACER_COM, only: mchem, mtrace, n_BCIA, n_BCII, n_CFC, n_CH4
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_HNO3, n_MSA, N_N2O
