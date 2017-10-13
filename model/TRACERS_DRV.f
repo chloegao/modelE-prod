@@ -7253,7 +7253,10 @@ c$$$#endif
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
      &                      n_apinp2a, n_NH4, n_NO3p
-      use CONSTANT, only : gasc
+      use CONSTANT, only : gasc,mair
+      USE ATM_COM, only: pmid,MA,pk,t
+      USE GEOM, only: axyp
+      use AEROSOL_SOURCES, only: oh
       use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
      &                       vbs_calc, vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
@@ -7266,7 +7269,8 @@ c$$$#endif
       type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
       type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
 !@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
-      real*8 :: kg2ugm3
+      real*8 :: kg2ugm3,te
+      integer :: l,v
 #endif /* TRACERS_AEROSOLS_VBS */
       real*8 :: bciage,ociage
       integer :: n
@@ -7290,10 +7294,11 @@ c    Aging of industrial carbonaceous aerosols
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
         do l=1,lm
+          te=pk(l,i,j)*t(i,j,l)
           kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
      &            (MA(l,i,j)*axyp(i,j)*gasc*te)
           vbs_cond%dt=dtsrc
-          vbs_cond%OH=ohmc
+          vbs_cond%OH=oh(i,j,l)
           vbs_cond%temp=te
           vbs_cond%nvoa=(trm_col(l,n_BCII)
      &                  +trm_col(l,n_BCIA)
@@ -7344,11 +7349,11 @@ c    Aging of industrial carbonaceous aerosols
 !      endif
         enddo
 
-        do i=1,vbs_tr%nbins
-          call apply_tracer_3Dsource(i,j,nChemprod,vbs_tr%igas(i))  ! aging source
-          call apply_tracer_3Dsource(i,j,nChemloss,vbs_tr%igas(i))  ! aging loss
-          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%igas(i))     ! partitioning
-          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%iaer(i))     ! partitioning
+        do v=1,vbs_tr%nbins
+          call apply_tracer_3Dsource(i,j,nChemprod,vbs_tr%igas(v))  ! aging source
+          call apply_tracer_3Dsource(i,j,nChemloss,vbs_tr%igas(v))  ! aging loss
+          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%igas(v))     ! partitioning
+          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%iaer(v))     ! partitioning
         enddo
 #else
         case ('OCII')

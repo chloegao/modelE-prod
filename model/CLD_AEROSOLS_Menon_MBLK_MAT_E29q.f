@@ -6,14 +6,14 @@
 !@contains routines for calculating cloud droplet number (cm-3) for convective clouds
 !@this is called in CLOUDS2_E1 if MATRIX is used to set aerosols
       USE CLOUDS_COM
-      USE TRACER_COM, only: ntm_ococean, ntm_soa
+      USE TRACER_COM, only: ntm_ococean, ntm_soa, ntm_vbs
       USE AERO_CONFIG, only: MODE_NAME
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
      *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
      *       SSMAL,SSMAO,SSML,SSMO
-      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean+ntm_vbs
       real*8,dimension(nt)::DSS,DSU,ncaero
       integer L,n,nmodes,nm 
 
@@ -131,7 +131,7 @@ c
       USE TRACER_COM, only: n_seasalt1, n_seasalt2, ntm_ococean
       USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
       USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
-      use TRACER_COM, only: ntm_soa
+      use TRACER_COM, only: ntm_soa, ntm_vbs
       use OldTracer_mod, only: fq_aer
       USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
@@ -140,7 +140,7 @@ c
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,
      *       SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3, SSM1a
-      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean+ntm_vbs
       real*8,dimension(nt)::DSS,DSU
       real*8 :: fq_ssoc_oc,fq_ssoc_ss
       integer L,n
@@ -313,14 +313,14 @@ C*******************************************************************************
 !@input is mostly aerosol mass and a few cloud properties 
       USE CLOUDS_COM
       use OldTracer_mod, only: fq_aer
-      USE TRACER_COM, only: ntm_ococean, ntm_soa, n_seasalt1
+      USE TRACER_COM, only: ntm_ococean, ntm_soa, n_seasalt1, ntm_vbs
       USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
       USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       USE CONSTANT,only:mb2kg,LHE,LHS,RGAS
       IMPLICIT NONE
       real*8 CAREA,CLDSAVL,AIRM,WMX,OLDCDL,VVEL  ! VVEL is in cm/s
      *,SME,rho,PL,TL,WTURB
-      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean+ntm_vbs
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
@@ -535,7 +535,7 @@ C**************************************************************************
       USE CLOUDS_COM
       USE CONSTANT,only:LHE,LHS
       use OldTracer_mod, only: fq_aer
-      USE TRACER_COM, only: ntm_soa, ntm_ococean, n_seasalt1
+      USE TRACER_COM, only: ntm_soa, ntm_ococean, n_seasalt1, ntm_vbs
       USE TRACER_COM, only: n_OCIA,n_OCB,n_BCIA,n_BCB
       USE TRACER_COM, only: n_isopp1a,n_isopp2a,n_apinp1a,n_apinp2a
       IMPLICIT NONE
@@ -545,7 +545,7 @@ C**************************************************************************
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,FCLD
      *,LHX
       real*8 term1,term2,vterm,alf
-      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean
+      integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean+ntm_vbs
       real*8,dimension(nt)::DSU
 
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
