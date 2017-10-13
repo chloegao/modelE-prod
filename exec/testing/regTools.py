@@ -331,8 +331,6 @@ def createScriptTask(config, compconfig, deck, comp, mode):
                     walltime = '04:00:00'
                 elif re.search('Toma', deckName):
                     walltime = '04:00:00'
-                elif re.search('vsd', deckName):
-                    walltime = '01:00:00'
                 elif re.search('lerner', deckName):
                     walltime = '01:00:00'
 
@@ -352,7 +350,10 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('Tmatrix', deckName):
                 walltime = '02:00:00'
             elif re.search('vsd', deckName):
-                walltime = '02:00:00'
+                if 'mpi' in mode: 
+                  walltime = '02:00:00' # parallel
+                else: 
+                  walltime = '03:30:00' # serial
 
         outname = resultsDir + '/' + jobName + '.' + mode + '.out'
         errname = resultsDir + '/' + jobName + '.' + mode + '.err'
