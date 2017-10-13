@@ -3445,7 +3445,6 @@ c find indices of denominators
               else
                 ijts_sqcbsub(s,kr,n,n1)=k
               end if
-
             end do              ! n1
           END DO                ! kr
         END IF

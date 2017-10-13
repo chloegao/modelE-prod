@@ -228,49 +228,35 @@ contains
     character(len=*), intent(in) :: key
     class (TYPE_NAME), target :: value
 
-!!$    type (KeyValue), allocatable :: tmpList(:)
-!!$    integer :: newCount
-!!$    integer :: i
-!!$
-!!$    if (this%has(key)) then
-!!$      i = getIndex(this, key)
-!!$      deallocate(this%entries(i)%value)
-!!$      allocate(this%entries(i)%value, source=value)
-!!$      return
-!!$    end if
-!!$    
-!!$    call move_alloc(this%entries, tmpList)
-!!$
-!!$    newCount = this%numEntries + 1
-!!$
-!!$    allocate(this%entries(newCount))
-!!$
-!!$    if (this%numEntries > 0) then
-!!$      do i = 1, this%numEntries
-!!$        this%entries(i)%key = tmpList(i)%key
-!!$        call move_alloc(tmplist(i)%value, this%entries(i)%value)
-!!$      end do
-!!$    end if
-!!$
-!!$    select case (trim(key))
-!!$    case ('n2o5','N2O5','dms','DMS','SO4_d3','so4_d3')
-!!$       write(77,*)'insert ', this%size()
-!!$       do i = 1, this%size()
-!!$          write(77,*)'      i=',i,trim(this%entries(i)%key)
-!!$       end do
-!!$    end select
-!!$
-!!$    deallocate(tmpList)
-!!$    
-!!$    this%entries(newCount)%key = trim(toLowerCase(key))
-!!$    allocate(this%entries(newCount)%value, source=value)
-!!$    this%numEntries = newCount
-!!$
-!!$    select case (trim(key))
-!!$    case ('n2o5','N2O5')
-!!$       write(77,*)'ha ha new: ','N2O5', this%size()
-!!$       call this%print()
-!!$    end select
+    type (KeyValue), allocatable :: tmpList(:)
+    integer :: newCount
+    integer :: i
+
+    if (this%has(key)) then
+      i = getIndex(this, key)
+      deallocate(this%entries(i)%value)
+      allocate(this%entries(i)%value, source=value)
+      return
+    end if
+    
+    call move_alloc(this%entries, tmpList)
+
+    newCount = this%numEntries + 1
+
+    allocate(this%entries(newCount))
+
+    if (this%numEntries > 0) then
+      do i = 1, this%numEntries
+        this%entries(i)%key = tmpList(i)%key
+        call move_alloc(tmplist(i)%value, this%entries(i)%value)
+      end do
+    end if
+
+    deallocate(tmpList)
+    
+    this%entries(newCount)%key = trim(toLowerCase(key))
+    allocate(this%entries(newCount)%value, source=value)
+    this%numEntries = newCount
 
   end subroutine insertReference
 

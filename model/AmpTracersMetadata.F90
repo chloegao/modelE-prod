@@ -93,6 +93,7 @@ module AmpTracersMetadata_mod
     n_M_MXX_OCM2, n_M_MXX_OCM1, n_M_MXX_OCM0, &
     n_M_MXX_OCP1, n_M_MXX_OCP2, n_M_MXX_OCP3, &
     n_M_MXX_OCP4, n_M_MXX_OCP5, n_M_MXX_OCP6
+  use TRACER_COM, only: tracers
   use RunTimeControls_mod, only: &
     tracers_nitrate, tracers_aerosols_koch, tracers_aerosols_seasalt, &
     tracers_amp_m1, tracers_amp_m2,         &
@@ -663,6 +664,7 @@ contains
       implicit none
       character(len=*), intent(in) :: mode
       character(len=*), intent(in) :: component
+      type (Tracer), pointer :: t
       ! local variables
       character(len=1) :: prefix
       character(len=64) :: tracerName
@@ -748,6 +750,9 @@ contains
         tmp = om2oc(tracerIndex)
         call sync_param(trim(tracerName)//"_om2oc",tmp)
         call set_om2oc(tracerIndex, tmp)
+      else if (trim(component) == 'BC') then
+        t => tracers%getReference(trim(tracerName))
+        call t%insert('BC',.true.)
       endif
       call set_ntm_power(tracerIndex, -11)
       if (component(1:lc) == 'OC') then

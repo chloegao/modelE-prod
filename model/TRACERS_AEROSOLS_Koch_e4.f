@@ -1185,17 +1185,8 @@ c wsn_ij(nsl,2,i,j)
       USE GHY_COM, only: tr_wsn_ij, wsn_ij
 !@var si_atm%snowi snow amount on sea ice [kg m-2]
       USE SEAICE_COM, only : si_atm
-#ifdef TRACERS_AEROSOLS_Koch
-      use TRACER_COM, only: n_BCB,n_BCII,n_BCIA
-#endif
-#ifdef TRACERS_AMP
-      use TRACER_COM, only:n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC
-     *  ,n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
-#endif
-#ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AECIL,n_AECOB,nbins
-#endif
       USE FLUXES, only: atmice
+      USE TRACER_COM, only: itrBC
       IMPLICIT NONE
 c Warren and Wiscombe 1985 includes age dependence
       real*8, parameter :: bc(29)=(/1.d0,2.d0,3.d0,4.d0,5.d0,
@@ -1241,39 +1232,9 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
       INTEGER, INTENT(IN) :: i,j
       REAL*8, INTENT(OUT) :: bc_dalb
       logical, intent(out) :: snow_present
-#ifdef TRACERS_AEROSOLS_Koch
-      integer, parameter :: nspBC=3
-#endif
-#ifdef TRACERS_AMP
-      integer, parameter :: nspBC=7
-#endif
-#ifdef TRACERS_TOMAS
-      integer, parameter :: nspBC=nbins+nbins
-#endif
-      integer, dimension(nspBC) :: spBC
+      integer :: ntrBC
 
-! define indices of BC tracers
-#ifdef TRACERS_AEROSOLS_Koch
-      spBC(1)=n_BCII
-      spBC(2)=n_BCIA
-      spBC(3)=n_BCB
-#endif
-#ifdef TRACERS_AMP
-      spBC(:)=0
-      if (n_M_BC1_BC>0) spBC(1)=n_M_BC1_BC
-      if (n_M_BC2_BC>0) spBC(2)=n_M_BC2_BC
-      if (n_M_BC3_BC>0) spBC(3)=n_M_BC3_BC
-      if (n_M_DBC_BC>0) spBC(4)=n_M_DBC_BC
-      if (n_M_BOC_BC>0) spBC(5)=n_M_BOC_BC
-      if (n_M_BCS_BC>0) spBC(6)=n_M_BCS_BC
-      if (n_M_MXX_BC>0) spBC(7)=n_M_MXX_BC
-#endif
-#ifdef TRACERS_TOMAS
-      do n=1,nbins
-         spBC(n)=n_AECOB(n)
-         spBC(n+nbins)=n_AECIL(n)
-      enddo
-#endif
+      ntrBC = size(itrBC)
 
 ! initialize
       bcsnowb=0.d0
@@ -1291,8 +1252,8 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 ! calculate BC concentration in snow layer 1 over bare soil
       if (wsn_ij(1,1,i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
-        do n=1,nspBC
-          if (spBC(n)>0) bcsnowb=bcsnowb+tr_wsn_ij(spBC(n),1,1,i,j)
+        do n=1,ntrBC
+          bcsnowb=bcsnowb+tr_wsn_ij(itrBC(n),1,1,i,j)
         enddo
         sconb=bcsnowb/wsn_ij(1,1,i,j)/rhow
       endif
@@ -1300,8 +1261,8 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 ! calculate BC concentration in snow layer 1 over vegetation
       if (wsn_ij(1,2,i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
-        do n=1,nspBC
-          if (spBC(n)>0) bcsnowv=bcsnowv+tr_wsn_ij(spBC(n),1,2,i,j)
+        do n=1,ntrBC
+          bcsnowv=bcsnowv+tr_wsn_ij(itrBC(n),1,2,i,j)
         enddo
         sconv=bcsnowv/wsn_ij(1,2,i,j)/rhow
       endif
@@ -1312,8 +1273,8 @@ c    * 22.d0,24.d0,26.d0,28.d0,30.d0,32.d0,34.d0/)
 ! calculate BC concentration in snow over sea ice
       if (si_atm%snowi(i,j).gt.0.d0) then
         snow_present = .true. ! should this ignore trace amounts of snow?
-        do n=1,nspBC
-          if (spBC(n)>0) icon=icon+atmice%gtracer(spBC(n),i,j)*1.d9
+        do n=1,ntrBC
+          icon=icon+atmice%gtracer(itrBC(n),i,j)*1.d9
         enddo
       endif
 

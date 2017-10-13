@@ -29,6 +29,7 @@ module KochTracersMetadata_mod
                         n_vbsAm2, n_vbsAm1, n_vbsAz,  n_vbsAp1, n_vbsAp2, &
                         n_vbsAp3, n_vbsAp4, n_vbsAp5, n_vbsAp6
   use TRACER_COM, only: whichEPFCs
+  use TRACER_COM, only: tracers
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: sulf_only_aerosols
@@ -94,7 +95,7 @@ module KochTracersMetadata_mod
       call  OCB_setSpec('OCB')     !Biomass organic mass
 #endif /* TRACERS_AEROSOLS_VBS */
     end if
-     
+
 !------------------------------------------------------------------------------
   contains
 !------------------------------------------------------------------------------
@@ -131,6 +132,7 @@ module KochTracersMetadata_mod
 
     subroutine BCII_setSpec(name)
       character(len=*), intent(in) :: name
+      type (Tracer), pointer :: t
       n = oldAddTracer(name)
       n_BCII = n
       call set_ntm_power(n, -12)
@@ -142,10 +144,15 @@ module KochTracersMetadata_mod
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
       call set_has_chemistry(n, .true.)
+
+      t => tracers%getReference(trim(name))
+      call t%insert('BC',.true.)
+      
     end subroutine BCII_setSpec
 
     subroutine BCIA_setSpec(name)
       character(len=*), intent(in) :: name
+      type (Tracer), pointer :: t
       n = oldAddTracer(name)
       n_BCIA = n
       call set_ntm_power(n, -12)
@@ -157,10 +164,15 @@ module KochTracersMetadata_mod
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
       call set_has_chemistry(n, .true.)
+
+      t => tracers%getReference(trim(name))
+      call t%insert('BC',.true.)
+
     end subroutine BCIA_setSpec
 
     subroutine BCB_setSpec(name)
       character(len=*), intent(in) :: name
+      type (Tracer), pointer :: t
       n = oldAddTracer(name)
       n_BCB = n
       call set_ntm_power(n, -12)
@@ -171,6 +183,9 @@ module KochTracersMetadata_mod
       call set_tr_wd_type(n, npart)
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
+      t => tracers%getReference(trim(name))
+      call t%insert('BC',.true.)
+      
 #ifdef DYNAMIC_BIOMASS_BURNING
       if (dynamic_biomass_burning) then
         ! 12 below are the 12 VDATA veg types or Ent remapped to them,
