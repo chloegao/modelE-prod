@@ -898,7 +898,7 @@ C****
       USE TRACER_COM, only : ntmAMPi,ntmAMPe
 #endif
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only : nbins,n_ASO4,xk
+      USE TRACER_COM, only : nbins,n_ASO4
       USE CONSTANT,   only : pi 
 #endif
       USE TRDIAG_COM, only : jls_grav
