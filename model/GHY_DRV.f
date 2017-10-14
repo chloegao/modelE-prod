@@ -288,7 +288,8 @@ c**** mineral fractions of emitted dust aerosols
 #endif
       USE TRACER_COM, only: ntm
 #ifdef TRACERS_TOMAS
-      USE TRACER_COM, only: n_ANUM, n_AH2O, xk, nbins
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
+      USE TRACER_COM, only: n_ANUM, n_AH2O, nbins
       USE TOMAS_EMIS 
 #endif
  !     use socpbl, only : dtsurf
@@ -441,7 +442,7 @@ C**** fixed datasets are used, it can happen over land as well.
           trc_flux=pbl_args%dust_flux(1)*scalesizeclay(du_bin)
      &         +sum(pbl_args%dust_flux(2:4))*scalesizesilt(du_bin)
           
-          dust_num(du_bin)=trc_flux/sqrt(xk(du_bin)*xk(du_bin+1))
+          dust_num(du_bin)=trc_flux/sqrt_xk_xk1(du_bin)
        
           case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',

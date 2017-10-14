@@ -13,10 +13,12 @@
 
 C-----INCLUDE FILES--------------------------------------------------
       USE RESOLUTION, only : im,jm,lm     ! dimensions
-      USE TRACER_COM, only : ntm,nbins, xk
+      USE TRACER_COM, only : ntm,nbins
       IMPLICIT NONE 
 
 C-----INCLUDE FILES--------------------------------------------------
+      real*8, dimension(nbins+1) :: xk
+      real*8, dimension(nbins) :: sqrt_xk_xk1
 !@param ibins : number of size bins used in TOMAS (equal to nbins defined in TRACER_COM) 
 !@param icomp : number of size-resolved chemical species (SO4,SS,ECOB,ECIL,OCOB,OCIL,DUST,NH4,AER-WATER
 !@param idiag : number of aerosol diagnostic species (NH4 and AER-WATER) 
@@ -124,8 +126,7 @@ C Physical properties of aerosol components
 C-----INCLUDE FILES--------------------------------------------------
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       USE TOMAS_AEROSOL 
-      USE TOMAS_AEROSOL, only: n_subgridcg
-      USE TRACER_COM, only: ntm, trm_col, nbins, xk
+      USE TRACER_COM, only: ntm, trm_col, nbins
       use TRACER_COM, only: n_H2SO4, n_NH3, n_NH4, n_SOAgas, nOther
       use TRACER_COM, only: nChemistry, nMicrophys, nThermo
       USE TRACER_COM, only : n_ASO4,n_ANACL,n_AECIL,
@@ -574,7 +575,7 @@ C     End of loop over grid cells
       subroutine dep_getdp(i,j,l,getdp,size_density)
       USE TRACER_COM, only : nbins,n_ASO4,n_ANACL,n_AECIL,
      &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
-     &     n_ANUM,ntm,xk,trm
+     &     n_ANUM,ntm,trm
       USE CONSTANT,   only : pi,lhe,mair,gasc  
       USE ATM_COM, only :   t            ! potential temperature (C)
      $     ,q                   ! saturated pressure
@@ -670,7 +671,7 @@ C     Swap GCM variables into aerosol algorithm variables
          if (Nk(k) .gt. Neps.and.mtot.gt.0.) then
             mp=mtot/Nk(k)
          else
-            mp=sqrt(xk(k+1)*xk(k))
+            mp=sqrt_xk_xk1(k)
 !            if(Nk(k) .gt. Neps) 
 !     &           print*,'Warning in getdp:#>Neps but mtot=0',
 !     &           k,mtot,Nk(k)
@@ -681,7 +682,7 @@ C     Swap GCM variables into aerosol algorithm variables
             
             if ((Nk(k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
      &           (Mk(k,srtso4) .lt. 3.)) then
-               mp=sqrt(xk(k+1)*xk(k))
+               mp=sqrt_xk_xk1(k)
             else
                if (Nk(k) .gt. 1.d12) then
 !MODELE-TOMAS: during CONDSE, TM(H2O) is so large that causes too big mp. 
@@ -689,7 +690,7 @@ C     Swap GCM variables into aerosol algorithm variables
                   if((mtot-Mk(k,srth2o)).lt.
      &                 1.d1*xk(nbins+1)*Nk(k))then
                      print*,'Fudge mp in getdp: large mp by AH2O'
-                     mp=sqrt(xk(nbins+1)*xk(nbins))                     
+                     mp=sqrt_xk_xk1(nbins)
                   else
                   print*,'ERROR in getdp: mp too large'
                   print*, 'bin=',k
@@ -715,7 +716,7 @@ C     Swap GCM variables into aerosol algorithm variables
       subroutine dep_getdp_from_column_trm(i,j,l,getdp,size_density)
       USE TRACER_COM, only : nbins,n_ASO4,n_ANACL,n_AECIL,
      &     n_AECOB,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O,
-     &     n_ANUM,ntm,xk,trm_col
+     &     n_ANUM,ntm,trm_col
       USE CONSTANT,   only : pi,lhe,mair,gasc  
       USE ATM_COM, only :   t            ! potential temperature (C)
      $     ,q                   ! saturated pressure
@@ -811,7 +812,7 @@ C     Swap GCM variables into aerosol algorithm variables
          if (Nk(k) .gt. Neps.and.mtot.gt.0.) then
             mp=mtot/Nk(k)
          else
-            mp=sqrt(xk(k+1)*xk(k))
+            mp=sqrt_xk_xk1(k)
 !            if(Nk(k) .gt. Neps) 
 !     &           print*,'Warning in getdp:#>Neps but mtot=0',
 !     &           k,mtot,Nk(k)
@@ -822,7 +823,7 @@ C     Swap GCM variables into aerosol algorithm variables
             
             if ((Nk(k) .lt. 1.d5) .and. !negligible amount of aerosol - fudge mp
      &           (Mk(k,srtso4) .lt. 3.)) then
-               mp=sqrt(xk(k+1)*xk(k))
+               mp=sqrt_xk_xk1(k)
             else
                if (Nk(k) .gt. 1.d12) then
 !MODELE-TOMAS: during CONDSE, TM(H2O) is so large that causes too big mp. 
@@ -830,7 +831,7 @@ C     Swap GCM variables into aerosol algorithm variables
                   if((mtot-Mk(k,srth2o)).lt.
      &                 1.d1*xk(nbins+1)*Nk(k))then
                      print*,'Fudge mp in getdp: large mp by AH2O'
-                     mp=sqrt(xk(nbins+1)*xk(nbins))                     
+                     mp=sqrt_xk_xk1(nbins)
                   else
                   print*,'ERROR in getdp: mp too large'
                   print*, 'bin=',k
@@ -1026,7 +1027,7 @@ C-----INCLUDE FILES-----------------------------------------------------
       USE TOMAS_AEROSOL
       USE TRACER_COM, only : ntm, n_AECIL,
      &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
-     &       n_AECOB,n_AH2O,xk,nbins
+     &       n_AECOB,n_AH2O,nbins
 
       IMPLICIT NONE
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -1876,7 +1877,7 @@ C Bulk species
       USE GEOM, only : axyp,BYAXYP
       USE CONSTANT, ONLY : pi,gasc,mair 
 
-      USE TRACER_COM, only : nbins,xk,ntm,trm_col,ntsurfsrc,
+      USE TRACER_COM, only : nbins,ntm,trm_col,ntsurfsrc,
      &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
      &     n_AOCIL,n_ADUST,n_ANUM,n_AH2O
  
@@ -1949,25 +1950,25 @@ c$$$      ENDIF
               IF(NS.EQ.1)THEN
 !SO4
                 mdist(k,srtso4)=
-     &               ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
+     &               ndistfinal(k)*(sqrt_xk_xk1(k))+
      &               maddfinal(k)
                 
               ELSEIF(NS.EQ.2)THEN
 !EC
                 mdist(k,srtecil)=
-     &               ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
+     &               ndistfinal(k)*0.2*(sqrt_xk_xk1(k))+
      &               maddfinal(k)*0.2
                 mdist(k,srtecob)=
-     &               ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
+     &               ndistfinal(k)*0.8*(sqrt_xk_xk1(k))+
      &               maddfinal(k)*0.8   
                 
               ELSEIF(NS.EQ.3)THEN
 !OC
                 mdist(k,srtocil)=
-     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
+     &               ndistfinal(k)*0.5*(sqrt_xk_xk1(k))+
      &               maddfinal(k)*0.5
                 mdist(k,srtocob)=
-     &               ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
+     &               ndistfinal(k)*0.5*(sqrt_xk_xk1(k))+
      &               maddfinal(k)*0.5   
               ENDIF
             enddo               !k
@@ -2087,7 +2088,7 @@ C-----INCLUDE FILES--------------------------------------------------
       USE GEOM, only : imaxj,axyp,BYAXYP
       USE CONSTANT, ONLY : pi,gasc,mair 
 
-      USE TRACER_COM, only : nbins,xk,ntm,trm,trmom,ntsurfsrc,
+      USE TRACER_COM, only : nbins,ntm,trm,trmom,ntsurfsrc,
      &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
      &     n_AOCIL,n_ADUST,n_ANUM,n_SO2,n_AH2O
  
@@ -2163,25 +2164,25 @@ C-----VARIABLE DECLARATIONS-----------------------------------
               
               IF(NS.EQ.1)       !SO4
      &             mdist(k,srtso4)= 
-     &             ndistfinal(k)*(sqrt(xk(k)*xk(k+1)))+
+     &             ndistfinal(k)*(sqrt_xk_xk1(k))+
      &             maddfinal(k)
               
               IF(NS.EQ.2)       !EC
      &             mdist(k,srtecil)= 
-     &             ndistfinal(k)*0.2*(sqrt(xk(k)*xk(k+1)))+
+     &             ndistfinal(k)*0.2*(sqrt_xk_xk1(k))+
      &             maddfinal(k)*0.2                
               IF(NS.EQ.2)       !EC
      &             mdist(k,srtecob)= 
-     &             ndistfinal(k)*0.8*(sqrt(xk(k)*xk(k+1)))+
+     &             ndistfinal(k)*0.8*(sqrt_xk_xk1(k))+
      &             maddfinal(k)*0.8   
               
               IF(NS.EQ.3)       !OC
      &             mdist(k,srtocil)=
-     &             ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
+     &             ndistfinal(k)*0.5*(sqrt_xk_xk1(k))+
      &             maddfinal(k)*0.5
               IF(NS.EQ.3)       !OC
      &             mdist(k,srtocob)=
-     &             ndistfinal(k)*0.5*(sqrt(xk(k)*xk(k+1)))+
+     &             ndistfinal(k)*0.5*(sqrt_xk_xk1(k))+
      &             maddfinal(k)*0.5 
 
             enddo
@@ -2252,7 +2253,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       SUBROUTINE subgridcoag(ndistinit,ndist2,mdist2,boxvolume,
      & tscale,ndistfinal,maddfinal)
 
-      USE TRACER_COM, only : nbins,xk
+      USE TRACER_COM, only : nbins
       USE TOMAS_AEROSOL
       USE CONSTANT, ONLY : pi,gasc,mair
       IMPLICIT NONE
@@ -2287,7 +2288,7 @@ C     get the wet diameter of particles in each size bin
             mp = mp + mdist2(k,c)
          enddo
          if (ndist2(k).eq.0.)then
-            mp=sqrt(xk(k)*xk(k+1))
+            mp=sqrt_xk_xk1(k)
          else
             mp = mp / ndist2(k)
          endif
@@ -2357,7 +2358,7 @@ C     determine the mass added to each bin coagulation
       do k=1,nbins-1
          do kk=k+1,nbins
             maddfinal(kk)=maddfinal(kk) + (ndistinit(k)-ndistfinal(k))*
-     &           fracdiaml(k,kk)*sqrt(xk(k)*xk(k+1))
+     &           fracdiaml(k,kk)*sqrt_xk_xk1(k)
          enddo
       enddo
 
@@ -2417,7 +2418,7 @@ C     determine the mass added to each bin coagulation
       use domain_decomp_atm, only : GRID, getDomainBounds
       use trdiag_com, only : trcsurf,trcSurfByVol
       use constant, only : pi
-      use tomas_aerosol, only : xk,icomp,idiag
+      use tomas_aerosol, only : icomp,idiag,xk
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups,
      & inc_subdd,find_groups
 

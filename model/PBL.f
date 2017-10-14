@@ -41,7 +41,7 @@
       use TRACER_COM, only: Ntm_dust, n_soildust
 #endif
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: NBINS, xk
+      use TRACER_COM, only: NBINS
 #endif
 #endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP || TRACERS_TOMAS */
 
@@ -407,6 +407,7 @@ c  internals:
       use tracers_seasalt, only: read_seasalt_sources
 #endif  /* TRACERS_AEROSOLS_SEASALT || TRACERS_AMP || TRACERS_TOMAS */
 #ifdef TRACERS_TOMAS
+      use TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS
 #endif 
 #if defined(TRACERS_ON)
@@ -890,7 +891,7 @@ C****   4) tracers with interactive sources
         
         pbl_args%tomas_ss_flux(ss_bin)=ss_emis
         trcnst=pbl_args%tomas_ss_flux(ss_bin)*byrho
-        ss_num(ss_bin)=trcnst/sqrt(xk(ss_bin)*xk(ss_bin+1)) 
+        ss_num(ss_bin)=trcnst/sqrt_xk_xk1(ss_bin)
 #endif  /* TRACERS_TOMAS */
         end select
 #endif
@@ -1001,7 +1002,7 @@ ccc dust emission from earth
           trcnst=pbl_args%dust_flux(1)*byrho*scalesizeclay(du_bin)
      &       +sum(pbl_args%dust_flux(2:4))*byrho*scalesizesilt(du_bin)
 
-          dust_num(du_bin)=trcnst/sqrt(xk(du_bin)*xk(du_bin+1))
+          dust_num(du_bin)=trcnst/sqrt_xk_xk1(du_bin)
           
 !TOMAS - Silt3 is out of size range for TOMAS. 
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',

@@ -258,7 +258,7 @@
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
-      use TRACER_COM, only: N_AECOB, n_ASO4, xk
+      use TRACER_COM, only: N_AECOB, n_ASO4
 #endif
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -4115,7 +4115,8 @@ c find indices of denominators
       USE TRACER_COM, only: NTM, trm, trmom, rnsrc, tracers
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only:
-     *     n_ASO4,n_AOCOB,n_ASO4,n_ANUM,xk,nbins
+     *     n_ASO4,n_AOCOB,n_ASO4,n_ANUM,nbins
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
 #endif
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: trw0, tr_wd_type, nWATER
@@ -5116,7 +5117,7 @@ c**** earth
 
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
                 trm(i,j,l,n) =MA(l,i,j)*axyp(i,j)*7.d-20
-     &               /(sqrt(xk(k+1)*xk(k))) !MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
+     &               /sqrt_xk_xk1(k) !MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-14
           end do; end do; end do
 #endif
 
@@ -5794,7 +5795,7 @@ C**** at the start of any day
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB
       use TRACER_COM, only: n_ANUM, n_AECIL, n_AOCIL, n_AOCOB
-      use TRACER_COM, only: nbins, n_ASO4, xk
+      use TRACER_COM, only: nbins, n_ASO4
 #endif
 #if (defined INTERACTIVE_WETLANDS_CH4) && (defined TRACERS_SPECIAL_Shindell)
       USE TRACER_SOURCES, only: ns_wet,add_wet_src
@@ -5819,6 +5820,7 @@ C**** at the start of any day
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_EMIS, only : scalesizeSO4,scalesizeCARBO30
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
 #endif
       use TracerHashMap_mod, only:
      &     TracerIterator, operator(/=)
@@ -6330,7 +6332,7 @@ C****
                 trsource(:,J_0:J_1,1,n_ANUM(k))=
      &           trsource(:,J_0:J_1,1,n_ANUM(k)) +
      &               trsource(:,J_0:J_1,ns,n_ASO4(k))
-     &               /sqrt(xk(k)*xk(k+1))    
+     &               /sqrt_xk_xk1(k)    
               enddo
 
 
@@ -6349,7 +6351,7 @@ C****
      &           trsource(:,J_0:J_1,2,n_ANUM(k)) +
      &             ( trsource(:,J_0:J_1,ns,n_AECOB(k))+
      &                 trsource(:,J_0:J_1,ns,n_AECIL(k)))
-     &             /sqrt(xk(k)*xk(k+1))  
+     &             /sqrt_xk_xk1(k)  
              enddo
           elseif(n.eq.n_AOCOB(1))then
 
@@ -6366,7 +6368,7 @@ C****
      &           trsource(:,J_0:J_1,3,n_ANUM(k)) +
      &              ( trsource(:,J_0:J_1,ns,n_AOCOB(k))+
      &                trsource(:,J_0:J_1,ns,n_AOCIL(k)))
-     &            /sqrt(xk(k)*xk(k+1))  
+     &            /sqrt_xk_xk1(k)  
              enddo
           endif
         
@@ -6684,7 +6686,7 @@ C****
       use TRACER_COM, only: n_ASO4
       use TRACER_COM, only: n_ANUM
       use TRACER_COM, only: nSO4anum
-      use TRACER_COM, only: xk
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       use TOMAS_EMIS, only: scalesizeSO4_vol
 #endif
 
@@ -6719,7 +6721,7 @@ C**** All sources are saved as kg s-1
               tr3Dsource(:,nVolcanic,n_ASO4(k))=
      &          sum(so2_src_3d(i,j,:,:),2)*scalesizeSO4_vol(k)*src_fact
               tr3Dsource(:,nSO4anum,n_ANUM(k))=
-     &          tr3Dsource(:,nVolcanic,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
+     &          tr3Dsource(:,nVolcanic,n_ASO4(k))/sqrt_xk_xk1(k)
 !              call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
 !              call apply_tracer_3Dsource(i,j,nVolcanic,n_ANUM(k))
             enddo
@@ -6760,7 +6762,7 @@ C*****
       use TRACER_COM, only: n_ASO4
       use TRACER_COM, only: n_AECOB, n_AOCOB
       use TRACER_COM, only: nSO4anum
-      USE TOMAS_AEROSOL, only : xk
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
 
@@ -6844,7 +6846,7 @@ C**** 3D biomass source
      *        TOMAS_bio(k,:)
          tr3Dsource(:,nSO4anum,n_ANUM(k))=
      &     tr3Dsource(:,nSO4anum,n_ANUM(k))
-     &     +tr3Dsource(:,nBiomass,n_ASO4(k))/sqrt(xk(k)*xk(k+1))
+     &     +tr3Dsource(:,nBiomass,n_ASO4(k))/sqrt_xk_xk1(k)
        enddo
 
        end select
@@ -7097,7 +7099,8 @@ C**** Apply chemistry and overwrite changes:
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: dtsrc
       USE apply3d, only : apply_tracer_3Dsource
-      USE TOMAS_AEROSOL, only : trm_preemis,xk
+      USE TOMAS_AEROSOL, only : trm_preemis
+      USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS, only : scalesizeCARBO100,scalesizeCARBO30
       implicit none
       integer, intent(in) :: i,j
@@ -7165,11 +7168,11 @@ C**** Apply chemistry and overwrite changes:
          ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
          ! so leaving it unconditional:
          tr3Dsource(:,nECanum,n_ANUM(k))=
-     &      TOMAS_bio(k,:)/sqrt(xk(k)*xk(k+1))
+     &      TOMAS_bio(k,:)/sqrt_xk_xk1(k)
          call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
          tr3Dsource(:,nECanum,n_ANUM(k))=
-     &      TOMAS_air(k,:)/sqrt(xk(k)*xk(k+1))
+     &      TOMAS_air(k,:)/sqrt_xk_xk1(k)
          call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
          call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(k))
@@ -7198,7 +7201,7 @@ C**** Apply chemistry and overwrite changes:
      *        TOMAS_bio(k,:)*0.5d0
          tr3Dsource(:,nOCanum,n_ANUM(k))=
      &        (TOMAS_bio(k,:)
-     &        )/(sqrt(xk(k)*xk(k+1)))  
+     &        )/sqrt_xk_xk1(k)  
  
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(k))
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(k))
@@ -7993,7 +7996,7 @@ c     USE PBLCOM, only: wsavg
      &     aero_list,water_list,hlaw_list
 #ifdef TRACERS_TOMAS 
       USE TRACER_COM, only :
-     &     NBS,NBINS,n_ANUM,n_ASO4,n_ANACL,xk
+     &     NBS,NBINS,n_ANUM,n_ASO4,n_ANACL
      &    ,n_AOCOB,n_AECIL,n_AECOB,n_AOCIL,n_ADUST,n_AH2O
       use OldTracer_mod, only: set_rc_washt
 #endif
@@ -8250,7 +8253,8 @@ c DMM is number density of air in molecules cm-3
 
 C-----INCLUDE FILES-----------------------------------------------------
 
-      USE TRACER_COM,only : xk,nbins
+      USE TRACER_COM,only : nbins
+      USE TOMAS_AEROSOL, only: xk,sqrt_xk_xk1
 
 C-----VARIABLE DECLARATIONS---------------------------------------------
       IMPLICIT NONE
@@ -8283,6 +8287,7 @@ C-----CODE--------------------------------------------------------------
 #elif (defined TOMAS_30_10NM) || (defined TOMAS_30_3NM)
            xk(k)=Mo*2.d0**(k-1)
 #endif
+        if (k>1) sqrt_xk_xk1(k-1)=sqrt(xk(k-1)*xk(k))
       enddo
 
       RETURN

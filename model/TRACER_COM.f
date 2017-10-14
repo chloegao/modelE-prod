@@ -333,9 +333,6 @@ C**** Each tracer has a variable name and a unique index
 #endif
       integer, parameter :: NBS=7,NAP=7, NAD=1 !, NXP=7, NCR=2, 
       integer, parameter :: ntm_tomas=NBINS*(NAP+NAD+1)
-
-      real*8, dimension(nbins+1) :: xk
-
 #endif  /* TRACERS_TOMAS */
 #endif
 

@@ -2235,7 +2235,8 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
       use pbl_drv, only : t_pbl_args
       use trdiag_com, only : itcon_surf
 #ifdef TRACERS_TOMAS
-      use tracer_com, only : xk,nbins
+      use TOMAS_AEROSOL, only: sqrt_xk_xk1
+      use tracer_com, only : nbins
 #endif
       implicit none
       integer, intent(in) :: i,j
@@ -2293,7 +2294,7 @@ C****
           trc_flux=pbl_args%tomas_ss_flux(ss_bin)
 
           ss_num(ss_bin)=(pbl_args%tomas_ss_flux(ss_bin))
-     &         /sqrt(xk(ss_bin)*xk(ss_bin+1))
+     &         /sqrt_xk_xk1(ss_bin)
 ! No subgrid coagulation for sea-salt
 !        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
 

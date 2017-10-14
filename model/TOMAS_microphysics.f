@@ -30,7 +30,6 @@
 
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : xk
       USE CONSTANT,   only:  pi,gasc   
       IMPLICIT NONE
 
@@ -96,7 +95,7 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
       do k=1,ibins
          if (Nk(k) .lt. Neps) then
             Nk(k)=Neps
-            Mk(k,srtso4)=Neps*sqrt(xk(k)*xk(k+1)) !make the added particles SO4
+            Mk(k,srtso4)=Neps*sqrt_xk_xk1(k) !make the added particles SO4
             do j=1,icomp
                if (j.ne.srtso4)then
                   Mk(k,j)=0.d0
@@ -447,7 +446,7 @@ c            print*,'dNdt',k,Nk(k),dNdt(k),Mk(k,1),dMdt(k,1)
          else
             !nothing in this bin - don't let it affect time step
             Nk(k)=Neps
-            Mk(k,srtso4)=Neps*sqrt(xk(k)*xk(k+1)) !make the added particles SO4
+            Mk(k,srtso4)=Neps*sqrt_xk_xk1(k) !make the added particles SO4
             if (dNdt(k) .lt. 0.0) dNdt(k)=0.0  !make sure mass/number don't go negative
             do j=1,icomp-idiag
                if (dMdt(k,j) .lt. 0.0) dMdt(k,j)=0.0
@@ -553,7 +552,6 @@ c$$$
 c$$$      SUBROUTINE multicoag(dt)
 c$$$
 c$$$      USE TOMAS_AEROSOL
-c$$$      USE TRACER_COM, only : xk
 c$$$      USE CONSTANT,   only:  pi,gasc   
 c$$$      IMPLICIT NONE
 c$$$
@@ -633,7 +631,7 @@ c$$$C If any Nk are zero, then set them to a small value to avoid division by ze
 c$$$      do k=1,ibins
 c$$$         if (Nk(k) .lt. Neps) then
 c$$$            Nk(k)=Neps
-c$$$            Mk(k,srtso4)=Neps*sqrt(xk(k+1)*xk(k)) !make the added particles SO4
+c$$$            Mk(k,srtso4)=Neps*sqrt_xk_xk1(k) !make the added particles SO4
 c$$$            do j=1,icomp
 c$$$               if (j.ne.srtso4)then
 c$$$                  Mk(k,j)=0.d0
@@ -964,7 +962,6 @@ C-----OUTPUTS-----------------------------------------------------------
      &     H2SO4rate,dti,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,lev)            
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : xk
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       IMPLICIT NONE
 
@@ -1082,7 +1079,7 @@ C     Get change size distribution due to nucleation with initial guess
                   Nk2(k) = Nk1(k)
                   Mk2(k,srtso4) = Mk1(k,srtso4)
                enddo
-               Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
+               Nk2(1) = Nk1(1)+totmass/sqrt_xk_xk1(1)
                Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                mcond = 0.d0        
 
@@ -1203,7 +1200,7 @@ c                     endif
                         Nk2(k) = Nk1(k)
                         Mk2(k,srtso4) = Mk1(k,srtso4)
                      enddo
-                     Nk2(1) = Nk1(1)+totmass/sqrt(xk(1)*xk(2))
+                     Nk2(1) = Nk1(1)+totmass/sqrt_xk_xk1(1)
                      Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                      mcond = 0.d0 
                   endif
@@ -1338,7 +1335,6 @@ Cjrp               endif
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi,gasc  
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       real*8 Nko(ibins), Mko(ibins, icomp)
@@ -1421,7 +1417,7 @@ C     get size dependent values
           else
 !nothing in this bin - set to "typical value"
             density=1500.
-            mp=sqrt(xk(k+1)*xk(k))
+            mp=sqrt_xk_xk1(k)
           endif
           Dpk(k)=((mp/density)*(6./pi))**(0.333)
           Kn=2.0*mfp/Dpk(k)     !S&P eqn 11.35 (text)
@@ -1467,7 +1463,6 @@ C     get size dependent values
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi,gasc  
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       real*8 Nko(ibins), Mko(ibins, icomp)
@@ -1540,7 +1535,7 @@ C     get size dependent values
           else
 !nothing in this bin - set to "typical value"
             density=1500.d0
-            mp=sqrt(xk(k+1)*xk(k))
+            mp=sqrt_xk_xk1(k)
           endif
           Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
           Kn=2.0*mfp/Dpk(k)     !S&P eqn 11.35 (text)
@@ -1580,7 +1575,6 @@ C-----OUTPUTS-----------------------------------------------------------
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi,gasc  
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       real*8 d1       ! diameter of the particle [m]
@@ -1647,7 +1641,7 @@ C Calculate particle sizes and diffusivities
          if(Nko(k).gt.neps .and. Mktot.gt.meps)then
             mp=Mktot/Nko(k)
          else
-            mp=sqrt(xk(k)*xk(k+1))
+            mp=sqrt_xk_xk1(k)
          endif
          if (k.eq.1) density1 = density
          Dpk(k)=((mp/density)*(6./pi))**(0.333)
@@ -1763,7 +1757,6 @@ c     Mnuce(srtnh4) = Mnuce(srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi  
-      USE TRACER_COM, only : xk
 
       IMPLICIT NONE
 
@@ -1886,7 +1879,7 @@ C     and get the nucleation rate and critical cluster size
 
          fn = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
 
-         mnuc = sqrt(xk(1)*xk(2))
+         mnuc = sqrt_xk_xk1(1)
       endif
 
       return
@@ -1920,7 +1913,6 @@ C     and get the nucleation rate and critical cluster size
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       real*8 H2SO4rate
@@ -2143,7 +2135,6 @@ C-----INPUTS------------------------------------------------------------
 
       USE TOMAS_AEROSOL
       USE CONSTANT,   only:  pi 
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       integer j,i,k,l
@@ -2272,7 +2263,7 @@ C     and get the nucleation rate and critical cluster size
          else
                                 !nothing in this bin - set to "typical value"
             density=1500.d0
-            mp=sqrt(xk(k+1)*xk(k))
+            mp=sqrt_xk_xk1(k)
          endif
          Dpk(k)=((mp/density)*(6.d0/pi))**(1.d0/3.d0)
       enddo
@@ -2304,7 +2295,7 @@ C     section
 
          fn1 = fn*exp(eta/(Dp1*1.0D9)-eta/(d1*1.0D9))
 
-         mnuc = sqrt(xk(1)*xk(2))
+         mnuc = sqrt_xk_xk1(1)
  
          nadd = fn1
          
@@ -2356,7 +2347,7 @@ C     particles into the first size bin.  don't let it go less than zero.
          enddo
 
          nuc_bin=k
-         mnuc=sqrt(xk(nuc_bin)*xk(nuc_bin+1))
+         mnuc=sqrt_xk_xk1(nuc_bin)
 
          Mkf(nuc_bin,srtso4) = Mki(nuc_bin,srtso4)+fn1*mnuc*
      &        boxvol*dt/(1.d0+soa_amp)
@@ -2430,7 +2421,6 @@ C     particles into the first size bin.  don't let it go less than zero.
 
       USE TOMAS_AEROSOL
       USE DOMAIN_DECOMP_ATM, only : am_i_root 
-      USE TRACER_COM, only : xk
       IMPLICIT NONE
 
       real*8 Nki(ibins), Mki(ibins, icomp)
@@ -2487,7 +2477,7 @@ C     particles into the first size bin.  don't let it go less than zero.
 ! make sure that condensation sink isn't too small
       if (CS.lt.CSeps) then     ! just make particles in first bin
          Mkf(1,spec) = Mk1(1,spec) + mcond
-         Nkf(1) = Nk1(1) + mcond/sqrt(xk(1)*xk(2))
+         Nkf(1) = Nk1(1) + mcond/sqrt_xk_xk1(1)
          do j=1,icomp
             if (icomp.ne.spec) then
                Mkf(1,j) = Mk1(1,j)
@@ -2739,7 +2729,6 @@ C     jrp         enddo
       SUBROUTINE TMCOND(TAU,X,AMKD,ANKD,AMK,ANK,CSPECIES,moxd)
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : xk
       USE DOMAIN_DECOMP_ATM, only : am_i_root
 
       IMPLICIT NONE
@@ -3437,7 +3426,6 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
       SUBROUTINE mnfix(Nkx,Mkx)
 
       USE TOMAS_AEROSOL
-      USE TRACER_COM, only : xk
 
       IMPLICIT NONE
 
@@ -3461,7 +3449,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
                Nkx(k)=Neps
                do j=1,icomp
                   if (j.eq.srtso4)then
-                     Mkx(k,j)=Neps*sqrt(xk(k+1)*xk(k))
+                     Mkx(k,j)=Neps*sqrt_xk_xk1(k)
                   else
                      Mkx(k,j)=0.d0
                   endif
@@ -3481,7 +3469,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
             Nkx(k)=Neps
             do jj=1,icomp
                if (jj.eq.srtso4)then
-                  Mkx(k,jj)=Neps*sqrt(xk(k+1)*xk(k))
+                  Mkx(k,jj)=Neps*sqrt_xk_xk1(k)
                else
                   Mkx(k,jj)=0.d0
                endif
@@ -3493,7 +3481,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
                   Nkx(k)=Neps
                   do jj=1,icomp
                      if (jj.eq.srtso4)then
-                        Mkx(k,jj)=Neps*sqrt(xk(k+1)*xk(k))
+                        Mkx(k,jj)=Neps*sqrt_xk_xk1(k)
                      else
                         Mkx(k,jj)=0.d0
                      endif
@@ -3518,18 +3506,18 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
 c            print*,'out of bounts in mnfix, fixing'
 c            print*,k,'AVG',tot_mass/Nkx(k),'lo',xk(k),'hi',xk(k+1)
             ! figure out which bins to redistribute to
-            xk_hi1 = sqrt(xk(2)*xk(1))
-            xk_hi2 = sqrt(xk(ibins+1)*xk(ibins))
+            xk_hi1 = sqrt_xk_xk1(1)
+            xk_hi2 = sqrt_xk_xk1(nbins)
             if (xk_hi1.gt.tot_mass/Nkx(k)) then
                !mass per particle very low
                !conserve mass at expense of number
                tmpvar = Nkx(k)
                Nkx(k)=Neps
-               Nkx(1)=Nkx(1)+tot_mass/sqrt(xk(2)*xk(1))
+               Nkx(1)=Nkx(1)+tot_mass/sqrt_xk_xk1(1)
                do j=1,icomp
                   tmpvar=Mkx(k,j)
                   if (j.eq.srtso4)then
-                     Mkx(k,j) = Neps*sqrt(xk(k+1)*xk(k))
+                     Mkx(k,j) = Neps*sqrt_xk_xk1(k)
                   else
                      Mkx(k,j)=0.d0
                   endif
@@ -3539,11 +3527,11 @@ c            print*,k,'AVG',tot_mass/Nkx(k),'lo',xk(k),'hi',xk(k+1)
                !mass per particle very high
                !conserve mass at expernse of number
                Nkx(k)=Neps
-              Nkx(ibins)=Nkx(ibins)+tot_mass/sqrt(xk(ibins+1)*xk(ibins))
+              Nkx(ibins)=Nkx(ibins)+tot_mass/sqrt_xk_xk1(nbins)
                do j=1,icomp
                   tmpvar=Mkx(k,j)
                   if (j.eq.srtso4)then
-                     Mkx(k,j) = Neps*sqrt(xk(k+1)*xk(k))
+                     Mkx(k,j) = Neps*sqrt_xk_xk1(k)
                   else
                      Mkx(k,j)=0.d0
                   endif
@@ -3551,12 +3539,12 @@ c            print*,k,'AVG',tot_mass/Nkx(k),'lo',xk(k),'hi',xk(k+1)
                enddo               
             else ! mass of particle is somewhere within the bins
                L = 2
-               xk_hi = sqrt(xk(L+1)*xk(L))
+               xk_hi = sqrt_xk_xk1(L)
                do while (xk_hi .lt. tot_mass/Nkx(k))
                   L=L+1
-                  xk_hi = sqrt(xk(L+1)*xk(L))
+                  xk_hi = sqrt_xk_xk1(L)
                enddo
-               xk_lo = sqrt(xk(L)*xk(L-1))
+               xk_lo = sqrt_xk_xk1(L-1)
                                 ! figure out how much of the number to distribute to the lower bin
                frac_lo_n = (tot_mass - Nkx(k)*xk_hi)/
      &              (Nkx(k)*(xk_lo-xk_hi))
@@ -3569,7 +3557,7 @@ c            print*,k,'AVG',tot_mass/Nkx(k),'lo',xk(k),'hi',xk(k+1)
                do j=1,icomp
                   tmpvar = Mkx(k,j)
                   if (j.eq.srtso4)then
-                     Mkx(k,j) = Neps*sqrt(xk(k+1)*xk(k))
+                     Mkx(k,j) = Neps*sqrt_xk_xk1(k)
                   else
                      Mkx(k,j) = 0.d0
                   endif
@@ -4432,7 +4420,7 @@ C
 C
       USE TOMAS_AEROSOL  
       USE TRACER_COM, only : ntm,trm,tr_mm
-     &     ,nbins,xk,trpdens,n_AECIL,
+     &     ,nbins,trpdens,n_AECIL,
      &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
      &       n_AECOB
       USE TRDIAG_COM, only: taijls=>taijls_loc,ijlt_ccn_01

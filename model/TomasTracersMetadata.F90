@@ -24,13 +24,14 @@ module TomasTracersMetadata_mod
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_has_chemistry
   use OldTracer_mod, only: nGAS, nPart
-  use TRACER_COM, only: xk, nbins, coupled_chem
+  use TRACER_COM, only: nbins, coupled_chem
   use TRACER_COM, only: n_NH4, n_H2SO4
   use TRACER_COM, only: n_ASO4, n_ANACL, n_AECIL, n_AECOB, &
     n_AOCIL, n_ADUST, n_ANUM, n_AOCOB, n_AH2O, n_SOAgas
   use TRACER_COM, only: set_ntsurfsrc
   use TRACER_COM, only: tracers
   use TOMAS_AEROSOL, only : binact10, binact02, fraction10, fraction02
+  use TOMAS_AEROSOL, only: sqrt_xk_xk1
   use RunTimeControls_mod, only: tracers_aerosols_soa
   use RunTimeControls_mod, only: tracers_special_shindell
   use RunTimeControls_mod, only: tracers_drydep
@@ -146,7 +147,7 @@ contains
       n = oldAddTracer(name)
       n_ANUM = n  
       TOMAS_dens = 1.5d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.)  
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.)  
       if(bin.le.5) call set_ntm_power(n, 10)
       if(bin.gt.5) call set_ntm_power(n, 8) 
 
@@ -165,7 +166,7 @@ contains
       n = oldAddTracer(name)
       n_ASO4 = n 
       TOMAS_dens = 1.78d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 96.d+0)
       call set_trpdens(n, TOMAS_dens) !kg/m3 this is sulfate value
@@ -181,7 +182,7 @@ contains
       n = oldAddTracer(name)
       n_ANACL = n         
       TOMAS_dens = 2.165d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       if(bin.le.10) call set_ntm_power(n, -10)
       if(bin.gt.10) call set_ntm_power(n, -8)
       call set_tr_mm(n, 75.d+0)
@@ -198,7 +199,7 @@ contains
       n = oldAddTracer(name)
       n_AECOB = n          
       TOMAS_dens = 1.8d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 12.d+0)
       call set_trpdens(n, TOMAS_dens) !kg/m3 this is sulfate value
@@ -215,7 +216,7 @@ contains
       n = oldAddTracer(name)
       n_AECIL = n        
       TOMAS_dens = 1.8d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -12)
       call set_tr_mm(n, 12.d+0)
       call set_trpdens(n, TOMAS_dens) !kg/m3 this is sulfate value
@@ -234,7 +235,7 @@ contains
       n = oldAddTracer(name)
       n_AOCOB = n 
       TOMAS_dens = 1.4d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 200.d+0)
       call set_trpdens(n, TOMAS_dens) !kg/m3 this is sulfate value
@@ -258,7 +259,7 @@ contains
       n = oldAddTracer(name)
       n_AOCIL = n  
       TOMAS_dens = 1.4d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -11)
       call set_tr_mm(n, 200.d+0)
       call set_trpdens(n, TOMAS_dens) !kg/m3 this is sulfate value
@@ -276,7 +277,7 @@ contains
       n_ADUST = n  
       if(bin.le.10) TOMAS_dens= 2.5d3 !clay 
       if(bin.gt.10) TOMAS_dens= 2.65d3 !Silt
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
 
       if(bin.le.9) call set_ntm_power(n, -11)
       if(bin.gt.9) call set_ntm_power(n, -9)
@@ -294,7 +295,7 @@ contains
       n = oldAddTracer(name)
       n_AH2O = n         
       TOMAS_dens = 1.d3
-      TOMAS_radius = (sqrt(xk(bin)*xk(bin+1))/TOMAS_dens/pi/4.*3.)**(1./3.) 
+      TOMAS_radius = (sqrt_xk_xk1(bin)/TOMAS_dens/pi/4.*3.)**(1./3.) 
       call set_ntm_power(n, -8)
 
       call set_tr_mm(n, 18.d+0)
