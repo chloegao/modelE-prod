@@ -58,6 +58,7 @@ Preprocessor Options
 #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_AEROSOLS_SEASALT ! seasalt
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
+#define TRACERS_AEROSOLS_VBS     ! Volatility-basis set
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 !  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
 #define TRACERS_NITRATE
@@ -91,6 +92,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
+TRACERS_AEROSOLS_VBS                ! Volatility-basis set
 megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
 SUBDD
@@ -129,7 +131,7 @@ TEMP_NCEP=gsin/ncep_g1temp_2x2.5
 BETA_NCEP=temp_2x2.5/beta_p_ch4_4x5_2x2.5gf
 ALPHA_NCEP=temp_2x2.5/alpha_t_ch4_4x5_2x2.5gf
 ! ----- end interactive wetlands -----
-#include "aerosol_OMA_input_files_CMIP6_noBBURN"
+#include "aerosol_OMAVBS_input_files_CMIP6_noBBURN"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
@@ -168,6 +170,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_OMA_params_CMIP6_noBBURN"
+VBSemifact=0.03d0,0.06d0,0.09d0,0.14d0,0.18d0,0.30d0,0.40d0,0.50d0,0.80d0
 #include "dust_params_vmp_oma"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6_noBBURN"
