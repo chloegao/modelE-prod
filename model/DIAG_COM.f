@@ -9,7 +9,7 @@
 #ifndef SCM
       use diag_zonal, only : jm_budg
 #endif
-      use socpbl, only : npbl=>n
+!      use socpbl, only : npbl=>n
 #ifdef NEW_IO
       use cdl_mod
 #endif
@@ -202,8 +202,8 @@ c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
       INTEGER, PARAMETER, public :: NDIUVAR=700
 #else
 #ifdef TRACERS_DUST
-      INTEGER, PARAMETER, public :: NDIUVAR=74+14*lmax_dd2+6*npbl
-     &     +4*(npbl-1)
+      INTEGER, PARAMETER, public :: NDIUVAR=700!74+14*lmax_dd2+6*npbl
+!     &     +4*(npbl-1)
 #else
 #if (defined TRACERS_MINERALS)
       INTEGER, PARAMETER, public :: NDIUVAR=63
