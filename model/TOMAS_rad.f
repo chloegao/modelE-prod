@@ -16,12 +16,13 @@ C
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       use OldTracer_mod, only: trName, TRPDENS
-      USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM,xk
+      USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM
       USE RADPAR,      only: aesqex,aesqsc,aesqcb !Diagnostics
       USE ATM_COM, only : t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       ! aerosol radiative properties from lookup table
       USE TOMAS_AEROSOL, only : TOMAS_qext,TOMAS_qsca,TOMAS_gsca,icomp
+      USE TOMAS_AEROSOL, only: xk
       USE CONSTANT,   only : pi,lhe
       USE ATM_COM,   only: pmid,pk   ! midpoint pressure in hPa (mb)
       USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
