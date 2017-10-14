@@ -258,7 +258,7 @@
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
-      use TRACER_COM, only: N_AECOB, n_ASO4
+      use TRACER_COM, only: n_ASO4
 #endif
 #ifdef TRACERS_ON
       USE TRDIAG_COM
@@ -5341,8 +5341,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only:
-     * n_AECOB,n_AOCOB,n_ASO4,nbins,n_AECOB,n_ADUST
+      use TRACER_COM, only: n_AOCOB,n_ASO4,nbins,n_ADUST
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
@@ -6759,7 +6758,7 @@ C*****
       use TRACER_COM, only: nbins
       use TRACER_COM, only: n_ANUM
       use TRACER_COM, only: n_ASO4
-      use TRACER_COM, only: n_AECOB, n_AOCOB
+      use TRACER_COM, only: n_AOCOB
       use TRACER_COM, only: nSO4anum
       USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio

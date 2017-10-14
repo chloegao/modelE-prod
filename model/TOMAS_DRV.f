@@ -208,15 +208,15 @@ Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
 C     Swap T0M into Nk, Mk, Gc arrays
 
                do n=1,ibins
-                  Nk(n)=trm_col(l,n_ANUM(1)-1+n)
-                  Mk(n,srtso4)=trm_col(l,n_ASO4(1)-1+n)
-                  Mk(n,srtna) =trm_col(l,n_ANACL(1) -1+n)
-                  MK(n,srtecob)=trm_col(l,n_AECOB(1) -1+n)
-                  MK(n,srtecil)=trm_col(l,n_AECIL(1) -1+n)
-                  MK(n,srtocob)=trm_col(l,n_AOCOB(1) -1+n)
-                  MK(n,srtocil)=trm_col(l,n_AOCIL(1) -1+n)      
-                  Mk(n,srtdust)=trm_col(l,n_ADUST(1) -1+n)            
-                  Mk(n,srth2o)=trm_col(l,n_AH2O(1)-1+n)
+                  Nk(n)=trm_col(l,n_ANUM(n))
+                  Mk(n,srtso4)=trm_col(l,n_ASO4(n))
+                  Mk(n,srtna) =trm_col(l,n_ANACL(n))
+                  MK(n,srtecob)=trm_col(l,n_AECOB(n))
+                  MK(n,srtecil)=trm_col(l,n_AECIL(n))
+                  MK(n,srtocob)=trm_col(l,n_AOCOB(n))
+                  MK(n,srtocil)=trm_col(l,n_AOCIL(n))
+                  Mk(n,srtdust)=trm_col(l,n_ADUST(n))
+                  Mk(n,srth2o)=trm_col(l,n_AH2O(n))
                   Mk(n,srtnh4)=0.
                enddo
 
@@ -607,16 +607,16 @@ C-----CODE-----------------------------------------------------------
       do k=1,nbins
 
 C     Swap GCM variables into aerosol algorithm variables
-        Nk(k)=trm(i,j,l,n_ANUM(1)-1+k)
-        Mk(k,srtso4)=trm(i,j,l,n_ASO4(1)-1+k)
-        Mk(k,srtna )=trm(i,j,l,n_ANACL(1) -1+k)
+        Nk(k)=trm(i,j,l,n_ANUM(k))
+        Mk(k,srtso4)=trm(i,j,l,n_ASO4(k))
+        Mk(k,srtna )=trm(i,j,l,n_ANACL(k))
         Mk(k,srtnh4)=0.1875*Mk(k,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,n_ANH4(1)-1+n)
-        MK(k,srtecob)=trm(i,j,l,n_AECOB(1) -1+k)
-        MK(k,srtecil)=trm(i,j,l,n_AECIL(1) -1+k)
-        MK(k,srtocob)=trm(i,j,l,n_AOCOB(1) -1+k)
-        MK(k,srtocil)=trm(i,j,l,n_AOCIL(1) -1+k) 
-        MK(k,srtdust)=trm(i,j,l,n_ADUST(1) -1+k) 
-        Mk(k,srth2o)= trm(i,j,l,n_AH2O(1)-1+k) !I don't think this is necessary!
+        MK(k,srtecob)=trm(i,j,l,n_AECOB(k))
+        MK(k,srtecil)=trm(i,j,l,n_AECIL(k))
+        MK(k,srtocob)=trm(i,j,l,n_AOCOB(k))
+        MK(k,srtocil)=trm(i,j,l,n_AOCIL(k))
+        MK(k,srtdust)=trm(i,j,l,n_ADUST(k))
+        Mk(k,srth2o)= trm(i,j,l,n_AH2O(k)) !I don't think this is necessary!
       enddo
 
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
@@ -748,16 +748,16 @@ C-----CODE-----------------------------------------------------------
       do k=1,nbins
 
 C     Swap GCM variables into aerosol algorithm variables
-        Nk(k)=trm_col(l,n_ANUM(1)-1+k)
-        Mk(k,srtso4)=trm_col(l,n_ASO4(1)-1+k)
-        Mk(k,srtna )=trm_col(l,n_ANACL(1) -1+k)
+        Nk(k)=trm_col(l,n_ANUM(k))
+        Mk(k,srtso4)=trm_col(l,n_ASO4(k))
+        Mk(k,srtna )=trm_col(l,n_ANACL(k))
         Mk(k,srtnh4)=0.1875*Mk(k,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,n_ANH4(1)-1+n)
-        MK(k,srtecob)=trm_col(l,n_AECOB(1) -1+k)
-        MK(k,srtecil)=trm_col(l,n_AECIL(1) -1+k)
-        MK(k,srtocob)=trm_col(l,n_AOCOB(1) -1+k)
-        MK(k,srtocil)=trm_col(l,n_AOCIL(1) -1+k) 
-        MK(k,srtdust)=trm_col(l,n_ADUST(1) -1+k) 
-        Mk(k,srth2o)= trm_col(l,n_AH2O(1)-1+k) !I don't think this is necessary!
+        MK(k,srtecob)=trm_col(l,n_AECOB(k))
+        MK(k,srtecil)=trm_col(l,n_AECIL(k))
+        MK(k,srtocob)=trm_col(l,n_AOCOB(k))
+        MK(k,srtocil)=trm_col(l,n_AOCIL(k))
+        MK(k,srtdust)=trm_col(l,n_ADUST(k))
+        Mk(k,srth2o)= trm_col(l,n_AH2O(k)) !I don't think this is necessary!
       enddo
 
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
@@ -926,8 +926,7 @@ C     Swap GCM variables into aerosol algorithm variables
       USE TOMAS_AEROSOL, ONLY : binact02,binact10,
      &     fraction02,fraction10 
       USE TRACER_COM, only : nbins,ntm,n_AECIL,
-     &     n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
-     &     n_AECOB
+     &     n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST
 
       IMPLICIT NONE
       
@@ -1027,7 +1026,7 @@ C-----INCLUDE FILES-----------------------------------------------------
       USE TOMAS_AEROSOL
       USE TRACER_COM, only : ntm, n_AECIL,
      &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
-     &       n_AECOB,n_AH2O,nbins
+     &       n_AH2O,nbins
 
       IMPLICIT NONE
 C-----VARIABLE DECLARATIONS---------------------------------------------
@@ -1679,16 +1678,16 @@ C     Loop over all grid cells
         rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-100%]
 C     Swap GCM variables into aerosol algorithm variables
         do n=1,NBINS
-          Nk(n)=trm(i,j,l,n_ANUM(1)-1+n)
-          Mk(n,srtso4)=trm(i,j,l,n_ASO4(1)-1+n)
-          Mk(n,srtna )=trm(i,j,l,n_ANACL(1) -1+n)
+          Nk(n)=trm(i,j,l,n_ANUM(n))
+          Mk(n,srtso4)=trm(i,j,l,n_ASO4(n))
+          Mk(n,srtna )=trm(i,j,l,n_ANACL(n))
           Mk(n,srtnh4)=0.1875*Mk(n,srtso4) ! artificial for now.. 0.0!t0m(i,j,l,n_ANH4(1)-1+n)
-          MK(n,srtecob)=trm(i,j,l,n_AECOB(1) -1+n)
-          MK(n,srtecil)=trm(i,j,l,n_AECIL(1) -1+n)
-          MK(n,srtocob)=trm(i,j,l,n_AOCOB(1) -1+n)
-          MK(n,srtocil)=trm(i,j,l,n_AOCIL(1) -1+n) 
-          MK(n,srtdust)=trm(i,j,l,n_ADUST(1) -1+n) 
-          Mk(n,srth2o)= trm(i,j,l,n_AH2O(1)-1+n) !I don't think this is necessary!
+          MK(n,srtecob)=trm(i,j,l,n_AECOB(n))
+          MK(n,srtecil)=trm(i,j,l,n_AECIL(n))
+          MK(n,srtocob)=trm(i,j,l,n_AOCOB(n))
+          MK(n,srtocil)=trm(i,j,l,n_AOCIL(n))
+          MK(n,srtdust)=trm(i,j,l,n_ADUST(n))
+          Mk(n,srth2o)= trm(i,j,l,n_AH2O(n)) !I don't think this is necessary!
         enddo
 
 !     Do water eqm at appropriate times
@@ -2456,16 +2455,16 @@ C     determine the mass added to each bin coagulation
 
         do k=1,nbins
 
-          mso4=trcsurf(i,j,n_aso4(1)+k-1) !kg/kg
-          mnacl=trcsurf(i,j,n_anacl(1)+k-1)
+          mso4=trcsurf(i,j,n_aso4(k)) !kg/kg
+          mnacl=trcsurf(i,j,n_anacl(k))
           mno3=0.e0
           mnh4=0.1875*mso4      !assume ammonium bisulfate
-          mecob=trcsurf(i,j,n_aecob(1)+k-1)
-          mecil=trcsurf(i,j,n_aecil(1)+k-1)
-          mocil=trcsurf(i,j,n_aocil(1)+k-1)
-          mocob=trcsurf(i,j,n_aocob(1)+k-1)
-          mdust=trcsurf(i,j,n_adust(1)+k-1)
-          mh2o=trcsurf(i,j,n_ah2o(1)+k-1)
+          mecob=trcsurf(i,j,n_aecob(k))
+          mecil=trcsurf(i,j,n_aecil(k))
+          mocil=trcsurf(i,j,n_aocil(k))
+          mocob=trcsurf(i,j,n_aocob(k))
+          mdust=trcsurf(i,j,n_adust(k))
+          mh2o=trcsurf(i,j,n_ah2o(k))
           if((mso4+mno3) .lt. 1.e-8) mso4=1.e-8  ! to prevent error in aerodens
 
           ! Normally TRM is passed to aerodens, but this time is for

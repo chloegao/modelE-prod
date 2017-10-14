@@ -152,14 +152,14 @@ C**** Scale WM mixing ratios to conserve liquid water
 !       aerosol mass to those of aerosol number so the distributions of
 !       aerosol mass and number within a grid cell are consistent
       do n=1,NBINS
-         call momentfix(n_ANUM(1)-1+n, n_ASO4(1)-1+n)  !sulfate mass
-         call momentfix(n_ANUM(1)-1+n, n_ANACL(1) -1+n)  !na+ mass
-         call momentfix(n_ANUM(1)-1+n, n_AECOB(1)-1+n) !hydrophobic EC
-         call momentfix(n_ANUM(1)-1+n, n_AECIL(1)-1+n)
-         call momentfix(n_ANUM(1)-1+n, n_AOCOB(1)-1+n)
-         call momentfix(n_ANUM(1)-1+n, n_AOCIL(1)-1+n)
-         call momentfix(n_ANUM(1)-1+n, n_ADUST(1)-1+n)
-         call momentfix(n_ANUM(1)-1+n, n_AH2O(1)-1+n)  !water mass
+         call momentfix(n_ANUM(n), n_ASO4(n))  !sulfate mass
+         call momentfix(n_ANUM(n), n_ANACL(n)) !na+ mass
+         call momentfix(n_ANUM(n), n_AECOB(n)) !hydrophobic EC
+         call momentfix(n_ANUM(n), n_AECIL(n))
+         call momentfix(n_ANUM(n), n_AOCOB(n))
+         call momentfix(n_ANUM(n), n_AOCIL(n))
+         call momentfix(n_ANUM(n), n_ADUST(n))
+         call momentfix(n_ANUM(n), n_AH2O(n))  !water mass
       enddo
 #endif
 
