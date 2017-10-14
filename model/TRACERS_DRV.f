@@ -5325,12 +5325,12 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use RunTimeControls_mod, only: tracers_aerosols_soa
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
-      use OldTracer_mod, only: nBBsources,do_fire,vol2mass,do_aircraft
+      use OldTracer_mod, only: nBBsources,do_fire,vol2mass
       use OldTracer_mod, only: do_megan
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
       USE TRACER_COM, only: n_CO2n
-      USE TRACER_COM, only: NTM,nAircraft,
+      USE TRACER_COM, only: NTM,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
@@ -6745,7 +6745,6 @@ C*****
       use OldTracer_mod, only: trname
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: nBBsources
-      use OldTracer_mod, only: do_aircraft
       USE TRACER_COM, only: ntm, sfc_src
       use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: nBiomass
