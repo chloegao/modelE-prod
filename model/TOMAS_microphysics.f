@@ -4419,7 +4419,7 @@ C
       SUBROUTINE getCCN_kappa(I,J,L)
 C
       USE TOMAS_AEROSOL  
-      USE TRACER_COM, only : ntm,trm,tr_mm
+      USE TRACER_COM, only : ntm,tr_mm
      &     ,nbins,trpdens,n_AECIL,
      &       n_AOCIL,n_AOCOB,n_ASO4,n_ANACL,n_ADUST,
      &       n_AECOB
