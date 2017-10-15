@@ -1862,7 +1862,7 @@ C *** This subroutine gets the aerosol microphysics properties from TOMAS.
 C
 C=======================================================================
 C
-      SUBROUTINE getCCN(TRM,BOXVi,Tot_MLi,
+      SUBROUTINE getCCN(TM,BOXVi,Tot_MLi,
      &     Tt,TPi,MLi,NMxi,NSECi)
 C
       use OldTracer_mod, only: tr_mm
@@ -1871,7 +1871,7 @@ C
      &     n_AOCIL,n_ANUM,nbins
       implicit none 
       INTEGER KK,nseci,k,NMxi
-      real*8, dimension(ntm) :: trm
+      real*8, dimension(ntm) :: TM
       REAL*8 TPi(NMxi), MLi(NMxi), SLFi, BOXVi, Mso4, Mna,
      &     Mocil,Tt,VhfSo4, VhfNacl,Vhfocil, Tot_MLi
 
@@ -1882,27 +1882,27 @@ C
       Tt    = 0d0         !  Total particles (per m3)
 C
       DO k=1,NSECi
-         TPi(k) = TRM(n_ANUM(1)-1+k)   ! Number of particles (total)
+         TPi(k) = TM(n_ANUM(k))   ! Number of particles (total)
          TPi(k) = TPi(k)/BOXVi                      ! Concentration (per m3)
          if (NSECi.eq.15.and.k.gt.3)THEN
            Tt=Tt + TPi(k)       ! Total concentration (per m3)
 C
          ELSE !should be changed to lower size bin. 
            Tt=Tt+Tpi(k)
-!           PRINT*,'getCCN in',k,TRM(n_ANUM(1)-1+k),Tt,BOXVi
+!           PRINT*,'getCCN in',k,TM(n_ANUM(k)),Tt,BOXVi
          endif
 
-         Mso4   = TRM(n_ASO4(1)-1+k) ! vhf is 2.5 - ammonium bisulfate
+         Mso4   = TM(n_ASO4(k)) ! vhf is 2.5 - ammonium bisulfate
          SLFi   = SLFi + Mso4                       ! accumulate sulfate
-         Mso4   = Mso4/(tr_mm(n_ASO4(1))*1e-3)/BOXVi   ! moles of SO4
+         Mso4   = Mso4/(tr_mm(n_ASO4(k))*1e-3)/BOXVi   ! moles of SO4
          VhfSo4 = 2.5                               ! vhf is 2.5 - ammonium bisulfate
 C
-         Mna    = TRM(n_ANACL(1)-1+k)     ! vhf is 2.0
-         Mna    = Mna/(tr_mm(n_ANACL(1))*1e-3)/BOXVi     ! moles of NaCl
+         Mna    = TM(n_ANACL(k))     ! vhf is 2.0
+         Mna    = Mna/(tr_mm(n_ANACL(k))*1e-3)/BOXVi     ! moles of NaCl
          VhfNacl= 2                                 ! vhf is 2 - sodium chloride
 
-         Mocil    = TRM(n_AOCIL(1)-1+k)     ! vhf is 2.0
-         Mocil    = Mocil/(tr_mm(n_AOCIL(1))*1e-3)/BOXVi     ! moles of OCIL
+         Mocil    = TM(n_AOCIL(k))     ! vhf is 2.0
+         Mocil    = Mocil/(tr_mm(n_AOCIL(k))*1e-3)/BOXVi     ! moles of OCIL
          Vhfocil= 1.43                               ! vhf is 1 - hydrophilic carbon 
 cyhl  Vhfocil is followed by what Jeff used in a look-up table.  I am not sure this is good value. 
 
