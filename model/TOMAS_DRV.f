@@ -771,10 +771,10 @@ C     Swap GCM variables into aerosol algorithm variables
             if (Mk(k,srtso4) .gt. 1.) then
                print*, 'ERROR in getdp - # = but mass > 0',i,j
                print*, 'bin=',k
-               print*, 'TRM(#)=',Nk(k)
-               print*, 'TRM(SO4)=',Mk(k,srtso4)
-               print*, 'TRM(NACL)=',Mk(k,srtna)
-               print*, 'TRM(OCIL)=',Mk(k,srtocil)
+               print*, 'TRM_col(#)=',Nk(k)
+               print*, 'TRM_col(SO4)=',Mk(k,srtso4)
+               print*, 'TRM_col(NACL)=',Mk(k,srtna)
+               print*, 'TRM_col(OCIL)=',Mk(k,srtocil)
                call stop_model('ERROR IN getdp',255)
             endif
          endif
@@ -2023,8 +2023,8 @@ c$$$      ENDIF
           
           do c=1,icomp-idiag            
             tracnum=n_ASO4(1)-1+k+nbins*(c-1) 
-            M_subgridcg(i,j,l,k,c,2)=mdist2(k,c)- !trm + emission after subgrid 
-     &           trm_col(l,tracnum) !trm + emission before subgrid (which is computed in apply_tracer3d)
+            M_subgridcg(i,j,l,k,c,2)=mdist2(k,c)- !trm_col + emission after subgrid 
+     &           trm_col(l,tracnum) !trm_col + emission before subgrid (which is computed in apply_tracer3d)
 
           if(l.eq.1)then
             M_subgridcg(i,j,l,k,c,2)=M_subgridcg(i,j,l,k,c,2)+
