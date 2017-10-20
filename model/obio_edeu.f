@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      subroutine obio_edeu(kmax,vrbos,i,j,im,jm,kdm,nstep)
+      subroutine obio_edeu(kmax,vrbos,i,j,im,jm,kdm,nstep,obio_lambdas)
  
 c  Model of irradiance in the water column.  Accounts for three 
 c  irradiance streams:
@@ -18,9 +18,9 @@ c  final is quanta for phytoplankton growth.
       use ocalbedo_mod, only: aw, bw, lam, nlt
       USE obio_forc,  only : Ed,Es,rmud,tirrq,tirrq_critical
       USE obio_com,   only : acdom,npst,npnd,WtoQ,dp1d,avgq1d
-     .                      ,obio_P,p1d,Kd,Kd_qm2s
+     .                      ,obio_P,p1d,Kd,Kd_em2d 
+      USE FILEMANAGER, only: openunit,closeunit,file_exists
 
-!      USE DOMAIN_DECOMP_1D, only : DIST_GRID
 
 
       implicit none
@@ -28,15 +28,19 @@ c  final is quanta for phytoplankton growth.
 !      type(DIST_GRID),intent(in) :: ogrid
       integer, intent(in) :: im,jm,kdm,nstep
 
+      real, intent(in) :: obio_lambdas(nlt)
+
       integer i,j,k
       integer nl,ih,icd,ich,ntr,kmax
+      integer :: ichan,iu_bio
 
       real Ebotq,actot,bctot,bbctot,a,bt,bb
       real acdom450,bbc(10),Etopq,zd,zirrq,chl,chlm,fac
       real*8 temgsp
 
 
-      real Edz(nlt,kdm),Esz(nlt,kdm)
+      real Edz(nlt,kdm),Esz(nlt,kdm) 
+      real, ALLOCATABLE, DIMENSION(:)::  delta_temp1d  !change in T due to kpar
       real Euz(nlt,kdm)
       real Edtop(nlt),Estop(nlt)
       real fchl(nchl)
@@ -111,8 +115,12 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
      .                     * WtoQ(nl)*1.0E6
 
              if (p1d(k+1).le.zd) then
-             Kd_qm2s(nl,k) = (a + bb) / rmus    !in quanta/m2/s
+             !Kd_qm2s(nl,k) = (a + bb) / rmus    !in quanta/m2/s
              Kd(nl,k) = Edz(nl,k)+Esz(nl,k)+Euz(nl,k)    !in W/m2
+
+ 
+             Kd_em2d(nl,k) = Kd(nl,k)*obio_lambdas(nl)*(0.836E-2)*(3600)
+     &                       *(24)*(1E-6)  !in Einstein/(m2 day)
              endif
 
           enddo   !nl

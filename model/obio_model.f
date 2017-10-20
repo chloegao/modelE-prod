@@ -29,7 +29,7 @@
      .                    ,itest,jtest
      .                    ,obio_ws
      .                    ,cexp,flimit,kzc
-     .                    ,rhs_obio,chng_by,Kpar,Kpar_qm2s,Edz,Esz,Euz
+     .                    ,rhs_obio,chng_by,Kpar,Kpar_em2d,Edz,Esz,Euz
      .                    ,delta_temp1d,sday
      .                    ,num_tracers
 #ifdef TOPAZ_params
@@ -60,7 +60,7 @@
 #endif
 
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,
-     .                            ijl_kpar_qm2s,ijl_dtemp
+     .                            ijl_kpar_em2d,ijl_dtemp
       use ocalbedo_mod, only: ocalbedo
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,
@@ -151,7 +151,8 @@
       integer :: idx_co2
       logical vrbos,noon,errcon
       integer :: year, month, dayOfYear, date, hour
-      real, allocatable, dimension(:), save :: eda_frac, esa_frac
+      real, allocatable, dimension(:), save :: obio_lambdas,eda_frac,
+     &                                         esa_frac
       integer :: iu_bio
       logical, save :: initialized=.false.
       real, save :: atmco2=-1.
@@ -682,13 +683,16 @@ cdiag    enddo
          !only call obio_sfcirr for points in light
        tot = 0.0
        if (.not.allocated(eda_frac)) then
-         allocate(eda_frac(nlt), esa_frac(nlt))
+         allocate(obio_lambdas(nlt),eda_frac(nlt), esa_frac(nlt))
          call openunit('eda_esa_ratios',iu_bio,.false.,.false.)
          do ichan=1,nlt
-           read(iu_bio,'(3f13.8)')dummy1,eda_frac(ichan),esa_frac(ichan)
-         enddo
-         close(iu_bio)
-       endif
+           read(iu_bio,'(3f13.8)')obio_lambdas(ichan),eda_frac(ichan),
+     &                            esa_frac(ichan)
+          enddo
+          close(iu_bio)
+        endif
+
+
        if (allocated(atm%dirvis)) then
          do ichan = 1,nlt
            if (ichan .le. 18) then     !visible + uv
@@ -794,7 +798,7 @@ cdiag.                  tot,ichan=1,nlt)
          if (tot .ge. 0.1) then
            
         call obio_edeu(kmax,vrbos,i,j,im,jm,kdm,
-     &                   nstep)
+     &                   nstep,obio_lambdas)
         
 #ifdef OBIO_ON_GISSocean
 #ifdef KPAR_2_OCEAN
@@ -803,8 +807,8 @@ cdiag.                  tot,ichan=1,nlt)
      &               fsr,lsrpd)
        do k=1,kdm
        OIJL(I,J,k,IJL_kpar) = OIJL(I,J,k,IJL_kpar) + Kpar(k) !  kpar
-       OIJL(I,J,k,IJL_kpar_qm2s) = OIJL(I,J,k,IJL_kpar_qm2s) 
-     .                           + Kpar_qm2s(k) !  kpar in quanta/m2/s
+       OIJL(I,J,k,IJL_kpar_em2d) = OIJL(I,J,k,IJL_kpar_em2d) 
+     .                           + Kpar_em2d(k) !  kpar in quanta/m2/s
        OIJL(I,J,k,IJL_dtemp) = OIJL(I,J,k,IJL_dtemp) + delta_temp1d(k) !  change in T due to kpar
        enddo
 #endif

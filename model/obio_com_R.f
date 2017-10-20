@@ -35,10 +35,11 @@ c
 
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: tracer
       real, ALLOCATABLE, DIMENSION(:,:)::  Edz,Euz,Esz
-      real, ALLOCATABLE, DIMENSION(:,:)::  Kd,Kd_qm2s !absorption+scattering in seawater due to chl
+      real, ALLOCATABLE, DIMENSION(:,:)::  Kd,Kd_em2d !absorption+scattering in seawater due to chl
       real, ALLOCATABLE, DIMENSION(:)::  Kpar     !kpar from NBOM
-      real, ALLOCATABLE, DIMENSION(:)::  Kpar_qm2s !kpar from NBOM in quanta/m2/s
+      real, ALLOCATABLE, DIMENSION(:)::  Kpar_em2d !kpar from NBOM in Einstein/m2/day
       real, ALLOCATABLE, DIMENSION(:)::  delta_temp1d  !change in T due to kpar
+      real, ALLOCATABLE, DIMENSION(:)::  obio_lambdas  !wavelengths in water column
 
       integer :: nstep0=0
 
@@ -137,6 +138,7 @@ C endif
 
       contains
 
+
       subroutine build_ze
       
       use oceanr_dim, only: ogrid
@@ -214,7 +216,7 @@ C endif
 #ifdef TRACERS_Ocean_O2
      &  ,ij_o2
 #endif
-      integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_qm2s, ijl_dtemp
+      integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d, ijl_dtemp
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
       type(vector_str80) :: lname_ij, lname_ijl
@@ -224,7 +226,6 @@ C endif
       type(cdl_type), pointer :: cdl_lons, cdl_lats, cdl_depths
       
       contains
-
 
       subroutine add_diag(lname, sname, units, dim3, idx)
 
@@ -462,9 +463,9 @@ c**** Extract domain decomposition info
       ALLOCATE(Esz(nlt,kdm))
       ALLOCATE(Euz(nlt,kdm))
       ALLOCATE(Kd(nlt,kdm))
-      ALLOCATE(Kd_qm2s(nlt,kdm))
+      ALLOCATE(Kd_em2d(nlt,kdm))
       ALLOCATE(Kpar(kdm))
-      ALLOCATE(Kpar_qm2s(kdm))
+      ALLOCATE(Kpar_em2d(kdm))
       ALLOCATE(delta_temp1d(kdm))
 
       call init_obio_diag
@@ -681,9 +682,9 @@ c**** Extract domain decomposition info
       call add_diag("Mean daily irradiance", "avgq",
      &              "quanta", .true., IJL_avgq)
       call add_diag("KPAR", "kpar",
-     &              "??", .true., IJL_kpar)
-      call add_diag("KPAR_QM2S", "kpar_qm2s",
-     &              "??", .true., IJL_kpar_qm2s)
+     &              "w/m2", .true., IJL_kpar)
+      call add_diag("KPAR_EM2D", "kpar_em2d",
+     &              "Einstein/m2 day", .true., IJL_kpar_em2d)
       call add_diag("dtemp due to kpar", "dtemp_par",
      &              "C", .true., IJL_dtemp)
 

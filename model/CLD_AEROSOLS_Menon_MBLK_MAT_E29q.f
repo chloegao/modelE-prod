@@ -20,7 +20,7 @@
       SSMAL=0.d0
       SSMAO=0.d0
 
-*************************************************************************************************
+C*************************************************************************************************
 C** Can use different approaches to convert mass to number, very sensitive to sizes assumed
 C** Converting aerosol mass (kg/m3) to number (m-3) from Leon Rotstayn, based on IPCC Table 5
 C** This was used in the Menon and Rotstayn (2006) Clim. Dyn. paper

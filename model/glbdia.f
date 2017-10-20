@@ -57,7 +57,7 @@
       end if
 
       if( AM_I_ROOT() ) then
-       print 100,nstep,text,                            
+       print 100,nstep,text,
      .   tmeam/(ocnvol*onem),smeam/(ocnvol*onem),
      .   tmean/(ocnvol*onem),smean/(ocnvol*onem),
      .   nint((tmeam-tmean0)/(ocnvol*onem)*1.e10),
@@ -66,7 +66,7 @@
      .   nint((smean-smean0)/(ocnvol*onem)*1.e10)
  100  format (i7,1x,a12,4f15.10/20x,4i15)
 
-      if (h_glb_cum.gt.0.) print '(a20,30x,2i15,f6.1)','srf.fluxes', 
+      if (h_glb_cum.gt.0.) print '(a20,30x,2i15,f6.1)','srf.fluxes',
      .nint(h_glb_cum/(ocnvol*onem*spcifh)*1.e10),
      .nint(s_glb_cum/(ocnvol*onem       )*1.e10)
 
@@ -103,5 +103,26 @@ c
 
       return
       end function glob2d
+
+      real function ocn_surface_area_integral(field,weight)
+        real,intent(IN) :: field(I_0H:I_1H,J_0H:J_1H)
+        real,intent(IN) :: weight(I_0H:I_1H,J_0H:J_1H)
+        real    :: fldcol(J_0H:J_1H)
+        integer :: i,j,l
+
+        do j=J_0,J_1
+          fldcol(j)=0.
+          do l=1,isp(j)
+          do i=ifp(j,l),ilp(j,l)
+            fldcol(j)=fldcol(j)+field(i,j)*weight(i,j)*scp2(i,j)
+          end do
+          end do
+        end do
+
+        call GLOBALSUM(ogrid,fldcol,ocn_surface_area_integral,
+     &       all=.true.)
+
+        return
+      end function ocn_surface_area_integral
 
       end module mdul_glbdia
