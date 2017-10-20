@@ -8,7 +8,8 @@
       module hycom_cpler
       USE CONSTANT, only : tf
       USE HYCOM_DIM_GLOB, only : iia,jja,iio,jjo,isp,ifp,ilp,ii,jj,ip
-      USE HYCOM_SCALARS, only : flnma2o,flnmo2a,flnmcoso,huge
+      USE HYCOM_SCALARS, only : flnma2o,flnmo2a,flnmcoso,huge,
+     &                          itest,jtest
       USE FLUXES, only : focean_loc => focean
       USE HYCOM_DIM, only : ogrid
      &    ,aJ_0, aJ_1, aJ_0H, aJ_1H,
@@ -19,6 +20,11 @@
       use filemanager, only : findunit
       implicit none
       integer i,j,l,n,ia,ja,jb
+      integer :: iotest=-1,jotest=-1,iatest=-1,jatest=-1    ! Default no print
+c     integer :: iotest=-1,jotest=-1,iatest=40,jatest=70    ! Not ocean point
+c     integer :: iotest=-1,jotest=-1,iatest=30,jatest=08    ! Ocean point
+c     integer :: iotest=138,jotest=341,iatest=-1,jatest=-1	! hardwired
+      save iatest,jatest
 c
       private
 
@@ -61,16 +67,16 @@ c
       subroutine fld_o2a(fldo_loc,flda_loc,string5)
 c --- mapping sst from ogcm A grid to agcm A grid
 c     input: fldo_loc, output: flda_loc
-c
-c     integer :: iotest=154,jotest=198,iatest,jatest
-      integer :: iotest=354,jotest=315,iatest,jatest
+
       character,intent(IN) :: string5*5
       real*8,intent(IN)    :: fldo_loc(iio,J_0H:J_1H)
       real*8,intent(INOUT) :: flda_loc(iia,aJ_0H:aJ_1H)
       real*8, allocatable  :: flda(:,:),fldo(:,:),wgto(:,:)
       real scale,totwgt,peak
-      logical,parameter :: vrbos=.false.
+      integer iprox,jprox
+      logical vrbos
 
+      vrbos = iotest > 0 .or. iatest > 0
       if (am_i_root()) then
         allocate(flda(iia,jja),fldo(iio,jjo),wgto(iio,jjo))
       else
@@ -89,7 +95,9 @@ c
         peak=1.e-8
        end if
        do 16 ja=1,jja
+       jprox=abs(ja-jatest)
        do 16 ia=1,iia
+       iprox=min(abs(ia-iatest),abs(ia+iia-iatest),abs(ia-iia-iatest))
        if (nlisto2a(ia,ja).gt.0) then
         if (vrbos) totwgt=0.
         flda(ia,ja)=0.
@@ -105,14 +113,14 @@ c
  17     flda(ia,ja)=flda(ia,ja)+
      .     fldo(ilisto2a(ia,ja,n),jlisto2a(ia,ja,n))*wlisto2a(ia,ja,n)
         if (vrbos) then
-         peak=max(peak,abs(flda(ia,ja)))
+         if (max(iprox,jprox).lt.5) peak=max(peak,abs(flda(ia,ja)))
          if (totwgt.gt.0. .and. abs(totwgt-1.).gt.1.e-7) then
           print '(2i5,a,f13.7)',ia,ja,' sum of o2a intp.weights not 1:',
      .    totwgt
           stop '(error fld_o2a)'
-         end if !
-        end if	! vrbos
-       end if	! nlisto2a > 0
+         end if
+        end if		! vrbos
+       end if		! nlisto2a > 0
  16    continue
 c
        if (vrbos) then
@@ -216,15 +224,15 @@ c --- rotate sward/eward to fit onto Panam grid
 c --- mapping flux or scaler field from agcm A grid to ogcm A grid
 c     input: flda (W/m*m), output: fldo (W/m*m)
 c
-c     integer :: iotest=154,jotest=198,iatest,jatest
-      integer :: iotest=354,jotest=315,iatest,jatest
       character,intent(IN) :: string5*5
       real*8,intent(IN)    :: flda_loc(iia,aJ_0H:aJ_1H)
       real*8,intent(INOUT) :: fldo_loc(iio,J_0H:J_1H)
       real*8, allocatable  :: flda(:,:),fldo(:,:),wgta(:,:)
       real scale,totwgt,peak
-      logical,parameter :: vrbos=.false.
+      integer iprox,jprox
+      logical vrbos
 
+      vrbos = iotest > 0 .or. iatest > 0
       if(am_i_root()) then
         allocate(flda(iia,jja),fldo(iio,jjo),wgta(iia,jja))
       else
@@ -244,8 +252,10 @@ c
         peak=1.e-8
        end if
        do 8 j=1,jj
+       jprox=min(abs(j-jotest),abs(j+jj-jotest),j-jj-jotest)
        do 8 l=1,isp(j)
        do 8 i=ifp(j,l),ilp(j,l)
+       iprox=abs(i-iotest)
        fldo(i,j)=0.
        if (vrbos) totwgt=0.
        do 9 n=1,nlista2o(i,j)
@@ -253,7 +263,7 @@ c
  9     fldo(i,j)=fldo(i,j)+flda(ilista2o(i,j,n),jlista2o(i,j,n))
      .                         *wlista2o(i,j,n)
        if (vrbos) then
-        peak=max(peak,abs(fldo(i,j)))
+        if (max(iprox,jprox).lt.5) peak=max(peak,abs(fldo(i,j)))
         if (abs(totwgt-1.).gt.1.e-7) then
          print '(2i5,a,f13.7)',i,j,' sum of a2o intp.weights not 1:',
      .    totwgt
@@ -513,6 +523,10 @@ c --- find 'a' point nearest prescribed 'o' point
         ja=jlista2o(i,j,n)
       end if
  8    continue
+      if (ia.lt.0) then
+        print '(a,2i5)','cannot find a-point near o-point',io,jo
+        stop '(oij2aij error)'
+      end if
       print '(2(a,2i5))','a-point nearest o-point',io,jo,'  is',ia,ja
       return
       end subroutine oij2aij
@@ -535,6 +549,10 @@ c --- find 'o' point nearest prescribed 'a' point
         jo=jlisto2a(i,j,n)
       end if
  8    continue
+      if (io.lt.0) then
+        print '(a,2i5)','cannot find o-point near a-point',ia,ja
+        stop '(aij2oij error)'
+      end if
       print '(2(a,2i5))','o-point nearest a-point',ia,ja,'  is',io,jo
       return
       end subroutine aij2oij
@@ -881,7 +899,7 @@ c --- rotate sward/eward to fit onto Panam grid
  9    continue
 
       end subroutine veca2o
-c
+
 
       subroutine flxa2o(flda,fldo)
 c --- mapping flux-like field from agcm A grid to ogcm A grid

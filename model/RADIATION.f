@@ -2527,8 +2527,6 @@ C****
       if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
      * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
 
-      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
-
       IF(MRELAY > 0) THEN          ! for offline use only
         IF(NO3COL > 0)             ! rescale ozone to col.amount RO3COL
      *    ULGAS(1:NL0,3) = U0GAS(1:NL0,3)*RO3COL/SUM( U0GAS(1:NL0,3) )
@@ -2543,6 +2541,8 @@ C****
         IF (KEEP10 > 10)
      *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
       ENDIF
+
+      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
       chem_out(:,1)=ULGAS(:,3)!O3 considering move to RCOMPX; see above
 C     chem_out(:,2)= _________              ! set in RCOMPX

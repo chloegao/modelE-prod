@@ -243,6 +243,14 @@ c
  100  format('mean basin depth(m), area(Mm^2) & volumn(Mm^3):',3f9.3)
       write (*,101) (zonarea(l)*1.e-12,l=1,3)
  101  format ('latitude zones (arctic,antarctic,other):',3f9.3)
+
+      write(*,'(a,es22.14)') "Total surface area in hycom model (m2)",
+     &      sum(scp2)
+      write(*,'(a,es22.14)') "Ocean surface area in hycom model (m2)",
+     &      sum(scp2, mask = depths > 0.)
+      write(*,'(a,es12.3)') "(Ocean surface area)/"
+     &      //"(Total surface area) %",
+     &      100*sum(scp2, mask = depths > 0.)/sum(scp2)
 c
 c --- initialize some arrays
 c
