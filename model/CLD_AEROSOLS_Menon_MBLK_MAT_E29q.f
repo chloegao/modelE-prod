@@ -19,7 +19,7 @@
       SSMAL=0.d0
       SSMAO=0.d0
 
-*************************************************************************************************
+C*************************************************************************************************
 C** Can use different approaches to convert mass to number, very sensitive to sizes assumed
 C** Converting aerosol mass (kg/m3) to number (m-3) from Leon Rotstayn, based on IPCC Table 5
 C** This was used in the Menon and Rotstayn (2006) Clim. Dyn. paper
@@ -51,7 +51,7 @@ c     SSM5=((0.8d0*DSU(5))+(0.6d0*DSU(7)))/1000.d0   !OCB and BCB      use 80%  
 c     SSM3=((DSU(18)+DSU(19)+DSU(20)+DSU(21))/1000.d0)/(0.004189*(0.20**3.))!SOA                   
 c     SSML=SSMAL/(0.004189d0*(.050d0**3.d0))
 c     SSMO=SSMAO/(0.004189d0*(.085d0**3.d0)) + SSM2
-*************************************************************************************************
+C*************************************************************************************************
 C** Get Na in cm-3 as from Lohmann et al. 1999, JGR, 104,D8, 9169-9198
 C** Number = [ (Mass/den) } / [ (4/3 * pi * r^3* ) }
 C** effective radius for SO4 = 0.15 um; OC = 0.20 um, BC = 0.09 um, SS1 = 0.44 um; SS2 = 1.7 um
@@ -355,7 +355,7 @@ C** Special case if not including dust-sulfate hetchem reactions but with NO3
         endif 
       enddo
 
-*************************************************************************************************
+C*************************************************************************************************
 c     SSM1 = 3.98d10*DSU(1)         ! all sulfate 
 c     SSM2 = 1.40d09*DSU(2)         ! SS 01.-1 um 
 c     SSM3 = 2.43d07*DSU(3)         ! SS in 1-4 um 
