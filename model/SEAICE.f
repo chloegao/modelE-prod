@@ -653,9 +653,6 @@ C****
 !@auth Gary Russell/Gavin Schmidt
       IMPLICIT NONE
 
-      REAL*8, PARAMETER, DIMENSION(LMI) :: YSI =
-     *     (/XSI(1)* ACE1I/(ACE1I+AC2OIM),XSI(2)*ACE1I/(ACE1I+AC2OIM),
-     *       XSI(3)*AC2OIM/(ACE1I+AC2OIM),XSI(4)*AC2OIM/(ACE1I+AC2OIM)/)
 c     REAL*8, PARAMETER :: Z2OIX = 5.d0-Z1I,     ! max ice thickness l=2
 c    *                     BYZICX=1./(Z1I+Z2OIX)
 !@var QFIXR true if RSI and MSI2 are fixed (ie. for fixed SST run)
@@ -698,7 +695,7 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
       REAL*8 FMSI1,FMSI2,FMSI3,FMSI4, FHSI1,FHSI2,FHSI3,FHSI4,
      &       FSSI1,FSSI2,FSSI3,FSSI4
       REAL*8 HSNOW(2),SNOWL(2),TSNW(2),HICE(LMI),SICE(LMI),MICE(LMI)
-      REAL*8 ROICEN, OPNOCN, DRSI, MSI1, MSI2xx, HAVG
+      REAL*8 ROICEN, OPNOCN, DRSI, MSI1, MSI2xx, HAVG, MSI2NO
       integer l
 
       DMIMP=0. ; DHIMP=0. ; DSIMP=0.
@@ -710,20 +707,26 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
       IF (.not. QFIXR) THEN
       IF (ROICE.LE.0. .and. ACEFO.gt.0) THEN
 C**** Create new ice in ice-free ocean
-        ROICE=ACEFO/(ACE1I+AC2OIM)
-        SNOW=0.
-        HSIL(1:2) =(ENRGFO/ACEFO)*XSI(1:2)*ACE1I
-        HSIL(3:4) =(ENRGFO/ACEFO)*XSI(3:4)*AC2OIM
-        SSIL(1:2) = (SALTO/ACEFO)*XSI(1:2)*ACE1I
-        SSIL(3:4) = (SALTO/ACEFO)*XSI(3:4)*AC2OIM
+       ROICE=MIN(1d0,ACEFO/(ACE1I+AC2OIM))
+       IF(ACEFO/(ACE1I+AC2OIM).GT.1.) THEN
+         write(6,*) "Warning: ADDICE: Excessive sea ice created:",
+     *     ACEFO/(ACE1I+AC2OIM)
+       ENDIF
+       MSI1=ACE1I
+       MSI2=MAX(AC2OIM,ACEFO-ACE1I)
+       SNOW=0.
+
+       HSIL(1:2) =(ENRGFO/ACEFO)*XSI(1:2)*MSI1
+       HSIL(3:4) =(ENRGFO/ACEFO)*XSI(3:4)*MSI2
+       SSIL(1:2) = (SALTO/ACEFO)*XSI(1:2)*MSI1
+       SSIL(3:4) = (SALTO/ACEFO)*XSI(3:4)*MSI2
 #ifdef TRACERS_WATER
-        DO N=1,NTM
-          TRSIL(N,1:2) = (TRO(N)/ACEFO)*XSI(1:2)*ACE1I
-          TRSIL(N,3:4) = (TRO(N)/ACEFO)*XSI(3:4)*AC2OIM
-        END DO
+       DO N=1,NTM
+         TRSIL(N,1:2) = (TRO(N)/ACEFO)*XSI(1:2)*MSI1
+         TRSIL(N,3:4) = (TRO(N)/ACEFO)*XSI(3:4)*MSI2
+       END DO
 #endif
-        MSI1=ACE1I
-        MSI2=AC2OIM
+
       ELSEIF (ROICE.gt.0) THEN
 C**** Create new ice in partially ice-covered ocean
       IF (ACEFI.gt.0) THEN
@@ -764,8 +767,15 @@ C**** NEW ICE IS ONLY FORMED BELOW OLD SEA ICE
         MSI2 = MSI2+ACEFI       ! new ice mass of physical layer 2
       ELSE
 C**** NEW ICE IS FORMED ON OPEN OCEAN AND POSSIBLY BELOW OLD SEA ICE
-        DRSI = (1.-ROICE)*ACEFO/(ACE1I+AC2OIM) ! new ice on the open oc.
+        DRSI = MIN((1.-ROICE)*ACEFO/(ACE1I+AC2OIM),1.-ROICE) ! new ice on the open oc.
         ROICEN=ROICE+DRSI
+        IF(ACEFO/(ACE1I+AC2OIM).GT.1.) THEN
+          write(6,*) "Warning: ADDICE: Excessive sea ice created:",
+     *      ACEFO/(ACE1I+AC2OIM)
+        ENDIF       
+
+c**** new 2nd layer ice thickness on open water fraction
+        MSI2NO = MAX(AC2OIM,ACEFO-ACE1I)
 
 C**** separate out snow and ice components
       call get_snow_ice_layer(SNOW,MSI2,HSIL,SSIL,
@@ -783,17 +793,17 @@ CC      SSNOW = SSNOW*(ROICE/ROICEN)  ! always zero
 #endif
 
 C**** Add new ice to ice variables
-        HICE(1:2)=((1.-ROICE)*ENRGFO*XSI(1:2)*ACE1I/(ACE1I+AC2OIM)+ROICE
+        HICE(1:2)=((1.-ROICE)*ENRGFO*XSI(1:2)*ACE1I/(ACE1I+MSI2NO)+ROICE
      $       *HICE(1:2))/ROICEN
-        SICE(1:2)=((1.-ROICE)*SALTO *XSI(1:2)*ACE1I/(ACE1I+AC2OIM)+ROICE
+        SICE(1:2)=((1.-ROICE)*SALTO *XSI(1:2)*ACE1I/(ACE1I+MSI2NO)+ROICE
      $       *SICE(1:2))/ROICEN
 #ifdef TRACERS_WATER
-        TRICE(:,1)=((1.-ROICE)*TRO(:)*XSI(1)*ACE1I/(ACE1I+AC2OIM)+ROICE
+        TRICE(:,1)=((1.-ROICE)*TRO(:)*XSI(1)*ACE1I/(ACE1I+MSI2NO)+ROICE
      $       *TRICE(:,1))/ROICEN
-        TRICE(:,2)=((1.-ROICE)*TRO(:)*XSI(2)*ACE1I/(ACE1I+AC2OIM)+ROICE
+        TRICE(:,2)=((1.-ROICE)*TRO(:)*XSI(2)*ACE1I/(ACE1I+MSI2NO)+ROICE
      $       *TRICE(:,2))/ROICEN
 #endif
-        MICE(1:2)=((1.-ROICE)*ACEFO*XSI(1:2)*ACE1I/(ACE1I+AC2OIM)+ROICE
+        MICE(1:2)=((1.-ROICE)*ACEFO*XSI(1:2)*ACE1I/(ACE1I+MSI2NO)+ROICE
      $       *MICE(1:2))/ROICEN
 
 C**** relayer upper two layers
@@ -811,19 +821,25 @@ C**** reconstitute snow and ice layers
      *       SNOW,MSI1,MSI2,HSIL,SSIL)
 
 C**** add new ice to old ice (not including snow)
-        MSI2 = (DRSI*AC2OIM+ROICE*(MSI2+ACEFI))/ROICEN ! layer 2
+        MSI2 = (DRSI*MAX(AC2OIM,ACEFO-ACE1I)+ROICE*(MSI2+ACEFI))/ROICEN ! layer 2
 C**** COMBINE OPEN OCEAN AND SEA ICE FRACTIONS TO FORM NEW VARIABLES
-        HSIL(3)=((1.-ROICE)*ENRGFO*YSI(3)+ROICE*(HSIL(3)-FHSI3))/ROICEN
-        HSIL(4)=((1.-ROICE)*ENRGFO*YSI(4)+ROICE*(HSIL(4)+FHSI3+ENRGFI)
+        HSIL(3)=((1.-ROICE)*ENRGFO*XSI(3)*MSI2NO/(ACE1I+MSI2NO)
+     *           +ROICE*(HSIL(3)-FHSI3))/ROICEN
+        HSIL(4)=((1.-ROICE)*ENRGFO*XSI(4)*MSI2NO/(ACE1I+MSI2NO)
+     *           +ROICE*(HSIL(4)+FHSI3+ENRGFI)
      *       )/ROICEN
-        SSIL(3)=((1.-ROICE)*SALTO*YSI(3)+ROICE*(SSIL(3)-FSSI3))/ROICEN
-        SSIL(4)=((1.-ROICE)*SALTO*YSI(4)+ROICE*(SSIL(4)+FSSI3+SALTI))
+        SSIL(3)=((1.-ROICE)*SALTO*XSI(3)*MSI2NO/(ACE1I+MSI2NO)
+     *           +ROICE*(SSIL(3)-FSSI3))/ROICEN
+        SSIL(4)=((1.-ROICE)*SALTO*XSI(4)*MSI2NO/(ACE1I+MSI2NO)
+     *           +ROICE*(SSIL(4)+FSSI3+SALTI))
      *       /ROICEN
 #ifdef TRACERS_WATER
         DO N=1,NTM
-          TRSIL(N,3)=((1.-ROICE)*TRO(N)*YSI(3)+ROICE*(TRSIL(N,3)
+          TRSIL(N,3)=((1.-ROICE)*TRO(N)*XSI(3)*MSI2NO/(ACE1I+MSI2NO)
+     *                +ROICE*(TRSIL(N,3)
      *         -FTRSI3(N)))/ROICEN
-          TRSIL(N,4)=((1.-ROICE)*TRO(N)*YSI(4)+ROICE*(TRSIL(N,4)
+          TRSIL(N,4)=((1.-ROICE)*TRO(N)*XSI(4)*MSI2NO/(ACE1I+MSI2NO)
+     *                +ROICE*(TRSIL(N,4)
      *         +FTRSI3(N)+TRI(N)))/ROICEN
         END DO
 #endif
