@@ -80,6 +80,7 @@ ccc extra stuff which was present in "earth" by default
       public ghy_tracers_set_step
       public ghy_tracers_finish_step
       public ghy_tracers_set_cell
+      public ghy_tracers_set_cell_stage2
       public ghy_tracers_save_cell
       public initGhyTracers
 
@@ -219,10 +220,12 @@ ccc tracers variables
         ghy_tr%tr_wsn(nx,1:nlsn,1:2) = tr_wsn_ij(n,1:nlsn, 1:2, i, j)
         ! flux in
         ghy_tr%trpr(nx) = trprec(n,i,j)/dtsrc ! kg/m^2 s (in precip)
+#ifndef GHY_DRYDEP_FIX
 #ifdef TRACERS_DRYDEP
         ghy_tr%trdd(nx) = atmlnd%trdrydep(n,i,j)/dtsrc   ! kg/m^2 s (dry dep.)
 #else
         ghy_tr%trdd(nx) = 0
+#endif
 #endif
         ! for non-zero irrigation the following line should be set
         ! to tracer flux due to irrigation
@@ -267,6 +270,56 @@ c**** mineral fractions of emitted dust aerosols
 #endif
 
       end subroutine ghy_tracers_set_cell
+
+
+      subroutine ghy_tracers_set_cell_stage2(i,j,pbl_args
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
+     &     )
+!@sum tracers code to be called (after pbl) before the i,j cell is processed
+      use pbl_drv, only : t_pbl_args
+      USE MODEL_COM, only : qcheck
+      USE TRACER_COM, only : trm
+#ifdef TRACERS_WATER
+      use fluxes, only : atmlnd
+#endif
+#ifdef TRACERS_DRYDEP
+      use OldTracer_mod, only: dodrydep
+#endif
+      implicit none
+      integer, intent(in) :: i,j
+      type (t_pbl_args), intent(inout) :: pbl_args
+      integer n,nx
+      real*8 :: tdryd, td1
+#ifdef TRACERS_WATER
+      type (ghy_tr_str) :: ghy_tr
+#endif
+
+#ifdef TRACERS_WATER
+      ghy_tr%trdd(:) = 0.d0
+#ifdef TRACERS_DRYDEP
+
+      do nx=1,ghy_tr%ntg
+        n = ghy_tr%ntixw(nx)
+        if(.not.dodrydep(n)) cycle
+        tdryd = atmlnd%drydflx(n,i,j) ! kg/m2
+       ! tdd = tdryd             ! kg/m2
+        td1 = (atmlnd%trsrfflx(n,i,j)
+     &       +atmlnd%trflux_prescr(n,i,j)
+     &       )*pbl_args%dtsurf           ! kg/m2
+        if(trm(i,j,1,n)*byaxyp(i,j)+(td1+tdryd).lt.0.and.tdryd.lt.0)then
+          if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdryd
+     *         ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
+          tdryd= -max(trm(i,j,1,n)*byaxyp(i,j)+td1,0d0)
+          !tdryd=tdd
+        end if
+        ghy_tr%trdd(nx) = -tdryd/pbl_args%dtsurf   ! kg/m^2 s (dry dep.)
+      enddo
+
+#endif
+#endif
+      end subroutine ghy_tracers_set_cell_stage2
 
 
       subroutine ghy_tracers_save_cell(i,j,ptype,dtsurf,rhosrf,pbl_args
@@ -736,7 +789,8 @@ c****
 
 #ifdef TRACERS_ON
       use ghy_tracers, only : ghy_tracers_set_step,ghy_tracers_set_cell,
-     &     ghy_tracers_save_cell, ghy_tracers_finish_step
+     &     ghy_tracers_save_cell, ghy_tracers_finish_step,
+     &     ghy_tracers_set_cell_stage2
 #endif
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : NTM,trm
@@ -1029,6 +1083,13 @@ c**** call tracers stuff
 
       call pbl(i,j,1,itype,ptype,pbl_args,atmlnd)
 
+#ifdef GHY_DRYDEP_FIX
+      call ghy_tracers_set_cell_stage2(i,j,pbl_args
+#ifdef TRACERS_WATER
+     &     ,ghy_tr
+#endif
+     &     )
+#endif
 c****
       cdm = pbl_args%cm ! cmgs(itype,i,j)
       cdh = pbl_args%ch ! chgs(itype,i,j)
