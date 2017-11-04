@@ -67,15 +67,7 @@ C**** Modify tracer amount, moments, and diagnostics
       do l=1,lm
         dtrm(l) = tr3Dsource(l,ns,n)*dtsrc
 C**** calculate fractional loss and update tracer mass
-#ifdef TRACERS_TOMAS
-        if(trm_col(l,n).gt.0.)then
-          fred=max(0.d0,1.+min(0.d0,dtrm(l))/(trm_col(l,n)+eps))
-        else
-          fred=1.             !It won't be used anyway (fred<1 to be used)
-        endif
-#else
         fred = max(0.d0,1.+min(0.d0,dtrm(l))/(trm_col(l,n)+eps))
-#endif
         trm_col(l,n) = trm_col(l,n)+dtrm(l)
         if(fred.le.1d-16) trm_col(l,n) = 0.
         if(domom .and. fred.lt.1.) then

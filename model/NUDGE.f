@@ -29,7 +29,7 @@
 !@var tau nudging time interpolation
       REAL*8 :: tau
 !@param  anudgeu anudgev relaxation constant (1/s)
-      REAL*8 :: anudgeu = 0.01d0, anudgev = 0.01d0
+      REAL*8 :: anudgeu = 0.001d0, anudgev = 0.001d0
 
       END MODULE NUDGE_COM
 
