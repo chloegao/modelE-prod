@@ -204,6 +204,10 @@ C**** For example, separate Moist convection/Large scale condensation
       qsum(1:npts_common)=(/F,                                !instant. (1)
      *                      T, T, F, F, T, T,Qf, T, F, F, F/) !2-12 (npts)
       qsum(npts_common+1:npts_common+ntcons)=F                !13-ktcon-1
+C**** this allows you to configure the common check points names.
+      conpt=conpt0
+      conpt(8)="SRCS+SNKS"
+
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -692,7 +696,8 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
         qcon(10)  = .false.     ! reset to defaults for next tracer
         qsum(10)  = .false.     ! reset to defaults for next tracer
         conpts=''
-
+        conpt=conpt0
+        
         call iter%next()
       end do
 
