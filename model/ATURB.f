@@ -1231,11 +1231,11 @@ c       cgv1=7.2d0*wstar*(-vflx)/(wm1**2*dbl)
                wt_nl(j)=kh_n*cgh1
                uw_nl(j)=km_n*cgu1
                vw_nl(j)=km_n*cgv1
-#ifdef TRACERS_ON
-               do nt=1,nta
-                 wc_nl(j,nt)=kh_n*cgtr(nt)
-               end do
-#endif
+!#ifdef TRACERS_ON
+!               do nt=1,nta
+!                 wc_nl(j,nt)=kh_n*cgtr(nt)
+!               end do
+!#endif
              endif
              tmp=(1.6d0*ustar2*(1.-zzi)+teeny)**1.5d0
      &           +1.2d0*wstar3*zzi*(1.-.9d0*zzi)**1.5d0
