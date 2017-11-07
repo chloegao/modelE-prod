@@ -398,11 +398,12 @@ C**** set some defaults
           itcon_3Dsrc(nBiomass,n)=tr_con_diag('Biomass src',T,T)
         endif
         do kk=1,ntsurfsrc(n_src)
-          itcon_surf(kk,n)=tr_con_diag(trim(sources(kk)%sourceName),T)
+          itcon_surf(kk,n)=tr_con_diag(trim(sources(kk)%sourceLname),T)
         enddo
 
 !-----
-! per-tracer diagnostics
+!     per-tracer diagnostics
+!     Note: Do not include already registered surface sources
 !-----
         select case (trim(pTracer%getName()))
 
@@ -415,7 +416,7 @@ C**** set some defaults
 
         case ('N2O')   ! two versions dependent on configuration
 #ifdef TRACERS_SPECIAL_Lerner
-          itcon_surf(1,N)=tr_con_diag('Reset in L1',T)
+c          itcon_surf(1,N)=tr_con_diag('Reset in L1',T)
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Strat. Chem.',T,T)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -425,7 +426,7 @@ C**** set some defaults
 #endif
 
         case ('CFC11')
-          itcon_surf(1,N)=tr_con_diag('L1 Source',T)
+c          itcon_surf(1,N)=tr_con_diag('L1 Source',T)
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Strat. Chem.',T,T)
 
         case ('14CO2')
@@ -443,7 +444,7 @@ C**** set some defaults
 #endif /* TRACERS_SPECIAL_Lerner */
 
         case ('O3')
-          itcon_surf(1,N)=tr_con_diag('Deposition',T)
+c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
           itcon_3Dsrc(1,n)=tr_con_diag('Stratos. Chem.',T,T)
           itcon_3Dsrc(2,n)=tr_con_diag('Trop. Chem. Prod.',T,T)
           itcon_3Dsrc(3,n)=tr_con_diag('Trop. Chem. Loss',T,T)
@@ -928,11 +929,11 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(kk,n) = k
         sname_jls(k) = trim(trname(n))//'_'//
-     &                 trim(sources(kk)%sourceName)//'_src'
+     &                 trim(sources(kk)%sourceName)
         lname_jls(k) = trim(trname(n))//' '//
-     &                 trim(sources(kk)%sourceName)//' source'
+     &                 trim(sources(kk)%sourceLname)
         jls_ltop(k) = 1
-        jls_power(k) = 0
+        jls_power(k) = ntm_power(n)+11
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
       end do
 
@@ -963,10 +964,10 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-      case ('SF6','SF6_c')
-        call layer1_init_jls(k,n,trname(n))
-      case ('CFCn')
-        call layer1_init_jls(k,n,trname(n))
+c      case ('SF6','SF6_c')
+c        call layer1_init_jls(k,n,trname(n))
+c      case ('CFCn')
+c        call layer1_init_jls(k,n,trname(n))
       case ('CO2n')
         call CO2n_init_jls(k,n,'CO2n')
       case ('Rn222')
@@ -2338,9 +2339,9 @@ C**** This needs to be 'hand coded' depending on circumstances
         end select
         ijts_source(kr,n)=
      *    ijts_diag(trim(trname(n))//'_'//
-     *                trim(sources(kr)%sourceName)//'_src',
-     *              trim(trname(n))//' '//
-     *                trim(sources(kr)%sourceName)//' source',
+     *                trim(sources(kr)%sourceName),
+     *                trim(trname(n))//' '//
+     *                trim(sources(kr)%sourceLname),
      *              'kg m-2 s-1', power=-15)
       end do
 
@@ -2386,13 +2387,13 @@ C**** This needs to be 'hand coded' depending on circumstances
       select case (trname(n))
 
       case ('CFCn','CO2n','SF6','SF6_c')
-        select case (trname(n))
-        case ('CFCn','SF6','SF6_c')
-          ijts_source(1,n)=
-     *      ijts_diag(trim(trname(n))//'_GRID_SOURCE_LAYER_1',
-     *                trim(trname(n))//' Layer 1 SOURCE',
-     *                'kg m-2 s-1', power=-15)
-        end select
+c        select case (trname(n))
+c        case ('CFCn','SF6','SF6_c')
+c          ijts_source(1,n)=
+c     *      ijts_diag(trim(trname(n))//'_GRID_SOURCE_LAYER_1',
+c     *                trim(trname(n))//' Layer 1 SOURCE',
+c     *                'kg m-2 s-1', power=-15)
+c        end select
         select case (trname(n))
         case ('CFCn','CO2n')
           ijts_isrc(1,n)=
@@ -2416,19 +2417,19 @@ C**** This needs to be 'hand coded' depending on circumstances
      *                denom='ocnfr', hasArea=.false.)
         end select
 
-      case ('Rn222')
-        ijts_source(1,n)=
-     *    ijts_diag(trim(trname(n))//'_SOURCE_Layer_1',
-     *              trim(trname(n))//' L 1 SOURCE',
-     *              'kg m-2 s-1', power=-21)
+c      case ('Rn222')
+c        ijts_source(1,n)=
+c     *    ijts_diag(trim(trname(n))//'_SOURCE_Layer_1',
+c     *              trim(trname(n))//' L 1 SOURCE',
+c     *              'kg m-2 s-1', power=-21)
 
-      case ('N2O')
-#ifdef TRACERS_SPECIAL_Lerner
-        ijts_source(1,n)=
-     *    ijts_diag(trim(trname(n))//'_CHANGE_IN_L_1',
-     *              trim(trname(n))//' CHANGE IN L 1',
-     *              'kg m-2 s-1', power=-12)
-#endif
+c      case ('N2O')
+c#ifdef TRACERS_SPECIAL_Lerner
+c        ijts_source(1,n)=
+c     *    ijts_diag(trim(trname(n))//'_CHANGE_IN_L_1',
+c     *              trim(trname(n))//' CHANGE IN L 1',
+c     *              'kg m-2 s-1', power=-12)
+c#endif
 
       case ('CFC11')
         ijts_source(1,n)=
@@ -6014,8 +6015,7 @@ C**** Source over Australia and New Zealand
           CALL GLOBALSUM(grid,trsource_prt,trsource_glbavg(n),
      &                                                all=.true.)
 
-          trsource_glbavg(n)=trsource_glbavg(n)/sarea
-
+          trsource_glbavg(n)=trsource_glbavg(n)/sarea 
           !weight trsource by ocmip_cfc global average
           !number of steps/year=INT_DAYS_PER_YEAR*SECONDS_PER_DAY/dtsrc
           !                    =365*86400/1800 =17520

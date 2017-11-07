@@ -157,18 +157,19 @@
 
 #ifdef TRACERS_SPECIAL_Lerner
         case ('N2O')
-          call addSurfaceSource(pTracer, "overwrite_at_surface")
+           call addSurfaceSource(pTracer, "overwrite_at_surface",
+     *          "Overwrite")
         case ('CFC11', 'Rn222')
-          call addSurfaceSource(pTracer, "surface_src")
+          call addSurfaceSource(pTracer, "surface_src","Surface Src")
         case ('O3')
-          call addSurfaceSource(pTracer, "deposition_sink")
+          call addSurfaceSource(pTracer, "deposition_sink","Deposition")
         case ('14CO2')
-          call addSurfaceSource(pTracer, "surface_sink")
+          call addSurfaceSource(pTracer, "surface_sink","Surface Sink")
 #endif  /* TRACERS_SPECIAL_Lerner */
 
 #ifdef TRACERS_SF6
         case ('SF6', 'SF6_c')
-          call addSurfaceSource(pTracer, "surface_src")
+          call addSurfaceSource(pTracer, "surface_src","Surface Src")
 #endif  /* TRACERS_SF6 */
 
         end select
