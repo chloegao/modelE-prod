@@ -1357,7 +1357,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #if defined(CLD_AER_CDNC) && !defined(ALT_CDNC_INPUTS)
             ! ambient aerosols at this level
-            tm_cdnc(:) = tm(l,:)
+            tm_cdnc(:) = tm1(l,:)
             airm_cdnc = airm(l)
 #endif
 
@@ -1663,9 +1663,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 QMOMP(xymoms)= QMOMP(xymoms)+ QMOM(xymoms,L)*FENTRA
 
 #ifdef TRACERS_ON
-                DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM(L,1:NTX)*FENTRA
+                ! using TM1 here for consistency with QUP=QM1.  Variation to be closer
+                ! to the older code: use TM1 for water tracers, TM for all others
+                DTMR(L,1:NTX) = DTMR(L,1:NTX)-TM1(L,1:NTX)*FENTRA
                 DTMOMR(:,L,1:NTX) = DTMOMR(:,L,1:NTX)-TMOM(:,L,1:NTX)*FENTRA
-                TMP(1:NTX) = TMP(1:NTX)+TM(L,1:NTX)*FENTRA
+                TMP(1:NTX) = TMP(1:NTX)+TM1(L,1:NTX)*FENTRA
                 TMOMP(xymoms,1:NTX) = TMOMP(xymoms,1:NTX) + TMOM(xymoms,L,1:NTX)*FENTRA
 #endif  /* TRACERS_ON */
 
@@ -1804,9 +1806,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
                 DQMOMR(:,L)=DQMOMR(:,L) - QMOM(:,L)*FDDL
 
 #ifdef TRACERS_ON
-                Tmdnl(l,1:NTX) = tm(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
+                ! using TM1 here for consistency with QUP=QM1.  Variation to be closer
+                ! to the older code: use TM1 for water tracers, TM for all others
+                Tmdnl(l,1:NTX) = tm1(l,1:NTX)*fddl+Tmp(1:NTX)*fddp
                 tmomdnl(xymoms,l,1:NTX) = tmom(xymoms,l,1:NTX)*fddl + tmomp(xymoms,1:NTX)*fddp
-                dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm    (l,1:NTX)
+                dtmr    (l,1:NTX) = dtmr    (l,1:NTX)-fddl *tm1   (l,1:NTX)
                 dtmomr(:,l,1:NTX) = dtmomr(:,l,1:NTX)-fddl *tmom(:,l,1:NTX)
                 Tmp         (1:NTX) = Tmp         (1:NTX)*fleft
                 tmomp(xymoms,1:NTX) = tmomp(xymoms,1:NTX)*fleft
@@ -2101,7 +2105,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                 end do
 
 #ifdef TRACERS_ON
-                Tenv(1:NTX)=tm(l,1:NTX)/airm(l)
+                Tenv(1:NTX)=tm(l,1:NTX)/airm(l) ! not tm1, because qenv not qm1
                 TMDN(1:NTX)=TMDN(1:NTX)+EDRAFT*Tenv(1:NTX)
                 TMOMDN(xymoms,1:NTX)= TMOMDN(xymoms,1:NTX) + TMOM(xymoms,L,1:NTX)*FENTRA
                 DTMR(L,1:NTX)=DTMR(L,1:NTX)-EDRAFT*TENV(1:NTX)
@@ -2384,42 +2388,43 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
         end do        ! end of sub-timesteps for subsidence
 
-#ifndef WEAKER_MC_LIMITS
-        !**** Check for v. rare negative humidity error condition
-        do L=LDMIN,LMAX
-          if(QM(L).lt.0.d0) then
-            write(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l,qm(l),cmneg(l)
-            !**** reduce subsidence post hoc.
-            LM1=max(1,L-1)
-            if (QM(LM1)+QM(L).lt.0) then
-              write(6,*) "Q neg cannot be fixed!",L,QM(LM1:L)
-            else
-              QM(L-1)=QM(L-1)+QM(L)
-              QM(L)=0.
 
-#ifdef TRACERS_WATER
-              !**** corresponding water tracer adjustment
-              do N=1,NTX
-                if (tr_wd_type(n) .eq. nWater) then
-                  TM(L-1,N)=TM(L-1,N)+TM(L,N)
-                  TM(L,N)=0.
-                end if
-              end do
-#endif
-
-            end if
-          end if
-        end do
-#endif /* not WEAKER_MC_LIMITS */
+!#ifndef WEAKER_MC_LIMITS
+!        !**** Check for v. rare negative humidity error condition
+!        do L=LDMIN,LMAX
+!          if(QM(L).lt.0.d0) then
+!            write(6,*) ' Q neg: it,i,j,l,q,cm',itime,i_debug,j_debug,l,qm(l),cmneg(l)
+!            !**** reduce subsidence post hoc.
+!            LM1=max(1,L-1)
+!            if (QM(LM1)+QM(L).lt.0) then
+!              write(6,*) "Q neg cannot be fixed!",L,QM(LM1:L)
+!            else
+!              QM(L-1)=QM(L-1)+QM(L)
+!              QM(L)=0.
+!
+!#ifdef TRACERS_WATER
+!              !**** corresponding water tracer adjustment
+!              do N=1,NTX
+!                if (tr_wd_type(n) .eq. nWater) then
+!                  TM(L-1,N)=TM(L-1,N)+TM(L,N)
+!                  TM(L,N)=0.
+!                end if
+!              end do
+!#endif
+!
+!            end if
+!          end if
+!        end do
+!#endif /* not WEAKER_MC_LIMITS */
 
 #ifdef TRACERS_ON
         !**** check for independent tracer errors
         do N=1,NTX
           if (.not.t_qlimit(n)) cycle
 
-#ifdef TRACERS_WATER
-          if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
-#endif  /* TRACERS_WATER */
+!#ifdef TRACERS_WATER
+!          if (tr_wd_type(n) .eq. nWater) cycle ! water tracers already done
+!#endif  /* TRACERS_WATER */
 
           do L=LDMIN,LMAX
 !            if (TM(L,N).lt.0.) then
@@ -2666,7 +2671,8 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           endif
 
 #ifdef TRACERS_WATER
-          if (PRCP+DQSUM.gt.0.) then
+          !if (PRCP+DQSUM.gt.0.) then ! referring to DQSUM rather than PRCP+DQSUM
+          if (DQSUM.gt.0.) then       ! to avoid possibility of roundoff error
             !**** Tracer net re-evaporation
             !**** (If 100% evaporation, allow all tracers to evaporate completely.)
             BELOW_CLOUD = L.lt.LMIN
@@ -3131,6 +3137,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     real*8, dimension(LM+1) :: PREBAR,PREICE
 !@var PREBAR,PREICE precip entering layer top for total, snow
 
+#ifdef TRACERS_ON
+      REAL*8 :: TM2_unmixed,TMOM2_unmixed(nmom)
+#endif
 #ifdef TRACERS_WATER
 !@var TRPRBAR tracer precip entering layer top for total (kg)
     real*8, dimension(NTM,LM+1) :: TRPRBAR
@@ -4624,12 +4633,33 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       !****
 #ifdef TRACERS_ON
       do N=1,NTX
+        if(fsslrat.ne.1.) then
+          ! see comments above regarding the scaling of upper-layer
+          ! S,Q tendencies.  Since tracers have been pre-multiplied
+          ! by FSSL, the form of the scaling differs slightly.
+!@var {TM,TMOM}2_unmixed the part of upper-layer TM,TMOM not
+!@+   participating in mixing
+          TM2_unmixed = TM(L+1,N)*(1d0-fsslrat)
+          TMOM2_unmixed = TMOM(:,L+1,N)*(1d0-fsslrat)
+          ! set the part of upper-layer TM (and TMOM) to mix
+          TM(L+1,N) = TM(L+1,N)*fsslrat
+          TMOM(:,L+1,N) = TMOM(:,L+1,N)*fsslrat
+        endif
         call CTMIX (TM(L,N),TMOM(1,L,N),FMASS*AIRMR,FMIX,FRAT)
+        if(fsslrat.ne.1.) then
+          ! recombine mixed, unmixed parts of upper-layer TM, TMOM
+          TM(L+1,N) = TM(L+1,N) + TM2_unmixed
+          TMOM(:,L+1,N) = TMOM(:,L+1,N) + TMOM2_unmixed
+        endif
 #ifdef TRACERS_WATER
         !**** mix cloud liquid water tracers as well
         TWMTMP      = TRWML(N,L  )*(1.-FMIX)+FRAT*TRWML(N,L+1)
         TRWML(N,L+1)= TRWML(N,L+1)*(1.-FRAT)+FMIX*TRWML(N,L  )
         TRWML(N,L)  = TWMTMP
+        !if(fsslrat.ne.1.) then
+          ! No need to rescale TRWML tendency,
+          ! see above comments regarding WMX
+        !endif
 #endif  /* TRACERS_WATER */
       end do
 #endif  /* TRACERS_ON */
