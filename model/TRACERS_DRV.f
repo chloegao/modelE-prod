@@ -255,6 +255,7 @@
       use TRACER_COM, only: tracers
       use TRACER_COM, only: n_SO2
       use Tracer_mod, only: Tracer
+      use DIAG_COM, only: conpt0,npts
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
@@ -267,6 +268,7 @@
       implicit none
       character*20 sum_unit(NTM),inst_unit(NTM)   ! for conservation
       character*50 :: unit_string
+      character*10 :: conpt(npts)
 #ifdef TRACERS_ON
       logical :: T=.TRUE. , F=.FALSE.
       logical :: Qf
@@ -313,6 +315,8 @@ C**** For example, separate Moist convection/Large scale condensation
       qsum(1:npts_common)=(/F,                                !instant. (1)
      *                      T, T, F, F, T, T,Qf, T, F, F, F/) !2-12 (npts)
       qsum(npts_common+1:npts_common+ntcons)=F                !13-ktcon-1
+      conpt=conpt0
+      conpt(8)="SRCS+SNKS"
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -765,7 +769,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 #endif
 
         CALL SET_TCON(QCON,pTracer%getName(),QSUM,inst_unit(n),
-     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs,CONPT)
         qcon(npts_common+1:) = .false. ! reset to defaults for next tracer
         qsum(npts_common+1:) = .false. ! reset to defaults for next tracer
         qcon(10)  = .false.     ! reset to defaults for next tracer
