@@ -572,6 +572,10 @@ c       tprime=tdns-t(1)/(1.+xdelt*q(1))
 c       qprime=qdns-q(1)
         tprime=tdns-ttop/(1.+xdelt*qtop)
         qprime=qdns-qtop
+#ifdef TRACERS_ON
+        pbl_args%trprime(1:pbl_args%ntx) =
+     &     pbl_args%trdn1(1:pbl_args%ntx)-pbl_args%trtop(1:pbl_args%ntx)
+#endif
       else ! either ddml(ilong,jlat).ne.1 or USE_PBL_E1
         tdns=0.d0
         qdns=0.d0
@@ -781,20 +785,20 @@ C****   2) water mass tracers
 C**** Water tracers need to multiply trsfac/trconstflx by cq*Usurf
 C**** and qgrnd_sat (moved from driver routines to deal with skin effects)
         if (tr_wd_TYPE(pbl_args%ntix(itr)).eq.nWATER) then
-          trcnst=cqsave*(pbl_args%trconstflx(itr)*ws*qgrnd_sat-
-     *         gusti*pbl_args%trdn1(itr))
+          trcnst=cqsave*(pbl_args%trconstflx(itr)*ws*qgrnd_sat
+     *         -gusti*pbl_args%trprime(itr))
           trc2=pbl_args%trconstflx(itr)
-          if (ddml_eq_1) then   ! hmmm... gusti>0 even if ddml_eq_1=F
-            trsf=pbl_args%trsfac(itr)*cqsave*ws0
-          else
+!          if (ddml_eq_1) then   ! hmmm... gusti>0 even if ddml_eq_1=F
+!            trsf=pbl_args%trsfac(itr)*cqsave*ws0
+!          else
             trsf=pbl_args%trsfac(itr)*cqsave*ws
-          end if
+!          end if
           if (itype.eq.3) then  ! possible correction for large E over LI
             if (evap.gt.pbl_args%snow .and. pbl_args%snow.gt.snmin) then
               trc2 = (pbl_args%snow*pbl_args%trconstflx(itr)+(evap ! weighted mean tracer conc
      *             -pbl_args%snow)*pbl_args%trgrnd2(itr))/evap 
-              trcnst=cqsave*(trc2*ws*qgrnd_sat-
-     *             gusti*pbl_args%trdn1(itr))
+              trcnst=cqsave*(trc2*ws*qgrnd_sat
+     *             -gusti*pbl_args%trprime(itr))
             end if
           end if
 #ifdef TRACERS_SPECIAL_O18
@@ -1154,8 +1158,6 @@ C**** tracer code output
 #ifdef TRACERS_ON
       pbl_args%trs(1:pbl_args%ntx) = tr(1,1:pbl_args%ntx)
 
-      if (ddml_eq_1) pbl_args%trprime(1:pbl_args%ntx) = 
-     &     pbl_args%trdn1(1:pbl_args%ntx)-tr(1,1:pbl_args%ntx)
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       pbl_args%z(:) = z(:)
