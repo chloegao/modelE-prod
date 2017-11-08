@@ -1628,11 +1628,14 @@ c industrial source
          IF(kk.eq.1) sources(kk)%sourceName='SO4'
          IF(kk.eq.2) sources(kk)%sourceName='EC'
          IF(kk.eq.3) sources(kk)%sourceName='OC'
+
+         sources(kk)%sourceLname=sources(kk)%sourceName//' source'
+
           jls_source(kk,n) = k
           sname_jls(k) = trim(trname(n))//'_'//
      &                   trim(sources(kk)%sourceName)//'_src'
-          lname_jls(k) = trim(trname(n))//'_'//
-     &                   trim(sources(kk)%sourceName)//' source'
+          lname_jls(k) = trim(trname(n))//' '//
+     &                   trim(sources(kk)%sourceLname)
           jls_ltop(k) = 1
           jls_power(k) =10
           units_jls(k) = unit_string(jls_power(k),'# s-1')
@@ -2863,12 +2866,14 @@ c SO4 from industrial emissions
           if (kr.eq.1) sources(kr)%sourceName='SO4'
           if (kr.eq.2) sources(kr)%sourceName='EC'
           if (kr.eq.3) sources(kr)%sourceName='OC'
+          
+          sources(kr)%sourceLname=sources(kr)%sourceName//' source'
 
           ijts_source(kr,n)=
      *      ijts_diag(trim(trname(n))//'_'//
      *                  trim(sources(kr)%sourceName)//'_src',
      *                trim(trname(n))//' '//
-     *                  trim(sources(kr)%sourceName)//' source',
+     *                  trim(sources(kr)%sourceLname),
      *                '# m-2 s-1', power=10)
         enddo
 
