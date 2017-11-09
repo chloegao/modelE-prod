@@ -338,6 +338,13 @@ C**** also diffuse moments
 cc        call diff_mom(tmomij)
 
           ! integrate differential eqn for Q
+          flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
+C**** fix first layer for rare tracer problems
+C**** Does this ever happen for q? (put this in just in case)
+            if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=q0(1)/(dtime*bydzerho(1))
+              wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
+            end if
           do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wq_nl(l+1)-rhoe(l)*wq_nl(l))
      &              *bydzerho(l)
@@ -348,13 +355,6 @@ C**** check on physicality of non-local fluxes....
      *               *wq_nl(l))/rhoe(l+1)
               end if
           end do
-          flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
-C**** fix first layer for rare tracer problems
-C**** Does this ever happen for q? (put this in just in case)
-            if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=q0(1)/(dtime*bydzerho(1))
-              wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
-            end if
           flux_top=0.
 
           call de_solver_main(q,q0,kq,p4,
@@ -371,6 +371,14 @@ C**** Use q diffusion coefficient for tracers
 C**** Note that non-local effects for tracers can be included
 C**** parallel to the case of Q
           do n=1,nta
+            flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
+C**** fix first layer for rare tracer problems
+            if ( t_qlimit(n) .and.
+     &           tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
+              wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
+            end if
+            
             do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
      &             *bydzerho(l)
@@ -381,19 +389,13 @@ C**** check on physicality of non-local fluxes....
      *               *wc_nl(l,n))/rhoe(l+1)
               end if
             end do
-            flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
-C**** fix first layer for rare tracer problems
-            if ( t_qlimit(n) .and.
-     &           tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
-              wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
-            end if
             flux_top=0.
 
             call de_solver_main(trij(1,n),tr0ij(1,n),kq,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,t_qlimit(n))
 cc          call diff_mom(trmomij)
-          end do
+
+         end do
 #endif
           dclev(i,j)=real(ldbl)
           pblht(i,j)=dbl
