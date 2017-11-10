@@ -330,7 +330,7 @@ c    &        rhobydze,bydzrhoe,x_surf,dtime,lm,.true.)
      &              *bydzerho(l)
           end do
           flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
-          flux_top=0.
+          flux_top=rhoe(lm)*wt_nl(lm)
           call de_solver_main(t,t0,kh,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
 
@@ -355,8 +355,7 @@ C**** check on physicality of non-local fluxes....
      *               *wq_nl(l))/rhoe(l+1)
               end if
           end do
-          flux_top=0.
-
+          flux_top=rhoe(lm)*wq_nl(lm)
           call de_solver_main(q,q0,kq,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.true.)
 c          do l=1,lm
@@ -389,8 +388,7 @@ C**** check on physicality of non-local fluxes....
      *               *wc_nl(l,n))/rhoe(l+1)
               end if
             end do
-            flux_top=0.
-
+            flux_top=rhoe(lm)*wc_nl(lm,n)
             call de_solver_main(trij(1,n),tr0ij(1,n),kq,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,t_qlimit(n))
 cc          call diff_mom(trmomij)
@@ -897,27 +895,29 @@ C****
       end do
 
       ! Lower boundary conditions(x=T) :
-      ! d/dt T = -(1/rho)*d/dz(rho*wt)
-      ! d/dt T = (T(1)-T0(1))/dtime
+      ! at main grid 1
+      ! (T(1)-T0(1))/dtime = -(1/rho)*d/dz(rho*wt)
       ! -d/dz(rho*wt)=-(rhoe(2)*wt(2)-rhoe(1)*wt(1))/dze(1)
       ! wt(2)=-p1(2)*(T(2)-T(1))/dz(1)+wt_nl(2)
-      ! wt(1)=-tvflx, therefore,flux_bot(the quantity used below)
-      !       flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
+      ! the above together yield
+      ! (1+alpha)*T(1)-alpha*T(2)=T0(1)-dtime*bydzerho(1)*flux_bot
+      ! where flux_bot=-rhoe(1)*wt(1)+rhoe(2)*wt_nl(2)
+      ! and specify wt(1)=-tvflx
 
       alpha=dtime*p1(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=x0(1)-dtime*bydzerho(1)*flux_bot
 
-      ! Upper boundary conditions:
-
       ! Upper boundary conditions(x=T) :
-      ! d/dt T = -(1/rho)*d/dz(rho*wt)
-      ! d/dt T = (T(n)-T0(n))/dtime
+      ! at main grid n(=lm)
+      ! (T(n)-T0(n))/dtime = -(1/rho)*d/dz(rho*wt)
       ! -d/dz(rho*wt)=-(rhoe(n+1)*wt(n+1)-rhoe(n)*wt(n))/dze(n)
       ! wt(n)=-p1(n)*(T(n)-T(n-1))/dz(n-1)+wt_nl(n)
-      ! wt(n+1)=0, therefore,flux_top
-      ! flux_top=0.
+      ! the above together yield
+      ! -alpha*T(n-1)+(1+alpha)*T(n)=T0(n)+dtime*bydzerho(n)*flux_top
+      ! where flux_top=-rhoe(n+1)*wt(n+1)+rhoe(n)*wt_nl(n)
+      ! and specify wt(n+1)=0
 
       alpha=dtime*p1(n)*rhoebydz(n)*bydzerho(n)
       sub(n)=-alpha
