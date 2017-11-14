@@ -5,7 +5,7 @@ E6TdusF40: based on E6TomaF40. OMA tracers with computed dust only
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
 Atmospheric composition for year 2000
-Ocean climatology prescribed from years 1876-1885, CMIP6
+Ocean climatology prescribed from years 1996-2005, CMIP6
 Uses turbulence scheme (no dry conv), grav.wave drag
 Time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
 Filters: U,V in E-W and N-S direction (after every physics time step)
