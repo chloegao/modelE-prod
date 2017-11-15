@@ -51,7 +51,7 @@ ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 OCEAN OCNML                         ! ocean modules
 SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
-RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
+RAD_UTILS GHGMOD ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONALcs GCDIAGcs               ! grid-dependent code for lat-circle diags
                                     ! utilities

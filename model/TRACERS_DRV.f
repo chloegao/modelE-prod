@@ -4081,7 +4081,7 @@ c find indices of denominators
       end subroutine init_ijlts_diag
 
       function get_atmco2()
-      USE RADPAR, only : xnow
+      USE GHGMOD, only : xnow
       use runtimecontrols_mod, only: constco2
       use dictionary_mod, only: sync_param
       implicit none

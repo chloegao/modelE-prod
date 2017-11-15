@@ -65,7 +65,7 @@ ODIAG_PRT                              ! ocean diagnostic print out
 OCNFUNTAB                              ! ocean function look up table
 SNOW_DRV SNOW                          ! snow model
 RAD_COM RAD_DRV RADIATION COSZ_2D   ! radiation modules
-RAD_UTILS ALBEDO READ_AERO             ! radiation and albedo
+RAD_UTILS GHGMOD ALBEDO READ_AERO             ! radiation and albedo
 DIAG_COM DIAG DEFACC QUICKPRT          ! diagnostics
 DIAG_RES_F
 DIAG_ZONALcs

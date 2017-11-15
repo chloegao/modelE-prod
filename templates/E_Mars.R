@@ -46,7 +46,7 @@ SEAICE SEAICE_DRV                   ! seaice modules
 LANDICE LANDICE_COM LANDICE_DRV     ! land ice modules
 ICEDYN_DRV ICEDYN                   ! ice dynamics modules
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO READ_AERO ocalbedo ! radiation and albedo
+RAD_UTILS GHGMOD ALBEDO READ_AERO ocalbedo ! radiation and albedo
 DIAG_COM DIAG DEFACC                ! diagnostics
 OCN_DRV                             ! driver for ocean-grid components
 OCEAN OCNML                         ! ocean modules
