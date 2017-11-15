@@ -1482,6 +1482,9 @@ C**** For distributed implementation - ensure point is on local process.
       USE TRDIAG_COM, only : taijn=>taijn_loc,
      *      taijs=>taijs_loc,jls_isrc, tij_surf,
      *      tij_surfbv, tij_evap, tij_grnd
+#ifdef TRACERS_SPECIAL_O18
+      use trdiag_com, only: tij_owiso 
+#endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_ON
       use trdiag_com, only: trcsurf,trcSurfByVol
@@ -1712,16 +1715,21 @@ C**** Save surface tracer concentration whether calculated or not
             enddo
 c            if (focean(i,j)>0 .and. jls_isrc(2,n)>0) call inc_tajls2
 c     &        (i,j,1,jls_isrc(2,n),asflx4(1)%trevapor(n,i,j)*focean(i,j))
-          end if
+#ifdef TRACERS_SPECIAL_O18
+          !sea surface tracer values:
+          taijn(i,j,tij_owiso,n)=taijn(i,j,tij_owiso,n)+
+     &                           atmocn%gtracer(n,i,j)*focean(i,j)
+#endif
+          end if !nWater
           taijn(i,j,tij_grnd,n)=taijn(i,j,tij_grnd,n)+
      &         atmsrf%gtracer(n,i,j)
-#endif
-        end if
+#endif /* TRACERS_WATER */
+        end if ! itime
       end do ! tracer n
       enddo
       enddo
 #endif /*SKIP_TRACER_DIAGS*/
-#endif
+#endif /* TRACERS_ON */
 
       return
       end subroutine surface_diag1

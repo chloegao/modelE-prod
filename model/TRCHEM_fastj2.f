@@ -39,12 +39,12 @@
 !@param nlevref number of reference levels for T/O3 profiles
       integer, parameter :: 
      &                      szamax=98.d0
-     &                     ,N__=1800 !jan00, was 450, then 900 in Nov99
+     &                     ,N__=5400
      &                     ,M__=4
      &                     ,nfastj=4
      &                     ,mfastj=1
      &                     ,mfit=2*M__
-     &                     ,nlfastj=1400 !increased Nov 2010
+     &                     ,nlfastj=4200
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
      &                     ,nwfastj=18
      &                     ,np=60
@@ -1474,11 +1474,9 @@ c Reinitialize level arrays:
           call write_parallel(trim(out_line),crit=.true.)
           call stop_model('problem in fastj2 with jaddto; This may
      &    reflect issues with the optical depth of a tracer or 
-     &    clouds being unreasonable. Please check!!
-     &    If in 1997 (very anomalous fire year), it is OK to 
-     &    increase NLFASTJ to 1200 in TRCHEM_fastj2.f.
-     &    But for other years, please check
-     &    for possible issues.',255)
+     &    clouds being extreme due to anomalous emissions
+     &    or nudged winds. If these things seem OK you could 
+     &    try increasing NLFASTJ parameter in TRCHEM_fastj2.f.',255)
         endif
         jndlev(:)=jndlev(:)+jaddto(jndlev(:)-1) ! NLGCM
         jaddto(NCFASTJ2)=jaddlv(NCFASTJ2)
@@ -1576,11 +1574,9 @@ C---Update total number of levels and check does not exceed N__
           call write_parallel(trim(out_line),crit=.true.)
           call stop_model('problem in fastj2 with ND; This may
      &    reflect issues with the optical depth of a tracer or 
-     &    clouds being unreasonable. Please check!!
-     &    If in 1997 (very anomalous fire year), it is OK to 
-     &    increase N__ to 3000 in fastj2.f.
-     &    But for other years, please check
-     &    for possible issues.',255)
+     &    clouds being extreme due to anomalous emissions
+     &    or nudged winds. If these things seem OK you could 
+     &    try increasing N__ parameter in TRCHEM_fastj2.f.',255)
         endif
 
 C---Add boundary/ground layer to ensure no negative Js caused by

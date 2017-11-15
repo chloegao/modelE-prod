@@ -68,6 +68,33 @@ function DQSATDT (TM,LH)
   return
 end function DQSATDT
 
+function wv_psat( tm, lh )
+!@sum wv_psat calculates saturation water vapor pressure
+!@auth Gary Russell (qsat), Jan Perlwitz
+
+  use constant, only : rvap,tf
+
+  implicit none
+
+!@var A,B,C   expansion coefficients
+  real( kind=8 ), parameter :: A = 6.108d0      ![hPa]
+  real( kind=8 ), parameter :: B = 1./(RVAP*TF) !7.93252d-6
+  real( kind=8 ), parameter :: C = 1./RVAP      !2.166847d-3
+!**** Note that if LH is considered to be a function of temperature, the
+!**** correct argument in wv_psat is the average LH from t=0 (C) to TM, ie.
+!**** LH = 0.5*(LH(0)+LH(t))
+!@var TM   temperature (K)
+  real( kind=8 ), intent(IN) :: TM
+!@var LH   lat. heat of vap./sub. (J/kg)
+  real( kind=8 ), intent(IN) :: LH
+!@var wv_psat saturation water vapor pressure [hPa]
+  real( kind=8 ) :: wv_psat
+
+  wv_psat = A*exp(LH*(B-C/max(130.d0,TM)))
+
+  return
+end function wv_psat
+
 function SLP(PS,TAS,ZS)
 !@sum SLP estimates sea level pressure in the presence of topography
 !@+   for better match to reanalyses.
