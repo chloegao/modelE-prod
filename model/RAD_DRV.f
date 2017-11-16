@@ -1902,7 +1902,6 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       character(len=300) :: out_line
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
-      integer :: initial_GHG_setup
 
       real*8 :: PVT0(N_COVERTYPES), HVT0(N_COVERTYPES)
 #ifdef TRACERS_NITRATE
@@ -2798,12 +2797,6 @@ C**** Ozone:
 #ifdef TRACERS_SPECIAL_Shindell
 ! final (main) RCOMPX call can use tracer methane (or not):
       use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
-      if (is_set_param('initial_GHG_setup')) then
-        call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1 .and. itime == itimeI) then
-          use_tracer_chem(2)=0  ! special case; model outputs climatology
-        end if
-      end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
 

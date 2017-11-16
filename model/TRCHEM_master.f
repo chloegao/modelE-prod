@@ -23,7 +23,7 @@ c
       USE ATM_COM, only     : PMIDL00,LTROPO
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : rad_to_chem,H2ObyCH4,
-     &                        rad_to_file,ghg_yr,clim_interact_chem
+     &                        clim_interact_chem
       USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ
       use OldTracer_mod, only: tr_wd_type, nWater
 
@@ -56,57 +56,11 @@ C**** Local parameters and variables and arguments:
      &     surfIsop
 
       INTEGER :: J_0, J_1, I_0, I_1
-      integer :: initial_GHG_setup
 
       call getDomainBounds(grid, 
      &               J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1)
       
-
-      if (is_set_param('initial_GHG_setup')) then
-        call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1 .and. itime == itimeI) then
-C--------special section for ghg runs ---------
-          write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
-          call write_parallel(trim(out_line))
-          if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
-            rad_to_file(1,:,I_0:I_1,J_0:J_1)=
-     &           rad_to_chem(1,:,I_0:I_1,J_0:J_1)
-            rad_to_file(2,:,I_0:I_1,J_0:J_1)=
-     &           rad_to_chem(2,:,I_0:I_1,J_0:J_1)
-            do j=J_0,J_1
-              do i=I_0,I_1
-                rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
-                rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
-                rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
-              enddo
-            enddo 
-            if(ghg_yr/=0)then; write(ghg_name,'(I4.4)')ghg_yr
-            else; write(ghg_name,'(I4.4)')modelEclock%getYear(); endif
-            ghg_file='GHG_IC_'//ghg_name
-            call openunit(ghg_file,iu,.true.,.false.)
-            do m=1,5
-             ghg_out(:,I_0:I_1,J_0:J_1)=rad_to_file(m,:,I_0:I_1,J_0:J_1)
-             CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
-            enddo
-            call closeunit(iu)          
-            if(AM_I_ROOT( ))then
-              write(6,*)'Kludge in masterchem to output inital'
-              write(6,*)'conditions for ghgs.: ',trim(ghg_file)
-              write(6,*)'First time step has used default values.'
-              write(6,*)'If you wish to produce a correct'
-              write(6,*)'first time step, then redo setup for this'
-              write(6,*)' rundeck with initial_GHG_setup set to 0.'
-              write(6,*)'Address questions to G. Faluvegi or T. Clune.'
-              write(6,*)'Thanks.'
-            end if
-          end if
-        end if
-      end if
-
       if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
 
@@ -119,7 +73,7 @@ C running-averages for interactive wetlands CH4:
       end do      ; end do
 #endif
 
-      ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f
+      ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f?
       if(Itime==ItimeI) then
         if(use_rad_n2o > 0)then
           write(out_line,*) 'Warning:use_rad_n2o overrides PIfact_N2O'
@@ -129,7 +83,7 @@ C running-averages for interactive wetlands CH4:
           write(out_line,*) 'Warning:use_rad_cfc overrides PIfact_CFC'
           call write_parallel(trim(out_line))
         endif
-C info to set strat H2O based on tropical tropopause H2O and CH4:
+        ! Set strat H2O based on tropical tropopause H2O and CH4:
         if(allowSomeChemReinit == 1 )then
           avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
           avgTT_CH4_part(I_0:I_1,J_0:J_1)=0.d0
@@ -201,7 +155,7 @@ c
       USE ATM_COM, only     : pedn,PMIDL00,LTROPO
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
      &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
-     &                        SRDN,rad_to_file,ghg_yr,clim_interact_chem
+     &                        SRDN,clim_interact_chem
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &                        ,stratO3_tracer_save
 #endif
@@ -352,7 +306,6 @@ C**** Local parameters and variables and arguments:
       LOGICAL                   :: error, jay, daylight
       character(len=300)        :: out_line
 
-      integer :: initial_GHG_setup
       real*8 :: qsat ! this is a function in UTILDBL.f
 #if (defined TRACERS_TOMAS)
       integer :: k
@@ -2170,6 +2123,9 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
 
+! I believe the next section could be simplified and moved into
+! the rad code or GHGMOD once the radiation is called after
+! tracer 3D source (if pOx stays 3D at least):
 c Save new tracer O3 and CH4 fields for use in radiation or elsewhere:
 c (radiation code wants atm-cm units):
       do L=1,LM                 ! all model layers

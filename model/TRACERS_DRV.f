@@ -4115,7 +4115,7 @@ c find indices of denominators
       USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1=>ls1_nominal
-      USE ATM_COM, only : q,qcl,qci
+      USE ATM_COM, only : q,qcl,qci,pedn,lm_req
       use model_com, only: modelEclock
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE ATM_COM, only: pmidl00
@@ -4145,7 +4145,7 @@ c find indices of denominators
       USE GHY_COM, only : w_ij,wsn_ij,nsn_ij,fr_snow_ij,fearth
       USE FLUXES, only : flice,focean
 #endif
-      USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij
+      USE GEOM, only: axyp,byaxyp,lat2d_dg,lonlat_to_ij,lat2d,lon2d
       USE ATM_COM, only: MA,byMA  ! Air mass of each box (kg m-2)
       USE PBLCOM, only: npbl
 #ifdef TRACERS_SPECIAL_Lerner
@@ -4154,7 +4154,10 @@ c find indices of denominators
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
 #ifdef TRACERS_SPECIAL_Shindell
-      USE RAD_COM, only : chem_tracer_save,rad_to_file,ghg_yr
+      use rad_com, only : chem_tracer_save,plb0,CH4X_RADoverCHEM
+      use ghgmod
+      use constant, only : byavog
+      use tracer_com, only: n_N2O, n_CH4, n_CFC
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       USE RAD_COM, only: stratO3_tracer_save
 #endif
@@ -4171,7 +4174,7 @@ c find indices of denominators
      &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
-     &  ,PIratio_N2O,PIratio_CFC
+     &  ,PIratio_N2O,PIratio_CFC,fact_cfc
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:first_mod,first_ncep,avg_model,avg_ncep,
      & PRS_ch4,sum_ncep
@@ -4234,10 +4237,17 @@ c find indices of denominators
 !@param byjm 1./JM
       REAL*8, PARAMETER :: bymair = 1.d0/mair, byjm =1.d0/JM
 #ifdef TRACERS_SPECIAL_Shindell
-      character*4 ghg_name
-      character*80 ghg_file
-      real*8, dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: ghg_in
+!@var ghgCmAtm array of same shape as rad code/ghgmod ulgas for
+!@+ returning gas amounts by layer in cm-atm units from getgas calls
+!@var ghgplb bottom layer pressures like used in rad code/ghgmod
+      real*8, dimension(lxghg,13) :: ghgCmAtm
+      real*8, dimension(lxghg+1) :: ghgplb
+!@var CMATMtoKG for converting cm-atm units e.g. from rad code/ghgmod
+!@+   to KG e.g. trm()
+      real*8 :: CMATMtoKG
+!@var jlat46 lat index relative to the rad code 72x46 grid
+!@var ilon72 lon index relative to the rad code 72x46 grid
+      integer :: jlat46,ilon72
 !@var imonth dummy index for choosing the right month
 !@var ICfactor varying factor for altering initial conditions
 !@var dICfactor varying factor for altering initial conditions of dCO tracers
@@ -4274,7 +4284,6 @@ c find indices of denominators
       INTEGER J_0, J_1, I_0, I_1
       INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
-      integer :: initial_GHG_setup
       integer :: lat_val
 #endif /* TRACERS_ON */
       character(len=:), allocatable :: name
@@ -4363,6 +4372,7 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
+           ! N2O initial conditions from input file:
            select case(PI_run)
            case(1)     ; ICfactor=PIratio_N2O
            case default; ICfactor=1.d0
@@ -4371,36 +4381,18 @@ C**** ESMF: Each processor reads the global array: N2Oic
              trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
            end do   ; end do   ; end do
          else
-           if (is_set_param('initial_GHG_setup')) then
-             call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1 .and. itime == itimeI) then
-               select case(PI_run)
-               case(1)     ; ICfactor=PIratio_N2O
-               case default; ICfactor=1.d0
-               end select
-               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                 trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
-               end do   ; end do   ; end do
-             else
-               if(ghg_yr/=0) then
-                 write(ghg_name,'(I4.4)') ghg_yr
-               else
-                 write(ghg_name,'(I4.4)') modelEclock%getYear()
-               endif
-               ghg_file='GHG_IC_'//ghg_name
-               call openunit(ghg_file,iu_data,.true.,.true.)
-               do m=1,3
-                 CALL READT8_COLUMN
-     &           (grid,iu_data,NAMEUNIT(iu_data),GHG_IN,0)
-                 rad_to_file(m,:,I_0:I_1,J_0:J_1)=
-     &           ghg_in(:,I_0:I_1,J_0:J_1)
-               enddo
-               call closeunit(iu_data)
-               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                 trm(I,J,L,n) = rad_to_file(3,l,i,j)
-               end do   ; end do   ; end do
-             end if
-           endif
+           ! N2O initial conditions from GHGMOD (rad code):
+           ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
+           do j=J_0,J_1
+             do i=I_0,I_1
+               ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+               call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+               call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
+               ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
+               CMATMtoKG=2.69d20*byavog*tr_mm(n_N2O)*axyp(i,j)
+               trm(i,j,1:LM,n) = ghgCmAtm(1:LM,6) * CMATMtoKG
+             end do
+           end do
          end if
 #endif
 
@@ -4453,57 +4445,41 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
         case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_ch4 <= 0)then
-          select case (fix_CH4_chemistry)
-          case default
-            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-          case(-1) ! ICs from file...
-            call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-            do l=ls1,lm; do j=J_0,J_1; do i=I_0,I_1
-              trm(I,J,L,n) = CH4ICX(I,J,L)
-            end do   ; end do   ; end do
-          end select
+           ! CH4 initial conditions from file
+           select case (fix_CH4_chemistry)
+           case default
+             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+           case(-1) ! ICs from file...
+             call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
+             do l=ls1,lm; do j=J_0,J_1; do i=I_0,I_1
+               trm(I,J,L,n) = CH4ICX(I,J,L)
+             end do   ; end do   ; end do
+           end select
 #ifdef INTERACTIVE_WETLANDS_CH4
-          first_mod(:,:,:)=1
-          first_ncep(:)=1
-          avg_model(:,:,:)=0.d0
-          avg_ncep(:,:,:)=0.d0
-          PRS_ch4(:,:,:)=0.d0
-          sum_ncep(:,:,:)=0.d0
+           first_mod(:,:,:)=1
+           first_ncep(:)=1
+           avg_model(:,:,:)=0.d0
+           avg_ncep(:,:,:)=0.d0
+           PRS_ch4(:,:,:)=0.d0
+           sum_ncep(:,:,:)=0.d0
 #endif
          else
-           if (is_set_param('initial_GHG_setup')) then
-             call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1 .and. itime == itimeI) then
-               select case (fix_CH4_chemistry)
-               case default
-                 call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-               case(-1)         ! ICs from file...
-                 call get_CH4_IC(0) ! defines trm(:,:,:,n_CH4) within
-                 do l=ls1,lm; do j=J_0,J_1; do i=I_0,I_1
-                   trm(I,J,L,n) = CH4ICX(I,J,L)
-                 end do   ; end do   ; end do
-               end select
-             else
-               if(ghg_yr/=0) then
-                 write(ghg_name,'(I4.4)') ghg_yr
-               else
-                 write(ghg_name,'(I4.4)') modelEclock%getYear()
-               endif
-               ghg_file='GHG_IC_'//ghg_name
-               call openunit(ghg_file,iu_data,.true.,.true.)
-               do m=1,4
-                 CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),
-     &                GHG_IN,0)
-                 rad_to_file(m,:,I_0:I_1,J_0:J_1)=
-     &                ghg_in(:,I_0:I_1,J_0:J_1)
-               enddo
-               call closeunit(iu_data)
-               do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-                 trm(I,J,L,n) = rad_to_file(4,l,i,j)
-               end do   ; end do   ; end do
-             end if
-           end if
+           ! CH4 initial conditions from GHGMOD (rad code):
+           ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
+           do j=J_0,J_1
+             do i=I_0,I_1
+               ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+               call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+               call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
+               ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
+               CMATMtoKG=2.69d20*byavog*tr_mm(n_CH4)*axyp(i,j)
+               trm(i,j,1:LM,n) = ghgCmAtm(1:LM,7) * CMATMtoKG /
+     &                                              CH4X_RADoverCHEM
+             end do
+           end do
          end if
+         ! should be able to remove this next block once radiation comes
+         ! after tracer 3d source (chemistry) in sequence:
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
            chem_tracer_save(2,L,I,J)=trm(I,J,L,n)
      &          *byaxyp(i,j)*avog/(tr_mm(n)*2.69e20) ! to atm*cm
@@ -4700,6 +4676,7 @@ c**** earth
         case ('Ox')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(I,J,L,n) = OxIC(I,J,L)
+            ! should be able to remove next line once rad code is after tr3dsource code:
             chem_tracer_save(1,L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
@@ -4973,43 +4950,30 @@ c**** earth
 
 #ifdef TRACERS_SPECIAL_Shindell
         case ('CFC')
-         if(use_rad_cfc.le.0)then
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_CFC
-          case default; ICfactor=1.d0
-          end select
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
-          end do   ; end do   ; end do
-         else
-           if (is_set_param('initial_GHG_setup')) then
-             call get_param('initial_GHG_setup', initial_GHG_setup)
-             if (initial_GHG_setup == 1 .and. itime == itimeI) then
-               select case(PI_run)
-             case(1)     ; ICfactor=PIratio_CFC
-               case default; ICfactor=1.d0
-             end select
-             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-               trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
-             end do   ; end do   ; end do
-           else
-             if(ghg_yr/=0)then; write(ghg_name,'(I4.4)') ghg_yr
-             else; write(ghg_name,'(I4.4)') modelEclock%getYear(); endif
-             ghg_file='GHG_IC_'//ghg_name
-             call openunit(ghg_file,iu_data,.true.,.true.)
-             do m=1,5
-               CALL READT8_COLUMN(grid,iu_data,NAMEUNIT(iu_data),GHG_IN,
-     &              0)
-               rad_to_file(m,:,I_0:I_1,J_0:J_1)=
-     &              ghg_in(:,I_0:I_1,J_0:J_1)
-             enddo
-             call closeunit(iu_data)
-             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-               trm(I,J,L,n) = rad_to_file(5,l,i,j)
-             end do   ; end do   ; end do
-           end if
-         endif
-       end if
+          if(use_rad_cfc.le.0)then
+            ! CFC initial conditions from input file:
+            select case(PI_run)
+            case(1)     ; ICfactor=PIratio_CFC
+            case default; ICfactor=1.d0
+            end select
+            do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+              trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
+            end do   ; end do   ; end do
+          else
+            ! CFC initial conditions from GHGMOD (rad code):
+            ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
+            do j=J_0,J_1
+              do i=I_0,I_1
+                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+                call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+                call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
+                ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
+                CMATMtoKG=2.69d20*byavog*tr_mm(n_CFC)*axyp(i,j)
+                trm(i,j,1:LM,n) = (ghgCmAtm(1:LM,8) + ghgCmAtm(1:LM,9))
+     &                            * CMATMtoKG * fact_cfc
+              end do
+            end do
+          end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
         case ('BrONO2','HBr','HOBr')
@@ -6788,7 +6752,6 @@ C*****
           logical, intent(in), optional :: ibb
         end function get_src_fact
       end interface
-      integer :: initial_ghg_setup
 !@var blsrc (m2/s) tr3Dsource (kg s-1) in boundary layer,
 !@+                per unit of air mass (kg/m2)
       real*8 :: blsrc
@@ -6950,12 +6913,6 @@ C**** Get current model time
       USE apply3d, only : apply_tracer_3Dsource
       USE GEOM, only : axyp
       USE Dictionary_mod, only : get_param, is_set_param
-
-#ifdef TRACERS_SPECIAL_Shindell
-      use RAD_COM, only: rad_to_chem
-      use TRCHEM_Shindell_COM, only: fact_cfc, 
-     &     use_rad_n2o, use_rad_ch4, use_rad_cfc, topLevelOfChemistry
-#endif
 #ifdef SHINDELL_STRAT_EXTRA
       use TRACER_COM, only: n_stratOx, n_GLT
 #endif
@@ -6966,15 +6923,10 @@ C**** Get current model time
 
       implicit none
       integer, intent(in) :: i,j
-!
-      INTEGER n,l
-      integer :: initial_ghg_setup
-c**** Radiation/GHG indices for specified constiuents (Move somewhere else?)
-      integer, parameter :: N2O_indx = 3
-      integer, parameter :: CH4_indx = 4
-      integer, parameter :: CFC_indx = 5
 
-#ifdef SHINDELL_STRAT_EXTRA  
+      INTEGER n,l
+
+#ifdef SHINDELL_STRAT_EXTRA
 C**** Update General Linear Tracer:
 C Applying non-chemistry 3D sources, so they can be "seen" by chemistry:
 C (Note: using this method, tracer moments are changed just like they
@@ -6987,21 +6939,6 @@ c
 
       call get_lightning_NOx(i,j)
       call apply_tracer_3Dsource(i,j,nOther,n_NOx)
-
-C**** Make sure that these 3D sources for all chem tracers start at 0.:
-      ! I think this zeroing is more important, now that the chemistry 
-      ! may not reach the top model layers:
-      if (is_set_param('initial_ghg_setup')) then
-        call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1 .and. itime == itimeI) then
-
-          if (use_rad_n2o > 0) call applyRadChem(N2O_indx, n_N2O, 1.d+0)
-          if (use_rad_ch4 > 0) call applyRadChem(CH4_indx, n_CH4, 1.d+0)
-          if (use_rad_cfc > 0) call applyRadChem(CFC_indx, n_CFC, 
-     &                                           fact_CFC)
-
-        end if
-      end if
 
 C**** Call the model CHEMISTRY and OVERWRITEs:
 
@@ -7017,26 +6954,6 @@ C**** Apply chemistry and overwrite changes:
       call apply_tracer_3Dsource(i,j,nChemistry,n_stratOx)
       call apply_tracer_3Dsource(i,j,nOverwrite,n_stratOx)
 #endif
-
-      contains
-
-      subroutine applyRadChem(index, n, factor)
-      integer, intent(in) :: index
-      integer, intent(in) :: n
-      real*8, intent(in) :: factor
-      
-      integer :: L
-      do L = 1, LM
-        tr3Dsource(L,nOverwrite,n) = 
-     &       (rad_to_chem(index,L,i,j)*2.69e20*byavog*
-     &       axyp(i,j)*tr_mm(n) * factor - 
-     &       trm_col(L,n)) / dtsrc
-      end do
-      call apply_tracer_3Dsource(i,j,nOverwrite,n)
-      ! reset, since already applied and so can be reused in the chemistry code:
-      tr3Dsource(:,nOverwrite,n) = 0d0
-
-      end subroutine applyRadChem
 
       end subroutine calculate_and_apply_chemistry
 #endif

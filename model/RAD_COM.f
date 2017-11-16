@@ -214,7 +214,6 @@ C**** does not produce exactly the same as the default values.
 !@+   chemistry (or rest of model). 1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,
 !@+   5=CFC11+CFC12
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_chem !saved in rsf
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_file
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
 !@dbparam Ikliq 0,1,-1 initialize kliq as dry,equil,current model state
@@ -372,7 +371,7 @@ C**** Local variables initialised in init_RAD
       USE tracer_com,ONLY : NTM
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
-     *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
+     *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SNOAGE
      *     ,srnflb_save, trnflb_save
      *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
@@ -415,7 +414,6 @@ C**** Local variables initialised in init_RAD
      *     RCLD(LM, I_0H:I_1H, J_0H:J_1H),
      *     chem_tracer_save(2,LM, I_0H:I_1H, J_0H:J_1H),
      *     rad_to_chem(5, LM, I_0H:I_1H, J_0H:J_1H),
-     *     rad_to_file(5, LM, I_0H:I_1H, J_0H:J_1H),
      *     SNOAGE(3,I_0H:I_1H,J_0H:J_1H),
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      *     stratO3_tracer_save(LM, I_0H:I_1H, J_0H:J_1H),
