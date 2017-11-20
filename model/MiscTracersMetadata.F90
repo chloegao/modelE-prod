@@ -38,7 +38,7 @@ module MiscTracersMetadata_mod
     n_N_d1, n_N_d2, n_N_d3, n_NH3,   n_NH4,   n_NO3p, &
     n_OCocean, n_clay, n_silt1, n_silt2, n_silt3, n_silt4, n_silt5
   implicit none
-  integer :: n
+  integer, private :: n
  
 !------------------------------------------------------------------------------
 contains
