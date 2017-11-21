@@ -188,8 +188,7 @@ C--------------------------------------------------------
 !@var DTRUFG               not used                               (W/m2)
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
-!@var chem_out column variable for exporting radiation code quantities
-!@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
+!@var chem_out column variable for exporting rad code aerosol extinction
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
@@ -199,7 +198,7 @@ C--------------------------------------------------------
 
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
-      REAL*8 :: chem_out(LX,5)=0d0
+      REAL*8 :: chem_out(LX)=0d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -1699,12 +1698,6 @@ C--------------------------------
           ULGAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
         endif
 
-        chem_out(:,1)=ULGAS(:,3) !O3 considering move to RCOMPX; see above
-C       chem_out(:,2)= _________              ! set in RCOMPX
-        chem_out(:,3)=ULGAS(:,6) ! N2O
-        chem_out(:,4)=ULGAS(:,7) ! CH4
-        chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9) ! CFC11(+)   +  CFC12(+)
-
         if(use_tracer_chem(2) > 0) then ! allow use of tracer CH4.
           ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
         endif
@@ -1725,7 +1718,7 @@ C--------------------------------
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
       IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
-      chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
+      chem_out(:)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
       endif
 C--------------------------------
 

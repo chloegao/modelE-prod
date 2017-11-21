@@ -757,10 +757,6 @@ C**** O3 section
 C****
       call get_o3col(igcm,jgcm,lm_gcm,nl,plb0,fulgas(3),o3col)
       u0gas(1:nl,3) = o3col(1:nl)
-      ! considering this move to here from setgas:
-      ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
-      ! and might then need something like:
-      ! IF(KPFOZO==1)chem_out(1:NL0,1)=chem_out(1:NL0,1)*FPXOZO(1:NL0)
       if(use_tracer_chem(1) > 0) then
         FULGAS(3)=1.d0
       endif

@@ -3206,8 +3206,7 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
       do L=1,LM
-        rad_to_chem(:,L,i,j)=chem_out(L,:)
-        rad_to_chem(4,L,i,j)=chem_out(L,4)/CH4X_RADoverCHEM
+        rad_to_chem(L,i,j)=chem_out(L)
         do k=1,4
           kliq(L,k,i,j)=kdeliq(L,k) ! save updated flags
         end do
