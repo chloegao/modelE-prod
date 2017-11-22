@@ -84,14 +84,6 @@ C running-averages for interactive wetlands CH4:
 
       ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f?
       if(Itime==ItimeI) then
-        if(use_rad_n2o > 0)then
-          write(out_line,*) 'Warning:use_rad_n2o overrides PIfact_N2O'
-          call write_parallel(trim(out_line))
-        endif
-        if(use_rad_cfc > 0)then
-          write(out_line,*) 'Warning:use_rad_cfc overrides PIfact_CFC'
-          call write_parallel(trim(out_line))
-        endif
         ! Set strat H2O based on tropical tropopause H2O and CH4:
         if(allowSomeChemReinit == 1 )then
           avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
@@ -261,7 +253,6 @@ C**** Local parameters and variables and arguments:
 !@var chgHT3,chgHT4,chgHT5 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
-!@var PIfact strat-overwrite scaling
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gwprodN2O5,changeAldehyde,
@@ -280,7 +271,6 @@ C**** Local parameters and variables and arguments:
 !@var sumOx for summing regional Ox tracers
 !@var bysumOx reciprocal of sum of regional Ox tracers
 !@var maxPSC a limit placed on some PSC reactions to prevent sudden overflows
-      REAL*8, DIMENSION(NTM) :: PIfact
       REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,CH4FACT,r179,rlossN,maxPSC,
@@ -2081,29 +2071,23 @@ C this looks complicated, but basically, you are either converting
 C from mixing ratio to KG (normal case) or from cm-atm to KG  
 C (interactive radiation case - for more on that conversion, see
 C the notes on O3MULT in the TRCHEM_Shindell_COM program):
-      PIfact(:)=1.d0     
-      if(PI_run == 1)then
-        PIfact(n_NOx)=PIratio_N
-        if(use_rad_n2o == 0) PIfact(n_N2O)=PIratio_N2O
-        if(use_rad_cfc == 0) PIfact(n_CFC)=PIratio_CFC
-      endif
       fact2=n2o_pppv  ! default N2O mixing ratio overwrite
       fact3=cfc_pppv  ! default CFC mixing ratio overwrite
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       fact6=2.69d20*axyp(i,j)*byavog
       fact1=bymair*MA(1,i,j)*axyp(i,j)
-      fact5=fact6 
+      fact5=fact6
       fact4=fact6
-      if(use_rad_n2o == 0)fact4=fact1 
+      if(use_rad_n2o == 0)fact4=fact1
       if(use_rad_cfc == 0)fact5=fact1
       if(use_rad_n2o > 0)fact2=ghgCmAtm(1,6)
       if(use_rad_cfc > 0)fact3=(ghgCmAtm(1,8) + ghgCmAtm(1,9))
       tr3Dsource(1,nOverwrite,n_N2O)=(fact2*fact4*
-     &     tr_mm(n_N2O)*PIfact(n_N2O) - (trm_col(1,n_N2O)+ 
+     &     tr_mm(n_N2O) - (trm_col(1,n_N2O)+
      &     tr3Dsource(1,nChemistry,n_N2O)*dtsrc))*bydtsrc
       tr3Dsource(1,nOverwrite,n_CFC)=(fact3*fact5*fact7*
-     &     tr_mm(n_CFC)*PIfact(n_CFC) - (trm_col(1,n_CFC)+
+     &     tr_mm(n_CFC) - (trm_col(1,n_CFC)+
      &     tr3Dsource(1,nChemistry,n_CFC)*dtsrc))*bydtsrc
       if(use_rad_ch4 > 0)then
         tr3Dsource(1,nOverwrite,n_CH4)=(
@@ -2144,7 +2128,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
      &         *dtsrc))*bydtsrc
               ! -- NOx --
           tr3Dsource(L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &         *MA(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm_col(L,n_NOx)+ 
+     &         *MA(L,i,j)*axyp(i,j)-(trm_col(L,n_NOx)+ 
      &         tr3Dsource(L,nChemistry,n_NOx)*dtsrc))*bydtsrc
         end if    ! pressure
       end do ! L

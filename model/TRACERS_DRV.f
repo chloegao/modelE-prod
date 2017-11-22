@@ -4170,11 +4170,11 @@ c find indices of denominators
       use tracers_dCO, only: dCO_IC_fact
 #endif  /* TRACERS_dCO */
       USE TRCHEM_Shindell_COM,only:O3MULT,ch4icx,
-     &  OxIC,COIC,byO3MULT,PI_run,fix_CH4_chemistry,
-     &  PIratio_N,PIratio_CO_T,PIratio_CO_S,PIratio_other
+     &  OxIC,COIC,byO3MULT,fix_CH4_chemistry,
+     &  ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
      &  ,ClOxalt,BrOxalt,ClONO2alt,HClalt,N2OICX,CFCIC
-     &  ,PIratio_N2O,PIratio_CFC,fact_cfc
+     &  ,ICfact_N2O,ICfact_CFC,fact_cfc
 #ifdef INTERACTIVE_WETLANDS_CH4
       USE TRACER_SOURCES, only:first_mod,first_ncep,avg_model,avg_ncep,
      & PRS_ch4,sum_ncep
@@ -4373,12 +4373,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
            ! N2O initial conditions from input file:
-           select case(PI_run)
-           case(1)     ; ICfactor=PIratio_N2O
-           case default; ICfactor=1.d0
-           end select
            do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-             trm(i,j,l,n) = N2OICX(i,j,l)*ICfactor
+             trm(i,j,l,n) = N2OICX(i,j,l)*ICfact_N2O(1,1)
            end do   ; end do   ; end do
          else
            ! N2O initial conditions from GHGMOD (rad code):
@@ -4688,12 +4684,8 @@ c**** earth
 #endif
 
         case ('NOx')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-11*ICfact_N(1,1)
             if(PRES(L).lt.10.)trm(i,j,l,n)=trm(i,j,l,n)*3.d2
           end do; end do; end do
 
@@ -4722,21 +4714,13 @@ c**** earth
           end do; end do; end do
 
         case ('N2O5')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfact_N(1,1)
           end do; end do; end do
 
         case ('HNO3')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-10*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-10*ICfact_N(1,1)
             if(PRES(L).lt.50.and.PRES(L).gt.10.)
      &      trm(i,j,l,n)=trm(i,j,l,n)*1.d2
           end do; end do; end do
@@ -4776,12 +4760,8 @@ c**** earth
           end do; end do; end do
 
         case ('HO2NO2')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_N
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
-            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*1.d-12*ICfact_N(1,1)
           end do; end do; end do
 
         case ('CO'
@@ -4798,15 +4778,11 @@ c**** earth
               dICfactor=1.d0
           end select
           do l=1,lm
-            select case(PI_run)
-            case(1) ! ise scaling
-              if(L.le.LS1-1) then
-                ICfactor=PIratio_CO_T ! troposphere
-              else
-                ICfactor=PIratio_CO_S ! stratosphere
-              end if
-            case default; ICfactor=1.d0
-            end select
+            if(L.le.LS1-1) then
+              ICfactor=ICfact_COt(1,1) ! troposphere
+            else
+              ICfactor=ICfact_COs(1,1) ! stratosphere
+            end if
             do j=J_0,J_1; do i=I_0,I_1
               trm(I,J,L,n) = COIC(I,J,L)*ICfactor*dICfactor
             end do   ; end do
@@ -4831,33 +4807,21 @@ c**** earth
             case default
               dICfactor=1.d0
           end select
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*ICfactor*dICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-11*
+     &                     ICfact_Oth(1,1)*dICfactor
           end do; end do; end do
 
         case ('Isoprene')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d-11*ICfact_Oth(1,1)
           end do; end do; end do
 
         case ('AlkylNit')
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfactor
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*2.d-10*ICfact_Oth(1,1)
           end do; end do; end do
 
         case('Alkenes'
@@ -4873,13 +4837,9 @@ c**** earth
             case default
               dICfactor=1.d0
           end select
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*ICfactor*dICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*4.d-10*
+     &                     ICfact_Oth(1,1)*dICfactor
           end do; end do; end do
 
         case('Paraffin'
@@ -4895,13 +4855,9 @@ c**** earth
             case default
               dICfactor=1.d0
           end select
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*ICfactor*dICfactor
+            trm(i,j,l,n) = MA(l,i,j)*axyp(i,j)*vol2mass(n)*5.d-10*
+     &                     ICfact_Oth(1,1)*dICfactor
           end do; end do; end do
 
         case('Terpenes','Acetone'
@@ -4919,13 +4875,9 @@ c**** earth
      &      ,'OCocean'
 #endif
      &      )
-          select case(PI_run)
-          case(1)     ; ICfactor=PIratio_other
-          case default; ICfactor=1.d0
-          end select
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
             trm(i,j,l,n) =
-     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*ICfactor*5.d-14
+     &      MA(l,i,j)*axyp(i,j)*vol2mass(n)*0.d0*5.d-14*ICfact_Oth(1,1)
           end do; end do; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -4952,12 +4904,8 @@ c**** earth
         case ('CFC')
           if(use_rad_cfc.le.0)then
             ! CFC initial conditions from input file:
-            select case(PI_run)
-            case(1)     ; ICfactor=PIratio_CFC
-            case default; ICfactor=1.d0
-            end select
             do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-              trm(I,J,L,n) = CFCIC(I,J,L)*ICfactor
+              trm(I,J,L,n) = CFCIC(I,J,L)*ICfact_CFC(1,1)
             end do   ; end do   ; end do
           else
             ! CFC initial conditions from GHGMOD (rad code):

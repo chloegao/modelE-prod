@@ -7,7 +7,7 @@
 c
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
-      USE CONSTANT, only   : pi, mair, mwat, radian,byavog
+      USE CONSTANT, only   : pi, mair, mwat, radian, byavog, undef
       USE ATM_COM, only    : MA, byMA, PMID, PK
       USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
@@ -422,22 +422,10 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Lmax_rad_O3 model levels to use tracer Ox in rad code (if on)
 !@dbparam Lmax_rad_CH4 model levels to use tracer CH4 in rad code(if on)
 !@dbparam which_trop 1=ls1-1 is tropopause, 0=LTROPO(I,J) is tropopause
-!@dbparam PI_run used to turn on (1) and off (0) use of PI_ratio*
-!@dbparam PIratio_N to scale NOx, HNO3, N2O5, HO2NO2
-!@+       initial conditions and stratospheric overwriting.
-!@dbparam PIratio_CO_T to scale tropospheric CO IC and overwrite
-!@dbparam PIratio_CO_S to scale stratospheric CO IC and overwrite
-!@dbparam PIratio_other to scale PAN,Isoprene,AlkyNit,Alkenes,Paraffin
-!@+       ,Terpenes
-!@+       initial conditions and stratospheric overwriting.
-!@dbparam PIratio_N2O preindustrial ratio for N2O ICs and L=1 overwrite
-!@dbparam PIratio_CFC preindustrial ratio for CFC ICs and L=1 overwrite
-!@+       with model time (JYEAR, JMON, JDAY) 
 !@dbparam PltOx for pres<PltOx Ox, NOx, ClOx, and BrOx get overwritten
 
       INTEGER ::        fix_CH4_chemistry = 0
      &                 ,which_trop        = 0
-     &                 ,PI_run            = 0
      &                 ,use_rad_ch4       = 0
      &                 ,use_rad_n2o       = 0
      &                 ,use_rad_cfc       = 0
@@ -447,12 +435,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
       REAL*8 ::             ch4_init_sh   = 1.750d0
      &                     ,ch4_init_nh   = 1.855d0
      &                     ,scale_ch4_IC_file= 1.d0 
-     &                     ,PIratio_N     = 0.667d0
-     &                     ,PIratio_CO_T  = 0.667d0
-     &                     ,PIratio_CO_S  = 0.500d0
-     &                     ,PIratio_other = 0.500d0
-     &                     ,PIratio_N2O   = 0.896d0
-     &                     ,PIratio_CFC   = 0.000d0
      &                     ,PltOx         = 0.000d0
      &                     ,Tpsc_offset_N = -10.d0
      &                     ,Tpsc_offset_S = -10.d0
@@ -632,6 +614,17 @@ C**************  Not Latitude-Dependant ****************************
 !@var avgTT_CH4 Itime avg CH4 # density at LTROPO between 20N and 20S
 !@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
 !@var countTT # of points between 20N and 20S on LTROPO plane
+!@var ICfact_N scales NOx, HNO3, N2O5, HO2NO2 initial conditions
+!@var ICfact_COt scales tropospheric CO initial conditions
+!@var ICfact_COs scales stratospheric CO initial conditions
+!@var ICfact_Oth scales PAN,Isoprene,AlkyNit,Alkenes,Paraffin,Terpenes
+!@+ initial conditions
+!@var ICfact_N2O scales N2O initial conditions
+!@var ICfact_CFC scales CFC initial conditions
+      ! these currently have a grid shape (1,1) to use timestream:
+      real*8, dimension(1,1) :: ICfact_N=undef, ICfact_COt=undef,
+     & ICfact_COs=undef, ICfact_Oth=undef, ICfact_N2O=undef,
+     & ICfact_CFC=undef
       real*8 :: avgTT_H2O,avgTT_CH4,countTT
       REAL*8 :: XLTAU,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
