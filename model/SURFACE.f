@@ -2138,14 +2138,14 @@ C**** accumulate implicit fluxes for setting ocean balance
       real*8 :: qsrf
       real*8 :: dtsurf
       real*8 :: flake
-      real*8, intent(in) :: trm1	! comes from atmgla%
+      real*8, intent(in) :: trm1
       real*8 :: trs
-      real*8, intent(in) :: trgrnd	! comes from atmgla%
+      real*8, intent(in) :: trgrnd
       real*8 :: trgrnd2
       real*8 :: trprime
       real*8 :: tevaplim
-      real*8, intent(out) :: trsrfflx	! comes from atmgla%
-      real*8, intent(out) :: trevapor	! comes from atmgla%
+      real*8, intent(out) :: trsrfflx
+      real*8, intent(inout) :: trevapor
       type (t_pbl_args), intent(in) :: pbl_args
       integer, intent(in) :: nx
 
