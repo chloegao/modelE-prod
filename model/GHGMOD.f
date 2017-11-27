@@ -676,7 +676,7 @@ C
 C --------------------------------------------------------------------
 C Uniformly Mixed Gas Distributions (can be overwritten/modified below)
 C --------------------------------------------------------------------
-      DO K=2,12
+      DO K=2,13
         U0GAS(1:NL0,K)=PPMV80(K)*ppmv_to_cm_at_stp*DPL(1:NL0)
       ENDDO
 
