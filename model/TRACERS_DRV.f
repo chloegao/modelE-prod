@@ -317,7 +317,6 @@ C**** For example, separate Moist convection/Large scale condensation
       qsum(npts_common+1:npts_common+ntcons)=F                !13-ktcon-1
 C**** this allows you to configure the common check points names.
       conpt=conpt0
-      conpt(8)="SRCS+SNKS"
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -382,6 +381,8 @@ C**** set some defaults
 !-----
 ! diagnostics for all tracers, if they meet certain conditions
 !-----
+        conpt(8)="SRCS+SNKS"
+
 #ifdef TRACERS_WATER
         if(dowetdep(n)) then
           itcon_mc(n)=tr_con_diag('MOIST CONV',T)
@@ -777,7 +778,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
         qsum(10)  = .false.     ! reset to defaults for next tracer
         conpts=''
         conpt=conpt0
-        
+
         call iter%next()
       end do
 
