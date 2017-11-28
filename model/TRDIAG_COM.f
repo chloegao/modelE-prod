@@ -74,6 +74,10 @@ C**** TAIJN
      *     ,tij_rvro,tij_icb
       integer tij_drydep,tij_gsdep ! TRACERS_DRYDEP
 
+#ifdef TRACERS_SPECIAL_O18
+      integer tij_owiso  !Sea surface water isotope ratios
+#endif
+
 !@var TAIJN lat/lon tracer diagnostics (all tracers)
       real*8, allocatable, dimension(:,:,:,:)      :: taijn
       real*8, allocatable, dimension(:,:,:,:) :: taijn_loc

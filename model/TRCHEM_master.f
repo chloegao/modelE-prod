@@ -9,7 +9,6 @@ C**** GLOBAL parameters and variables:
 c
 !!    use precision_mod, only : reduce_precision 
       USE Dictionary_mod, only : get_param, is_set_param
-      USE ATM_COM, only     : Q
       USE DOMAIN_DECOMP_ATM,only: GRID,getDomainBounds,AM_I_ROOT,
      &                        GLOBALSUM,GLOBALMAX,
      &                        write_parallel,writet8_column,
@@ -20,11 +19,12 @@ c
       USE TRACER_COM, only  : ntm
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : PMIDL00,LTROPO
+      USE ATM_COM, only     : PMIDL00,LTROPO,Q,pedn,lm_req
       USE FILEMANAGER, only : openunit,closeunit,nameunit
-      USE RAD_COM, only     : rad_to_chem,H2ObyCH4,
-     &                        rad_to_file,ghg_yr,clim_interact_chem
-      USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ
+      USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
+      USE RAD_COM, only     : CH4X_RADoverCHEM
+      use ghgmod
+      USE GEOM, only        : BYAXYP,AXYP,LAT2D_DG,IMAXJ,LAT2D,LON2D
       use OldTracer_mod, only: tr_wd_type, nWater
 
       USE TRACER_COM, only  : N_N2O,N_CH4,N_CFC,N_Isoprene
@@ -55,58 +55,21 @@ C**** Local parameters and variables and arguments:
      &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
      &     surfIsop
 
+!@var ghgCmAtm array of same shape as rad code/ghgmod ulgas for
+!@+ returning gas amounts by layer in cm-atm units from getgas calls
+!@var ghgplb bottom layer pressures like used in rad code/ghgmod
+      real*8, dimension(lxghg,13) :: ghgCmAtm
+      real*8, dimension(lxghg+1) :: ghgplb
+!@var jlat46 lat index relative to the rad code 72x46 grid
+!@var ilon72 lon index relative to the rad code 72x46 grid
+      integer :: jlat46,ilon72
+
       INTEGER :: J_0, J_1, I_0, I_1
-      integer :: initial_GHG_setup
 
       call getDomainBounds(grid, 
      &               J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1)
       
-
-      if (is_set_param('initial_GHG_setup')) then
-        call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1 .and. itime == itimeI) then
-C--------special section for ghg runs ---------
-          write(out_line,*)'Warning: INITIAL_GHG_SETUP is on!'
-          call write_parallel(trim(out_line))
-          if(use_rad_ch4>0 .or. use_rad_n2o>0 .or. use_rad_cfc>0)then
-            rad_to_file(1,:,I_0:I_1,J_0:J_1)=
-     &           rad_to_chem(1,:,I_0:I_1,J_0:J_1)
-            rad_to_file(2,:,I_0:I_1,J_0:J_1)=
-     &           rad_to_chem(2,:,I_0:I_1,J_0:J_1)
-            do j=J_0,J_1
-              do i=I_0,I_1
-                rad_to_file(3,:,i,j)=rad_to_chem(3,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_N2O) ! i.e. in trm units now!
-                rad_to_file(4,:,i,j)=rad_to_chem(4,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_CH4) ! i.e. in trm units now!
-                rad_to_file(5,:,i,j)=rad_to_chem(5,:,i,j)*2.69e20*
-     &               byavog*axyp(i,j)*tr_mm(n_CFC)*fact_CFC ! i.e. in trm units now!
-              enddo
-            enddo 
-            if(ghg_yr/=0)then; write(ghg_name,'(I4.4)')ghg_yr
-            else; write(ghg_name,'(I4.4)')modelEclock%getYear(); endif
-            ghg_file='GHG_IC_'//ghg_name
-            call openunit(ghg_file,iu,.true.,.false.)
-            do m=1,5
-             ghg_out(:,I_0:I_1,J_0:J_1)=rad_to_file(m,:,I_0:I_1,J_0:J_1)
-             CALL WRITET8_COLUMN(grid,iu,NAMEUNIT(iu),GHG_OUT,ghg_file)
-            enddo
-            call closeunit(iu)          
-            if(AM_I_ROOT( ))then
-              write(6,*)'Kludge in masterchem to output inital'
-              write(6,*)'conditions for ghgs.: ',trim(ghg_file)
-              write(6,*)'First time step has used default values.'
-              write(6,*)'If you wish to produce a correct'
-              write(6,*)'first time step, then redo setup for this'
-              write(6,*)' rundeck with initial_GHG_setup set to 0.'
-              write(6,*)'Address questions to G. Faluvegi or T. Clune.'
-              write(6,*)'Thanks.'
-            end if
-          end if
-        end if
-      end if
-
       if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
 
@@ -119,28 +82,24 @@ C running-averages for interactive wetlands CH4:
       end do      ; end do
 #endif
 
-      ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f
+      ! Note to self: move all Itime==ItimeI things to TRCHEM_init.f?
       if(Itime==ItimeI) then
-        if(use_rad_n2o > 0)then
-          write(out_line,*) 'Warning:use_rad_n2o overrides PIfact_N2O'
-          call write_parallel(trim(out_line))
-        endif
-        if(use_rad_cfc > 0)then
-          write(out_line,*) 'Warning:use_rad_cfc overrides PIfact_CFC'
-          call write_parallel(trim(out_line))
-        endif
-C info to set strat H2O based on tropical tropopause H2O and CH4:
+        ! Set strat H2O based on tropical tropopause H2O and CH4:
         if(allowSomeChemReinit == 1 )then
           avgTT_H2O_part(I_0:I_1,J_0:J_1)=0.d0
           avgTT_CH4_part(I_0:I_1,J_0:J_1)=0.d0
           countTT_part(I_0:I_1,J_0:J_1)=0.d0
+          ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
           do J=J_0,J_1
           do I=I_0,IMAXJ(J)
             if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
               avgTT_H2O_part(I,J) = Q(I,J,LTROPO(I,J))*MWabyMWw
               if(use_rad_ch4 > 0) then
+                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+                call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+                call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
                 avgTT_CH4_part(I,J) =
-     &          rad_to_chem(4,LTROPO(I,J),I,J)
+     &          (ghgCmAtm(LTROPO(I,J),7)/CH4X_RADoverCHEM)
      &          *2.69d20*byavog*mair*byMA(LTROPO(I,J),I,J)
               else
                 avgTT_CH4_part(I,J) =
@@ -195,17 +154,18 @@ c
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : ntm
       USE TRACER_COM, only  : COUPLED_CHEM
-      USE RAD_COM, only     : o2x
+      USE RAD_COM, only     : o2x, plb0
+      use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : pedn,PMIDL00,LTROPO
-      USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,
-     &                        rad_to_chem,chem_tracer_save,H2ObyCH4,
-     &                        SRDN,rad_to_file,ghg_yr,clim_interact_chem
+      USE ATM_COM, only     : pedn,PMIDL00,LTROPO,lm_req
+      USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
+     &                        chem_tracer_save,H2ObyCH4,
+     &                        SRDN,clim_interact_chem
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      &                        ,stratO3_tracer_save
 #endif
-      USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D
+      USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
@@ -293,7 +253,6 @@ C**** Local parameters and variables and arguments:
 !@var chgHT3,chgHT4,chgHT5 reaction rates for het rxns on pscs
 !@var rmrClOx,rmrBrOx dummy vars with mixing ratios of halogens
 !@var rmv dummy variable for halogne removal in trop vs height
-!@var PIfact strat-overwrite scaling
 !@var pfactor to convert units on species chemical changes
 !@var bypfactor to convert units on species chemical changes
 !@var dNO3,gwprodHNO3,gwprodN2O5,changeAldehyde,
@@ -312,7 +271,6 @@ C**** Local parameters and variables and arguments:
 !@var sumOx for summing regional Ox tracers
 !@var bysumOx reciprocal of sum of regional Ox tracers
 !@var maxPSC a limit placed on some PSC reactions to prevent sudden overflows
-      REAL*8, DIMENSION(NTM) :: PIfact
       REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
      &  FASTJ_PFACT,bydtsrc,CH4FACT,r179,rlossN,maxPSC,
@@ -352,16 +310,30 @@ C**** Local parameters and variables and arguments:
       LOGICAL                   :: error, jay, daylight
       character(len=300)        :: out_line
 
-      integer :: initial_GHG_setup
       real*8 :: qsat ! this is a function in UTILDBL.f
 #if (defined TRACERS_TOMAS)
       integer :: k
 #endif
       integer :: hour, idx
 
+!@var ghgCmAtm array of same shape as rad code/ghgmod ulgas for
+!@+ returning gas amounts by layer in cm-atm units from getgas calls
+!@var ghgplb bottom layer pressures like used in rad code/ghgmod
+      real*8, dimension(lxghg,13) :: ghgCmAtm
+      real*8, dimension(lxghg+1) :: ghgplb
+!@var jlat46 lat index relative to the rad code 72x46 grid
+!@var ilon72 lon index relative to the rad code 72x46 grid
+      integer :: jlat46,ilon72
+
 
       call modelEclock%get(hour=hour)
 
+
+      ! prep for/call getgas to obtain ghgmod (rad code) species for use in chemistry:
+      ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
+      ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+      call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+      call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
 
 C Some INITIALIZATIONS :
       bydtsrc = 1.d0/dtsrc
@@ -2099,32 +2071,27 @@ C this looks complicated, but basically, you are either converting
 C from mixing ratio to KG (normal case) or from cm-atm to KG  
 C (interactive radiation case - for more on that conversion, see
 C the notes on O3MULT in the TRCHEM_Shindell_COM program):
-      PIfact(:)=1.d0     
-      if(PI_run == 1)then
-        PIfact(n_NOx)=PIratio_N
-        if(use_rad_n2o == 0) PIfact(n_N2O)=PIratio_N2O
-        if(use_rad_cfc == 0) PIfact(n_CFC)=PIratio_CFC
-      endif
       fact2=n2o_pppv  ! default N2O mixing ratio overwrite
       fact3=cfc_pppv  ! default CFC mixing ratio overwrite
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       fact6=2.69d20*axyp(i,j)*byavog
       fact1=bymair*MA(1,i,j)*axyp(i,j)
-      fact5=fact6 
+      fact5=fact6
       fact4=fact6
-      if(use_rad_n2o == 0)fact4=fact1 
+      if(use_rad_n2o == 0)fact4=fact1
       if(use_rad_cfc == 0)fact5=fact1
-      if(use_rad_n2o > 0)fact2=rad_to_chem(3,1,i,j)
-      if(use_rad_cfc > 0)fact3=rad_to_chem(5,1,i,j)
+      if(use_rad_n2o > 0)fact2=ghgCmAtm(1,6)
+      if(use_rad_cfc > 0)fact3=(ghgCmAtm(1,8) + ghgCmAtm(1,9))
       tr3Dsource(1,nOverwrite,n_N2O)=(fact2*fact4*
-     &     tr_mm(n_N2O)*PIfact(n_N2O) - (trm_col(1,n_N2O)+ 
+     &     tr_mm(n_N2O) - (trm_col(1,n_N2O)+
      &     tr3Dsource(1,nChemistry,n_N2O)*dtsrc))*bydtsrc
       tr3Dsource(1,nOverwrite,n_CFC)=(fact3*fact5*fact7*
-     &     tr_mm(n_CFC)*PIfact(n_CFC) - (trm_col(1,n_CFC)+
+     &     tr_mm(n_CFC) - (trm_col(1,n_CFC)+
      &     tr3Dsource(1,nChemistry,n_CFC)*dtsrc))*bydtsrc
       if(use_rad_ch4 > 0)then
-        tr3Dsource(1,nOverwrite,n_CH4)=(rad_to_chem(4,1,i,j)*
+        tr3Dsource(1,nOverwrite,n_CH4)=(
+     &       (ghgCmAtm(1,7)/CH4X_RADoverCHEM)*
      &       fact6*tr_mm(n_CH4)-(trm_col(1,n_CH4)+
      &       tr3Dsource(1,nChemistry,n_CH4)*dtsrc))*bydtsrc
       end if
@@ -2139,13 +2106,13 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       do L=LS1,LM 
         if(pres2(L) < pltOx)then
               ! -- Ox --
-          tr3Dsource(L,nOverwrite,n_Ox)=(rad_to_chem(1,L,i,j)*
+          tr3Dsource(L,nOverwrite,n_Ox)=(ghgCmAtm(L,3)*
      &         axyp(i,j)*O3MULT - (trm_col(L,n_Ox)+
      &         tr3Dsource(L,nChemistry,n_Ox)*dtsrc))*bydtsrc
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
               ! -- stratOx --
           tr3Dsource(L,nOverwrite,n_stratOx)=
-     &         (rad_to_chem(1,L,i,j)*axyp(i,j)*O3MULT - (
+     &         (ghgCmAtm(L,3)*axyp(i,j)*O3MULT - (
      &         trm_col(L,n_stratOx)
      &         +tr3Dsource(L,nChemistry,n_stratOx)*dtsrc))*bydtsrc
 #endif
@@ -2161,7 +2128,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
      &         *dtsrc))*bydtsrc
               ! -- NOx --
           tr3Dsource(L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &         *MA(L,i,j)*axyp(i,j)*PIfact(n_NOx)-(trm_col(L,n_NOx)+ 
+     &         *MA(L,i,j)*axyp(i,j)-(trm_col(L,n_NOx)+ 
      &         tr3Dsource(L,nChemistry,n_NOx)*dtsrc))*bydtsrc
         end if    ! pressure
       end do ! L
@@ -2170,6 +2137,9 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
 
+! I believe the next section could be simplified and moved into
+! the rad code or GHGMOD once the radiation is called after
+! tracer 3D source:
 c Save new tracer O3 and CH4 fields for use in radiation or elsewhere:
 c (radiation code wants atm-cm units):
       do L=1,LM                 ! all model layers
@@ -2724,15 +2694,15 @@ C**** Local parameters and variables and arguments:
       rkext(:)=0.d0 ! initialize over L
       LAXb=0
       LAXt=0
-      if(rad_to_chem(2,1,I,J) /= 0.)call stop_model('kext prob 0',255)
+      if(rad_to_chem(1,I,J) /= 0.)call stop_model('kext prob 0',255)
       do L=2,topLevelOfChemistry
-        if(rad_to_chem(2,L,I,J) /= 0..and.rad_to_chem(2,L-1,I,J) == 0.)
+        if(rad_to_chem(L,I,J) /= 0..and.rad_to_chem(L-1,I,J) == 0.)
      &  LAXb=L
-        if(rad_to_chem(2,L,I,J) == 0..and.rad_to_chem(2,L-1,I,J) /= 0.)
+        if(rad_to_chem(L,I,J) == 0..and.rad_to_chem(L-1,I,J) /= 0.)
      &  LAXt=L-1
         if(L==topLevelOfChemistry)then
           if(LAXb > 0 .and. LAXt==0)then   
-            if(rad_to_chem(2,L,I,J) /= 0.)then
+            if(rad_to_chem(L,I,J) /= 0.)then
               LAXt=L
             else
               call stop_model('LAXt failure.',13)     
@@ -2947,11 +2917,11 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           else
             if(pres(l) <= 150..and.pres(l) > 31.60)then
               if(l < LAXb) then
-                rkext(l)=5.d-2*rad_to_chem(2,LAXb,i,j)
+                rkext(l)=5.d-2*rad_to_chem(LAXb,i,j)
               else if(l > LAXt) then
                 rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=5.d-2*rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 31.6d0.and.pres(l) >= 17.8d0)then
@@ -2960,7 +2930,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
               else if(l > LAXt) then
                 rkext(l)=2.0d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=5.d-2*rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 17.8d0.and.pres(l) >= 10.0d0)then
@@ -2969,7 +2939,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
               else if(l > LAXt) then
                 rkext(l)=16.d0*8.33333d-2*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=5.d-2*rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 10.0d0.and.pres(l) >= 4.6d0)then
@@ -2978,7 +2948,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
               else if(l > LAXt) then
                 rkext(l)=0.4d0*6.6667d-1*rkext(l-1)
               else
-                rkext(l)=0.5d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=0.5d-2*rad_to_chem(l,i,j)
               end if
             end if
           end if

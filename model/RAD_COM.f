@@ -211,10 +211,8 @@ C**** does not produce exactly the same as the default values.
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:)::stratO3_tracer_save!saved rsf
 #endif
 !@var rad_to_chem save 3D quantities from radiation code for use in
-!@+   chemistry (or rest of model). 1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,
-!@+   5=CFC11+CFC12
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_chem !saved in rsf
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: rad_to_file
+!@+   chemistry (or rest of model). Now doing aerosol extinction only.
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: rad_to_chem !saved in rsf
 !@var KLIQ Flag indicating dry(0)/wet(1) atmosphere (memory feature)
       INTEGER, ALLOCATABLE, DIMENSION(:,:,:,:) :: KLIQ ! saved in rsf
 !@dbparam Ikliq 0,1,-1 initialize kliq as dry,equil,current model state
@@ -372,7 +370,7 @@ C**** Local variables initialised in init_RAD
       USE tracer_com,ONLY : NTM
 #endif
       USE RAD_COM, ONLY : RQT,Tchg,SRHR,TRHR,FSF,FSRDIR,SRVISSURF,TRSURF
-     *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem,rad_to_file
+     *     ,SRDN, CFRAC, RCLD, chem_tracer_save,rad_to_chem
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SNOAGE
      *     ,srnflb_save, trnflb_save
      *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
@@ -414,8 +412,7 @@ C**** Local variables initialised in init_RAD
      *     CFRAC(I_0H:I_1H, J_0H:J_1H),
      *     RCLD(LM, I_0H:I_1H, J_0H:J_1H),
      *     chem_tracer_save(2,LM, I_0H:I_1H, J_0H:J_1H),
-     *     rad_to_chem(5, LM, I_0H:I_1H, J_0H:J_1H),
-     *     rad_to_file(5, LM, I_0H:I_1H, J_0H:J_1H),
+     *     rad_to_chem(LM, I_0H:I_1H, J_0H:J_1H),
      *     SNOAGE(3,I_0H:I_1H,J_0H:J_1H),
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
      *     stratO3_tracer_save(LM, I_0H:I_1H, J_0H:J_1H),
@@ -507,7 +504,7 @@ C**** Local variables initialised in init_RAD
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       REAL*8,DIMENSION(:,:,:),allocatable::stratO3_tracer_save_GLOB !(LM,IM,JM)
 #endif
-      REAL*8,DIMENSION(:,:,:,:),allocatable::rad_to_chem_GLOB ! !(5,LM,IM,JM)
+      REAL*8,DIMENSION(:,:,:),allocatable::rad_to_chem_GLOB ! !(LM,IM,JM)
 #endif
 #ifdef TRACERS_DUST
       REAL*8,DIMENSION(:,:,:), allocatable :: !(Im,Jm,Lm)
@@ -546,7 +543,7 @@ C**** Local variables initialised in init_RAD
       allocate(RCLD_GLOB(lmg,img,jmg))
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(chem_tracer_save_GLOB(2,lmg, img,jmg))
-      allocate(rad_to_chem_GLOB(5,lmg,img,jmg))
+      allocate(rad_to_chem_GLOB(lmg,img,jmg))
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       allocate(stratO3_tracer_save_GLOB(lmg, img, jmg))
 #endif
@@ -610,7 +607,7 @@ C**** Local variables initialised in init_RAD
         CALL PACK_COLUMN(grid, RCLD          , RCLD_GLOB)
 #ifdef TRACERS_SPECIAL_Shindell
         CALL PACK_BLOCK(grid, chem_tracer_save, chem_tracer_save_GLOB)
-        CALL PACK_BLOCK(grid, rad_to_chem, rad_to_chem_GLOB)
+        CALL PACK_COLUMN(grid, rad_to_chem, rad_to_chem_GLOB)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         CALL PACK_COLUMN
      &  (grid, stratO3_tracer_save, stratO3_tracer_save_GLOB)
@@ -685,7 +682,7 @@ C**** Local variables initialised in init_RAD
 #ifdef TRACERS_SPECIAL_Shindell
           CALL UNPACK_BLOCK(grid, chem_tracer_save_glob,
      &         chem_tracer_save)
-          CALL UNPACK_BLOCK(grid, rad_to_chem_glob, rad_to_chem)
+          CALL UNPACK_COLUMN(grid, rad_to_chem_glob, rad_to_chem)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
           CALL UNPACK_COLUMN(grid, stratO3_tracer_save_glob,
      &         stratO3_tracer_save)
@@ -808,7 +805,7 @@ C**** Local variables initialised in init_RAD
       call defvar(grid,fid,chem_tracer_save,
      &     'chem_tracer_save(two,lm,dist_im,dist_jm)')
       call defvar(grid,fid,rad_to_chem,
-     &     'rad_to_chem(five,lm,dist_im,dist_jm)')
+     &     'rad_to_chem(lm,dist_im,dist_jm)')
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
       call defvar(grid,fid,strato3_tracer_save,
      &     'strato3_tracer_save(lm,dist_im,dist_jm)')
@@ -871,7 +868,7 @@ C**** Local variables initialised in init_RAD
         call write_dist_data(grid,fid,
      &       'chem_tracer_save', chem_tracer_save, jdim=4)
         call write_dist_data(grid,fid,
-     &       'rad_to_chem', rad_to_chem, jdim=4)
+     &       'rad_to_chem', rad_to_chem, jdim=3)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         call write_dist_data(grid,fid,
      &       'strato3_tracer_save', strato3_tracer_save, jdim=3)
@@ -927,7 +924,7 @@ C**** Local variables initialised in init_RAD
         call read_dist_data(grid,fid,
      &       'chem_tracer_save', chem_tracer_save, jdim=4)
         call read_dist_data(grid,fid,
-     &       'rad_to_chem', rad_to_chem, jdim=4)
+     &       'rad_to_chem', rad_to_chem, jdim=3)
 #if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         call read_dist_data(grid,fid,
      &       'strato3_tracer_save', strato3_tracer_save, jdim=3)

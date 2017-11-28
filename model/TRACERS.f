@@ -288,6 +288,7 @@ C**** AIJN
 C****     1  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER/KG AIR)
 C****     2  TRS (SURFACE TRACER CONC.) (M*M * KG TRACER/KG AIR)
 C****     3  TM (SUM OVER ALL LAYERS) (M*M * KG TRACER)
+
       do n=1,ntm
 C**** Summation of mass over all layers
       k = 0        ! <<<<< Be sure to do this
@@ -384,7 +385,28 @@ C**** Tracers in evaporation
           units_tij(k,n)=unit_string(ijtc_power(n),trim(cmrwt(n))//'/s')
           scale_tij(k,n)=10.**(-ijtc_power(n))/dtsrc
         end if
+#ifdef TRACERS_SPECIAL_O18
+C**** Tracers at sea surface
+        k = k+1
+        tij_owiso = k
+        write(sname_tij(k,n),'(a,i2)')
+     &        trim(TRNAME(n))//'_Sea_Surface'
+        write(lname_tij(k,n),'(a,i2)')
+     &        trim(TRNAME(n))//' at Sea Surface'
+        !Convert to permil if specified:
+        if (to_per_mil(n) .eq.1) then
+          units_tij(k,n)=cmrwt(n)
+          denom_tij(k,n)=n_Water
+          scale_tij(k,n)=1.
+        else
+          units_tij(k,n)='kg/kg fresh water'
+          !Scale quantity to account for extra surface flux time steps:
+          scale_tij(k,n)=1.d0/REAL(NIsurf,KIND=8)
+          !Set special denominator name in order to use ocean fraction:
+          dname_tij(k,n) = 'ocnfrac'
         endif
+#endif
+        endif !if (tr_wd_type(n).eq.nWater)
 C**** Tracers in river runoff (two versions - for inflow and outflow)
         k = k+1
         tij_rvr = k
@@ -548,8 +570,8 @@ C**** Tracers integrated N-S sea ice flux
         lname_tij(k,n) = trim(TRNAME(n))//' N-S Ice Flux'
         units_tij(k,n) = unit_string(ntrocn(n),'kg/s')
         scale_tij(k,n) = (10.**(-ntrocn(n)))/DTsrc
-      endif ! if (src_dist_index(n)<=1) then
-#endif
+      endif ! if (src_dist_index(n)<=1) 
+#endif /* TRACERS_WATER */
 #ifdef TRACERS_DRYDEP
 C**** Tracers dry deposition flux.
       k = k+1
@@ -578,7 +600,7 @@ C**** Tracers dry deposition flux.
         call stop_model('ktaij too small',255)
       end if
 
-      end do
+      end do !ntm
 
 c
 c Collect denominator short names for later use

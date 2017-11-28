@@ -549,13 +549,12 @@
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,scale_ch4_IC_file,
      &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,PI_run,PIratio_N,PIratio_CO_T,
-     &     PIratio_CO_S,PIratio_other,allowSomeChemReinit,
+     &     fix_CH4_chemistry,which_trop,allowSomeChemReinit,
      &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
      &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL,PIratio_N2O,PIratio_CFC,
+     &     CFCICIN,CFCIC,CFCICINL,CFCICL,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S,windowN2Ocorr,windowO2corr,
      &     reg1Power_SpherO2andN2Ocorr,reg1TopPres_SpherO2andN2Ocorr,
@@ -647,26 +646,11 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param("allowSomeChemReinit",allowSomeChemReinit)
       call sync_param("which_trop",which_trop)
-      if (is_set_param("PI_run")) then
-        call get_param("PI_run",PI_run)
-      else
-        if (master_yr == 1850) then
-          PI_run=1
-        else
-          PI_run=0
-        endif
-      endif
-      call sync_param("PIratio_N",PIratio_N)
-      call sync_param("PIratio_CO_T",PIratio_CO_T)
-      call sync_param("PIratio_CO_S",PIratio_CO_S)
-      call sync_param("PIratio_other",PIratio_other)
       call sync_param("rad_FL",rad_fl)
       call sync_param("Lmax_rad_O3",Lmax_rad_O3)
       call sync_param("Lmax_rad_CH4",Lmax_rad_CH4)
       call sync_param("use_rad_n2o",use_rad_n2o)
       call sync_param("use_rad_cfc",use_rad_cfc)
-      call sync_param("PIratio_N2O",PIratio_N2O)
-      call sync_param("PIratio_CFC",PIratio_CFC)
       call sync_param("PltOx",PltOx)
       call sync_param("Tpsc_offset_N",Tpsc_offset_N)
       call sync_param("Tpsc_offset_S",Tpsc_offset_S)

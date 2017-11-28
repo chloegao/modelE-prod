@@ -929,6 +929,20 @@ c
       taij(:,:,k) = aij_loc(:,:,ij_rsoi)
       endif
 
+#ifdef TRACERS_SPECIAL_O18
+      !Add ocean fraction to taij array, in
+      !order to use it as a denominator:
+      if(any(dname_taij(1:k).eq.'ocnfrac')) then
+        k=k+1
+        sname_taij(k) = 'ocnfrac'
+        lname_taij(k) = lname_ij(ij_pocean)
+        units_taij(k) = units_ij(ij_pocean)
+        ia_taij(k) = ia_ij(ij_pocean)
+        scale_taij(k) = scale_ij(ij_pocean)
+        taij(:,:,k) = aij_loc(:,:,ij_pocean)
+      endif
+#endif
+
       ktaij_out = k
 
 c

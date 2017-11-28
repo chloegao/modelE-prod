@@ -36,7 +36,7 @@ module BaseTime_mod
   end interface NewBaseTime
 
   interface assignment(=)
-     module procedure :: copyFromRational
+     module procedure copyFromRational
   end interface
 
   integer, parameter :: DEFAULT_INT = kind(1)

@@ -4,7 +4,7 @@
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
 #ifndef USE_RAD_OFFLINE
-      use constant, only: pO2, avog, mair, grav, loschmidt_constant
+      use constant, only: mair, grav
       use atm_com, only : lm_req
       use resolution, only : lm_gcm=>lm
 #endif
@@ -156,11 +156,7 @@ C----------------
 !@var FSTOPX,FTTOPX switches on/off aerosol for diagnostics (solar,thermal component)
 !@var FSTASC,FTTASC scales optional aerosols (solar,thermal component)
       REAL*8    :: FSTOPX(ITRMAX),FTTOPX(ITRMAX)
-!@var chem_IN column variable for importing ozone(1) and methane(2)
-!@+   fields from rest of model
-!@var use_tracer_chem:set U0GAS(L, )=chem_IN( ,L), L=L1,use_tracer_chem( )
-      REAL*8 :: chem_IN(2,LX)
-      INTEGER :: use_tracer_chem(2),use_o3_ref=0
+
       LOGICAL*4 :: flags
 !@var LOC_CHL local chlorophyll value (unit?) for albedo calculation (optional)
       REAL*8    :: LOC_CHL
@@ -192,8 +188,7 @@ C--------------------------------------------------------
 !@var DTRUFG               not used                               (W/m2)
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
-!@var chem_out column variable for exporting radiation code quantities
-!@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
+!@var chem_out column variable for exporting rad code aerosol extinction
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
@@ -203,7 +198,7 @@ C--------------------------------------------------------
 
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
-      REAL*8 :: chem_out(LX,5)=0d0
+      REAL*8 :: chem_out(LX)=0d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -337,18 +332,6 @@ C            RADDAT_AERCLD_MIEPAR          read from            radfile3
 C            RADDAT_CLDCOR_TRSCAT           read from           radfileE
       REAL*8 :: RIJTPG(6,49,17,21),FDXTPG(3,49,17,21),FEMTPG(3,49,17,21)
 
-!@var ppmv_to_cm_at_stp Conversion factor for conversion from PPMV to cm at
-!                       STP. Also needs an additional factor dP for the
-!                       conversion.
-      REAL*8, PARAMETER :: ppmv_to_cm_at_stp = 1.0D-05*avog/
-     *      (grav*mair*loschmidt_constant)
-!@var h2o_mmr_to_cm_at_stp Conversion factor for conversion from mass
-!                          mixing ratio to cm at STP for water vapor.
-!                          Also needs an additional factor dP for the
-!                          conversion.
-      REAL*8, PARAMETER :: h2o_mmr_to_cm_at_stp = ppmv_to_cm_at_stp*
-     *      1.0D+06*mair/18.0153D0
-
 
 C--------------------------------------   This also should be moved out
 C     History files (+ control options)   of RADPAR, which should just
@@ -387,11 +370,6 @@ C--------------------------------------   have to handle 1 point in time
       INTEGER ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
-
-      REAL*8, dimension(:,:,:), pointer :: o3jday,o3jref
-#ifdef HIGH_FREQUENCY_O3_INPUT
-      REAL*8, dimension(:,:,:), pointer :: o3jday_HF_modelLevels
-#endif
 
 !@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
       REAL*8, PARAMETER :: PLBA20(21)=(/
@@ -554,38 +532,12 @@ C     -----------------------
      L.0001350,.0006300,.0004500,.0006225,0.0/)
 
 C     ------------------------------------------------------------------
-C          NO2 Trace Gas Vertical Distribution and Concentration Profile
-C     ------------------------------------------------------------------
-
-      REAL*8, PARAMETER ::
-     *     CMANO2(42)=(/            ! every 2 km starting at 0km
-     1  8.66E-06,5.15E-06,2.85E-06,1.50E-06,9.89E-07,6.91E-07,7.17E-07,
-     2  8.96E-07,3.67E-06,4.85E-06,5.82E-06,6.72E-06,7.77E-06,8.63E-06,
-     3  8.77E-06,8.14E-06,6.91E-06,5.45E-06,4.00E-06,2.67E-06,1.60E-06,
-     4  8.36E-07,3.81E-07,1.58E-07,6.35E-08,2.57E-08,1.03E-08,4.18E-09,
-     5  1.66E-09,6.57E-10,2.58E-10,1.02E-10,4.11E-11,1.71E-11,7.73E-12,
-     6  9.07E-12,4.63E-12,2.66E-12,1.73E-12,1.28E-12,1.02E-12,1.00E-30/)
-
-C     ------------------------------------------------------------------
 C     TRACE GAS REFERENCE AMOUNTS & DISTRIBUTIONS ARE DEFINED IN  SETGAS
 C     ------------------------------------------------------------------
 
 C-------------------------
 C     Scaling/kill factors
 C-------------------------
-
-!@var FULGAS scales the various atmospheric constituents:
-!@+         H2O CO2 O3 O2 NO2 N2O CH4 F11 F12 N2C CFC11 CFC12 SO2
-!@+   Note: FULGAS(1) only acts in the stratosphere (unless LS1_loc=1)
-      REAL*8 :: FULGAS(13) = (/    ! scales ULGAS
-
-C      H2O CO2  O3  O2 NO2 N2O CH4 F11 F12 N2C CFC11+ CFC12+ SO2
-C        1   2   3   4   5   6   7   8   9  10    11     12   13
-     +   1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,   1.,    1.,  0./)
-#ifdef ALTER_RADF_BY_LAT
-!@var FULGAS_orig saves initial FULGAS values
-      REAL*8, dimension(13) :: FULGAS_orig
-#endif
 
 !@var FGOLDH scales background aerosols for Glb Ocn Land Desert Haze
 C                         GLOBAL  OCEAN   LAND  DESERT    HAZE
@@ -744,85 +696,6 @@ C                         CLAY                  SILT
 !@+   DUSTAB=0.0: all particles have Patterson 1977 properties
       real*8, parameter :: DUSTAB = 0.5
 
-C-----------------------------------------------------------------------
-C     GHG 1980 Reference Concentrations and Vertical Profile Definitions
-C-----------------------------------------------------------------------
-
-!@var KTREND if > 0 table GHG concentrations (Trend G) are used for
-!@+             yr/day KYEARG/KJDAYG; if KTREND=0, GHG are set to PPMVK0
-      INTEGER :: KTREND=1
-
-!@var PPMV80  reference GHG concentrations (ppm)
-      REAL*8, dimension(13) ::
-C     GAS NUMBER    1         2    3      4    5         6           7
-C                 H2O       CO2   O3     O2  NO2       N2O         CH4
-#ifdef V2_O2_MODE /* temporary option to exactly match v2_branch */
-     *   PPMV80=(/0d0, 337.90d0, 0d0,    21d4,0d0,  .3012d0,   1.5470d0
-#else
-     *   PPMV80=(/0d0, 337.90d0, 0d0,pO2*1.d6,0d0,  .3012d0,   1.5470d0
-#endif
-     *     ,.1666d-03,.3003d-03, 0d0,   .978D-04,  .0010D-10,  .0420d0/)
-C              CCL3F1    CCL2F2   N2     CFC-Y       CFC-Z         SO2
-C     GAS NUMBER    8         9   10        11          12          13
-
-!@var PPMVK0  user set  GHG concentrations (ppm), used if KTREND=0
-      REAL*8, dimension(12) ::
-C     GAS  NUMBER   1         2    3      4    5         6           7
-C                 H2O       CO2   O3     O2  NO2       N2O         CH4
-     *   PPMVK0=(/0d0, 337.90d0, 0d0, 21.d4, 0d0,  .3012d0,   1.5470d0
-     *               ,.1666d-03,  .3003d-03, 0d0, .978D-04, 0.0010D-10/)
-C                        CCL3F1      CCL2F2   N2     CFC-Y       CFC-Z
-C     GAS  NUMBER             8           9   10        11          12
-
-C     Makiko GHG Trend Compilation  GHG.1850-2050.Dec1999 in GTREND
-C     ---------------------------------------------------------------
-!@var nghg nr. of well-mixed GHgases: CO2 N2O CH4 CFC-11 CFC-12 others
-!@var nyrsghg max.number of years of prescr. greenhouse gas history
-      INTEGER, PARAMETER :: nghg=6
-
-!@var ghgyr1,ghgyr2 first and last year of GHG history
-      INTEGER ghgyr1,ghgyr2
-!@var ghgam,xref,xnow     GHG-mixing ratios in ppm,ppm,ppm,ppb,ppb,ppb
-      REAL*8 XREF(nghg+1),XNOW(nghg+1)
-      real*8, allocatable :: ghgam(:,:)
-
-C     GTREND:  1980.,  337.9,  .3012,  1.547,  .1666,  .3003,  .0978,
-C     ---------------------------------------------------------------
-
-!@var KGGVDF,KPGRAD,KLATZ0 control parameters for vertical GHG profiles
-!@+   -----------------------------------------------------------------
-!@+   Minschwaner et al JGR (1998) CH4, N2O, CFC-12 Vertical profiles
-!@+   IF(KGGVDF > 0) Then:
-!@+      Gas decreases are linear with pressure, from unity at ground to
-!@+      the fractional value PPMVDF(NGAS) at the top of the atmosphere.
-!@+   Exponential decrease by EXP(-(Z-Z0)/H) is superimposed on this.
-!@+   IF(KLATZ0 > 0) Then: Z0 depends on latitude, KGGVDF not used
-!@+   KPGRAD>0: Pole-to-Pole lat. gradient (PPGRAD) is also superimposed
-!@+   ------------------------------------------------------------------
-!@var Z0,ZH   scale heights used for vertical profile (km)
-!@var PPMVDF  frac. value at top of atmosphere (used if KGGVDF > 0)
-!@var PPGRAD  Pole-to-Pole latitud.gradient for GHG (used if KPGRAD > 0)
-      INTEGER :: KGGVDF=0, KPGRAD=1, KLATZ0=1
-
-      REAL*8, dimension(12) ::
-C     NUMBER   1    2    3    4  5    6    7    8     9   10   11  12
-C             H2O  CO2  O3   O2 NO2  N2O  CH4 CFC11 CFC12 N2 CF-Y  CF-Z
-     *   Z0=(/0.0, 0.0,0.0, 0.0,0.0, 16., 16., 16., 16., 0.0, 16., 16./)
-     *  ,ZH=(/8.0, 8.0,8.0, 8.0,8.0, 30., 50., 30., 30., 0.0, 30., 30./)
-
-C     GAS NUMBER    1     2    3    4    5         6         7
-C                 H2O   CO2   O3   O2  NO2       N2O       CH4
-     *  ,PPMVDF=(/1.0,  1.0, 1.0, 1.0, 1.0,  0.88888,  0.88888,
-     *              0.88888,  0.88888, 1.0,  0.88888,  0.88888/)
-C                    CCL3F1    CCL2F2   N2     CFC-Y     CFC-Z
-C     GAS NUMBER          8         9   10        11        12
-
-C     GAS  NUMBER   1     2    3    4    5         6         7
-C                 H2O   CO2   O3   O2  NO2       N2O       CH4
-     *  ,PPGRAD=(/0.0,  0.0, 0.0, 0.0, 0.0,   0.0100,   0.0900,
-     *               0.0600,   0.0600, 0.0,   0.0600,   0.0600/)
-C                    CCL3F1    CCL2F2   N2     CFC-Y     CFC-Z
-C     GAS  NUMBER         8         9   10        11        12
 
 C---------------------
 C     Optional Tracers    used via setbak/getbak
@@ -849,7 +722,7 @@ C                TRACER AEROSOL COMPOSITIONAL/TYPE PARAMETERS
       use pario, only : par_open,par_close, variable_exists
      &                 ,get_dimlen,read_data
       use filemanager, only : file_exists
-
+      use ghgmod, only : init_ghgmod,setghg,updghg
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     Solar,GHG Trend, VolcAer Size Selection Parameters:    Defaults
@@ -949,6 +822,9 @@ C**** values for height, density, temperature, ozone, water vapor
       TLT(L)=TLB(L+1)
       TLM(L)=0.5D0*(TLB(L)+TLT(L))
   121 CONTINUE
+
+      ! pass nominal pressure, height to GHG module
+      call init_ghgmod(plb0,hlb0)
 
 !sl   De-activate surface layer computations
 !sl   TAUSL(:)=0.0
@@ -1592,8 +1468,22 @@ C----------------------------------------------
                       CALL UPDGHG(JYEARG,JJDAYG)
 C----------------------------------------------
 
+C                  -----------------------------------------------------
+C                  Use PLB to fix Standard Heights
+C                  -----------------------------------------------------
+
+!nu   PS0=PLB0(1)
+
+      DO L=1,NL
+        DPL(L)=PLB0(L)-PLB0(L+1)
+        PL(L)=(PLB0(L)+PLB0(L+1))*0.5D0
+!nu   HLB(L)=HLB0(L)
+      ENDDO
+!nu   HLB(NL+1)=HLB0(NL+1)
+
 C--------------------------------
-                      CALL SETGAS
+                      CALL SETFPX
+                      CALL SETHUM0
 C
                                    CALL SETBAK
       IF(MADAER > 0.or.NTRACE > 0) CALL SETAER
@@ -1626,10 +1516,11 @@ C--------------------------------
       use SURF_ALBEDO, only : UPDSUR
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use DustParam_mod, only : upddst2
-      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3,o3jday,o3jref
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
 #endif
+      use ghgmod, only : setghg,updghg
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C
@@ -1754,12 +1645,10 @@ C----------------------------------------------
 
       SUBROUTINE RCOMPX
       use SURF_ALBEDO, only : getsur
-      use O3mod, only : plbo3,nlo3,plbo3_traditional,nlo3_traditional
-#ifdef SCM
-      use SCM_COM, only : SCMopt,SCMin
-#endif
+      use ghgmod, only : getgas
+      use ghgmod, only : use_tracer_chem,chem_in
       IMPLICIT NONE
-      integer k
+      integer k,l
 C     ------------------------------------------------------------------
 C     MADVEL  Model Add-on Data of Extended Climatology Enable Parameter
 C             Each MADVEL digit is ON/OFF switch for corresponding input
@@ -1792,51 +1681,29 @@ C      The Radiation Model can accommodate arbitrary vertical resolution
 C      -----------------------------------------------------------------
 
 
+      DO L=L1,NL
+        DPL(L)=PLB(L)-PLB(L+1)
+        PL(L)=(PLB(L)+PLB(L+1))*0.5D0
+      ENDDO
+
+
 C--------------------------------
       if(set_gases_internally) then
-!!!                   CALL GETO3D(ILON,JLAT) ! may have to be changed ??
-      if(use_o3_ref > 0 )then
-        CALL REPART (O3JREF(1,IGCM,JGCM),
-     *          PLBO3_traditional,NLO3_traditional+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)  ! out, ok if L1>1 ?
-        ! next block may seem weird but it is here to allow RCOMPX calls with
-        ! reference ozone in part of the atmosphere and tracer below:
-        if(use_tracer_chem(1) > 0) then
-          U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
+        call seth2o
+        call getgas(igcm,jgcm,jlat,plb,ulgas,u0gas_out=u0gas)
+
+        call fpxscalegas
+
+        if(use_tracer_chem(1) > 0) then ! allow use of tracer O3.
+          ULGAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
         endif
-        FULGAS(3)=1.d0
-      else
-        CALL REPART (O3JDAY(1,IGCM,JGCM),PLBO3,NLO3+1, ! in
-     *                        U0GAS(1,3),PLB0, NL+1)   ! out, ok if L1>1 ?
-#ifdef HIGH_FREQUENCY_O3_INPUT
-        ! Overwrite the lm_gcm levels with higher frequency ozone, leaving
-        ! climatology above those levels:
-        U0GAS(1:lm_gcm,3)=O3JDAY_HF_modelLevels(1:lm_gcm,IGCM,JGCM)
-        FULGAS(3)=1.d0
-#endif
-#ifdef SCM
-        if(SCMopt%ozone)then
-        ! Overwrite specified SCM levels (indicated by non-zero values),
-        ! leaving climatology above those levels:
-          do k = 1,lm_gcm
-            if(SCMin%O3(k) > 0.) U0GAS(k,3)=SCMin%O3(k)
-          enddo
-          FULGAS(3)=1.d0
+
+        if(use_tracer_chem(2) > 0) then ! allow use of tracer CH4.
+          ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
         endif
-#endif
-        ! considering this move to here from setgas:
-        ! chem_out(:,1)=U0GAS(:,3)*FULGAS(3) ! save climatology O3 for chem
-        ! and might then need something like:
-        ! IF(KPFOZO==1)chem_out(1:NL0,1)=chem_out(1:NL0,1)*FPXOZO(1:NL0)
-        if(use_tracer_chem(1) > 0) then
-          U0GAS(1:use_tracer_chem(1),3)=chem_IN(1,1:use_tracer_chem(1))
-          FULGAS(3)=1.d0
-        endif
+
       endif
-                      CALL GETGAS
-      else
-        CALL TAUGAS
-      endif
+
 C--------------------------------
 
 
@@ -1851,7 +1718,7 @@ C--------------------------------
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
       IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
-      chem_out(:,2)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
+      chem_out(:)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
       endif
 C--------------------------------
 
@@ -1870,6 +1737,9 @@ C--------------------------------  (GETSUR sets albedo needed by GETCLD)
      o     BGFEMD,BGFEMT,
      o     DTRUFG,FTRUFG
      &     )
+
+      CALL TAUGAS
+
                       CALL GETEPS
                       CALL GETCLD
 C--------------------------------
@@ -2196,143 +2066,29 @@ C                                         ------------------------------
       RETURN
       END SUBROUTINE SETSOL
 
-
-      SUBROUTINE SETGHG(JYEARG,JJDAYG)
-      IMPLICIT NONE
-C
-C
-C     ---------------------------------------------------------------
-C     SETGHG  Sets Default Greenhouse Gas Reference Year (for FULGAS)
-C
-C     Control Parameter:
-C                     KTREND (specified in RADPAR) activates GH Trend
-C               Default
-C     KTREND  =   1
-C     Selects   GTREND
-C     ---------------------------------------------------------------
-      INTEGER, INTENT(IN) :: JYEARG,JJDAYG
-      REAL*8 TREF,TNOW
-      INTEGER I
-C
-      TREF=JYEARG+(JJDAYG-0.999D0)/366.D0
-C
-      IF(KTREND==0) THEN
-        XREF(1)=PPMV80(2)
-        XREF(2)=PPMV80(6)
-        XREF(3)=PPMV80(7)
-        XREF(4)=PPMV80(8)*1000.D0
-        XREF(5)=PPMV80(9)*1000.D0
-        XREF(6)=PPMV80(11)*1000.D0  ! YREF11=PPMV80(11)*1000.D0
-        XREF(7)=PPMV80(12)*1000.D0  ! ZREF12=PPMV80(12)*1000.D0
-        RETURN
-      END IF
-
-      CALL GTREND(XREF,TREF)     ! finds xref 1-6 (yref11=xx6=xref(6))
-      XREF(7)=1.D-13             ! ZREF12=1.D-13
-      DO 120 I=1,NGHG
-      IF(XREF(I) < 1.D-06) XREF(I)=1.D-06
-  120 CONTINUE
-      PPMV80(2)=XREF(1)
-      PPMV80(6)=XREF(2)
-      PPMV80(7)=XREF(3)
-      PPMV80(8)=XREF(4)/1000.D0
-      PPMV80(9)=XREF(5)/1000.D0
-      PPMV80(11)=XREF(6)/1000.d0   ! YREF11/1000.D0
-      PPMV80(12)=XREF(7)/1000.D0   ! ZREF12/1000.D0
-      RETURN
-      end SUBROUTINE SETGHG
-C
-C--------------------------------
-!      ENTRY UPDGHG(JYEARG,JJDAYG)
-C--------------------------------
-      subroutine UPDGHG(JYEARG,JJDAYG)
-      IMPLICIT NONE
-      INTEGER, INTENT(IN) :: JYEARG,JJDAYG
-      REAL*8 TREF,TNOW
-      INTEGER I
-C
-      TNOW=JYEARG+(JJDAYG-0.999D0)/366.D0
-C
-      IF(KTREND==0) THEN
-        FULGAS(2)=PPMVK0(2)/XREF(1)
-        FULGAS(6)=PPMVK0(6)/XREF(2)
-        FULGAS(7)=PPMVK0(7)/XREF(3)
-        FULGAS(8)=PPMVK0(8)/XREF(4)
-        FULGAS(9)=PPMVK0(9)/XREF(5)
-        FULGAS(11)=PPMVK0(11)/XREF(6) ! YREF11
-        FULGAS(12)=PPMVK0(12)/XREF(7) ! .../ZREF12
-        RETURN
-      END IF
-
-      CALL GTREND(XNOW,TNOW) ! finds xnow 1-6 (ynow11=xx6=xnow(6))
-      XNOW(7)=1.D-20         ! ZNOW12=1.D-20
-      FULGAS(2)=XNOW(1)/XREF(1)
-      FULGAS(6)=XNOW(2)/XREF(2)
-      FULGAS(7)=XNOW(3)/XREF(3)
-      FULGAS(8)=XNOW(4)/XREF(4)
-      FULGAS(9)=XNOW(5)/XREF(5)
-      FULGAS(11)=XNOW(6)/XREF(6) ! YNOW11/YREF11
-      FULGAS(12)=XNOW(7)/XREF(7) ! ZNOW12/ZREF12
-C
-      RETURN
-      end subroutine UPDGHG
-
-      subroutine GETGAS
-      call SETGAS(1)
-      end subroutine GETGAS
-
-      SUBROUTINE SETGAS( GETGAS_flag)
+      SUBROUTINE SETHUM0
+! remaining purposes of this routine:
+!    set humidity in radiation-only layers
+      use ghgmod, only : h2o_mmr_to_cm_at_stp
       IMPLICIT NONE
 C-----------------------------------------------------------------------
 C     Global   U.S. (1976) Standard Atmosphere  P, T, Geo Ht  Parameters
 C-----------------------------------------------------------------------
-      INTEGER, optional :: GETGAS_flag
-      REAL*8, PARAMETER :: HPCON=34.16319d0,P0=1013.25d0,
-     *     PI=3.141592653589793D0
-      REAL*8, SAVE :: SINLAT(46)
-      INTEGER, SAVE :: IFIRST=1, NL0
+      REAL*8, PARAMETER :: HPCON=34.16319d0,P0=1013.25d0
       INTEGER I,NLAY,NATM,L,J,K,N
       REAL*8 RHP,EST,FWB,FWT,PLT,DP,EQ,ES,ACM,HI,FI,HL,HJ,FJ,DH
-     *     ,FF,GGVDF,ZT,ZB,EXPZT,EXPZB,PARTTR,PARTTG,PTRO,DL,DLS,DLN
-     *     ,Z0LAT,SUMCOL,ULGASL,UGAS0(LX),UGASR(LX)
+     *     ,FF,GGVDF,ZT,ZB,EXPZT,EXPZB
+     *     ,ULGASL
 
-      if ( present(GETGAS_flag) ) goto 777
-
-      IF(IFIRST==1) THEN
-        SINLAT(:) = SIN(DLAT46(:)*PI/180.D0)
-        NL0=NL
-        IFIRST=0
-      ENDIF
-C                  -----------------------------------------------------
-C                  Use PLB to fix Standard Heights for Gas Distributions
-C                  -----------------------------------------------------
-
-!nu   PS0=PLB0(1)
-
-      DO 100 L=1,NL0
-      DPL(L)=PLB0(L)-PLB0(L+1)
-      PL(L)=(PLB0(L)+PLB0(L+1))*0.5D0
-!nu   HLB(L)=HLB0(L)
-  100 CONTINUE
-!nu   HLB(NL0+1)=HLB0(NL0+1)
-ccc      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL0)
-      CALL SET_FPXCO2(PL,FPXCO2,NL0,KFPCO2)
-cc    IUFAC=1
-cc    IF(IUFAC==0) FPXCO2(:)=1
-
-      NLAY=LASTVC/100000
-      NATM=(LASTVC-NLAY*100000)/10000
-      IF(NATM > 0) GO TO 112
-
-C     ----------------------------------------------------------------
-C     Define Default Global Mean Gas Amounts for Off-Line Use Purposes
-C
-C     IGAS=1                              Global Mean H2O Distribution
-C                                         ----------------------------
+!C     ----------------------------------------------------------------
+!C     Define Default Global Mean Gas Amounts for Off-Line Use Purposes
+!C
+!C     IGAS=1                              Global Mean H2O Distribution
+!C                                         ----------------------------
       RHP=0.77D0
       EST=10.D0**(9.4051D0-2353.D0/TLB(1))
       FWB=0.662D0*RHP*EST/(PLB0(1)-RHP*EST)
-      DO 111 L=1,NL0
+      DO 111 L=1,NL
       PLT=PLB0(L+1)
       DP=PLB0(L)-PLT
       RHP=0.77D0*(PLT/P0-0.02D0)/.98D0
@@ -2343,164 +2099,35 @@ C                                         ----------------------------
       RHP=FWT*PLT/(EST*(FWT+0.662D0))
   110 CONTINUE
       ULGASL=0.5D0*(FWB+FWT)*DP*h2o_mmr_to_cm_at_stp
-      U0GAS(L,1)=ULGASL
       SHL(L)=ULGASL/(ULGASL+h2o_mmr_to_cm_at_stp*DP)
-      EQ=0.5D0*(PLB0(L)+PLT)*SHL(L)/(0.662D0+0.378D0*SHL(L))
-      ES=10.D0**(9.4051D0-2353.D0/TLM(L))
-      RHL(L)=EQ/ES
       FWB=FWT
   111 CONTINUE
   112 CONTINUE
 
-C                                         ----------------------------
-C     IGAS=5                              Global Mean NO2 Distribution
-C                                         ----------------------------
-      ACM=0.D0
-      HI=0.D0
-      FI=CMANO2(1)
-      HL=HLB0(2)
-      L=1
-      J=1
-  130 CONTINUE
-      J=J+1
-      IF(J > 42) GO TO 133
-      HJ=HI+2.D0
-      FJ=CMANO2(J)
-  131 CONTINUE
-      DH=HJ-HI
-      IF(HJ > HL) GO TO 132
-      ACM=ACM+(FI+FJ)*DH*0.5D0
-      HI=HJ
-      FI=FJ
-      GO TO 130
-  132 CONTINUE
-      FF=FI+(FJ-FI)*(HL-HI)/DH
-      DH=HL-HI
-      ACM=ACM+(FI+FJ)*DH*0.5D0
-      U0GAS(L,5)=ACM
-      ACM=0.D0
-      HI=HL
-      FI=FF
-      IF(L==NL0) GO TO 133
-      L=L+1
-      HL=HLB0(L+1)
-      GO TO 131
-  133 CONTINUE
-      U0GAS(L,5)=ACM
-      ACM=0.D0
-      L=L+1
-      IF(L < NL0+1) GO TO 133
-C                            -----------------------------------------
-C     IGAS=2 and 4           (CO2,O2) Uniformly Mixed Gas Distribution
-C                            -----------------------------------------
-      DO 140 K=2,4,2
-      U0GAS(1:NL0,K)=PPMV80(K)*ppmv_to_cm_at_stp*DPL(1:NL0)
-  140 CONTINUE
-C                -----------------------------------------------------
-C     IGAS=6-12  (N20,CH4,F11,F12) Specified Vertical Gas Distribution
-C                -----------------------------------------------------
-      DO 151 K=6,12
-      IF(K==10) GO TO 151
-      DO 150 N=1,NL0
-      GGVDF=1.D0-(1.D0-PPMVDF(K))*(1.D0-PLB0(N)/PLB0(1))
-      IF(KGGVDF < 1) GGVDF=1.D0
-      U0GAS(N,K)=PPMV80(K)*ppmv_to_cm_at_stp*DPL(N)*GGVDF
-      ZT=(HLB0(N+1)-Z0(K))/ZH(K)
-      IF(ZT <= 0.D0) GO TO 150
-      ZB=(HLB0(N)-Z0(K))/ZH(K)
-      EXPZT=EXP(-ZT)
-      EXPZB=EXP(-ZB)
-      IF(ZB < 0.D0) EXPZB=1.D0-ZB
-      U0GAS(N,K)=U0GAS(N,K)*(EXPZB-EXPZT)/max(ZT-ZB,1d-6)
-  150 CONTINUE
-  151 CONTINUE
-C                         --------------------------------------------
-C                         Specification of  FULGAS  Scaled Gas Amounts
-C                         --------------------------------------------
 
-Cc*** Adjust water vapor in ALL layers                        ! IGAS=1
-cc    ULGAS(1:NL0,1)=U0GAS(1:NL0,1)*FULGAS(1)
-c**** Only adjust stratospheric levels (above LS1_loc)
-      ULGAS(1:LS1_loc-1,1)=U0GAS(1:LS1_loc-1,1)
-      ULGAS(LS1_loc:NL0,1)=U0GAS(LS1_loc:NL0,1)*FULGAS(1)
-C****
-      ULGAS(1:NL0,3)=U0GAS(1:NL0,3)*FULGAS(3)                 ! IGAS=3
-      IF(KPFOZO==1) ULGAS(1:NL0,3)=ULGAS(1:NL0,3)*FPXOZO(1:NL0)
+      END SUBROUTINE SETHUM0
 
-      DO 240 L=1,NL0                                     ! IGAS=2,4-13
-!!!   PARTTR = (PLB(L)-PLB(L+1)) / (PLB0(L)-PLB0(L+1))   ! PLB=PLB0 ??
-      DO 240 K=2,12
-      IF(K==3) GO TO 240
-!!!   PARTTG=PARTTR  ! next line not possible at this point (jlat=???)
-!!!   IF(KPGRAD > 0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
-      ULGAS(L,K)=U0GAS(L,K)*FULGAS(K) !!! *PARTTG
-  240 CONTINUE
-      ULGAS(1:NL0,13)=U0GAS(1:NL0,13)*FULGAS(13)
+      subroutine seth2o
+! set ulgas(k=1) from humidity arrays
+      use ghgmod, only : fulgas ! for fulgas(1)
+      use ghgmod, only : h2o_mmr_to_cm_at_stp
+      implicit none
+      integer :: l
+      real*8 :: eq,es
 
-      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
-
-      RETURN
-
-
-C-----------------
-!      ENTRY GETGAS
-C-----------------
- 777  continue
-C                        ---------------------------------------------
-C                        Specify ULGAS: Get Gas Absorption from TAUGAS
-C                        ---------------------------------------------
-
-C                -----------------------------------------------------
-C                N20,CH4,F11,F12 Specified Latitudinal Z0 Distribution
-C                -----------------------------------------------------
-
-      IF(KLATZ0 > 0) THEN
-        PTRO=100.D0
-        DL=DLAT46(JLAT)
-        DLS=-40.D0
-        DLN= 40.D0
-        IF(DL < DLS) PTRO=189.D0-(DL+40.D0)*2.22D0
-        IF(DL > DLN) PTRO=189.D0+(DL-40.D0)*2.22D0
-        DO L=1,NL0
-          IF(PLB0(L) >= PTRO) Z0LAT=HLB0(L)  ! orig. hlb not hlb0
-        END DO
-        DO 251 K=6,12
-        IF(K==10) GO TO 251
-        DO 250 L=1,NL0
-        U0GAS(L,K)=PPMV80(K)*ppmv_to_cm_at_stp*(PLB0(L)-PLB0(L+1))
-        IF(PLB0(1) >= PTRO) THEN ! safety check until P,H hard-coding removed
-        ZT=(HLB0(L+1)-Z0LAT)/ZH(K)           ! orig. hlb not hlb0
-        IF(ZT <= 0.D0) GO TO 250
-        ZB=(HLB0(L)-Z0LAT)/ZH(K)             ! orig. hlb not hlb0
-        EXPZT=EXP(-ZT)
-        EXPZB=EXP(-ZB)
-        IF(ZB < 0.D0) EXPZB=1.D0-ZB
-        U0GAS(L,K)=U0GAS(L,K)*(EXPZB-EXPZT)/max(ZT-ZB,1d-6)
-        ENDIF                    ! safety check
-  250   CONTINUE
-  251   CONTINUE
+      IF(KEEPRH==0) THEN ! find RH from SH
+        DO L=L1,NL
+          EQ=PL(L)*SHL(L)/(0.662D0+0.378D0*SHL(L))
+          ES=10.D0**(9.4051D0-2353.D0/TLM(L))
+          RHL(L)=EQ/ES
+        ENDDO
+      ELSEIF(KEEPRH==1) THEN                  ! find SH from RH
+        DO L=L1,NL
+          ES=10.D0**(9.4051D0-2353.D0/TLM(L))
+          SHL(L)=0.622D0*(RHL(L)*ES)/(PL(L)-0.378D0*(RHL(L)*ES))
+        ENDDO
+      !ELSEIF(KEEPRH==2) THEN ! keep RH,SH
       ENDIF
-
-      DO 300 L=L1,NL
-      DPL(L)=PLB(L)-PLB(L+1)
-      PL(L)=(PLB(L)+PLB(L+1))*0.5D0
-  300 CONTINUE
-
-      IF(KEEPRH==2) GO TO 313                  ! keep RH,SH
-      IF(KEEPRH==1) GO TO 311                  ! find SH from RH
-      DO 310 L=L1,NL                           ! find RH from SH
-      EQ=PL(L)*SHL(L)/(0.662D0+0.378D0*SHL(L))
-      ES=10.D0**(9.4051D0-2353.D0/TLM(L))
-      RHL(L)=EQ/ES
-  310 CONTINUE
-      GO TO 313
-  311 CONTINUE
-      DO 312 L=L1,NL
-      ES=10.D0**(9.4051D0-2353.D0/TLM(L))
-      SHL(L)=0.622D0*(RHL(L)*ES)/(PL(L)-0.378D0*(RHL(L)*ES))
-  312 CONTINUE
-  313 CONTINUE
-
       U0GAS(L1:NL,1)=h2o_mmr_to_cm_at_stp*DPL(L1:NL)*
      *    SHL(L1:NL)/(1-SHL(L1:NL))
 Cc*** Adjust water vapor in ALL layers
@@ -2508,61 +2135,16 @@ cc    ULGAS(L1:NL,1)=U0GAS(L1:NL,1)*FULGAS(1)
 c**** Only adjust stratospheric levels (above LS1_loc)
       ULGAS(L1:LS1_loc-1,1)=U0GAS(L1:LS1_loc-1,1)
       ULGAS(LS1_loc:NL,1)=U0GAS(LS1_loc:NL,1)*FULGAS(1)
-C****
-      ULGAS(1:NL0,3)=U0GAS(1:NL0,3)*FULGAS(3)
-      IF(KPFOZO==1) ULGAS(1:NL0,3)=ULGAS(1:NL0,3)*FPXOZO(1:NL0)
 
-      DO 340 L=L1,NL0   ! =L1,NL for GCM use, =1,NL0 for offline use
-      PARTTR = (PLB(L)-PLB(L+1)) / (PLB0(L)-PLB0(L+1))
-      DO 339 K=2,12
-      IF(K==3) GO TO 339
-      PARTTG=PARTTR
-      IF(KPGRAD > 0) PARTTG=PARTTG*(1.D0+0.5D0*PPGRAD(K)*SINLAT(JLAT))
-      ULGAS(L,K)=U0GAS(L,K)*FULGAS(K)*PARTTG
-  339 CONTINUE
-      ULGAS(L,13)=U0GAS(L,13)*FULGAS(13)
-  340 CONTINUE
-
-      chem_out(:,4)=ULGAS(:,7) ! climatological CH4 saved for chemistry
-      if(use_tracer_chem(2) > 0) ! allow use of tracer CH4.
-     * ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
-
-      IF(MRELAY > 0) THEN          ! for offline use only
-        IF(NO3COL > 0)             ! rescale ozone to col.amount RO3COL
-     *    ULGAS(1:NL0,3) = U0GAS(1:NL0,3)*RO3COL/SUM( U0GAS(1:NL0,3) )
-        DO 450 K=2,12                      ! repartition to new layering
-          IF(K==10.and.KEEP10 > 0) GO TO 450
-          UGAS0(1:NL0) = ULGAS(1:NL0,K)
-          CALL REPART(UGAS0,PLB0,NL0+1, UGASR,PLB,NL+1)
-          ULGAS(1:NL,K)=UGASR(1:NL)
-  450   CONTINUE
-        IF (KEEP10 > 0 .and. KEEP10 < 10)
-     *    ULGAS(1:NL,KEEP10) = ULGAS(1:NL,10)
-        IF (KEEP10 > 10)
-     *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
-      ENDIF
-
-      ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
-
-      chem_out(:,1)=ULGAS(:,3)!O3 considering move to RCOMPX; see above
-C     chem_out(:,2)= _________              ! set in RCOMPX
-      chem_out(:,3)=ULGAS(:,6)              ! N2O
-C     chem_out(:,4)=ULGAS(:,7) ! CH4 (moved above before tracer option)
-      chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
-
-C-----------------
-      CALL  TAUGAS
-C-----------------
-
-      RETURN
-      END SUBROUTINE SETGAS
-
+      return
+      end subroutine seth2o
 
       subroutine GETO2A
       call SETO2A(1)
       end subroutine GETO2A
 
       SUBROUTINE SETO2A( GETO2A_flag )
+      use ghgmod, only : ppmv80,ppmv_to_cm_at_stp
       IMPLICIT NONE
       INTEGER,optional :: GETO2A_flag
 
@@ -2669,6 +2251,40 @@ C              ---------------------------------------------------------
       RETURN
       END SUBROUTINE SETO2A
 
+      SUBROUTINE SETFPX
+ccc      CALL RETERP(UFAC36,P36,36,FPXCO2,PL,NL)
+      CALL SET_FPXCO2(PL,FPXCO2,NL,KFPCO2)
+cc    IUFAC=1
+cc    IF(IUFAC==0) FPXCO2(:)=1
+      END SUBROUTINE SETFPX
+
+      SUBROUTINE FPXSCALEGAS
+      ! vertical profile scaling
+
+      IF(KPFOZO==1) ULGAS(1:NL,3)=ULGAS(1:NL,3)*FPXOZO(1:NL)
+
+      ! for some reason this line was moved 10/17/2017 after the commented-out
+      ! MRELAY>0 coding below
+      ULGAS(1:NL,2)=ULGAS(1:NL,2)*FPXCO2(1:NL)
+
+! Commenting out this section for now
+!      IF(MRELAY > 0) THEN          ! for offline use only
+!        IF(NO3COL > 0)             ! rescale ozone to col.amount RO3COL
+!     *    ULGAS(1:NL0,3) = U0GAS(1:NL0,3)*RO3COL/SUM( U0GAS(1:NL0,3) )
+!        DO 450 K=2,12                      ! repartition to new layering
+!          IF(K==10.and.KEEP10 > 0) GO TO 450
+!          UGAS0(1:NL0) = ULGAS(1:NL0,K)
+!          CALL REPART(UGAS0,PLB0,NL0+1, UGASR,PLB,NL+1)
+!          ULGAS(1:NL,K)=UGASR(1:NL)
+!  450   CONTINUE
+!        IF (KEEP10 > 0 .and. KEEP10 < 10)
+!     *    ULGAS(1:NL,KEEP10) = ULGAS(1:NL,10)
+!        IF (KEEP10 > 10)
+!     *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
+!      ENDIF
+
+      RETURN
+      END SUBROUTINE FPXSCALEGAS
 
       subroutine GETBAK
       call SETBAK(1)
@@ -5275,6 +4891,7 @@ C**** Window region and spectr. integrated total flux diagnostics
       END SUBROUTINE SOLAR0
 
       SUBROUTINE SOLARM
+      use ghgmod, only : fulgas ! for fulgas(4)
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     SOLARM Returns:
@@ -6343,6 +5960,8 @@ c     *     EOCTRA, ESNTRA, EICTRA, EDSTRA, EVGTRA, AGEXPF, ALBDIF
       USE SURF_ALBEDO, only : get_albedo_data
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE DustParam_mod, only : redust
+      use ghgmod, only : kpgrad,klatz0,ppmvk0,ppgrad,ppmv_to_cm_at_stp,
+     &     fulgas,ppmv80,ktrend
       IMPLICIT NONE
 C
 C     ------------------------------------------------------------------
@@ -6478,7 +6097,7 @@ C-------------
      +      /' CONTROL PARAMTER      DEFAULT  PARAMETER DESCRIPTION')
 
        WRITE(KW,6001)                              KUVFAC,KSNORM
-     + ,KWTRAB,KGGVDF,KPGRAD,KLATZ0,KCLDEM,KANORM,KFPCO2,KPFOZO,KSIALB
+     + ,KWTRAB,KPGRAD,KLATZ0,KCLDEM,KANORM,KFPCO2,KPFOZO,KSIALB
      + ,KORDER,KUFH2O,KUFCO2,KCSELF,KCFORN
  6001 FORMAT( ! 7X,'   KVRAER = ',I1,'     1      Repartition Aer VDist'
 !nu  2    ! /7X,'   MEANAC = ',I1,'     0      Use Ann-Mean Aer Clim'
@@ -6488,7 +6107,6 @@ C-------------
      6       7X,'   KUVFAC = ',I1,'     0      ON/OFF UV Mult Factor'
      7      /7X,'   KSNORM = ',I1,'     0      Norm S0 when KUVFAC=1'
      8      /7X,'   KWTRAB = ',I1,'     0      WRITER: Qab,Qex,Qsc,g'
-     9      /7X,'   KGGVDF = ',I1,'     0      Use GHG VertProf Grad'
      A      /7X,'   KPGRAD = ',I1,'     1      Pole-to-Pole GHG Grad'
      1      /7X,'   KLATZ0 = ',I1,'     1      Use GHG VDist Lat Dep'
      2      /7X,'   KCLDEM = ',I1,'     1      Use TopCloud Scat Cor'
@@ -6553,9 +6171,9 @@ C
      K      )
 
       WRITE(KW,6019)
- 6019 FORMAT(/'  GHGAS',9X,'PPMVK0    PPMVDF    PPGRAD')
-      WRITE(KW,6020) (ghg(I),PPMVK0(I),PPMVDF(I),PPGRAD(I),I=1,12)
- 6020 FORMAT(1X,a6,' ',F15.7,F10.5,F10.5)
+ 6019 FORMAT(/'  GHGAS',9X,'PPMVK0    PPGRAD')
+      WRITE(KW,6020) (ghg(I),PPMVK0(I),PPGRAD(I),I=1,12)
+ 6020 FORMAT(1X,a6,' ',F15.7,F10.5)
       END IF
       GO TO 9999
 C
@@ -8020,10 +7638,11 @@ C
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use DustParam_mod, only : upddst2
-      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3
+      use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3,o3jday,o3jref
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
 #endif
+      use ghgmod, only : xref,ppmv80,ktrend,xnow,fulgas,updghg
       IMPLICIT NONE
 C
 C
@@ -8632,39 +8251,13 @@ C
 
       END MODULE RADPAR
 
+      subroutine get_72x46ij(lon,lat,ilon72,jlat46)
+      use constant, only : radian,pi,twopi
+      implicit none
+      real*8 :: lon,lat
+      integer :: ilon72,jlat46
 
-      SUBROUTINE GTREND(XNOW,TNOW)
-C
-      USE RADPAR, only: nghg,ghgyr1,ghgyr2,ghgam
-      IMPLICIT NONE
-      REAL*8 xnow(nghg),tnow,year,dy,frac
-      INTEGER iy,n
-C
-C-------------------------------------------------------------
-C        Makiko GHG Trend Compilation  GHG.1850-2050.Dec1999
-C
-C        Annual-Mean      Greenhouse Gas Mixing Ratios
-C-------------------------------------------------------------
-C                 CO2     N2O     CH4   CFC-11  CFC-12  others
-C        Year     ppm     ppm     ppm     ppb     ppb     ppb
-C-------------------------------------------------------------
-C     Read from external file - outside table: use value from
-C                                      years ghgyr1 or ghgyr2
-      YEAR=TNOW
-      IF(TNOW <= ghgyr1+.5D0) YEAR=ghgyr1+.5D0
-      IF(TNOW >= ghgyr2+.49999D0) YEAR=ghgyr2+.49999D0
-      DY=YEAR-(ghgyr1+.5D0)
-      IY=DY
-      frac=DY-IY
-      IY=IY+1
-C
-C     CO2 N2O CH4 CFC-11 CFC-12 other_GHG  SCENARIO
-C--------------------------------------------------
-C
-      do n=1,nghg
-        XNOW(N)=GHGAM(N,IY)+frac*(GHGAM(N,IY+1)-GHGAM(N,IY))
-      end do
-C
-      RETURN
-      END SUBROUTINE GTREND
+      ilon72 = 1 + int( 72d0*lon/twopi )
+      jlat46 = 1 + int( 45d0*(lat+92d0*radian)/pi )
 
+      end subroutine get_72x46ij

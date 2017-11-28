@@ -19,6 +19,10 @@
       use trdust_drv, only : init_soildust
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+      use model_com, only: master_yr, modelEclock
+      use dist_grid_mod, only : dist_grid
+      use timestream_mod, only: init_stream, read_stream, timestream
+      use domain_decomp_atm, only : init_grid, broadcast
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
@@ -29,7 +33,8 @@
      &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
      &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
      &     CFCICIN,CFCIC,CFCICINL,CFCICL,
-     &     use_rad_n2o,use_rad_cfc,cfc_rad95
+     &     use_rad_n2o,use_rad_cfc,cfc_rad95,
+     &   ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth,ICfact_N2O,ICfact_CFC
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_init
@@ -66,7 +71,10 @@ c
       character*80 title
       character(len=300) :: out_line
       real*8, dimension(6) :: temp_ghg
-      integer :: temp_year
+      integer :: temp_year, xyear, year, day
+      type(dist_grid), target :: chemIC_grid
+      type(timestream) :: trICratN, trICratCOt, trICratCOs
+      type(timestream) :: trICratOth, trICratN2O, trICratCFC
 #endif /* TRACERS_SPECIAL_Shindell */
 
 ! temp storage for new tracer interfaces
@@ -195,6 +203,22 @@ C          read the CFC initial conditions:
       end do
 
 #ifdef TRACERS_ON
+#ifdef TRACERS_SPECIAL_Shindell
+      ! Read time-dependant factors to scale chemical tracer initial conditions.
+      ! Some of these are not single-tracer specific, so not done under trname
+      ! select case above. For now, use a single-column grid, but still using
+      ! timestream, in case we expand to have these read on the model grid instead:
+      call init_grid(chemIC_grid,1,1,1,width=0)
+      call modelEclock%get(year=year, dayOfYear=day)
+      call get_param( "O3_yr", xyear, default=master_yr )
+      if(xyear==0) xyear=year
+      call getIC(chemIC_grid,trICratN,'trICratN',ICfact_N,grid)
+      call getIC(chemIC_grid,trICratCOt,'trICratCOt',ICfact_COt,grid)
+      call getIC(chemIC_grid,trICratCOs,'trICratCOs',ICfact_COs,grid)
+      call getIC(chemIC_grid,trICratOth,'trICratOth',ICfact_Oth,grid)
+      call getIC(chemIC_grid,trICratN2O,'trICratN2O',ICfact_N2O,grid)
+      call getIC(chemIC_grid,trICratCFC,'trICratCFC',ICfact_CFC,grid)
+#endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -257,4 +281,21 @@ C Read landuse parameters and coefficients for tracer dry deposition:
       call init_src_dist
 
       return
+
+#ifdef TRACERS_SPECIAL_Shindell
+      CONTAINS
+        subroutine getIC(Dgrid,Dstream,Dfile,Dvar,mainGrid)
+        type(dist_grid) :: Dgrid,mainGrid
+        type(timestream) :: Dstream
+        character(len=*) :: Dfile
+        real*8, dimension(1,1) :: Dvar
+        call init_stream
+     &  (Dgrid,Dstream,Dfile,'ICscale',0.d0,1.d30,'none',xyear,day)
+        call read_stream(Dgrid,Dstream,xyear,day,Dvar)
+        call broadcast(mainGrid,Dvar)
+        if(am_i_root())
+     &    write(6,*)'IC scaling for ',trim(Dfile),' = ',Dvar
+        end subroutine getIC
+#endif /* TRACERS_SPECIAL_Shindell */
+
       end subroutine initTracerGriddedData

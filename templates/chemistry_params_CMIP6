@@ -36,20 +36,6 @@ use_rad_cfc=1      ! use rad code cfc11+cfc12, adjusted
 rad_FL=1           ! use rad code insolation getting fastj2 photon flux
 which_trop=0       ! choose tropopause for chemistry purposes:
                    ! 0=LTROPO(I,J), 1=LS1-1
-
-! For altering tracer initial conditions and overwriting by a factor:
-! set PI_run=1 and change the corresponding factors below. [For altering
-! emissions, use the sectors above in the rundeck.
-!PI_run        = 1       ! =1 turns on below PIratio factors. Note that for
-                         ! master_yr=1850 if PI_run is undefined in the rundeck
-                         ! it defaults to 1, so the parameters below are used.
-                         ! For all other master_yr values, PI_run defaults to 0
-PIratio_N     = 0.667d0 ! {NOx, HNO3, N2O5, HO2NO2}
-PIratio_CO_T  = 0.333d0 ! CO in troposphere
-PIratio_CO_S  = 0.500d0 ! CO in stratosphere
-PIratio_other = 0.500d0 ! {PAN,Isoprene,AlkyNit,Alkenes,Paraffin}
-PIratio_N2O   = 1.000d0 ! {N2O ICs, L=1 overwrit}, set to 1 for use_rad_n2o=1
-PIratio_CFC   = 1.000d0 ! {CFC ICs, L=1 overwrit}, set to 1 for use_rad_cfc=1
 !--- number of biomass burning sources (per tracer) Remember to list those sources last!
 Alkenes_nBBsources=1
 CO_nBBsources=1

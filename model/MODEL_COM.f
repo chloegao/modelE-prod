@@ -21,7 +21,7 @@
 !**** Default simulation year. If set to zero, transient run.
 !@dbparam master_yr year of simulation. This value will define aero_yr,
 !@+       aer_int_yr, albsn_yr, crops_yr, ghg_yr, o3_yr, s0_yr, volc_yr,
-!@+       variable_orb_par,orb_par_year_bp,and PI_run, unless any of these
+!@+       variable_orb_par,orb_par_year_bp, unless any of these
 !@+       are specifically defined.
       INTEGER ::  master_yr = 1951
 

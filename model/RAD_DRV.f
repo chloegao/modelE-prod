@@ -49,8 +49,9 @@ C****
 #ifndef CUBED_SPHERE
       USE GEOM, only : lat_dg
 #endif
+      use ghgmod, only : ktrend
       USE RADPAR, only : !rcomp1,writer,writet       ! routines
-     &      PTLISO ,KTREND ,LMR=>NL, PLB, LS1_loc
+     &      PTLISO ,LMR=>NL, PLB, LS1_loc
      &     ,planck_tmin,planck_tmax
      &     ,transmission_corrections
      *     ,KCLDEM,KSIALB,KSOLAR, SHL, snoage_fac_max, KZSNOW
@@ -995,7 +996,7 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
         call openunit('GHG',iu,.false.,.true.)
-        call ghghst(iu)
+        call ghghst(iu,ghg_yr)
         call closeunit(iu)
         if(file_exists('dH2O').and.H2ObyCH4.ne.0..and.Kradia.le.0) then
 C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
@@ -1180,11 +1181,11 @@ c          call par_close(grid,fid)
       USE DOMAIN_DECOMP_ATM, only : am_I_root
       USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
       use model_com, only: modelEclock
-      USE RADPAR, only : FULGAS,JYEARR=>JYEAR,JDAYR=>JDAY
-     *     ,xref,KYEARV
+      use ghgmod, only : xref,fulgas
 #ifdef ALTER_RADF_BY_LAT
      *     ,FULGAS_orig
 #endif
+      USE RADPAR, only : JYEARR=>JYEAR,JDAYR=>JDAY,KYEARV
       USE RADPAR, only : rcompt,writet
       USE RAD_COM, only : co2x,n2ox,ch4x,cfc11x,cfc12x,xGHGx,h2ostratx
      *     ,o2x,no2x,n2cx,yghgx,so2x
@@ -1473,7 +1474,7 @@ C**** Update orbital parameters at start of year
       USE MODEL_COM, only : itime
       USE GEOM, only : axyp,imaxj,lat2d
       USE ATM_COM, only : byMA
-      USE RADPAR, only : ghgam,ghgyr2,ghgyr1
+      USE GHGMOD, only : ghgam,ghgyr2,ghgyr1
       USE RAD_COM, only : dh2o,H2ObyCH4,ghg_yr
 #ifdef TRACERS_WATER
       use OldTracer_mod, only: tr_wd_type, nWATER,tr_H2ObyCH4, itime_tr0
@@ -1574,14 +1575,16 @@ C**** Add water to relevant tracers as well
       USE ATM_COM, only : byaml00
       USE GEOM, only : imaxj, axyp, byaxyp
      &     ,lat2d,lon2d
+      use O3mod, only : use_o3_ref
+      use ghgmod, only : use_tracer_chem,chem_in,fulgas,updghg
       USE RADPAR
      &  , only :  ! routines
      &           lx  ! for threadprivate copyin common block
      &          ,tauwc0,tauic0 ! set in radpar block data
-     &          ,writer,rcompx,updghg
+     &          ,writer,rcompx
 C     INPUT DATA         ! not (i,j) dependent
-     X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY,FULGAS
-     &          ,use_tracer_chem,FS8OPX,FT8OPX,use_o3_ref,KYEARG,KJDAYG
+     X          ,S00WM2,RATLS0,S0,JYEARR=>JYEAR,JDAYR=>JDAY
+     &          ,FS8OPX,FT8OPX,KYEARG,KJDAYG
      &          ,planck_tmin,planck_tmax
 #ifdef ALTER_RADF_BY_LAT
      &          ,FS8OPX_orig,FT8OPX_orig,FULGAS_orig
@@ -1594,7 +1597,7 @@ C     INPUT DATA  (i,j) dependent
      &             ,TGO,TGE,TGOI,TGLI,TSL,WMAG,WEARTH
      &             ,AGESN,SNOWD,SNOWOI,SNOWLI,dALBsn, ZSNWOI,ZOICE
      &             ,zmp,fmp,flags,LS1_loc,snow_frac,zlake
-     *             ,TRACER,FSTOPX,FTTOPX,chem_IN
+     *             ,TRACER,FSTOPX,FTTOPX
      &             ,nraero_aod=>NTRACE
      *             ,FTAUC,LOC_CHL,FSTASC,FTTASC
 #ifdef HEALY_LM_DIAGS
@@ -1742,7 +1745,7 @@ C
       real*8 q_above(LM+1),q_below(LM+1),Frad(LM+1)
 #endif
 C     INPUT DATA   partly (i,j) dependent, partly global
-      REAL*8 U0GAS,taulim
+      REAL*8 taulim
 #ifndef NEW_BCdalbsn
       REAL*8 xdalbs,sumda,tauda,fsnow
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
@@ -1899,7 +1902,6 @@ c     INTEGER ICKERR,JCKERR,KCKERR
       character(len=300) :: out_line
 
       integer :: nij_before_j0,nij_after_j1,nij_after_i1
-      integer :: initial_GHG_setup
 
       real*8 :: PVT0(N_COVERTYPES), HVT0(N_COVERTYPES)
 #ifdef TRACERS_NITRATE
@@ -2031,11 +2033,6 @@ c**** find scaling factors for surface albedo reduction
       End If
       do j=J_0S,J_1S
       do i=I_0,I_1
-c ilon72, jlat46 are indices w.r.t 72x46 grid
-c      JLAT46=INT(1.+(J-1.)*0.25*DLAT_DG+.5)   ! slightly more general
-c      ILON72=INT(.5+(I-.5)*72./IM+.5)
-        ilon72 = 1 + int( 72d0*lon2d(i,j)/twopi )
-        jlat46 = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
         fsnow = flice(i,j) + rsi(i,j)*(1-fland(i,j))
         if(atmlnd%SNOWE(I,J).gt.0.) fsnow = fsnow+fearth(i,j)
         sumda_psum(i,j) = axyp(i,j)*fsnow
@@ -2184,8 +2181,7 @@ c      JLAT46=INT(1.+(J-1.)*0.25*DLAT_DG+.5) ! slightly more general
 c      ILON72=INT(.5+(I-.5)*72./IM+.5)  ! lon_index w.r.to 72x46 grid
       igcm = i
       jgcm = j
-      ilon72 = 1 + int( 72d0*lon2d(i,j)/twopi )
-      jlat46 = 1 + int( 45d0*(lat2d(i,j)+92d0*radian)/pi )
+      call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
 #ifdef ALTER_RADF_BY_LAT
       FULGAS(:)=FULGAS_orig(:)*FULGAS_lat(:,JLAT46)
       FS8OPX(:)=FS8OPX_orig(:)*FS8OPX_lat(:,JLAT46)
@@ -2801,12 +2797,6 @@ C**** Ozone:
 #ifdef TRACERS_SPECIAL_Shindell
 ! final (main) RCOMPX call can use tracer methane (or not):
       use_tracer_chem(2)=onoff_chem*Lmax_rad_CH4
-      if (is_set_param('initial_GHG_setup')) then
-        call get_param('initial_GHG_setup', initial_GHG_setup)
-        if (initial_GHG_setup == 1 .and. itime == itimeI) then
-          use_tracer_chem(2)=0  ! special case; model outputs climatology
-        end if
-      end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
 
@@ -3216,8 +3206,7 @@ c               print*,'SUSA  diag',SUM(aesqex(1:Lm,kr,n))
       IF (I.EQ.IWRITE .and. J.EQ.JWRITE) CALL WRITER(6,ITWRITE)
       CSZ2=COSZ2(I,J)
       do L=1,LM
-        rad_to_chem(:,L,i,j)=chem_out(L,:)
-        rad_to_chem(4,L,i,j)=chem_out(L,4)/CH4X_RADoverCHEM
+        rad_to_chem(L,i,j)=chem_out(L)
         do k=1,4
           kliq(L,k,i,j)=kdeliq(L,k) ! save updated flags
         end do
@@ -4248,55 +4237,6 @@ C**** Same for upward thermal
 
       RETURN
       END SUBROUTINE RESET_SURF_FLUXES
-
-      SUBROUTINE GHGHST(iu)
-!@sum  reads history for nghg well-mixed greenhouse gases
-!@auth R. Ruedy
-
-      use domain_decomp_atm, only : write_parallel
-      USE RADPAR, only : nghg,ghgyr1,ghgyr2,ghgam
-      USE RAD_COM, only : ghg_yr
-      IMPLICIT NONE
-      INTEGER :: iu,n,k,nhead=4,iyr
-      CHARACTER*80 title
-      character(len=300) :: out_line
-
-      write(out_line,*)  ! print header lines and first data line
-      call write_parallel(trim(out_line),unit=6)
-      do n=1,nhead+1
-        read(iu,'(a)') title
-        write(out_line,'(1x,a80)') title
-        call write_parallel(trim(out_line),unit=6)
-      end do
-      if(title(1:2).eq.'--') then                 ! older format
-        read(iu,'(a)') title
-        write(out_line,'(1x,a80)') title
-        call write_parallel(trim(out_line),unit=6)
-        nhead=5
-      end if
-
-!**** find range of table: ghgyr1 - ghgyr2
-      read(title,*) ghgyr1
-      do ; read(iu,'(a)',end=20) title ; end do
-   20 read(title,*) ghgyr2
-      rewind iu  !   position to data lines
-      do n=1,nhead ; read(iu,'(a)') ; end do
-
-      allocate (ghgam(nghg,ghgyr2-ghgyr1+1))
-      do n=1,ghgyr2-ghgyr1+1
-        read(iu,*) iyr,(ghgam(k,n),k=1,nghg)
-        do k=1,nghg ! replace -999. by reasonable numbers
-          if(ghgam(k,n).lt.0.) ghgam(k,n)=ghgam(k,n-1)
-        end do
-        if(ghg_yr>0 .and. abs(ghg_yr-iyr).le.1) then
-          write(out_line,'(i5,6f10.4)') iyr,(ghgam(k,n),k=1,nghg)
-          call write_parallel(trim(out_line),unit=6)
-        endif
-      end do
-      write(out_line,*) 'read GHG table for years',ghgyr1,' - ',ghgyr2
-      call write_parallel(trim(out_line),unit=6)
-      return
-      end SUBROUTINE GHGHST
 
 #if defined(CUBED_SPHERE)
       subroutine read_qma (iu,plb)

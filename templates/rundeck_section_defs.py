@@ -200,7 +200,7 @@ CLOUDS2 CLOUDS2_DRV CLOUDS_COM      ! clouds modules
 PBL_COM PBL_DRV PBL                 ! atmospheric pbl
 ATURB_E1                            ! turbulence in whole atmosphere
 RAD_COM RAD_DRV RADIATION           ! radiation modules
-RAD_UTILS ALBEDO READ_AERO          ! radiation and albedo
+RAD_UTILS GHGMOD ALBEDO READ_AERO          ! radiation and albedo
 """ ),
     input_files_text("""
 RADN1=sgpgxg.table8               ! rad.tables and history files

@@ -1565,11 +1565,12 @@ C
 C======================================================================C
       SUBROUTINE PROPS
       USE TOMAS_ACTV
-      USE CONSTANT, only: gasc,pi,grav
+      USE CONSTANT, only: gasc,pi,grav,lhe
       IMPLICIT NONE
       REAL*8 DBIG,DLOW,COEF,PRESA
 
       REAL  VPRES, SFT
+      real( kind=8 ) :: wv_psat ! external function, jan perlwitz, Nov 2017
 C
       DENW  = 1D3                           ! WATER DENSITY
       DHV   = 2.25D6                        ! WATER ENTHALPY OF VAPORIZATION
@@ -1593,7 +1594,8 @@ C
      &        (DLOG((DBIG+(2*DV/ACCOM)*COEF)/(DLOW+(2*DV/ACCOM)*
      &        COEF))))                      ! NON-CONTINUUM EFFECTS
 C
-      PSAT  = VPRES(SNGL(TEMP))*(1E5/1.0D3) ! SATURATION VAPOR PRESSURE
+c      PSAT  = VPRES(SNGL(TEMP))*(1E5/1.0D3) ! SATURATION VAPOR PRESSURE
+      psat = wv_psat( temp, lhe ) * 100.d0 ! [Pa], jan perlwitz, Nov 2017
 C
       SURT  = SFT(SNGL(TEMP))       ! SURFACE TENSION FOR WATER (J M-2)
 C
@@ -1922,7 +1924,3 @@ C
 C
       RETURN
       END
-
-  
-  
-
