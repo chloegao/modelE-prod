@@ -1137,7 +1137,7 @@ c**** Interpolate two months of data to current day
 #ifdef TRACERS_ON
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: im,jm,lm
-      USE ATM_COM, only : q,qcl
+      USE ATM_COM, only : q,qcl,qci
       USE GEOM, only : axyp,imaxj
       USE SOMTQ_COM, only : qmom
       USE ATM_COM, only : MA
@@ -1152,7 +1152,7 @@ c**** Interpolate two months of data to current day
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
       REAL*8 relerr, errmax,errsc,tmax,amax,qmax,wmax,twmax,qmomax(nmom)
-     *     ,tmomax(nmom)
+     *     ,tmomax(nmom),qc
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       INTEGER :: J_0, J_1, nj, I_0,I_1
@@ -1224,13 +1224,14 @@ C**** check whether air mass is conserved
             errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)*axyp(i,j)
             if (errsc.eq.0.) errsc=1.
             relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j)*axyp(i,j))/errsc
-            if (qcl(i,j,l).gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-qcl(i,j,l)*ma(l,i,j)*
-     *           axyp(i,j))/(qcl(i,j,l)*ma(l,i,j)*axyp(i,j)))
-            if ((qcl(i,j,l).eq.0 .and.trwm(i,j,l,n).gt.1) .or. 
-     *           (qcl(i,j,l).gt.teeny .and.trwm(i,j,l,n).eq.0))
-     *           print*,"Liquid water mismatch: ",subr,i,j,l,trwm(i,j,l
-     *           ,n),qcl(i,j,l)*ma(l,i,j)*axyp(i,j)
+            qc = qcl(i,j,l)+qci(i,j,l) ! add liquid and ice to compare to trwm
+            if (qc.gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
+     *           =max(relerr,(trwm(i,j,l,n)-qc*ma(l,i,j)*
+     *           axyp(i,j))/(qc*ma(l,i,j)*axyp(i,j)))
+            if ((qc.eq.0 .and.trwm(i,j,l,n).gt.1) .or. 
+     *           (qc.gt.teeny .and.trwm(i,j,l,n).eq.0))
+     *           print*,"Condensate water mismatch: ",subr,i,j,l,
+     *           trwm(i,j,l,n),qc*ma(l,i,j)*axyp(i,j)
             do m=1,nmom
               relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*ma(l,i,j
      *             )*axyp(i,j))/errsc)
