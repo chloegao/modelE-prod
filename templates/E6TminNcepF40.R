@@ -1,7 +1,7 @@
 E6TminNcepF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm dust mineral tracers only, NCEP
 
-E6TminNcepF40: based on E6TminF40. OMA tracers with computed dust minerals only
-               and wids nudged towards NCEP
+E6TminNcepF40: based on E6TomaF40. OMA with computed dust minerals only and
+               winds nudged towards NCEP, all other aerosol forcings prescribed
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb

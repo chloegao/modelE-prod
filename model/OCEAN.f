@@ -156,6 +156,12 @@ c         may specify ocean temperature for SCM
 
       module owiso_mod
 
+!@sum  Module owiso_mod contains the arrays/subroutines needed to prescribe
+!@+    ocean surface water isotope ratios from input files.
+!@+    The routines are close copies of the sstmod routines, with
+!@+    sst_year being used to set the time period.
+!@auth Jesse Nusbaumer 
+
       use timestream_mod, only : timestream
       implicit none
       save
