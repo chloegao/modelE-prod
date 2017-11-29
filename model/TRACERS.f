@@ -74,7 +74,7 @@ C**** calculate fractional loss and update tracer mass
           trmom_col(:,l,n) = trmom_col(:,l,n)*fred
         endif
         if (naij.gt.0) then
-          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)
+          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)*byaxyp(i,j)
         end if
       enddo ! l
 
@@ -668,6 +668,7 @@ C**** diagnostics
           naij = ijts_source(ns,n)
           IF (naij > 0) THEN
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
+     &           *byaxyp(:,:)
           ENDIF
           najl = jls_source(ns,n)
           IF (najl > 0) THEN

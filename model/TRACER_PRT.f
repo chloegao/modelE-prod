@@ -1351,7 +1351,7 @@ C****
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
      *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
      *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
-     *     tij_uflx, tij_vflx, ijts_HasArea, denom_ijts, ijts_clrsky,
+     *     tij_uflx, tij_vflx, denom_ijts, ijts_clrsky,
      *     ijts_pocean, denom_tij, dname_tij
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
@@ -1500,8 +1500,7 @@ C**** Fill in maplet indices for sources and sinks
           scale(k)=real(idacc(iacc(k)))+teeny
         endif
 
-!@auth Kelley postprocessing decisions use predeclared metadata
-        if(.not.ijts_HasArea(kx)) ijtype(k)=2 ! no need to divide by area
+        ijtype(k)=2 ! no need to divide by area
         kd = denom_ijts(kx)
         if(kd.gt.0) then
           ijtype(k)=3  ! ratio; set denominator aij2

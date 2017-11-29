@@ -119,11 +119,11 @@
       end function tr_con_diag
 !=======================================================================
       integer function ijts_diag(sname,lname,units,ia,power,denom,
-     *                           scalediv, hasArea)
+     *                           scalediv)
 !@sum ijts_diag populate tracer 2d diagnostics
 !@auth Kostas Tsigaridis
       use TRDIAG_COM, only: ktaijs,ia_ijts,sname_ijts,lname_ijts,
-     &                      units_ijts,scale_ijts,ijts_hasArea,
+     &                      units_ijts,scale_ijts,
      &                      dname_ijts
       USE MODEL_COM, only: dtsrc
       implicit none
@@ -132,7 +132,6 @@
       integer, intent(in), optional :: power
       character(len=*), intent(in), optional :: denom
       real*8, intent(in), optional :: scalediv
-      logical, intent(in), optional :: hasArea
       character*50 :: unit_string
 !@var sname short name
 !@var lname long name
@@ -141,7 +140,6 @@
 !@var power exponent to scale the diagnostic (10**(-power))
 !@var denom denominator to be applied
 !@var scalediv value to divide scale_ijts with
-!@var hasArea true if variable is in per-area units
 !@var scdiv local copy of scalediv (as defined, or dtsrc by default)
 !@var k index to be assigned to the current diagnostic
 !@var i local loop index
@@ -177,7 +175,6 @@
       units_ijts(k)=unit_string(pow, units)
       scale_ijts(k)=10.d0**(-pow)/scdiv
       if (present(denom)) dname_ijts(k)=denom
-      if (present(hasArea)) ijts_hasArea(k)=hasArea
 
       end function ijts_diag
 !=======================================================================
@@ -2261,13 +2258,12 @@ c Oxidants
 
       interface
         integer function ijts_diag(sname,lname,units,ia,power,denom,
-     *                             scalediv,hasArea)
+     *                             scalediv)
           character(len=*), intent(in) :: sname, lname, units
           integer, intent(in), optional :: ia
           integer, intent(in), optional :: power
           character(len=*), intent(in), optional :: denom
           real*8, intent(in), optional :: scalediv
-          logical, intent(in), optional :: hasArea
         end function ijts_diag
       end interface
 
@@ -2281,7 +2277,6 @@ C**** Defaults for ijts (sources, sinks, etc.)
       ijts_aq(:)=0
       ijts_isrc(:,:)=0
       ijts_gasex(:,:)=0
-      ijts_HasArea(:) = .true. ! default applies to >50% of cases ???
       denom_ijts(:) = 0
 #ifdef TRACERS_AMP
       ijts_AMPe(:)=0
@@ -2414,17 +2409,17 @@ c        end select
      *      ijts_diag('Piston_Veloc_'//trim(trname(n)),
      *                trim(trname(n))//' Piston Velocity',
      *                'm s-1', power=-5,
-     *                denom='ocnfr', hasArea=.false.)
+     *                denom='ocnfr')
           ijts_gasex(2,n)= ! Gas Exchange Solubility coefficient
      *      ijts_diag('Solubility_'//trim(trname(n)),
      *                trim(trname(n))//' Solubility',
      *                'mol m-3 uatm-1', power=-5,
-     *                denom='ocnfr', hasArea=.false.)
+     *                denom='ocnfr')
           ijts_gasex(3,n)= ! Gas exchange
      *      ijts_diag('Gas_Exchange_'//trim(trname(n)),
      *                trim(trname(n))//' Gas Exchange',
      *                'mol m-2 a-1',
-     *                denom='ocnfr', hasArea=.false.)
+     *                denom='ocnfr')
         end select
 
 c      case ('Rn222')
@@ -2493,22 +2488,22 @@ c#endif
      *        ijts_diag('swf_tp_'//trim(trname(n)),
      *                  trim(trname(n))//' tropopause SW rad forc',
      *                  'W m-2', power=-2, scalediv=1.d0,
-     *                  ia=ia_rad_frc, hasArea=.false.)
+     *                  ia=ia_rad_frc)
             ijts_fc(2,n)=
      *        ijts_diag('lwf_tp_'//trim(trname(n)),
      *                  trim(trname(n))//' tropopause LW rad forc',
      *                  'W m-2', power=-2, scalediv=1.d0,
-     *                  ia=ia_rad_frc, hasArea=.false.)
+     *                  ia=ia_rad_frc)
             ijts_fc(3,n)=
      *        ijts_diag('swf_toa_'//trim(trname(n)),
      *                  trim(trname(n))//' TOA SW rad forc',
      *                  'W m-2', power=-2, scalediv=1.d0,
-     *                  ia=ia_rad_frc, hasArea=.false.)
+     *                  ia=ia_rad_frc)
             ijts_fc(4,n)=
      *        ijts_diag('lwf_toa_'//trim(trname(n)),
      *                  trim(trname(n))//' TOA LW rad forc',
      *                  'W m-2', power=-2, scalediv=1.d0,
-     *                  ia=ia_rad_frc, hasArea=.false.)
+     *                  ia=ia_rad_frc)
 #ifdef AUX_OX_RADF_TROP
 #ifndef AUXILIARY_OX_RADF
             call stop_model
@@ -2521,22 +2516,22 @@ c#endif
      *          ijts_diag('swfauxtp_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX tropp SW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
-     *                    ia=ia_rad_frc, hasArea=.false.)
+     *                    ia=ia_rad_frc)
               ijts_auxfc(2,n)=
      *          ijts_diag('lwfauxtp_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX tropp LW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
-     *                    ia=ia_rad_frc, hasArea=.false.)
+     *                    ia=ia_rad_frc)
               ijts_auxfc(3,n)=
      *          ijts_diag('swfauxtoa_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX TOA SW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
-     *                    ia=ia_rad_frc, hasArea=.false.)
+     *                    ia=ia_rad_frc)
               ijts_auxfc(4,n)=
      *          ijts_diag('lwfauxtoa_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX TOA LW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
-     *                    ia=ia_rad_frc, hasArea=.false.)
+     *                    ia=ia_rad_frc)
             endif
 #endif /* AUXILIARY_OX_RADF */
           endif
@@ -2545,8 +2540,7 @@ c#endif
             ijts_Sdrydep=
      *        ijts_diag('stomatal_'//trim(trname(n)),
      *                  trim(trname(n))//' stomatal drydep flux',
-     *                  'kg m-2 s-1', power=ntm_power(n)-4,
-     *                  hasArea=.false.)
+     *                  'kg m-2 s-1', power=ntm_power(n)-4)
           end if
 #endif /* ACCMIP_LIKE_DIAGS */
         end select
@@ -3095,14 +3089,14 @@ c BC impact on albedo
         ijts_alb(1)=
      *    ijts_diag('alb_BC',
      *              'BC impact on snow albedo of land/seaice',
-     *              '%', ia=ia_rad_frc, hasArea=.false.,
+     *              '%', ia=ia_rad_frc,
      *              scalediv=1.d-2, denom='sunlit_snow_freq')
 
 c SW forcing from albedo change
         ijts_alb(2)=
      *    ijts_diag('swf_BCALB',
      *              'BCalb SW radiative forcing',
-     *              'W m-2', power=-2, ia=ia_rad_frc, hasArea=.false.,
+     *              'W m-2', power=-2, ia=ia_rad_frc,
      *              scalediv=1.d0)
       endif
 
@@ -3118,44 +3112,44 @@ c SW forcing from albedo change
      *  ijts_diag('NO2_1030',
      *            'NO2 10:30 trop col',
      *            'molecules cm-2', power=15,
-     *            scalediv=1.d0, denom='NO2_1030c', hasArea=.false.)
+     *            scalediv=1.d0, denom='NO2_1030c')
       ijs_NO2_1030c=
      *  ijts_diag('NO2_1030c',
      *            'count NO2 10:30 trop col',
      *            'number of accum',
-     *            scalediv=1.d0, hasArea=.false.)
+     *            scalediv=1.d0)
       ijs_NO2_1330=
      *  ijts_diag('NO2_1330',
      *            'NO2 13:30 trop col',
      *            'molecules cm-2', power=15,
-     *            scalediv=1.d0, denom='NO2_1330c', hasArea=.false.)
+     *            scalediv=1.d0, denom='NO2_1330c')
       ijs_NO2_1330c=
      *  ijts_diag('NO2_1330c',
      *            'count NO2 13:30 trop col',
      *            'number of accum',
-     *            scalediv=1.d0, hasArea=.false.)
+     *            scalediv=1.d0)
       ijs_O3mass=
      *  ijts_diag('O3_Total_Mass',
      *            'Total Column Ozone (not Ox) Mass',
      *            'kg m-2', power=-4,
-     *            scalediv=1.d0, hasArea=.false.)
+     *            scalediv=1.d0)
 #endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       ijts_spec(nDustEv1ij)=
      *  ijts_diag('no_dust_ev1',
      *            'No. dust events',
      *            'd-1',
-     *            scalediv=dtsrc/SECONDS_PER_DAY, hasArea=.false.)
+     *            scalediv=dtsrc/SECONDS_PER_DAY)
       ijts_spec(nDustEv2ij)=
      *  ijts_diag('no_dust_ev2',
      *            'No. dust events above threshold wind',
      *            'd-1',
-     *            scalediv=dtsrc/SECONDS_PER_DAY, hasArea=.false.)
+     *            scalediv=dtsrc/SECONDS_PER_DAY)
       ijts_spec(nDustWthij)=
      *  ijts_diag('wtrsh',
      *            'Threshold velocity for dust emission',
      *            'm s-1',
-     *            scalediv=1.d0, hasArea=.false.)
+     *            scalediv=1.d0)
 #endif
 
 #ifdef TRACERS_AMP
@@ -3214,7 +3208,7 @@ c
      *    ijts_diag('clrsky',
      *              'CLEAR SKY FRACTION',
      *              '%',
-     *              ia=ia_rad, scalediv=1.d-2, hasArea=.false.)
+     *              ia=ia_rad, scalediv=1.d-2)
       endif
 
       if(any(dname_ijts.eq.'ocnfr')) then
@@ -3222,7 +3216,7 @@ c
      *    ijts_diag('ocnfr',
      *              'OCEAN FRACTION',
      *              '%',
-     *              scalediv=1.d-2, hasArea=.false.)
+     *              scalediv=1.d-2)
       endif
 
       if(any(dname_ijts.eq.'sunlit_snow_freq')) then ! snow albedo weight
@@ -3230,7 +3224,7 @@ c
      *    ijts_diag('sunlit_snow_freq',
      *              'SUNLIT SNOW FREQUENCY',
      *              '%',
-     *              ia=ia_rad_frc, scalediv=1.d-2, hasArea=.false.)
+     *              ia=ia_rad_frc, scalediv=1.d-2)
       endif
 
 c find indices of denominators
@@ -3306,13 +3300,12 @@ c find indices of denominators
 
       interface
         integer function ijts_diag(sname,lname,units,ia,power,denom,
-     *                             scalediv,hasArea)
+     *                             scalediv)
           character(len=*), intent(in) :: sname, lname, units
           integer, intent(in), optional :: ia
           integer, intent(in), optional :: power
           character(len=*), intent(in), optional :: denom
           real*8, intent(in), optional :: scalediv
-          logical, intent(in), optional :: hasArea
         end function ijts_diag
       end interface
 
@@ -3338,20 +3331,20 @@ c find indices of denominators
      *                    trim(trname(n))//trim(sn1)//' '//
      *                      trim(lascs(s))//' aerosol optical depth',
      *                    ' ', power=-2, ia=ia_rad, denom=trim(dname),
-     *                    scalediv=1.d0, hasArea=.false.)
+     *                    scalediv=1.d0)
             else if (trim(sascs(s))=='DRY_') then
               k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
      *                      trim(sn1),
      *                    trim(trname(n))//trim(sn1)//' '//
      *                      trim(lascs(s))//' aerosol optical depth',
      *                    ' ', power=-2, ia=ia_rad,
-     *                    scalediv=1.d0, hasArea=.false.)
+     *                    scalediv=1.d0)
             else
               k=ijts_diag('tau_'//trim(sascs(s))//trim(trname(n))//
      *                      trim(sn1),
      *                    trim(trname(n))//' aerosol optical depth',
      *                    ' ', power=-2, ia=ia_rad,
-     *                    scalediv=1.d0, hasArea=.false.)
+     *                    scalediv=1.d0)
             endif
 
             if (n_sub == 1) then
@@ -3379,7 +3372,7 @@ c find indices of denominators
      *                        trim(lascs(s))//' SW extinction band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad, denom=trim(dname),
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               else if (trim(sascs(s))=='DRY_') then
                 k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
      *                        trim(trname(n))//trim(sn1),
@@ -3387,14 +3380,14 @@ c find indices of denominators
      *                        trim(lascs(s))//' SW extinction band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad,
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               else
                 k=ijts_diag('ext_'//trim(sascs(s))//'band'//skr//'_'//
      *                        trim(trname(n))//trim(sn1),
      *                      trim(trname(n))//' SW extinction band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad,
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               endif
 
               if (n_sub == 1) then
@@ -3411,14 +3404,14 @@ c find indices of denominators
      *                        trim(lascs(s))//' SW scattering band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad, denom=trim(dname),
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               else
                 k=ijts_diag('sct_'//trim(sascs(s))//'band'//skr//'_'//
      *                        trim(trname(n))//trim(sn1),
      *                      trim(trname(n))//' SW scattering band '//
      *                        skr,
      *                      ' ', power=-4, ia=ia_rad,
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               endif
 
               if (n_sub == 1) then
@@ -3435,7 +3428,7 @@ c find indices of denominators
      *                        trim(lascs(s))//
      *                        ' SW asymmetry factor band '//skr,
      *                      ' ', power=-2, ia=ia_rad, denom=trim(dname),
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               else if (trim(sascs(s))=='DRY_') then
                 k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
      *                        trim(trname(n))//trim(sn1),
@@ -3443,14 +3436,14 @@ c find indices of denominators
      *                        trim(lascs(s))//
      *                        ' SW asymmetry factor band '//skr,
      *                      ' ', power=-2, ia=ia_rad,
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               else
                 k=ijts_diag('asf_'//trim(sascs(s))//'band'//skr//'_'//
      *                        trim(trname(n))//trim(sn1),
      *                      trim(trname(n))//
      *                        ' SW asymmetry factor band '//skr,
      *                      ' ', power=-2, ia=ia_rad,
-     *                      scalediv=1.d0, hasArea=.false.)
+     *                      scalediv=1.d0)
               endif
 
               if (n_sub == 1) then
@@ -3509,13 +3502,12 @@ c find indices of denominators
 
       interface
         integer function ijts_diag(sname,lname,units,ia,power,denom,
-     *                             scalediv,hasArea)
+     *                             scalediv)
           character(len=*), intent(in) :: sname, lname, units
           integer, intent(in), optional :: ia
           integer, intent(in), optional :: power
           character(len=*), intent(in), optional :: denom
           real*8, intent(in), optional :: scalediv
-          logical, intent(in), optional :: hasArea
         end function ijts_diag
       end interface
 
@@ -3565,11 +3557,11 @@ c find indices of denominators
               k=ijts_diag(trim(sname), trim(lname),
      *                    'W m-2', power=-2, ia=ia_rad_frc,
      *                    denom=trim(dname),
-     *                    scalediv=1.d0, hasArea=.false.)
+     *                    scalediv=1.d0)
             else
               k=ijts_diag(trim(sname), trim(lname),
      *                    'W m-2', power=-2, ia=ia_rad_frc,
-     *                    scalediv=1.d0, hasArea=.false.)
+     *                    scalediv=1.d0)
             endif
 
             if (n_sub == 1) then

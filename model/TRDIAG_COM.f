@@ -204,8 +204,6 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
       integer ia_ijts(ktaijs)
 !@var ijts_power: power of 10 used for tracer IJ source/sink diags
       INTEGER, DIMENSION(ktaijs) :: ijts_power
-!@var ijts_HasArea: does accumulation need to be divided by grid area?
-      LOGICAL, DIMENSION(ktaijs) :: ijts_HasArea
 
 C**** TAIJLS 3D special tracer diagnostics
 

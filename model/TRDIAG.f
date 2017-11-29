@@ -644,7 +644,7 @@ c
      &     ktaij_,ktaij_out,taij=>taij_out,
      &     scale_taij,cdl_taij,cdl_taij_latlon,hemis_taij,
      &     ir_taij,ia_taij,denom_taij,lname_taij,sname_taij,units_taij,
-     &     sname_tij, lname_tij, ijts_HasArea, ijts_clrsky, denom_ijts,
+     &     sname_tij, lname_tij, ijts_clrsky, denom_ijts,
      &     units_tij, scale_tij, lname_ijts,  sname_ijts,
      &     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, dname_ijts,
      &     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec,
@@ -655,7 +655,7 @@ c
       use constant, only : teeny
       use domain_decomp_atm, only : grid
       use domain_decomp_atm, only : getDomainBounds,am_i_root,sumxpe
-      use geom, only : byaxyp,axyp,lat2d,areag
+      use geom, only : axyp,lat2d,areag
       use cdl_mod
       implicit none
       integer ::  i,j,k,kx,k1,n,n1,n2,khem
@@ -908,14 +908,6 @@ c
         scale_taij(k) = scale_ijts(kx)
 
         taij(i_0:i_1,j_0:j_1,k) = taijs(i_0:i_1,j_0:j_1,kx)
-
-        if(ijts_HasArea(kx)) then
-          do j=j_0,j_1
-          do i=i_0,i_1
-            taij(i,j,k) = taij(i,j,k)*byaxyp(i,j)
-          enddo
-          enddo
-        endif
 
       enddo
 
