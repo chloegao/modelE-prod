@@ -2512,22 +2512,22 @@ c#endif
 #endif
 #ifdef AUXILIARY_OX_RADF
             if(trname(n)=='Ox')then
-              ijts_auxfc(1,n)=
+              ijts_auxfc(1)=
      *          ijts_diag('swfauxtp_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX tropp SW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
      *                    ia=ia_rad_frc)
-              ijts_auxfc(2,n)=
+              ijts_auxfc(2)=
      *          ijts_diag('lwfauxtp_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX tropp LW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
      *                    ia=ia_rad_frc)
-              ijts_auxfc(3,n)=
+              ijts_auxfc(3)=
      *          ijts_diag('swfauxtoa_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX TOA SW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
      *                    ia=ia_rad_frc)
-              ijts_auxfc(4,n)=
+              ijts_auxfc(4)=
      *          ijts_diag('lwfauxtoa_'//trim(trname(n)),
      *                    trim(trname(n))//' AUX TOA LW rad forc',
      *                    'W m-2', power=-2, scalediv=1.d0,
