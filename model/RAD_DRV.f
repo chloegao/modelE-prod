@@ -2677,10 +2677,10 @@ C**** Ozone and Methane:
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
       endif
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      if(clim_interact_chem<=0)
-     &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
-#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
+!#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
+!      if(clim_interact_chem<=0)
+!     &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
+!#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
       if (moddrf==0) then
