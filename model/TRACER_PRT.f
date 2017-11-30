@@ -75,14 +75,18 @@ C**** save some basic model diags for weighting
 C**** Latitude-longitude by layer concentration
       if (to_conc(n).eq.1) then ! kg/m3
         do l=1,lm
-          taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
-     $          ,l,n)*byMA(l,:,J_0:J_1)*1d2*pmid(l,:,J_0:J_1)/(rgas*t(:
-     $          ,J_0:J_1,L)*pk(L,:,J_0:J_1))
+          do j=J_0,J_1; do i=I_0,I_1
+            taijln(i,j,l,n) = taijln(i,j,l,n) +
+     &           byaxyp(i,j)*trm(i,j,l,n)*byMA(l,i,j)*1d2*pmid(l,i,j)/
+     &           (rgas*t(i,j,L)*pk(L,i,j))
+          enddo; enddo
         end do
       else ! mixing ratio
         do l=1,lm
-          taijln(:,J_0:J_1,l,n) = taijln(:,J_0:J_1,l,n) + trm(:,J_0:J_1
-     $          ,l,n)*byMA(l,:,J_0:J_1)
+          do j=J_0,J_1; do i=I_0,I_1
+            taijln(i,j,l,n) = taijln(i,j,l,n) +
+     &           byaxyp(i,j)*trm(i,j,l,n)*byMA(l,i,j)
+          enddo; enddo
         end do
 !$OMP END PARALLEL DO
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
@@ -1486,7 +1490,7 @@ C**** Fill in maplet indices for sources and sinks
         if (index(lname_ijts(kx),'unused').gt.0) cycle
         k = k+1
         iord(k) = kx
-        ijtype(k) = 1
+        ijtype(k) = 2
         name(k) = sname_ijts(kx)
         lname(k) = lname_ijts(kx)
         units(k) = units_ijts(kx)
@@ -1812,7 +1816,7 @@ C**** Fill in maplet indices for tracer concentrations
         if (src_dist_index(n)/=0) cycle
         k = k+1
         iord(k) = n
-        ijtype(k) = 1
+        ijtype(k) = 2
         name(k) = sname_ijt(n)
         lname(k) = lname_ijt(n)
         units(k) = units_ijt(n)
@@ -1959,7 +1963,7 @@ c**** copy virtual half-page to paper if appropriate
 C**** for every diag, output all levels at once
         if (l.eq.lm) then
            call scale_ijlmap(ijtype(nn),aijl1(1,1,1,nn),aijl2(1,1,1,nn),
-     *       scale(nn),1,idacc(iacc(nn)),idacc(iacc(nn)),smapijl,smapjl)
+     *       scale(nn),2,idacc(iacc(nn)),idacc(iacc(nn)),smapijl,smapjl)
           smapl=0               ! tmp
           if (qdiag) call pout_ijl(titlel,name(nn),lname(nn)
      *         ,units(nn),smapijl,smapjl,smapl,ijkgridc)

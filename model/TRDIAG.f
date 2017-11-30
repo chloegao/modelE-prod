@@ -1067,7 +1067,6 @@ c
 #endif
       use constant, only : teeny
       use domain_decomp_atm, only : grid,getDomainBounds,am_i_root
-      use geom, only : byaxyp
       use cdl_mod
       implicit none
       integer i,j,l,k,kx,kk,n,n1,n2
@@ -1141,7 +1140,7 @@ C**** Tracer concentrations
         scale_taijl(k) = scale_ijt(n)
         do l=1,lm
           do j=j_0,j_1; do i=i_0,i_1
-            taijl(i,j,l,k) = taijln(i,j,l,n)*byaxyp(i,j)
+            taijl(i,j,l,k) = taijln(i,j,l,n)
           enddo       ; enddo
         enddo
 #ifdef TRACERS_WATER
@@ -1150,7 +1149,7 @@ C**** Tracer concentrations
           do l=1,lm
             do j=j_0,j_1; do i=i_0,i_1
               taijl(i,j,l,k) = 1d3*(taijl(i,j,l,k)/trw0(n)
-     &             -byaxyp(i,j)*taijln(i,j,l,n_water))
+     &             -taijln(i,j,l,n_water))
             enddo       ; enddo
           enddo
           denom_taijl(k) = k_water
@@ -1160,7 +1159,7 @@ C**** Tracer concentrations
             denom_taijl(k-1) = k_water
             do l=1,lm
               do j=j_0,j_1; do i=i_0,i_1
-                taijl(i,j,l,k) =  taijln(i,j,l,n)*byaxyp(i,j)
+                taijl(i,j,l,k) =  taijln(i,j,l,n)
               enddo       ; enddo
             enddo
             ia_taijl(k) = ia_taijl(k-1)
@@ -1207,7 +1206,7 @@ C**** water vapour
             do i=i_0,i_1
               taijl(i,j,l,k) = 1d3*(taijln(i,j,l,n2)/trw0(n2)-
      &             8.*taijln(i,j,l,n1)/trw0(n1)+
-     &             7.*taijln(i,j,l,n_water))*byaxyp(i,j)
+     &             7.*taijln(i,j,l,n_water))
             enddo
           enddo
         enddo
