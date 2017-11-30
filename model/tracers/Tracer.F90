@@ -283,14 +283,16 @@ contains
     integer, intent(in) :: itime_tr0
     real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:,:,:)
 
-    integer :: ns
+    integer :: ns, nread
 
     if (itime < itime_tr0) return
     if (nsrc <= 0) return
 
+    nread=0
     do ns=1,nsrc
-      if(ns==megan_index)cycle
-      call readSurfaceSource(trcer%surfaceSources(ns), addIntegerSuffix(getName(trcer), ns), checkname, sfc_src(:,:,n,ns), &
+      if(ns==megan_index)cycle ! skip over the file reading if source is megan
+      nread=nread+1
+      call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)
     enddo
 

@@ -6102,6 +6102,9 @@ C****
 #ifdef TRACERS_SPECIAL_Shindell
       case ('Ox','NOx','ClOx','BrOx','N2O5','HNO3','H2O2','CH3OOH',
      &      'HCHO','HO2NO2','CO','PAN','AlkylNit','Alkenes','Paraffin',
+#ifdef TRACERS_ACETONE
+     &      'Acetone',
+#endif
 #ifdef TRACERS_dCO
      *      'd13Calke','d13CPAR',
      *      'd17OPAN','d18OPAN','d13CPAN',
@@ -6170,7 +6173,7 @@ C****
 #endif
 #if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
       case ('Isoprene')
-        do ns=1,ntsurfsrc(n) 
+        do ns=1,ntsurfsrc(n)
           if(ns==do_megan(n))then
             ! let megan fend for itself regarding daylight, etc.
             do j=J_0,J_1; do i=I_0,I_1
@@ -6189,7 +6192,7 @@ C****
             end do  ; end do 
           end if
         end do
-#endif
+#endif /* not PS_BVOC and not BIOGENIC_EMISSIONS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #ifdef TRACERS_AEROSOLS_OCEAN
@@ -6712,6 +6715,9 @@ C**** All sources are saved as kg s-1
       case default
 
       case ('Alkenes', 'CO', 'NOx', 'Paraffin','CH4','codirect',
+#ifdef TRACERS_ACETONE
+     &      'Acetone',
+#endif
 #ifdef TRACERS_dCO
      *      'd13Calke','d13CPAR',
      *      'dC17O', 'dC18O', 'd13CO',

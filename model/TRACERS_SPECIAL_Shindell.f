@@ -842,10 +842,13 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
 #else
                    if(ix>im)call stop_model('ix>im int wetl dist',255)
                    do ii=i-ix,i+ix ;do jj=j-ix,j+ix
-                     if(ii>0.and.ii<=im.and.jj>0.and.jj<=jm .and.
-     &               src_glob(ii,jj) > 0.)then
-                       zm=zm+src_glob(ii,jj)
-                       zmcount=zmcount+1.d0
+                     if(ii>0.and.ii<=im)then
+                       if(jj>0.and.jj<=jm)then
+                         if(src_glob(ii,jj) > 0.)then
+                           zm=zm+src_glob(ii,jj)
+                           zmcount=zmcount+1.d0
+                         endif
+                       endif
                      endif
                    enddo           ;enddo
 #endif
