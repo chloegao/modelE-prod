@@ -5185,14 +5185,14 @@ c units are mg Terpene/m2/month
       do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
 ! 10% of terpenes end up being SOA
 #ifdef TRACERS_TOMAS
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
      +                  *om2oc(n_AOCOB(1))
 #else
 #ifdef TRACERS_AMP
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
      +                  *om2oc(n_M_OCC_OC)
 #else
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*axyp(i,j)*0.1d0
+        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
      +                  *om2oc(n_OCII)
 #endif
 #endif
@@ -5700,7 +5700,7 @@ C**** at the start of any day
       use EmissionRegion_mod, only: numRegions,regions
       use TRACER_COM, only: ef_FACT
       USE RESOLUTION, only : pmtop,psf
-      USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
+      USE GEOM, only: axyp,byaxyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE TRACER_COM, only: sfc_src
       USE TRACER_COM, only: alter_sources
@@ -6001,12 +6001,12 @@ C**** ground source
           if (rnsrc.eq.0) then !standard source
 C**** source from ice-free land
             if(atmsrf%tsavg(i,j).lt.tf) then !composite surface air temperature
-              trsource(i,j,1,n) = 1.0d-16*steppd*axyp(i,j)*fearth(i,j)
+              trsource(i,j,1,n) = 1.0d-16*steppd*fearth(i,j)
             else  ! 1 atom/cm^2/s
-              trsource(i,j,1,n) = 3.2d-16*steppd*axyp(i,j)*fearth(i,j)
+              trsource(i,j,1,n) = 3.2d-16*steppd*fearth(i,j)
             end if
          else if (rnsrc.eq.1) then !Conen and Robertson
-              trsource(i,j,1,n) = 3.2d-16*steppd*axyp(i,j)*fearth(i,j)
+              trsource(i,j,1,n) = 3.2d-16*steppd*fearth(i,j)
 c add code to implement Conen and Robertson - linear decrease in Rn222
 c   emission from 1 at 30N to 0.2 at 70N and 0.2 north of 70N
            if (nint(lat2d_dg(i,j)).gt.30 .and.
@@ -6024,8 +6024,8 @@ c Schery source
           endif
           if (rnsrc.le.1) then
 C**** source from ice-free ocean
-            trsource(i,j,1,n) =trsource(i,j,1,n)+ 1.6d-18*steppd*axyp(i
-     *           ,j)*(1.-fland(i,j))*(1.-si_atm%rsi(i,j))
+            trsource(i,j,1,n) =trsource(i,j,1,n)+ 1.6d-18*steppd*
+     *           (1.-fland(i,j))*(1.-si_atm%rsi(i,j))
           endif
           enddo                 !i
         enddo                   !j
@@ -6039,7 +6039,7 @@ C****
         do ns=1,ntsurfsrc(n) 
           do j=J_0,J_1
             trsource(I_0:I_1,j,ns,n)=
-     &      sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+     &      sfc_src(I_0:I_1,j,n,ns)
           end do
         end do
 
@@ -6049,8 +6049,8 @@ C**** First layer is set to a constant 462.2 ppbm. (300 PPB V)
 C****
       case ('N2O')
       do j=J_0,J_1
-        trsource(:,j,1,n) = (MA(1,:,j)*axyp(:,j)*462.2d-9
-     *   -trm(:,j,1,n))*bydt
+        trsource(:,j,1,n) = (MA(1,:,j)*462.2d-9
+     *   -trm(:,j,1,n)*byaxyp(:,j))*bydt
       end do
 C****
 C**** Linoz Deposition from layer 1
@@ -6078,12 +6078,14 @@ C****
      *                  (2.13565d-2 - tmon*8.61853d-5)))
                if (tnew.lt.trm(i,j,1,n))
      *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
+     &              *byaxyp(i,j)
          else
                tnew = MA(1,i,j)*axyp(i,j)*(4.82d-18*46./mair)*
      *          (73.0 - tmon*(0.27823d0 + tmon*
      *                  (3.45648d-3 - tmon*4.21159d-5)))
                if (tnew.lt.trm(i,j,1,n))
      *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
+     &              *byaxyp(i,j)
          endif
       end do
       end do
@@ -6114,7 +6116,7 @@ C****
 #endif
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
-     &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+     &    sfc_src(I_0:I_1,j,n,ns)
         end do ; end do
 #ifdef TRACERS_TERP
       case ('Terpenes')
@@ -6122,7 +6124,7 @@ C****
           if(ns==1) then
             do j=J_0,J_1
               trsource(I_0:I_1,j,ns,n)=
-     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+     &        sfc_src(I_0:I_1,j,n,ns)
             end do
 ! If no orvoc file provided, scale up the terpenes one instead.
 ! 0.4371 is the ratio of orvoc/isoprene emissions in the Lathiere et al. (2005) results
@@ -6136,7 +6138,7 @@ C****
               do ns_isop=1,ntsurfsrc(n_Isoprene) ! use all Isoprene sources for orvoc scaling
                 do j=J_0,J_1
                   trsource(I_0:I_1,j,ns,n)=trsource(I_0:I_1,j,ns,n)+
-     &            orvoc_fact*0.4371*axyp(I_0:I_1,j)*
+     &            orvoc_fact*0.4371*
      &            sfc_src(I_0:I_1,j,n_Isoprene,ns_isop)
                 end do
               end do
@@ -6144,7 +6146,7 @@ C****
           else ! use the orvoc file
             do j=J_0,J_1
               trsource(I_0:I_1,j,ns,n)=orvoc_fact*
-     &        sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+     &        sfc_src(I_0:I_1,j,n,ns)
             end do
           endif
         end do
@@ -6155,14 +6157,14 @@ C****
 #endif
         do ns=1,ntsurfsrc(n); do j=J_0,J_1
           trsource(I_0:I_1,j,ns,n)=
-     &    sfc_src(I_0:I_1,j,n,ns)*axyp(I_0:I_1,j)
+     &    sfc_src(I_0:I_1,j,n,ns)
         end do ; end do
 #ifdef INTERACTIVE_WETLANDS_CH4
         if(ntsurfsrc(n) > 0) then
           call alter_wetlands_source(n,ns_wet)
           do j=J_0,J_1
             trsource(I_0:I_1,j,ns_wet,n)=trsource(I_0:I_1,j,ns_wet,n)+
-     &      add_wet_src(I_0:I_1,j)*axyp(I_0:I_1,j)
+     &      add_wet_src(I_0:I_1,j)
           enddo
         endif
 #endif
@@ -6172,7 +6174,7 @@ C****
           if(ns==do_megan(n))then
             ! let megan fend for itself regarding daylight, etc.
             do j=J_0,J_1; do i=I_0,I_1
-              trsource(i,j,ns,n)=sfc_src(i,j,n,ns)*axyp(i,j)
+              trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
             end do  ; end do 
           else
             ! Isoprene sources to be emitted only during sunlight, and
@@ -6180,7 +6182,7 @@ C****
             do j=J_0,J_1; do i=I_0,I_1
               if(COSZ1(i,j)>0.)then
                 trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
-     &          sfc_src(i,j,n,ns)*axyp(i,j)
+     &          sfc_src(i,j,n,ns)
               else
                 trsource(i,j,ns,n)=0.d0
               endif
@@ -6198,7 +6200,7 @@ C****
 #ifndef TRACERS_AEROSOLS_SOA
 #ifdef TRACERS_TOMAS
         case ('SOAgas')
-!OCT_src is kg/month? or kg/sec?? 
+!OCT_src is kg/m2/month? or kg/m2/sec?? 
         do j=J_0,J_1; do i=I_0,I_1
            trsource(i,j,ntsurfsrc(n),n)=OCT_src(i,j,month)
          end do; enddo
@@ -6221,14 +6223,14 @@ C****
         select case (trim(pTracer%getName()))
         case ('OCII', 'M_OCC_OC')
           sfc_src(:,J_0:J_1,src_index,ntsurfsrc(n))=
-     &      OCT_src(:,J_0:J_1,month)/axyp(:,J_0:J_1)/src_fact
+     &      OCT_src(:,J_0:J_1,month)/src_fact
         end select
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         do ns=1,ntsurfsrc(src_index)
           trsource(:,J_0:J_1,ns,n)=
      &      sfc_src(:,J_0:J_1,src_index,ns)
-     &      *axyp(:,J_0:J_1)*src_fact
+     &      *src_fact
 
 #ifdef TRACERS_TOMAS
 !ntsurfsrc(3) for number
@@ -6301,14 +6303,13 @@ C****
             do j=J_0,J_1; do i=I_0,I_1
               if (cosz1(i,j) > 0.) then
                 trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
-     &            *axyp(i,j)*cosz1(i,j)*4.d0
+     &            *cosz1(i,j)*4.d0
               else
                 trsource(i,j,ns,n)=0.d0
               endif
             enddo; enddo
           else
             trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
-     &        *axyp(:,J_0:J_1) 
           endif
         enddo
 
@@ -6401,7 +6402,7 @@ c$$$      end do
 !@sum Assign regional 2d sources
 !@auth Kostas Tsigaridis, based on old Lerner code
         use DOMAIN_DECOMP_ATM, only : globalsum,grid,getDomainBounds
-        use GEOM, only: axyp
+        use GEOM, only: axyp,byaxyp
         use GHY_COM, only : fearth
 #ifndef SKIP_TRACER_SRCS
         use FLUXES, only: trsource
@@ -6426,7 +6427,7 @@ c$$$      end do
 #ifndef SKIP_TRACER_SRCS
         do j=j_0,j_1; do i=i_0,i_1
             trsource(i,j,1,n) = trsource(i,j,1,n) +
-     &         source*sarea_prt(i,j)/sarea
+     &         source*sarea_prt(i,j)*byaxyp(i,j)/sarea
         enddo; enddo
 #endif
       end subroutine regional_src

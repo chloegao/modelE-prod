@@ -20,7 +20,7 @@
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSinput ! DMSinput(im,jm,12)
 #ifndef TRACERS_AEROSOLS_SOA
-!@var OCT_src    OC Terpene source (kg/s/box)
+!@var OCT_src    OC Terpene source (kg/m2/s)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)

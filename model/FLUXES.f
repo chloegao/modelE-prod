@@ -1526,7 +1526,7 @@ C**** fluxes associated with variable lake fractions
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: DGML
 
 #ifdef TRACERS_ON
-!@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/s)
+!@var TRSOURCE non-interactive surface sources/sinks for tracers (kg/m2/s)
 #ifndef SKIP_TRACER_SRCS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trsource
 #endif

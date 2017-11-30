@@ -596,7 +596,7 @@ C****
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM
       USE CONSTANT, only : grav,rgas
-      USE GEOM, only: imaxj
+      USE GEOM, only: byaxyp,imaxj
       USE QUSDEF, only : mz,mzz
       USE FLUXES, only: trsource
       implicit none
@@ -630,7 +630,7 @@ c           trm(i,j,l,n) = 0.d0
           else
 c           trm(i,j,l,n) = trm(i,j,l,n) + dmass
           end if
-          trsource(i,j,ns,n) = dmass/dtsrc
+          trsource(i,j,ns,n) = byaxyp(i,j)*dmass/dtsrc
         enddo
       enddo
       RETURN

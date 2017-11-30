@@ -2147,7 +2147,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
           
           do k=1,nbins
             
-            ndistinit(k)=trsource(i,j,NS,n_ANUM(1)+K-1)*dtstep
+            ndistinit(k)=axyp(i,j)*trsource(i,j,NS,n_ANUM(1)+K-1)*dtstep
           
             tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
