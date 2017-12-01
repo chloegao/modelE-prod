@@ -872,7 +872,8 @@ C****
         ptype = asflx(ipatch)%ftype(i,j)
         if(ptype.le.0.) cycle
 
-      do n=1,ntm
+        do nx=1,ntx
+           n=ntix(nx)
         if(dodrydep(n))then
           depvel = asflx(ipatch)%dep_vel(n,i,j)
           gsvel = asflx(ipatch)%gs_vel(n,i,j)
