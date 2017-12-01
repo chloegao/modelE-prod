@@ -179,7 +179,7 @@ C-----VARIABLE DECLARATIONS------------------------------------------
       real*8 INIT_H2SO4,INIT_NH3,INIT_NH4,INIT_SOA
       real*8 TSUM(2)
 
-c$$$      real*4, dimension(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) :: 
+c$$$      real*4, dimension(GRID%J_STRT:GRID%J_STOP,lm) :: 
 c$$$     &     nucrate,nucrate1
 
 C-----CODE-----------------------------------------------------------
@@ -2376,27 +2376,27 @@ C     determine the mass added to each bin coagulation
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H, I_1H, I_0H
+      integer :: ier, J_1, J_0, I_1, I_0
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
-      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO 
+      call getDomainBounds( grid , J_STRT=J_0, J_STOP=J_1 )
+      I_0=GRID%I_STRT
+      I_1=GRID%I_STOP
 
-      allocate(  AQSO4oxid_mc(LM,I_0H:I_1H,J_0H:J_1H) )
-      allocate(  AQSO4oxid_ls(LM,I_0H:I_1H,J_0H:J_1H) )
+      allocate(  AQSO4oxid_mc(LM,I_0:I_1,J_0:J_1) )
+      allocate(  AQSO4oxid_ls(LM,I_0:I_1,J_0:J_1) )
       allocate(  H2SO4_chem(LM)  )
-      allocate(  AEROD(I_0H:I_1H,J_0H:J_1H,LM,NTM,ptype) )
-      allocate(  N_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,2) )
-      allocate(  M_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,
+      allocate(  AEROD(I_0:I_1,J_0:J_1,LM,NTM,ptype) )
+      allocate(  N_subgridcg(I_0:I_1,J_0:J_1,LM,IBINS,2) )
+      allocate(  M_subgridcg(I_0:I_1,J_0:J_1,LM,IBINS,
      *     ICOMP-IDIAG,2))
      
       allocate(  trm_preemis(NTM,LM) )
 
-      allocate(  CCN_TOMAS(I_0H:I_1H,J_0H:J_1H,LM,NSMAX) )
+      allocate(  CCN_TOMAS(I_0:I_1,J_0:J_1,LM,NSMAX) )
 
       return
       end subroutine alloc_tracer_TOMAS_com
