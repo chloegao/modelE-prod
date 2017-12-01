@@ -2323,7 +2323,7 @@ C****
         atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)+trc_flux
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &       trc_flux*axyp(i,j)*ptype*dtsurf
+     &       trc_flux*ptype*dtsurf
         end if
 
 #ifdef TRACERS_AMP
@@ -2444,7 +2444,7 @@ C****
      .         -pbl_args%Kw_gas(ngx)*(pbl_args%beta_gas(ngx)*trs-trgrnd)
             taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         -pbl_args%Kw_gas(ngx)*(pbl_args%beta_gas(ngx)*trs-trgrnd)
-     .               * axyp(i,j)*ptype*dtsurf
+     .               * ptype*dtsurf
           else if (n==n_co2n) then
 ! TRGASEX is the gas exchange flux btw ocean and atmosphere.
 ! Its sign is positive for flux entering the ocean (positive down)
@@ -2465,11 +2465,11 @@ C****
      .         * 1.0d6/vol2mass(n) 
      .         * tr_mm(n)*1.0d-3        !units kg,co2/m2/s
 
-!units are kg,co2
+!units are kg/m2,co2
             taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))-
      $         pbl_args%Kw_gas(ngx) * (pbl_args%beta_gas(ngx)* trs-
      $         pbl_args%alpha_gas(ngx) * trgrnd )* 1.0d6/vol2mass(n)
-     $         * tr_mm(n)*1.0d-3* ptype* axyp(i,j) * dtsurf
+     $         * tr_mm(n)*1.0d-3* ptype* dtsurf
 
             if(i.eq.1 .and. j.eq.45) then
               write(*,'(a,2i5,11e12.4)')'SURFACE, trgasex:',

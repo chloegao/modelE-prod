@@ -1,6 +1,7 @@
-E6TminF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm dust mineral tracers only
+E6TminF40clim2000.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm, dust minerals
 
-E6TminF40: based on E6TomaF40. OMA tracers with computed dust minerals only
+E6TminF40clim2000: based on E6TomaF40clim2000. OMA with computed dust minerals
+               only, all other aerosol forcings prescribed
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -86,7 +87,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TminF40 (prescribed ocean atmospheric tracer model with OMA dust minerals only)
+E6TminF40clim2000 (climatological prescribed ocean atmospheric tracer model with OMA dust minerals only)
 
 &&PARAMETERS
 #include "static_ocn_params"
@@ -100,7 +101,7 @@ FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
 FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.62   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.625  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 use_vmp=1
@@ -120,7 +121,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 #include "mineral_params"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
-#include "ch4_params_CMIP6"
+#include "ch4_params_CMIP6_2000"
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.

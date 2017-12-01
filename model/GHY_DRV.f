@@ -411,7 +411,7 @@ cddd     &     (arauto+asoilresp-agpp)/dtsurf
      &     (arauto+asoilresp-agpp+delta_C)/dtsurf
      &     *44.d0/12.d0
       taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
-     &     + (arauto+asoilresp-agpp+delta_C) * axyp(i,j)*ptype
+     &     + (arauto+asoilresp-agpp+delta_C) * ptype
      &     *44.d0/12.d0
 #endif
 
@@ -515,19 +515,19 @@ C**** fixed datasets are used, it can happen over land as well.
 #ifndef TRACERS_TOMAS
         if (ijts_isrc(1,n)>0) then
            taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &       trc_flux*axyp(i,j)*ptype*dtsurf
+     &       trc_flux*ptype*dtsurf
         end if
 #else
         if(n.lt.n_ANUM(1).or.n.ge.n_AH2O(1))THEN !for dust and other?
            if (ijts_isrc(1,n)>0) then
               taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n)) +
-     &             trc_flux*axyp(i,j)*ptype*dtsurf
+     &             trc_flux*ptype*dtsurf
            end if
         elseif(n.ge.n_ANUM(1).and. n.lt.n_AH2O(1))THEN
 !ijts_isrc(2,n) for number: DUST number emission
            if (ijts_isrc(2,n)>0) then
               taijs(i,j,ijts_isrc(2,n))=taijs(i,j,ijts_isrc(2,n)) +
-     &             trc_flux*axyp(i,j)*ptype*dtsurf
+     &             trc_flux*ptype*dtsurf
            end if
         endif
 #endif
@@ -590,14 +590,14 @@ ccc dust emission from earth
           taijs(i,j,ijts_isrc(nDustEmij,n))
      &         =taijs(i,j,ijts_isrc(nDustEmij,n))
      &         +pbl_args%dust_flux(n1)
-     &         *axyp(i,j)*ptype*dtsurf
+     &         *ptype*dtsurf
           if (jls_isrc(nDustEmjl,n)>0) call inc_tajls(i,j,1,jls_isrc(
      &       nDustEmjl,n),pbl_args%dust_flux(n1)*axyp(i,j)*ptype*dtsurf)
           IF ( imDust == 0 .or. imDust >= 3 ) THEN
             taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           =taijs(i,j,ijts_isrc(nDustEm2ij,n))
      &           +pbl_args%dust_flux2(n1)
-     &           *axyp(i,j)*ptype*dtsurf
+     &           *ptype*dtsurf
           if (jls_isrc(nDustEm2jl,n) > 0)
      &           call inc_tajls(i,j,1,jls_isrc(nDustEm2jl,n),
      &           pbl_args%dust_flux2(n1)*axyp(i,j)*ptype*dtsurf)
@@ -612,7 +612,7 @@ ccc dust emission from earth
           atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+
      &         pbl_args%emisop
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
-     &    pbl_args%emisop*axyp(i,j)*ptype*dtsurf
+     &    pbl_args%emisop*ptype*dtsurf
         end select
 #endif
 #ifdef PS_BVOC
@@ -621,9 +621,9 @@ ccc dust emission from earth
 C Flux in kg/m2/s - put back into /s
           atmlnd%trsrfflx(n,i,j)=atmlnd%trsrfflx(n,i,j)+aipp/dtsurf
 c          taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
-c     &    aipp*axyp(i,j)*ptype*dtsurf
+c     &    aipp*ptype*dtsurf
           taijs(i,j,ijs_isoprene)=taijs(i,j,ijs_isoprene)+
-     &    aipp*axyp(i,j)*ptype
+     &    aipp*ptype
 
         end select
 #endif

@@ -1347,3 +1347,42 @@ C****
       end subroutine io_trvar_4d
 
       end module tracer_io_filter
+
+      subroutine rescale_tracer_state(dir)
+! temporary convenience routine to change tracer units between kg and kg/m2
+      use resolution, only : lm
+      use domain_decomp_atm, only : grid
+      use geom, only : axyp,byaxyp
+      use tracer_com, only : ntm,trm,trmom
+#ifdef TRACERS_WATER
+      use tracer_com, only : trwm
+#endif
+      implicit none
+      integer :: dir ! -1,+1 to divide,multiply by area
+!
+      integer :: i,j,l,n
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: fac
+
+      if(dir == -1) then
+        fac = byaxyp
+      elseif(dir == +1) then
+        fac = axyp
+      else
+        call stop_model('bad dir in rescale_tracer_state',255)
+      endif
+
+      do n=1,ntm
+        do l=1,lm
+          do j=grid%j_strt,grid%j_stop
+            do i=grid%i_strt,grid%i_stop
+              trm(i,j,l,n) = trm(i,j,l,n)*fac(i,j)
+              trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fac(i,j)
+#ifdef TRACERS_WATER
+              trwm(i,j,l,n) = trwm(i,j,l,n)*fac(i,j)
+#endif
+            enddo
+          enddo
+        enddo
+      enddo
+      end subroutine rescale_tracer_state

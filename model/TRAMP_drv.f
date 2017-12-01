@@ -97,7 +97,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: VBS_FLUXES(NMODES,NMASS_SPCS)
       REAL(8):: SPCMASS(NMASS_SPCS+2)
       REAL(8):: DT_AERO(NDIAG_AERO,NAEROBOX) !NDIAG_AERO=15
-      REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL 
+      REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL,AVOLM2
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       INTEGER:: l,n,J_0, J_1, I_0, I_1, m,nAMP
@@ -131,6 +131,8 @@ C**** functions
 
 c avol [m3/gb] mass of air pro m3      
       AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
+c avolm2 [m/gridbox ?]
+      AVOLM2 = MA(l,i,j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 c conversion trm [kg/gb] -> [ug /m^3]
@@ -256,19 +258,19 @@ c Update physical properties per mode
 c Diagnostic of Processes - Sources and Sincs - timestep included
           if(AMP_NUMB_MAP(nAMP).eq. 0) then  !taijs [kg/s] -> in acc [kg/m2*s]
             do m=1,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n)) +(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOL * 1.d-9)
+              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n)) +(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOLM2 * 1.d-9)
               if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOL * 1.d-9),itcon_amp(m,n),n)
             end do
              
           else
-            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOL)
+            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOLM2)
               if (itcon_amp(1,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(1,n),n)
-            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOL)
+            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOLM2)
               if (itcon_amp(2,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(2,n),n)
-            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOL)
+            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOLM2)
               if (itcon_amp(3,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(3,n),n)
             do m=4,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))+(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOL)
+              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))+(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOLM2)
               if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(m,n),n)
             end do
 

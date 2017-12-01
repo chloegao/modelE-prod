@@ -131,6 +131,12 @@ implicit none
 !TODO: are these "save"s needed? Elsewhere? (I think the flammability code has a global save in the module...)
 type(runningAverage), save :: SAT, T, LAI, PPFD
 type(biogenicSpecies), save :: isoprene
+#ifdef TRACERS_ACETONE
+type(biogenicSpecies), save :: acetone
+#endif
+#ifdef TERPENES_MEGAN
+type(biogenicSpecies), save :: a_pinene
+#endif
 
 ! next two lines are from MEGAN2.1 canopy.f, but other models
 ! may use 4.6 or 4.55 not separated by Shade and Sun (See
@@ -189,12 +195,36 @@ real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
 integer, intent(IN) :: i,j
 integer :: n, localTimeIndex, hour, dayOfYear, nTracer
 integer :: ipft
+! This ifdef complexity is temporary:
+#ifdef TRACERS_ACETONE
+#ifdef TERPENES_MEGAN
+integer, parameter :: nMeganSpecies=3
+#else
+integer, parameter :: nMeganSpecies=2
+#endif
+#else
+#ifdef TERPENES_MEGAN
+integer, parameter :: nMeganSpecies=2
+#else
 integer, parameter :: nMeganSpecies=1
+#endif
+#endif
 type(biogenicSpecies), dimension(nMeganSpecies) :: species
 character*80 :: message
 
 ! Fill in Megan species we're using, until I learn how to iterate the objects better:
-species(1)=Isoprene
+! This ifdef complexity is temporary:
+species(1)=isoprene
+#ifdef TRACERS_ACETONE
+species(2)=acetone
+#endif
+#ifdef TERPENES_MEGAN
+#ifdef TRACERS_ACETONE
+species(3)=a_pinene
+#else
+species(2)=a_pinene
+#endif
+#endif
 
 call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 
@@ -602,8 +632,34 @@ isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission facto
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
+#ifdef TRACERS_ACETONE
+acetone%itsname='Acetone' ! .le. 8 characters and matching trname please.
+acetone%cceo=1.83d0 ! Coefficient for temperature activity factor in gamma_tld routine
+acetone%ct1=80.0d0 ! A temperature needed for the gamma_tld routine
+acetone%tdf_prm=0.10d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
+acetone%ldf=0.2d0 ! light dependant fraction, used for relative weighting gammas
+acetone%aindx=1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
+acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, & ! emission factors by MEGAN PFT from ...
+  &            240.d0,   240.d0,   240.d0,  240.d0,   240.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+  &            240.d0,    80.d0,    80.d0,   80.d0,    80.d0, &
+  &             80.d0  /)
+#endif /* TRACERS_ACETONE */
+#ifdef TERPENES_MEGAN
+! temporarily put in a-pinene only for Terpenes (later will do for
+! many sub-species):
+a_pinene%itsname='Terpenes' ! .le. 8 characters and matching trname please.
+a_pinene%cceo=1.83d0 ! Coefficient for temperature activity factor in gamma_tld routine
+a_pinene%ct1=80.0d0 ! A temperature needed for the gamma_tld routine
+a_pinene%tdf_prm=0.10d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
+a_pinene%ldf=0.6d0 ! light dependant fraction, used for relative weighting gammas
+a_pinene%aindx=2 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
+a_pinene%ef=(/  500.d0,   510.d0,   500.d0,  600.d0,   400.d0, & ! emission factors by MEGAN PFT from ...
+  &            600.d0,   400.d0,   400.d0,  200.d0,   300.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+  &            200.d0,     2.d0,     2.d0,    2.d0,     2.d0, &
+  &              2.d0  /)
+#endif /* TERPENES_MEGAN */
 ! IMPORTANT: in entering more megan ef values, always confirm index 2 vs. 3 as there
-!            was some bug in the code that swapped the two vs. the paper their based on?
+!            was some bug in the code that swapped the two vs. the paper they're based on?
 !            (see Tables 2 and 3 in G 2012 vs. MGN2MECH/INCLDIR/EFS_PFT.EXT.womap)
 
 !TODO: if a species we are using in the model doesn't happen to line up with
@@ -1101,7 +1157,7 @@ end subroutine get_gamma_tld
 !-----------------------------------------------------------------------
 
 subroutine get_gamma_tli(temp,this,gam_t)
-!@sum Calculate gamma temperature response factor for non-Isopene 
+!@sum Calculate gamma temperature response factor for non-Isopene
 !@+ species. (tli=light independent?) from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
 use megan_objects_mod, only: biogenicSpecies
@@ -1111,7 +1167,7 @@ type(biogenicSpecies), intent(inout) :: this
 !@var temp instantaneous surface air temperature (K)
 !@param Ts standard temperature (K)
 ! Note this%tdf_prm is a temperature dependent parameter for current
-! species. In MEGAN it's gotten using INCLUDE 'EACO.EXT' and the INDEX1 
+! species. In MEGAN it's gotten using INCLUDE 'EACO.EXT' and the INDEX1
 ! function. Here, we pass in the biogenicSpecies object containing that
 ! information. Note, I think this is called beta in G 2012.
 real*8, intent(IN) :: temp
@@ -1196,7 +1252,7 @@ end subroutine get_gamma_tli
 subroutine get_gamma_a(LAIp,LAIc,Tt,this,gam_a)
 !@sum Calculate gamma foliage aging factor from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
-! MEGAN uses INCLUDE 'EACO.EXT' and function INDEX1 to look 
+! MEGAN uses INCLUDE 'EACO.EXT' and function INDEX1 to look
 ! the relative emissions activity parameter up. See REA_INDEX( )
 use megan_objects_mod, only: biogenicSpecies
 implicit none

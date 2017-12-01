@@ -74,7 +74,7 @@ C**** calculate fractional loss and update tracer mass
           trmom_col(:,l,n) = trmom_col(:,l,n)*fred
         endif
         if (naij.gt.0) then
-          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)
+          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)*byaxyp(i,j)
         end if
       enddo ! l
 
@@ -618,7 +618,7 @@ c
       SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE GEOM, only : imaxj,byaxyp
+      USE GEOM, only : imaxj,axyp
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,ntsurfsrc
 #ifdef TRACERS_TOMAS
@@ -669,23 +669,23 @@ C**** diagnostics
           IF (naij > 0) THEN
           taijs(:,:,naij) = taijs(:,:,naij) + trsource(:,:,ns,n)*dtstep
           ENDIF
+          DO J=J_0,J_1
+            do i=i_0,imaxj(j)
+              dtracer(i,j)=trsource(i,j,ns,n)*dtstep*axyp(i,j)
+            end do
+          end do
           najl = jls_source(ns,n)
           IF (najl > 0) THEN
             DO J=J_0,J_1
               DO I=I_0,imaxj(j)
-                call inc_tajls(i,j,1,najl,trsource(i,j,ns,n)*dtstep)
+                call inc_tajls(i,j,1,najl,dtracer(i,j))
               END DO
             END  DO
           END IF
-          DO J=J_0,J_1
-            do i=i_0,imaxj(j)
-              dtracer(i,j)=trsource(i,j,ns,n)*dtstep
-            end do
-          end do
           if (itcon_surf(ns,n).gt.0)
      *         call DIAGTCB(dtracer,itcon_surf(ns,n),n)
 C**** trflux1 is total flux into first layer
-          trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)*byaxyp(:,:)
+          trflux1(:,:,n) = trflux1(:,:,n)+trsource(:,:,ns,n)
         end do
 #endif
         atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)

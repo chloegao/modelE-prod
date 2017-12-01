@@ -120,7 +120,14 @@
 !     this section MUST COME AFTER the nBBsources were removed from
 !     ntsurfsrc(n) above.
         select case (trname(n))
-        case ('Isoprene') ! expand this when megan species expand
+        case ('Isoprene'
+#ifdef TRACERS_ACETONE
+     &       ,'Acetone'
+#endif
+#ifdef TERPENES_MEGAN
+     &       ,'Terpenes'
+#endif
+     &       ) ! expand this when megan species expand
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(pTracer, "MEGAN")
           call set_do_megan(n, pTracer%ntSurfSrc)

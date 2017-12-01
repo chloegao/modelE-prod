@@ -11,7 +11,7 @@ c --- tradv2 - performs the actual transport operation
 c ---          (should be called immediately  b e f o r e  diapfl)
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : oddev,onemu
+      USE HYCOM_SCALARS, only : oddev
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
@@ -47,7 +47,7 @@ c
 c --- build up time integrals of horiz. mass fluxes
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : oddev,delt1,onemu
+      USE HYCOM_SCALARS, only : oddev,delt1
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       implicit none
@@ -83,7 +83,7 @@ c
 c --- advect tracer over 'mixfrq' time steps
 c
       USE HYCOM_DIM
-      USE HYCOM_SCALARS, only : oddev,onemu
+      USE HYCOM_SCALARS, only : oddev
       USE HYCOM_ARRAYS, only : ufxcum_loc => ufxcum,
      &     vfxcum_loc => vfxcum, p_loc => p, dp_loc => dp,
      &     scp2_loc => scp2,

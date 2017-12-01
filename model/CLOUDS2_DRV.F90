@@ -1703,7 +1703,7 @@ subroutine CONDSE
                    dt_sulf_mc(n,l)*(1.-fssl(l)))
               call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
               taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
-                   dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
+                   (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
             end if
 #ifdef ACCMIP_LIKE_DIAGS
             if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &
@@ -1766,17 +1766,17 @@ subroutine CONDSE
                    jls_trdpmc(6,n),trwash_mc(:,nx))
 
               if (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n)) &
-                   =taijs(i,j,ijts_trdpmc(1,n))+sum(trcond_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(1,n))+sum(trcond_mc(1:lmcmax,nx))*byaxyp(i,j)
               if (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n)) &
-                   =taijs(i,j,ijts_trdpmc(2,n))+sum(trdvap_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(2,n))+sum(trdvap_mc(1:lmcmax,nx))*byaxyp(i,j)
               if (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n)) &
-                   =taijs(i,j,ijts_trdpmc(3,n))+sum(trflcw_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(3,n))+sum(trflcw_mc(1:lmcmax,nx))*byaxyp(i,j)
               if (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n)) &
-                   =taijs(i,j,ijts_trdpmc(4,n))+sum(trprcp_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(4,n))+sum(trprcp_mc(1:lmcmax,nx))*byaxyp(i,j)
               if (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n)) &
-                   =taijs(i,j,ijts_trdpmc(5,n))+sum(trnvap_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(5,n))+sum(trnvap_mc(1:lmcmax,nx))*byaxyp(i,j)
               if (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n)) &
-                   =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))
+                   =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))*byaxyp(i,j)
 
               if(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(1,n),trwash_ls(:,nx))
@@ -1792,17 +1792,17 @@ subroutine CONDSE
                    jls_trdpls(6,n),trcond_ls(:,nx))
 
               if (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n)) &
-                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:LMCLD,nx))*byaxyp(i,j)
               if (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n)) &
-                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:LMCLD,nx))*byaxyp(i,j)
               if (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n)) &
-                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:LMCLD,nx))*byaxyp(i,j)
               if (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n)) &
-                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:LMCLD,nx))*byaxyp(i,j)
               if (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n)) &
-                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:LMCLD,nx))*byaxyp(i,j)
               if (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n)) &
-                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:LMCLD,nx))
+                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:LMCLD,nx))*byaxyp(i,j)
             end if
 #endif
 #ifdef TRACERS_DUST

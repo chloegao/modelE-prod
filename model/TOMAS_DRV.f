@@ -476,7 +476,7 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,tracnum).gt.0) 
      &                taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
-     &                    +AEROD(i,j,l,tracnum,np) ! /adt
+     &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
                      if (itcon_TOMAS(np,tracnum).gt.0) 
      &                    call inc_diagtcb(i,j,AEROD(i,j,l,tracnum,np),
      &                    itcon_TOMAS(np,tracnum),tracnum)
@@ -491,7 +491,7 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,tracnum).gt.0) 
      &                   taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
-     &                    +AEROD(i,j,l,tracnum,np) ! /adt
+     &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
 
                      if (itcon_TOMAS(np,tracnum).gt.0) 
      &                    call inc_diagtcb(i,j,AEROD(i,j,l,tracnum,np),
@@ -513,7 +513,7 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,n_H2SO4).gt.0) 
      &                taijs(i,j,ijts_TOMAS(np,n_H2SO4)) 
      &                    =taijs(i,j,ijts_TOMAS(np,n_H2SO4))
-     &                    +AEROD(i,j,l,n_H2SO4,np) ! /adt
+     &                    +AEROD(i,j,l,n_H2SO4,np)*byaxyp(i,j) ! /adt
                      if (itcon_TOMAS(np,n_H2SO4).gt.0) 
      &                    call inc_diagtcb(i,j,AEROD(i,j,l,n_H2SO4,np),
      &                    itcon_TOMAS(np,n_H2SO4),n_H2SO4)
@@ -2015,7 +2015,7 @@ c$$$      ENDIF
           trm_col(l,tracnum)=ndist2(k)          
           taijs(i,j,ijts_subcoag(tracnum)) 
      &         =taijs(i,j,ijts_subcoag(tracnum))
-     &         +N_subgridcg(i,j,l,k,2) ! /adt
+     &         +N_subgridcg(i,j,l,k,2)*byaxyp(i,j) ! /adt
           
           if (itcon_subcoag(tracnum).gt.0) 
      &         call inc_diagtcb(i,j,N_subgridcg(i,j,l,k,2) ,
@@ -2034,7 +2034,7 @@ c$$$      ENDIF
             trm_col(l,tracnum)=mdist2(k,c)
             taijs(i,j,ijts_subcoag(tracnum)) 
      &           =taijs(i,j,ijts_subcoag(tracnum))
-     &           +M_subgridcg(i,j,l,k,c,2) ! /adt
+     &           +M_subgridcg(i,j,l,k,c,2)*byaxyp(i,j) ! /adt
 
             if (itcon_subcoag(tracnum).gt.0) 
      &           call inc_diagtcb(i,j,M_subgridcg(i,j,l,k,c,2),
@@ -2147,7 +2147,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
           
           do k=1,nbins
             
-            ndistinit(k)=trsource(i,j,NS,n_ANUM(1)+K-1)*dtstep
+            ndistinit(k)=axyp(i,j)*trsource(i,j,NS,n_ANUM(1)+K-1)*dtstep
           
             tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
