@@ -1053,9 +1053,9 @@ C-----CODE--------------------------------------------------------------
 
               
       if (tr_conv) then
-         moxid=AQSO4oxid_mc(i,j,l) 
+         moxid=AQSO4oxid_mc(l,i,j) 
       else
-         moxid=AQSO4oxid_ls(i,j,l) 
+         moxid=AQSO4oxid_ls(l,i,j) 
       endif
 
       if (moxid.eq.0.d0) return
@@ -2386,8 +2386,8 @@ C     determine the mass added to each bin coagulation
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO 
 
-      allocate(  AQSO4oxid_mc(I_0H:I_1H,J_0H:J_1H,LM)   )
-      allocate(  AQSO4oxid_ls(I_0H:I_1H,J_0H:J_1H,LM)   )
+      allocate(  AQSO4oxid_mc(LM,I_0H:I_1H,J_0H:J_1H) )
+      allocate(  AQSO4oxid_ls(LM,I_0H:I_1H,J_0H:J_1H) )
       allocate(  H2SO4_chem(LM)  )
       allocate(  AEROD(I_0H:I_1H,J_0H:J_1H,LM,NTM,ptype) )
       allocate(  N_subgridcg(I_0H:I_1H,J_0H:J_1H,LM,IBINS,2) )

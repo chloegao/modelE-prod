@@ -1719,8 +1719,8 @@ subroutine CONDSE
 #endif
 #ifdef TRACERS_TOMAS
            if (trname(n).eq."ASO4__01") then
-              AQSO4oxid_mc(i,j,l) = dt_sulf_mc(n,l)*(1.-fssl(l))
-              AQSO4oxid_ls(i,j,l) = dt_sulf_ss(n,l)
+              AQSO4oxid_mc(l,i,j) = dt_sulf_mc(n,l)*(1.-fssl(l))
+              AQSO4oxid_ls(l,i,j) = dt_sulf_ss(n,l)
            endif
 #endif
           end do
