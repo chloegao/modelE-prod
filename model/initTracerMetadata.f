@@ -124,6 +124,9 @@
 #ifdef TRACERS_ACETONE
      &       ,'Acetone'
 #endif
+#ifdef TERPENES_MEGAN
+     &       ,'Terpenes'
+#endif
      &       ) ! expand this when megan species expand
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(pTracer, "MEGAN")
