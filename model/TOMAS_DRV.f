@@ -12,7 +12,6 @@
       MODULE TOMAS_AEROSOL
 
 C-----INCLUDE FILES--------------------------------------------------
-      USE RESOLUTION, only : im,jm     ! dimensions
       USE TRACER_COM, only : ntm,nbins
       IMPLICIT NONE 
 
@@ -136,7 +135,7 @@ C-----INCLUDE FILES--------------------------------------------------
      *     ,ijts_TOMAS,itcon_TOMAS
 !      USE AEROSOL_SOURCES, only: off_HNO3
       USE FLUXES, only: tr3Dsource
-      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE RESOLUTION, only : lm          ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
@@ -1643,7 +1642,7 @@ cyhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
      *     ,ntm,ntm_TOMAS
 
       USE TRDIAG_COM, only : taijs=>taijs_loc !,taijls=>taijls_loc
-      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE RESOLUTION, only : lm          ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
@@ -2077,7 +2076,6 @@ C-----INCLUDE FILES--------------------------------------------------
       USE TOMAS_AEROSOL
       USE FLUXES, only : trsource,atmsrf
 
-      use resolution, only     : lm
       USE ATM_COM, only :   t   ! potential temperature (C)
      $     ,q                   ! saturated pressure
      $     ,pmid                ! midpoint pressure in hPa (mb)
