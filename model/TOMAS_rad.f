@@ -13,7 +13,6 @@ C
 
       USE domain_decomp_atm,ONLY: am_i_root
 
-      USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
       use OldTracer_mod, only: trName, TRPDENS
       USE TRACER_COM,  only: TRM,NBINS,n_ASO4,n_ANUM
@@ -292,11 +291,12 @@ C ************************************************************
       TOMAS_TAB(:,:,:)=0.d0 ! zero for now
       
       if (itime.ne.itimeI) then 
-        do L = 1,LM             !radiation has 3 extra levels on the top - aerosol are zero
           
-          do nc=1,icomp-2
-            do w=1,6
+        do nc=1,icomp-2
+
 c     SW
+          do w=1,6
+            do L = 1,LM !radiation has 3 extra levels - aerosols are zero
               TOMAS_EXT(l,w) = TOMAS_EXT(l,w)+ aesqex(l,w,nc)*FSTOPX(nc)
               HELP = (TOMAS_SCT(l,w)*TOMAS_GCB(l,w))
      &             +(aesqcb(l,w,nc)*aesqsc(l,w,nc)*FSTOPX(nc))
@@ -305,10 +305,14 @@ c     SW
               TOMAS_GCB(l,w) = HELP/(TOMAS_SCT(l,w)+1.d-15)
 
             enddo
-c     LW
-              TOMAS_TRBALK(l,:) = TOMAS_TRBALK(l,:)
-     &           +0.d0*TOMAS_TAB(l,:,nc)*FSTOPX(nc) !no absorption for longwave
           enddo
+
+c     LW
+          do L = 1,LM !radiation has 3 extra levels - aerosols are zero
+            TOMAS_TRBALK(l,:) = TOMAS_TRBALK(l,:)
+     &         +0.d0*TOMAS_TAB(l,:,nc)*FSTOPX(nc) !no absorption for longwave
+          enddo
+
         enddo
       endif
      
