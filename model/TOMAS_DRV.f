@@ -1458,9 +1458,7 @@ C Return the density
             Mke(k,srtnh4) = sfrac*tot_nh3*18.d0 ! put the ammonia where the sulfate is
          enddo
       else ! free ammonia
-         do k=1,ibins
-            Mke(k,srtnh4) = Mke(k,srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
-         enddo
+         Mke(:,srtnh4) = Mke(:,srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
          Gce(srtnh4) = (tot_nh3 - tot_so4*2.d0)*17.d0 ! put whats left over in the gas phase
       endif
 
@@ -1785,12 +1783,8 @@ C     Check for negative tracer problems
       do j=1,icomp-1
          Gcd(j)=Gc(j)
       enddo
-      do k=1,ibins
-         Nkd(k)=Nk(k)
-         do j=1,icomp
-            Mkd(k,j)=Mk(k,j)
-         enddo
-      enddo
+      Nkd(:)=Nk(:)
+      Mkd(:,:)=Mk(:,:)
 
       RETURN
       END SUBROUTINE storenm
