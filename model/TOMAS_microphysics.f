@@ -1017,16 +1017,12 @@ C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
       enddo
-      do k=1,ibins
-         Nk1(k)=Nki(k)
-         Nknuc(k)=Nki(k)
-         Nkcond(k)=Nki(k)
-         do j=1,icomp
-            Mk1(k,j)=Mki(k,j)
-            Mknuc(k,j)=Mki(k,j)
-            Mkcond(k,j)=Mki(k,j)
-         enddo
-      enddo
+      Nk1(:)=Nki(:)
+      Nknuc(:)=Nki(:)
+      Nkcond(:)=Nki(:)
+      Mk1(:,:)=Mki(:,:)
+      Mknuc(:,:)=Mki(:,:)
+      Mkcond(:,:)=Mki(:,:)
 
 C     Get initial condensation sink
       CS1 = 0.d0
@@ -1065,7 +1061,6 @@ C     Get change size distribution due to nucleation with initial guess
 
          if (abs(mcond).gt.totmass*1.0d-8) then
             if (-mcond.lt.Mk2(nuc_bin,srtso4)) then
-
                tmass = 0.d0
                do j=1,icomp-idiag
                   tmass = tmass + Mk2(nuc_bin,j)
@@ -1075,14 +1070,11 @@ C     Get change size distribution due to nucleation with initial guess
                mcond = 0.d0
             else
                print*,'budget fudge 2 in cond_nuc.f'
-               do k=2,ibins
-                  Nk2(k) = Nk1(k)
-                  Mk2(k,srtso4) = Mk1(k,srtso4)
-               enddo
+               Nk2(2:) = Nk1(2:)
+               Mk2(2:,srtso4) = Mk1(2:,srtso4)
                Nk2(1) = Nk1(1)+totmass/sqrt_xk_xk1(1)
                Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                mcond = 0.d0        
-
             endif
          else
             mcond = 0.d0
@@ -1110,12 +1102,8 @@ C     Get guess for condensation
       call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3)
 
       if(mcond_soa.eq.0) goto 17
-      do k=1,ibins
-         Nk2(k)=Nk3(k)
-         do j=1,icomp
-            Mk2(k,j)=Mk3(k,j)
-         enddo
-      enddo
+      Nk2(:)=Nk3(:)
+      Mk2(:,:)=Mk3(:,:)
       call ezcond(Nk2,Mk2,mcond_soa,srtocil,Nk3,Mk3)
 
  17   continue
@@ -1196,10 +1184,8 @@ c                     endif
                      mcond = 0.d0
                   else
                      print*,'budget fudge 2 in cond_nuc.f'
-                     do k=2,ibins
-                        Nk2(k) = Nk1(k)
-                        Mk2(k,srtso4) = Mk1(k,srtso4)
-                     enddo
+                     Nk2(2:) = Nk1(2:)
+                     Mk2(2:,srtso4) = Mk1(2:,srtso4)
                      Nk2(1) = Nk1(1)+totmass/sqrt_xk_xk1(1)
                      Mk2(1,srtso4) = Mk1(1,srtso4) + totmass
                      mcond = 0.d0 
@@ -1242,12 +1228,8 @@ c                     endif
             enddo
 
             if(mcond_soa.eq.0) goto 19
-            do k=1,ibins
-               Nk2(k)=Nk3(k)
-               do j=1,icomp
-                  Mk2(k,j)=Mk3(k,j)
-               enddo
-            enddo
+            Nk2(:)=Nk3(:)
+            Mk2(:,:)=Mk3(:,:)
 
             call ezcond(Nk2,Mk2,mcond_soa,srtocil,Nk3,Mk3)
             do k=1,ibins
@@ -1287,24 +1269,16 @@ c                     endif
 Cjrp               endif
                CS1 = CS2
                Gc1(srtnh4)=Gc3(srtnh4)
-               do k=1,ibins
-                  Nk1(k)=Nk3(k)
-                  do j=1,icomp
-                     Mk1(k,j)=Mk3(k,j)
-                  enddo
-               enddo         
+               Nk1(:)=Nk3(:)
+               Mk1(:,:)=Mk3(:,:)
             endif
          enddo
          Gcf(srtso4)=sumH2SO4/dt
          fnavg = sumfn/dt
          fn1avg = sumfn1/dt
 
-      do k=1,ibins
-         Nkf(k)=Nk3(k)
-         do j=1,icomp
-            Mkf(k,j)=Mk3(k,j)
-         enddo
-      enddo      
+      Nkf(:)=Nk3(:)
+      Mkf(:,:)=Mk3(:,:)
       Gcf(srtnh4)=Gc3(srtnh4)
 
       return
@@ -1727,9 +1701,7 @@ Cjrp      kij_self=kij_self*1.0e6/boxvol !normalize by grid cell volume
         enddo
       else                      ! free ammonia
 c     Mnuce(srtnh4) = Mnuce(srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
-        do k=1,ibins
-          Mke(k,srtnh4) = Mke(k,srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
-        enddo
+        Mke(:,srtnh4) = Mke(:,srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
         Gce(srtnh4) = (tot_nh3 - tot_so4*2.d0)*17.d0 ! put whats left over in the gas phase
       endif
       
@@ -2313,9 +2285,7 @@ C     section
          do k=1,ibins
             if (k .ne. nuc_bin)then
                Nkf(k) = Nki(k)
-               do i=1,icomp
-                  Mkf(k,i) = Mki(k,i)
-               enddo
+               Mkf(k,:) = Mki(k,:)
             else
                do i=1,icomp
                   if (i.ne.srtso4) then
@@ -2328,9 +2298,7 @@ C     section
          do k=1,ibins
             if (Nkf(k).lt.1.d0) then
                Nkf(k) = 0.d0
-               do j=1,icomp
-                  Mkf(k,j) = 0.d0
-               enddo
+               Mkf(k,:) = 0.d0
             endif
          enddo
          call mnfix(Nkf,Mkf)
@@ -2364,9 +2332,7 @@ C     particles into the first size bin.  don't let it go less than zero.
          do k=1,ibins
             if (k .ne. nuc_bin)then
                Nkf(k) = Nki(k)
-               do i=1,icomp
-                  Mkf(k,i) = Mki(k,i)
-               enddo
+               Mkf(k,:) = Mki(k,:)
             else
                do i=1,icomp
                   if (i.ne.srtso4) then
@@ -2379,21 +2345,15 @@ C     particles into the first size bin.  don't let it go less than zero.
          do k=1,ibins
             if (Nkf(k).lt.1.d0) then
                Nkf(k) = 0.d0
-               do j=1,icomp
-                  Mkf(k,j) = 0.d0
-               enddo
+               Mkf(k,:) = 0.d0
             endif
          enddo
          call mnfix(Nkf,Mkf)
          
       else
          
-         do k=1,ibins
-            Nkf(k) = Nki(k)
-            do i=1,icomp
-               Mkf(k,i) = Mki(k,i)
-            enddo
-         enddo
+         Nkf(:) = Nki(:)
+         Mkf(:,:) = Mki(:,:)
          
       endif
       
@@ -2462,12 +2422,8 @@ C     particles into the first size bin.  don't let it go less than zero.
       mcond=mcondi
 
 ! initialize variables
-      do k=1,ibins
-         Nk1(k)=Nki(k)
-         do j=1,icomp
-            Mk1(k,j)=Mki(k,j)
-         enddo
-      enddo
+      Nk1(:)=Nki(:)
+      Mk1(:,:)=Mki(:,:)
 
       call mnfix(Nk1,Mk1)
 
@@ -2483,12 +2439,8 @@ C     particles into the first size bin.  don't let it go less than zero.
                Mkf(1,j) = Mk1(1,j)
             endif
          enddo
-         do k=2,ibins
-            Nkf(k) = Nk1(k)
-            do j=1,icomp
-               Mkf(k,j) = Mk1(k,j)
-            enddo
-         enddo
+         Nkf(2:) = Nk1(2:)
+         Mkf(2:,:) = Mk1(2:,:)
          return
       endif
       
@@ -2597,30 +2549,18 @@ C     jrp         enddo
             call mnfix(Nk2,Mk2)
          else ! do nothing
             mcond = 0.d0
-            do k=1,ibins
-               Nk2(k)=Nk1(k)
-               do j=1,icomp
-                  Mk2(k,j)=Mk1(k,j)
-               enddo
-            enddo
+            Nk2(:)=Nk1(:)
+            Mk2(:,:)=Mk1(:,:)
          endif
          if (i.ne.nsteps)then
-            do k=1,ibins
-               Nk1(k)=Nk2(k)
-               do j=1,icomp
-                  Mk1(k,j)=Mk2(k,j)
-               enddo
-            enddo            
+            Nk1(:)=Nk2(:)
+            Mk1(:,:)=Mk2(:,:)
          endif
 
       enddo
 
-      do k=1,ibins
-         Nkf(k)=Nk2(k)
-         do j=1,icomp
-            Mkf(k,j)=Mk2(k,j)
-         enddo
-      enddo
+      Nkf(:)=Nk2(:)
+      Mkf(:,:)=Mk2(:,:)
 
 ! check for conservation of mass
       tot_i = 0.d0
@@ -2637,10 +2577,7 @@ C     jrp         enddo
          if (abs((mcond-(tot_f-tot_i))/mcond).lt.1.d0) then
             ! do correction of mass
             ratio = (tot_f-tot_i)/mcond
-            do k=1,ibins
-               Mkf(k,spec)=Mki(k,spec)+
-     &              (Mkf(k,spec)-Mki(k,spec))/ratio
-            enddo
+            Mkf(:,spec)=Mki(:,spec)+(Mkf(:,spec)-Mki(:,spec))/ratio
             call mnfix(Nkf,Mkf)
          else
             if(am_i_root())then
@@ -2780,10 +2717,8 @@ Cpja to the next highest bin
         AMKD_tot=AMKD_tot+AMKD(k,kk)
         enddo
          if (AMKD_tot/ANKD(k).gt.X(k+1)) then
-            do j=1,icomp
-               AMKD(k+1,j)=AMKD(k+1,j)+0.1d0*AMKD(k,j)
-               AMKD(k,j)=AMKD(k,j)*0.9d0
-            enddo
+            AMKD(k+1,:)=AMKD(k+1,:)+0.1d0*AMKD(k,:)
+            AMKD(k,:)=AMKD(k,:)*0.9d0
             ANKD(k+1)=ANKD(k+1)+0.1d0*ANKD(k)
             ANKD(k)=ANKD(k)*0.9d0
          endif
@@ -2821,19 +2756,11 @@ c
          maxtau=max(maxtau,abs(TAU(l)))
       enddo
       IF(ABS(maxtau).LT.TEPS)THEN
-         DO L=1,ibins
-            DO J=1,icomp
-               AMK(L,J)=AMKD(L,J)
-            ENDDO
-            ANK(L)=ANKD(L)
-         ENDDO
+         AMK(:,:)=AMKD(:,:)
+         ANK(:)=ANKD(:)
       ELSE
-         DO L=1,ibins
-            DO J=1,icomp
-               AMK(L,J)=0.d0
-            ENDDO
-            ANK(L)=0.d0
-         ENDDO
+         AMK(:,:)=0.d0
+         ANK(:)=0.d0
          WW=0.5d0
 c        IF(TAU.LT.0.)WW=.5d0
 c
@@ -2845,9 +2772,7 @@ c
             !if tau is zero, leave everything in same bin
             IF (TAU(L) .EQ. 0.) THEN
                ANK(L)=ANK(L)+ANKD(L)
-               DO J=1,icomp
-                  AMK(L,J)=AMK(L,J)+AMKD(L,J)
-               ENDDO
+               AMK(L,:)=AMK(L,:)+AMKD(L,:)
             ENDIF
             IF (TAU(L) .EQ. 0.) GOTO 200
 
