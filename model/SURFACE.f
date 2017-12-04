@@ -2335,8 +2335,8 @@ C****
 #else
 #ifndef TRACERS_TOMAS
 
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols?
 #endif
 #endif
 
@@ -2360,8 +2360,8 @@ C****
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
         
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols?
         
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
@@ -2375,8 +2375,8 @@ C****
         if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(4,n),n)
 
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols? 
 
             end select
 #endif
@@ -2535,11 +2535,11 @@ C****
      .           * ptype * SECONDS_PER_YEAR        ! mol/m2/yr
 
 ! zonal mean diag accumulates kgCO2
-                if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+                if(jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *             - pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)*trs 
      .           - pbl_args%alpha_gas(ngx) * trgrnd ) 
      .           * 1d6/vol2mass(n) * dtsurf  
-     .           * ptype*tr_mm(n)*1d-3*axyp(i,j))
+     .           * ptype*tr_mm(n)*1d-3)
 
                 if (MODDSF.EQ.0) THEN
 ! piston velocity

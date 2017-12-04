@@ -73,13 +73,14 @@ C**** calculate fractional loss and update tracer mass
         if(domom .and. fred.lt.1.) then
           trmom_col(:,l,n) = trmom_col(:,l,n)*fred
         endif
+        dtrm(l) = dtrm(l)*byaxyp(i,j)
         if (naij.gt.0) then
-          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)*byaxyp(i,j)
+          taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)
         end if
       enddo ! l
 
       if(jls_3Dsource(ns,n) > 0) then
-        call inc_tajls_column(i,j,1,lm,lm,najl,dtrm)
+        call inc_tajls2_column(i,j,1,lm,lm,najl,dtrm)
       endif
 #endif
 
@@ -235,7 +236,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY MOIST CONVEC)(kg)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY MOIST CONVECTION'
         jlq_power(k) = 10
-        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
+        units_jln(k,n) = unit_string(ntm_power(n),'kg/kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY Large-scale CONDENSE)  (kg)
         k = k + 1
         jlnt_lscond = k
@@ -243,7 +244,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY Large-scale CONDENSE)  (kg)
         lname_jln(k,n) ='CHANGE OF '//
      &     trim(trname(n))//' MASS BY LARGE-SCALE CONDENSE'
         jlq_power(k) = 10.
-        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
+        units_jln(k,n) = unit_string(ntm_power(n),'kg/kg/s')
 C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         k = k + 1
         jlnt_turb = k
@@ -251,7 +252,7 @@ C****   TMBAR-TM (CHANGE OF TRACER MASS BY DRY CONVEC)  (kg)
         lname_jln(k,n) = 'CHANGE OF '//
      &     trim(trname(n))//' MASS BY TURBULENCE/DRY CONVECTION'
         jlq_power(k) = 10
-        units_jln(k,n) = unit_string(ntm_power(n)+jlq_power(k),'kg/s')
+        units_jln(k,n) = unit_string(ntm_power(n),'kg/kg/s')
 
 
         if (k.gt. ktajl) then
@@ -678,7 +679,7 @@ C**** diagnostics
           IF (najl > 0) THEN
             DO J=J_0,J_1
               DO I=I_0,imaxj(j)
-                call inc_tajls(i,j,1,najl,dtracer(i,j))
+                call inc_tajls2(i,j,1,najl,dtracer(i,j)/axyp(i,j))
               END DO
             END  DO
           END IF
@@ -822,6 +823,7 @@ C****
 #endif
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
+      USE GEOM, only : byaxyp
       IMPLICIT NONE
       integer, intent(in) :: i,j
 !
@@ -881,11 +883,11 @@ C**** ...land surface tracers
 C**** atmospheric diagnostics
           najl = jls_decay(n)
           do l=1,lm
-            call inc_tajls(i,j,l,najl,trm_col(l,n)
+            call inc_tajls2(i,j,l,najl,(trm_col(l,n)
 #ifdef TRACERS_WATER
      *           +trwm(i,j,l,n)
 #endif
-     *           -told(l))
+     *           -told(l))*byaxyp(i,j))
           enddo
 
           call DIAGTCA_1pt(itcon_decay(n),n,i,j)
@@ -1023,7 +1025,8 @@ C****           fgrfluxd=stokevdt*gbygz(i,j,l)
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
-              call inc_tajls(i,j,l,najl,trm_col(l,n)-told(l))
+              call inc_tajls2(i,j,l,najl,
+     &             (trm_col(l,n)-told(l))*byaxyp(i,j))
             enddo
           END IF
         end if

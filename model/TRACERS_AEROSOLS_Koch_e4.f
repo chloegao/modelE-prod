@@ -577,9 +577,6 @@ c impose diurnal variability
 #endif
       USE TRDIAG_COM, only : 
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-#ifdef TRACERS_SPECIAL_Shindell
-     &     ,jls_OHcon
-#endif
       use resolution, only: im,lm
       use atm_com, only : t,q
       USE MODEL_COM, only: dtsrc
@@ -655,7 +652,7 @@ c - not necessary for Shindell source
           else
             ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
           endif
-          call inc_tajls2(i,j,l,jls_NO3,ttno3)
+          call inc_tajls2(i,j,l,jls_NO3,ma(l,i,j)*ttno3)
 
           r3=rsulf3(l)*ttno3
           d3= exp(-r3*dtsrc)
@@ -725,8 +722,10 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
-        if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,oh(i,j,l))
-        if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,dho2(i,j,l))
+        if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,
+     &       ma(l,i,j)*oh(i,j,l))
+        if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,
+     &       ma(l,i,j)*dho2(i,j,l))
 
 ! SO4 and H2O2_s formation MUST be in a separate loop, since SO2 does not have
 ! to be before SO4 or H2SO4 or H2O2_s in the tracer list
@@ -818,7 +817,8 @@ c H2O2 losses:5 and 6
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
 
-          if (jls_phot>0) call inc_tajls(i,j,l,jls_phot,perj(i,j,l))
+          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,
+     &         perj(i,j,l)/axyp(i,j))
           endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop

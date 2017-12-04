@@ -38,7 +38,8 @@
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
      *     jls_3Dsource, jlnt_conc, jlnt_mass, jlnt_nt_tot, jlnt_nt_mm,
      *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
-     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source
+     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source,
+     *     jls_mass_weighted,jls_not_mass_weighted
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
@@ -55,7 +56,7 @@
       use domain_decomp_atm, only : am_i_root
       use cdl_mod
       IMPLICIT NONE
-      real*8 :: bydxyp(jm),byapo(jm),onespo(jm),fj(jm)
+      real*8 :: fj(jm)
       INTEGER :: J,L,N,K,KK,KKK,jtpow,n1,n2,k_dpa,k_dwa,k_vap,k_cnd,
      &     j1,j2
       REAL*8 :: dD, d18O, d17O, byiacc, hemfac
@@ -67,15 +68,8 @@
 
       if(.not. am_i_root()) return
 
-      onespo = 1.
-      bydxyp = 1d0/dxyp
-      byapo = bydxyp
-
 #ifndef CUBED_SPHERE
       call JLt_TITLEX ! needed for some extra titles
-      onespo(1)  = fim
-      onespo(jm) = fim
-      byapo = bydxyp*onespo/fim
 #endif
 
 
@@ -99,14 +93,20 @@
 c
       k = k + 1
       k_dpa = k
+      sname_tajl(k) = 'air_mass'
+      lname_tajl(k) = 'Air Mass'
+      units_tajl(k) = 'kg/m2'
       do l=1,lm
-        tajl(:,l,k) = ajl(:,l,jl_dpasrc)*bydxyp(:)
+        tajl(:,l,k) = ajl(:,l,jl_dpasrc)
       enddo
 c
       k = k + 1
       k_dwa = k
+      sname_tajl(k) = 'cond_mass'
+      lname_tajl(k) = 'Condensate Mass'
+      units_tajl(k) = 'kg/m2'
       do l=1,lm
-        tajl(:,l,k) = ajl(:,l,jl_dwasrc)*bydxyp(:)
+        tajl(:,l,k) = ajl(:,l,jl_dwasrc)
       enddo
 
 #ifndef TRACERS_AMP
@@ -115,13 +115,13 @@ c
       k = k + 1
       k_vap = k
       do l=1,lm
-        tajl(:,l,k) = tajln(:,l,jlnt_mass,n_water)*bydxyp(:)
+        tajl(:,l,k) = tajln(:,l,jlnt_mass,n_water)
       enddo
 c
       k = k + 1
       k_cnd = k
       do l=1,lm
-        tajl(:,l,k) = tajln(:,l,jlnt_cldh2o,n_water)*bydxyp(:)
+        tajl(:,l,k) = tajln(:,l,jlnt_cldh2o,n_water)
       enddo
 
 #endif
@@ -142,7 +142,7 @@ C****
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
       do l=1,lm
-        tajl(:,l,k) = tajln(:,l,jlnt_mass,n)*bydxyp(:)
+        tajl(:,l,k) = tajln(:,l,jlnt_mass,n)
       enddo
 
 #ifdef TRACERS_WATER
@@ -182,14 +182,11 @@ C****
       ia_tajl(k) = ia_jlq(kk)
       jtpow = ntm_power(n)+jlq_power(kk)
       tajl(:,:,k) = tajln(:,:,kk,n)
+      do l=1,lm
+        tajl(:,l,k) = tajl(:,l,k)*dxyp(:) ! kg/m2 -> kg
+      enddo
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AEROSOLS_SEASALT)
       jtpow = jtpow+13
-#else
-      denom_tajl(k) = k_dpa
-      byiacc = 1d0/(idacc(ia_tajl(k))+teeny)
-      do l=1,lm
-        tajl(:,l,k) = tajl(:,l,k)*byapo(:)*byiacc*tajl(:,l,k_dpa)
-      enddo
 #endif
       scale_tajl(k) = scale_jlq(kk)*10.**(-jtpow)
 #endif
@@ -206,7 +203,7 @@ C****
       lname_tajl(k) = lname_jln(kk,n)
       units_tajl(k) = units_jln(kk,n)
       do l=1,lm
-        tajl(:,l,k) = tajln(:,l,kk,n)*bydxyp(:)
+        tajl(:,l,k) = tajln(:,l,kk,n)
       enddo
 
       if (to_per_mil(n).gt.0) then
@@ -289,16 +286,15 @@ c
         if(kkk.eq.1) kk = jlnt_mc
         if(kkk.eq.2) kk = jlnt_lscond
         if(kkk.eq.3) kk = jlnt_turb
-        per_area(k) = .false.
-        output_vsum(k) = .true.
         sname_tajl(k) = sname_jln(kk,n)
         lname_tajl(k) = lname_jln(kk,n)
         units_tajl(k) = units_jln(kk,n)
         ia_tajl(k) = ia_jlq(kk)
         jtpow = ntm_power(n)+jlq_power(kk)
         scale_tajl(k) = scale_jlq(kk)*10.**(-jtpow)
+        denom_tajl(k) = k_dpa
         do l=1,lm
-          tajl(:,l,k) = tajln(:,l,kk,n)*onespo(:)
+          tajl(:,l,k) = tajln(:,l,kk,n)
         enddo
       enddo
 
@@ -306,9 +302,6 @@ c
 
 C****
 C**** JL Specials (incl. Sources and sinks)
-C**** Partial move towards correct units (kg/(mb m^2 s)).
-C**** Plot depends on jwt_jls.
-C**** Note that only jwt_jls=3 is resolution independent.
 C****
       do kk=1,ktajls
         if (sname_jls(kk).eq."daylight" .or. sname_jls(kk).eq."H2O_mr"
@@ -322,42 +315,10 @@ C****
         ltop_tajl(k) = jls_ltop(kk)
         jtpow = jls_power(kk)
         scale_tajl(k) = scale_jls(kk)*10.**(-jtpow)
+        if(jwt_jls(kk).eq.jls_mass_weighted) denom_tajl(k) = k_dpa ! normal case: mass-weighted
         tajl(:,:,k) = tajls(:,:,kk)
-        byiacc = 1d0/(idacc(ia_tajl(k))+teeny)
-        if(jwt_jls(kk).eq.1) then
-          per_area(k) = .false.
-          output_vsum(k) = .true.
-          do l=1,lm
-            tajl(:,l,k) = tajl(:,l,k)*onespo(:)
-          enddo
-        elseif(jwt_jls(kk).eq.2) then
-          denom_tajl(k) = k_dpa
-          do l=1,lm
-            tajl(:,l,k) = tajl(:,l,k)*bydxyp(:)*byiacc*tajl(:,l,k_dpa)
-          enddo
-        elseif(jwt_jls(kk).eq.3) then
-          denom_tajl(k) = k_dpa
-          do l=1,lm
-            tajl(:,l,k) = tajl(:,l,k)*bydxyp(:)*100./grav
-          enddo
-        endif
 
-c        select case (jwt_jls(kk))
-c        case (1)   !  simple sum (like kg/s),
-c          CALL JLMAP_t (lname_jls(kk),sname_jls(kk),units_jls(kk),plm,
-c     *         tajls(1,1,kk),scalet,onespo,ones,jls_ltop(kk),jwt_jls(kk)
-c     *         ,jgrid_jls(kk))
-c        case (2)   !  area weighting (like kg/m^2 s)
-c          CALL JLMAP_t (lname_jls(kk),sname_jls(kk),units_jls(kk),plm
-c     *         ,tajls(1,1,kk),scalet,bydxyp,ones,jls_ltop(kk),jwt_jls(kk)
-c     *         ,jgrid_jls(kk))
-c        case (3)   !  area + pressure weighting (like kg/mb m^2 s)
-c          CALL JLMAP_t (lname_jls(kk),sname_jls(kk),units_jls(kk),plm
-c     *         ,tajls(1,1,kk),scalet,byapo,ones,jls_ltop(kk),jwt_jls(kk)
-c     *         ,jgrid_jls(kk))
-c        end select
-
-        end do
+      enddo
 
 #ifdef TRACERS_SPECIAL_Lerner
 C**** some special combination diagnostics
@@ -373,13 +334,9 @@ C**** total chemical change for CH4
         ia_tajl(k) = ia_jls(kk)
         ltop_tajl(k) = jls_ltop(kk)
         scale_tajl(k) = scale_jls(kk)*10.**(-jls_power(kk))
+        denom_tajl(k) = k_dpa
         tajl(:,:,k) = tajls(:,:,jls_3Dsource(1,n_CH4))
      &              + tajls(:,:,jls_3Dsource(2,n_CH4))
-        do l=1,lm
-          tajl(:,l,k) = tajl(:,l,k)*onespo(:)
-        enddo
-        per_area(k) = .false.
-        output_vsum(k) = .true.
       end if
 C**** total chemical change for O3
       if (n_O3.gt.0) then
@@ -392,15 +349,11 @@ C**** total chemical change for O3
         ia_tajl(k) = ia_jls(kk)
         ltop_tajl(k) = jls_ltop(kk)
         scale_tajl(k) = scale_jls(kk)*10.**(-jls_power(kk))
+        denom_tajl(k) = k_dpa
         tajl(:,:,k) = tajls(:,:,jls_3Dsource(1,n_O3))
      &              + tajls(:,:,jls_3Dsource(2,n_O3))
      &              + tajls(:,:,jls_3Dsource(3,n_O3))
      &              + tajls(:,:,jls_source(1,n_O3))
-        do l=1,lm
-          tajl(:,l,k) = tajl(:,l,k)*onespo(:)
-        enddo
-        per_area(k) = .false.
-        output_vsum(k) = .true.
       end if
 #endif
 
@@ -450,7 +403,7 @@ C**** Concentration in water vapour
           do j=1,jm
             d18O=tajln(j,l,kk,n1)/trw0(n1)-tajln(j,l,kk,n_water)
             dD=tajln(j,l,kk,n2)/trw0(n2)-tajln(j,l,kk,n_water)
-            tajl(j,l,k)=1d3*(dD-8.*d18O)*bydxyp(j)
+            tajl(j,l,k)=1d3*(dD-8.*d18O)
           enddo
         enddo
 
@@ -465,7 +418,7 @@ C**** Concentration in cloud water
           do j=1,jm
             d18O=tajln(j,l,kk,n1)/trw0(n1)-tajln(j,l,kk,n_water)
             dD=tajln(j,l,kk,n2)/trw0(n2)-tajln(j,l,kk,n_water)
-            tajl(j,l,k)=1d3*(dD-8.*d18O)*bydxyp(j)
+            tajl(j,l,k)=1d3*(dD-8.*d18O)
           enddo
         enddo
 

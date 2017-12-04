@@ -63,8 +63,8 @@ C**** save some basic model diags for weighting
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_ajl2(i,j,l,jl_dpasrc,axyp(i,j)*MA(l,i,j))
-            call inc_ajl2(i,j,l,jl_dwasrc,axyp(i,j)*MA(l,i,j)*
+            call inc_ajl(i,j,l,jl_dpasrc,MA(l,i,j))
+            call inc_ajl(i,j,l,jl_dwasrc,MA(l,i,j)*
      &        (qcl(i,j,l)+qci(i,j,l)))
           end do
         end do
@@ -114,7 +114,7 @@ C**** Zonal mean concentration and mass
         do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_tajln(i,j,l,jlnt_mass,n,trm(i,j,l,n))
+            call inc_tajln2(i,j,l,jlnt_mass,n,trm(i,j,l,n)*byaxyp(i,j))
           end do
         enddo; enddo
 
@@ -124,7 +124,8 @@ C**** Zonal mean cloud water concentration
         do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_tajln(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
+            call inc_tajln2(i,j,l,jlnt_cldh2o,n,
+     &           trwm(i,j,l,n)*byaxyp(i,j))
           end do
         enddo; enddo
         end if
@@ -699,7 +700,8 @@ C****
      *     scale_jls, jls_power, jls_ltop, ia_jls, jwt_jls, jgrid_jls,
      *     jls_3Dsource, jlnt_conc, jlnt_mass, jlnt_nt_tot, jlnt_nt_mm,
      *     jlnt_lscond,  jlnt_turb,  jlnt_vt_tot, jlnt_vt_mm, jlnt_mc,
-     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source
+     *     jgrid_jlq, ia_jlq, scale_jlq, jlq_power, ktajls, jls_source,
+     *     jls_mass_weighted,jls_not_mass_weighted
 #ifdef TRACERS_WATER
      *     ,jlnt_cldh2o
 #endif
@@ -954,24 +956,27 @@ C**** Partial move towards correct units (kg/(mb m^2 s)).
 C**** Plot depends on jwt_jls.
 C**** Note that only jwt_jls=3 is resolution independent.
 C****
+! caveats below for jlmap_t calls do not apply to offline machinery
       do k=1,ktajls
         if (sname_jls(k).eq."daylight" .or. sname_jls(k).eq."H2O_mr"
      *       .or. lname_jls(k).eq."unused") cycle
         scalet = scale_jls(k)*10.**(-jls_power(k))/idacc(ia_jls(k))
         select case (jwt_jls(k))
-        case (1)   !  simple sum (like kg/s),
+        case default   ! simple sum (like kg/s),
+                   ! should no longer happen?
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm,
      *         tajls(1,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k)
      *         ,jgrid_jls(k))
 
-        case (2)   !  area weighting (like kg/m^2 s)
+        case (jls_not_mass_weighted)  !  per unit area (like kg/m2/s flux)
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
-     *         ,tajls(1,1,k),scalet,bydxyp,ones,jls_ltop(k),jwt_jls(k)
+     *         ,tajls(1,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k)
      *         ,jgrid_jls(k))
 
-        case (3)   !  area + pressure weighting (like kg/mb m^2 s)
+        case (jls_mass_weighted)     ! normal case: air mass weighting
+                   ! tho might need to add a factor grav/100 to scalet here
           CALL JLMAP_t (lname_jls(k),sname_jls(k),units_jls(k),plm
-     *         ,tajls(1,1,k),scalet,byapo,ones,jls_ltop(k),jwt_jls(k)
+     *         ,tajls(1,1,k),scalet,onespo,ones,jls_ltop(k),jwt_jls(k)
      *         ,jgrid_jls(k))
         end select
         end do

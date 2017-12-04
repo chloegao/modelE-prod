@@ -158,7 +158,7 @@ c
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : pedn,PMIDL00,LTROPO,lm_req
+      USE ATM_COM, only     : MA,pedn,PMIDL00,LTROPO,lm_req
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
@@ -1486,13 +1486,13 @@ C -- CO --
         endif
         wprodCO=rHCHOplusNO3   ! <-- note
         if(changeL(L,n_CO) >= 0.) then  
-          CALL INC_TAJLS(I,J,L,jls_COp,changeL(L,n_CO))
+          CALL INC_TAJLS2(I,J,L,jls_COp,changeL(L,n_CO)*byaxyp(i,j))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_COp)=taijls(i,j,L,ijlt_COp)+changeCO
      *         *cpd/DTsrc
 #endif
         else
-          CALL INC_TAJLS(I,J,L,jls_COd,changeL(L,n_CO))
+          CALL INC_TAJLS2(I,J,L,jls_COd,changeL(L,n_CO)*byaxyp(i,j))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
      *         *cpd/DTsrc
@@ -1670,15 +1670,17 @@ c --  Ox --   ( Ox from gas phase rxns)
 #endif
         ! then come diags:
         if(changeL(L,n_Ox) >= 0.) then
-          CALL INC_TAJLS(I,J,L,jls_Oxp,changeL(L,n_Ox))
-          if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxpT,changeL(L,n_Ox))
+          CALL INC_TAJLS2(I,J,L,jls_Oxp,changeL(L,n_Ox)*byaxyp(i,j))
+          if(L<=maxT)
+     &       CALL INC_TAJLS2(I,J,L,jls_OxpT,changeL(L,n_Ox)*byaxyp(i,j))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_Oxp)=taijls(i,j,L,ijlt_Oxp)+changeOx
      *         *cpd/DTsrc
 #endif
         else
-          CALL INC_TAJLS(I,J,L,jls_Oxd,changeL(L,n_Ox))
-          if(L<=maxT)CALL INC_TAJLS(I,J,L,jls_OxdT,changeL(L,n_Ox))
+          CALL INC_TAJLS2(I,J,L,jls_Oxd,changeL(L,n_Ox)*byaxyp(i,j))
+          if(L<=maxT)
+     &       CALL INC_TAJLS2(I,J,L,jls_OxdT,changeL(L,n_Ox)*byaxyp(i,j))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx
      *         *cpd/DTsrc
@@ -1739,9 +1741,9 @@ C       ACCUMULATE 3D NO3 diagnostic:
      &  taijls(i,j,L,ijlt_NO3)=taijls(i,j,L,ijlt_NO3)+yNO3(i,j,L)
 
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,y(nClO,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,MA(L,I,J)*y(nClO,L)/y(nM,L))
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,y(nH2O,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,MA(L,I,J)*y(nH2O,L)/y(nM,L))
      
        end do  ! L loop <===========
 
@@ -1988,7 +1990,8 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
           taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
      &    1.e9*pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
           CALL INC_TAJLS2  ! (V/V air)
-     &    (I,J,L,jls_O3vmr,pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
+     &    (I,J,L,jls_O3vmr,MA(L,I,J)*
+     &         pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
         end if
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -2195,7 +2198,7 @@ c (radiation code wants atm-cm units):
         CALL INC_TAJLS2         ! (V/V air)
      &      (I,J,L,jls_O3vmr,(trm_col(L,n_Ox)+
      &      (tr3Dsource(L,nChemistry,n_Ox)+
-     &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*
      &      byaxyp(i,j)*mass2vol(n_Ox))
       end do 
 
@@ -2904,8 +2907,8 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
 
           if(wprod_sulf>0.2d0*y(nn_N2O5,L))wprod_sulf=0.2d0*y(nn_N2O5,L)
           prod_sulf=wprod_sulf*pfactor
-          CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
-     &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
+          CALL INC_TAJLS2(I,J,L,jls_N2O5sulf,
+     &                   -1.d0*prod_sulf*vol2mass(n_N2O5)*byaxyp(i,j))
           rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
         else  
@@ -2997,8 +3000,8 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
         if(pres(L) < 245.d0 .and. pres(L) > 5.d0)then
           wprod_sulf=dt2*y(nn_N2O5,L)*rr(rrhet%N2O5_H2O__HNO3_HNO3,L)
           prod_sulf=wprod_sulf*pfactor
-          CALL INC_TAJLS(I,J,L,jls_N2O5sulf,
-     &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
+          CALL INC_TAJLS2(I,J,L,jls_N2O5sulf,
+     &                   -1.d0*prod_sulf*vol2mass(n_N2O5)*byaxyp(i,j))
         end if
 
       end do                  !  ==> END ALTITUDE LOOP <==
