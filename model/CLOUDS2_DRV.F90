@@ -1091,9 +1091,9 @@ subroutine CONDSE
 #else
 #endif
             enddo
+            dtrm = dtrm*byaxyp(i,j)
             if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lmcmax)), &
                  itcon_mc(n),n)
-            dtrm = dtrm*byaxyp(i,j)
             call inc_tajln2_column(i,j,1,lmcmax,lm,jlnt_mc,n,dtrm)
           endif
 #endif  /*SKIP_TRACER_DIAGS*/
@@ -1686,9 +1686,9 @@ subroutine CONDSE
             dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           enddo
+          dtrm = dtrm*byaxyp(i,j)
           if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:LMCLD)), &
                itcon_ss(n),n)
-          dtrm = dtrm*byaxyp(i,j)
           call inc_tajln2_column(i,j,1,LMCLD,lm,jlnt_lscond,n,dtrm)
 #endif  /*SKIP_TRACER_DIAGS*/
 
@@ -1867,7 +1867,7 @@ subroutine CONDSE
           trprec_dust(n,i,j)=0.D0
           do l=1,Lm
             if (itcon_wt(n).gt.0) call inc_diagtcb(i,j, &
-                 tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
+                 (tm_dust(l,n)-trm(i,j,l,n1))/dxypij,itcon_wt(n),n)
             trm(i,j,l,n1)=tm_dust(l,n)
             trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
             trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)

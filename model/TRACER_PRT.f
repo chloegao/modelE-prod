@@ -341,6 +341,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: im,jm
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt
+      USE GEOM, ONLY : AXYP
       IMPLICIT NONE
       real*8, parameter :: fim=im
 !@var I, J indices denoting gird box
@@ -377,7 +378,8 @@ C**** Calculate latitudinal mean of change DTRACER
 
 C**** Accumulate difference in TCONSRV(NM)
         if (m.gt.1) then
-          tconsrv(J_BUDG(I,J),nm,nt)=tconsrv(J_BUDG(I,J),nm,nt)+dtracer
+          tconsrv(J_BUDG(I,J),nm,nt)=tconsrv(J_BUDG(I,J),nm,nt)+
+     &         dtracer*axyp(i,j)
         end if
 C**** No need to save current value
       end if
@@ -392,6 +394,7 @@ C**** No need to save current value
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE RESOLUTION, only: jm,im
       USE TRDIAG_COM, only: tconsrv=>tconsrv_loc,nofmt,title_tcon
+      USE GEOM, ONLY : AXYP
       IMPLICIT NONE
 
 !@var M index denoting which process changed the tracer
@@ -433,7 +436,8 @@ C**** Calculate zonal sums
         DTJ(J_0B:J_1B)=0.
         DO J=J_0,J_1
           DO I=I_0,I_1
-            DTJ(J_BUDG(I,J)) = DTJ(J_BUDG(I,J)) + DTRACER(I,J)
+            DTJ(J_BUDG(I,J)) = DTJ(J_BUDG(I,J)) +
+     &           DTRACER(I,J)*axyp(i,j)
           END DO
         END DO
 

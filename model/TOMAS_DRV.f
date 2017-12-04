@@ -477,7 +477,8 @@ C     Check for negative tracer problems
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
      &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
                      if (itcon_TOMAS(np,tracnum).gt.0) 
-     &                    call inc_diagtcb(i,j,AEROD(i,j,l,tracnum,np),
+     &                    call inc_diagtcb(i,j,
+     &                    AEROD(i,j,l,tracnum,np)*byaxyp(i,j),
      &                    itcon_TOMAS(np,tracnum),tracnum)
                   enddo
 
@@ -493,7 +494,8 @@ C     Check for negative tracer problems
      &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
 
                      if (itcon_TOMAS(np,tracnum).gt.0) 
-     &                    call inc_diagtcb(i,j,AEROD(i,j,l,tracnum,np),
+     &                    call inc_diagtcb(i,j,
+     &                    AEROD(i,j,l,tracnum,np)*byaxyp(i,j),
      &                    itcon_TOMAS(np,tracnum),tracnum)
                   enddo
 
@@ -514,7 +516,8 @@ C     Check for negative tracer problems
      &                    =taijs(i,j,ijts_TOMAS(np,n_H2SO4))
      &                    +AEROD(i,j,l,n_H2SO4,np)*byaxyp(i,j) ! /adt
                      if (itcon_TOMAS(np,n_H2SO4).gt.0) 
-     &                    call inc_diagtcb(i,j,AEROD(i,j,l,n_H2SO4,np),
+     &                    call inc_diagtcb(i,j,
+     &                    AEROD(i,j,l,n_H2SO4,np)*byaxyp(i,j),
      &                    itcon_TOMAS(np,n_H2SO4),n_H2SO4)
                   enddo               
 
@@ -2012,7 +2015,8 @@ c$$$      ENDIF
      &         +N_subgridcg(i,j,l,k,2)*byaxyp(i,j) ! /adt
           
           if (itcon_subcoag(tracnum).gt.0) 
-     &         call inc_diagtcb(i,j,N_subgridcg(i,j,l,k,2) ,
+     &         call inc_diagtcb(i,j,
+     &         N_subgridcg(i,j,l,k,2)*byaxyp(i,j) ,
      &         itcon_subcoag(tracnum),tracnum)
           
           do c=1,icomp-idiag            
@@ -2031,7 +2035,8 @@ c$$$      ENDIF
      &           +M_subgridcg(i,j,l,k,c,2)*byaxyp(i,j) ! /adt
 
             if (itcon_subcoag(tracnum).gt.0) 
-     &           call inc_diagtcb(i,j,M_subgridcg(i,j,l,k,c,2),
+     &           call inc_diagtcb(i,j,
+     &           M_subgridcg(i,j,l,k,c,2)*byaxyp(i,j),
      &           itcon_subcoag(tracnum),tracnum)
                        
           enddo

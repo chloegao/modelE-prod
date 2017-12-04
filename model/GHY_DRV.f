@@ -534,21 +534,21 @@ C**** fixed datasets are used, it can happen over land as well.
 
 #ifdef TRACERS_AMP
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
-     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+     *       trc_flux*ptype*dtsurf,itcon_surf(1,n),n)
 #else
 #ifdef TRACERS_TOMAS
         if(n.lt.n_ANUM(1).or.n.ge.n_AH2O(1))THEN !for dust and other?
            if(jls_isrc(1,n)>0)  call inc_tajls2(i,j,1,jls_isrc(1,n),
      *          trc_flux*ptype*dtsurf) ! why not for all aerosols?
            if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
-     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+     *       trc_flux*ptype*dtsurf,itcon_surf(1,n),n)
 
         elseif(n.ge.n_ANUM(1).and. n.lt.n_AH2O(1))THEN
 !jls_isrc(2,n) for number: DUST number emission
            if(jls_isrc(2,n)>0)  call inc_tajls2(i,j,1,jls_isrc(2,n),
      *          trc_flux*ptype*dtsurf) ! why not for all aerosols?
            if (itcon_surf(5,n).gt.0) call inc_diagtcb(i,j,
-     *          trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(5,n),n)
+     *          trc_flux*ptype*dtsurf,itcon_surf(5,n),n)
         endif
 
 !jls_isrc is only for DU and SS.  

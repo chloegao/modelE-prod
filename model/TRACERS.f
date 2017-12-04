@@ -619,7 +619,7 @@ c
       SUBROUTINE sum_prescribed_tracer_2Dsources(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE GEOM, only : imaxj,axyp
+      USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,ntsurfsrc
 #ifdef TRACERS_TOMAS
@@ -672,14 +672,14 @@ C**** diagnostics
           ENDIF
           DO J=J_0,J_1
             do i=i_0,imaxj(j)
-              dtracer(i,j)=trsource(i,j,ns,n)*dtstep*axyp(i,j)
+              dtracer(i,j)=trsource(i,j,ns,n)*dtstep
             end do
           end do
           najl = jls_source(ns,n)
           IF (najl > 0) THEN
             DO J=J_0,J_1
               DO I=I_0,imaxj(j)
-                call inc_tajls2(i,j,1,najl,dtracer(i,j)/axyp(i,j))
+                call inc_tajls2(i,j,1,najl,dtracer(i,j))
               END DO
             END  DO
           END IF
