@@ -7,20 +7,20 @@
       integer :: status,ofid,ivarid,varid
       integer, dimension(:), allocatable :: fids
       character(len=4096) :: ifile,ofile
-      integer :: n,nfiles,nlast,iargc,nvars,ndigits_year
-      integer :: itbeg,itend,itnow,itime0,itime,nday,iyear1,accsize
-      integer :: Jyear0,Jmon0,Jday0,Jdate0,Jhour0,
-     &           Jyear,Jmon,Jday,Jdate,Jhour
-      character(len=4) :: amon0,amon
-      real*4 :: days
+      integer :: n,nfiles,nfirst,nlast,iargc,nvars,n1Dif,n1To
+      integer :: itbeg,itend,itnow,nday,iyear1,accsize
+      character(len=6) :: ayear0,ayear
+      character(len=3) :: amon0,amon
+      real*4 :: days, difs, dif
       character(len=16) :: acc_period
       character(len=30) :: runid,reduction,vname
-      character(len=100) :: fromto
+      character(len=100) :: fromto,fromto0
       character(len=132) :: xlabel
       integer, dimension(12) :: monacc,monacc1
       real*8, dimension(:), allocatable :: acc,acc_part
-      integer :: chunksize
+!csz  integer :: chunksize
       real*8 :: bynfiles
+      logical :: do_dif = .true.
 c
 c get the number of input files
 c
@@ -33,59 +33,53 @@ c
         write(6,*)
      &       '(works on modelE acc files, not on pdE outputs)'
         call exit(-1)
-      endif
+      end if
       allocate(fids(nfiles))
 
-      chunksize = 1024*1024*32
+!csz  chunksize = 1024*1024*32
 
 c
 c open each input file and find the min/max itime
 c
       itbeg=+huge(itbeg)
       itend=-huge(itend)
-      monacc(:) = 0
+      monacc(:) = 0 ; difs = 0 ; dif = 0
       do n=1,nfiles
         call getarg(n,ifile)
         status = nf_open(trim(ifile),nf_nowrite,fids(n))
-c        status = nf__open(trim(ifile),nf_nowrite,chunksize,fids(n))
+!csz     status = nf__open(trim(ifile),nf_nowrite,chunksize,fids(n))
         if(status.ne.nf_noerr) then
           write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
           call exit(-2)
-        endif
+        end if
         call get_var_int(fids(n),'itime0',itnow)
-        itbeg = min(itnow,itbeg)
+        if(itnow.lt.itbeg) then
+          itbeg = itnow
+          nfirst = n
+        end if
         call get_var_int(fids(n),'itime',itnow)
         if(itnow.gt.itend) then
           itend = itnow
           nlast = n
-        endif
-        call get_var_int(fids(n),'monacc',monacc1) 
+        end if
+        call get_var_int(fids(n),'monacc',monacc1)
         monacc(:) = monacc(:) + monacc1(:)
+        status = nf_get_att_text(fids(n),nf_global,'fromto',fromto)
+        n1Dif = index(fromto,'Dif:')+4
+        if (fromto(n1Dif:n1Dif+6) == '       ') do_dif = .false.
+        if (do_dif) read(fromto(n1Dif:n1Dif+7),*) dif
+        difs = difs + dif
       enddo
 
 c
 c determine an appropriate name for the averaging period
 c
-      call get_var_int(fids(nlast),'iyear1',iyear1)
-      call get_var_int(fids(nlast),'nday',nday)
-      itime  = itend
-      itime0 = itbeg
-      call getdte(Itime0,Nday,Iyear1,Jyear0,Jmon0,Jday0,Jdate0,Jhour0
-     *     ,amon0)
-      call getdte(Itime-1,Nday,Iyear1,Jyear,Jmon,Jday,Jdate,Jhour
-     *     ,amon)
-      ndigits_year = 4 ! default
-      status = nf_inq_varid(fids(nlast),'iparam',varid)
-      status =
-     &     nf_get_att_int(fids(nlast),varid,'ndigits_year',ndigits_year)
-      if(ndigits_year.le.0.or.ndigits_year.gt.6) stop 'bad ndigits_year'
-      ! the following override should never be needed
-      !if(jyear.ge.100000) then
-      !  ndigits_year = 6
-      !elseif(jyear.ge.10000) then
-      !  ndigits_year = 5
-      !endif
-      call aperiod(monacc,jyear0,jyear,ndigits_year,acc_period)
+      status = nf_get_att_text(fids(nfirst),nf_global,'fromto',fromto0)
+      status = nf_get_att_text(fids(nlast),nf_global,'fromto',fromto)
+      read(fromto0(6:16),'(a6,2x,a3)') ayear0,amon0
+      n1To = index(fromto,'To:')+3
+      read(fromto (n1To:n1To+10),'(a6,2x,a3)') ayear,amon
+      call aperiod(monacc,ayear0,ayear,acc_period,amon0,amon)
 
 c
 c copy the structure of the latest input file to the output file
@@ -103,12 +97,19 @@ c and write the appropriate itime0,monacc,fromto to the output file
 c
 c      call copy_selected_vars(fids(nlast),ofid)
       call copy_shared_vars(fids(nlast),ofid)
-      call put_var_int(ofid,'itime0',itime0)
+      call put_var_int(ofid,'itime0',itbeg)
       call put_var_int(ofid,'monacc',monacc)
-      days=(itime-itime0)/float(nday)
-      write(fromto,902) jyear0,amon0,jdate0,jhour0,
-     &     jyear,amon,jdate,jhour,itime,days
-      status = nf_put_att_text(ofid,nf_global,'fromto' 
+      fromto(1:index(fromto0,'To:')) = fromto0(1:index(fromto0,'To:'))
+      n1Dif = index(fromto,'Dif:')+4
+      fromto(n1Dif:n1Dif+6) = '       '
+      if (do_dif) then
+        if (difs < 10000.) then
+          write(fromto(n1Dif:n1Dif+6),'(f7.2)') difs
+        else if (difs < 1000000.) then
+          write(fromto(n1Dif:n1Dif+6),'(f7.0)') difs
+        end if
+      end if
+      status = nf_put_att_text(ofid,nf_global,'fromto'
      &     ,len_trim(fromto),fromto)
 
 c
@@ -158,118 +159,103 @@ c
 
       deallocate(fids)
 
-  902 FORMAT ('From:',I6,A6,I2,',  Hr',I3,
-     *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
-     *  'Dif:',F7.2,' Days')
       end program sumfiles
 
-      subroutine getdte(It,Nday,Iyr0,Jyr,Jmn,Jd,Jdate,Jhour,amn)
-!@sum  getdte gets julian calendar info from internal timing info
-!@auth Gavin Schmidt
-      IMPLICIT NONE
-      real*8, parameter :: hrday=24.
-      integer, parameter :: jmpery=12,jdpery=365
-      integer, parameter, dimension(0:jmpery) :: JDendOfM = (
-     *     /0,31,59,90,120,151,181,212,243,273,304,334,365/)
-      character(len=4), dimension(0:jmpery), parameter :: amonth = (/
-     &  'IC  ',
-     *  'JAN ','FEB ','MAR ','APR ','MAY ','JUNE',
-     *  'JULY','AUG ','SEP ','OCT ','NOV ','DEC '/)
-      INTEGER, INTENT(IN) :: It,Nday,Iyr0
-      INTEGER, INTENT(OUT) :: Jyr,Jmn,Jd,Jdate,Jhour
-      CHARACTER*4, INTENT(OUT) :: amn
 
-      Jyr=Iyr0+It/(Nday*JDperY)
-      Jd=1+It/Nday-(Jyr-Iyr0)*JDperY
-      Jmn=1
-      do while (Jd.GT.JDendOfM(Jmn))
-        Jmn=Jmn+1
-      end do
-      Jdate=Jd-JDendOfM(Jmn-1)
-      Jhour=nint(mod(It*hrday/Nday,hrday))
-      amn=amonth(Jmn)
-
-      return
-      end subroutine getdte
-
-      subroutine aperiod(monacc,yr_start,yr_end,ndigits_year,acc_period)
+      subroutine aperiod(monacc,ayr0,ayr1,acc_period,amon0,amon)
+! Find appropriate name for the accumulation period e.g. MonYear1-Year2
+! For NonEarth calendars we assume the months are called A..,B..,C..,..
+!      Notes about the output file names:
+! restrictions: month_per_year is currently restricted to 12,
+!               the months are called JAN FEB ... (all capitals)
+! ambivalence:  different periods may have the same name X-Z...
+!               e.g. A-M may be Aug-Mar or Aug-May
+!               the name of any 12-month period is ANN
       implicit none
-      integer :: monacc(12)
-      integer :: yr_start,yr_end,ndigits_year
+      integer :: monacc(12),mon0,mon1,yr0,yr1
+      character(len=3) :: amon0,amon
+      character(len=6) :: ayr0,ayr1
       character(len=16) :: acc_period
-      character(len=3), dimension(12), parameter :: amonth = (/
+      character(len=26), parameter :: alphabet =
+     *  'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      character(len=3), dimension(12) :: emonth = (/
      &  'JAN','FEB','MAR','APR','MAY','JUN',
      &  'JUL','AUG','SEP','OCT','NOV','DEC' /)
       character(len=12) :: mostr
-      integer :: mons(12)
-      integer :: m,nmo,yr1,ninc,ndec
-      logical :: incyr1
-      character(len=1) :: c1
-      character(len=6) :: fmtyr
-      character(len=6) :: yrstr
-     
+      integer :: m,mm,nmo,ninc,ndec,n1Dif,n1To
+      logical :: incyr0, earth = .true.
+
       if(minval(monacc,mask=monacc>0).ne.maxval(monacc,mask=monacc>0))
      &     stop 'unequal numbers of months'
 
-      mostr=''
-      nmo = 0
+      mon0=-1
       do m=1,12
+        if(amon0==emonth(m)) mon0 = m
+        if(amon0==emonth(m)) exit
+      end do
+      if(mon0 < 0) then
+        mon0=index(alphabet,amon0(1:1))
+        earth = .false.
+      end if
+      if(mon0 .le. 0) stop 'month not named [A-Z]...'
+
+      mostr=''
+      nmo = 0 ; incyr0 = .false.
+      do mm=mon0,mon0+11 ! mon0+month_in_year - 1
+        m = mm ; if(m > 12) m = m-12
         if(monacc(m).eq.0) cycle
+        if(mm>12) incyr0 = .true.
         nmo = nmo + 1
         if(nmo.eq.1) then
-          mostr(1:3)=amonth(m)
+          mostr(1:3)=amon0
         else
-          mostr(nmo:nmo)=amonth(m)(1:1)
-        endif
-        mons(nmo) = m
+          if (earth) then
+            mostr(nmo:nmo)=emonth(m)(1:1)
+          else
+            mostr(nmo:nmo)=alphabet(m:m)
+          end if
+        end if
       enddo
 
-      incyr1 = .false.
       if(nmo.eq.12) then
         mostr='ANN'
-      elseif(mostr.eq.'JFD' .and. yr_end.gt.yr_start) then
-        incyr1 = .true.
-        mostr = 'DJF'
       elseif(nmo.eq.2) then
         mostr(3:3) = mostr(2:2)
         mostr(2:2) = '+'
       elseif(nmo.gt.3) then
-        if(monacc(1).eq.0 .or. yr_start.eq.yr_end) then
-          mostr(3:3) = mostr(nmo:nmo)
-          mostr(2:2) = '-'
-        else
-          incyr1 = .true.
-          do m=12,1,-1
-            mostr(1:1) = amonth(m)(1:1)
-            if(monacc(m-1).eq.0) exit
-          enddo
-          do m=1,12
-            mostr(3:3) = amonth(m)(1:1)
-            if(monacc(m+1).eq.0) exit
-          enddo
-          mostr(2:2) = '-'
-        endif
-      endif
-      yr1 = yr_start
-      if(incyr1) yr1 = yr1+1
+        mostr(3:3) = mostr(nmo:nmo)
+        mostr(2:2) = '-'
+        write(*,*) 'labeling may be ambiguous !!'
+      end if
 
-      write(c1,'(i1)') ndigits_year
-      fmtyr = '(i'//c1//'.'//c1//')'
-      yrstr=''; write(yrstr,fmtyr) yr1
+      read(ayr0,*) yr0 ; ayr0='      '
+      if(incyr0) yr0 = yr0 + 1
+      if(yr0.lt.10000) then
+        write(ayr0(1:4),'(i4.4)') yr0
+      else
+        write(ayr0,'(i6)') yr0
+      end if
+
+      read(ayr1,*) yr1 ; ayr1='      '
+      if(amon=='JAN') yr1 = yr1 - 1
+      if(.not.earth.and.amon(1:1)=='A') yr1 = yr1 - 1
+      if(yr1.lt.10000) then
+        write(ayr1(1:4),'(i4.4)') yr1
+      else
+        write(ayr1,'(i6)') yr1
+      end if
 
       acc_period=''
-      acc_period = mostr(1:3)//yrstr
-      if(yr_end.gt.yr1) then
-        yrstr=''; write(yrstr,fmtyr) yr_end
-        acc_period = trim(acc_period)//'-'//yrstr
-      endif
+      acc_period = mostr(1:3)//trim(adjustl(ayr0))
+      if(yr1.gt.yr0)  acc_period = mostr(1:3)//trim(adjustl(ayr0))//
+     *   '-'//trim(adjustl(ayr1))
 
 c check for gaps
       ninc = count(monacc(2:12).gt.monacc(1:11))
       ndec = count(monacc(2:12).lt.monacc(1:11))
       if(ninc+ndec.gt.2) then
         write(6,*) 'gap'
-      endif
+      end if
 
       return
       end subroutine aperiod
