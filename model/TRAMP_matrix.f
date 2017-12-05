@@ -1119,13 +1119,12 @@
         !--------------------------------------------------------------------------------------------------------------
         ! Transfer mode DD1 to mode DS1.
         !--------------------------------------------------------------------------------------------------------------
+      IF( AERO(MASS_DD1_DUST) .GT. 1.d-20  ) THEN
 #ifdef TRACERS_AMP_M9
-      IF( AERO(MASS_DD1_DUST) .GT. 1.d-20) THEN
         IF( (AERO(MASS_DD1_SULF)*OPTOT_NO3NH4H2O_TO_SULF+AERO(MASS_DD1_OCM2)+AERO(MASS_DD1_OCM1)+AERO(MASS_DD1_OCM0)+
      &      AERO(MASS_DD1_OCP1)+AERO(MASS_DD1_OCP2)+AERO(MASS_DD1_OCP3)+AERO(MASS_DD1_OCP4)+AERO(MASS_DD1_OCP5)+
      &      AERO(MASS_DD1_OCP6))/AERO(MASS_DD1_DUST) .GT. MIMR_DDD ) THEN
 #else
-      IF( AERO(MASS_DD1_DUST) .GT. 1.d-20  ) THEN
         IF( AERO(MASS_DD1_SULF)*OPTOT_NO3NH4H2O_TO_SULF/AERO(MASS_DD1_DUST) .GT. MIMR_DDD ) THEN
 #endif
 
