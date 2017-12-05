@@ -402,6 +402,8 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
       integer jls_power(ktajls)
 !@var jls_ltop: Top layer for this diagnostic
       integer jls_ltop(ktajls)
+!@param jls_mass_weighting, jls_no_mass_weighting info type of scaling of jls
+      integer, parameter :: jls_mass_weighted=1,jls_not_mass_weighted=2
 #endif  /* TRACERS_ON */
 
 #if (defined TRACERS_ON) || (defined TRACERS_OCEAN)
@@ -1785,33 +1787,33 @@ c      call unpack_lc   (grid, TCONSRV, TCONSRV_loc)
 
 C**** routines for accumulating zonal mean diags (lat/lon grid)
 
-      SUBROUTINE INC_TAJLS(I,J,L,TJL_INDEX,ACC)
-!@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
-!@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
-!@auth M. Kelley
-      USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg,j_budg
-      IMPLICIT NONE
-!@var I,J,L atm gridpoint indices for the accumulation
-      INTEGER, INTENT(IN) :: I,J,L
-!@var JL_INDEX index of the diagnostic being accumulated
-      INTEGER, INTENT(IN) :: TJL_INDEX
-!@var ACC increment of the diagnostic being accumulated
-      REAL*8, INTENT(IN) :: ACC
-C**** accumulate I,J value on the budget grid using j_budg to assign
-C**** each point to a zonal mean (not bitwise reproducible for MPI).
-      TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
-     *     ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
-
-      RETURN
-      END SUBROUTINE INC_TAJLS
+!      SUBROUTINE INC_TAJLS(I,J,L,TJL_INDEX,ACC)
+!!@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
+!!@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
+!!@auth M. Kelley
+!      USE TRDIAG_COM, only : tajls=>tajls_loc
+!      USE DIAG_COM, only : wtbudg,j_budg
+!      IMPLICIT NONE
+!!@var I,J,L atm gridpoint indices for the accumulation
+!      INTEGER, INTENT(IN) :: I,J,L
+!!@var JL_INDEX index of the diagnostic being accumulated
+!      INTEGER, INTENT(IN) :: TJL_INDEX
+!!@var ACC increment of the diagnostic being accumulated
+!      REAL*8, INTENT(IN) :: ACC
+!C**** accumulate I,J value on the budget grid using j_budg to assign
+!C**** each point to a zonal mean (not bitwise reproducible for MPI).
+!      TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
+!     *     ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+!
+!      RETURN
+!      END SUBROUTINE INC_TAJLS
 
       SUBROUTINE INC_TAJLS2(I,J,L,TJL_INDEX,ACC)
 !@sum inc_tajl adds ACC located at atmospheric gridpoint I,J,L
 !@+   to the latitude-height zonal sum TAJLS(TJL_INDEX).
 !@auth M. Kelley
       USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg2,j_budg
+      USE DIAG_COM, only : wtbudg,j_budg
       IMPLICIT NONE
 !@var I,J,L atm gridpoint indices for the accumulation
       INTEGER, INTENT(IN) :: I,J,L
@@ -1822,12 +1824,36 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 C**** accumulate I,J value on the budget grid using j_budg to assign
 C**** each point to a zonal mean (not bitwise reproducible for MPI).
       TAJLS(J_BUDG(I,J),L,TJL_INDEX) = TAJLS(J_BUDG(I,J),L,TJL_INDEX) +
-     *     ACC*wtbudg2(I,J)
+     *     ACC*wtbudg(I,J)
 
       RETURN
       END SUBROUTINE INC_TAJLS2
 
-      SUBROUTINE INC_TAJLS_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
+!      SUBROUTINE INC_TAJLS_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
+!!@sum inc_tajl_column adds ACC(L1:L2) located at atmospheric gridpoint I,J
+!!@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
+!!@auth M. Kelley
+!      USE TRDIAG_COM, only : tajls=>tajls_loc
+!      USE DIAG_COM, only : wtbudg,j_budg
+!      IMPLICIT NONE
+!!@var I,J,L1,L2 atm gridpoint indices for the accumulation
+!      INTEGER, INTENT(IN) :: I,J,L1,L2,NL
+!!@var JL_INDEX index of the diagnostic being accumulated
+!      INTEGER, INTENT(IN) :: TJL_INDEX
+!!@var ACC increment of the diagnostic being accumulated
+!      REAL*8, INTENT(IN) :: ACC(NL)
+!      INTEGER :: JB,L
+!C**** accumulate I,J value on the budget grid using j_budg to assign
+!C**** each point to a zonal mean (not bitwise reproducible for MPI).
+!      JB = J_BUDG(I,J)
+!      DO L=L1,L2
+!        TAJLS(JB,L,TJL_INDEX) = TAJLS(JB,L,TJL_INDEX) +
+!     *     ACC(L)!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+!      ENDDO
+!      RETURN
+!      END SUBROUTINE INC_TAJLS_COLUMN
+
+      SUBROUTINE INC_TAJLS2_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
 !@sum inc_tajl_column adds ACC(L1:L2) located at atmospheric gridpoint I,J
 !@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
 !@auth M. Kelley
@@ -1846,36 +1872,31 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       JB = J_BUDG(I,J)
       DO L=L1,L2
         TAJLS(JB,L,TJL_INDEX) = TAJLS(JB,L,TJL_INDEX) +
-     *     ACC(L)!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
-      ENDDO
-      RETURN
-      END SUBROUTINE INC_TAJLS_COLUMN
-
-      SUBROUTINE INC_TAJLS2_COLUMN(I,J,L1,L2,NL,TJL_INDEX,ACC)
-!@sum inc_tajl_column adds ACC(L1:L2) located at atmospheric gridpoint I,J
-!@+   to the latitude-height zonal sums TAJLS(:,L1:L2,TJL_INDEX).
-!@auth M. Kelley
-      USE TRDIAG_COM, only : tajls=>tajls_loc
-      USE DIAG_COM, only : wtbudg2,j_budg
-      IMPLICIT NONE
-!@var I,J,L1,L2 atm gridpoint indices for the accumulation
-      INTEGER, INTENT(IN) :: I,J,L1,L2,NL
-!@var JL_INDEX index of the diagnostic being accumulated
-      INTEGER, INTENT(IN) :: TJL_INDEX
-!@var ACC increment of the diagnostic being accumulated
-      REAL*8, INTENT(IN) :: ACC(NL)
-      INTEGER :: JB,L
-C**** accumulate I,J value on the budget grid using j_budg to assign
-C**** each point to a zonal mean (not bitwise reproducible for MPI).
-      JB = J_BUDG(I,J)
-      DO L=L1,L2
-        TAJLS(JB,L,TJL_INDEX) = TAJLS(JB,L,TJL_INDEX) +
-     *     ACC(L)*wtbudg2(I,J)
+     *     ACC(L)*wtbudg(I,J)
       ENDDO
       RETURN
       END SUBROUTINE INC_TAJLS2_COLUMN
 
-      SUBROUTINE INC_TAJLN(I,J,L,TJL_INDEX,N,ACC)
+!      SUBROUTINE INC_TAJLN(I,J,L,TJL_INDEX,N,ACC)
+!!@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
+!!@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
+!!@auth M. Kelley
+!      USE TRDIAG_COM, only : tajln=>tajln_loc
+!      USE DIAG_COM, only : wtbudg,j_budg
+!      IMPLICIT NONE
+!!@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
+!      INTEGER, INTENT(IN) :: I,J,L,N
+!!@var TJL_INDEX index of the diagnostic being accumulated
+!      INTEGER, INTENT(IN) :: TJL_INDEX
+!!@var ACC increment of the diagnostic being accumulated
+!      REAL*8, INTENT(IN) :: ACC
+!      TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)=TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)
+!     *     + ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+!
+!      RETURN
+!      END SUBROUTINE INC_TAJLN
+
+      SUBROUTINE INC_TAJLN2(I,J,L,TJL_INDEX,N,ACC)
 !@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
 !@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
 !@auth M. Kelley
@@ -1889,12 +1910,34 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
 !@var ACC increment of the diagnostic being accumulated
       REAL*8, INTENT(IN) :: ACC
       TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)=TAJLN(J_BUDG(I,J),L,TJL_INDEX,N)
-     *     + ACC!*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+     *     + ACC*wtbudg(I,J)
 
       RETURN
-      END SUBROUTINE INC_TAJLN
+      END SUBROUTINE INC_TAJLN2
 
-      SUBROUTINE INC_TAJLN_COLUMN(I,J,L1,L2,NL,TJL_INDEX,N,ACC)
+!      SUBROUTINE INC_TAJLN_COLUMN(I,J,L1,L2,NL,TJL_INDEX,N,ACC)
+!!@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
+!!@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
+!!@auth M. Kelley
+!      USE TRDIAG_COM, only : tajln=>tajln_loc
+!      USE DIAG_COM, only : wtbudg,j_budg
+!      IMPLICIT NONE
+!!@var I,J,L atm gridpoint indices, N tracer no. for the accumulation
+!      INTEGER, INTENT(IN) :: I,J,L1,L2,NL,N
+!!@var TJL_INDEX index of the diagnostic being accumulated
+!      INTEGER, INTENT(IN) :: TJL_INDEX
+!!@var ACC increment of the diagnostic being accumulated
+!      REAL*8, INTENT(IN) :: ACC(NL)
+!      INTEGER :: JB,L
+!      JB = J_BUDG(I,J)
+!      DO L=L1,L2
+!        TAJLN(JB,L,TJL_INDEX,N)=TAJLN(JB,L,TJL_INDEX,N) +
+!     *    ACC(L) !*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+!      ENDDO
+!      RETURN
+!      END SUBROUTINE INC_TAJLN_COLUMN
+
+      SUBROUTINE INC_TAJLN2_COLUMN(I,J,L1,L2,NL,TJL_INDEX,N,ACC)
 !@sum inc_tajln adds ACC located at atmospheric gridpoint I,J,L
 !@+   and tracer n to the latitude-height zonal sum TAJLN(TJL_INDEX,N).
 !@auth M. Kelley
@@ -1911,8 +1954,8 @@ C**** each point to a zonal mean (not bitwise reproducible for MPI).
       JB = J_BUDG(I,J)
       DO L=L1,L2
         TAJLN(JB,L,TJL_INDEX,N)=TAJLN(JB,L,TJL_INDEX,N) +
-     *    ACC(L) !*wtbudg(I,J) ! cannot use wtbudg!=1 b/c kg units for tracers
+     *    ACC(L)*wtbudg(I,J)
       ENDDO
       RETURN
-      END SUBROUTINE INC_TAJLN_COLUMN
+      END SUBROUTINE INC_TAJLN2_COLUMN
 #endif   /* TRACERS_ON */

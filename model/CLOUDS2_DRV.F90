@@ -1091,9 +1091,10 @@ subroutine CONDSE
 #else
 #endif
             enddo
+            dtrm = dtrm*byaxyp(i,j)
             if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lmcmax)), &
                  itcon_mc(n),n)
-            call inc_tajln_column(i,j,1,lmcmax,lm,jlnt_mc,n,dtrm)
+            call inc_tajln2_column(i,j,1,lmcmax,lm,jlnt_mc,n,dtrm)
           endif
 #endif  /*SKIP_TRACER_DIAGS*/
 
@@ -1685,9 +1686,10 @@ subroutine CONDSE
             dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           enddo
+          dtrm = dtrm*byaxyp(i,j)
           if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:LMCLD)), &
                itcon_ss(n),n)
-          call inc_tajln_column(i,j,1,LMCLD,lm,jlnt_lscond,n,dtrm)
+          call inc_tajln2_column(i,j,1,LMCLD,lm,jlnt_lscond,n,dtrm)
 #endif  /*SKIP_TRACER_DIAGS*/
 
           do l=1,LMCLD
@@ -1699,9 +1701,9 @@ subroutine CONDSE
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
             if (ijts_aq(n).gt.0) then ! use ij mask for jl as well
-              call inc_tajls(i,j,l,jls_incloud(1,n), &
-                   dt_sulf_mc(n,l)*(1.-fssl(l)))
-              call inc_tajls(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
+              call inc_tajls2(i,j,l,jls_incloud(1,n), &
+                   dt_sulf_mc(n,l)*(1.-fssl(l))/dxypij)
+              call inc_tajls2(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l)/dxypij)
               taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
                    (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
             end if
@@ -1752,57 +1754,71 @@ subroutine CONDSE
             !     ..........
             if (diag_wetdep == 1) then
 
-              if(jls_trdpmc(1,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              ! following rescalings to disappear when trm units change to kg/m2
+              trcond_mc(:,nx) = trcond_mc(:,nx)*byaxyp(i,j)
+              trdvap_mc(:,nx) = trdvap_mc(:,nx)*byaxyp(i,j)
+              trflcw_mc(:,nx) = trflcw_mc(:,nx)*byaxyp(i,j)
+              trprcp_mc(:,nx) = trprcp_mc(:,nx)*byaxyp(i,j)
+              trnvap_mc(:,nx) = trnvap_mc(:,nx)*byaxyp(i,j)
+              trwash_mc(:,nx) = trwash_mc(:,nx)*byaxyp(i,j)
+              trwash_ls(:,nx) = trwash_ls(:,nx)*byaxyp(i,j)
+              trprcp_ls(:,nx) = trprcp_ls(:,nx)*byaxyp(i,j)
+              trclwc_ls(:,nx) = trclwc_ls(:,nx)*byaxyp(i,j)
+              trevap_ls(:,nx) = trevap_ls(:,nx)*byaxyp(i,j)
+              trclwe_ls(:,nx) = trclwe_ls(:,nx)*byaxyp(i,j)
+              trcond_ls(:,nx) = trcond_ls(:,nx)*byaxyp(i,j)
+
+              if(jls_trdpmc(1,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(1,n),trcond_mc(:,nx))
-              if(jls_trdpmc(2,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(2,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(2,n),trdvap_mc(:,nx))
-              if(jls_trdpmc(3,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(3,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(3,n),trflcw_mc(:,nx))
-              if(jls_trdpmc(4,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(4,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(4,n),trprcp_mc(:,nx))
-              if(jls_trdpmc(5,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(5,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(5,n),trnvap_mc(:,nx))
-              if(jls_trdpmc(6,n)>0) call inc_tajls_column(i,j,1,lmcmax,lm, &
+              if(jls_trdpmc(6,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(6,n),trwash_mc(:,nx))
 
               if (ijts_trdpmc(1,n) > 0) taijs(i,j,ijts_trdpmc(1,n)) &
-                   =taijs(i,j,ijts_trdpmc(1,n))+sum(trcond_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(1,n))+sum(trcond_mc(1:lmcmax,nx))
               if (ijts_trdpmc(2,n) > 0) taijs(i,j,ijts_trdpmc(2,n)) &
-                   =taijs(i,j,ijts_trdpmc(2,n))+sum(trdvap_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(2,n))+sum(trdvap_mc(1:lmcmax,nx))
               if (ijts_trdpmc(3,n) > 0) taijs(i,j,ijts_trdpmc(3,n)) &
-                   =taijs(i,j,ijts_trdpmc(3,n))+sum(trflcw_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(3,n))+sum(trflcw_mc(1:lmcmax,nx))
               if (ijts_trdpmc(4,n) > 0) taijs(i,j,ijts_trdpmc(4,n)) &
-                   =taijs(i,j,ijts_trdpmc(4,n))+sum(trprcp_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(4,n))+sum(trprcp_mc(1:lmcmax,nx))
               if (ijts_trdpmc(5,n) > 0) taijs(i,j,ijts_trdpmc(5,n)) &
-                   =taijs(i,j,ijts_trdpmc(5,n))+sum(trnvap_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(5,n))+sum(trnvap_mc(1:lmcmax,nx))
               if (ijts_trdpmc(6,n) > 0) taijs(i,j,ijts_trdpmc(6,n)) &
-                   =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpmc(6,n))+sum(trwash_mc(1:lmcmax,nx))
 
-              if(jls_trdpls(1,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(1,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(1,n),trwash_ls(:,nx))
-              if(jls_trdpls(2,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(2,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(2,n),trprcp_ls(:,nx))
-              if(jls_trdpls(3,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(3,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(3,n),trclwc_ls(:,nx))
-              if(jls_trdpls(4,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(4,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(4,n),trevap_ls(:,nx))
-              if(jls_trdpls(5,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(5,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(5,n),trclwe_ls(:,nx))
-              if(jls_trdpls(6,n) > 0) call inc_tajls_column(i,j,1,LMCLD,lm, &
+              if(jls_trdpls(6,n) > 0) call inc_tajls2_column(i,j,1,LMCLD,lm, &
                    jls_trdpls(6,n),trcond_ls(:,nx))
 
               if (ijts_trdpls(1,n) > 0) taijs(i,j,ijts_trdpls(1,n)) &
-                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(1,n))+sum(trwash_ls(1:LMCLD,nx))
               if (ijts_trdpls(2,n) > 0) taijs(i,j,ijts_trdpls(2,n)) &
-                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(2,n))+sum(trprcp_ls(1:LMCLD,nx))
               if (ijts_trdpls(3,n) > 0) taijs(i,j,ijts_trdpls(3,n)) &
-                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(3,n))+sum(trclwc_ls(1:LMCLD,nx))
               if (ijts_trdpls(4,n) > 0) taijs(i,j,ijts_trdpls(4,n)) &
-                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(4,n))+sum(trevap_ls(1:LMCLD,nx))
               if (ijts_trdpls(5,n) > 0) taijs(i,j,ijts_trdpls(5,n)) &
-                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(5,n))+sum(trclwe_ls(1:LMCLD,nx))
               if (ijts_trdpls(6,n) > 0) taijs(i,j,ijts_trdpls(6,n)) &
-                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:LMCLD,nx))*byaxyp(i,j)
+                   =taijs(i,j,ijts_trdpls(6,n))+sum(trcond_ls(1:LMCLD,nx))
             end if
 #endif
 #ifdef TRACERS_DUST
@@ -1851,11 +1867,11 @@ subroutine CONDSE
           trprec_dust(n,i,j)=0.D0
           do l=1,Lm
             if (itcon_wt(n).gt.0) call inc_diagtcb(i,j, &
-                 tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
+                 (tm_dust(l,n)-trm(i,j,l,n1))/dxypij,itcon_wt(n),n)
             trm(i,j,l,n1)=tm_dust(l,n)
             trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
             trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
-            call inc_tajls(i,j,l,jls_wet(n1),trprc_dust(l,n))
+            call inc_tajls2(i,j,l,jls_wet(n1),trprc_dust(l,n)/dxypij)
             taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1)) &
                  +trprc_dust(l,n)
           end do

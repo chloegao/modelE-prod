@@ -828,6 +828,11 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
       type (TracerSurfaceSource), pointer :: AOCOB01sources(:)
+      character(len=7) :: tend_units
+      character(len=7) :: flux_units
+
+      tend_units = 'kg/kg/s'
+      flux_units = 'kg/m2/s'
 
 C**** Please note that short names for diags i.e. sname_jls are used
 C**** in special ways and MUST NOT contain spaces, commas or % signs.
@@ -842,7 +847,7 @@ C**** Defaults for jls (sources, sinks, etc.)
 C**** These need to be 'hand coded' depending on circumstances
       do k=1,ktajls             ! max number of sources and sinks
         jgrid_jls(k) = 1
-        jwt_jls(k) = 1
+        jwt_jls(k) = jls_mass_weighted ! normal case: mass weighting
         ia_jls(k) = ia_src
         scale_jls(k) = 1./DTsrc
       end do
@@ -910,7 +915,7 @@ C**** set defaults for some precip/wet-dep related diags
         lname_jls(k) = trim(trname(n))//' mc cloud aqchem'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         k = k + 1
         jls_incloud(2,n) = k
@@ -918,7 +923,7 @@ C**** set defaults for some precip/wet-dep related diags
         lname_jls(k) = trim(trname(n))//' ss cloud aqchem'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
       endif
       endif
 
@@ -938,7 +943,8 @@ C**** set defaults for some precip/wet-dep related diags
      &                 trim(sources(kk)%sourceLname)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+11
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
       end do
 
 ! aircraft emissions
@@ -949,7 +955,7 @@ C**** set defaults for some precip/wet-dep related diags
         lname_jls(k) = trim(trname(n))//' aircraft source'
         jls_ltop(k) = LM
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
       end if
 
 ! biomass burning emissions
@@ -960,7 +966,7 @@ C**** set defaults for some precip/wet-dep related diags
         lname_jls(k) = trim(trname(n))//' biomass source'
         jls_ltop(k) = LM
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
       endif
 
 !=============================!
@@ -985,7 +991,8 @@ c        call layer1_init_jls(k,n,trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
         jls_ltop(k) = 1
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
@@ -993,7 +1000,7 @@ c        call layer1_init_jls(k,n,trname(n))
      &                 ' BY CHEMISTRY IN STRATOS'
         jls_ltop(k) = lm
         jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
       case ('14CO2')   !!! should start 10/16
         k = k + 1
@@ -1002,7 +1009,8 @@ c        call layer1_init_jls(k,n,trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
         jls_ltop(k) = 1
         jls_power(k) = -4
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1012,14 +1020,14 @@ c        call layer1_init_jls(k,n,trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LTOP
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_3Dsource(nOverwrite,n) = k
         sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY OVERWRITE'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 #else
         k = k + 1
         jls_3Dsource(1,n) = k
@@ -1028,7 +1036,7 @@ c        call layer1_init_jls(k,n,trname(n))
      &                 ' BY CHEMISTRY IN TROPOSPHERE'
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Stratos_Chem_change_'//trim(trname(n))
@@ -1036,7 +1044,7 @@ c        call layer1_init_jls(k,n,trname(n))
      &                 ' BY CHEMISTRY IN STRATOS'
         jls_ltop(k) = lm
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif
 
       case ('O3')
@@ -1046,28 +1054,29 @@ c        call layer1_init_jls(k,n,trname(n))
         lname_jls(k) = 'Change of O3 by Deposition in Layer 1'
         jls_ltop(k) = 1
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Strat_Chem_change_'//trim(trname(n))
         lname_jls(k) = 'Change of O3 by Chemistry in Stratos'
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
        k = k + 1
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'Trop_Chem_Prod_change_'//trim(trname(n))
         lname_jls(k) = 'Change of O3 by Chem Prod. in Troposphere'
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
        k = k + 1
         jls_3Dsource(3,n) = k
         sname_jls(k) = 'Trop_Chem_Loss_change_'//trim(trname(n))
         lname_jls(k) = 'Change of O3 by Chem Loss in Troposphere'
         jls_ltop(k) = lm
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
@@ -1080,6 +1089,7 @@ C**** generic ones for many water tracers
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm day-1')
+        jwt_jls(k) = jls_not_mass_weighted
        k = k + 1
         jls_isrc(2,n) = k
         sname_jls(k) = 'Ocn_Evap_'//trim(trname(n))
@@ -1088,6 +1098,7 @@ C**** generic ones for many water tracers
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm day-1')
+        jwt_jls(k) = jls_not_mass_weighted
        k = k + 1
         jls_prec(1,n)=k
         sname_jls(k) = 'Precip_'//trim(trname(n))
@@ -1096,6 +1107,7 @@ C**** generic ones for many water tracers
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm day-1')
+        jwt_jls(k) = jls_not_mass_weighted
        k = k + 1
         jls_prec(2,n)=k
         sname_jls(k) = 'Ocn_Precip_'//trim(trname(n))
@@ -1104,6 +1116,7 @@ C**** generic ones for many water tracers
         jls_power(k) = ntm_power(n)+4
         scale_jls(k) = SECONDS_PER_DAY/DTsrc
         units_jls(k) = unit_string(jls_power(k),'mm day-1')
+        jwt_jls(k) = jls_not_mass_weighted
 
 C**** special one unique to HTO
       if (trname(n).eq."HTO") then
@@ -1114,7 +1127,7 @@ C**** special one unique to HTO
         jls_ltop(k) = lm
         jls_power(k) = ntm_power(n)+8
         scale_jls(k) = 1./DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
       end if
 #endif
 
@@ -1126,7 +1139,7 @@ C**** special one unique to HTO
         lname_jls(k) = trim(trname(n))//' L1 overwrite source'
         jls_ltop(k) = 1
         jls_power(k) = -5
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif
 
       case ('codirect')
@@ -1136,7 +1149,7 @@ C**** special one unique to HTO
         lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
@@ -1160,7 +1173,7 @@ C**** special one unique to HTO
         case default
           jls_power(k) = -1
         end select
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
 #ifdef TRACERS_dCO
@@ -1179,7 +1192,7 @@ C**** special one unique to HTO
      &    'CHANGE OF '//trim(trname(n))//' BY OVERWRITE'
           jls_ltop(k) = LM
           jls_power(k) = -1
-          units_jls(k) = unit_string(jls_power(k),'kg s-1')
+          units_jls(k) = unit_string(jls_power(k),tend_units)
         case ('CFC')  ! L=1 overwrite only.
           k = k + 1
           jls_3Dsource(nOverwrite,n) = k
@@ -1188,7 +1201,7 @@ C**** special one unique to HTO
      &    'CHANGE OF '//trname(n)//' BY OVERWRITE'
           jls_ltop(k) = 1 ! L=1 overwrite only
           jls_power(k) = -1
-          units_jls(k) = unit_string(jls_power(k),'kg s-1')
+          units_jls(k) = unit_string(jls_power(k),tend_units)
         end select
         select case(trname(n))
         case('NOx')
@@ -1198,7 +1211,7 @@ C**** special one unique to HTO
           lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY LIGHTNING'
           jls_ltop(k) = LM
           jls_power(k) = -2
-          units_jls(k) = unit_string(jls_power(k),'kg s-1')
+          units_jls(k) = unit_string(jls_power(k),tend_units)
         end select
 
 #ifdef TRACERS_AEROSOLS_SOA
@@ -1210,7 +1223,7 @@ c put in chemical production
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
       case ('isopp1a','isopp2a','apinp1a','apinp2a')
 c put in chemical production
@@ -1220,7 +1233,7 @@ c put in chemical production
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling of SOA
         k = k + 1
         jls_grav(n) = k
@@ -1228,7 +1241,7 @@ c gravitational settling of SOA
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif  /* TRACERS_AEROSOLS_SOA*/
 
       case ('DMS')
@@ -1238,55 +1251,16 @@ c gravitational settling of SOA
         lname_jls(k) = 'DMS ocean source'
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
 C
-        k = k + 1
-        jls_isrc(2,n) = k
-        sname_jls(k) = 'TKE_Contribution_'//trim(trname(n))
-        lname_jls(k) = 'SGSWSP TKE'
-        jwt_jls(k) = 2
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        scale_jls(k) = 1.
-        units_jls(k) = unit_string(jls_power(k),'%')
-
-        k = k + 1
-        jls_isrc(3,n) = k
-        sname_jls(k) = 'Wet_Conv_Contr_'//trim(trname(n))
-        lname_jls(k) = 'SGSWSP Wet Conv'
-        jwt_jls(k) = 2
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        scale_jls(k) = 1.
-        units_jls(k) = unit_string(jls_power(k),'%')
-
-        k = k + 1
-        jls_isrc(4,n) = k
-        sname_jls(k) = 'Dry_Conv_Contr_'//trim(trname(n))
-        lname_jls(k) = 'SGSWSP Dry Conv'
-        jwt_jls(k) = 2
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        scale_jls(k) = 1.
-        units_jls(k) = unit_string(jls_power(k),'%')
-
-        k = k + 1
-        jls_isrc(5,n) = k
-        sname_jls(k) = 'SGSWSP-old_'//trim(trname(n))
-        lname_jls(k) = 'DMS SGSWP-old/old'
-        jwt_jls(k) = 2
-        jls_ltop(k) = 1
-        jls_power(k) =0
-        scale_jls(k) = 1.
-        units_jls(k) = unit_string(jls_power(k),'%')
-
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Chemical_sink_of_'//trim(trname(n))
         lname_jls(k) = 'DMS chemical loss'
         jls_ltop(k) =LM
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
        case ('MSA')
 c put in chemical production of MSA
@@ -1296,7 +1270,7 @@ c put in chemical production of MSA
         lname_jls(k) = 'Chemical production of MSA'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling of MSA
         k = k + 1
         jls_grav(n) = k
@@ -1304,7 +1278,7 @@ c gravitational settling of MSA
         lname_jls(k) = 'Gravitational Settling of MSA'
         jls_ltop(k) = LM
         jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
        case ('SO2')
 c volcanic production of SO2
@@ -1314,7 +1288,7 @@ c volcanic production of SO2
         lname_jls(k) = trim(trname(n))//' volcanic source'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c put in chemical production of SO2
         k = k + 1
         jls_3Dsource(nChemprod,n) = k
@@ -1322,7 +1296,7 @@ c put in chemical production of SO2
         lname_jls(k) = 'production of SO2 from DMS'
         jls_ltop(k) = LM
         jls_power(k) =  1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c put in chemical sink of SO2
         k = k + 1
         jls_3Dsource(nChemloss,n) = k
@@ -1330,7 +1304,7 @@ c put in chemical sink of SO2
         lname_jls(k) = 'chemical sink of SO2'
         jls_ltop(k) = LM
         jls_power(k) =  1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         case ('SO4')
 c gas phase source of SO4
         k = k + 1
@@ -1339,7 +1313,7 @@ c gas phase source of SO4
         lname_jls(k) = trim(trname(n))//' gas phase source'
         jls_ltop(k) = LM
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c volcanic source of SO4
         k = k + 1
         jls_3Dsource(nVolcanic,n) = k
@@ -1347,7 +1321,7 @@ c volcanic source of SO4
         lname_jls(k) = trim(trname(n))//' volcanic source'
         jls_ltop(k) = LM
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling of SO4
         k = k + 1
         jls_grav(n) = k
@@ -1355,7 +1329,7 @@ c gravitational settling of SO4
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         case ('SO4_d1', 'SO4_d2', 'SO4_d3')
 c gas phase source
@@ -1365,7 +1339,7 @@ c gas phase source
         lname_jls(k) = trim(trname(n))//' gas phase source'
         jls_ltop(k) = LM
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling
         k = k + 1
         jls_grav(n) = k
@@ -1373,7 +1347,7 @@ c gravitational settling
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         case ('Be7')
 c cosmogenic source from file
@@ -1383,8 +1357,7 @@ c cosmogenic source from file
         lname_jls(k) = 'Be7 cosmogenic src'
         jls_ltop(k) = lm
         jls_power(k) = -28
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
@@ -1392,8 +1365,7 @@ c radioactive decay
         lname_jls(k) = 'Loss of Be7 by decay'
         jls_ltop(k) = lm
         jls_power(k) = -28
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
@@ -1401,8 +1373,7 @@ c gravitational settling
         lname_jls(k) = 'Loss of Be7 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         case ('Be10')
 c cosmogenic source from file/same as Be7
@@ -1412,8 +1383,7 @@ c cosmogenic source from file/same as Be7
         lname_jls(k) = 'Be10 cosmogenic src'
         jls_ltop(k) = lm
         jls_power(k) = -28  !may need changing around
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
@@ -1421,8 +1391,7 @@ c gravitational settling
         lname_jls(k) = 'Loss of Be10 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28  !may need changing around
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         case ('Pb210')
 c source of Pb210 from Rn222 decay
@@ -1432,8 +1401,7 @@ c source of Pb210 from Rn222 decay
         lname_jls(k) = 'Pb210 radioactive src'
         jls_ltop(k) = lm
         jls_power(k) =-26   ! -10  !may need to be changed
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c radioactive decay
         k = k + 1
         jls_decay(n) = k   ! special array for all radioactive sinks
@@ -1441,8 +1409,7 @@ c radioactive decay
         lname_jls(k) = 'Loss of Pb210 by decay'
         jls_ltop(k) = lm
         jls_power(k) =-26   ! -10  !may need to be changed
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c gravitational settling
         k = k + 1
         jls_grav(n) = k   ! special array grav. settling sinks
@@ -1450,8 +1417,7 @@ c gravitational settling
         lname_jls(k) = 'Loss of Pb210 by grav settling'
         jls_ltop(k) = lm
         jls_power(k) = -28
-        units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-        jwt_jls(k) = 3
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         case ('H2O2_s')
 c gas phase source and sink of H2O2
@@ -1461,14 +1427,14 @@ c gas phase source and sink of H2O2
         lname_jls(k) = trim(trname(n))//' gas phase source'
         jls_ltop(k) = LM
         jls_power(k) = 2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_3Dsource(2,n) = k
         sname_jls(k) = 'gas_phase_sink_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//' gas phase sink'
         jls_ltop(k) = LM
         jls_power(k) = 2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c photolysis rate
         k = k + 1
         jls_phot = k
@@ -1476,7 +1442,7 @@ c photolysis rate
         lname_jls(k) = 'photolysis rate of '//trim(trname(n))
         jls_ltop(k) =LM
         jls_power(k) =-9
-        units_jls(k) = unit_string(jls_power(k),'/s')
+        units_jls(k) = unit_string(jls_power(k),'/kg/s')
       case ('vbsGm2', 'vbsGm1', 'vbsGz',  'vbsGp1', 'vbsGp2',
      &      'vbsGp3', 'vbsGp4', 'vbsGp5', 'vbsGp6')
         k = k + 1
@@ -1485,21 +1451,21 @@ c photolysis rate
         lname_jls(k) = trim(trname(n))//' aging source'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_3Dsource(nChemloss,n) = k
         sname_jls(k) = trim(trname(n))//'_aging_loss'
         lname_jls(k) = trim(trname(n))//' aging loss'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_3Dsource(nOther,n) = k
         sname_jls(k) = trim(trname(n))//'_partitioning'
         lname_jls(k) = trim(trname(n))//' partitioning'
         jls_ltop(k) = LM
         jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
       case ('BCII', 'BCIA', 'BCB', 'OCII', 'OCIA', 'OCB',
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
@@ -1517,7 +1483,7 @@ c photolysis rate
             lname_jls(k) = trim(trname(n))//' partitioning'
             jls_ltop(k) = LM
             jls_power(k) = -1
-            units_jls(k) = unit_string(jls_power(k),'kg s-1')
+            units_jls(k) = unit_string(jls_power(k),tend_units)
           end select
         case ('BCIA', 'OCIA')
           k = k + 1
@@ -1526,7 +1492,7 @@ c photolysis rate
           lname_jls(k) = trim(trname(n))//' aging source'
           jls_ltop(k) = LM
           jls_power(k) = -1
-          units_jls(k) = unit_string(jls_power(k),'kg s-1')
+          units_jls(k) = unit_string(jls_power(k),tend_units)
         end select
         k = k + 1
         jls_grav(n) = k
@@ -1534,7 +1500,7 @@ c photolysis rate
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
 #ifdef TRACERS_TOMAS
        case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
@@ -1564,14 +1530,14 @@ c photolysis rate
         lname_jls(k) = trim(trname(n))//'Microphysics src'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of_'//trim(trname(n))
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
         select case (trname(n))
 
@@ -1586,7 +1552,7 @@ c volcanic source of SO4
         lname_jls(k) = trim(trname(n))//' volcanic source'
         jls_ltop(k) = LM
         jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c industrial source
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
@@ -1598,28 +1564,28 @@ c SO4
         lname_jls(k) = trim(trname(n))//' SO4 source'
         jls_ltop(k) = LM
         jls_power(k) = 10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/kg/s')
         k = k + 1
         jls_3Dsource(nECanum,n) = k
         sname_jls(k) = 'EC_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'EC source'
         jls_ltop(k) = LM
         jls_power(k) = 10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/kg/s')
         k = k + 1
         jls_3Dsource(nOCanum,n) = k
         sname_jls(k) = 'OC_source_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'OC source'
         jls_ltop(k) = LM
         jls_power(k) = 10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/kg/s')
         k = k + 1
         jls_3Dsource(nMicrophys,n) = k
         sname_jls(k) = 'Microphysics_src_of_'//trim(trname(n))
         lname_jls(k) = trim(trname(n))//'Microphysics src'
         jls_ltop(k) = LM
         jls_power(k) = 10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/kg/s')
 c industrial source
         do kk=1,ntsurfsrc(n_ANUM(1))
           k = k + 1
@@ -1636,7 +1602,8 @@ c industrial source
      &                   trim(sources(kk)%sourceLname)
           jls_ltop(k) = 1
           jls_power(k) =10
-          units_jls(k) = unit_string(jls_power(k),'# s-1')
+          units_jls(k) = unit_string(jls_power(k),'#/m2/s')
+          jwt_jls(k) = jls_not_mass_weighted
         enddo
         k = k + 1
         jls_isrc(1,n) = k
@@ -1644,21 +1611,23 @@ c industrial source
         lname_jls(k) = trim(trname(n))//'ANACL source'
         jls_ltop(k) = 1
         jls_power(k) =10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/m2/s')
+        jwt_jls(k) = jls_not_mass_weighted
         k = k + 1
         jls_isrc(2,n) = k
         sname_jls(k) = 'Dust_source_of_'//trim(trname(n))
         lname_jls(k) =  trim(trname(n))//'ADUST source'
         jls_ltop(k) = 1
         jls_power(k) =1
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/m2/s')
+        jwt_jls(k) = jls_not_mass_weighted
         k = k + 1
         jls_grav(n) = k
         sname_jls(k) = 'grav_sett_of_'//trim(trname(n))
         lname_jls(k) = 'Gravitational Settling of '//trim(trname(n))
         jls_ltop(k) = LM
         jls_power(k) = 10
-        units_jls(k) = unit_string(jls_power(k),'# s-1')
+        units_jls(k) = unit_string(jls_power(k),'#/m2/s')
 
       case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04','ANACL_05',
      *    'ANACL_06','ANACL_07','ANACL_08','ANACL_09','ANACL_10',
@@ -1669,7 +1638,8 @@ c industrial source
         lname_jls(k) = 'Ocean source of '//trim(trname(n))
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
 
       case ('AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
      *    'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10',
@@ -1683,7 +1653,7 @@ c industrial source
         lname_jls(k) = trim(trname(n))//' aging loss'
         jls_ltop(k) = LM
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
       case ('AOCOB_01','AOCOB_02','AOCOB_03','AOCOB_04','AOCOB_05',
      *    'AOCOB_06','AOCOB_07','AOCOB_08','AOCOB_09','AOCOB_10',
@@ -1697,7 +1667,7 @@ c industrial source
         lname_jls(k) = trim(trname(n))//' aging loss'
         jls_ltop(k) = LM
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
 ! TOMAS  : should I exclude aerosol water??
 
@@ -1711,8 +1681,8 @@ c industrial source
         lname_jls(k) = trim(trname(n))//' dust source'
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
         end select
 
 #endif /* TRACERS_TOMAS*/
@@ -1725,7 +1695,8 @@ c ocean source
         lname_jls(k) = trim(trname(n))//' ocean source'
         jls_ltop(k) = 1
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),flux_units)
+        jwt_jls(k) = jls_not_mass_weighted
 c gravitational settling
         k = k + 1
         jls_grav(n) = k
@@ -1738,7 +1709,7 @@ c gravitational settling
         case ('seasalt2')
           jls_power(k) =0
         end select
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
         CASE('Clay','Silt1','Silt2','Silt3','Silt4','Silt5','ClayIlli'
@@ -1767,7 +1738,8 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_emission'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),'kg s-1')
+          units_jls(k)=unit_string(jls_power(k),flux_units)
+          jwt_jls(k) = jls_not_mass_weighted
         IF ( imDust == 0 .or. imDust >= 3 ) THEN
           k=k+1
           jls_isrc(nDustEm2jl,n)=k
@@ -1775,7 +1747,8 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_emission2'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),'kg s-1')
+          units_jls(k)=unit_string(jls_power(k),flux_units)
+          jwt_jls(k) = jls_not_mass_weighted
         END IF
 #ifndef TRACERS_DRYDEP
         k=k+1
@@ -1784,7 +1757,8 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_turb_depo'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),'kg s-1')
+          units_jls(k)=unit_string(jls_power(k),flux_units)
+          jwt_jls(k) = jls_not_mass_weighted
 #endif
         k=k+1
           jls_grav(n)=k
@@ -1793,7 +1767,7 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_grav_sett'
           jls_ltop(k)=Lm
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),'kg s-1')
+          units_jls(k)=unit_string(jls_power(k),tend_units)
 #ifndef TRACERS_WATER
         k=k+1
           jls_wet(n)=k
@@ -1813,8 +1787,7 @@ c        sname_jls(k) = 'Grav_Settle_of_'//trname(n)
 c        lname_jls(k) = 'LOSS OF DUST BY SETTLING'
 c        jls_ltop(k) = lm
 c        jls_power(k) = -11
-c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-
+c        units_jls(k) = unit_string(jls_power(k),tend_units)
       end select
 
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
@@ -1826,84 +1799,84 @@ c**** additional wet deposition diagnostics
         sname_jls(k)=TRIM(trname(n))//'_cond_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpmc(2,n)=k
         lname_jls(k)='Evaporated '//TRIM(trname(n))//' in MC Downdrafts'
         sname_jls(k)=TRIM(trname(n))//'_downeva_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpmc(3,n)=k
         lname_jls(k)='Condensed '//TRIM(trname(n))//' in MC CLW'
         sname_jls(k)=TRIM(trname(n))//'_conclw_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpmc(4,n)=k
         lname_jls(k)='Precipitated '//TRIM(trname(n))//' by MC'
         sname_jls(k)=TRIM(trname(n))//'_precip_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpmc(5,n)=k
         lname_jls(k)='Reevaporated '//TRIM(trname(n))//' from MC Precip'
         sname_jls(k)=TRIM(trname(n))//'_reevap_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpmc(6,n)=k
         lname_jls(k)='MC Washout of '//TRIM(trname(n))
         sname_jls(k)=TRIM(trname(n))//'_washout_mc'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(1,n)=k
         lname_jls(k)='LS Washout of '//TRIM(trname(n))
         sname_jls(k)=TRIM(trname(n))//'_washout_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(2,n)=k
         lname_jls(k)='Precipitated '//TRIM(trname(n))//' by LS'
         sname_jls(k)=TRIM(trname(n))//'_precip_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(3,n)=k
         lname_jls(k)='Condensed '//TRIM(trname(n))// ' in LS CLW'
         sname_jls(k)=TRIM(trname(n))//'_conclw_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(4,n)=k
         lname_jls(k)='Reevaporated '//TRIM(trname(n))//' from LS Precip'
         sname_jls(k)=TRIM(trname(n))//'_reevap_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(5,n)=k
         lname_jls(k)='Evaporated '//TRIM(trname(n))//' from LS CLW'
         sname_jls(k)=TRIM(trname(n))//'_clwevap_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
         k=k+1
         jls_trdpls(6,n)=k
         lname_jls(k)='LS Condensation of '//TRIM(trname(n))
         sname_jls(k)=TRIM(trname(n))//'_cond_ls'
         jls_ltop(k)=Lm
         jls_power(k)=1
-        units_jls(k)=unit_string(jls_power(k),'kg s-1')
+        units_jls(k)=unit_string(jls_power(k),tend_units)
       END IF
 #endif
 
@@ -1945,7 +1918,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LTOP
         jls_power(k) = -4
         scale_jls(k) = 1./DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_Oxp=k
         sname_jls(k) = 'Ox_chem_prod'
@@ -1953,7 +1926,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 2
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_Oxd=k
         sname_jls(k) = 'Ox_chem_dest'
@@ -1961,7 +1934,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 2
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_OxpT=k
         sname_jls(k) = 'trop_Ox_chem_prod'
@@ -1969,7 +1942,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 2
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_OxdT=k
         sname_jls(k) = 'trop_Ox_chem_dest'
@@ -1977,7 +1950,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 2
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_COp=k
         sname_jls(k) = 'CO_chem_prod'
@@ -1985,7 +1958,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 1
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_COd=k
         sname_jls(k) = 'CO_chem_dest'
@@ -1993,7 +1966,7 @@ C**** (not necessary associated with a particular tracer)
         jls_ltop(k)  = LM
         jls_power(k) = 1
         scale_jls(k) = 1.d0/DTsrc
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
         k = k + 1
         jls_OHcon=k
         sname_jls(k) = 'OH_conc'
@@ -2027,7 +2000,7 @@ c
         lname_jls(k) = 'N2O5 sulfate sink'
         jls_ltop(k)  = LTOP
         jls_power(k) = -2
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        units_jls(k) = unit_string(jls_power(k),tend_units)
 c
         k = k + 1
         jls_O3vmr=k
@@ -2080,6 +2053,7 @@ c Oxidants
       jls_ltop(k)=1
       scale_jls(k)=SECONDS_PER_DAY/Dtsrc
       units_jls(k)='1/d'
+      jwt_jls(k) = jls_not_mass_weighted
       k = k + 1
       jls_spec(nDustEv2jl)=k
       lname_jls(k)='No. dust events above threshold wind'
@@ -2087,6 +2061,7 @@ c Oxidants
       jls_ltop(k)=1
       scale_jls(k)=SECONDS_PER_DAY/Dtsrc
       units_jls(k)='1/d'
+      jwt_jls(k) = jls_not_mass_weighted
       k = k + 1
       jls_spec(nDustWthjl)=k
       lname_jls(k)='Threshold velocity for dust emission'
@@ -2094,6 +2069,7 @@ c Oxidants
       jls_ltop(k)=1
       scale_jls(k)=1.
       units_jls(k)='m s-1'
+      jwt_jls(k) = jls_not_mass_weighted
 #endif
 
       if (k.gt. ktajls) then
@@ -2118,7 +2094,8 @@ c Oxidants
       lname_jls(k) = trim(trname(n))//' GRID SOURCE, LAYER 1'
       jls_ltop(k) = 1
       jls_power(k) = -3
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),flux_units)
+      jwt_jls(k) = jls_not_mass_weighted
       end subroutine layer1_init_jls
 
       subroutine CO2n_init_jls(k,n,name)
@@ -2131,7 +2108,8 @@ c Oxidants
       lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
       jls_ltop(k) = 1
       jls_power(k) = 3
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),flux_units)
+      jwt_jls(k) = jls_not_mass_weighted
       end subroutine CO2n_init_jls
 
       subroutine Rn222_init_jls(k,n,name)
@@ -2144,16 +2122,16 @@ c Oxidants
       lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
       jls_ltop(k) = lm
       jls_power(k) = -26
-      units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
-      jwt_jls(k)=3
-      
+      units_jls(k) = unit_string(jls_power(k),tend_units)
+
       k = k + 1
       jls_source(1,n) = k
       sname_jls(k) = 'Ground_Source_of_'//trim(trname(n))
       lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
       jls_ltop(k) = 1
       jls_power(k) = -10
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),flux_units)
+      jwt_jls(k) = jls_not_mass_weighted
       end subroutine Rn222_init_jls
       
       subroutine N2O_init_jls(k,n,name)
@@ -2167,7 +2145,7 @@ c Oxidants
       lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
       jls_ltop(k) = LM
       jls_power(k) = -1
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),tend_units)
       k = k + 1
       jls_3Dsource(nOverwrite,n) = k
       sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
@@ -2175,7 +2153,7 @@ c Oxidants
      &     'CHANGE OF '//trim(trname(n))//' BY OVERWRITE'
       jls_ltop(k) = 1           ! really L=1 overwrite only
       jls_power(k) = -1
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
       k = k + 1
@@ -2185,7 +2163,8 @@ c Oxidants
      &               ' BY RESETTING TO 462.2d-9, L1'
       jls_ltop(k) = 1
       jls_power(k) = 0
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),flux_units)
+      jwt_jls(k) = jls_not_mass_weighted
       k = k + 1
       jls_3Dsource(1,n) = k
       sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
@@ -2193,7 +2172,7 @@ c Oxidants
      &               ' BY CHEMISTRY IN STRATOS'
       jls_ltop(k) = lm
       jls_power(k) = -1
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+      units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif
       end subroutine N2O_init_jls
 

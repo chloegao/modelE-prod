@@ -1068,7 +1068,7 @@ C       -- Qmom --:
       end do
 
 C     -- diags --:
-      call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ochem,dQM)
+      call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ochem,dQM/axyp(i,j))
       if(clim_interact_chem > 0)then
         dQMsum = sum(dQM(1:maxL))/axyp(i,j)
         do it=1,ntype
@@ -1784,19 +1784,19 @@ c Conserve ClOx with respect to HOCl:
        end do ! L
 
        if(idx == n_CO)then
-         call inc_tajls_column(i,j,1,maxL,maxL,jls_COp,
-     &        prod(igas,1:maxL)*c2ml(1:maxL))
-         call inc_tajls_column(i,j,1,maxL,maxL,jls_COd,
-     &        dest(igas,1:maxL)*c2ml(1:maxL))
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_COp,
+     &        prod(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_COd,
+     &        dest(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
        else if(idx == n_Ox)then
-         call inc_tajls_column(i,j,1,maxL,maxL,jls_Oxp ,
-     &        prod(igas,1:maxL)*c2ml(1:maxL))
-         call inc_tajls_column(i,j,1,maxT,maxT,jls_OxpT,
-     &        prod(igas,1:maxT)*c2ml(1:maxT))
-         call inc_tajls_column(i,j,1,maxL,maxL,jls_Oxd ,
-     &        dest(igas,1:maxL)*c2ml(1:maxL))
-         call inc_tajls_column(i,j,1,maxT,maxT,jls_OxdT,
-     &        dest(igas,1:maxT)*c2ml(1:maxT))
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxp ,
+     &        prod(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+         call inc_tajls2_column(i,j,1,maxT,maxT,jls_OxpT,
+     &        prod(igas,1:maxT)*c2ml(1:maxT)*byaxyp(i,j))
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxd ,
+     &        dest(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+         call inc_tajls2_column(i,j,1,maxT,maxT,jls_OxdT,
+     &        dest(igas,1:maxT)*c2ml(1:maxT)*byaxyp(i,j))
        end if
 
       end do  ! igas ! end of TRACER LOOP -----------------
@@ -2096,10 +2096,14 @@ c     In the stratosphere, calculate ozone change due to rxn with atomic H:
           call write_parallel(trim(out_line),crit=jay)
         end if
       end do
-      call inc_tajls_column(i,j,1,maxL,maxL,jls_Oxd ,NprodOx_neg)
-      call inc_tajls_column(i,j,1,maxT,maxL,jls_OxdT,NprodOx_neg)
-      call inc_tajls_column(i,j,1,maxL,maxL,jls_Oxp ,NprodOx_pos)
-      call inc_tajls_column(i,j,1,maxT,maxL,jls_OxpT,NprodOx_pos)
+      call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxd ,
+     &     NprodOx_neg*byaxyp(i,j))
+      call inc_tajls2_column(i,j,1,maxT,maxL,jls_OxdT,
+     &     NprodOx_neg*byaxyp(i,j))
+      call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxp ,
+     &     NprodOx_pos*byaxyp(i,j))
+      call inc_tajls2_column(i,j,1,maxT,maxL,jls_OxpT,
+     &     NprodOx_pos*byaxyp(i,j))
 
       ! We USED TO remove here some of the HNO3 formed heterogeneously,
       ! as it doesn't come back to the gas phase.
@@ -2267,6 +2271,9 @@ C**** special diags not associated with a particular tracer
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
      &       conH2O(l) = y(nH2O,L)/y(nM,L)
       END DO
+      conOH = conOH*ma(1:maxL,i,j) ! for mass weighting
+      conClO = conClO*ma(1:maxL,i,j) ! for mass weighting
+      conH2O = conH2O*ma(1:maxL,i,j) ! for mass weighting
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_OHcon,conOH)
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_ClOcon,conClO)
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ocon,conH2O)

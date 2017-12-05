@@ -456,7 +456,8 @@ cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
 #endif
             enddo
 #ifndef SKIP_TRACER_DIAGS
-            call inc_tajln_column(i,j,1,lm,lm,jlnt_turb,n,dtrm)
+            dtrm = dtrm*byaxyp(i,j)
+            call inc_tajln2_column(i,j,1,lm,lm,jlnt_turb,n,dtrm)
 #endif
           enddo
 #endif

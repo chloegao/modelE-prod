@@ -913,9 +913,9 @@ C****
 #endif
 
           if (itcon_dd(n,1).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*depvel,itcon_dd(n,1),n)
+     &     ptype*rtsdt*depvel,itcon_dd(n,1),n)
           if (itcon_dd(n,2).gt.0) call inc_diagtcb(i,j,-
-     &     ptype*rtsdt*axyp(i,j)*gsvel,itcon_dd(n,2),n)
+     &     ptype*rtsdt*gsvel,itcon_dd(n,2),n)
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)
@@ -2239,7 +2239,6 @@ c     &       WRITE(99,*) "LIMITING TRDEW",I,J,N,TDP,TRM(I,J,1,n),TDT1
       subroutine collect_ocean_emissions(i,j,ptype,dtsurf,pbl_args)
       use OldTracer_mod, only : trname
       use fluxes, only : atmocn
-      use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,ijts_isrc,jls_isrc
       use pbl_drv, only : t_pbl_args
       use trdiag_com, only : itcon_surf
@@ -2330,13 +2329,13 @@ C****
             select case (trname(n))
               case ('DMS','M_SSA_SS','M_SSC_SS','M_SSS_SS')
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
-     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+     *       trc_flux*ptype*dtsurf,itcon_surf(1,n),n)
             end select
 #else
 #ifndef TRACERS_TOMAS
 
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols?
 #endif
 #endif
 
@@ -2347,7 +2346,7 @@ C****
 
             case ('DMS')              
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
-     *              trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+     *              trc_flux*ptype*dtsurf,itcon_surf(1,n),n)
 
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
      &       'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
@@ -2358,10 +2357,10 @@ C****
      &         )
         
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
-     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
+     *       trc_flux*ptype*dtsurf,itcon_surf(1,n),n)
         
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols?
         
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
@@ -2373,10 +2372,10 @@ C****
         
 !TOMAS - itcon_surf (1,3) is for SO4/EC/OC.
         if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,
-     *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(4,n),n)
+     *       trc_flux*ptype*dtsurf,itcon_surf(4,n),n)
 
-        if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+        if (jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
+     *       trc_flux*ptype*dtsurf) ! why not for all aerosols? 
 
             end select
 #endif
@@ -2393,7 +2392,6 @@ C****
      &     dtsurf,pbl_args)
       use TimeConstants_mod, only: SECONDS_PER_YEAR
       use fluxes, only : focean,atmocn,nisurf
-      use geom, only : axyp
       use trdiag_com, only : taijs=>taijs_loc,
      &     ijts_isrc,ijts_gasex,jls_isrc
       use pbl_drv, only : t_pbl_args
@@ -2535,11 +2533,11 @@ C****
      .           * ptype * SECONDS_PER_YEAR        ! mol/m2/yr
 
 ! zonal mean diag accumulates kgCO2
-                if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
+                if(jls_isrc(1,n)>0) call inc_tajls2(i,j,1,jls_isrc(1,n),
      *             - pbl_args%Kw_gas(ngx) * ( pbl_args%beta_gas(ngx)*trs 
      .           - pbl_args%alpha_gas(ngx) * trgrnd ) 
      .           * 1d6/vol2mass(n) * dtsurf  
-     .           * ptype*tr_mm(n)*1d-3*axyp(i,j))
+     .           * ptype*tr_mm(n)*1d-3)
 
                 if (MODDSF.EQ.0) THEN
 ! piston velocity
