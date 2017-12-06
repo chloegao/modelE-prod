@@ -94,7 +94,6 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: AERO(NAEROBOX)     ! aerosol conc. [ug/m^3] or [#/m^3]
       REAL(8):: GAS(NGASES)        ! gas-phase conc. [ug/m^3]
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
-      REAL(8):: VBS_FLUXES(NMODES,NMASS_SPCS)
       REAL(8):: SPCMASS(NMASS_SPCS+2)
       REAL(8):: DT_AERO(NDIAG_AERO,NAEROBOX) !NDIAG_AERO=15
       REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL,AVOLM2
@@ -119,7 +118,6 @@ C**** functions
       ILAY = L
       DT_AERO(:,:) = 0.d0
       EMIS_MASS(:) = 0.d0
-      VBS_FLUXES(:,:) = 0.d0
       AERO(:)      = 0.d0
 ! meteo
       TK = pk(l,i,j)*t(i,j,l)           !should be in [K]
@@ -213,11 +211,7 @@ c     Biomass BC OC is NOT mixed
 #endif
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
-       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO
-#ifdef TRACERS_AMP_M9
-     &            ,VBS_FLUXES
-#endif
-     &            )
+       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO)
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)

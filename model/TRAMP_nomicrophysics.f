@@ -23,12 +23,12 @@
       REAL(8), INTENT(IN)    :: RH                    ! relative humidity [0-1]
       REAL(8), INTENT(IN)    :: PRES                  ! ambient pressure [Pa]  
       REAL(8), INTENT(IN)    :: AQSO4RATE             ! in-cloud SO4 production rate [ug/m^3/s]
-      REAL(8), INTENT(IN), optional :: VBS_FLUXES(NMODES,NMASS_SPCS)
 
       ! Local variables.
 
       INTEGER :: I,J,Q                     ! indices
       REAL(8) :: PIQ(NWEIGHTS,NMASS_SPCS)  ! production terms for mass conc. [ug/m^3/s]
+      REAL(8) :: VBS_FLUXES(NMODES,NMASS_SPCS) ! production terms for VBS species mass conc. [ug/m^3/s]
       REAL(8) :: TOT_SULF                  ! total sulfate conc.  [ug/m^3]
       REAL(8) :: TOT_DUST                  ! total dust conc.     [ug/m^3]
       REAL(8) :: TOT_SEAS                  ! total sea salt conc. [ug/m^3]
@@ -182,11 +182,7 @@
       !-------------------------------------------------------------------------------------------------------
       IF ( MASS_ADJ ) THEN
         CALL SPCMASSES(AERO,GAS,SPCMASS2)
-        if (present(VBS_FLUXES)) then
-          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP, VBS_FLUXES)
-        else
-          CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP)
-        endif
+        CALL MASSADJ(AERO,GAS,SPCMASS1,SPCMASS2,EMIS_MASS,AQSO4RATE,TSTEP,VBS_FLUXES)
       ENDIF
 
       !-------------------------------------------------------------------------------------------------------
