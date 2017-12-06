@@ -57,8 +57,6 @@ c
 c
 c --- 'tenm,onem,...' = pressure thickness values corresponding to 10m,1m,...
 c --- 'g'      = gravity acceleration
-c --- 'csubp'  = specific heat of air at constant pressure (j/g/deg)
-c --- 'spcifh' = specific heat of sea water (j/g/deg)
 c --- 'cd'     = drag coefficient
 c --- 'ct'     = thermal transfer coefficient
 c --- 'epsil'  = small nonzero number used to prevent division by zero
