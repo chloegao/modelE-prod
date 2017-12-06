@@ -162,16 +162,13 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-     &                        ,stratO3_tracer_save
-#endif
       USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,
-     &                      n_Isoprene,n_AlkylNit,n_Alkenes,n_stratOx,
+     &                      n_Isoprene,n_AlkylNit,n_Alkenes,
      &                      n_Terpenes,n_SO4,n_H2O2_s,oh_live,no3_live,
      &                      ntm_chem,n_DMS,n_MSA,n_SO2,
      &                      trm_col,trmom_col,nChemistry,nOverwrite,
@@ -219,7 +216,7 @@ c
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_HCHO,
      &      nn_HO2NO2, nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes,
-     &      nn_stratOx, nn_Terpenes,nn_codirect,                
+     &      nn_Terpenes,nn_codirect,                
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
@@ -1661,13 +1658,6 @@ c --  Ox --   ( Ox from gas phase rxns)
           changeL(L,n_Ox) = minKG - trm_col(L,n_Ox)
           changeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*bypfactor
         END IF
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        if(trm_col(L,n_Ox)==0.)call stop_model('zero Ox denom',255)
-        changeL(L,n_stratOx)=changeL(L,n_Ox)*
-     &  trm_col(L,n_stratOx)/trm_col(L,n_Ox)
-        if((trm_col(L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
-     &  changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
-#endif
         ! then come diags:
         if(changeL(L,n_Ox) >= 0.) then
           CALL INC_TAJLS2(I,J,L,jls_Oxp,changeL(L,n_Ox)*byaxyp(i,j))
@@ -2002,11 +1992,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           tr3Dsource(L,nChemistry,n) = changeL(L,n) * bydtsrc
         end do
 
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        tr3Dsource(L,nChemistry,n_stratOx)=
-     &  changeL(L,n_stratOx)*bydtsrc
-#endif
-
         ! save NO2 volume mixing ratio for sub-daily diagnosic:
         ! Note that for a long time the NON-Cached version of this used to
         ! neglect +tempChangeNOx. That term is needed to match the
@@ -2099,7 +2084,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
      &       tr3Dsource(1,nChemistry,n_CH4)*dtsrc))*bydtsrc
       end if
 
-! Ox, stratOx, NOx, BrOx and ClOx, have overwriting where P < PltOx hPa:
+! Ox, NOx, BrOx and ClOx, have overwriting where P < PltOx hPa:
 
 
       ! Note L=LS1,LM means it is only allowed in the stratosphere
@@ -2112,13 +2097,6 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
           tr3Dsource(L,nOverwrite,n_Ox)=(ghgCmAtm(L,3)*
      &         axyp(i,j)*O3MULT - (trm_col(L,n_Ox)+
      &         tr3Dsource(L,nChemistry,n_Ox)*dtsrc))*bydtsrc
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-              ! -- stratOx --
-          tr3Dsource(L,nOverwrite,n_stratOx)=
-     &         (ghgCmAtm(L,3)*axyp(i,j)*O3MULT - (
-     &         trm_col(L,n_stratOx)
-     &         +tr3Dsource(L,nChemistry,n_stratOx)*dtsrc))*bydtsrc
-#endif
               ! -- ClOx --
           tr3Dsource(L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
      &         *vol2mass(n_CLOx)*MA(L,i,j)*axyp(i,j) - (
@@ -2166,15 +2144,9 @@ c (radiation code wants atm-cm units):
         taijls(i,j,L,ijlt_O3cmatm)=taijls(i,j,L,ijlt_O3cmatm)+
      &       chem_tracer_save(1,L,i,j)
       end do
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      strato3_tracer_save(1:LM,i,j)=(trm_col(1:LM,n_stratOx) +
-     &    (tr3Dsource(1:LM,nChemistry,n_stratOx) +
-     &    tr3Dsource(1:LM,nOverwrite,n_stratOx))*dtsrc)
-     &    *byaxyp(i,j)*byO3MULT
-#endif
           ! accumulate diag for the column sum of O3 mass hopefully similarly to
           ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers, Ox
-          ! tracer above (which is likely anyway actually O3 from NINT intput):
+          ! tracer above (which is likely anyway actually O3 from NINT input):
       taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
      &    sum( pOx(i,j,1:topLevelOfChemistry)*
      &    (trm_col(1:topLevelOfChemistry,n_Ox)+

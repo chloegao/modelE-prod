@@ -1635,9 +1635,6 @@ C     OUTPUT DATA
 #ifdef TRACERS_DUST
      &     ,srnflb_save,trnflb_save
 #endif
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-     &     ,stratO3_tracer_save
-#endif
 #ifdef TRACERS_ON
       use rad_com, only: tau_as,tau_cs,tau_dry,nraero_rf
 #ifdef CACHED_SUBDD
@@ -1683,7 +1680,7 @@ C     OUTPUT DATA
       use OldTracer_mod, only: trname, trpdens
       USE TRACER_COM, only: NTM
      *     ,n_Ox,trm,n_OCB,n_BCII,n_BCIA
-     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,n_SO4,n_stratOx
+     *     ,n_OCIA,N_OCII,n_so4_d2,n_so4_d3,n_SO4
      *     ,n_N_AKK_1
 #ifdef TRACERS_NITRATE
       use OldTracer_mod, only: tr_mm
@@ -1838,9 +1835,6 @@ C  GHG Effective forcing relative to 1850
       REAL*8,DIMENSION(5,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                   grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     SNFST_o3ref,TNFST_o3ref
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-     &    ,snfst_stratOx,tnfst_stratOx
-#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 #ifdef BC_ALB
       REAL*8,DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                 grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -2677,10 +2671,6 @@ C**** Ozone and Methane:
         use_tracer_chem(1)=Lmax_rad_O3  ! O3
         use_tracer_chem(2)=Lmax_rad_CH4 ! CH4
       endif
-!#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-!      if(clim_interact_chem<=0)
-!     &call stop_model("stratOx RADF on, clim_interact_chem<=0",255)
-!#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
       if (moddrf==0) then
@@ -2761,16 +2751,6 @@ C**** Ozone:
 #endif /* AUXILIARY_OX_RADF */
 ! After AUX call, use either climatological or tracer O3:
         use_o3_ref=0 ; use_tracer_chem(1)=onoff_chem*Lmax_rad_O3
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-! Optional intermediate call with stratOx tracer:
-!NEED chem_IN(1,1:LM)=stratO3_tracer_save(1:LM,I,J)
-!NEED kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
-!NEED CALL RCOMPX        ! stratOx diag tracer
-        SNFST_stratOx(1,I,J)=SRNFLB(LTROPO(I,J)) ! tropopause
-        TNFST_stratOx(1,I,J)=TRNFLB(LTROPO(I,J))
-        SNFST_stratOx(2,I,J)=SRNFLB(LM+LM_REQ+1) ! T.O.A.
-        TNFST_stratOx(2,I,J)=TRNFLB(LM+LM_REQ+1)
-#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS */
         chem_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)  ! Ozone
         chem_IN(2,1:LM)=chem_tracer_save(2,1:LM,I,J)*CH4X_RADoverCHEM  ! Methane
 #ifdef ACCMIP_LIKE_DIAGS
@@ -3827,27 +3807,6 @@ c longwave forcing at TOA
      &   taijs(i,j,ijts_auxfc(4))=taijs(i,j,ijts_auxfc(4))
      &   -rsign_chem*(TNFST_o3ref(2,I,J)-TNFST_o3ref(4,I,J))
 #endif /* AUXILIARY_OX_RADF */
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-                      ! ------ diag stratOx tracer -------
-! note for now for this diag, there is a failsafe that stops model
-! if clim_interact_chem .le. 0 when the below would be wrong:
-c shortwave forcing at tropopause
-         if (ijts_fc(1,n_stratOx).gt.0)
-     &   taijs(i,j,ijts_fc(1,n_stratOx))=taijs(i,j,ijts_fc(1,n_stratOx))
-     &   +rsign_chem*(SNFST_o3ref(1,I,J)-SNFST_stratOx(1,I,J))*CSZ2
-c longwave forcing at tropopause
-         if (ijts_fc(2,n_stratOx).gt.0)
-     &   taijs(i,j,ijts_fc(2,n_stratOx))=taijs(i,j,ijts_fc(2,n_stratOx))
-     &   -rsign_chem*(TNFST_o3ref(1,I,J)-TNFST_stratOx(1,I,J))
-c shortwave forcing at TOA
-         if (ijts_fc(3,n_stratOx).gt.0)
-     &   taijs(i,j,ijts_fc(3,n_stratOx))=taijs(i,j,ijts_fc(3,n_stratOx))
-     &   +rsign_chem*(SNFST_o3ref(2,I,J)-SNFST_stratOx(2,I,J))*CSZ2
-c longwave forcing at TOA
-         if (ijts_fc(4,n_stratOx).gt.0)
-     &   taijs(i,j,ijts_fc(4,n_stratOx))=taijs(i,j,ijts_fc(4,n_stratOx))
-     &   -rsign_chem*(TNFST_o3ref(2,I,J)-TNFST_stratOx(2,I,J))
-#endif /* SHINDELL_STRAT_EXTRA && ACCMIP_LIKE_DIAGS*/
 #endif /* any of various tracer groups defined */
 
 #ifdef ACCMIP_LIKE_DIAGS

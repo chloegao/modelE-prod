@@ -29,7 +29,7 @@ C
      &  n_d13Calke,n_d13CPAR,
      &  n_d17OPAN,n_d18OPAN,n_d13CPAN,
 #endif  /* TRACERS_dCO */
-     &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,n_stratOx,
+     &  n_CH4,n_Paraffin,n_PAN,n_Isoprene,
      &  n_Terpenes,n_AlkylNit,n_Alkenes,n_N2O5,n_NOx,n_HO2NO2,
      &  n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,n_apinp1g,
      &  n_apinp1a,n_apinp2g,n_apinp2a,n_Ox,n_HNO3,n_H2O2,n_CO,
@@ -77,7 +77,7 @@ C
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
      &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
-     &      nn_stratOx, nn_Terpenes,nn_codirect,                
+     &      nn_Terpenes,nn_codirect,                
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
@@ -1478,15 +1478,6 @@ c Loops to calculate tracer changes:
            TAIJLS(I,J,L,ijlt_COd)=TAIJLS(I,J,L,ijlt_COd)+dest(igas,L)
      *          *cpd/DTsrc
          else if(idx == n_Ox)then
-#ifdef SHINDELL_STRAT_EXTRA
-           if(trm_col(L,n_Ox)==0.)call stop_model('zero ozone',255)
-           changeL(L,n_stratOx)=dest(igas,L)*conc2mass*
-     &     trm_col(L,n_stratOx)/trm_col(L,n_Ox)
-           if(L>maxT)changeL(L,n_stratOx)=changeL(L,n_stratOx)+
-     &     prod(igas,L)*conc2mass*trm_col(L,n_stratOx)/trm_col(L,n_Ox)
-           if((trm_col(L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
-     &     changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
-#endif
            TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+prod(igas,L)
      *          *cpd/DTsrc
            TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+dest(igas,L)
@@ -2050,15 +2041,6 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
      &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
         conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        if(L>maxT .or. NprodOx<0.)then
-          if(trm_col(L,n_Ox)==0.)call stop_model('zero ozone',255)
-          changeL(L,n_stratOx)=changeL(L,n_stratOx)+
-     &    NprodOx*conc2mass*trm_col(L,n_stratOx)/trm_col(L,n_Ox)
-          if((trm_col(L,n_stratOx)+changeL(L,n_stratOx)) < minKG)
-     &    changeL(L,n_stratOx) = minKG - trm_col(L,n_stratOx)
-        end if
-#endif
         if(NprodOx <  0.) then ! necessary?
           NprodOx_pos(l) = 0.
           NprodOx_neg(l) = NprodOx*conc2mass
