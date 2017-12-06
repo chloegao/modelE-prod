@@ -27,14 +27,10 @@ c
 c
 c --- 'baclin' = baroclinic time step
 c --- 'batrop' = barotropic time step
-c --- 'thkdff' = diffusion velocity (cm/s) for thickness diffusion
-c --- 'veldff' = diffusion velocity (cm/s) for momentum dissipation
-c --- 'temdff' = diffusion velocity (cm/s) for temp/salin. mixing
 c --  'viscos' is nondimensional, used in deformation-dependent viscosity
 c --- 'trcfrq' = number of time steps between tracer transport calculations
 c --- 'h1'     = depth interval used in lateral weighting of hor.pres.grad.
 c --- slip = +1  for free-slip boundary cond., slip = -1  for non-slip cond.
-c --- 'cbar'   = rms flow speed (cm/s) for linear bottom friction law
 c --- 'diagfq' = number of days between model diagnostics (incl.output)
 c --- 'ntracr' = number of time steps between tracer transport
 c --- 'wuv1/2' = weights for time smoothing of u,v field
@@ -65,9 +61,6 @@ c --- 'csubp'  = specific heat of air at constant pressure (j/g/deg)
 c --- 'spcifh' = specific heat of sea water (j/g/deg)
 c --- 'cd'     = drag coefficient
 c --- 'ct'     = thermal transfer coefficient
-c --- 'airdns' = air density at sea level (g/cm**3)
-c --- 'evaplh' = latent heat of evaporation (j/g)
-c --- 'thref'  = reference value of specific volume (cm**3/g)
 c --- 'epsil'  = small nonzero number used to prevent division by zero
 c
       real, public ::
