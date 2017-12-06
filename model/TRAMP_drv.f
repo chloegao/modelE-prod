@@ -59,6 +59,10 @@ C**************  Latitude-Dependant (allocatable) *******************
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
+#ifdef TRACERS_AMP_M9
+      use TRACER_COM, only: n_vbsGm2,n_vbsGm1,n_vbsGz,n_vbsGp1,n_vbsGp2,
+     &                      n_vbsGp3,n_vbsGp4,n_vbsGp5,n_vbsGp6,nOther
+#endif  /* TRACERS_AMP_M9 */
       use OldTracer_mod, only: trname
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf
@@ -133,16 +137,26 @@ c avolm2 [m/gridbox ?]
       AVOLM2 = MA(l,i,j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
-c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL! [ug H2SO4/m^3]
-c conversion trm [kg/kg] -> [ug /m^3]
+
+c conversion trm_col [kg/gridbox] -> [ug/m^3]
+      GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL ! [ug H2SO4/m^3]
 #ifdef  TRACERS_SPECIAL_Shindell
-      GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL!   [ug HNO3/m^3]
+      GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL    ! [ug HNO3/m^3]
 #else
-      GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL !   [ug HNO3/m^3]
+      GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL       ! [ug HNO3/m^3]
 #endif
-c conversion trm [kg/gb] -> [ug /m^3]
-      GAS(GAS_NH3) = trm_col(l,n_NH3)* 1.d9 / AVOL!   [ug NH3 /m^3]
+      GAS(GAS_NH3) = trm_col(l,n_NH3)* 1.d9 / AVOL     ! [ug NH3/m^3]
+#ifdef TRACERS_AMP_M9
+      GAS(GAS_OCM2) = trm_col(l,n_vbsGm2)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCM1) = trm_col(l,n_vbsGm1)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCM0) = trm_col(l,n_vbsGz)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP1) = trm_col(l,n_vbsGp1)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP2) = trm_col(l,n_vbsGp2)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP3) = trm_col(l,n_vbsGp3)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP4) = trm_col(l,n_vbsGp4)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP5) = trm_col(l,n_vbsGp5)* 1.d9 / AVOL ! [ug OM/m^3]
+      GAS(GAS_OCP6) = trm_col(l,n_vbsGp6)* 1.d9 / AVOL ! [ug OM/m^3]
+#endif  /* TRACERS_AMP_M9 */
 !  [kg/s] -> [ug/m3/s]
 
        DO n=ntmAMPi,ntmAMPe
@@ -235,15 +249,35 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
          end select
        ENDDO
 
-      tr3Dsource(l,nMicrophys,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
-     *        -trm_col(l,n_H2SO4)) /dtsrc 
-      tr3Dsource(l,nThermo,n_NH3)   =((GAS(GAS_NH3)*AVOL *1.d-9)
-     *        -trm_col(l,n_NH3)) /dtsrc
-
+      tr3Dsource(l,nMicrophys,n_H2SO4)=((GAS(GAS_H2SO4)*AVOL *1.d-9)
+     *        -trm_col(l,n_H2SO4))/dtsrc 
 #ifdef  TRACERS_SPECIAL_Shindell
-      tr3Dsource(l,nThermo,n_HNO3)  =((GAS(GAS_HNO3)*AVOL * 1.d-9)
+      tr3Dsource(l,nThermo,n_HNO3)=((GAS(GAS_HNO3)*AVOL * 1.d-9)
      *        -trm_col(l,n_HNO3))/dtsrc
 #endif
+      tr3Dsource(l,nThermo,n_NH3)=((GAS(GAS_NH3)*AVOL *1.d-9)
+     *        -trm_col(l,n_NH3))/dtsrc
+#ifdef TRACERS_AMP_M9
+      tr3Dsource(l,nOther,n_vbsGm2)=((GAS(GAS_OCM2)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGm2))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGm1)=((GAS(GAS_OCM1)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGm1))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGz)=((GAS(GAS_OCM0)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGz))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp1)=((GAS(GAS_OCP1)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp1))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp2)=((GAS(GAS_OCP2)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp2))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp3)=((GAS(GAS_OCP3)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp3))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp4)=((GAS(GAS_OCP4)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp4))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp5)=((GAS(GAS_OCP5)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp5))/dtsrc 
+      tr3Dsource(l,nOther,n_vbsGp6)=((GAS(GAS_OCP6)*AVOL *1.d-9)
+     *        -trm_col(l,n_vbsGp6))/dtsrc 
+#endif  /* TRACERS_AMP_M9 */
+
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
 
 c Update physical properties per mode

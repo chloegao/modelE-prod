@@ -7,10 +7,25 @@
 !     MATRIX CONFIGURATION MODULE.
 !
 !-------------------------------------------------------------------------------------------------------------------------
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: NGASES     = 12     ! number of gas-phase species
+#else
       INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
+#endif  /* TRACERS_AMP_M9 */
       INTEGER, PARAMETER :: GAS_H2SO4  = 1      !-
       INTEGER, PARAMETER :: GAS_HNO3   = 2      !-indices in the GAS array
       INTEGER, PARAMETER :: GAS_NH3    = 3      !-
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: GAS_OCM2 = 4        !-
+      INTEGER, PARAMETER :: GAS_OCM1 = 5        !-
+      INTEGER, PARAMETER :: GAS_OCM0 = 6        !-
+      INTEGER, PARAMETER :: GAS_OCP1 = 7        !-
+      INTEGER, PARAMETER :: GAS_OCP2 = 8        !-
+      INTEGER, PARAMETER :: GAS_OCP3 = 9        !-
+      INTEGER, PARAMETER :: GAS_OCP4 = 10       !-
+      INTEGER, PARAMETER :: GAS_OCP5 = 11       !-
+      INTEGER, PARAMETER :: GAS_OCP6 = 12       !-
+#endif  /* TRACERS_AMP_M9 */
       INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_BCAR = 2 ! BCAR index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_OCAR = 3 ! OCAR index in PROD_INDEX(:,:)
