@@ -5939,7 +5939,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(year-Jyear0)*maxDaysInYear + month-JMON0
+        months=(year-Jyear0)*12 + month-JMON0 ! 12=months_in_year
         if ( months.ge.NMONAV ) then
           call reset_ADIAG(0)
           if (Kvflxo.ne.0) then
