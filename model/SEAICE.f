@@ -2957,9 +2957,9 @@ C**** albedo calculations
 !@+    are the same as in the traditional file.
 !@+    For the moment, temperature and salinity in the IC file are
 !@+    specified via
-!@+      1. tsnow_top (K), the temperature at the top of any
+!@+      1. tsnow_top (C), the temperature at the top of any
 !@+         snow existing on the ice
-!@+      2. tsi_top (K), the temperature at the top of the ice
+!@+      2. tsi_top (C), the temperature at the top of the ice
 !@+         (i.e. snow base)
 !@+      3. salt (psu), the mean salinity of the ice
 !@+    Temperature is piecewise linearly interpolated between
@@ -3003,8 +3003,8 @@ C**** albedo calculations
       call read_dist_data(grid, fid, 'flag_dsws', si_ocn%flag_dsws)
 
 
-      tsi_top = tsi_top - tf
-      tsnow_top = tsnow_top - tf
+      !tsi_top = tsi_top - tf
+      !tsnow_top = tsnow_top - tf
 
       tfo = -1.9d0
       do j=grid%j_strt,grid%j_stop

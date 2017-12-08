@@ -3157,11 +3157,11 @@ C     functions
 
       SUBROUTINE SET_FPXCO2(PL,FPXCO2,NL,KFPCO2)
       use filemanager, only : file_exists, openunit, closeunit
-      use dictionary_mod
+      use dictionary_mod, only : sync_param, set_param
       IMPLICIT NONE
       INTEGER J,N,NL,iu,np,ncol
       REAL*8 PL(NL),FPXCO2(NL)
-      integer, parameter :: ncols = 6
+      integer, parameter :: ncols = 4
       REAL*8 FPI,FPJ,PFI,PFJ,pf(ncols)
       REAL*8, allocatable :: FPX(:),PFP(:)
       character*80 title
@@ -3176,17 +3176,25 @@ C     functions
 ! CO2 profile absorber scaling: KFPCO2=0  FPXCO2=1, no scaling
 !                               KFPCO2=1  FPXCO2:  43-layer scaling
 !                               KFPCO2=2  FPXCO2:  99-layer scaling
-!                               KFPCO2=3  FPXCO2: 105-layer scaling
+!                               KFPCO2=3  FPXCO2: 105-layer scaling (2017)
 !                               KFPCO2=4  FPXCO2: 105-layer scaling plus
-!                               using FIT105_KPFCO2 fit in top 10 layers
-!                               KPFCO2<0  NL determines scaling
-!                               KPFCO2>4  FPXCO2=1, no scaling
-! If the file CO2profile is not present:  FPXCO2=1, no scaling
+!                               adjust up-flux corr. factors in top 10 layers
+!                               KFPCO2<0  NL determines scaling
+!                               KFPCO2>4  FPXCO2=1, no scaling
+
+      call sync_param ("KFPCO2",KFPCO2)
 
       FPXCO2 = 1. ! default
 
+! KFPCO2>2 reserved for a specific 102-layer modelE (used in year 2017)
+!  but should also work if layering is the same above 50 mb
+      if (KFPCO2 < 0 .and. abs(PL(NL-38)-45.) < 5.) then ! like
+         KFPCO2 = 4 ; call set_param("KFPCO2",KFPCO2,'o')
+      end if
+      if(KFPCO2 > 2 .or. KFPCO2 == 0) return
+
       if (.not.file_exists('CO2profile')) then
-         KFPCO2 = 0
+         KFPCO2 = 0 ; call set_param("KFPCO2",KFPCO2,'o')
          return
       end if
 
@@ -3198,25 +3206,20 @@ C     functions
       read(iu,'(a)') title
 
 ! Find appropriate column for current layering
-      call sync_param ("KFPCO2",KFPCO2)
       if (KFPCO2 < 0) then
         if (nl < 30) then
           KFPCO2 = 0
         else if (nl < 80) then
           KFPCO2 = 1
-        else if (nl < 102) then
-          KFPCO2 = 2
-        else if (nl == 105) then
-          KFPCO2 = 4
         else
-          KFPCO2 = 3
+          KFPCO2 = 2
         end if
+        call set_param("KFPCO2",KFPCO2,'o')
       end if
 
-      if (KFPCO2 > 4 .or. KFPCO2 < 1) return
+      if (KFPCO2 > 2 .or. KFPCO2 < 1) return
 
       ncol = 2*KFPCO2 - 1
-      if (ncol > ncols) ncol=ncols-1
 
       allocate (FPX(np),PFP(np))
       do n=1,np
@@ -3252,81 +3255,189 @@ C     functions
       RETURN
       END  SUBROUTINE SET_FPXCO2
 
-      SUBROUTINE FIT105_KFPCO2(TRGXLK,NL)
+      SUBROUTINE GET_FPXCO2_105(FPZCO2,JLAT,MLAT46,JDAY)
       IMPLICIT NONE
-      INTEGER L,K,KK
-      REAL*8 SUMD13,D13H2O,SUMDKK,DKKCO2
+      INTEGER N,NL,JLAT,MLAT46,JDAY
 
-!     Precise LBL CO2 cooling rate refinement for 105 layer for 0-10mb
-!     by local vertical redistribution of CO2 opacity in k-bands 21-25
-!
-!     Operates via PARAMETER KFPCO2 by IF(KFPCO2==4) CALL FIT105_KFPCO2
-!     placed just after CALL TAUGAS statement, just before CALL THERML
-!     Only INPUT variable is TRGXLK(L,K) defined by TAUGAS
-!
-!     Routine performs fractional opacity redistribution of CO2 opacity
-!     in k-bands 21-25 of TRGXLK(L,K) within layers 76-105 (0-10mb)
-!     The residual opacity amounts are redistributed to layer 70 (32mb)
-!     Column opacity is conserved within each k-band
-!
-!     Fractional amounts of H2O opacity in k-band 13 of TRGXLK(L,K) are
-!     redistributed downward from layers 85-105 (0mb - 3mb) to layer 70
-!
-!     FIT105_KFPCO2 operates together with FPXCO2 CO2 absorber scaling
-!     that is initialized by CALL SET_FPXCO2(PL,FPXCO2,NL)
-!     with parameter KFPCO2=4, specifically for 105-layer model runs
+      INTENT(in)  JLAT,MLAT46,JDAY
+      INTENT(out) FPZCO2                     ! FPZCO2 <==> FPXCO2
 
-      integer, intent(in) :: NL
-      REAL*8 :: TRGXLK(NL,*)
-      REAL*8, PARAMETER :: F22F25(30,5) = RESHAPE( (/
-     & 0.02000D0, 0.05000D0,-0.03000D0, 0.00500D0, 0.07000D0, 0.08000D0,
-     &-0.00500D0, 0.00600D0,-0.00500D0,-0.01100D0, 0.00600D0, 0.00100D0,
-     &-0.01200D0,-0.01100D0,-0.01100D0,-0.00900D0,-0.00800D0,-0.01500D0,
-     &-0.01000D0,-0.02000D0,-0.01700D0,-0.02200D0,-0.00300D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.04000D0,-0.03000D0, 0.00000D0, 0.10000D0, 0.20000D0,
-     &-0.25000D0,-0.03000D0,-0.09000D0,-0.06000D0,-0.02500D0,-0.02000D0,
-     &-0.00800D0,-0.04500D0,-0.01000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.01000D0,-0.00700D0,-0.04500D0,-0.03400D0,-0.00700D0, 0.00000D0,
-     &-0.83000D0,-0.70000D0,-0.78200D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.20000D0, 0.20000D0,
-     &-0.25000D0,-0.03000D0,-0.09000D0,-0.06000D0,-0.01000D0,-0.01000D0,
-     &-0.01000D0,-0.04500D0, 0.00500D0,-0.01500D0,-0.00800D0, 0.00000D0,
-     & 0.00000D0, 0.01000D0, 0.01000D0, 0.02700D0, 0.07000D0, 0.03000D0,
-     &-0.98000D0,-0.96000D0,-0.97600D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.02353D0, 0.13040D0,-0.02867D0,-0.08529D0, 0.40750D0,
-     & 0.18620D0, 0.05854D0,-0.36590D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,
-     & 0.00000D0, 0.00000D0, 0.00000D0, 0.00000D0,-0.09784D0, 0.18780D0,
-     & 0.51150D0, 0.45190D0, 0.05729D0,-0.09257D0,-0.04591D0,-0.01872D0/
-     &),(/30,5/) )
-      REAL*8, PARAMETER :: F13H2O(21)=(/
-     & 0.9990D0, 0.8000D0, 0.9800D0, 0.9000D0, 0.9990D0, 0.5000D0,
-     & 0.7000D0, 0.6500D0, 0.6000D0, 0.6000D0, 0.5800D0, 0.8000D0,
-     & 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0, 0.9999D0,
-     & 0.9999D0, 0.9999D0, 0.9999D0/)
-      DO K=1,5
-      KK=K+20
-      SUMDKK=0.D0 ! TAUGAS TAU_table TRGXLK vertical TAU redistribution
-      DO L=76,105 ! CO2 opacity redistribution for K=22,25 and L=76,105
-      DKKCO2=TRGXLK(L,KK)*F22F25(L-75,K)
-      SUMDKK=SUMDKK+DKKCO2
-      TRGXLK(L,KK)=TRGXLK(L,KK)+DKKCO2
-      END DO
-      TRGXLK( 70,KK)=TRGXLK( 70,KK)-SUMDKK
-      END DO
-      SUMD13=0.D0 ! TAUGAS TAUtable TRGXLK: vertical TAU redistribution
-      DO L=85,105 ! H2O opacity redistribution for K=13 and L=85,105
-      D13H2O=TRGXLK(L,13)*F13H2O(L-84)
-      SUMD13=SUMD13+D13H2O
-      TRGXLK(L,13)=TRGXLK(L,13)-D13H2O
-      IF(L.GT.95) TRGXLK(L,12)=1.D-06
-      END DO
-      TRGXLK( 70,13)=TRGXLK( 70,13)+SUMD13
+      REAL*8 FPZCO2(39)
+      REAL*8, DIMENSION(39) :: FPZ_JAN,FPZ_JUL
+      REAL*8  REFLAT,WTJLAT,REFDAY,WTJDAY,WT1,WT2,WT3
+      REAL*8, PARAMETER :: FPX_SPEQNP_JAN(39,3)=RESHAPE((/
+     &             0.106139D+01,0.106783D+01,0.106256D+01,0.106812D+01,
+     &0.106650D+01,0.105212D+01,0.100292D+01,0.978585D+00,0.973002D+00,
+     &0.104304D+01,0.103306D+01,0.969076D+00,0.958428D+00,0.101544D+01,
+     &0.100945D+01,0.993654D+00,0.991752D+00,0.979623D+00,0.941461D+00,
+     &0.937047D+00,0.928036D+00,0.909102D+00,0.900246D+00,0.901978D+00,
+     &0.874685D+00,0.890840D+00,0.947327D+00,0.980658D+00,0.101200D+01,
+     &0.102130D+01,0.727029D+00,0.750237D+00,0.856221D+00,0.852355D+00,
+     &0.991601D+00,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &             0.795649D+00,0.704146D+00,0.727177D+00,0.792645D+00,
+     &0.748645D+00,0.872383D+00,0.778125D+00,0.761280D+00,0.769040D+00,
+     &0.762770D+00,0.787812D+00,0.795996D+00,0.812415D+00,0.806050D+00,
+     &0.931991D+00,0.879633D+00,0.936397D+00,0.942009D+00,0.914533D+00,
+     &0.932472D+00,0.905136D+00,0.880848D+00,0.810632D+00,0.878675D+00,
+     &0.901477D+00,0.951314D+00,0.101205D+01,0.109697D+01,0.105704D+01,
+     &0.120352D+01,0.128532D+01,0.152551D+01,0.107507D+01,0.993298D+00,
+     &0.993298D+00,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &             0.105912D+01,0.104105D+01,0.103011D+01,0.101845D+01,
+     &0.991954D+00,0.980846D+00,0.948530D+00,0.898252D+00,0.900887D+00,
+     &0.931042D+00,0.913461D+00,0.885751D+00,0.882327D+00,0.962325D+00,
+     &0.978728D+00,0.984428D+00,0.997767D+00,0.974346D+00,0.962522D+00,
+     &0.951995D+00,0.935819D+00,0.925180D+00,0.923809D+00,0.912133D+00,
+     &0.915321D+00,0.915390D+00,0.905317D+00,0.931876D+00,0.976460D+00,
+     &0.974906D+00,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01/
+     $           ), (/ 39,3 /))
+      REAL*8, PARAMETER :: FPX_SPEQNP_JUL(39,3)=RESHAPE((/
+     &             0.101719D+01,0.988671D+00,0.986317D+00,0.992046D+00,
+     &0.979385D+00,0.962768D+00,0.917461D+00,0.884814D+00,0.904524D+00,
+     &0.954613D+00,0.967657D+00,0.923239D+00,0.926085D+00,0.942071D+00,
+     &0.948953D+00,0.923623D+00,0.947999D+00,0.894875D+00,0.928884D+00,
+     &0.938342D+00,0.904316D+00,0.906018D+00,0.893131D+00,0.876373D+00,
+     &0.869938D+00,0.849842D+00,0.890331D+00,0.913173D+00,0.933819D+00,
+     &0.880337D+00,0.853570D+00,0.710237D+00,0.826221D+00,0.772355D+00,
+     &0.991601D+00,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &             0.813710D+00,0.718946D+00,0.774912D+00,0.764653D+00,
+     &0.790177D+00,0.781660D+00,0.768685D+00,0.778010D+00,0.742164D+00,
+     &0.823045D+00,0.810695D+00,0.809154D+00,0.839186D+00,0.890938D+00,
+     &0.912096D+00,0.957669D+00,0.940655D+00,0.970092D+00,0.949381D+00,
+     &0.925820D+00,0.904259D+00,0.919764D+00,0.842020D+00,0.892613D+00,
+     &0.930514D+00,0.978044D+00,0.972728D+00,0.108045D+01,0.115574D+01,
+     &0.121910D+01,0.135634D+01,0.165630D+01,0.109376D+01,0.991629D+00,
+     &0.991629D+00,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &             0.109553D+01,0.103307D+01,0.101880D+01,0.104636D+01,
+     &0.105279D+01,0.103332D+01,0.974511D+00,0.948682D+00,0.946840D+00,
+     &0.100858D+01,0.997002D+00,0.924039D+00,0.896250D+00,0.963271D+00,
+     &0.977617D+00,0.996577D+00,0.992301D+00,0.974108D+00,0.947932D+00,
+     &0.929054D+00,0.928114D+00,0.912474D+00,0.912335D+00,0.915498D+00,
+     &0.901183D+00,0.925813D+00,0.971726D+00,0.104123D+01,0.110262D+01,
+     &0.120227D+01,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,
+     &0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01,0.100000D+01/
+     $           ), (/ 39,3 /))
+!
+! FPXCO2 scaling factors: 1.D0 for P>50mb, for layers 1-66 for NL=105
+! FPXCO2 scaling is applied only to the topmost 39 layers (67-105)
+! PLZ=layerN layer-mean pressure, FPZCO2(N)=CO2 absorber scaling factor
+! PLZ= input GCM variable PL(N),  FPZCO2= output GCM variable FPXCO2(N)
+! NL =total number of radiation layers (includes top 3 rad-only layers)
+!
+!                           #### operation details ####
+!----------------------------------------------------------------------
+!x    IF(KFPCO2.GE.3) CALL GET_FPXCO2_105(PL,FPXCO2,JLAT,MLAT46,JDAY)
+!x
+!x    above CALL should be placed in RADIA inside the C**** MAIN J LOOP
+!x    CO2 absorber scaling in top 39 layers is JLAT and JDAY dependent.
+!x    Applicable for NL=105, scaling is invoked by KFPCO2=3 or KFPCO2=4
+!x
+!x    KFPCO2=4 invokes additional cooling rate control in top 10 layers
+!x    via CALL GET_DXTRU3_CORR in TAUGAS to adjust XTRU(96:105,3) coeff
+!x
+!x    TAPER option is being utilized in TAUGAS
+!x        xtru(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtru(l,2:nrcf+1)
+!x        xtrd(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtrd(l,2:nrcf+1)
+!x    with: xtrd(l,2:nrcf+1) also now included (small smoothing effect)
+!----------------------------------------------------------------------
+
+      FPZCO2=1.D0
+
+      REFLAT=MLAT46/2
+      WTJLAT=JLAT/REFLAT
+      REFDAY=183.D0
+      WTJDAY=JDAY/REFDAY
+
+      IF(WTJLAT.LT.1.D0) THEN
+      WT1=1.D0-WTJLAT
+      IF(WT1.GT.0.9D0) WT1=1.D0
+      WT2=1.D0-WT1
+      FPZ_JAN(:)=FPX_SPEQNP_JAN(:,1)*WT1+FPX_SPEQNP_JAN(:,2)*WT2
+      FPZ_JUL(:)=FPX_SPEQNP_JUL(:,1)*WT1+FPX_SPEQNP_JUL(:,2)*WT2
+      ELSE
+      WT2=2.D0-WTJLAT
+      IF(WT2.LT.0.1D0) WT2=0.D0
+      WT3=1.D0-WT2
+      FPZ_JAN(:)=FPX_SPEQNP_JAN(:,2)*WT2+FPX_SPEQNP_JAN(:,3)*WT3
+      FPZ_JUL(:)=FPX_SPEQNP_JUL(:,2)*WT2+FPX_SPEQNP_JUL(:,3)*WT3
+      ENDIF
+
+      WT1=ABS(1.D0-WTJDAY)
+      WT2=1.D0-WT1
+      FPZCO2(:)=FPZ_JAN(:)*WT1+FPZ_JUL(:)*WT2
+
       RETURN
-      END SUBROUTINE FIT105_KFPCO2
+      END SUBROUTINE GET_FPXCO2_105
+
+
+      SUBROUTINE GET_DXTRU3_CORR(DXTRU3_10,JLAT,MLAT46,JDAY)
+      IMPLICIT NONE
+      INTEGER  N,JLAT,MLAT46,JDAY
+
+      INTENT(in)  JLAT,MLAT46,JDAY
+      INTENT(out) DXTRU3_10
+
+      REAL*8  DXTRU3_10(10)
+      REAL*8, DIMENSION(10) :: DX3_JAN(10),DX3_JUL(10)
+      REAL*8  REFLAT,WTJLAT,REFDAY,WTJDAY,WT1,WT2,WT3
+
+      REAL*8, PARAMETER :: DXTRU3_SPEQNP_JAN(10,3)=RESHAPE((/
+     &0.000000D+00,0.111138D-03,0.594676D-04,0.770460D-04,0.694530D-04,
+     &0.645742D-04,0.245626D-04,0.248727D-04,-.520744D-05,0.165988D-04,
+     &
+     &0.000000D+00,-.891406D-05,-.743531D-04,-.160635D-04,-.119857D-04,
+     &0.873209D-05,0.473174D-05,0.158620D-04,0.548129D-05,0.121151D-04,
+     &
+     &0.000000D+00,-.176254D-04,-.395480D-04,0.200113D-04,0.172199D-04,
+     &-.661705D-05,0.399818D-04,0.130381D-04,0.198000D-04,0.263105D-04/
+     $           ), (/ 10,3 /))
+      REAL*8, PARAMETER :: DXTRU3_SPEQNP_JUL(10,3)=RESHAPE((/
+     &0.000000D+00,0.120614D-04,0.809026D-05,0.473324D-05,0.482039D-05,
+     &-.863633D-05,-.856459D-06,0.335398D-04,0.422371D-04,0.512790D-04,
+     &
+     &0.000000D+00,0.128452D-04,0.811048D-05,0.153064D-04,0.799234D-05,
+     &0.214280D-04,0.146487D-04,0.225772D-05,0.327750D-05,0.835161D-05,
+     &
+     &0.000000D-04,0.652637D-04,0.651595D-04,0.637362D-04,0.538371D-04,
+     &0.429989D-04,0.948327D-05,0.194748D-04,-.200184D-06,0.110353D-04/
+     $           ), (/ 10,3 /))
+
+! XTRU(L,3)= CO2 LW up-flux correction factor: layers 96-105 for NL=105
+! DXTRU3_SPEQNP(L,1)= SP region, DXTRU3(L,2)= EQ region, DXTRU3(L,3)=NP
+! MLAT46=total number of latitude points, interpolation utilizes JLAT
+! JDAY interpolation in time: (JDAY=1 =>JAN data) (JDAY=183 =>JUL data)
+!
+!                           #### operation details ####
+!----------------------------------------------------------------------
+!x     IF(KFPCO2.EQ.4) THEN
+!x     CALL GET_DXTRU3_CORR(DXTRU3_10,JLAT,MLAT46,JDAY)
+!x     XTRU(96:105,3)=1.D0+DXTRU3_10
+!x     ENDIF
+!x     above CALL sequence should appear just before RETURN from TAUGAS
+!----------------------------------------------------------------------
+
+      REFLAT=MLAT46/2
+      WTJLAT=JLAT/REFLAT
+      REFDAY=183.D0
+      WTJDAY=JDAY/REFDAY
+
+      IF(WTJLAT.LT.1.D0) THEN
+      WT1=1.D0-WTJLAT
+      IF(WT1.GT.0.9D0) WT1=1.D0
+      WT2=1.D0-WT1
+      DX3_JAN(:)=DXTRU3_SPEQNP_JAN(:,1)*WT1+DXTRU3_SPEQNP_JAN(:,2)*WT2
+      DX3_JUL(:)=DXTRU3_SPEQNP_JUL(:,1)*WT1+DXTRU3_SPEQNP_JUL(:,2)*WT2
+      ELSE
+      WT2=2.D0-WTJLAT
+      IF(WT2.LT.0.1D0) WT2=0.D0
+      WT3=1.D0-WT2
+      DX3_JAN(:)=DXTRU3_SPEQNP_JAN(:,2)*WT2+DXTRU3_SPEQNP_JAN(:,3)*WT3
+      DX3_JUL(:)=DXTRU3_SPEQNP_JUL(:,2)*WT2+DXTRU3_SPEQNP_JUL(:,3)*WT3
+      ENDIF
+
+      WT1=ABS(1.D0-WTJDAY)
+      WT2=1.D0-WT1
+      DXTRU3_10(:)=DX3_JAN(:)*WT1+DX3_JUL(:)*WT2
+
+      RETURN
+      END SUBROUTINE GET_DXTRU3_CORR
