@@ -9,4 +9,4 @@ TRDIAG_COM TRACER_PRT               ! tracer diagnostic printout
 lightning                           ! lightning module
 MiscTracersMetadata
 sharedTracersMetadata
-
+ATMCOL_COMtr                        ! basic atmospheric state seen in tracer_3Dsource

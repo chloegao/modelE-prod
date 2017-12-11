@@ -7414,6 +7414,8 @@ C****
         tr3Dsource(:,:,:) = 0.d0
 #endif
 
+        call load_atmcol(i,j)
+
         ! copy into column array
         trm_col(:,:) = trm(i,j,:,:)
         trmom_col(:,:,:) = trmom(:,i,j,:,:)
