@@ -9,7 +9,6 @@
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
-      use OldTracer_mod, only: do_megan, set_do_megan
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -110,27 +109,34 @@
 
 #ifdef DO_MEGAN
 !     Next, check for MEGAN-based emissions which will be accounted
-!     among the surface sources. Set the do_megan(n) to the index
-!     of the MEGAN surface source, so (1) it can be used to fill the
-!     source in the MEGAN routines and (2) this source can be
-!     skipped in the file reading routine. The later avoids complex
-!     logic for, e.g. a tracer that may have a MEGAN source *and*
+!     among the surface sources. Tag any such sources as isMegan=.true..
+!     This information to be used inside the MEGAN routine to fill in
+!     the sources and in the general tracer code to skip these sources
+!     (e.g. when reading from files). This is an attempt to avoid
+!     complex logic, like for a tracer that has both MEGAN and
 !     nBBsources biomass burning sources that must be listed last
 !     in the rundeck (see section on that above). BUT this means
 !     this section MUST COME AFTER the nBBsources were removed from
 !     ntsurfsrc(n) above.
+
+!     sourceName will be used inside MEGAN to match sub-species!
         select case (trname(n))
-        case ('Isoprene'
-#ifdef TRACERS_ACETONE
-     &       ,'Acetone'
-#endif
-#ifdef TERPENES_MEGAN
-     &       ,'Terpenes'
-#endif
-     &       ) ! expand this when megan species expand
+        case ('Isoprene')
           pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(pTracer, "MEGAN")
-          call set_do_megan(n, pTracer%ntSurfSrc)
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &    sourceName='MegIsop', sourceLname='MEGAN '//trim(trname(n)))
+        case ('Acetone')
+          pTracer => tracers%getReference(trname(n))
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &    sourceName='MegAcet', sourceLname='MEGAN '//trim(trname(n)))
+#ifdef TERPENES_MEGAN
+        case ('Terpenes')
+          pTracer => tracers%getReference(trname(n))
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegApin', sourceLname='MEGAN alpha-pinene')
+          ! next one...
+          ! next one...
+#endif
         end select
 #endif /* DO_MEGAN */
 

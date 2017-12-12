@@ -5276,7 +5276,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources,do_fire,vol2mass
-      use OldTracer_mod, only: do_megan
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
       USE TRACER_COM, only: n_CO2n
@@ -5559,8 +5558,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 ! read surface sources of all tracers
 !-------------------------------------------------------------------------------
         call readSurfaceSources(pTracer,n,nread,xyear,xday,checkname,
-     &                          itime,itime_tr0(n),sfc_src,isChemTracer,
-     &                          do_megan(n))
+     &                          itime,itime_tr0(n),sfc_src,isChemTracer)
 !-------------------------------------------------------------------------------
 
 ! post-read calculations
@@ -5721,7 +5719,7 @@ C**** at the start of any day
       use OldTracer_mod, only: vol2mass
       use OldTracer_mod, only: trname
       use OldTracer_mod, only: itime_tr0
-      use OldTracer_mod, only: do_fire, do_megan
+      use OldTracer_mod, only: do_fire
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
      &           SECONDS_PER_HOUR, HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg m-2)
@@ -5853,9 +5851,10 @@ C****
 #endif
 #ifdef DO_MEGAN
       ! Outside of tracer loop, call MEGAN-based biogenic emissions.
-      ! Emissions will be experienced by any tracers with do_megan()>0
-      ! .and. with a trname() that matches a MEGAN-defined species.
-      ! Call will fill sfc_src, to be added to trsource below. Let's 
+      ! Emissions will be experienced by any tracers with isMegan
+      ! defined as .true. in their tracer source object. The souce
+      ! short name also must match one of the MEGAN-defined species.
+      ! Call will fill sfc_src, to be added to trsource below. Let's
       ! skip the poles.
       do j=J_0S,J_1S
         do i=I_0,imaxj(j)
@@ -6205,26 +6204,29 @@ C****
         endif
 #endif
 #if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
+#ifdef DO_MEGAN
+      ! Let MEGAN fend for itself regarding daylight, etc.:
       case ('Isoprene')
         do ns=1,ntsurfsrc(n)
-          if(ns==do_megan(n))then
-            ! let megan fend for itself regarding daylight, etc.
-            do j=J_0,J_1; do i=I_0,I_1
-              trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
-            end do  ; end do 
-          else
-            ! Isoprene sources to be emitted only during sunlight, and
-            ! weighted by cos of solar zenith angle:
-            do j=J_0,J_1; do i=I_0,I_1
-              if(COSZ1(i,j)>0.)then
-                trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
-     &          sfc_src(i,j,n,ns)
-              else
-                trsource(i,j,ns,n)=0.d0
-              endif
-            end do  ; end do 
-          end if
+          do j=J_0,J_1; do i=I_0,I_1
+            trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+          end do ; end do
         end do
+#else
+      ! Isoprene sources to be emitted only during sunlight, and
+      ! weighted by cos of solar zenith angle:
+      case ('Isoprene')
+        do ns=1,ntsurfsrc(n)
+          do j=J_0,J_1; do i=I_0,I_1
+            if(COSZ1(i,j)>0.)then
+              trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
+     &        sfc_src(i,j,n,ns)
+            else
+              trsource(i,j,ns,n)=0.d0
+            endif
+          end do  ; end do
+        end do
+#endif /* DO_MEGAN */
 #endif /* not PS_BVOC and not BIOGENIC_EMISSIONS */
 #endif /* TRACERS_SPECIAL_Shindell */
 

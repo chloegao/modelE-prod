@@ -43,7 +43,7 @@ type runningAverage
 end type runningAverage
 
 type biogenicSpecies
-  character*8 :: itsname='_unknown' ! name of species, which should match trname
+  character*8 :: itsname='_unknown' ! name of species, which should match tracer sourceName
   real*8 :: cceo=undef ! Coefficient for temperature activity factor in gamma_tld routine
   real*8 :: ct1=undef ! A temperature needed for the gamma_tld routine
   real*8 :: tdf_prm=undef ! a temperature-dependent parameter needed for gamma_tli routine
@@ -169,9 +169,9 @@ use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
-use OldTracer_mod, only: trname,do_megan,itime_tr0
-use tracer_com, only: ntm, ntsurfsrc, sfc_src
-use Tracer_mod, only: ntsurfsrcmax
+use OldTracer_mod, only: trname,itime_tr0
+use tracer_com, only: ntm, sfc_src, tracers
+use tracer_mod, only: Tracer
 
 implicit none
 
@@ -193,7 +193,7 @@ real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
 integer, intent(IN) :: i,j
-integer :: n, localTimeIndex, hour, dayOfYear, nTracer
+integer :: n, localTimeIndex, hour, dayOfYear, nTracer, ns
 integer :: ipft
 ! This ifdef complexity is temporary:
 #ifdef TRACERS_ACETONE
@@ -211,6 +211,8 @@ integer, parameter :: nMeganSpecies=1
 #endif
 type(biogenicSpecies), dimension(nMeganSpecies) :: species
 character*80 :: message
+
+class (Tracer), pointer :: trc
 
 ! Fill in Megan species we're using, until I learn how to iterate the objects better:
 ! This ifdef complexity is temporary:
@@ -409,16 +411,21 @@ call get_gamma_s(gamma_SM)
 ! begin loop over species objects. I.e. below gammas are species-dependant:
 tracers_loop: do nTracer=1,ntm
 
-  ! skip if tracer not turned on yet or not intended for megan use:
-  if(itime < itime_tr0(nTracer) .or. do_megan(nTracer) <= 0) cycle
+ ! skip if tracer not turned on yet, otherwise point to it:
+ if(itime < itime_tr0(nTracer) ) cycle tracers_loop
+ trc => tracers%getReference(trname(nTracer))
+
+ sources_loop: do ns=1,trc%ntSurfSrc
+  ! skip if not a megan source:
+  if( .not. trc%surfaceSources(ns)%isMegan ) cycle sources_loop
 
   ! try to match tracer with megan-defined species, otherwise skip:
   species_loop: do n=1,size(species)
-    if(trim(trname(nTracer))==trim(species(n)%itsname)) then
+    if(trim(trc%surfaceSources(ns)%sourceName)==trim(species(n)%itsname)) then
 
       ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
       ! only for Isoprene. So overwrite here for non-Isoprene species:
-      if (trim(species(n)%itsname) .ne. 'Isoprene')then
+      if (trim(species(n)%itsname) .ne. 'MegIsop')then
         gamma_CO2=1.d0
         gamma_SM=1.d0
       end if
@@ -457,7 +464,7 @@ end if
       ! I believe that with the following check, we don't have to treat Isoprene as a
       ! special case of the emissions formula a few lines down -- because the light-
       ! independent portion will drop out.
-      if (trim(species(n)%itsname) == 'Isoprene') then
+      if (trim(species(n)%itsname) == 'MegIsop') then
         if(species(n)%ldf .ne. 1.d0) call stop_model( &
         & 'Isoprene MEGAN LDF .ne. 1.',255)
       end if
@@ -474,19 +481,22 @@ end if
       ! I am aiming for kg m-2 s-1 units for sfc_src. Since EF is in microGram m-2 hr-1
       ! and the gammas are unitless, conversion to kg m-2 s-1 is 1.d-9/DTsrc (see
       ! convertUnits param):
-      sfc_src(i,j,nTracer,do_megan(nTracer))= &
+      sfc_src(i,j,nTracer,ns)= &
       & convertUnits*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2 &
       & * ( (1.d0-species(n)%ldf) * gamma_tli + &
       & species(n)%ldf * gamma_PPFD*gamma_tld )
 
-      cycle tracers_loop ! done with this tracer
+      cycle sources_loop ! done with this particular tracer source
 
-    end if ! matching megan species to tracer name
+    end if ! matching megan species to tracer source name
 
   end do species_loop
 
-  write(message,*)'MEGAN species '//trim(trname(nTracer))// 'not found.'
+  write(message,*) 'MEGAN species '// &
+  & trim(trc%surfaceSources(ns)%sourceName)// 'not found.'
   call stop_model(trim(message),255)
+
+ end do sources_loop
 
 end do tracers_loop
 
@@ -622,39 +632,39 @@ T%marker = 0
 
 ! Initializing biogenic species stuff (nothing to allocate currently):
 
-isoprene%itsname='Isoprene' ! .le. 8 characters and matching trname please.
-isoprene%cceo=2.0d0 ! Coefficient for temperature activity factor in gamma_tld routine
-isoprene%ct1=95.0d0 ! A temperature needed for the gamma_tld routine
-isoprene%tdf_prm=0.13d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
-isoprene%ldf=1.0d0 ! light dependant fraction, used for relative weighting gammas
-isoprene%aindx=5 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
+isoprene%itsname='MegIsop' ! for matching tracer sourceName
+isoprene%cceo=2.0d0        ! Coefficient for temperature activity factor in gamma_tld routine
+isoprene%ct1=95.0d0        ! A temperature needed for the gamma_tld routine
+isoprene%tdf_prm=0.13d0    ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
+isoprene%ldf=1.0d0         ! light dependant fraction, used for relative weighting gammas
+isoprene%aindx=5           ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
 isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission factors by MEGAN PFT from ...
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
 #ifdef TRACERS_ACETONE
-acetone%itsname='Acetone' ! .le. 8 characters and matching trname please.
-acetone%cceo=1.83d0 ! Coefficient for temperature activity factor in gamma_tld routine
-acetone%ct1=80.0d0 ! A temperature needed for the gamma_tld routine
-acetone%tdf_prm=0.10d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
-acetone%ldf=0.2d0 ! light dependant fraction, used for relative weighting gammas
-acetone%aindx=1 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
-acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, & ! emission factors by MEGAN PFT from ...
-  &            240.d0,   240.d0,   240.d0,  240.d0,   240.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+acetone%itsname='MegAcet'
+acetone%cceo=1.83d0
+acetone%ct1=80.0d0
+acetone%tdf_prm=0.10d0
+acetone%ldf=0.2d0
+acetone%aindx=1
+acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
+  &            240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
   &            240.d0,    80.d0,    80.d0,   80.d0,    80.d0, &
   &             80.d0  /)
 #endif /* TRACERS_ACETONE */
 #ifdef TERPENES_MEGAN
 ! temporarily put in a-pinene only for Terpenes (later will do for
 ! many sub-species):
-a_pinene%itsname='Terpenes' ! .le. 8 characters and matching trname please.
-a_pinene%cceo=1.83d0 ! Coefficient for temperature activity factor in gamma_tld routine
-a_pinene%ct1=80.0d0 ! A temperature needed for the gamma_tld routine
-a_pinene%tdf_prm=0.10d0 ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
-a_pinene%ldf=0.6d0 ! light dependant fraction, used for relative weighting gammas
-a_pinene%aindx=2 ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
-a_pinene%ef=(/  500.d0,   510.d0,   500.d0,  600.d0,   400.d0, & ! emission factors by MEGAN PFT from ...
-  &            600.d0,   400.d0,   400.d0,  200.d0,   300.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+a_pinene%itsname='MegApin'
+a_pinene%cceo=1.83d0
+a_pinene%ct1=80.0d0
+a_pinene%tdf_prm=0.10d0
+a_pinene%ldf=0.6d0
+a_pinene%aindx=2
+a_pinene%ef=(/ 500.d0,   510.d0,   500.d0,  600.d0,   400.d0, &
+  &            600.d0,   400.d0,   400.d0,  200.d0,   300.d0, &
   &            200.d0,     2.d0,     2.d0,    2.d0,     2.d0, &
   &              2.d0  /)
 #endif /* TERPENES_MEGAN */
