@@ -43,7 +43,7 @@ type runningAverage
 end type runningAverage
 
 type biogenicSpecies
-  character*8 :: itsname='_unknown' ! name of species, which should match tracer sourceName
+  character*11 :: itsname='____unknown' ! name of species, which should match tracer sourceName
   real*8 :: cceo=undef ! Coefficient for temperature activity factor in gamma_tld routine
   real*8 :: ct1=undef ! A temperature needed for the gamma_tld routine
   real*8 :: tdf_prm=undef ! a temperature-dependent parameter needed for gamma_tli routine
@@ -425,7 +425,7 @@ tracers_loop: do nTracer=1,ntm
 
       ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
       ! only for Isoprene. So overwrite here for non-Isoprene species:
-      if (trim(species(n)%itsname) .ne. 'MegIsop')then
+      if (trim(species(n)%itsname) .ne. 'MegIsop_src')then
         gamma_CO2=1.d0
         gamma_SM=1.d0
       end if
@@ -464,7 +464,7 @@ end if
       ! I believe that with the following check, we don't have to treat Isoprene as a
       ! special case of the emissions formula a few lines down -- because the light-
       ! independent portion will drop out.
-      if (trim(species(n)%itsname) == 'MegIsop') then
+      if (trim(species(n)%itsname) == 'MegIsop_src') then
         if(species(n)%ldf .ne. 1.d0) call stop_model( &
         & 'Isoprene MEGAN LDF .ne. 1.',255)
       end if
@@ -632,7 +632,7 @@ T%marker = 0
 
 ! Initializing biogenic species stuff (nothing to allocate currently):
 
-isoprene%itsname='MegIsop' ! for matching tracer sourceName
+isoprene%itsname='MegIsop_src' ! for matching tracer sourceName
 isoprene%cceo=2.0d0        ! Coefficient for temperature activity factor in gamma_tld routine
 isoprene%ct1=95.0d0        ! A temperature needed for the gamma_tld routine
 isoprene%tdf_prm=0.13d0    ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
@@ -643,7 +643,7 @@ isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission facto
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
 #ifdef TRACERS_ACETONE
-acetone%itsname='MegAcet'
+acetone%itsname='MegAcet_src'
 acetone%cceo=1.83d0
 acetone%ct1=80.0d0
 acetone%tdf_prm=0.10d0
@@ -657,7 +657,7 @@ acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
 #ifdef TERPENES_MEGAN
 ! temporarily put in a-pinene only for Terpenes (later will do for
 ! many sub-species):
-a_pinene%itsname='MegApin'
+a_pinene%itsname='MegApin_src'
 a_pinene%cceo=1.83d0
 a_pinene%ct1=80.0d0
 a_pinene%tdf_prm=0.10d0

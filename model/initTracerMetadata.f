@@ -124,16 +124,18 @@
         case ('Isoprene')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &    sourceName='MegIsop', sourceLname='MEGAN '//trim(trname(n)))
+     &    sourceName='MegIsop_src',
+     &    sourceLname='MEGAN '//trim(trname(n)))
         case ('Acetone')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &    sourceName='MegAcet', sourceLname='MEGAN '//trim(trname(n)))
+     &    sourceName='MegAcet_src',
+     &    sourceLname='MEGAN '//trim(trname(n)))
 #ifdef TERPENES_MEGAN
         case ('Terpenes')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &      sourceName='MegApin', sourceLname='MEGAN alpha-pinene')
+     &      sourceName='MegApin_src', sourceLname='MEGAN alpha-pinene')
           ! next one...
           ! next one...
 #endif
