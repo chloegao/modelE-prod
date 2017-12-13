@@ -1036,7 +1036,9 @@ subroutine CONDSE
             QDN1(I,J)=QDNL(DDML(I,J))     ! downdraft humidity
             DDMS(I,J)=-100.*DDMFLX(DDML(I,J))/(GRAV*DTsrc) ! downdraft mass flux
 #ifdef TRACERS_ON
-            TRDN1(:,I,J)=1d-2*TRDNL(:,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
+            do nx=1,ntx
+               TRDN1(ntix(nx),I,J)=1d-2*TRDNL(nx,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
+            end do
 #endif
           end if
 

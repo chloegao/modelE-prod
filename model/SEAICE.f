@@ -1,4 +1,3 @@
-
 #include "rundeck_opts.h"
 #ifdef TRACERS_ATM_ONLY
 #undef TRACERS_ON
@@ -894,7 +893,7 @@ C     SNOW*ROICEN = SNOW*roice  ! snow mass (kg) is conserved
       SNOWL(:) = SNOWL(:)*ROICE/ROICEN
       HSNOW(:) = HSNOW(:)*ROICE/ROICEN
       ROICE = ROICEN
-
+      
 C**** relayer upper two layers
         call relayer_12(HSNOW,HICE,SICE,MICE,SNOWL
 #ifdef TRACERS_WATER
@@ -1986,7 +1985,7 @@ C**** lower levels
 #ifdef TRACERS_WATER
       REAL*8, INTENT(INOUT) :: TRSNOW(NTM,2),TRICE(NTM,LMI)
       REAL*8 FTRSI1(NTM)
-#endif 
+#endif
       REAL*8 FMSI1,FHSI1,FSSI1,FMSI0
 
       FMSI1 = SNOWL(1)+MICE(1)-XSI(1)*(SNOWL(1)+SNOWL(2)+ACE1I)
@@ -2036,16 +2035,18 @@ C**** lower levels
           HSNOW(2)=HSNOW(2)+FHSI1
           HSNOW(1)=HSNOW(1)-FHSI1
 #ifdef TRACERS_WATER
-          TRSNOW(:,2)=TRSNOW(:,2)+(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
-          TRSNOW(:,1)=TRSNOW(:,1)-(SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
+          FTRSI1(:) = (SNOWL(1)-FMSI0)*TRSNOW(:,1)/SNOWL(1)
+          TRSNOW(:,2)=TRSNOW(:,2)+FTRSI1(:)
+          TRSNOW(:,1)=TRSNOW(:,1)-FTRSI1(:)
 #endif
         ELSE
           FHSI1 = (FMSI0-SNOWL(1))*HSNOW(2)/SNOWL(2)
           HSNOW(2)=HSNOW(2)-FHSI1
           HSNOW(1)=HSNOW(1)+FHSI1
 #ifdef TRACERS_WATER
-          TRSNOW(:,2)=TRSNOW(:,2)-(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
-          TRSNOW(:,1)=TRSNOW(:,1)+(FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
+          FTRSI1(:) = (FMSI0-SNOWL(1))*TRSNOW(:,2)/SNOWL(2)
+          TRSNOW(:,2)=TRSNOW(:,2)-FTRSI1(:)
+          TRSNOW(:,1)=TRSNOW(:,1)+FTRSI1(:)
 #endif
         ENDIF
         SNOWL(2)=SNOWL(1)+SNOWL(2)-FMSI0
@@ -2066,8 +2067,9 @@ C**** lower levels
         IF (MICE(1).gt.0) THEN ! flux ice and check for enough
           IF (FMSI1.gt.MICE(1)) THEN ! flux all ice and some snow  
 #ifdef TRACERS_WATER
-            TRSNOW(:,2)=TRSNOW(:,2)+(FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
-            TRSNOW(:,1)=TRSNOW(:,1)-(FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
+            FTRSI1(:) = (FMSI1-MICE(1))*TRSNOW(:,1)/SNOWL(1)
+            TRSNOW(:,2)=TRSNOW(:,2)+FTRSI1(:)
+            TRSNOW(:,1)=TRSNOW(:,1)-FTRSI1(:)
             TRICE(:,2) = TRICE(:,1)+TRICE(:,2)
             TRICE(:,1) = 0.
 #endif 
@@ -2157,7 +2159,7 @@ c           FSSI1 = 0.
           END IF
         END IF
       END IF
-
+      
       END IF
       
       return
@@ -2955,9 +2957,9 @@ C**** albedo calculations
 !@+    are the same as in the traditional file.
 !@+    For the moment, temperature and salinity in the IC file are
 !@+    specified via
-!@+      1. tsnow_top (K), the temperature at the top of any
+!@+      1. tsnow_top (C), the temperature at the top of any
 !@+         snow existing on the ice
-!@+      2. tsi_top (K), the temperature at the top of the ice
+!@+      2. tsi_top (C), the temperature at the top of the ice
 !@+         (i.e. snow base)
 !@+      3. salt (psu), the mean salinity of the ice
 !@+    Temperature is piecewise linearly interpolated between
@@ -3001,8 +3003,8 @@ C**** albedo calculations
       call read_dist_data(grid, fid, 'flag_dsws', si_ocn%flag_dsws)
 
 
-      tsi_top = tsi_top - tf
-      tsnow_top = tsnow_top - tf
+      !tsi_top = tsi_top - tf
+      !tsnow_top = tsnow_top - tf
 
       tfo = -1.9d0
       do j=grid%j_strt,grid%j_stop

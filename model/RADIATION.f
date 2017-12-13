@@ -2542,6 +2542,10 @@ C****
      *    ULGAS(1:NL,KEEP10-10)=ULGAS(1:NL,KEEP10-10)+ULGAS(L,10)
       ENDIF
 
+      if (NL > 40) then
+        if(kfpco2.ge.3)
+     *     call get_FPXCO2_105(FPXCO2(NL-38:NL),jlat,mlat46,jday)
+      end if
       ULGAS(1:NL0,2)=ULGAS(1:NL0,2)*FPXCO2(1:NL0)
 
       chem_out(:,1)=ULGAS(:,3)!O3 considering move to RCOMPX; see above
@@ -4022,6 +4026,7 @@ C     ----------------------------------------------------------
      & 0.10000D+01,0.10000D+01,0.10000D+01/)
 
       real*8 :: dudp(lx),ddudp ! ddudp is vertical gradient of water vapor
+      real*8 :: dxtru3_10(10) ! optional correction of top 10 layers <.2mb
 
 #ifdef TAPER_UTCF
       real*8 :: pcen_tap,wt_one,pwid_tap
@@ -4303,6 +4308,7 @@ c      end if
         do l=nl,1,-1
           wt_one = .5d0*(1d0+tanh((pcen_tap-plb(l))/pwid_tap)) ! blending weight
           xtru(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtru(l,2:nrcf+1)
+          xtrd(l,2:nrcf+1) = wt_one*1d0 + (1d0-wt_one)*xtrd(l,2:nrcf+1)
           if(wt_one.lt.1d-3) exit ! far from model top
         enddo
 #endif
@@ -4579,8 +4585,11 @@ C                               ----------------------------------------
       ENDIF
   600 CONTINUE
 
-!     Optional TRGXLK vertical TAU redistribution for NL=105 model only
-      if(kfpco2==4) call FIT105_KFPCO2(TRGXLK,LX)
+!     Optional LW up-flux correction for top 10 layers above 0.2 mb
+      if (kfpco2==4) then
+         call get_dxtru3_corr(dxtru3_10,jlat,mlat46,jday)
+         xtru(nl-9:nl,3) = 1.d0+dxtru3_10(1:10)
+      end if
 
       RETURN
       END SUBROUTINE TAUGAS

@@ -1,12 +1,11 @@
 E6TminNcepF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm dust mineral tracers only, NCEP
 
-E6TminNcepF40: based on E6TminF40. OMA tracers with computed dust minerals only
-               and wids nudged towards NCEP
+E6TminNcepF40: based on E6TomaF40. OMA with computed dust minerals only and
+               winds nudged towards NCEP, all other aerosol forcings prescribed
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
-Atmospheric composition for year 2000
-Ocean climatology prescribed from years 1876-1885, CMIP6
+Prescribed transient ocean/sea ice, CMIP6
 Uses turbulence scheme (no dry conv), grav.wave drag
 Time steps: dynamics 3.75 min leap frog; physics 30 min.; radiation 2.5 hrs
 Filters: U,V in E-W and N-S direction (after every physics time step)
