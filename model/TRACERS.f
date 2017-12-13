@@ -1176,7 +1176,11 @@ c**** Interpolate two months of data to current day
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
       REAL*8 relerr, errmax,errsc,tmax,amax,qmax,wmax,twmax,qmomax(nmom)
-     *     ,tmomax(nmom),qc
+     *     ,tmomax(nmom)
+#ifdef TRACERS_WATER
+      real*8 :: qc
+#endif
+
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       INTEGER :: J_0, J_1, nj, I_0,I_1
@@ -1263,7 +1267,7 @@ C**** check whether air mass is conserved
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
               tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=qcl(i,j,l)*ma(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=qc*ma(l,i,j)*axyp(i,j)
               tmomax(:)=trmom(:,i,j,l,n)
               qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
             end if
