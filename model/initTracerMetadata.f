@@ -108,37 +108,58 @@
         end if
 
 #ifdef DO_MEGAN
-!     Next, check for MEGAN-based emissions which will be accounted
-!     among the surface sources. Tag any such sources as isMegan=.true..
-!     This information to be used inside the MEGAN routine to fill in
-!     the sources and in the general tracer code to skip these sources
-!     (e.g. when reading from files). This is an attempt to avoid
-!     complex logic, like for a tracer that has both MEGAN and
-!     nBBsources biomass burning sources that must be listed last
-!     in the rundeck (see section on that above). BUT this means
-!     this section MUST COME AFTER the nBBsources were removed from
-!     ntsurfsrc(n) above.
-
-!     sourceName will be used inside MEGAN to match sub-species!
+!-------------------------------------------------------------------------------
+!     allow some tracers to have MEGAN-base vegetation emissions
+!-------------------------------------------------------------------------------
+!     These will be accounted among the surface sources. Tag any such
+!     source as isMegan=.true., so this can be used inside MEGAN to fill
+!     in the sources and in the general tracer code to skip same sources
+!     (e.g. when reading from files). Please KEEP THIS SECTION after
+!     nBBsources were removed from ntsurfsrc(n) above.
+!
+!    sourceName will be used inside MEGAN to match sub-species!
+!-------------------------------------------------------------------------------
         select case (trname(n))
         case ('Isoprene')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &    sourceName='MegIsop_src',
+     &    sourceName='MegISOP_src',
      &    sourceLname='MEGAN '//trim(trname(n)))
         case ('Acetone')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &    sourceName='MegAcet_src',
+     &    sourceName='MegACTO_src',
      &    sourceLname='MEGAN '//trim(trname(n)))
 #ifdef TERPENES_MEGAN
         case ('Terpenes')
           pTracer => tracers%getReference(trname(n))
           call addSurfaceSource(this=pTracer, isMegan=.true.,
-     &      sourceName='MegApin_src', sourceLname='MEGAN alpha-pinene')
-          ! next one...
-          ! next one...
-#endif
+     &      sourceName='MegMYRC_src', sourceLname='MEGAN Myrcene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegSABI_src', sourceLname='MEGAN Sabinene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegLIMO_src', sourceLname='MEGAN Limonene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='Meg3CAR_src', sourceLname='MEGAN 3-Carene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegOCIM_src',sourceLname='MEGAN t-beta-Ocimene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegBPIN_src', sourceLname='MEGAN beta-Pinene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegAPIN_src', sourceLname='MEGAN alpha-Pinene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegOMTP_src',
+     &      sourceLname='MEGAN Other Monoterpenes')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegFARN_src',
+     &      sourceLname='MEGAN alpha-Farnesene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegBCAR_src',
+     &      sourceLname='MEGAN beta-Caryophyllene')
+          call addSurfaceSource(this=pTracer, isMegan=.true.,
+     &      sourceName='MegOSQT_src',
+     &      sourceLname='MEGAN Other Sesquiterpenes')
+#endif /* TERPENES_MEGAN */
         end select
 #endif /* DO_MEGAN */
 

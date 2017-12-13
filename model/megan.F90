@@ -130,13 +130,9 @@ implicit none
 
 !TODO: are these "save"s needed? Elsewhere? (I think the flammability code has a global save in the module...)
 type(runningAverage), save :: SAT, T, LAI, PPFD
-type(biogenicSpecies), save :: isoprene
-#ifdef TRACERS_ACETONE
-type(biogenicSpecies), save :: acetone
-#endif
-#ifdef TERPENES_MEGAN
-type(biogenicSpecies), save :: a_pinene
-#endif
+type(biogenicSpecies), save :: isoprene,acetone,myrcene,sabinene, &
+& limonene,carene3,t_b_ocimene,b_pinene,a_pinene, &
+& other_monoterpenes,a_farnesene,b_caryophyllene,other_sesquiterpenes
 
 ! next two lines are from MEGAN2.1 canopy.f, but other models
 ! may use 4.6 or 4.55 not separated by Shade and Sun (See
@@ -195,38 +191,25 @@ real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
 integer, intent(IN) :: i,j
 integer :: n, localTimeIndex, hour, dayOfYear, nTracer, ns
 integer :: ipft
-! This ifdef complexity is temporary:
-#ifdef TRACERS_ACETONE
-#ifdef TERPENES_MEGAN
-integer, parameter :: nMeganSpecies=3
-#else
-integer, parameter :: nMeganSpecies=2
-#endif
-#else
-#ifdef TERPENES_MEGAN
-integer, parameter :: nMeganSpecies=2
-#else
-integer, parameter :: nMeganSpecies=1
-#endif
-#endif
+integer, parameter :: nMeganSpecies=13
 type(biogenicSpecies), dimension(nMeganSpecies) :: species
 character*80 :: message
-
 class (Tracer), pointer :: trc
 
-! Fill in Megan species we're using, until I learn how to iterate the objects better:
-! This ifdef complexity is temporary:
-species(1)=isoprene
-#ifdef TRACERS_ACETONE
-species(2)=acetone
-#endif
-#ifdef TERPENES_MEGAN
-#ifdef TRACERS_ACETONE
-species(3)=a_pinene
-#else
-species(2)=a_pinene
-#endif
-#endif
+! List nMeganSpecies Megan species for easier looping:
+species( 1)=isoprene
+species( 2)=acetone
+species( 3)=myrcene
+species( 4)=sabinene
+species( 5)=limonene
+species( 6)=carene3
+species( 7)=t_b_ocimene
+species( 8)=b_pinene
+species( 9)=a_pinene
+species(10)=other_monoterpenes
+species(11)=a_farnesene
+species(12)=b_caryophyllene
+species(13)=other_sesquiterpenes
 
 call modelEclock%get(dayOfYear=dayOfYear, hour=hour)
 
@@ -425,7 +408,7 @@ tracers_loop: do nTracer=1,ntm
 
       ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
       ! only for Isoprene. So overwrite here for non-Isoprene species:
-      if (trim(species(n)%itsname) .ne. 'MegIsop_src')then
+      if (trim(species(n)%itsname) .ne. 'MegISOP_src')then
         gamma_CO2=1.d0
         gamma_SM=1.d0
       end if
@@ -443,28 +426,28 @@ tracers_loop: do nTracer=1,ntm
       ! note that it looks like hammoz passes a daily and monthly LAI (instead of latest
       ! instantaneous one and month-old one)...
 
-if (use_canopy_model==1) then
-      ! Define gamma_tld & gamma_tli calling a canopy model
-      call stop_model('megan canopy model not implemented.',255)
-      ! This is not implemented yet, as it seems like it should be in Ent. Remember, if it
-      ! does get coded, include a linear scale factor "CCE" that is tuned such that the
-      ! total canopy environment gamma (gamma_CE) is unity when fed standard MEGAN conditions
-      ! as defined in G 2006. (e.g. CCE=0.3 or 0.57 in CLM4 and WRF-AQ models, respectively.)
-      ! (Hammoz model did not include the canopy model and noted this meant they were
-      ! effectively using 'MEGAN 2.04')
-else
-      ! Light-dependant temperature gamma: (only one used for Isoprene):
-      call get_gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
-      ! Light-independant temperature gamma:
-      call get_gamma_tli(SAT_megan, species(n), gamma_tli)
-end if
+      if (use_canopy_model==1) then
+        ! Define gamma_tld & gamma_tli calling a canopy model
+        call stop_model('megan canopy model not implemented.',255)
+        ! This is not implemented yet, as it seems like it should be in Ent. Remember, if it
+        ! does get coded, include a linear scale factor "CCE" that is tuned such that the
+        ! total canopy environment gamma (gamma_CE) is unity when fed standard MEGAN conditions
+        ! as defined in G 2006. (e.g. CCE=0.3 or 0.57 in CLM4 and WRF-AQ models, respectively.)
+        ! (Hammoz model did not include the canopy model and noted this meant they were
+        ! effectively using 'MEGAN 2.04')
+      else
+        ! Light-dependant temperature gamma: (only one used for Isoprene):
+        call get_gamma_tld(SAT_megan, SAT_daily_megan, species(n), gamma_tld)
+        ! Light-independant temperature gamma:
+        call get_gamma_tli(SAT_megan, species(n), gamma_tli)
+      end if
 
       ! Calculate the emissions flux, to be exported and applied elsewhere:
 
       ! I believe that with the following check, we don't have to treat Isoprene as a
       ! special case of the emissions formula a few lines down -- because the light-
       ! independent portion will drop out.
-      if (trim(species(n)%itsname) == 'MegIsop_src') then
+      if (trim(species(n)%itsname) == 'MegISOP_src') then
         if(species(n)%ldf .ne. 1.d0) call stop_model( &
         & 'Isoprene MEGAN LDF .ne. 1.',255)
       end if
@@ -630,20 +613,43 @@ T%runningAverage = undef
 T%periodRunningSum = undef ! starts at 0 end of first averaging period
 T%marker = 0
 
-! Initializing biogenic species stuff (nothing to allocate currently):
+! ---------------------------------------------------------------------------
+! Set MEGAN biogenic species parameters. For example see Guenther et al 2012
+! tables and the MEGAN 2.1 codes like:  MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+! or EMPROC/INCLDIR/EACO.EXT
+! ---------------------------------------------------------------------------
+! itsname = for matching a GCM tracer source's 'sourceName' with a MEGAN species
+! cceo = coefficient for temperature activity factor for gamma_tld routine
+! ct1 = a temperature needed for the gamma_tld routine
+! tdf_prm = a temperature-dependent parameter needed for gamma_tli routine
+!           ('beta' in G 2012)
+! ldf = light-dependant fraction, used for relative weighting of gammas
+! aindx = index to position in arrays Anew, Agro, Amat, Aold for aging gamma
+! ef = emission factors by MEGAN PFT
+!      NOTE: when adding more ef values, always confirm index 2 vs. 3,
+!      as there was some bug in the MEGAN code that swapped the two PFTs
+!      vs. G 2012 paper (see Tables 2 and 3 in G 2012 vs.
+!      MGN2MECH/INCLDIR/EFS_PFT.EXT.womap)
+!
+! If we add a species that doesn't line up with one of the 20 MEGAN
+! categories, then we'll have to run a mechanism translation to get
+! it. E.g. see stuff in the MGN2MECH/ megan dir.
+! ---------------------------------------------------------------------------
 
-isoprene%itsname='MegIsop_src' ! for matching tracer sourceName
-isoprene%cceo=2.0d0        ! Coefficient for temperature activity factor in gamma_tld routine
-isoprene%ct1=95.0d0        ! A temperature needed for the gamma_tld routine
-isoprene%tdf_prm=0.13d0    ! a temperature-dependent parameter needed for gamma_tli routine (beta in G 2012)
-isoprene%ldf=1.0d0         ! light dependant fraction, used for relative weighting gammas
-isoprene%aindx=5           ! an index to position in arrays Anew, Agro, Amat, Aold for aging gamma
-isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, & ! emission factors by MEGAN PFT from ...
-  &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, & ! ... MGN2MECH/INCLDIR/EFS_PFT.EXT.womap
+                                ! Isoprene
+isoprene%itsname='MegISOP_src'
+isoprene%cceo=2.0d0
+isoprene%ct1=95.0d0
+isoprene%tdf_prm=0.13d0
+isoprene%ldf=1.0d0
+isoprene%aindx=5
+isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, &
+  &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, &
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
-#ifdef TRACERS_ACETONE
-acetone%itsname='MegAcet_src'
+
+                                ! Acetone
+acetone%itsname='MegACTO_src'
 acetone%cceo=1.83d0
 acetone%ct1=80.0d0
 acetone%tdf_prm=0.10d0
@@ -653,29 +659,146 @@ acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
   &            240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
   &            240.d0,    80.d0,    80.d0,   80.d0,    80.d0, &
   &             80.d0  /)
-#endif /* TRACERS_ACETONE */
-#ifdef TERPENES_MEGAN
-! temporarily put in a-pinene only for Terpenes (later will do for
-! many sub-species):
-a_pinene%itsname='MegApin_src'
+
+                                ! Myrcene
+myrcene%itsname='MegMYRC_src'
+myrcene%cceo=1.83d0
+myrcene%ct1=80.0d0
+myrcene%tdf_prm=0.10d0
+myrcene%ldf=0.6d0
+myrcene%aindx=2
+myrcene%ef=(/   70.d0,    60.d0,   70.d0,   80.d0,   30.d0, &
+  &             80.d0,    30.d0,   30.d0,   30.d0,   50.d0, &
+  &             30.d0,    0.3d0,   0.3d0,   0.3d0,   0.3d0, &
+  &             0.3d0 /)
+
+                                ! Sabinene
+sabinene%itsname='MegSABI_src'
+sabinene%cceo=1.83d0
+sabinene%ct1=80.0d0
+sabinene%tdf_prm=0.10d0
+sabinene%ldf=0.6d0
+sabinene%aindx=2
+sabinene%ef=(/   70.d0,   40.d0,   70.d0,   80.d0,   50.d0, &
+  &              80.d0,   50.d0,   50.d0,   50.d0,   70.d0, &
+  &              50.d0,   0.7d0,   0.7d0,   0.7d0,   0.7d0, &
+  &              0.7d0 /)
+
+                                ! Limonene
+limonene%itsname='MegLIMO_src'
+limonene%cceo=1.83d0
+limonene%ct1=80.0d0
+limonene%tdf_prm=0.10d0
+limonene%ldf=0.2d0 ! 0.4(code)
+limonene%aindx=2
+limonene%ef=(/  100.d0,  130.d0,  100.d0,   80.d0,   80.d0, &
+  &              80.d0,   80.d0,   80.d0,   60.d0,  100.d0, &
+  &              60.d0,   0.7d0,   0.7d0,   0.7d0,   0.7d0, &
+  &              0.7d0  /)
+
+                                ! 3-Carene
+carene3%itsname='Meg3CAR_src'
+carene3%cceo=1.83d0
+carene3%ct1=80.0d0
+carene3%tdf_prm=0.10d0
+carene3%ldf=0.2d0 ! 0.4(code)
+carene3%aindx=2
+carene3%ef=(/   160.d0,   80.d0,  160.d0,   40.d0,   30.d0, &
+  &              40.d0,   30.d0,   30.d0,   30.d0,  100.d0, &
+  &              30.d0,   0.3d0,   0.3d0,   0.3d0,   0.3d0, &
+  &              0.3d0  /)
+
+                                ! t-Beta-Ocimene
+t_b_ocimene%itsname='MegOCIM_src'
+t_b_ocimene%cceo=1.83d0
+t_b_ocimene%ct1=80.0d0
+t_b_ocimene%tdf_prm=0.10d0
+t_b_ocimene%ldf=0.8d0 ! 0.4(code)
+t_b_ocimene%aindx=2
+t_b_ocimene%ef=(/70.d0,   60.d0,   70.d0,  150.d0,  120.d0, &
+  &             150.d0,  120.d0,  120.d0,   90.d0,  150.d0, &
+  &              90.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
+  &               2.d0  /)
+
+
+                                ! Beta-Pinene
+b_pinene%itsname='MegBPIN_src'
+b_pinene%cceo=1.83d0
+b_pinene%ct1=80.0d0
+b_pinene%tdf_prm=0.10d0
+b_pinene%ldf=0.2d0 ! 0.4(code)
+b_pinene%aindx=2
+b_pinene%ef=(/  300.d0,  200.d0,  300.d0,  120.d0,  130.d0, &
+  &             120.d0,  130.d0,  130.d0,  100.d0,  150.d0, &
+  &             100.d0,   1.5d0,   1.5d0,   1.5d0,   1.5d0, &
+  &              1.5d0   /)
+
+
+                                ! Alpha-Pinene
+a_pinene%itsname='MegAPIN_src'
 a_pinene%cceo=1.83d0
 a_pinene%ct1=80.0d0
 a_pinene%tdf_prm=0.10d0
 a_pinene%ldf=0.6d0
 a_pinene%aindx=2
-a_pinene%ef=(/ 500.d0,   510.d0,   500.d0,  600.d0,   400.d0, &
-  &            600.d0,   400.d0,   400.d0,  200.d0,   300.d0, &
-  &            200.d0,     2.d0,     2.d0,    2.d0,     2.d0, &
-  &              2.d0  /)
-#endif /* TERPENES_MEGAN */
-! IMPORTANT: in entering more megan ef values, always confirm index 2 vs. 3 as there
-!            was some bug in the code that swapped the two vs. the paper they're based on?
-!            (see Tables 2 and 3 in G 2012 vs. MGN2MECH/INCLDIR/EFS_PFT.EXT.womap)
+a_pinene%ef=(/  500.d0,  510.d0,  500.d0,  600.d0,  400.d0, &
+  &             600.d0,  400.d0,  400.d0,  200.d0,  300.d0, &
+  &             200.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
+  &               2.d0  /)
 
-!TODO: if a species we are using in the model doesn't happen to line up with
-! one of the 20 megan categories, then we'll have to run a mechanism translation to get it
-! and this is a major task not yet programmed. E.g. see stuff in the MGN2MECH/ megan dir.
+                                ! Other Monoterpenes
+other_monoterpenes%itsname='MegOMTP_src'
+other_monoterpenes%cceo=1.83d0
+other_monoterpenes%ct1=80.0d0
+other_monoterpenes%tdf_prm=0.10d0
+other_monoterpenes%ldf=0.4d0
+other_monoterpenes%aindx=2
+other_monoterpenes%ef=(/180.d0,  170.d0,  180.d0,  150.d0,  150.d0, &
+  &                     150.d0,  150.d0,  150.d0,  110.d0,  200.d0, &
+  &                     110.d0,    5.d0,    5.d0,    5.d0,    5.d0, &
+  &                       5.d0  /)
 
+
+                                ! Alpha-Farnesene
+a_farnesene%itsname='MegFARN_src'
+a_farnesene%cceo=2.37d0
+a_farnesene%ct1=130.0d0
+a_farnesene%tdf_prm=0.17d0
+a_farnesene%ldf=0.5d0
+a_farnesene%aindx=3
+a_farnesene%ef=(/ 40.d0,   40.d0,   40.d0,   60.d0,  40.d0, &
+  &               60.d0,   40.d0,   40.d0,   40.d0,  40.d0, &
+  &               40.d0,    3.d0,    3.d0,    3.d0,   4.d0, &
+  &                4.d0  /)
+
+
+                                ! Beta-Caryophyllene
+b_caryophyllene%itsname='MegBCAR_src'
+b_caryophyllene%cceo=2.37d0
+b_caryophyllene%ct1=130.0d0
+b_caryophyllene%tdf_prm=0.17d0
+b_caryophyllene%ldf=0.5d0
+b_caryophyllene%aindx=3
+b_caryophyllene%ef=(/ 80.d0,   80.d0,   80.d0,   60.d0,   40.d0, &
+  &                   60.d0,   40.d0,   40.d0,   50.d0,   50.d0, &
+  &                   50.d0,    1.d0,    1.d0,    1.d0,    2.d0, &
+  &                    4.d0  /)
+
+                                ! Other Sesquiterpenes
+other_sesquiterpenes%itsname='MegOSQT_src'
+other_sesquiterpenes%cceo=2.37d0
+other_sesquiterpenes%ct1=130.0d0
+other_sesquiterpenes%tdf_prm=0.17d0
+other_sesquiterpenes%ldf=0.5d0
+other_sesquiterpenes%aindx=3
+other_sesquiterpenes%ef=(/ 120.d0,  120.d0,  120.d0,  120.d0,  100.d0, &
+  &                        120.d0,  100.d0,  100.d0,  100.d0,  100.d0, &
+  &                        100.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
+  &                          2.d0   /)
+
+
+
+! Couple safety checks for Isprene:
 #ifdef PS_BVOC
 call stop_model('DO_MEGAN + PS_BVOC conflict',255)
 #endif
