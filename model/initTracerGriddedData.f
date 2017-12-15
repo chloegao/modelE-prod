@@ -27,7 +27,7 @@
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
      &     OxIC,fix_CH4_chemistry,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
+     &     CH4ICX,use_rad_ch4,
      &     COIC,Lmax_rad_O3,Lmax_rad_CH4,N2OICX,CFCIC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,
      &   ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth,ICfact_N2O,ICfact_CFC

@@ -497,16 +497,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var XL      Slant path between points
 !@var nfam number of beginning molecule of each chemical family
 !@var SALBFJ surface albedo parameter from radiation to fastj
-!@var OxICIN Ox initial conditions (unit=PPPM,LCOalt levels)
-!@var OxICINL column version of OxICIN
-!@var COICIN CO initial conditions (unit=PPPM,LCOalt levels)
-!@var COICINL column version of OxICIN
-!@var N2OICIN N2O initial conditions (unit=PPPM,LCOalt levels)
-!@var N2OICINL column version of N2OICIN
-!@var CH4ICIN CH4 initial conditions (unit=PPPM,LCOalt levels)
-!@var CH4ICINL column version of CH4ICIN
-!@var CFCICIN CFC initial conditions (unit=PPPM,LCOalt levels)
-!@var CFCICINL column version of CFCICIN
 !@var BrOxaltIN altitude dependence BrOx (unitless,LCOalt levels)
 !@var ClOxaltIN altitude dependence ClOx (unitless,LCOalt levels)
 !@var ClONO2altIN altitude dependence ClONO2 (unitless,LCOalt levels)
@@ -514,15 +504,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var CH4altINT tropical strat adjustments to CH4 (LCH4alt levels)
 !@var CH4altINX xtra-tropical strat adjustments to CH4 LCH4alt levels)
 !@var OxIC Ox initial conditions (unit=KG,LM levels)
-!@var OxICL column version of OxIC
 !@var COIC CO initial conditions (unit=KG,LM levels)
-!@var COICL column version of COIC
 !@var N2OICX N2O initial conditions (unit=KG,LM levels) X=not Jean's
-!@var N2OICL column version of N2OICX
 !@var CH4ICX CH4 initial conditions (unit=KG,LM levels) X=not Jean's
-!@var CH4ICL column version of CH4ICX
 !@var CFCIC CFC initial conditions (unit=KG,LM levels)
-!@var CFCICL column version of CFCIC
 !@var BrOxalt altitude dependence BrOx (unitless,LM levels)
 !@var ClOxalt altitude dependence ClOx (unitless,LM levels)
 !@var ClONO2alt altitude dependence ClONO2 (unitless,LM levels)
@@ -597,8 +582,6 @@ C**************  Latitude-Dependant (allocatable) *******************
 #endif  /* TRACERS_dCO */
      & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:):: COICIN,OxICIN,CH4ICIN
-     &                                       ,N2OICIN,CFCICIN
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
@@ -638,12 +621,8 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
       REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
-      REAL*8, DIMENSION(LCOalt)           :: COICINL,OxICINL,CH4ICINL
-     &                                       ,N2OICINL,CFCICINL
-      REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX,COICL,OxICL,CH4ICL ! stays LM
-     &                        ,BrOxalt,ClOxalt,ClONO2alt,HClalt
-     &                        ,N2OICL,CFCICL  
-
+      REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX, ! stays LM
+     &                        BrOxalt,ClOxalt,ClONO2alt,HClalt
       LOGICAL                             :: prnrts=.false.,
      &                                       prnchg=.false.,
      &                                       prnls=.false.
@@ -674,10 +653,10 @@ C**************  Not Latitude-Dependant ****************************
      & ydCH317O2,ydCH318O2,yd13CH3O2,
      & d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
-     & COICIN,OxICIN,CH4ICIN,n_rj,LCOalt,acetone,mNO2,
+     & n_rj,LCOalt,acetone,mNO2,
      & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
-     & N2OICIN,CFCICIN,y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
+     & y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
      & zonalIsop
 
@@ -805,11 +784,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(         SF3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(         SF2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
-      allocate(      OxICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(      COICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(     N2OICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(     CFCICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
-      allocate(     CH4ICIN(I_0H:I_1H,J_0H:J_1H,LCOalt)  )
       allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )

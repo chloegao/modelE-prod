@@ -581,16 +581,9 @@
 #endif
 #endif /* TRACERS_WATER */
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
-     &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,scale_ch4_IC_file,
-     &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,which_trop,allowSomeChemReinit,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,
-     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
-     &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
-     &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL,
+      USE TRCHEM_Shindell_COM,only:
+     &     which_trop,allowSomeChemReinit,
+     &     Lmax_rad_O3,Lmax_rad_CH4,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,PltOx,Tpsc_offset_N,
      &     Tpsc_offset_S,windowN2Ocorr,windowO2corr,
      &     reg1Power_SpherO2andN2Ocorr,reg1TopPres_SpherO2andN2Ocorr,
