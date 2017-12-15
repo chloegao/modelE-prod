@@ -93,7 +93,7 @@ C****
 
         case ('N2O')
 #ifdef TRACERS_SPECIAL_Shindell
-          call getIC('N2O_IC',LCOalt,N2OICX)
+          call getIC('N2O_IC',N2OICX)
 #endif
 
       case ('CH4')
@@ -110,7 +110,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PMIDL00,CH4altX,
      &         .true.)
           if(fix_CH4_chemistry.eq.-1)then
-            call getIC('CH4_IC',LCOalt,CH4ICX)
+            call getIC('CH4_IC',CH4ICX)
             do j=J_0,J_1  ; do i=I_0,I_1
               CH4ICX(i,j,:) = CH4ICX(i,j,:) * scale_ch4_IC_file
             end do ; end do
@@ -119,7 +119,7 @@ C         Interpolate CH4 altitude-dependence to model resolution:
 
       case ('Ox')
 #ifdef TRACERS_SPECIAL_Shindell
-          call getIC('Ox_IC',LCOalt,OxIC)
+          call getIC('Ox_IC',OxIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CFC')
@@ -147,7 +147,7 @@ C          check on GHG files 1995 value for CFCs:
            call closeunit(iu_data)
           endif
           ! read the CFC initial conditions:
-          call getIC('CFC_IC',LCOalt,CFCIC)
+          call getIC('CFC_IC',CFCIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CO'
@@ -156,7 +156,7 @@ C          check on GHG files 1995 value for CFCs:
 #endif  /* TRACERS_dCO */
      *     )
 #ifdef TRACERS_SPECIAL_Shindell
-          call getIC('CO_IC',LCOalt,COIC)
+          call getIC('CO_IC',COIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
         end select
@@ -260,32 +260,46 @@ C Read landuse parameters and coefficients for tracer dry deposition:
      &    write(6,*)'IC scaling for ',trim(Dfile),' = ',Dvar
         end subroutine getIC2
 
-        subroutine getIC(fn,nlev,ICs)
+        subroutine getIC(fn,ICs)
         use resolution, only: im
         use domain_decomp_1d, only : unpack_data
         implicit none
-        integer :: fid, vid, pid, rc
-        integer, intent(in) :: nlev
+        integer :: fid, vid, pid, did, rc, nlev
         character(len=*), intent(in) :: fn
         real*8, dimension(LM) :: locCol
         real*8, dimension(:,:,:), allocatable :: glob3D, loc3D
-        real*8, dimension(nlev) :: IClevs, locColIn
+        real*8, dimension(:), allocatable :: IClevs, locColIn
         real*8, dimension(:,:,:), allocatable :: ICs
-        allocate(glob3D(im,jm,nlev))
-        allocate(loc3D(I_0:I_1,J_0:J_1,nlev))
+
+        ! gather information:
         if(am_i_root()) then
           rc=nf_open(fn,ncnowrit,fid)
           if(rc/=nf_noerr)call err(trim(fn)//' open file',rc)
           rc=nf_inq_varid(fid,fn,vid) ! var name same as file short name
           if(rc/=nf_noerr)call err(trim(fn)//' find variable',rc)
+          rc=nf_inq_dimid(fid,'pressures',did)
+          if(rc/=nf_noerr)call err(trim(fn)//' find pressures dimen',rc)
           rc=nf_inq_varid(fid,'pressures',pid)
           if(rc/=nf_noerr)call err(trim(fn)//' find pressures',rc)
+          rc=nf_inq_dimlen(fid,did,nlev)
+          if(rc/=nf_noerr)call err(trim(fn)//' find pressures size',rc)
+        end if
+        call broadcast(grid,nlev)
+        ! prepare arrays:
+        allocate(glob3D(im,jm,nlev))
+        allocate(IClevs(nlev))
+        allocate(locColIn(nlev))
+        allocate(loc3D(I_0:I_1,J_0:J_1,nlev))
+        ! read data:
+        if(am_i_root()) then
           rc=nf_get_vara_double(fid,pid,1,nlev,IClevs)
           if(rc/=nf_noerr)call err(trim(fn)//' read pressures',rc)
           rc=nf_get_vara_double
      &    (fid,vid,(/1,1,1/),(/im,jm,nlev/),glob3D)
           if(rc/=nf_noerr)call err(trim(fn)//' read glob3D',rc)
         end if
+        ! distribute to all processors, interpolate in pressure,
+        ! and convert units:
         call broadcast(grid,IClevs)
         call unpack_data(grid,glob3D,loc3D)
         do j=J_0,J_1 ; do i=I_0,I_1
@@ -293,11 +307,12 @@ C Read landuse parameters and coefficients for tracer dry deposition:
           call logpint(nlev,IClevs,locColIn,LM,PMIDL00,locCol,.true.)
           ICs(i,j,:) = locCol(:)*MA(:,i,j)*axyp(i,j) ! mass
         end do ; end do
+        ! clean up:
         if(am_i_root()) then
           rc=nf_close(fid)
           if(rc/=nf_noerr)call err(trim(fn)//' close file',rc)
         end if
-        deallocate(glob3D,loc3D)
+        deallocate(glob3D,loc3D,IClevs,locColIn)
         end subroutine getIC
 
         subroutine err(activity,rc1)
@@ -305,7 +320,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
         character(len=*) :: activity
         integer :: rc1
         print *, 'Tracer initial conditions reading:'
-        print *, 'While model tried to '//trim(activity)//','
+        print *, 'While doing: '//trim(activity)//','
         print *, 'encountered netCDF error: '//trim(nf_strerror(rc1))
         call stop_model('tracer IC netCDF error. See PRT message.',255)
         end subroutine err

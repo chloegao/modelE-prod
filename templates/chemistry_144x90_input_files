@@ -6,7 +6,7 @@ CFC_IC=giss2/IC/CFC_IC_M23_4x5_6.17_conc_2x2.5_conc.nc
 CH4_IC=giss2/IC/CH4_IC_M23_4x5_6.17_conc_2x2.5_conc.nc
 Ox_IC=giss2/IC/Ox_init_cond_M23_4x5_conc_2x2.5_conc.nc
 CO_IC=giss2/IC/CO_init_cond_M23_conc_2x2.5_conc.nc
-ALB_IC=giss2/ALBIJ1_IC_144x90_from_ANN1854_of_M40cadiOK0
+ALB_IC=giss2/ALBIJ1_IC_144x90_from_ANN1854_of_M40cadiOK0.nc
 !! SULFATE_SA, DMS_FIELD, SO2_FIELD, and AER_CHEM are only needed when coupled_chem .ne. 1
 !! for SULFATE_SA there is a present-day file and a preindustrial ("pi"). Choose
 !! depending on your run:
