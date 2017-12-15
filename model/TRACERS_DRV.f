@@ -462,7 +462,7 @@ c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
      *       ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
-     *       ,'Paraffin','stratOx','Terpenes','Acetone') ! N2O done above
+     *       ,'Paraffin','Terpenes','Acetone') ! N2O done above
           select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
 #ifdef TRACERS_dCO
@@ -1161,14 +1161,14 @@ C**** special one unique to HTO
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
-     &      'AlkylNit','Ox','NOx','stratOx','Terpenes','Acetone')
+     &      'AlkylNit','Ox','NOx','Terpenes','Acetone')
         k = k + 1
         jls_3Dsource(nChemistry,n) = k
         sname_jls(k) = 'chemistry_source_of_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY CHEMISTRY'
         jls_ltop(k) = LM
         select case(trname(n))
-        case ('Ox','stratOx')
+        case ('Ox')
           jls_power(k) = 1
         case default
           jls_power(k) = -1
@@ -1184,7 +1184,7 @@ C**** special one unique to HTO
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
-     &  'Terpenes','Acetone','NOx','stratOx','BrOx','ClOx')
+     &  'Terpenes','Acetone','NOx','BrOx','ClOx')
           k = k + 1
           jls_3Dsource(nOverwrite,n) = k
           sname_jls(k) = 'overwrite_source_of_'//trim(trname(n))
@@ -2452,7 +2452,7 @@ c#endif
 #endif  /* TRACERS_dCO */
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
-     &'HO2NO2','PAN','AlkylNit','stratOx','Acetone')
+     &'HO2NO2','PAN','AlkylNit','Acetone')
 
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
@@ -2464,7 +2464,7 @@ c#endif
      *  'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
-     &  'Terpenes','HO2NO2','PAN','AlkylNit','stratOx','Acetone')
+     &  'Terpenes','HO2NO2','PAN','AlkylNit','Acetone')
         select case(trname(n))
         case('NOx')
           ijts_3Dsource(nOther,n)=
@@ -2478,7 +2478,7 @@ c#endif
      *                trim(trname(n))//' thermodynamics',
      *                'kg m-2 s-1', power=-12,
      *                scalediv=dtsrc)
-        case('Ox','stratOx')
+        case('Ox')
           if (nradfrc>0) then
             ijts_fc(1,n)=
      *        ijts_diag('swf_tp_'//trim(trname(n)),
@@ -4194,9 +4194,6 @@ c find indices of denominators
       use ghgmod
       use constant, only : byavog
       use tracer_com, only: n_N2O, n_CH4, n_CFC
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      USE RAD_COM, only: stratO3_tracer_save
-#endif
 #ifdef TRACERS_dCO
       use tracers_dCO, only: dalke_IC_fact
       use tracers_dCO, only: dPAR_IC_fact
@@ -4711,13 +4708,6 @@ c**** earth
             ! should be able to remove next line once rad code is after tr3dsource code:
             chem_tracer_save(1,L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
           end do   ; end do   ; end do
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-        case ('stratOx')
-          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-            trm(I,J,L,n) = OxIC(I,J,L)
-            stratO3_tracer_save(L,I,J)=OxIC(I,J,L)*byO3MULT*byaxyp(i,j)
-          end do   ; end do   ; end do
-#endif
 
         case ('NOx')
           do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
@@ -5286,7 +5276,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TimeConstants_mod, only: SECONDS_PER_DAY
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources,do_fire,vol2mass
-      use OldTracer_mod, only: do_megan
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
       USE TRACER_COM, only: n_CO2n
@@ -5569,8 +5558,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 ! read surface sources of all tracers
 !-------------------------------------------------------------------------------
         call readSurfaceSources(pTracer,n,nread,xyear,xday,checkname,
-     &                          itime,itime_tr0(n),sfc_src,isChemTracer,
-     &                          do_megan(n))
+     &                          itime,itime_tr0(n),sfc_src,isChemTracer)
 !-------------------------------------------------------------------------------
 
 ! post-read calculations
@@ -5731,7 +5719,7 @@ C**** at the start of any day
       use OldTracer_mod, only: vol2mass
       use OldTracer_mod, only: trname
       use OldTracer_mod, only: itime_tr0
-      use OldTracer_mod, only: do_fire, do_megan
+      use OldTracer_mod, only: do_fire
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
      &           SECONDS_PER_HOUR, HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg m-2)
@@ -5863,9 +5851,10 @@ C****
 #endif
 #ifdef DO_MEGAN
       ! Outside of tracer loop, call MEGAN-based biogenic emissions.
-      ! Emissions will be experienced by any tracers with do_megan()>0
-      ! .and. with a trname() that matches a MEGAN-defined species.
-      ! Call will fill sfc_src, to be added to trsource below. Let's 
+      ! Emissions will be experienced by any tracers with isMegan
+      ! defined as .true. in their tracer source object. The souce
+      ! short name also must match one of the MEGAN-defined species.
+      ! Call will fill sfc_src, to be added to trsource below. Let's
       ! skip the poles.
       do j=J_0S,J_1S
         do i=I_0,imaxj(j)
@@ -6156,7 +6145,7 @@ C****
      *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
-     &      'stratOx','codirect')
+     &      'codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
         if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
 #endif
@@ -6215,26 +6204,29 @@ C****
         endif
 #endif
 #if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
+#ifdef DO_MEGAN
+      ! Let MEGAN fend for itself regarding daylight, etc.:
       case ('Isoprene')
         do ns=1,ntsurfsrc(n)
-          if(ns==do_megan(n))then
-            ! let megan fend for itself regarding daylight, etc.
-            do j=J_0,J_1; do i=I_0,I_1
-              trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
-            end do  ; end do 
-          else
-            ! Isoprene sources to be emitted only during sunlight, and
-            ! weighted by cos of solar zenith angle:
-            do j=J_0,J_1; do i=I_0,I_1
-              if(COSZ1(i,j)>0.)then
-                trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
-     &          sfc_src(i,j,n,ns)
-              else
-                trsource(i,j,ns,n)=0.d0
-              endif
-            end do  ; end do 
-          end if
+          do j=J_0,J_1; do i=I_0,I_1
+            trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+          end do ; end do
         end do
+#else
+      ! Isoprene sources to be emitted only during sunlight, and
+      ! weighted by cos of solar zenith angle:
+      case ('Isoprene')
+        do ns=1,ntsurfsrc(n)
+          do j=J_0,J_1; do i=I_0,I_1
+            if(COSZ1(i,j)>0.)then
+              trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
+     &        sfc_src(i,j,n,ns)
+            else
+              trsource(i,j,ns,n)=0.d0
+            endif
+          end do  ; end do
+        end do
+#endif /* DO_MEGAN */
 #endif /* not PS_BVOC and not BIOGENIC_EMISSIONS */
 #endif /* TRACERS_SPECIAL_Shindell */
 
@@ -6905,7 +6897,7 @@ C**** Get current model time
       USE GEOM, only : axyp
       USE Dictionary_mod, only : get_param, is_set_param
 #ifdef SHINDELL_STRAT_EXTRA
-      use TRACER_COM, only: n_stratOx, n_GLT
+      use TRACER_COM, only: n_GLT
 #endif
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: n_soa_i,n_soa_e
@@ -6941,10 +6933,6 @@ C**** Apply chemistry and overwrite changes:
         call apply_tracer_3Dsource(i,j,nChemistry,n)
         call apply_tracer_3Dsource(i,j,nOverwrite,n)
       end do
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
-      call apply_tracer_3Dsource(i,j,nChemistry,n_stratOx)
-      call apply_tracer_3Dsource(i,j,nOverwrite,n_stratOx)
-#endif
 
       end subroutine calculate_and_apply_chemistry
 #endif
@@ -7427,6 +7415,8 @@ C****
 #ifndef SKIP_TRACER_SRCS
         tr3Dsource(:,:,:) = 0.d0
 #endif
+
+        call load_atmcol(i,j)
 
         ! copy into column array
         trm_col(:,:) = trm(i,j,:,:)

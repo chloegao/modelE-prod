@@ -241,10 +241,11 @@ contains
   ! Use this routine to add a new surface source that
   ! is manipulated by custom logic elsewhere.
   ! Optional sourcename is only used by diagnostics
-  subroutine addSurfaceSource(this, sourceName, sourceLname)
+  subroutine addSurfaceSource(this, sourceName, sourceLname, isMegan)
     type (Tracer), intent(inout) :: this
     character(len=*), intent(in) :: sourceName
     character(len=*), intent(in), optional :: sourceLname
+    logical, intent(in), optional :: isMegan
 
     this%ntSurfSrc = this%ntSurfSrc + 1
     this%surfaceSources(this%ntSurfSrc)%sourceName = sourceName
@@ -253,7 +254,9 @@ contains
     else
        this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceName
     end if
-    
+    if (present(isMegan) ) then
+       this%surfaceSources(this%ntSurfSrc)%isMegan = isMegan
+    end if
   end subroutine addSurfaceSource
 
 !TODO - move to string utilities
@@ -268,14 +271,13 @@ contains
     fullName = trim(tracerName) // '_' // suffix
   end function addIntegerSuffix
 
-  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src,isChemTracer&
-                              &,megan_index)
+  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src,isChemTracer)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
     USE DOMAIN_DECOMP_ATM, only: GRID
     use TracerSurfaceSource_mod, only: readSurfaceSource
     type (Tracer), target, intent(inout) :: trcer
-    integer, intent(in) :: nsrc,n,megan_index
+    integer, intent(in) :: nsrc,n
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: checkname
     logical, intent(in) :: isChemTracer
@@ -290,7 +292,7 @@ contains
 
     nread=0
     do ns=1,nsrc
-      if(ns==megan_index)cycle ! skip over the file reading if source is megan
+      if(trcer%surfaceSources(ns)%isMegan)cycle ! skip file reading if ns is a MEGAN source
       nread=nread+1
       call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)

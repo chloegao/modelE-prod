@@ -26,13 +26,9 @@
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
      &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
-     &     OxICIN,OxIC,OxICINL,OxICL,
-     &     fix_CH4_chemistry,
-     &     CH4ICIN,CH4ICX,CH4ICINL,CH4ICL,use_rad_ch4,
-     &     COICIN,COIC,COICINL,COICL,Lmax_rad_O3,Lmax_rad_CH4
-     &     ,BrOxaltIN,ClOxaltIN,ClONO2altIN,HClaltIN,BrOxalt,
-     &     ClOxalt,ClONO2alt,HClalt,N2OICIN,N2OICX,N2OICINL,N2OICL,
-     &     CFCICIN,CFCIC,CFCICINL,CFCICL,
+     &     OxIC,fix_CH4_chemistry,
+     &     CH4ICX,use_rad_ch4,
+     &     COIC,Lmax_rad_O3,Lmax_rad_CH4,N2OICX,CFCIC,
      &     use_rad_n2o,use_rad_cfc,cfc_rad95,
      &   ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth,ICfact_N2O,ICfact_CFC
 #endif /* TRACERS_SPECIAL_Shindell */
@@ -67,6 +63,7 @@ c
 #ifdef TRACERS_SPECIAL_Shindell
 !@var iu_data unit number
 !@var title header read in from file
+      include 'netcdf.inc'
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
@@ -96,15 +93,7 @@ C****
 
         case ('N2O')
 #ifdef TRACERS_SPECIAL_Shindell
-c***          print*,'HERE!!!!!!!'
-          call openunit('N2O_IC',iu_data,.true.,.true.)
-          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),N2OICIN,0)
-          call closeunit(iu_data)
-          do j=J_0,J_1  ; do i=I_0,I_1
-           N2OICINL(:)=N2OICIN(i,j,:) ! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,N2OICINL,LM,PMIDL00,N2OICL,.true.)
-           N2OICX(I,J,:) = N2OICL(:)*MA(:,i,j)*axyp(i,j)
-          end do     ; end do
+          call getIC('N2O_IC',N2OICX)
 #endif
 
       case ('CH4')
@@ -121,30 +110,16 @@ C         Interpolate CH4 altitude-dependence to model resolution:
           CALL LOGPINT(LCH4alt,PCH4alt,CH4altINX,LM,PMIDL00,CH4altX,
      &         .true.)
           if(fix_CH4_chemistry.eq.-1)then
-            call openunit('CH4_IC',iu_data,.true.,.true.)
-            CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),
-     &           CH4ICIN,0)
-            call closeunit(iu_data)
+            call getIC('CH4_IC',CH4ICX)
             do j=J_0,J_1  ; do i=I_0,I_1
-             CH4ICINL(:)=CH4ICIN(I,J,:)! now in PPPM
-             CALL LOGPINT(LCOalt,PCOalt,CH4ICINL,LM,PMIDL00,CH4ICL,
-     &            .true.)
-             CH4ICX(I,J,:) = CH4ICL(:)*scale_ch4_IC_file*MA(:,i,j)*
-     *            axyp(i,j)
-            end do     ; end do
+              CH4ICX(i,j,:) = CH4ICX(i,j,:) * scale_ch4_IC_file
+            end do ; end do
           end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('Ox')
 #ifdef TRACERS_SPECIAL_Shindell
-          call openunit('Ox_IC',iu_data,.true.,.true.)
-          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),OxICIN,0)
-          call closeunit(iu_data)
-          do j=J_0,J_1  ; do i=I_0,I_1
-           OxICINL(:)=OxICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,OxICINL,LM,PMIDL00,OxICL,.true.)
-           OxIC(I,J,:) = OxICL(:)*MA(:,i,j)*axyp(i,j)
-          end do     ; end do
+          call getIC('Ox_IC',OxIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CFC')
@@ -171,15 +146,8 @@ C          check on GHG files 1995 value for CFCs:
      &     call stop_model('please check on cfc_rad95 1',255)
            call closeunit(iu_data)
           endif
-C          read the CFC initial conditions:
-          call openunit('CFC_IC',iu_data,.true.,.true.)
-          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),CFCICIN,0)
-          call closeunit(iu_data)
-          do j=J_0,J_1  ; do i=I_0,I_1
-           CFCICINL(:)=CFCICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,CFCICINL,LM,PMIDL00,CFCICL,.true.)
-           CFCIC(I,J,:) = CFCICL(:)*MA(:,i,j)*axyp(i,j)
-          end do     ; end do
+          ! read the CFC initial conditions:
+          call getIC('CFC_IC',CFCIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CO'
@@ -188,14 +156,7 @@ C          read the CFC initial conditions:
 #endif  /* TRACERS_dCO */
      *     )
 #ifdef TRACERS_SPECIAL_Shindell
-          call openunit('CO_IC',iu_data,.true.,.true.)
-          CALL READT8_PARALLEL(grid,iu_data,NAMEUNIT(iu_data),COICIN,0)
-          call closeunit(iu_data)
-          do j=J_0,J_1  ; do i=I_0,I_1
-           COICINL(:)=COICIN(I,J,:)! now in PPPM
-           CALL LOGPINT(LCOalt,PCOalt,COICINL,LM,PMIDL00,COICL,.true.)
-           COIC(I,J,:) = COICL(:)*MA(:,i,j)*axyp(i,j)
-          end do     ; end do
+          call getIC('CO_IC',COIC)
 #endif /* TRACERS_SPECIAL_Shindell */
 
         end select
@@ -212,12 +173,12 @@ C          read the CFC initial conditions:
       call modelEclock%get(year=year, dayOfYear=day)
       call get_param( "O3_yr", xyear, default=master_yr )
       if(xyear==0) xyear=year
-      call getIC(chemIC_grid,trICratN,'trICratN',ICfact_N,grid)
-      call getIC(chemIC_grid,trICratCOt,'trICratCOt',ICfact_COt,grid)
-      call getIC(chemIC_grid,trICratCOs,'trICratCOs',ICfact_COs,grid)
-      call getIC(chemIC_grid,trICratOth,'trICratOth',ICfact_Oth,grid)
-      call getIC(chemIC_grid,trICratN2O,'trICratN2O',ICfact_N2O,grid)
-      call getIC(chemIC_grid,trICratCFC,'trICratCFC',ICfact_CFC,grid)
+      call getIC2(chemIC_grid,trICratN,'trICratN',ICfact_N,grid)
+      call getIC2(chemIC_grid,trICratCOt,'trICratCOt',ICfact_COt,grid)
+      call getIC2(chemIC_grid,trICratCOs,'trICratCOs',ICfact_COs,grid)
+      call getIC2(chemIC_grid,trICratOth,'trICratOth',ICfact_Oth,grid)
+      call getIC2(chemIC_grid,trICratN2O,'trICratN2O',ICfact_N2O,grid)
+      call getIC2(chemIC_grid,trICratCFC,'trICratCFC',ICfact_CFC,grid)
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_init
@@ -284,7 +245,9 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 
 #ifdef TRACERS_SPECIAL_Shindell
       CONTAINS
-        subroutine getIC(Dgrid,Dstream,Dfile,Dvar,mainGrid)
+
+        subroutine getIC2(Dgrid,Dstream,Dfile,Dvar,mainGrid)
+        implicit none
         type(dist_grid) :: Dgrid,mainGrid
         type(timestream) :: Dstream
         character(len=*) :: Dfile
@@ -295,7 +258,72 @@ C Read landuse parameters and coefficients for tracer dry deposition:
         call broadcast(mainGrid,Dvar)
         if(am_i_root())
      &    write(6,*)'IC scaling for ',trim(Dfile),' = ',Dvar
+        end subroutine getIC2
+
+        subroutine getIC(fn,ICs)
+        use resolution, only: im
+        use domain_decomp_1d, only : unpack_data
+        implicit none
+        integer :: fid, vid, pid, did, rc, nlev
+        character(len=*), intent(in) :: fn
+        real*8, dimension(LM) :: locCol
+        real*8, dimension(:,:,:), allocatable :: glob3D, loc3D
+        real*8, dimension(:), allocatable :: IClevs, locColIn
+        real*8, dimension(:,:,:), allocatable :: ICs
+
+        ! gather information:
+        if(am_i_root()) then
+          rc=nf_open(fn,ncnowrit,fid)
+          if(rc/=nf_noerr)call err(trim(fn)//' open file',rc)
+          rc=nf_inq_varid(fid,fn,vid) ! var name same as file short name
+          if(rc/=nf_noerr)call err(trim(fn)//' find variable',rc)
+          rc=nf_inq_dimid(fid,'pressures',did)
+          if(rc/=nf_noerr)call err(trim(fn)//' find pressures dimen',rc)
+          rc=nf_inq_varid(fid,'pressures',pid)
+          if(rc/=nf_noerr)call err(trim(fn)//' find pressures',rc)
+          rc=nf_inq_dimlen(fid,did,nlev)
+          if(rc/=nf_noerr)call err(trim(fn)//' find pressures size',rc)
+        end if
+        call broadcast(grid,nlev)
+        ! prepare arrays:
+        allocate(glob3D(im,jm,nlev))
+        allocate(IClevs(nlev))
+        allocate(locColIn(nlev))
+        allocate(loc3D(I_0:I_1,J_0:J_1,nlev))
+        ! read data:
+        if(am_i_root()) then
+          rc=nf_get_vara_double(fid,pid,1,nlev,IClevs)
+          if(rc/=nf_noerr)call err(trim(fn)//' read pressures',rc)
+          rc=nf_get_vara_double
+     &    (fid,vid,(/1,1,1/),(/im,jm,nlev/),glob3D)
+          if(rc/=nf_noerr)call err(trim(fn)//' read glob3D',rc)
+        end if
+        ! distribute to all processors, interpolate in pressure,
+        ! and convert units:
+        call broadcast(grid,IClevs)
+        call unpack_data(grid,glob3D,loc3D)
+        do j=J_0,J_1 ; do i=I_0,I_1
+          locColIn(:)=loc3D(I,J,:) ! mass mixing ratio
+          call logpint(nlev,IClevs,locColIn,LM,PMIDL00,locCol,.true.)
+          ICs(i,j,:) = locCol(:)*MA(:,i,j)*axyp(i,j) ! mass
+        end do ; end do
+        ! clean up:
+        if(am_i_root()) then
+          rc=nf_close(fid)
+          if(rc/=nf_noerr)call err(trim(fn)//' close file',rc)
+        end if
+        deallocate(glob3D,loc3D,IClevs,locColIn)
         end subroutine getIC
+
+        subroutine err(activity,rc1)
+        implicit none
+        character(len=*) :: activity
+        integer :: rc1
+        print *, 'Tracer initial conditions reading:'
+        print *, 'While doing: '//trim(activity)//','
+        print *, 'encountered netCDF error: '//trim(nf_strerror(rc1))
+        call stop_model('tracer IC netCDF error. See PRT message.',255)
+        end subroutine err
 #endif /* TRACERS_SPECIAL_Shindell */
 
       end subroutine initTracerGriddedData

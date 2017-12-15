@@ -901,13 +901,12 @@ C****
       SUBROUTINE TRGRAV(i,j)
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : grav,deltx,lhe,rgas,visc_air
+      USE CONSTANT, only : lhe,visc_air
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
-      USE ATM_COM, only : t,q
+      use atmcol_com, only : pl,tl,ql,airden=>rhotvl,zl
       USE GEOM, only : byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
-      USE ATM_COM, only : gz,pmid,pk
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
       USE TRACER_COM, only : NTM,trm_col,trmom_col
 #ifdef TRACERS_AMP
@@ -922,7 +921,7 @@ C****
       integer, intent(in) :: i,j
 !
       real*8 :: stokevdt,press,fgrfluxd,qsat,vgs,tr_radius,tr_dens,temp
-      real*8, dimension(lm) :: told,airden,visc,rh,gbygz
+      real*8, dimension(lm) :: told,visc,rh,gbygz
       real*8 :: fluxd, fluxu
       integer n,najl,l
       logical :: hydrate
@@ -943,15 +942,15 @@ C****
 C**** Calculate some tracer independent arrays      
 C**** air density + relative humidity (wrt water) + air viscosity
       do l=1,lm
-        press=pmid(l,i,j)
-        temp=pk(l,i,j)*t(i,j,l)
-        airden(l)=100.d0*press/(rgas*temp*(1.+q(i,j,l)*deltx))
-        rh(l)=q(i,j,l)/qsat(temp,lhe,press)
+        press=pl(l)
+        temp=tl(l)
+        rh(l)=ql(l)/qsat(temp,lhe,press)
         visc(l)=visc_air(temp)
         if (l.eq.1) then
           gbygz(l)=0.
         else
-          gbygz(l)=grav/(gz(i,j,l)-gz(i,j,l-1))
+          !gbygz(l)=grav/(gz(i,j,l)-gz(i,j,l-1))
+          gbygz(l)=1d0/(zl(l)-zl(l-1))
         end if
       end do
 
@@ -1177,7 +1176,11 @@ c**** Interpolate two months of data to current day
       LOGICAL QCHECKT
       INTEGER I,J,L,N,m, imax,jmax,lmax
       REAL*8 relerr, errmax,errsc,tmax,amax,qmax,wmax,twmax,qmomax(nmom)
-     *     ,tmomax(nmom),qc
+     *     ,tmomax(nmom)
+#ifdef TRACERS_WATER
+      real*8 :: qc
+#endif
+
 !@var SUBR identifies where CHECK was called from
       CHARACTER*6, INTENT(IN) :: SUBR
       INTEGER :: J_0, J_1, nj, I_0,I_1
@@ -1264,7 +1267,7 @@ C**** check whether air mass is conserved
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
               tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=qcl(i,j,l)*ma(l,i,j)*axyp(i,j)
+              twmax=trwm(i,j,l,n) ; wmax=qc*ma(l,i,j)*axyp(i,j)
               tmomax(:)=trmom(:,i,j,l,n)
               qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
             end if

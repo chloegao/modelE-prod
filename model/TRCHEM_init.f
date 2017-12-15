@@ -6,7 +6,8 @@
 
 C**** GLOBAL parameters and variables:
       use Dictionary_mod, only: sync_param
-      USE FILEMANAGER, only: openunit,closeunit,nameunit
+      use pario, only : par_open,par_close,read_dist_data
+      USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
       USE TRACER_COM, only: oh_live,no3_live
@@ -111,10 +112,17 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         ! mostRecentNonZeroAlbedo(I,J) is then saved to/read from restart
         ! files for use in rest of the run:
                        ! logicals mean: binary, old:
-        call openunit('ALB_IC',iu_data,.true.,.true.)
-        call readt_parallel(grid,iu_data,nameunit(iu_data),
-     &  mostRecentNonZeroAlbedo,0)
-        call closeunit(iu_data)
+        if(is_fbsa('ALB_IC'))then
+          call openunit('ALB_IC',iu_data,.true.,.true.)
+          call readt_parallel(grid,iu_data,nameunit(iu_data),
+     &    mostRecentNonZeroAlbedo,0)
+          call closeunit(iu_data)
+        else
+          iu_data = par_open(grid,'ALB_IC','read')
+          call read_dist_data(grid, iu_data, 'ALB_IC',
+     &     mostRecentNonZeroAlbedo)
+          call par_close(grid, iu_data)
+        end if
       end if
 
       return

@@ -35,7 +35,7 @@ module ShindellTracersMetadata_mod
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
     n_Isoprene, n_AlkylNit, n_Alkenes, n_Paraffin,   &
-    n_stratOx, n_Terpenes,n_codirect, n_Acetone,     &
+    n_Terpenes,n_codirect, n_Acetone,     &
     n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,         &
     n_apinp1g,n_apinp1a,n_apinp2g,n_apinp2a,         &
     n_ClOx,   n_BrOx,  n_HCl,   n_HOCl,   n_ClONO2,  &
@@ -165,7 +165,6 @@ contains
     if (shindell_strat_extra) then
       if (accmip_like_diags) then
         call  codirect_setSpec('codirect')
-        call  stratOx_setSpec('stratOx')
         call  GLT_setSpec('GLT') ! generic linear tracer
       end if
     end if
@@ -236,7 +235,7 @@ contains
            nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO,  &
            nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             &
            nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   &
-           nn_stratOx, nn_Terpenes,nn_codirect, nn_Acetone,     &
+           nn_Terpenes,nn_codirect, nn_Acetone,     &
            nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         &
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
@@ -272,7 +271,6 @@ contains
 #ifdef TRACERS_ACETONE
      nn_Acetone = n_Acetone - offset
 #endif  /* TRACERS_ACETONE */
-     nn_stratOx = n_stratOx - offset
     if (tracers_terp) then
        nn_Terpenes = n_Terpenes - offset
      end if
@@ -985,21 +983,6 @@ contains
       ! not a radiactive decay, but functionally identical
       call set_has_chemistry(n, .true.)
     end subroutine codirect_setSpec
-
-    subroutine stratOx_setSpec(name)
-      character(len=*), intent(in) :: name
-      n = oldAddTracer(name)
-      n_stratOx = n
-      ! assumes initial Ox conditions read in for Ox tracer
-      call set_ntm_power(n, -8)
-      call set_tr_mm(n, 48.d0)
-      if (tracers_drydep) then
-        call set_F0(n,  1.4d0)
-        call set_HSTAR(n,  1.d-2)
-      end if
-      call set_has_chemistry(n, .true.)
-      call set_has_overwrite(n, .true.)
-    end subroutine stratOx_setSpec
 
     subroutine GLT_setSpec(name)
       character(len=*), intent(in) :: name

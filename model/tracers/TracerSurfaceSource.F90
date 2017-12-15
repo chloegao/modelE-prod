@@ -33,6 +33,7 @@ module TracerSurfaceSource_mod
     integer :: yearEnd   ! ending year/decade for a transient emissions file
     integer :: yearStep  ! interval between records in a transient emissions file
     logical :: firstTrip = .true.
+    logical :: isMegan = .false. ! for tagging sources as a MEGAN vegetation source
 
     integer :: monthA = -1 ! first month for the current interpolation
     real*8, allocatable :: month1cache(:,:) ! used for interpolating from file source
