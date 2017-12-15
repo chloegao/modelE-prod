@@ -1,8 +1,6 @@
 ! --- CH4 tracer specific settings: ---
 !    important:
 use_rad_ch4=0      ! use rad code CH4, shut off sfc sources
-ch4_init_sh=0.791      ! init cond/fixed conditions SH CH4 ppmv
-ch4_init_nh=0.791      ! init cond/fixed conditions NH CH4 ppmv
 CH4_nBBsources=1 ! make sure last-CH4_nBBsources-listed CH4 emissions files are the desired
                  ! ones to mix through PBL
 !    rarer settings:

@@ -14,4 +14,6 @@ trICratN2O=giss2/IC/trICratN2O.nc
 trICratCOt=giss2/IC/trICratCOt.nc
 trICratCOs=giss2/IC/trICratCOs.nc
 trICratCFC=giss2/IC/trICratCFC.nc
+trICch4SH=giss2/IC/trICch4SH.nc
+trICch4NH=giss2/IC/trICch4NH.nc
 !-----------------------------------------------
