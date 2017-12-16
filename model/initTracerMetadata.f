@@ -231,6 +231,7 @@
       use RunTimeControls_mod, only: tracers_special_lerner
       use RunTimeControls_mod, only: tracers_sf6
       use RunTimeControls_mod, only: tracers_aerosols_koch
+      use RunTimeControls_mod, only: tracers_aerosols_vbs
       use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use RunTimeControls_mod, only: tracers_aerosols_ocean
       use RunTimeControls_mod, only: tracers_nitrate
@@ -280,6 +281,9 @@
 #endif   
 #ifdef TRACERS_AEROSOLS_Koch
       use KochTracersMetadata_mod
+#endif   
+#ifdef TRACERS_AEROSOLS_VBS
+      use VbsTracersMetadata_mod
 #endif   
 #ifdef TRACERS_AEROSOLS_SEASALT
       use SeasaltTracersMetadata_mod
@@ -363,6 +367,12 @@
 #ifdef TRACERS_AEROSOLS_Koch
       if (tracers_aerosols_koch) then
         call KOCH_InitMetadata(pTracer)
+      end if
+#endif
+
+#ifdef TRACERS_AEROSOLS_VBS
+      if (tracers_aerosols_vbs) then
+        call VBS_InitMetadata(pTracer)
       end if
 #endif
 

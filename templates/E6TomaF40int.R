@@ -92,6 +92,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
+VbsTracersMetadata
 TRACERS_AEROSOLS_VBS                ! Volatility-basis set
 megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
