@@ -5,7 +5,7 @@
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
 
       SAVE
-!@var be7_ and be10_src_3d Source functions for 7Be & 10Be (kg tracer)/( (kg air)/m^2 s )
+!@var be7_ and be10_src_3d Source functions for 7Be & 10Be (kg/m2 tracer)/( (kg air)/m^2 s )
       real*8, allocatable, dimension(:,:,:) :: be7_src_3d, be10_src_3d
 !@var be7_src_param global multiplier of be7_src_3d to match obs
       real*8 :: be7_src_param=1    !default value
@@ -56,7 +56,6 @@
       USE CONSTANT, only : byavog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
-      USE GEOM, only: axyp
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds 
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -79,10 +78,9 @@ C**** Open source file
 C**** ibe has units atoms/g/s
       call closeunit(iuc)
 
-C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg/m2 tracer)/ (kg air/m^2) /s
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti
-     &    *byavog)
+        be7_src_3d(i,j,l)=ibe(j,l)*(tr_mm(n_Be7)*tfacti*byavog)
       end do ; end do ; end do
 
 C**** multiply by air mass to put in the right units
@@ -108,7 +106,6 @@ C**** multiply by air mass to put in the right units
       USE CONSTANT, only : byavog
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       USE TRACER_COM
-      USE GEOM, only: axyp
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE FILEMANAGER, only: openunit,closeunit
       IMPLICIT NONE
@@ -141,11 +138,10 @@ C**** ibe has units atoms/g/s
       call closeunit(iuc)
       print*, "closed be7 cosmo file"
       
-C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg/m2 tracer)/ (kg air/m^2) /s
       print*, "converting"
       do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
-        be7_src_3d(i,j,l)=ibe(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti
-     &    *byavog)
+        be7_src_3d(i,j,l)=ibe(j,l)*(tr_mm(n_Be7)*tfacti*byavog)
       end do ; end do ; end do
 
 C     repeat for Be10:
@@ -160,11 +156,10 @@ C**** ibe has units atoms/g/s
       call closeunit(iuc)
       print*, "closed be10 cosmo file"
       
-C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg/m2 tracer) (kg air/m^2) /s
       print*, "converting"
       do l=1,lm; do j=J_0,J_1 ; do i=I_0,I_1
-        be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
-     *       *tfacti_10*byavog)
+        be10_src_3d(i,j,l)=ibe_10(j,l)*(tr_mm(n_Be10)*tfacti_10*byavog)
 
       end do ; end do ; end do
       print*, "finished converting"
@@ -179,7 +174,6 @@ C**** convert from atoms/g/s to (kg tracer) (kg air/m^2) /s
 !@auth C Field
 
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only: axyp
       use model_com, only: modelEclock
       USE CONSTANT, only : byavog
       USE TRACER_COM
@@ -288,14 +282,12 @@ c        print*, "phi_record (1) = ", phi_record(1)
          end if
       end do
       
-C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg/m2 tracer)/ (kg air/m^2) /s
       print*, "converting units for Be10 and Be7"
       do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
-        be10_src_3d(i,j,l)=ibe_10(j,l)*axyp(i,j)*(tr_mm(n_Be10)
-     *       *tfacti_10*byavog)
+        be10_src_3d(i,j,l)=ibe_10(j,l)*(tr_mm(n_Be10)*tfacti_10*byavog)
          
-        be7_src_3d(i,j,l)=ibe_7(j,l)*axyp(i,j)*(tr_mm(n_Be7)*tfacti_7
-     $       *byavog)
+        be7_src_3d(i,j,l)=ibe_7(j,l)*(tr_mm(n_Be7)*tfacti_7*byavog)
       end do ; end do ; end do
       
       print*, "be7_src_param = ", be7_src_param
@@ -315,7 +307,6 @@ C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
 !@sum Production values are in atoms/g/s.
 !@auth C Field
       USE FILEMANAGER, only: openunit,closeunit
-      USE GEOM, only: axyp
       use model_com, only: modelEclock
       USE MODEL_COM, only : itime
       USE CONSTANT, only : byavog
@@ -506,13 +497,11 @@ c     created:
                end if
             
 
-C**** convert from atoms/g/s to (kg tracer)/ (kg air/m^2) /s
+C**** convert from atoms/g/s to (kg/m2 tracer)/ (kg air/m^2) /s
             do k=1,npress
 !               print*, "converting atoms/g/s to kg/kg"
-              be7_src_3d(i,j,k)=new_prod(k)*axyp(i,j)*(tr_mm(n_Be7)
-     $              *byavog)
+              be7_src_3d(i,j,k)=new_prod(k)*(tr_mm(n_Be7)*byavog)
               if ((i .eq. 10) .and. (j .eq. 46) .and. (k .eq. 1)) then
-                 print*, "DXYP = ", axyp(i,j)
                  print*, "tr_mm(n_Be7) = ", tr_mm(n_Be7)
                  print*, " "
               end if
