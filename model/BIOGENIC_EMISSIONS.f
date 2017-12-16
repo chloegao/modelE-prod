@@ -39,7 +39,6 @@
 
       use biogenic_emis
       use rad_com, only : cosz1,cfrac
-      use geom, only : byaxyp
       use pbl_drv, only : t_pbl_args
       use constant, only : rgas
       use tracers_drydep, only : xylai,ijreg,ijuse
@@ -100,11 +99,6 @@
 
         endif  
 
-! emisop = kg C emitted from grid cell per second
-! 2D interative isoprene source. Convert to units kg C/m2/s:
-
-        emisop=emisop*byaxyp(i,j)
-
       end select
 
       return                                                          
@@ -140,13 +134,13 @@
 !@+  compliant, as I do not suspect we will commit this code.
 !@+  Units are atoms C cm^-2 leaf s^-1
 !@+  Construct the base emission for each grid box                         
-!@+  Output is baseisop in kg C cm^-2 * surface area of cell (cm^2)
+!@+  Output is baseisop in kg C cm^-2
 !@+  emitted in 1 hour time step                                           
 
       use biogenic_emis
       use tracers_drydep, only : ijreg,ijland
       use constant, only   : byavog
-      use geom, only : axyp,imaxj
+      use geom, only : imaxj
       use domain_decomp_atm, only : getDomainBounds, grid
 
       implicit none
@@ -185,7 +179,7 @@
         do I=I_0,imaxj(J)
           do k=1,ijreg(i,j)
             baseisop(i,j,K) = 
-     &      convert(ijland(i,j,k)+1)*factor*axyp(i,j)*base_isopreneX
+     &      convert(ijland(i,j,k)+1)*factor*base_isopreneX
           enddo                                                       
         enddo                                                          
       enddo                                                             
