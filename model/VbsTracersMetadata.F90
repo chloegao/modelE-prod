@@ -29,6 +29,7 @@ module VbsTracersMetadata_mod
   use Dictionary_mod, only: sync_param
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: sulf_only_aerosols
+  use RunTimeControls_mod, only: tracers_amp
   use RunTimeControls_mod, only: dynamic_biomass_burning
   use Tracer_mod, only: Tracer
   use TRACERS_VBS, only: ivbs_m2,ivbs_m1,ivbs_m0,ivbs_p1,ivbs_p2,ivbs_p3,&
@@ -62,15 +63,17 @@ module VbsTracersMetadata_mod
       call  VBS_setSpec('vbsGp5', ivbs_p5,'igas')
       call  VBS_setSpec('vbsGp6', ivbs_p6,'igas')
 
-      call  VBS_setSpec('vbsAm2', ivbs_m2,'iaer')
-      call  VBS_setSpec('vbsAm1', ivbs_m1,'iaer')
-      call  VBS_setSpec('vbsAz', ivbs_m0,'iaer')
-      call  VBS_setSpec('vbsAp1', ivbs_p1,'iaer')
-      call  VBS_setSpec('vbsAp2', ivbs_p2,'iaer')
-      call  VBS_setSpec('vbsAp3', ivbs_p3,'iaer')
-      call  VBS_setSpec('vbsAp4', ivbs_p4,'iaer')
-      call  VBS_setSpec('vbsAp5', ivbs_p5,'iaer')
-      call  VBS_setSpec('vbsAp6', ivbs_p6,'iaer')
+      if (.not. tracers_amp) then
+        call  VBS_setSpec('vbsAm2', ivbs_m2,'iaer')
+        call  VBS_setSpec('vbsAm1', ivbs_m1,'iaer')
+        call  VBS_setSpec('vbsAz', ivbs_m0,'iaer')
+        call  VBS_setSpec('vbsAp1', ivbs_p1,'iaer')
+        call  VBS_setSpec('vbsAp2', ivbs_p2,'iaer')
+        call  VBS_setSpec('vbsAp3', ivbs_p3,'iaer')
+        call  VBS_setSpec('vbsAp4', ivbs_p4,'iaer')
+        call  VBS_setSpec('vbsAp5', ivbs_p5,'iaer')
+        call  VBS_setSpec('vbsAp6', ivbs_p6,'iaer')
+      endif
     end if
 
 !------------------------------------------------------------------------------

@@ -59,6 +59,9 @@
       USE AERO_DIAM,   ONLY: DP, DP_DRY!, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC, NACTIV
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
+#ifdef TRACERS_AMP_M9
+      use TRACERS_VBS, only: vbs_tracers,vbs_bins,vbs_tr,vbs_init,vbs_conditions,vbs_calc
+#endif  /* TRACERS_AMP_M9 */
       IMPLICIT NONE
 
       ! Arguments.
@@ -75,7 +78,7 @@
       REAL(8), INTENT(INOUT) :: DIAG(NDIAG_AERO,NAEROBOX)  ! budget or tendency diagnostics [ug/m^3/s] or [#/m^3/s]
       ! Local variables.
 
-      INTEGER :: I,J,K,L,Q,QQ,PR           ! indices
+      INTEGER :: I,J,K,L,Q,QQ              ! indices
       INTEGER :: INDEX_DP!, INDEX_DP_DRY    ! index for condensation factor lookup table
       INTEGER :: IBRANCH                   ! scratch debugging variable [1]
       REAL(8) :: BI(NWEIGHTS)              ! number conc. coefficients [1/s]
@@ -202,6 +205,13 @@
 !      REAL(8), PARAMETER :: N_MIN_DIAM_HISTOGRAM = 1.0D+04  ! min. # conc. for count in DIAM_HISTOGRAM [#/m^3] 
 
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
+
+#ifdef TRACERS_AMP_M9
+      type(vbs_tracers) :: tr
+      type(vbs_conditions) :: vbs_cond
+      real*8 :: nvoa
+      integer :: v,ivbs,igas,iaer
+#endif  /* TRACERS_AMP_M9 */
 
       !----------------------------------------------------------------------------------------------------------------
       ! Error function statement function derived from code in CMAQ v4.4. 
@@ -947,11 +957,53 @@
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 #ifdef TRACERS_AMP_M9
-      DO i=1,NMODES
+
+! initialize VBS, only once
+      if (.not.allocated(vbs_tr%igasinv)) then
+        do ivbs=1,vbs_bins              ! index of VBS bin
+          igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
+          iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
+          vbs_tr%igas(ivbs)=igas
+          vbs_tr%iaer(ivbs)=iaer
+        enddo
+        call vbs_init(NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
+      endif
+
+! set conditions needed for VBS calculations
+      vbs_cond%dt=TSTEP
+      vbs_cond%OH=0.d0 ! FIX THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      vbs_cond%temp=TK
+
+! calculate VBS
+      DO I=1,NMODES
         IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
-        DO PR=PROD_INDEX_OCM2,PROD_INDEX_OCP6
-          PIQ(i,PR)=PIQ(i,PR)+VBS_FLUXES(i,PR)
-          DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,PR)))=VBS_FLUXES(I,PR)
+
+! save VBS-related concentrations
+        do v=1,vbs_bins
+          tr%gas(v)=GAS(vbs_tr%igas(v))
+          tr%aer(v)=AERO(vbs_tr%iaer(v))
+        enddo
+
+! save non-VBS concentrations
+        nvoa=0.d0 ! sum of non-VBS mass concentrations in the current mode
+        do Q=1,NM(I)
+          if (Q>=PROD_INDEX(I,NM(Q))) cycle
+          nvoa=nvoa+AERO(MASS_MAP(I,Q))
+        enddo
+        vbs_cond%nvoa=nvoa
+
+! calculate
+        call vbs_calc(tr,vbs_cond)
+
+! send output back to MATRIX
+        do v=1,vbs_bins
+          GAS(vbs_tr%igas(v))=vbs_tr%gas(v)
+          VBS_FLUXES(I,vbs_tr%iaer(v))=vbs_tr%aer(v)
+        enddo
+
+        DO Q=PROD_INDEX_OCM2,PROD_INDEX_OCP6
+          PIQ(I,Q)=PIQ(I,Q)+VBS_FLUXES(I,Q)
+          DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,Q)))=VBS_FLUXES(I,Q)
         ENDDO
       ENDDO
 #endif
