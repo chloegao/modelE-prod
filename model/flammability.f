@@ -325,7 +325,6 @@
       use tracer_com, only: sfc_src
       use OldTracer_mod, only: emisPerFireByVegType
       use ghy_com, only: fearth
-      use geom, only : axyp
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
@@ -376,7 +375,7 @@
               emisPerFire = emisPerFire + pvt(nv)*EPFBVT(nv)*fearth(i,j)
             end do
 
-            sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)*axyp(i,j)
+            sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)
 
           else
             sfc_src(i,j,n,ns)=0.d0

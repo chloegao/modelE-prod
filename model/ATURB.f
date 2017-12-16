@@ -21,7 +21,7 @@
       USE ATM_COM, only : u_3d=>u,v_3d=>v,t_3d=>t,q_3d=>q
 cc      USE QUSDEF, only : nmom,zmoms,xymoms
 cc      USE SOMTQ_COM, only : tmom,qmom
-      USE GEOM, only : imaxj,byaxyp,axyp
+      USE GEOM, only : imaxj
       Use ATM_COM,    Only: MA,byMA, PDSIG,PMID,PEDN,PK,PEK
      &     ,u_3d_agrid=>ualij,v_3d_agrid=>valij
       USE DOMAIN_DECOMP_ATM, ONLY : grid, getDomainBounds, halo_update
@@ -79,7 +79,7 @@ cc      real*8, dimension(nmom,lm) :: tmomij,qmomij
 !@var trmomij vertical tracer concentration moment profile (kg/kg)
 !@var wc_nl non-local fluxes of tracers
       real*8, dimension(lm,ntm) :: tr0ij,trij,wc_nl
-      real*8, dimension(lm) :: dtrm,amkg,byMMA
+      real*8, dimension(lm) :: dtrm,amkgm2,byMMA
 cc      real*8, dimension(nmom,lm,ntm) :: trmomij
 !@var trflx surface tracer flux (-w tr) (kg/kg m/s)
       real*8, dimension(ntm) :: trflx
@@ -193,7 +193,7 @@ c            if(q(l).lt.qmin) q(l)=qmin
 
 #ifdef TRACERS_ON
           do l=1,lm
-            byMMA(l) = byMA(l,i,j)*byaxyp(i,j)
+            byMMA(l) = byMA(l,i,j)
           enddo
           do nx=1,nta
             n=ntix(nx)
@@ -444,19 +444,18 @@ cc            tmom(:,i,j,l)=tmomij(:,l)
 
 #ifdef TRACERS_ON
           do l=1,lm
-            amkg(l) = MA(l,i,j)*axyp(i,j)
+            amkgm2(l) = MA(l,i,j)
           enddo
           do nx=1,nta
             n=ntix(nx)
             do l=1,lm
-              trm(i,j,l,n)=trij(l,nx)*amkg(l)
+              trm(i,j,l,n)=trij(l,nx)*amkgm2(l)
 cc            trmom(:,i,j,l,n)=trmomij(:,l,nx)
 #ifndef SKIP_TRACER_DIAGS
-              dtrm(l) = (trij(l,nx)-tr0ij(l,nx))*amkg(l)
+              dtrm(l) = (trij(l,nx)-tr0ij(l,nx))*amkgm2(l)
 #endif
             enddo
 #ifndef SKIP_TRACER_DIAGS
-            dtrm = dtrm*byaxyp(i,j)
             call inc_tajln2_column(i,j,1,lm,lm,jlnt_turb,n,dtrm)
 #endif
           enddo

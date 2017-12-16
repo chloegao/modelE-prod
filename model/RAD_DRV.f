@@ -1532,7 +1532,7 @@ C**** Add water to relevant tracers as well
               select case (tr_wd_type(n))
               case (nWater)    ! water: add CH4-sourced water to tracers
                 trm(i,j,l,n) = trm(i,j,l,n) +
-     +                tr_H2ObyCH4(n)*xCH4*xdH2O*axyp(i,j)
+     +                tr_H2ObyCH4(n)*xCH4*xdH2O
               end select
             end if
           end do
@@ -2489,12 +2489,12 @@ C**** more than one tracer is lumped together for radiation purposes
 #ifdef TRACERS_AEROSOLS_OCEAN
      *          +trm(i,j,l,n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     *                  )*BYAXYP(I,J)
+     *                  )
           case ("OCB")
 #ifdef TRACERS_AEROSOLS_VBS
            TRACER(L,n)=0.d0
 #else
-           TRACER(L,n)=trm(i,j,l,n_OCB)*BYAXYP(I,J)
+           TRACER(L,n)=trm(i,j,l,n_OCB)
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
           case ("isopp1a")
@@ -2502,10 +2502,10 @@ C**** more than one tracer is lumped together for radiation purposes
 #ifdef TRACERS_TERP
      &                  +trm(i,j,l,n_apinp1a)+trm(i,j,l,n_apinp2a)
 #endif /* TRACERS_TERP */
-     &                 )*BYAXYP(I,J)
+     &                 )
 #endif /* TRACERS_AEROSOLS_SOA */
           case ("BCIA")
-           TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))*BYAXYP(I,J)
+           TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))
           case default
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
@@ -2528,7 +2528,7 @@ C**** more than one tracer is lumped together for radiation purposes
             endif
           end select
 #endif
-          TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))*BYAXYP(I,J)
+          TRACER(L,n)=wttr(n)*trm(i,j,l,ntrix_aod(n))
         end select
       end do
 #endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */

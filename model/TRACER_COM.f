@@ -496,10 +496,10 @@ C**** Each tracer has a variable name and a unique index
 
 C**** standard tracer and tracer moment arrays
 
-!@var TRM: Tracer array (kg)
+!@var TRM: Tracer array (kg/m2/layer)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trm
 
-!@var TRMOM: Second order moments for tracers (kg)
+!@var TRMOM: Second order moments for tracers (kg/m2/layer)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:,:) :: trmom
 
 !@var trm_col, trmom_col the contents of trm,trmom for the current i,j
@@ -511,7 +511,7 @@ C**** standard tracer and tracer moment arrays
        REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trdn1
 
 #ifdef TRACERS_WATER
-!@var TRWM tracer in cloud liquid water amount (kg)
+!@var TRWM tracer in cloud liquid water amount (kg/m2/layer)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: trwm
 #endif
 
@@ -1348,19 +1348,17 @@ C****
 
       end module tracer_io_filter
 
-      subroutine rescale_tracer_state(dir)
-! temporary convenience routine to change tracer units between kg and kg/m2
+      subroutine rescale_tracer_state(dir,n)
+! convenience routine to change tracer units between kg and kg/m2
       use resolution, only : lm
       use domain_decomp_atm, only : grid
       use geom, only : axyp,byaxyp
       use tracer_com, only : ntm,trm,trmom
-#ifdef TRACERS_WATER
-      use tracer_com, only : trwm
-#endif
       implicit none
       integer :: dir ! -1,+1 to divide,multiply by area
+      integer :: n   ! index of tracer to rescale
 !
-      integer :: i,j,l,n
+      integer :: i,j,l
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: fac
 
@@ -1372,17 +1370,13 @@ C****
         call stop_model('bad dir in rescale_tracer_state',255)
       endif
 
-      do n=1,ntm
-        do l=1,lm
-          do j=grid%j_strt,grid%j_stop
-            do i=grid%i_strt,grid%i_stop
-              trm(i,j,l,n) = trm(i,j,l,n)*fac(i,j)
-              trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fac(i,j)
-#ifdef TRACERS_WATER
-              trwm(i,j,l,n) = trwm(i,j,l,n)*fac(i,j)
-#endif
-            enddo
+      do l=1,lm
+        do j=grid%j_strt,grid%j_stop
+          do i=grid%i_strt,grid%i_stop
+            trm(i,j,l,n) = trm(i,j,l,n)*fac(i,j)
+            trmom(:,i,j,l,n) = trmom(:,i,j,l,n)*fac(i,j)
           enddo
         enddo
       enddo
+
       end subroutine rescale_tracer_state

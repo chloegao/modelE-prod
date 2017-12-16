@@ -6,7 +6,6 @@
      &     write_parallel,readt8_parallel
       USE RESOLUTION, only : jm,lm
       USE ATM_COM, only: pmidl00
-      USE GEOM, only: axyp,byaxyp
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
       use OldTracer_mod, only: trname
       USE TRACER_COM, only: ntm, tracers, syncProperty
@@ -311,7 +310,7 @@ C Read landuse parameters and coefficients for tracer dry deposition:
         do j=J_0,J_1 ; do i=I_0,I_1
           locColIn(:)=loc3D(I,J,:) ! mass mixing ratio
           call logpint(nlev,IClevs,locColIn,LM,PMIDL00,locCol,.true.)
-          ICs(i,j,:) = locCol(:)*MA(:,i,j)*axyp(i,j) ! mass
+          ICs(i,j,:) = locCol(:)*MA(:,i,j) ! kg/m2 mass
         end do ; end do
         ! clean up:
         if(am_i_root()) then

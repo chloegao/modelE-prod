@@ -24,7 +24,6 @@ C
       USE TOMAS_AEROSOL, only: xk
       USE CONSTANT,   only : pi,lhe
       USE ATM_COM,   only: pmid,pk   ! midpoint pressure in hPa (mb)
-      USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
 
       IMPLICIT NONE
 
@@ -114,7 +113,7 @@ C*********************************************************************
         mtot=0.d0
         do c=1,icomp-2
           trnum=n_aso4(1)-1+k+nbins*(c-1)
-          m_spec(c)=trm(i,j,l,trnum) !aerosol mass in a size bin [kg]
+          m_spec(c)=trm(i,j,l,trnum) !aerosol mass in a size bin [kg/m2]
           
           if(c.eq.1) then  !Sulfate water uptake
             m_spec(c)=trm(i,j,l,trnum)*1.1875 !so4 => (NH4)2SO4
@@ -223,7 +222,7 @@ C     Determine size parameter
             qext=TOMAS_qext(ix1,irefre1,ilogrefim1) !extinction efficiency [no unit]
             qsca=TOMAS_qsca(ix1,irefre1,ilogrefim1) !scattering efficiency
             gsca=TOMAS_gsca(ix1,irefre1,ilogrefim1) !asymmetry parameter
-            burden1 = m_spec(c)*bydxyp(j) ! [kg/m2] 
+            burden1 = m_spec(c) ! [kg/m2] 
 
 !            print*, 'rfwet', reffwet
 !            print*, 'density', density

@@ -139,7 +139,6 @@ C-----INCLUDE FILES--------------------------------------------------
       USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE ATM_COM,   only: pmid,pk,byma,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
@@ -194,9 +193,9 @@ C     Loop over all grid cells
                temp = pk(l,i,j)*t(i,j,l) !should be in [K]
                rh = MIN(1.d0,q(i,j,l)/QSAT(temp,lhe,pmid(l,i,j))) ! rH [0-1]
                pres= pmid(l,i,j)*100. ! pmid in [hPa]
-               boxmass = MA(l,i,j)*axyp(i,j) !kg of air
+               boxmass = MA(l,i,j) !kg/m2 of air
                boxvol=boxmass/mair*1000.d0
-     &              *gasc*temp/pres*1e6 !cm3
+     &              *gasc*temp/pres*1e6 !cm3/m2
  
 Cjrp  Initialize all components condensible gas values to zero      
 Cjrp  Gc(srtso4) will remain zero until within cond_nuc where the
@@ -475,10 +474,10 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,tracnum).gt.0) 
      &                taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
-     &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
+     &                    +AEROD(i,j,l,tracnum,np) ! /adt
                      if (itcon_TOMAS(np,tracnum).gt.0) 
      &                    call inc_diagtcb(i,j,
-     &                    AEROD(i,j,l,tracnum,np)*byaxyp(i,j),
+     &                    AEROD(i,j,l,tracnum,np),
      &                    itcon_TOMAS(np,tracnum),tracnum)
                   enddo
 
@@ -491,11 +490,11 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,tracnum).gt.0) 
      &                   taijs(i,j,ijts_TOMAS(np,tracnum)) 
      &                    =taijs(i,j,ijts_TOMAS(np,tracnum))
-     &                    +AEROD(i,j,l,tracnum,np)*byaxyp(i,j) ! /adt
+     &                    +AEROD(i,j,l,tracnum,np) ! /adt
 
                      if (itcon_TOMAS(np,tracnum).gt.0) 
      &                    call inc_diagtcb(i,j,
-     &                    AEROD(i,j,l,tracnum,np)*byaxyp(i,j),
+     &                    AEROD(i,j,l,tracnum,np),
      &                    itcon_TOMAS(np,tracnum),tracnum)
                   enddo
 
@@ -514,10 +513,10 @@ C     Check for negative tracer problems
                      if (ijts_TOMAS(np,n_H2SO4).gt.0) 
      &                taijs(i,j,ijts_TOMAS(np,n_H2SO4)) 
      &                    =taijs(i,j,ijts_TOMAS(np,n_H2SO4))
-     &                    +AEROD(i,j,l,n_H2SO4,np)*byaxyp(i,j) ! /adt
+     &                    +AEROD(i,j,l,n_H2SO4,np) ! /adt
                      if (itcon_TOMAS(np,n_H2SO4).gt.0) 
      &                    call inc_diagtcb(i,j,
-     &                    AEROD(i,j,l,n_H2SO4,np)*byaxyp(i,j),
+     &                    AEROD(i,j,l,n_H2SO4,np),
      &                    itcon_TOMAS(np,n_H2SO4),n_H2SO4)
                   enddo               
 
@@ -1870,7 +1869,6 @@ C Bulk species
      $     ,MA                  ! BYAM  1/Air mass (m^2/kg) 
       
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only : axyp,BYAXYP
       USE CONSTANT, ONLY : pi,gasc,mair 
 
       USE TRACER_COM, only : nbins,ntm,trm_col,ntsurfsrc,
@@ -1908,8 +1906,8 @@ c$$$      ENDIF
       tscale=5.*3600.
       temp = pk(l,i,j)*t(i,j,l) !should be in [K]
       pres= pmid(l,i,j)*100.    ! pmid in [hPa]
-      boxvol = MA(l,i,j)*axyp(i,j)/mair*1000.d0
-     &     *gasc*temp/pres*1e6  !cm3
+      boxvol = MA(l,i,j)/mair*1000.d0
+     &     *gasc*temp/pres*1e6  !cm3/m2
 
       do k=1,nbins
         ndist0(k)=trm_preemis(n_ANUM(k),l)
@@ -2012,11 +2010,11 @@ c$$$      ENDIF
           trm_col(l,tracnum)=ndist2(k)          
           taijs(i,j,ijts_subcoag(tracnum)) 
      &         =taijs(i,j,ijts_subcoag(tracnum))
-     &         +N_subgridcg(i,j,l,k,2)*byaxyp(i,j) ! /adt
+     &         +N_subgridcg(i,j,l,k,2) ! /adt
           
           if (itcon_subcoag(tracnum).gt.0) 
      &         call inc_diagtcb(i,j,
-     &         N_subgridcg(i,j,l,k,2)*byaxyp(i,j) ,
+     &         N_subgridcg(i,j,l,k,2) ,
      &         itcon_subcoag(tracnum),tracnum)
           
           do c=1,icomp-idiag            
@@ -2032,11 +2030,11 @@ c$$$      ENDIF
             trm_col(l,tracnum)=mdist2(k,c)
             taijs(i,j,ijts_subcoag(tracnum)) 
      &           =taijs(i,j,ijts_subcoag(tracnum))
-     &           +M_subgridcg(i,j,l,k,c,2)*byaxyp(i,j) ! /adt
+     &           +M_subgridcg(i,j,l,k,c,2) ! /adt
 
             if (itcon_subcoag(tracnum).gt.0) 
      &           call inc_diagtcb(i,j,
-     &           M_subgridcg(i,j,l,k,c,2)*byaxyp(i,j),
+     &           M_subgridcg(i,j,l,k,c,2),
      &           itcon_subcoag(tracnum),tracnum)
                        
           enddo
@@ -2082,7 +2080,7 @@ C-----INCLUDE FILES--------------------------------------------------
      $     ,MA                  ! BYAM  1/Air mass (m^2/kg) 
       
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only : imaxj,axyp,BYAXYP
+      USE GEOM, only : imaxj
       USE CONSTANT, ONLY : pi,gasc,mair 
 
       USE TRACER_COM, only : nbins,ntm,trm,trmom,ntsurfsrc,
@@ -2118,8 +2116,8 @@ C-----VARIABLE DECLARATIONS-----------------------------------
         tscale=5.*3600.
         temp = pk(l,i,j)*t(i,j,l) !should be in [K]
         pres= pmid(l,i,j)*100.  ! pmid in [hPa]
-        boxvol = MA(l,i,j)*axyp(i,j)/mair*1000.d0
-     &       *gasc*temp/pres*1e6 !cm3
+        boxvol = MA(l,i,j)/mair*1000.d0
+     &       *gasc*temp/pres*1e6 !cm3/m2
         
 !     Amount of tracer before emission is applied.         
         do k=1,nbins
@@ -2145,7 +2143,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
           
           do k=1,nbins
             
-            ndistinit(k)=axyp(i,j)*trsource(i,j,NS,n_ANUM(k))*dtstep
+            ndistinit(k)=trsource(i,j,NS,n_ANUM(k))*dtstep
           
             tot_ndistinit(k)=tot_ndistinit(k)+ndistinit(k) !sum of number emission for SO4, EC, and OC
           enddo
@@ -2195,10 +2193,10 @@ C-----VARIABLE DECLARATIONS-----------------------------------
      &         tot_ndistinit(k) ! emission before subgrid
           
 !          trflux_tom=atmsrf%trflux_prescr(tracnum,i,j)
-!     &         /byaxyp(i,j)+
+!     &         +
 !     &         (ndist(k)- tot_ndistinit(k))/dtstep !kg/sec
 
-          atmsrf%trflux_prescr(tracnum,i,j)= ndist(k)/dtstep*byaxyp(i,j) ! kg/s to kg/m2/s
+          atmsrf%trflux_prescr(tracnum,i,j)= ndist(k)/dtstep ! kg/m2/s
           
           do c=1,icomp-idiag            
             tracnum=n_ASO4(k)+nbins*(c-1)
@@ -2211,19 +2209,19 @@ C-----VARIABLE DECLARATIONS-----------------------------------
               if(c.eq.5.or.c.eq.6)  tomas_ntsurf=ntsurfsrc(n_AOCOB(1)) !ecob              
               M_subgridcg(i,j,l,k,c,1)=M_subgridcg(i,j,l,k,c,1)
      &             + mdist(k,c)-
-     &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j)*dtstep
+     &             atmsrf%trflux_prescr(tracnum,i,j)*dtstep
 !     &             (sum(trsource(i,j,1:tomas_ntsurf,tracnum))*dtstep) ! emission before subgrid
               
             endif
 !            trflux_tom=atmsrf%trflux_prescr(tracnum,i,j)
-!     &           /byaxyp(i,j)+ (mdist(k,c)/dtstep-
-!     &             atmsrf%trflux_prescr(tracnum,i,j)/byaxyp(i,j))
+!     &           + (mdist(k,c)/dtstep-
+!     &             atmsrf%trflux_prescr(tracnum,i,j))
 
 !     &           (sum(trsource(i,j,1:tomas_ntsurf,tracnum))))
 
 
             atmsrf%trflux_prescr(tracnum,i,j)=
-     &           mdist(k,c)/dtstep*byaxyp(i,j)
+     &           mdist(k,c)/dtstep
             
           enddo !c
         enddo ! k
@@ -2408,7 +2406,6 @@ C     determine the mass added to each bin coagulation
 !@auth Yunha Lee. Moved here from TRACERS.f and updated by Greg Faluvegi
 
       use OldTracer_mod
-      use geom, only : byaxyp
       use atm_com, only : byma
       use tracer_com, only : ntm, nbins, n_ASO4, n_ANACL, n_AECOB, 
      & n_AECIL, n_AOCOB, n_AOCIL, n_ADUST, n_AH2O, trm
@@ -2488,7 +2485,7 @@ C     determine the mass added to each bin coagulation
                 ! L=1 PM2.5 mass mixing ratio:
                 case('PM2p5l1m')
                   sddarr2d(i,j)=sddarr2d(i,j)+
-     &            trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+     &            trm(i,j,1,tracnum)*byMA(1,i,j)
                 end select
               end do
             else if(xk(k) <= mp_PM2p5 .and. xk(k+1) >= mp_PM2p5)then
@@ -2507,7 +2504,7 @@ C     determine the mass added to each bin coagulation
                 ! L=1 PM2.5 mass mixing ratio:
                 case('PM2p5l1m')
                   sddarr2d(i,j)=sddarr2d(i,j)+
-     &            trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+     &            trm(i,j,1,tracnum)*byMA(1,i,j)
      &            *((mp_PM2p5-xk(k))/(xk(k+1)-xk(k)))
                 end select
               end do
@@ -2530,7 +2527,7 @@ C     determine the mass added to each bin coagulation
             do jc=1,icomp-idiag
               tracnum=n_ASO4(k)+nbins*(jc-1)
               sddarr2d(i,j)=sddarr2d(i,j)+
-     &        trm(i,j,1,tracnum)*byMA(1,i,j)*byaxyp(i,j)
+     &        trm(i,j,1,tracnum)*byMA(1,i,j)
             end do
           end select
 

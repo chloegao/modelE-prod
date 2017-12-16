@@ -18,7 +18,7 @@
       USE ATM_COM, only: qcl,qci,t
       USE ATM_COM, only: pmid,pk
       USE DIAG_COM, only: jl_dpasrc,jl_dwasrc
-      USE GEOM, only: imaxj,axyp,byaxyp
+      USE GEOM, only: imaxj
       USE SOMTQ_COM, only: mz
       use OldTracer_mod, only: itime_tr0, dowetdep
       USE TRACER_COM, only: ntm, trm
@@ -77,7 +77,7 @@ C**** Latitude-longitude by layer concentration
         do l=1,lm
           do j=J_0,J_1; do i=I_0,I_1
             taijln(i,j,l,n) = taijln(i,j,l,n) +
-     &           byaxyp(i,j)*trm(i,j,l,n)*byMA(l,i,j)*1d2*pmid(l,i,j)/
+     &           trm(i,j,l,n)*byMA(l,i,j)*1d2*pmid(l,i,j)/
      &           (rgas*t(i,j,L)*pk(L,i,j))
           enddo; enddo
         end do
@@ -85,7 +85,7 @@ C**** Latitude-longitude by layer concentration
         do l=1,lm
           do j=J_0,J_1; do i=I_0,I_1
             taijln(i,j,l,n) = taijln(i,j,l,n) +
-     &           byaxyp(i,j)*trm(i,j,l,n)*byMA(l,i,j)
+     &           trm(i,j,l,n)*byMA(l,i,j)
           enddo; enddo
         end do
 !$OMP END PARALLEL DO
@@ -95,7 +95,7 @@ C**** Latitude-longitude by layer concentration
          do l=1,lm
             taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) =
      *      taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) +
-     *      trm   (:,J_0:J_1,l,            n )*byaxyp(:,J_0:J_1)
+     *      trm   (:,J_0:J_1,l,            n )
            end do
         endif
 !$OMP END PARALLEL DO                                                                                                            
@@ -105,7 +105,7 @@ C**** Average concentration; surface concentration; total mass
       if (src_dist_index(n)==0) then
         do j=J_0,J_1
         do i=I_0,I_1
-          tsum = sum(trm(i,j,:,n))*byaxyp(i,j)  !sum over l
+          tsum = sum(trm(i,j,:,n))  !sum over l
           asum = sum(MA(:,i,j))     !sum over l
           taijn(i,j,tij_mass,n) = taijn(i,j,tij_mass,n)+tsum  !MASS
           taijn(i,j,tij_conc,n) = taijn(i,j,tij_conc,n)+tsum/asum
@@ -114,7 +114,7 @@ C**** Zonal mean concentration and mass
         do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_tajln2(i,j,l,jlnt_mass,n,trm(i,j,l,n)*byaxyp(i,j))
+            call inc_tajln2(i,j,l,jlnt_mass,n,trm(i,j,l,n))
           end do
         enddo; enddo
 
@@ -124,8 +124,7 @@ C**** Zonal mean cloud water concentration
         do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
-            call inc_tajln2(i,j,l,jlnt_cldh2o,n,
-     &           trwm(i,j,l,n)*byaxyp(i,j))
+            call inc_tajln2(i,j,l,jlnt_cldh2o,n,trwm(i,j,l,n))
           end do
         enddo; enddo
         end if
@@ -248,7 +247,7 @@ C**** Save current value in TCONSRV(NI)
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm,jm,im
-      use geom, only : imaxj
+      use geom, only : imaxj,axyp
       use OldTracer_mod, only: trname
       use tracer_com, only : trm
 #ifdef TRACERS_WATER
@@ -290,6 +289,7 @@ C****
           end do
         end do
       end do
+      total(:,:) = total(:,:)*axyp(:,:)
 
       IF (HAVE_SOUTH_POLE) total(2:im,1) = total(1,1)
       IF (HAVE_NORTH_POLE) total(2:im,jm)= total(1,jm)
@@ -302,7 +302,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, hassouthpole, hasnorthpole
       use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm,jm,im
-      use geom, only : imaxj
+      use geom, only : axyp
       use OldTracer_mod, only: trname
       use tracer_com, only : trm_col
 #ifdef TRACERS_WATER
@@ -327,6 +327,7 @@ C****
      *           +trwm(i,j,l,nt)
 #endif
       enddo
+      total = total*axyp(i,j)
 
       if(j.eq.1  .and. hassouthpole(grid)) total = total*im ! mimic pole-filling
       if(j.eq.jm .and. hasnorthpole(grid)) total = total*im ! mimic pole-filling

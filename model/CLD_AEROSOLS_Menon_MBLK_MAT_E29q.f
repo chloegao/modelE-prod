@@ -10,7 +10,7 @@
       USE AERO_CONFIG, only: MODE_NAME
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
-     *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
+     *,MCDNL1,MCDNO1,amass,tams,smturb,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,
      *       SSMAL,SSMAO,SSML,SSMO
       integer, PARAMETER :: nt=17+ntm_soa/2+ntm_ococean+ntm_vbs
@@ -122,7 +122,7 @@ C****************************************************************************
 c
 #ifndef TRACERS_AMP
 #ifndef TRACERS_TOMAS
-      SUBROUTINE GET_CC_CDNC(L,AIRM,DXYPJ,PL,TL,DSS,MCDNL1,MCDNO1)
+      SUBROUTINE GET_CC_CDNC(L,AIRM,PL,TL,DSS,MCDNL1,MCDNO1)
 !@sum specific calculation to get cloud droplet number for indirect effects
 !@auth Surabi Menon 
 !@Use for calculating cloud droplet number for convective clouds
@@ -136,7 +136,7 @@ c
       USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
-     *,MCDNL1,MCDNO1,amass,tams,smturb,DXYPJ,PL,TL
+     *,MCDNL1,MCDNO1,amass,tams,smturb,PL,TL
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,
      *       SSMAL,SSMAO,SSML,SSMO
       real*8 SSMD1,SSMD2,SSMD3, SSM1a
@@ -153,7 +153,7 @@ c
 
 C** add in terms for AMASS from other program to get aerosol mass conc.
 C** amass is airmass in kg
-      amass=AIRM*mb2kg*DXYPJ
+      amass=AIRM*mb2kg
 C** This is air density in kg/m3
       rho=1d2*PL/(RGAS*TL)
 C*** DSU gives you aerosol mass in  kg/m3, DSS is in kg of species
@@ -234,7 +234,7 @@ c
 C****************************************************************************
 c
 #ifdef TRACERS_TOMAS 
-      SUBROUTINE GET_CC_CDNC_TOMAS(L,I,J,AIRM,DXYPJ,PL,TL,MCDNL1,MCDNO1)
+      SUBROUTINE GET_CC_CDNC_TOMAS(L,I,J,AIRM,PL,TL,MCDNL1,MCDNO1)
 !@Use for calculating cloud droplet number for convective clouds
 !@when using mass based aerosols
       USE CLOUDS_COM
@@ -242,7 +242,7 @@ c
       USE CONSTANT,only:mb2kg,RGAS
       IMPLICIT NONE
       real*8 AIRM,EXPL,EXPO,WCDNO,WCDNL,rho
-     *,MCDNL1,MCDNO1,amass,tams,DXYPJ,PL,TL,SSMAL,SSMAO
+     *,MCDNL1,MCDNO1,amass,tams,PL,TL,SSMAL,SSMAO
       integer L,i,j,n,k
       real*8 mtot(nbins)
 
@@ -251,7 +251,7 @@ c
 
 C** add in terms for AMASS from other program to get aerosol mass conc.
 C** amass is airmass in kg
-      amass=AIRM*mb2kg*DXYPJ
+      amass=AIRM*mb2kg
 C** This is air density in kg/m3
       rho=1d2*PL/(RGAS*TL)
 C*** DSU gives you aerosol mass in  kg/m3, DSS is in kg of species
@@ -303,7 +303,7 @@ c
 C************************************************************************************
 C** For large-scale stratus clouds
 C*************************************************************************************
-      SUBROUTINE GET_CDNC(LHX,AIRM,WMX,DXYPJ,
+      SUBROUTINE GET_CDNC(LHX,AIRM,WMX,
      *FCLD,CAREA,CLDSAVL,DSS,PL,TL,OLDCDL,
      *VVEL,SME,DSU,CDNL0,CDNL1)
 !@sum specific calculation to get cloud droplet number for indirect effects
@@ -324,7 +324,7 @@ C*******************************************************************************
       real*8,dimension(nt)::DSS,DSU
       real*8 EXPL,EXPO,WCDNL,CDNL0,
      *CCLD0,CCLD1,DCLD,dfn,CDNL1,amass,tams
-     *,FCLD,LHX,DXYPJ
+     *,FCLD,LHX
       real*8 SSM1,SSM2,SSM3,SSM4,SSM5,SSM6,SSM7,SSM8,SSM9,SSMAL,SSML
       real*8 SSMD1,SSMD2,SSMD3,SSM1a
       real*8 term1,term2,vterm,alf
@@ -337,7 +337,7 @@ C*******************************************************************************
       SSMAL=0.d0
 
 !add in terms for AMASS from other program to get aerosol mass conc.
-      amass=AIRM*mb2kg*DXYPJ  
+      amass=AIRM*mb2kg  
 C** This is air density in kg/m3
       rho=1d2*PL/(RGAS*TL)
 C*** DSU gives you aerosol mass in  kg/m3, DSS is in kg of species

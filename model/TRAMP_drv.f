@@ -75,7 +75,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only: axyp,imaxj,BYAXYP
+      USE GEOM, only: imaxj
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
       USE ATM_COM,   only: pmid,pk,byMA,gz, MA   ! midpoint pressure in hPa (mb)
@@ -100,7 +100,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
       REAL(8):: SPCMASS(NMASS_SPCS+2)
       REAL(8):: DT_AERO(NDIAG_AERO,NAEROBOX) !NDIAG_AERO=15
-      REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL,AVOLM2
+      REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       INTEGER:: l,n,J_0, J_1, I_0, I_1, m,nAMP
@@ -131,10 +131,8 @@ C**** functions
       ZHEIGHT1 = GZ(i,j,l) /1000./9.81
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
-c avol [m3/gb] mass of air pro m3      
-      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/pres 
-c avolm2 [m/gridbox ?]
-      AVOLM2 = MA(l,i,j)/mair*1000.d0*gasc*tk/pres 
+c avol [m3/m2/gb] mass of air pro m3      
+      AVOL = MA(l,i,j)/mair*1000.d0*gasc*tk/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 
@@ -174,34 +172,20 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/m2/s]
 #ifdef TRACERS_AMP_M4
       EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSS_SS)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
 #else
       EMIS_MASS(1) =  MAX(trflux1(i,j,n_M_AKK_SU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSA_SS)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(7) =  MAX(trflux1(i,j,n_M_SSC_SS)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
       EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
-     &        *axyp(i,j)
 #endif
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
@@ -286,20 +270,20 @@ c Update physical properties per mode
 c Diagnostic of Processes - Sources and Sincs - timestep included
           if(AMP_NUMB_MAP(nAMP).eq. 0) then  !taijs [kg/s] -> in acc [kg/m2*s]
             do m=1,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n)) +(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOLM2 * 1.d-9)
-              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOLM2 * 1.d-9),itcon_amp(m,n),n)
+              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n)) +(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOL * 1.d-9)
+              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m+8,AMP_AERO_MAP(nAMP))* AVOL * 1.d-9),itcon_amp(m,n),n)
             end do
              
           else
-            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOLM2)
-              if (itcon_amp(1,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOLM2),itcon_amp(1,n),n)
-            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOLM2)
-              if (itcon_amp(2,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOLM2),itcon_amp(2,n),n)
-            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOLM2)
-              if (itcon_amp(3,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOLM2),itcon_amp(3,n),n)
+            taijs(i,j,ijts_AMPp(1,n)) =taijs(i,j,ijts_AMPp(1,n))+(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOL)
+              if (itcon_amp(1,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(2,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(1,n),n)
+            taijs(i,j,ijts_AMPp(2,n)) =taijs(i,j,ijts_AMPp(2,n))+(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOL)
+              if (itcon_amp(2,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(3,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(2,n),n)
+            taijs(i,j,ijts_AMPp(3,n)) =taijs(i,j,ijts_AMPp(3,n))+(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOL)
+              if (itcon_amp(3,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(1,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(3,n),n)
             do m=4,7
-              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))+(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOLM2)
-              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOLM2),itcon_amp(m,n),n)
+              taijs(i,j,ijts_AMPp(m,n)) =taijs(i,j,ijts_AMPp(m,n))+(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOL)
+              if (itcon_amp(m,n).gt.0) call inc_diagtcb(i,j,(DT_AERO(m,AMP_AERO_MAP(nAMP))* AVOL),itcon_amp(m,n),n)
             end do
 
           endif
@@ -308,11 +292,11 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j)/axyp(i,j))
+        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
-        if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOLM2 ,itcon_AMPm(2,n),n) 
+        if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL ,itcon_AMPm(2,n),n) 
        end select
 
       enddo !n

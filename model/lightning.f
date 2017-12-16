@@ -718,10 +718,14 @@
         tr3Dsource(levtrop,nOther,n_NOx) =
      &      tr3Dsource(levtrop,nOther,n_NOx) + srclight(L)
       end do
+
+      tr3Dsource(:,nOther,n_NOx) =
+     &     tr3Dsource(:,nOther,n_NOx)*byaxyp(i,j)
+
 #ifdef ACCMIP_LIKE_DIAGS
       do L=1,LM
         taijls(i,j,L,ijlt_NOxLgt)=taijls(i,j,L,ijlt_NOxLgt) +
-     &     tr3Dsource(L,nOther,n_NOx)*byaxyp(i,j)
+     &     tr3Dsource(L,nOther,n_NOx)
       end do
 #endif
 

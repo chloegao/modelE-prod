@@ -67,7 +67,7 @@ contains
 
   subroutine cld_aer_cdnc_block0( &
        ntx,ntix, &
-       lhx,fcld,vvel,dxypij, &
+       lhx,fcld,vvel, &
        qclx,qcix,cleara,cldsavl,pl,tl,ncll,sme,airm, &
        tm, &
        dsu, &
@@ -78,7 +78,7 @@ contains
     use OldTracer_mod, only: trname
     implicit none
 
-    real*8 :: lhx,fcld,vvel,oldcdn,newcdn,dxypij
+    real*8 :: lhx,fcld,vvel,oldcdn,newcdn
     real*8 DSS(SNTM),DSU(SNTM)
     real*8 :: qclx,qcix,cleara,cldsavl,pl,tl,ncll,sme,airm
     integer :: ntx
@@ -185,7 +185,7 @@ contains
       else
         QCX = QCIX
       endif
-      call GET_CDNC(LHX,AIRM,QCX,DXYPIJ, &
+      call GET_CDNC(LHX,AIRM,QCX, &
            FCLD,CLEARA,CLDSAVL,DSS,PL,TL, &
            NCLL,VVEL,SME,DSU,CDNL0,CDNL1)
       !     write(6,*)"Where is",DSU(L),l
@@ -203,7 +203,7 @@ contains
   subroutine cld_aer_cdnc_block1( &
        i_debug,j_debug, &
        oldcdn,newcdn, &
-       dtsrc,vvel,lhx,fcld,dxypij,pearth, &
+       dtsrc,vvel,lhx,fcld,pearth, &
        prebar,tl,ql,pl,wturb,cldsavl,qclx,qcix,ncll,ncil,airm &
 #if defined(TRACERS_AMP)
        ,nactc &
@@ -221,7 +221,7 @@ contains
 
   integer :: i_debug,j_debug
   real*8 :: oldcdn,newcdn,SNd
-  real*8 :: dtsrc,vvel,lhx,fcld,scdncw,scdnci,dxypij,pearth
+  real*8 :: dtsrc,vvel,lhx,fcld,scdncw,scdnci,pearth
   real*8 :: prebar,tl,ql,pl,wturb,cldsavl,qclx,qcix,ncll,ncil,airm
 #ifdef TRACERS_AMP
   real*8 :: nactc(nmodes)
@@ -345,9 +345,9 @@ contains
 !c$$$C
 !C Get CCN properties
 !C
-!      avol(l) = axyp(i_debug,j_debug)*MA(i_debug,j_debug,l)/mair*
+!      avol(l) = MA(i_debug,j_debug,l)/mair*
 !!!   byam(l) = [m2/kg of air]
-      boxvl = DXYPIJ*airm*mb2kg*rgas*TL  &
+      boxvl = airm*mb2kg*rgas*TL  &
           /100./PL
 
       CALL getCCN (TM,BOXVL,TOT_MI,TOTi,TPi,MLi, &

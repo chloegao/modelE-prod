@@ -343,7 +343,6 @@ c -----------------------------------------------------------------
       USE AERO_CONFIG, only: NMODES
       USE AERO_SETUP,  only: SIG0, CONV_DPAM_TO_DGN   !(nmodes * npoints) lognormal parameters for each mode
       USE AERO_SETUP,  only: MODE_NAME
-      USE GEOM,        only: BYDXYP ! inverse area of gridbox [m-2]
 
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,DENS_SEAS, DENS_BCAR, DENS_OCAR
       use OldTracer_mod, only: trname
@@ -427,8 +426,8 @@ cBond + Berstroem, all wavelength
                end select
              endif
            else                           ! Number
-!          [ - ]                        [#/gb]         [m-2]      
-           NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n) * bydxyp(j)
+!          [ - ]                        [trm units: #/m2/layer]      
+           NUMB_LEV(l,AMP_NUMB_MAP(nAMP)) =trm(i,j,l,n)
           endif
        ENDDO
 

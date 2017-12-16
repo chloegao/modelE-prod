@@ -3124,7 +3124,9 @@ C**** uses the fluxes MUs,MVs,MWs from DYNAM and QDYNAM
         sfcm = 0.; scm = 0.; scf = 0.
         safv = 0.; sbfv = 0.
 
+        call rescale_tracer_state(+1,n)
         CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
+        call rescale_tracer_state(-1,n)
 
 C**** Flux diagnostics
 #ifndef SKIP_TRACER_DIAGS

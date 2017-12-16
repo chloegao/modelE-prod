@@ -27,7 +27,6 @@
       USE ATM_COM, only :   t            ! potential temperature (C)
      $                     ,q            ! saturatered pressure
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only: axyp,BYAXYP
       USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
       USE TRACER_COM, only: nThermo
@@ -158,7 +157,7 @@
       TK = pk(l,i,j)*t(i,j,l)           ! in [K]
       RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3
-      AVOL = MA(l,i,j)*axyp(i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
+      AVOL = MA(l,i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
       ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL

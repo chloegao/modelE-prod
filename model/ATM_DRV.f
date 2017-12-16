@@ -393,7 +393,7 @@ C**** in the atm-surf. coupling data structure.
       use fluxes, only : atmsrf
       use domain_decomp_atm, only : grid, getDomainBounds
       use atm_com, only : t,q,ualij,valij
-      use geom, only : imaxj,byaxyp
+      use geom, only : imaxj
 #ifdef TRACERS_ON
       use tracer_com, only : ntm,trm
 #endif
@@ -415,7 +415,7 @@ c
       do n=1,ntm
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-        atmsrf%trm1(n,i,j) = trm(i,j,1,n)*byaxyp(i,j)
+        atmsrf%trm1(n,i,j) = trm(i,j,1,n)
       enddo
       enddo
       enddo

@@ -23,7 +23,7 @@
 !@var OCT_src    OC Terpene source (kg/m2/s)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: OCT_src !(im,jm,12)
 #endif  /* TRACERS_AEROSOLS_SOA */
-!@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
+!@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/m2/s)
       INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
 !@var PBLH boundary layer height
@@ -391,7 +391,6 @@ c  with wind and ocean temperature functions to get DMS air surface
 c  concentrations
 c want kg DMS/m2/s
       use TimeConstants_mod, only: SECONDS_PER_DAY
-      USE GEOM, only: axyp
       use OldTracer_mod, only: tr_mm
       USE TRACER_COM, only: n_DMS
       use model_com, only: modelEclock
@@ -487,7 +486,7 @@ c
       USE MODEL_COM, only: dtsrc
       USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
-      USE GEOM, only: axyp,imaxj,BYAXYP
+      USE GEOM, only: imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,
      &      ohsr,JmonthCache,
@@ -582,7 +581,6 @@ c impose diurnal variability
       USE MODEL_COM, only: dtsrc
       USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
       USE PBLCOM, only : dclev
-      USE GEOM, only: axyp,BYAXYP
       USE FLUXES, only: tr3Dsource
       USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,ohsr,o3_offline
       USE CONSTANT, only : mair
@@ -698,7 +696,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
           else
             o3mc=trm_col(l,n_Ox)
           endif
-          o3mc = o3mc*dmm*(28.0D0/48.0D0)*BYAXYP(I,J)*byMA(L,I,J)
+          o3mc = o3mc*dmm*(28.0D0/48.0D0)*byMA(L,I,J)
 
           rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te))*10.d5 !assuming pH=5
           rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
@@ -770,7 +768,7 @@ C SO4 production
 
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
-     &      tr3Dsource(l,nChemistry,n)*byaxyp(i,j)
+     &      tr3Dsource(l,nChemistry,n)
 #endif
 
         case('H2O2_s')
@@ -787,7 +785,7 @@ C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
           dtt=dtsrc
-          mm = MA(l,i,j)*axyp(i,j)
+          mm = MA(l,i,j)
           tt = 1.d0/te
           r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
           d6 = exp(-r6*dtsrc)
@@ -817,8 +815,7 @@ c H2O2 losses:5 and 6
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
 
-          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,
-     &         perj(i,j,l)/axyp(i,j))
+          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,perj(i,j,l))
           endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop
@@ -903,7 +900,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
      *     ,NTM
      *     ,lm,n_SO4,n_H2O2,coupled_chem
       use tracer_com, only: aqchem_count,aqchem_list
-      USE CLOUDS, only: NTX,DXYPIJ
+      USE CLOUDS, only: NTX
       USE MODEL_COM, only: dtsrc
 
       IMPLICIT NONE
@@ -932,7 +929,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
 !@var airm layer pressure depth (mb). Multiply by mb2kg to convert to air mass
 !@+   per m2, based on the hydrostatic pressure equation:
 !@+   pressure (Pa=kg/m/s2) = height (m) * density (kg/m3) * g (m/s2)
-!@var amass airmass in kg, calculated by airm*mb2kg*dxypij
+!@var amass airmass in kg/m2, calculated by airm*mb2kg
       real*8, intent(in) :: airm
       real*8 :: amass
 
@@ -1018,7 +1015,7 @@ c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
       if (finc.lt.0.d0) finc=0.d0
 
 ! calculate some variables for later
-      amass=airm*mb2kg*dxypij ! kg
+      amass=airm*mb2kg ! kg/m2
       press = pl*1.d2 ! Pa
 ! comment from Dorothy Koch:
 ! calls to this subroutine are sometimes made at stages of the cloud scheme

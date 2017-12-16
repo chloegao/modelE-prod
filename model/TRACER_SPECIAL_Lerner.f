@@ -453,6 +453,7 @@ C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      use geom, only : axyp
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
@@ -491,7 +492,18 @@ C     Loss rates
       call openunit('LO3_Trop_loss',iu,.true.,.true.)
       do m = 1,12
         CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_3d,0)
-        O3trop_Loss(:,:,1:lmtc,m) = arr_dummy_3d
+        ! The natural units for a rate constant like O3trop_loss are 1/s,
+        ! but for unknowable reasons the input file is in 1/volume/s
+        ! (note the 80-byte title says volume/s, not 1/volume/s). To
+        ! convert to 1/s, apply the gridbox-area part of volume
+        ! immediately here; the vertical length part will be applied
+        ! as instantanous dz in subroutine trop_chem_O3.
+        ! Once this input file is converted to netcdf and vertical
+        ! interpolation to model layering is performed within the model,
+        ! the units should become 1/s.
+        do l=1,lmtc
+          O3trop_Loss(:,:,l,m) = arr_dummy_3d(:,:,l)*axyp
+        enddo
       enddo
       call closeunit(iu)
 
@@ -546,7 +558,6 @@ c
       USE RESOLUTION, only: jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
       USE CONSTANT, only : grav,rgas
-      USE GEOM, only: axyp
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM, only : trm_col
       USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
@@ -564,8 +575,8 @@ C**** Convert from kg/cm3/s to kg
         do l=1,lmtc
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
-          factor = dtsrc*axyp(i,j)*dz*1.d6    !/cm3->/m3
-          rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg
+          factor = dtsrc*dz*1.d6    ! for 1/cm3->1/m3
+          rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg/m2
           rloss = O3trop_Loss(i,j,l,jmon)*factor*trm_col(l,n)
           if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
@@ -596,7 +607,7 @@ C****
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM
       USE CONSTANT, only : grav,rgas
-      USE GEOM, only: byaxyp,imaxj
+      USE GEOM, only: imaxj
       USE QUSDEF, only : mz,mzz
       USE FLUXES, only: trsource
       implicit none
@@ -630,7 +641,7 @@ c           trm(i,j,l,n) = 0.d0
           else
 c           trm(i,j,l,n) = trm(i,j,l,n) + dmass
           end if
-          trsource(i,j,ns,n) = byaxyp(i,j)*dmass/dtsrc
+          trsource(i,j,ns,n) = dmass/dtsrc
         enddo
       enddo
       RETURN
@@ -671,7 +682,6 @@ cXXXXX DSOL NOT USED XXXXX
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: itime,dtsrc
       USE ATM_COM, only: t,pk,MA! Air mass of each box (kg/m^2)
-      USE GEOM, only: axyp
       USE TRACER_COM, only : trm_col,tr_mm,mass2vol
       USE PRATHER_CHEM_COM, only: nstrtc
       USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
@@ -698,11 +708,11 @@ c calculate ozone column above box (and save)
 c   dcolo3 = ozone column (in DU) in given layer
 c   colo3 =  ozone column above layer + half of column in layer
         if (l.eq.lm) then       !top model layer
-          dcolo3(l) = trm_col(l,n) / axyp(i,j) *
+          dcolo3(l) = trm_col(l,n)  *
      &         avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
           colo3(l) = dcolo3(l)*0.5
         else
-          dcolo3(l) = trm_col(l,n)/ axyp(I,J) *
+          dcolo3(l) = trm_col(l,n) *
      &         avog/(tr_mm(n)*1d-3)/ 2.687d16 * 1d-4
           colo3(l) = colo3(l+1) + (dcolo3(l)+dcolo3(l+1))*0.5
         endif
@@ -711,18 +721,18 @@ c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
         T0Mold=trm_col(l,n)
 c climatological P-L:
-        climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)
 c local ozone feedback:
         dero3=tlT0M(j,lr,5)
-        climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)
 c column ozone feedback:
-        derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)
         dco3=(colo3(l)-tlT0M(j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-        dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+        dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)
         dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
-CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*MA(l,i,j)*axyp(i,j)
+CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*MA(l,i,j)
 c calulate steady-state ozone:
         sso3=climo3 - (climpml+dco3*derco3+dtmp*dertmp)/dero3
 CXXX        sso3=climo3 -

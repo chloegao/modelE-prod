@@ -1532,7 +1532,7 @@ C**** fluxes associated with variable lake fractions
 #endif
 !@var TRFLUX1 total surface flux for each tracer (kg/m2/s)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: trflux1
-!@var TR3DSOURCE 3D sources/sinks for tracers (kg/s)
+!@var TR3DSOURCE 3D sources/sinks for tracers (kg/m2/s)
 #ifndef SKIP_TRACER_SRCS
       ! tr3Dsource to be moved to TRACER_COM since it has nothing
       ! to do with atmosphere-surface interaction.

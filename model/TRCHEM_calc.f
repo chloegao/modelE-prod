@@ -13,7 +13,6 @@ C
       USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
       USE ATM_COM, only         : MA, byMA,ltropo
-      USE GEOM, only            : byaxyp,axyp
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
      &     ,ijlt_OHvmr,ijlt_OHconc
@@ -115,7 +114,7 @@ C**** Local parameters and variables and arguments:
 !@var tempiter temp var for equilibrium calc iterations
 !@var changeX temporary variable for equil calcs
 !@var rMAbyM is airmass over air concentration
-!@var dxbym2v is axyp over mass2volume
+!@var dxbym2v is 1 over mass2volume
 !@var sv_changeN2O N2O change without portion making N2 (for N cons)
 !@var vClONO2, vBrONO2 temporary vars within N conservation
 !@var changeH2O chemical change in H2O
@@ -1050,7 +1049,7 @@ C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
-        dQM(L) = dQ(L)*MA(L,I,J)*axyp(I,J)
+        dQM(L) = dQ(L)*MA(L,I,J)
         if(clim_interact_chem > 0)then
           fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
           Q(I,J,L) = Q(I,J,L) + dQ(L)
@@ -1068,9 +1067,9 @@ C       -- Qmom --:
       end do
 
 C     -- diags --:
-      call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ochem,dQM/axyp(i,j))
+      call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ochem,dQM)
       if(clim_interact_chem > 0)then
-        dQMsum = sum(dQM(1:maxL))/axyp(i,j)
+        dQMsum = sum(dQM(1:maxL))
         do it=1,ntype
           call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
         end do
@@ -1465,7 +1464,7 @@ c Loops to calculate tracer changes:
 
       do igas=1,ntm_chem ! TRACER LOOP -----------------
        idx = igas+ntm_chem_beg-1
-       dxbym2v=axyp(I,J)*vol2mass(idx)
+       dxbym2v=vol2mass(idx)
        do L=1,maxL
          conc2mass=rMAbyM(L)*dxbym2v
          c2ml(l) = conc2mass
@@ -1776,25 +1775,25 @@ c Conserve ClOx with respect to HOCl:
 
        if(idx == n_CO)then
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_COp,
-     &        prod(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+     &        prod(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_COd,
-     &        dest(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+     &        dest(igas,1:maxL)*c2ml(1:maxL))
        else if(idx == n_Ox)then
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxp ,
-     &        prod(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+     &        prod(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls2_column(i,j,1,maxT,maxT,jls_OxpT,
-     &        prod(igas,1:maxT)*c2ml(1:maxT)*byaxyp(i,j))
+     &        prod(igas,1:maxT)*c2ml(1:maxT))
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxd ,
-     &        dest(igas,1:maxL)*c2ml(1:maxL)*byaxyp(i,j))
+     &        dest(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls2_column(i,j,1,maxT,maxT,jls_OxdT,
-     &        dest(igas,1:maxT)*c2ml(1:maxT)*byaxyp(i,j))
+     &        dest(igas,1:maxT)*c2ml(1:maxT))
        end if
 
       end do  ! igas ! end of TRACER LOOP -----------------
 
 c Separate N2O change for N cons, leave out N2O->N2+O fromm cons:
       sv_changeN2O(1:maxL)=
-     &  -chemrate(rrbi%N2O_O1D__NO_NO,1:maxL)*axyp(i,j)
+     &  -chemrate(rrbi%N2O_O1D__NO_NO,1:maxL)
      &    *rMAbyM(1:maxL)*vol2mass(n_N2O)
 
 c Ensure nitrogen conservation,
@@ -1821,7 +1820,7 @@ c (since equilibration of short lived gases may alter this):
 #ifdef TRACERS_HETCHEM
         write(out_line,*) 'HNO3 loss on dust replaced for cons ',
      &  (krate(ijlprn(3),1,1)*y(nn_HNO3,ijlprn(3))*dt2)
-     &  *rMAbyM(ijlprn(3))*axyp(I,J)
+     &  *rMAbyM(ijlprn(3))
         call write_parallel(trim(out_line),crit=jay)
 #endif
       end if
@@ -1855,7 +1854,7 @@ c First check for nitrogen loss > 100% :
      &  changeL(L,n_BrONO2)=minKG-trm_col(L,n_BrONO2)
 #ifdef TRACERS_HETCHEM
         changeL(L,n_HNO3)=changeL(L,n_HNO3)+(krate(l,1,1)
-     &  *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(i,j)*vol2mass(n_HNO3)
+     &  *y(nn_HNO3,l)*dt2)*rMAbyM(L)*vol2mass(n_HNO3)
 !       if(prnchg .and. i == ijlprn(1) .and. j == ijlprn(2)) then
 !         write(out_line,*)
 !    &    changeL(L,n_HNO3),krate(l,1,1),y(nn_HNO3,l)
@@ -2008,14 +2007,14 @@ c          reduce NOx destruction to match N production:
          end if
 #ifdef TRACERS_HETCHEM
          changeL(L,n_HNO3)=changeL(L,n_HNO3)-(krate(l,1,1)
-     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
+     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*vol2mass(n_HNO3)
 #ifdef TRACERS_NITRATE
          changeL(L,n_N_d1)=changeL(L,n_N_d1)+(krate(l,2,1)
-     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
+     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*vol2mass(n_HNO3)
          changeL(L,n_N_d2)=changeL(L,n_N_d2)+(krate(l,3,1)
-     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
+     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*vol2mass(n_HNO3)
          changeL(L,n_N_d3)=changeL(L,n_N_d3)+(krate(l,4,1)
-     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*axyp(I,J)*vol2mass(n_HNO3)
+     &   *y(nn_HNO3,l)*dt2)*rMAbyM(L)*vol2mass(n_HNO3)
 #endif  /* TRACERS_NITRATE */
 #endif  /* TRACERS_HETCHEM */
 
@@ -2038,8 +2037,8 @@ c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
         NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
         NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
         changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
-     &  *(axyp(I,J)*rMAbyM(L))*vol2mass(n_NOx)
-        conc2mass=axyp(I,J)*rMAbyM(L)*vol2mass(n_Ox)
+     &  *(rMAbyM(L))*vol2mass(n_NOx)
+        conc2mass=rMAbyM(L)*vol2mass(n_Ox)
         changeL(L,n_Ox)=changeL(L,n_Ox)+NprodOx*conc2mass
         if(NprodOx <  0.) then ! necessary?
           NprodOx_pos(l) = 0.
@@ -2079,13 +2078,13 @@ c     In the stratosphere, calculate ozone change due to rxn with atomic H:
         end if
       end do
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxd ,
-     &     NprodOx_neg*byaxyp(i,j))
+     &     NprodOx_neg)
       call inc_tajls2_column(i,j,1,maxT,maxL,jls_OxdT,
-     &     NprodOx_neg*byaxyp(i,j))
+     &     NprodOx_neg)
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxp ,
-     &     NprodOx_pos*byaxyp(i,j))
+     &     NprodOx_pos)
       call inc_tajls2_column(i,j,1,maxT,maxL,jls_OxpT,
-     &     NprodOx_pos*byaxyp(i,j))
+     &     NprodOx_pos)
 
       ! We USED TO remove here some of the HNO3 formed heterogeneously,
       ! as it doesn't come back to the gas phase.
@@ -2095,7 +2094,7 @@ c Print chemical changes in a particular grid box if desired:
         do igas=1,ntm_chem
           idx=igas+ntm_chem_beg-1
           changeA=changeL(ijlprn(3),idx)*y(nM,ijlprn(3))*mass2vol(idx)*
-     &    byaxyp(I,J)*byMA(ijlprn(3),I,J)
+     &    byMA(ijlprn(3),I,J)
           if(y(igas,ijlprn(3)) == 0.d0)then
             write(out_line,156) trchemname(igas),': ',changeA,
      &                          ' molecules;  y=0'

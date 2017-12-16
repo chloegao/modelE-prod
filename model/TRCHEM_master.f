@@ -24,7 +24,7 @@ c
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
       USE RAD_COM, only     : CH4X_RADoverCHEM
       use ghgmod
-      USE GEOM, only        : BYAXYP,AXYP,LAT2D_DG,IMAXJ,LAT2D,LON2D
+      USE GEOM, only        : LAT2D_DG,IMAXJ,LAT2D,LON2D
       use OldTracer_mod, only: tr_wd_type, nWater
 
       USE TRACER_COM, only  : N_N2O,N_CH4,N_CFC,N_Isoprene
@@ -104,7 +104,7 @@ C running-averages for interactive wetlands CH4:
               else
                 avgTT_CH4_part(I,J) =
      &          trm(I,J,LTROPO(I,J),n_CH4)
-     &          *mass2vol(n_CH4)*BYAXYP(I,J)*byMA(LTROPO(I,J),I,J)
+     &          *mass2vol(n_CH4)*byMA(LTROPO(I,J),I,J)
               endif
               countTT_part(I,J) = 1.d0
             end if
@@ -121,7 +121,7 @@ C running-averages for interactive wetlands CH4:
       do j=J_0,J_1
         do i=I_0,IMAXJ(j)
           surfIsop(i,j)=trm(i,j,1,n_Isoprene)*mass2vol(n_Isoprene)*
-     &         byaxyp(i,j)*byMA(1,i,j)
+     &         byMA(1,i,j)
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
@@ -162,7 +162,7 @@ c
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
-      USE GEOM, only        : BYAXYP, AXYP, LAT2D_DG, IMAXJ, LAT2D,LON2D
+      USE GEOM, only        : LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
@@ -407,7 +407,7 @@ C CALCULATE TX, THE REAL TEMPERATURE:
         acetone(L)=max(0.d0, ! in molec/cm3
      &  (1.25d0*(
      &    zonalIsop(i,j)-trm_col(L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byaxyp(i,j)*byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &    byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
       enddo
 #ifdef TRACERS_dCO
       do L=1,topLevelOfChemistry
@@ -442,7 +442,7 @@ c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
          idx=igas+ntm_chem_beg-1
          y(igas,L)=trm_col(L,idx)*y(nM,L)*mass2vol(idx)*
-     &   BYAXYP(I,J)*byMA(L,I,J)
+     &   byMA(L,I,J)
        enddo
 
 ! If we are fixing methane for chemistry purposes set it's y here:
@@ -481,9 +481,9 @@ c Tracers (converted from mass to number density):
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
-     &   BYAXYP(I,J)*byMA(L,I,J)
+     &   byMA(L,I,J)
          yso2(i,j,L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
-     &   BYAXYP(I,J)*byMA(L,I,J)
+     &   byMA(L,I,J)
        else
          ! Convert from pptv to molecule cm-3:
          ydms(i,j,L)=dms_offline(i,j,L)*1.0d-12*y(nM,L)
@@ -493,7 +493,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm_col(L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
-     & BYAXYP(I,J)*byMA(L,I,J)
+     & byMA(L,I,J)
 
 c Limit N2O5 number density:
        if(y(nn_N2O5,L) < 1.) y(nn_N2O5,L)=1.d0
@@ -921,13 +921,13 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           end do
 #endif
           sulfate(i,j,l)=sulfate(i,j,l)
-     &      *1.76d2*byaxyp(i,j)*bythick(L)
+     &      *1.76d2*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
           ! just in case loop changes (b/c sulfate is defined to LM):
           if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
         end if
 
-        pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
+        pfactor=MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
@@ -1483,13 +1483,13 @@ C -- CO --
         endif
         wprodCO=rHCHOplusNO3   ! <-- note
         if(changeL(L,n_CO) >= 0.) then  
-          CALL INC_TAJLS2(I,J,L,jls_COp,changeL(L,n_CO)*byaxyp(i,j))
+          CALL INC_TAJLS2(I,J,L,jls_COp,changeL(L,n_CO))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_COp)=taijls(i,j,L,ijlt_COp)+changeCO
      *         *cpd/DTsrc
 #endif
         else
-          CALL INC_TAJLS2(I,J,L,jls_COd,changeL(L,n_CO)*byaxyp(i,j))
+          CALL INC_TAJLS2(I,J,L,jls_COd,changeL(L,n_CO))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
      *         *cpd/DTsrc
@@ -1660,17 +1660,17 @@ c --  Ox --   ( Ox from gas phase rxns)
         END IF
         ! then come diags:
         if(changeL(L,n_Ox) >= 0.) then
-          CALL INC_TAJLS2(I,J,L,jls_Oxp,changeL(L,n_Ox)*byaxyp(i,j))
+          CALL INC_TAJLS2(I,J,L,jls_Oxp,changeL(L,n_Ox))
           if(L<=maxT)
-     &       CALL INC_TAJLS2(I,J,L,jls_OxpT,changeL(L,n_Ox)*byaxyp(i,j))
+     &       CALL INC_TAJLS2(I,J,L,jls_OxpT,changeL(L,n_Ox))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_Oxp)=taijls(i,j,L,ijlt_Oxp)+changeOx
      *         *cpd/DTsrc
 #endif
         else
-          CALL INC_TAJLS2(I,J,L,jls_Oxd,changeL(L,n_Ox)*byaxyp(i,j))
+          CALL INC_TAJLS2(I,J,L,jls_Oxd,changeL(L,n_Ox))
           if(L<=maxT)
-     &       CALL INC_TAJLS2(I,J,L,jls_OxdT,changeL(L,n_Ox)*byaxyp(i,j))
+     &       CALL INC_TAJLS2(I,J,L,jls_OxdT,changeL(L,n_Ox))
 #ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx
      *         *cpd/DTsrc
@@ -1778,13 +1778,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(nn_ClOx,L)=(trm_col(L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_ClOx)*byMA(L,I,J)
           y(nn_HCl,L)= (trm_col(L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
-     &    mass2vol(n_HCl)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_HCl)*byMA(L,I,J)
           y(nn_HOCl,L)=(trm_col(L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
-     &    mass2vol(n_HOCl)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_HOCl)*byMA(L,I,J)
           y(nn_ClONO2,L)=(trm_col(L,n_ClONO2)+changeL(L,n_ClONO2))*
-     &    y(nM,L)*mass2vol(n_ClONO2)*BYAXYP(I,J)*byMA(L,I,J)
+     &    y(nM,L)*mass2vol(n_ClONO2)*byMA(L,I,J)
           CLTOT=((y(nn_CFC,1)/y(nM,1) -
      &         y(nn_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(nn_CFC,1)/(1.8d-9*y(nM,1)))
@@ -1822,13 +1822,13 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(nn_BrOx,L)=(trm_col(L,n_BrOx)+changeL(L,n_BrOx))*y(nM,L)*
-     &    mass2vol(n_BrOx)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_BrOx)*byMA(L,I,J)
           y(nn_HBr,L)= (trm_col(L,n_HBr)+changeL(L,n_HBr))*y(nM,L)*
-     &    mass2vol(n_HBr)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_HBr)*byMA(L,I,J)
           y(nn_HOBr,L)=(trm_col(L,n_HOBr)+changeL(L,n_HOBr))*y(nM,L)*
-     &    mass2vol(n_HOBr)*BYAXYP(I,J)*byMA(L,I,J)
+     &    mass2vol(n_HOBr)*byMA(L,I,J)
           y(nn_BrONO2,L)=(trm_col(L,n_BrONO2)+changeL(L,n_BrONO2))*
-     &    y(nM,L)*mass2vol(n_BrONO2)*BYAXYP(I,J)*byMA(L,I,J)
+     &    y(nM,L)*mass2vol(n_BrONO2)*byMA(L,I,J)
      
           BRTOT=((y(nn_CFC,1)/y(nM,1) - 
      &         y(nn_CFC,L)/y(nM,L))*(4.5d-3/1.8d0)
@@ -1863,16 +1863,16 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         end if ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
 
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
+        pfactor=MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
         tempChangeNOx= ! this needed for several diags below:
-     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
+     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/MA(L,I,J)
 
         tempChangeOx=
-     &  changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/(axyp(I,J)*MA(L,I,J))
+     &  changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/MA(L,I,J)
 
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
@@ -2063,8 +2063,8 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       fact3=cfc_pppv  ! default CFC mixing ratio overwrite
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
-      fact6=2.69d20*axyp(i,j)*byavog
-      fact1=bymair*MA(1,i,j)*axyp(i,j)
+      fact6=2.69d20*byavog
+      fact1=bymair*MA(1,i,j)
       fact5=fact6
       fact4=fact6
       if(use_rad_n2o == 0)fact4=fact1
@@ -2095,21 +2095,21 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
         if(pres2(L) < pltOx)then
               ! -- Ox --
           tr3Dsource(L,nOverwrite,n_Ox)=(ghgCmAtm(L,3)*
-     &         axyp(i,j)*O3MULT - (trm_col(L,n_Ox)+
+     &         O3MULT - (trm_col(L,n_Ox)+
      &         tr3Dsource(L,nChemistry,n_Ox)*dtsrc))*bydtsrc
               ! -- ClOx --
           tr3Dsource(L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &         *vol2mass(n_CLOx)*MA(L,i,j)*axyp(i,j) - (
+     &         *vol2mass(n_CLOx)*MA(L,i,j) - (
      &         trm_col(L,n_ClOx)+tr3Dsource(L,nChemistry,n_ClOx)
      &         *dtsrc))*bydtsrc    
               ! -- BrOx --
           tr3Dsource(L,nOverwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &         *vol2mass(n_BrOx)*MA(L,i,j)*axyp(i,j) - (
+     &         *vol2mass(n_BrOx)*MA(L,i,j) - (
      &         trm_col(L,n_BrOx)+tr3Dsource(L,nChemistry,n_BrOx)
      &         *dtsrc))*bydtsrc
               ! -- NOx --
           tr3Dsource(L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &         *MA(L,i,j)*axyp(i,j)-(trm_col(L,n_NOx)+ 
+     &         *MA(L,i,j)-(trm_col(L,n_NOx)+ 
      &         tr3Dsource(L,nChemistry,n_NOx)*dtsrc))*bydtsrc
         end if    ! pressure
       end do ! L
@@ -2128,7 +2128,7 @@ c (radiation code wants atm-cm units):
         chem_tracer_save(1,L,i,j)=(trm_col(L,n_Ox) +
      &      (tr3Dsource(L,nChemistry,n_Ox) + 
      &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)
-     &      *byaxyp(i,j)*byO3MULT
+     &      *byO3MULT
             ! ... if on active chemistry level, pass O3 instead.
             ! (likely, depending on rundeck settings, your Ox above
             ! the top of the chemistry is actually NINT O3 anyway):
@@ -2137,7 +2137,7 @@ c (radiation code wants atm-cm units):
         chem_tracer_save(2,L,i,j)=(trm_col(L,n_CH4) +
      &      (tr3Dsource(L,nChemistry,n_CH4) + 
      &      tr3Dsource(L,nOverwrite,n_CH4))*dtsrc)
-     &      *byaxyp(i,j)*avog/(tr_mm(n_CH4)*2.69e20)
+     &      *avog/(tr_mm(n_CH4)*2.69e20)
         if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,L,i,j)
             ! Above 3D O3 diagnostic in ppbv units is saved (for humans to see).
             ! Here do it in atm-cm units for direct NINT input for rad code.
@@ -2152,13 +2152,13 @@ c (radiation code wants atm-cm units):
      &    (trm_col(1:topLevelOfChemistry,n_Ox)+
      &    (tr3Dsource(1:topLevelOfChemistry,nChemistry,n_Ox)+
      &    tr3Dsource(1:topLevelOfChemistry,nOverwrite,n_Ox))
-     &    *dtsrc))*byaxyp(i,j)
+     &    *dtsrc))
       taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
      &    sum( 
      &    (trm_col(topLevelOfChemistry+1:LM,n_Ox)+
      &    (tr3Dsource(topLevelOfChemistry+1:LM,nChemistry,n_Ox)+
      &    tr3Dsource(topLevelOfChemistry+1:LM,nOverwrite,n_Ox))
-     &    *dtsrc))*byaxyp(i,j)
+     &    *dtsrc))
 
           ! and the above-chemistry O3 (using the Ox tracer which is probably
           ! O3 from NINT anyway):
@@ -2166,12 +2166,12 @@ c (radiation code wants atm-cm units):
         taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
      &       1.e9*(trm_col(L,n_Ox)+(tr3Dsource(L,nChemistry,n_Ox)+
      &       tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
-     &       byaxyp(i,j)*mass2vol(n_Ox) ! ppbv
+     &       mass2vol(n_Ox) ! ppbv
         CALL INC_TAJLS2         ! (V/V air)
      &      (I,J,L,jls_O3vmr,(trm_col(L,n_Ox)+
      &      (tr3Dsource(L,nChemistry,n_Ox)+
      &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*
-     &      byaxyp(i,j)*mass2vol(n_Ox))
+     &      mass2vol(n_Ox))
       end do 
 
 
@@ -2635,7 +2635,7 @@ C**** GLOBAL parameters and variables:
 #ifdef TRACERS_TOMAS
       USE TRACER_COM, only: n_ASO4,nbins
 #endif
-      USE GEOM, only : lat2d_dg,byaxyp,axyp
+      USE GEOM, only : lat2d_dg
 
       IMPLICIT NONE
 
@@ -2816,7 +2816,7 @@ C Aerosols (14-33 km) & PSCs 14-22 km.
 C
 c Aerosol profiles and latitudinal distribution of extinction 
 c coefficients(in km**-1) are from SAGE II data on GISS web site:
-        pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
+        pfactor=MA(L,I,J)/y(nM,L)
         bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
@@ -2865,7 +2865,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
               sulfate(i,j,L)=sulfate(i,j,L)+trm_col(L,n_ASO4(nb))
             end do
 #endif
-            sulfate(i,j,L)=sulfate(i,j,L)*1.76d2*byaxyp(i,j)*bythick(L)
+            sulfate(i,j,L)=sulfate(i,j,L)*1.76d2*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
             ! just in case loop changes (b/c sulfate is defined to LM):
             if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
@@ -2880,7 +2880,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           if(wprod_sulf>0.2d0*y(nn_N2O5,L))wprod_sulf=0.2d0*y(nn_N2O5,L)
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS2(I,J,L,jls_N2O5sulf,
-     &                   -1.d0*prod_sulf*vol2mass(n_N2O5)*byaxyp(i,j))
+     &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
           rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
         else  
@@ -2973,7 +2973,7 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
           wprod_sulf=dt2*y(nn_N2O5,L)*rr(rrhet%N2O5_H2O__HNO3_HNO3,L)
           prod_sulf=wprod_sulf*pfactor
           CALL INC_TAJLS2(I,J,L,jls_N2O5sulf,
-     &                   -1.d0*prod_sulf*vol2mass(n_N2O5)*byaxyp(i,j))
+     &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
         end if
 
       end do                  !  ==> END ALTITUDE LOOP <==

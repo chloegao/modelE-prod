@@ -11,7 +11,6 @@
      &     tracers_dust_silt5, tracers_minerals, tracers_amp,
      &     tracers_tomas
       use constant, only: rgas
-      use geom, only: axyp
       use resolution, only: im,jm,lm
       use Dictionary_mod, only : sync_param
       use domain_decomp_atm, only: am_i_root, grid, dread_parallel
@@ -176,7 +175,6 @@ c**** prescribed AeroCom dust emissions
 c        write( 6, * ) 'In tracer_ic_soilust:'
 c        write( 6, * ) 'i_0, i_1, j_0, j_1:', i_0, i_1, j_0, j_1
 c        write( 6, * ) 'fearth: ', fearth( i_0:i_1, j_0:j_1 )
-c        write( 6, * ) 'axyp: ', axyp( i_0:i_1, j_0:j_1 )
 
         if ( imDust == 3) work_sum = 0.d0
         do ib = 1,nAerocomDust
@@ -201,15 +199,15 @@ c        write( 6, * ) 'axyp: ', axyp( i_0:i_1, j_0:j_1 )
 c            do j = j_0h,j_1h
 c              do i = i_0h,i_1h
 c                d_dust( i, j, ib, k ) = d_dust( i, j, ib, k ) /
-c     &               SECONDS_PER_DAY / axyp( i, j ) / fearth( i, j )
+c     &               SECONDS_PER_DAY / fearth( i, j )
 c              end do
 c            end do
 
-c            where ( axyp( i_0h:i_1h, j_0h:j_1h ) > 0.d0 .and. fearth(
+c            where ( fearth(
 c     &           i_0h:i_1h, j_0h:j_1h ) > 0.d0 )
 c            d_dust( i_0h:i_1h, j_0h:j_1h, ib, k ) = d_dust( i_0h:i_1h,
-c     &           j_0h:j_1h, ib, k ) / SECONDS_PER_DAY / axyp( i_0h:i_1h,
-c     &           j_0h:j_1h ) / fearth( i_0h:i_1h, j_0h:j_1h )
+c     &           j_0h:j_1h, ib, k ) / SECONDS_PER_DAY
+c     &           / fearth( i_0h:i_1h, j_0h:j_1h )
 c            elsewhere
 c              d_dust( i_0h:i_1h, j_0h:j_1h, ib, k ) = 0.d0
 c            end where

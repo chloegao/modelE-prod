@@ -18,7 +18,6 @@
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, ntm_clay,
      &     ntm_sil1, ntm_sil2, ntm_sil3
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
 c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, byavog, gasc
@@ -184,7 +183,7 @@ c  Or use online dust
 
       do nd = 1,ndtr ; do l  = 1,lm
         dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
-     &       ntix_dust( nd ) ) * byMA( l, i, j ) * byaxyp( i, j )
+     &       ntix_dust( nd ) ) * byMA( l, i, j )
       end do ; end do
 
 c--------------------------------------------------------------
@@ -271,7 +270,6 @@ c radii interpolation
      &     ntm_sil1, ntm_sil2, ntm_sil3
       use TRACER_COM, only: rxts1, rxts2, rxts3, rxts4
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE GEOM,       only:  byaxyp
       USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, byavog, gasc
       USE DOMAIN_DECOMP_ATM, only : am_i_root
@@ -445,7 +443,7 @@ c  Or use online dust
 
       do nd = 1,ndtr ; do l  = 1,lm
         dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
-     &       ntix_dust( nd ) ) * byMA( l, i, j ) * byaxyp( i, j )
+     &       ntix_dust( nd ) ) * byMA( l, i, j )
       end do ; end do
 
 c--------------------------------------------------------------

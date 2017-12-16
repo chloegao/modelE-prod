@@ -72,7 +72,6 @@ ccc extra stuff which was present in "earth" by default
       use ghy_com, only : ngm,nlsn
       use constant, only : rhow
 #endif
-      use geom, only : byaxyp
 
       implicit none
       private
@@ -181,7 +180,6 @@ ccc extra stuff which was present in "earth" by default
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE model_com,ONLY : modelEclock
-      USE geom,ONLY : axyp
       USE ghy_com,ONLY : wearth,aiearth,wfcs
       use trdust_mod,only : nDustBins,d_dust,ers_data
      &     ,dustSourceFunction,frclay,frsilt,dryhr,vtrsh
@@ -264,7 +262,7 @@ ccc tracers variables
       pbl_args%dryhr=dryhr(i,j)
 c**** prescribed dust emission
       pbl_args%d_dust( 1:nDustBins ) = d_dust( i, j, 1:nDustBins,
-     &     dayOfYear )/ SECONDS_PER_DAY / axyp( i, j ) / ptype
+     &     dayOfYear )/ SECONDS_PER_DAY / ptype
 c**** mineral fractions of emitted dust aerosols
       pbl_args%mineralFractions(:)=mineralFractions(i,j,:)
 #endif
@@ -308,10 +306,10 @@ c**** mineral fractions of emitted dust aerosols
         td1 = (atmlnd%trsrfflx(n,i,j)
      &       +atmlnd%trflux_prescr(n,i,j)
      &       )*pbl_args%dtsurf           ! kg/m2
-        if(trm(i,j,1,n)*byaxyp(i,j)+(td1+tdryd).lt.0.and.tdryd.lt.0)then
+        if(trm(i,j,1,n)+(td1+tdryd).lt.0.and.tdryd.lt.0)then
           if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdryd
      *         ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-          tdryd= -max(trm(i,j,1,n)*byaxyp(i,j)+td1,0d0)
+          tdryd= -max(trm(i,j,1,n)+td1,0d0)
           !tdryd=tdd
         end if
         ghy_tr%trdd(nx) = -tdryd/pbl_args%dtsurf   ! kg/m^2 s (dry dep.)
@@ -346,7 +344,6 @@ c**** mineral fractions of emitted dust aerosols
       USE TOMAS_EMIS 
 #endif
  !     use socpbl, only : dtsurf
-      use geom, only : axyp
       use sle001, only : nsn,fb,fv
 #ifdef TRACERS_GASEXCH_land_CO2
      &     ,agpp,arauto,asoilresp
@@ -795,7 +792,6 @@ c****
 #endif
 #ifdef WATER_PROPORTIONAL
       use tracer_com, only : NTM,trm
-      use geom, only : axyp
 #endif
       use ent_com, only : entcells
       !use ent_mod, only : ent_prescribe_vegupdate
@@ -814,7 +810,6 @@ c****
      &     ,Qf_ij
 #ifdef TRACERS_ON
 !!! need for Ca hack
-      use geom, only : byaxyp
       use tracer_com, only : trm
 #endif
 #ifdef TRACERS_WATER
@@ -1131,7 +1126,7 @@ ccc stuff needed for dynamic vegetation
       select case(land_CO2_bc_flag)
       case(2)
 #ifdef TRACERS_GASEXCH_land_CO2
-        Ca = trm(i,j,1,n_CO2n)*byaxyp(i,j)/ma1*29.d0/44.d0 *1.d6
+        Ca = trm(i,j,1,n_CO2n)/ma1*29.d0/44.d0 *1.d6
 !     &       *ps*100.0/gasc/ts
 #else
         call stop_model("land_CO2_bc_flag==2 with no C02 tracers",255)
@@ -1389,7 +1384,7 @@ c calculate fluxes of atmosphere-only water tracers.
 c assume 1-way until up/down fluxes of vapor are available
 c as a PBL diagnostic.
       conc1(1:ntm) = trm(i,j,1,1:ntm)/
-     &     (q1*axyp(i,j)*atmlnd%am1(i,j)+1d-20)
+     &     (q1*atmlnd%am1(i,j)+1d-20)
       do itr=1,ntm
         if(aevap.ge.0.) then
           trconcflx = atmlnd%gtracer(itr,i,j)
@@ -1600,7 +1595,7 @@ c***********************************************************************
       use model_com, only : dtsrc,nday,itime
       use TimeConstants_mod, only: DAYS_PER_YEAR, INT_HOURS_PER_DAY
       use DOMAIN_DECOMP_ATM, only : grid
-      use geom, only : axyp,lat2d
+      use geom, only : lat2d
       use sle001, only :
      &     tp
      &    ,fv,fb,atrg,ashg,alhg
@@ -3429,7 +3424,7 @@ c**** hack to reset roughl for non-standard land ice fractions
       use constant, only : rhow
       use fluxes, only : focean
       use resolution, only : im,jm
-      use geom, only : imaxj,AXYP
+      use geom, only : imaxj
       use ghy_com, only : ngm
       use ent_com, only : entcells, excess_C
       use ent_mod, only : ent_get_exports
@@ -3486,7 +3481,7 @@ cddd      counter = counter + 1
       use constant, only : rhow
       use fluxes, only : focean, flice
       use resolution, only : im,jm
-      use geom, only : imaxj,AXYP
+      use geom, only : imaxj
       use ghy_com, only : ngm,w_ij,wsn_ij,fr_snow_ij,nsn_ij,fearth
       !use veg_com, only : afb
       use LAKES_COM, only : flake
@@ -3607,7 +3602,7 @@ c****
 !@auth Gavin Schmidt
       use fluxes, only : focean, flice
       use resolution, only : im,jm
-      use geom, only : imaxj, axyp
+      use geom, only : imaxj
       use ghy_com, only : ngm,ht_ij,fr_snow_ij,nsn_ij,hsn_ij
      *     ,fearth
       !use veg_com, only : afb

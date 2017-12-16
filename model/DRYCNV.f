@@ -383,7 +383,7 @@ C***
       USE DOMAIN_DECOMP_ATM, only : halo_update,checksum
       USE DOMAIN_DECOMP_ATM, only : halo_update_column,checksum_column
       USE DOMAIN_DECOMP_ATM, only : NORTH, SOUTH
-      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv,axyp
+      USE GEOM, only : imaxj,kmaxj,ravj,idij,idjj,siniv,cosiv
 #ifdef TRACERS_ON
       USE TRACER_COM, only : ntm,trm,trmom,trname,t_qlimit
 #ifdef TRACERS_WATER
@@ -424,11 +424,11 @@ C****
       do n=1,ntm
         do j=j_0,j_1
           do i=i_0,imaxj(j)
-            trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt*axyp(i,j)
+            trm(i,j,1,n) = trm(i,j,1,n) + trflux1(i,j,n)*dt
             trmin=0.d0
 #ifdef TRACERS_WATER
             IF(tr_wd_TYPE(n).eq.nWATER) trmin =
-     &         qmin*trw0(n)*MA(1,i,j)*axyp(i,j)
+     &         qmin*trw0(n)*MA(1,i,j)
 #endif
             if (t_qlimit(n).and.trm(i,j,1,n).lt.trmin) then
               if (qcheck) write(99,*) trname(n),I,J,' TR1:',

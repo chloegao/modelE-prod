@@ -1037,7 +1037,7 @@ subroutine CONDSE
             DDMS(I,J)=-100.*DDMFLX(DDML(I,J))/(GRAV*DTsrc) ! downdraft mass flux
 #ifdef TRACERS_ON
             do nx=1,ntx
-               TRDN1(ntix(nx),I,J)=1d-2*TRDNL(nx,DDML(I,J))*GRAV*BYAXYP(I,J) ! downdraft tracer conc
+               TRDN1(ntix(nx),I,J)=1d-2*TRDNL(nx,DDML(I,J))*GRAV ! downdraft tracer conc
             end do
 #endif
           end if
@@ -1091,7 +1091,6 @@ subroutine CONDSE
 #else
 #endif
             enddo
-            dtrm = dtrm*byaxyp(i,j)
             if(itcon_mc(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:lmcmax)), &
                  itcon_mc(n),n)
             call inc_tajln2_column(i,j,1,lmcmax,lm,jlnt_mc,n,dtrm)
@@ -1686,7 +1685,6 @@ subroutine CONDSE
             dtrm(l) = dtrm(l) + (trwml(nx,l)-trwm(i,j,l,n)-trsvwml(nx,l))
 #endif
           enddo
-          dtrm = dtrm*byaxyp(i,j)
           if(itcon_ss(n).gt.0) call inc_diagtcb(i,j,sum(dtrm(1:LMCLD)), &
                itcon_ss(n),n)
           call inc_tajln2_column(i,j,1,LMCLD,lm,jlnt_lscond,n,dtrm)
@@ -1701,16 +1699,15 @@ subroutine CONDSE
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
             if (ijts_aq(n).gt.0) then ! use ij mask for jl as well
-              call inc_tajls2(i,j,l,jls_incloud(1,n), &
-                   dt_sulf_mc(n,l)*(1.-fssl(l))/dxypij)
-              call inc_tajls2(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l)/dxypij)
+              call inc_tajls2(i,j,l,jls_incloud(1,n),dt_sulf_mc(n,l)*(1.-fssl(l)))
+              call inc_tajls2(i,j,l,jls_incloud(2,n),dt_sulf_ss(n,l))
               taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
-                   (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)
+                   (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))
             end if
 #ifdef ACCMIP_LIKE_DIAGS
             if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &
             taijls(i,j,l,ijlt_prodSO4aq)=taijls(i,j,l,ijlt_prodSO4aq)+ &
-            (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))*byaxyp(i,j)&
+            (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)) &
             /DTsrc
 #endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP or TRACERS_TOMAS */
@@ -1727,7 +1724,7 @@ subroutine CONDSE
 #endif
           end do
 #ifdef TRACERS_WATER
-          trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))*byaxyp(i,j)
+          trprec(n,i,j) = (trprec(n,i,j)+trprss(nx))
 #ifndef SKIP_TRACER_DIAGS
           TRP_acc(n,I,J)=TRP_acc(n,I,J)+trprec(n,i,j)
 #endif
@@ -1753,20 +1750,6 @@ subroutine CONDSE
             !     accumulates special wet depo diagnostics
             !     ..........
             if (diag_wetdep == 1) then
-
-              ! following rescalings to disappear when trm units change to kg/m2
-              trcond_mc(:,nx) = trcond_mc(:,nx)*byaxyp(i,j)
-              trdvap_mc(:,nx) = trdvap_mc(:,nx)*byaxyp(i,j)
-              trflcw_mc(:,nx) = trflcw_mc(:,nx)*byaxyp(i,j)
-              trprcp_mc(:,nx) = trprcp_mc(:,nx)*byaxyp(i,j)
-              trnvap_mc(:,nx) = trnvap_mc(:,nx)*byaxyp(i,j)
-              trwash_mc(:,nx) = trwash_mc(:,nx)*byaxyp(i,j)
-              trwash_ls(:,nx) = trwash_ls(:,nx)*byaxyp(i,j)
-              trprcp_ls(:,nx) = trprcp_ls(:,nx)*byaxyp(i,j)
-              trclwc_ls(:,nx) = trclwc_ls(:,nx)*byaxyp(i,j)
-              trevap_ls(:,nx) = trevap_ls(:,nx)*byaxyp(i,j)
-              trclwe_ls(:,nx) = trclwe_ls(:,nx)*byaxyp(i,j)
-              trcond_ls(:,nx) = trcond_ls(:,nx)*byaxyp(i,j)
 
               if(jls_trdpmc(1,n)>0) call inc_tajls2_column(i,j,1,lmcmax,lm, &
                    jls_trdpmc(1,n),trcond_mc(:,nx))
@@ -1867,11 +1850,11 @@ subroutine CONDSE
           trprec_dust(n,i,j)=0.D0
           do l=1,Lm
             if (itcon_wt(n).gt.0) call inc_diagtcb(i,j, &
-                 (tm_dust(l,n)-trm(i,j,l,n1))/dxypij,itcon_wt(n),n)
+                 tm_dust(l,n)-trm(i,j,l,n1),itcon_wt(n),n)
             trm(i,j,l,n1)=tm_dust(l,n)
             trmom(:,i,j,l,n1)=tmom_dust(:,l,n)
             trprec_dust(n,i,j)=trprec_dust(n,i,j)+trprc_dust(l,n)
-            call inc_tajls2(i,j,l,jls_wet(n1),trprc_dust(l,n)/dxypij)
+            call inc_tajls2(i,j,l,jls_wet(n1),trprc_dust(l,n))
             taijs(i,j,ijts_wet(n1))=taijs(i,j,ijts_wet(n1)) &
                  +trprc_dust(l,n)
           end do
@@ -1886,7 +1869,7 @@ subroutine CONDSE
               if(i == ijdd(1,kr) .and. j == ijdd(2,kr)) then
                 select case (trname(n))
                 case ('Clay','Silt1','Silt2','Silt3','Silt4','Silt5')
-                  tmp(idd_wet)=+trprec_dust(n,i,j)*byaxyp(i,j)/Dtsrc
+                  tmp(idd_wet)=+trprec_dust(n,i,j)/Dtsrc
                   ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                        TMP(IDXD(:))
 #ifndef NO_HDIURN

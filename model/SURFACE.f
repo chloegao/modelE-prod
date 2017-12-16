@@ -884,10 +884,10 @@ C****
           td1 = (asflx(ipatch)%trsrfflx(n,i,j)
      &          +asflx(ipatch)%trflux_prescr(n,i,j)
      &         )*dtsurf         ! kg/m2
-          if (trm(i,j,1,n)*byaxyp(i,j)+(td1+tdd).lt.0.and.tdd.lt.0) then
+          if (trm(i,j,1,n)+(td1+tdd).lt.0.and.tdd.lt.0) then
             if (qcheck) write(99,*) "limiting tdryd surface",i,j,n,tdd
      *           ,trm(i,j,1,n),td1,pbl_args%trs(nx),pbl_args%trtop(nx)
-            tdd= -max(trm(i,j,1,n)*byaxyp(i,j)+td1,0d0)
+            tdd= -max(trm(i,j,1,n)+td1,0d0)
             tdryd=tdd
           end if
           asflx(ipatch)%trsrfflx(n,i,j)=
@@ -1438,7 +1438,7 @@ C**** For distributed implementation - ensure point is on local process.
       USE CONSTANT, only : tf,bygrav,rhows
       USE MODEL_COM, only : dtsrc,itime
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
-      USE GEOM, only : axyp,imaxj,byaxyp
+      USE GEOM, only : imaxj
       USE SOMTQ_COM, only : mz
       USE ATM_COM, only : byMA
       USE RAD_COM, only : trhr
@@ -1686,7 +1686,7 @@ C**** Save surface tracer concentration whether calculated or not
       do n=1,ntm
         if (itime_tr0(n).le.itime) then
           if(.not. needtrs(n)) then
-            atmsrf%travg(n,i,j) = byMA(1,i,j)*byaxyp(i,j)*
+            atmsrf%travg(n,i,j) = byMA(1,i,j)*
      &           max(trm(i,j,1,n)-trmom(mz,i,j,1,n),0d0)
             atmsrf%travg_byvol(n,i,j) =
      &           atmsrf%travg(n,i,j)*atmsrf%rhoavg(i,j)
@@ -2304,7 +2304,7 @@ C****
           ss_num(ss_bin)=(pbl_args%tomas_ss_flux(ss_bin))
      &         /sqrt_xk_xk1(ss_bin)
 ! No subgrid coagulation for sea-salt
-!        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*axyp(i,j)*ptype
+!        TOMAS_EMIS(I,J,ss_bin,1)= trc_flux*ptype
 
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',

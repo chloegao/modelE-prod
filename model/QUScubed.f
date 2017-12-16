@@ -1848,7 +1848,9 @@ c vertical transport
 
       DO N=1,NTM
         IF (itime.LT.itime_tr0(N)) cycle
+        call rescale_tracer_state(+1,n)
         CALL AADVQ (TRM(:,:,:,n),TrMOM(:,:,:,:,n),t_qlimit(n),trname(n))
+        call rescale_tracer_state(-1,n)
       ENDDO
 
       RETURN

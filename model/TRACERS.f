@@ -19,7 +19,7 @@
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: lm
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only : imaxj,byaxyp,lat2d_dg,lon2d_dg
+      USE GEOM, only : imaxj,lat2d_dg,lon2d_dg
       USE QUSDEF, only: nmom
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
@@ -73,7 +73,6 @@ C**** calculate fractional loss and update tracer mass
         if(domom .and. fred.lt.1.) then
           trmom_col(:,l,n) = trmom_col(:,l,n)*fred
         endif
-        dtrm(l) = dtrm(l)*byaxyp(i,j)
         if (naij.gt.0) then
           taijs(i,j,naij) = taijs(i,j,naij) + dtrm(l)
         end if
@@ -733,7 +732,7 @@ C**** trflux1 is total flux into first layer
       SUBROUTINE apply_tracer_2Dsource(dtstep)
 !@sum apply_tracer_2Dsource adds surface sources to tracers
 !@auth Jean Lerner/Gavin Schmidt
-      USE GEOM, only : imaxj,axyp
+      USE GEOM, only : imaxj
       USE QUSDEF, only : mz,mzz
       USE TRACER_COM, only : NTM,trm,trmom
       USE FLUXES, only : trflux1,atmsrf
@@ -764,9 +763,9 @@ C**** modify vertical moments (only from non-interactive sources)
 c this is disabled until vertical moments are also modified
 c during the vertical transport between layer 1 and the others
 c        trmom( mz,:,j,1,n) = trmom( mz,:,j,1,n)-1.5*trflux_prescr(:,j,n)
-c     *       *dtstep*axyp(:,j)
+c     *       *dtstep)
 c        trmom(mzz,:,j,1,n) = trmom(mzz,:,j,1,n)+0.5*trflux_prescr(:,j,n)
-c     *       *dtstep*axyp(:,j)
+c     *       *dtstep
 
 C**** Add prescribed and interactive sources
 c        trflux1(:,j,n) = trflux1(:,j,n)+atmsrf%trsrfflx(n,:,j)
@@ -780,7 +779,7 @@ C**** moments for dew.
        if (src_dist_index(n)==0) then
         do j=J_0,J_1
           do i=i_0,imaxj(j)
-            dewflux=-atmsrf%trsrfflx(n,i,j)*axyp(i,j)*dtstep
+            dewflux=-atmsrf%trsrfflx(n,i,j)*dtstep
             ! The previous criteria were: 
             ! if(atmsrf%trsrfflx(n,i,j).lt.0 .and. trm(i,j,1,n).gt.0)then
             ! The new "dewflux > tinyReal8" takes care of the first of those,
@@ -823,7 +822,6 @@ C****
 #endif
 #endif
       USE TRDIAG_COM, only : jls_decay,itcon_decay
-      USE GEOM, only : byaxyp
       IMPLICIT NONE
       integer, intent(in) :: i,j
 !
@@ -887,7 +885,7 @@ C**** atmospheric diagnostics
 #ifdef TRACERS_WATER
      *           +trwm(i,j,l,n)
 #endif
-     *           -told(l))*byaxyp(i,j))
+     *           -told(l)))
           enddo
 
           call DIAGTCA_1pt(itcon_decay(n),n,i,j)
@@ -905,7 +903,6 @@ C****
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
       use atmcol_com, only : pl,tl,ql,airden=>rhotvl,zl
-      USE GEOM, only : byaxyp
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
       USE TRACER_COM, only : NTM,trm_col,trmom_col
@@ -1024,8 +1021,7 @@ C****           fgrfluxd=stokevdt*gbygz(i,j,l)
           najl = jls_grav(n)
           IF (najl > 0) THEN
             do l=1,lm
-              call inc_tajls2(i,j,l,najl,
-     &             (trm_col(l,n)-told(l))*byaxyp(i,j))
+              call inc_tajls2(i,j,l,najl,trm_col(l,n)-told(l))
             enddo
           END IF
         end if
@@ -1162,7 +1158,7 @@ c**** Interpolate two months of data to current day
       USE CONSTANT, only : teeny
       USE RESOLUTION, only: im,jm,lm
       USE ATM_COM, only : q,qcl,qci
-      USE GEOM, only : axyp,imaxj
+      USE GEOM, only : imaxj
       USE SOMTQ_COM, only : qmom
       USE ATM_COM, only : MA
       USE FLUXES, only : atmocn,atmice,atmgla,atmlnd
@@ -1228,11 +1224,10 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            relerr=abs(trm(i,j,l,n)-ma(l,i,j)*axyp(i,j))/
-     *           (ma(l,i,j)*axyp(i,j))
+            relerr=abs(trm(i,j,l,n)-ma(l,i,j))/ma(l,i,j)
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; amax=ma(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; amax=ma(l,i,j)
             end if
           end do
           end do
@@ -1249,27 +1244,27 @@ C**** check whether air mass is conserved
           do l=1,lm
           do j=j_0,j_1
           do i=i_0,imaxj(j)
-            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)*axyp(i,j)
+            errsc=(q(i,j,l)+sum(abs(qmom(:,i,j,l))))*ma(l,i,j)
             if (errsc.eq.0.) errsc=1.
-            relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j)*axyp(i,j))/errsc
+            relerr=abs(trm(i,j,l,n)-q(i,j,l)*ma(l,i,j))/errsc
             qc = qcl(i,j,l)+qci(i,j,l) ! add liquid and ice to compare to trwm
             if (qc.gt.0 .and. trwm(i,j,l,n).gt.1.) relerr
-     *           =max(relerr,(trwm(i,j,l,n)-qc*ma(l,i,j)*
-     *           axyp(i,j))/(qc*ma(l,i,j)*axyp(i,j)))
+     *           =max(relerr,(trwm(i,j,l,n)-qc*ma(l,i,j))
+     *           /(qc*ma(l,i,j)))
             if ((qc.eq.0 .and.trwm(i,j,l,n).gt.1) .or. 
      *           (qc.gt.teeny .and.trwm(i,j,l,n).eq.0))
      *           print*,"Condensate water mismatch: ",subr,i,j,l,
-     *           trwm(i,j,l,n),qc*ma(l,i,j)*axyp(i,j)
+     *           trwm(i,j,l,n),qc*ma(l,i,j)
             do m=1,nmom
               relerr=max(relerr,(trmom(m,i,j,l,n)-qmom(m,i,j,l)*ma(l,i,j
-     *             )*axyp(i,j))/errsc)
+     *             ))/errsc)
             end do
             if (relerr.gt.errmax) then
               lmax=l ; imax=i ; jmax=j ; errmax=relerr
-              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)*axyp(i,j)
-              twmax=trwm(i,j,l,n) ; wmax=qc*ma(l,i,j)*axyp(i,j)
+              tmax=trm(i,j,l,n) ; qmax=q(i,j,l)*ma(l,i,j)
+              twmax=trwm(i,j,l,n) ; wmax=qc*ma(l,i,j)
               tmomax(:)=trmom(:,i,j,l,n)
-              qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)*axyp(i,j)
+              qmomax(:)=qmom(:,i,j,l)*ma(l,i,j)
             end if
           end do
           end do
@@ -2679,7 +2674,6 @@ C
 
       use domain_decomp_atm, only : grid
       USE resolution, only: LM
-      use geom, only : byaxyp
       use atm_com, only    : byma
       use tracer_com, only : ntm,trm,mass2vol
       use OldTracer_mod, only: trname, pm10fact, pm2p5fact
@@ -2711,7 +2705,7 @@ C
               endif
               do L=1,LmaxSUBDD
                 sddarr3d(:,:,L) = 
-     &          trm(:,:,L,n)*convert*byaxyp(:,:)*byma(L,:,:)
+     &          trm(:,:,L,n)*convert*byma(L,:,:)
               end do
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop
@@ -2735,7 +2729,7 @@ C
               endif
               do L=1,LM ! not LmaxSUBDD in case pressure requested above that
                 sddarr3d(:,:,L) =
-     &          trm(:,:,L,n)*convert*byaxyp(:,:)*byma(L,:,:)
+     &          trm(:,:,L,n)*convert*byma(L,:,:)
               end do
               call inc_subdd(subdd,k,sddarr3d)
               exit ntm_loop2
@@ -2771,9 +2765,9 @@ C
           if(trim(trname(n))//'l1m'.eq.trim(subdd%name(k))) then
             if (to_volume_MixRat(n) == 1) then
               sddarr2d(:,:)=
-     &          trm(:,:,1,n)*mass2vol(n)*byaxyp(:,:)*byma(1,:,:)
+     &          trm(:,:,1,n)*mass2vol(n)*byma(1,:,:)
             else
-              sddarr2d(:,:)=trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+              sddarr2d(:,:)=trm(:,:,1,n)*byma(1,:,:)
             endif
             call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop 
           end if
@@ -2807,7 +2801,7 @@ C
           do n=1,ntm
             if(pm2p5fact(n)/=0.)
      &      sddarr2d(:,:)=sddarr2d(:,:)+pm2p5fact(n)*
-     &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+     &            trm(:,:,1,n)*byma(1,:,:)
           end do
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
       
@@ -2835,7 +2829,7 @@ C
           do n=1,ntm
             if(pm10fact(n)/=0.)
      &      sddarr2d(:,:)=sddarr2d(:,:)+pm10fact(n)*
-     &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
+     &            trm(:,:,1,n)*byma(1,:,:)
           end do
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
 
@@ -2869,7 +2863,6 @@ C
       use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
       use filemanager, only: openunit,closeunit,is_fbsa
-      use geom, only: axyp
       use OldTracer_mod, only: itime_tr0, trname
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
@@ -3030,7 +3023,7 @@ C
                 loop_L: do L=1,LM
                   if (zairL(LL) <= zmod(L)) then
                     airtracer(i,j,L) = airtracer(i,j,L) +
-     &                                 src(i,j,LL)*axyp(i,j)
+     &                                 src(i,j,LL)
                     exit loop_L
                   end if
                   if(L==LM)call stop_model("aircraft lev. problem",255)

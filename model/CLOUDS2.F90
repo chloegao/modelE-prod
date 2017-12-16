@@ -718,7 +718,7 @@ contains
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
     ! for sulfur chemistry
-!@var WA_VOL Cloud water volume (L). Used by GET_SULFATE.
+!@var WA_VOL Cloud water volume (L/m2). Used by GET_SULFATE.
     real*8 WA_VOL
     real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC, SULFOUT,TR_LEFT
     integer :: IAQCH
@@ -1509,10 +1509,10 @@ CLOUD_TOP:  do L=LMIN+1,LM
             call GET_CC_CDNC_MX(L,nmodes,ncaero,MCDNL1,MCDNO1)
 #elif defined(TRACERS_TOMAS)
             CALL GET_CC_CDNC_TOMAS(L,I_debug,J_debug,AIRM_CDNC,&
-                                   DXYPIJ,PL(L),TL(L),MCDNL1,MCDNO1)
+                                   PL(L),TL(L),MCDNL1,MCDNO1)
 #else
             !** This is for the old mass to number calculations nc. is
-            call GET_CC_CDNC(L,AIRM_CDNC,DXYPIJ,PL(L),TL(L),DSS, MCDNL1,MCDNO1)
+            call GET_CC_CDNC(L,AIRM_CDNC,PL(L),TL(L),DSS, MCDNL1,MCDNO1)
 #endif
 
             MNdO=MCDNO1
@@ -1548,7 +1548,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             WMXTR=DQSUM*BYAM(L)
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
-            WA_VOL=COND(L)*1.d2*BYGRAV*DXYPIJ
+            WA_VOL=COND(L)*1.d2*BYGRAV
             call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
                  SULFINOM,SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
                  AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT)
@@ -2753,7 +2753,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               precip_mm = PRCP*100.*bygrav
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
-              WA_VOL= precip_mm*DXYPIJ
+              WA_VOL= precip_mm
 
               call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,SULFINOM, &
                    SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FPLUME,TRPRCP,AIRM(L),LHX, &
@@ -3604,7 +3604,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     defined(TRACERS_AEROSOLS_OCEAN) || defined(TRACERS_AEROSOLS_VBS)
       call cld_aer_cdnc_block0( &
        ntx,ntix, &
-       lhx,fcld,vvel,dxypij, &
+       lhx,fcld,vvel, &
        qclx(l),qcix(l),cleara(l),cldsavl(l),pl(l),tl(l),ncll(l),sme(l),airm(l), &
        tm(l,:), & ! input: tracer amounts
        dsu(:,l), & ! output for re-run of blk_2mom in optical thickness loop below
@@ -3620,7 +3620,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       call cld_aer_cdnc_block1( &
        i_debug,j_debug, &
        oldcdn,newcdn, & ! koch/seasalt reason (1)
-       dtsrc,vvel,lhx,fcld,dxypij,pearth, &
+       dtsrc,vvel,lhx,fcld,pearth, &
        prebar(l),tl(l),ql(l),pl(l),wturb(l),cldsavl(l), &
        qclx(l),qcix(l),ncll(l),ncil(l),airm(l) &
 #if defined(TRACERS_AMP)
@@ -4031,7 +4031,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     (defined TRACERS_TOMAS)
       WA_VOL=0.
       if (QCXNEW.gt.teeny) then
-        WA_VOL=QCXNEW*AIRM(L)*1.D2*BYGRAV*DXYPIJ
+        WA_VOL=QCXNEW*AIRM(L)*1.D2*BYGRAV
       end if
       WMXTR = QCX
       LHX_WA = LHX
@@ -4040,7 +4040,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         if (precip_mm.lt.0.) precip_mm=0.
         WMXTR = PREBAR(L+1)*grav*BYAM(L)*dtsrc
         if (wmxtr.lt.0.) wmxtr=0.
-        WA_VOL=precip_mm*DXYPIJ
+        WA_VOL=precip_mm
         LHX_WA = LHP(L)
       end if
 
@@ -4270,7 +4270,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     (defined TRACERS_TOMAS)
           WA_VOL=0.
           if (QCX.gt.teeny) then
-            WA_VOL=QCX*AIRM(L)*1.D2*BYGRAV*DXYPIJ
+            WA_VOL=QCX*AIRM(L)*1.D2*BYGRAV
           end if
 #endif
           !**** adjust gradients down if Q decreases

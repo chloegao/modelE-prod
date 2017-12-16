@@ -38,7 +38,6 @@ subroutine read_seasalt_sources(swind,itype,ibin,i,j,ss,tr)
 !@auth Dorothy Koch
 ! want kg seasalt/m2/s, for now in 2 size bins
 use TimeConstants_mod, only: SECONDS_PER_DAY
-USE GEOM, only: axyp
 use model_com, only: modelEclock
 use lakes_com, only: flake
 #ifdef TRACERS_TOMAS
