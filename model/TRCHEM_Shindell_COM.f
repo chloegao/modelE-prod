@@ -404,8 +404,6 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 ! (fourth = top region needs no upper pressure)
 !@dbparam windowO2corr linear correction to ss(rj%O2__O_O) O2 in window region (in addition to spherical)
 !@dbparam windowN2Ocorr linear correction to ss(rj%N2O__M_O1D) N2O in window region (in addition to spherical)
-!@dbparam ch4_init_sh,ch4_init_nh initial methane conc. (ppmv) 
-!@+       defaults are for 1990
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
 !@+       to cold-start even if tracers don't. Warning: this includes
 !@+       model strat Q( ) spec. hum. reinitialization, and default =1!
@@ -432,9 +430,7 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                 ,Lmax_rad_O3       = LM ! not topLevelOfChemistry
      &                 ,Lmax_rad_CH4      = LM ! not topLevelOfChemistry
      &                 ,allowSomeChemReinit = 1
-      REAL*8 ::             ch4_init_sh   = 1.750d0
-     &                     ,ch4_init_nh   = 1.855d0
-     &                     ,scale_ch4_IC_file= 1.d0 
+      REAL*8 ::             scale_ch4_IC_file= 1.d0
      &                     ,PltOx         = 0.000d0
      &                     ,Tpsc_offset_N = -10.d0
      &                     ,Tpsc_offset_S = -10.d0
@@ -604,10 +600,12 @@ C**************  Not Latitude-Dependant ****************************
 !@+ initial conditions
 !@var ICfact_N2O scales N2O initial conditions
 !@var ICfact_CFC scales CFC initial conditions
+!@var ch4_init_sh methane inital conditions (ppmv) for Southern Hemisphere
+!@var ch4_init_nh methane inital conditions (ppmv) for Northern Hemisphere
       ! these currently have a grid shape (1,1) to use timestream:
       real*8, dimension(1,1) :: ICfact_N=undef, ICfact_COt=undef,
      & ICfact_COs=undef, ICfact_Oth=undef, ICfact_N2O=undef,
-     & ICfact_CFC=undef
+     & ICfact_CFC=undef, ch4_init_sh=undef, ch4_init_nh=undef
       real*8 :: avgTT_H2O,avgTT_CH4,countTT
       REAL*8 :: XLTAU,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
