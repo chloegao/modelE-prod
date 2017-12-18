@@ -281,7 +281,7 @@ C**** parameters and variables for ISCCP diags
       real*8, public, dimension(nisccp) :: WISCCP
 
 !@param KGZ number of pressure levels for some diags
-      INTEGER, PARAMETER, public :: KGZ = 19
+      INTEGER, PARAMETER, public :: KGZ = 21
 !@param kgz_max is the actual number of geopotential heights saved
       INTEGER, public :: kgz_max
 !@param PMB pressure levels for geopotential heights (extends to strat)
@@ -290,17 +290,17 @@ C**** parameters and variables for ISCCP diags
       REAL*8, DIMENSION(KGZ), PARAMETER, public :: 
      *   GHT = (/     0d0,  900d0, 1500d0, 3000d0, 4500d0, 5600d0,
      *             7800d0, 9500d0,11000d0,12500d0,14500d0,16400d0,
-     *            18500d0,20000d0,24000d9,27000d0,30000d0,35000d0,
-     *            47000d0 /),
+     *            18500d0,20000d0,24000d0,27000d0,30000d0,35000d0,
+     *            47000d0,53000d0,64000d0 /),
      *   PMB = (/  1000d0,  925d0,  850d0,  700d0,  600d0,  500d0,
      *              400d0,  300d0,  250d0,  200d0,  150d0,  100d0,
      *               70d0,   50d0,   30d0,   20d0,   10d0,    5d0,
-     *                1d0 /)
+     *                1d0,   .5d0,   .1d0 /)
       CHARACTER*4, DIMENSION(KGZ), PARAMETER, public ::
      *  PMNAME= (/ '1000', '925 ', '850 ', '700 ', '600 ', '500 ',
      *             '400 ', '300 ', '250 ', '200 ', '150 ', '100 ',
      *             '70  ', '50  ', '30  ', '20  ', '10  ', '5   ',
-     *             '1   ' /)
+     *             '1   ', 'p5  ', 'p1  ' /)
 #ifdef TRACERS_SPECIAL_Shindell
 !@var O_inst saved instantaneous Ox tracer (at PMB lvls)
 !@var X_inst saved instantaneous NOx tracer (at PMB lvls)

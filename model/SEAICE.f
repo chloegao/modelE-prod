@@ -1265,14 +1265,14 @@ C**** reconstitute snow and ice layers
 C**** Mass/heat moves between layers 3 to 4
       FMSI(3) = XSI(3)*DMSI(4)+XSI(4)*(FMSI(2)-DMSI(3))
       IF (FMSI(3).gt.0) THEN      ! downward flux to layer 4
-        FHSI(3) = FMSI(3)*HSIL(3)/MICE(3)
-        FSSI(3) = 0.   ! FMSI(3)*SSIL(3)/MICE(3)
+       FHSI(3) = FMSI(3)*HSIL(3)/MICE(3)
+       FSSI(3) = FMSI(3)*SSIL(3)/MICE(3)
 #ifdef TRACERS_WATER
         FTRSI(:,3) = FMSI(3)*TRSIL(:,3)/(MICE(3)-SICE(3)) 
 #endif
       ELSE                      ! upward flux
-        FHSI(3) = FMSI(3)*HSIL(4)/MICE(4)
-        FSSI(3) = 0.     ! FMSI(3)*SSIL(4)/MICE(4)
+       FHSI(3) = FMSI(3)*(TSIL(4)*shi-lhm)    ! energy of pure ice only
+       FSSI(3) = 0.                           ! no salt up
 #ifdef TRACERS_WATER
         FTRSI(:,3) = FMSI(3)*TRSIL(:,4)/(MICE(4)-SICE(4))
 #endif
