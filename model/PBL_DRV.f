@@ -453,7 +453,7 @@ ccc put drive output data to pbl_args structure
       use exchange_types
       use geom, only : byaxyp
       use OldTracer_mod, only :
-     &     dodrydep,tr_wd_type,nWATER,nPART,nGAS
+     &     trname,dodrydep,tr_wd_type,nWATER,nPART,nGAS
       use tracer_com, only: n_co2n
       implicit none
       integer, intent(in) :: i,j,itype  !@var itype surface type
@@ -482,7 +482,6 @@ c          trgrnd(nx)=atmgla%gtracer(n,i,j)
 C**** trsfac and trconstflx are multiplied by cq*ws and QG_SAT in PBL
             pbl_args%trsfac(nx)=1.
             pbl_args%trconstflx(nx)=atm%gtracer(n,i,j)
-
           else if ( tr_wd_TYPE(n) == nGAS .or.
      &           tr_wd_TYPE(n) == nPART ) then
 #endif

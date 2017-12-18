@@ -330,7 +330,7 @@ c    &        rhobydze,bydzrhoe,x_surf,dtime,lm,.true.)
      &              *bydzerho(l)
           end do
           flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
-          flux_top=0.
+          flux_top=rhoe(lm)*wt_nl(lm)
           call de_solver_main(t,t0,kh,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.false.)
 
@@ -338,6 +338,13 @@ C**** also diffuse moments
 cc        call diff_mom(tmomij)
 
           ! integrate differential eqn for Q
+          flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
+C**** fix first layer for rare tracer problems
+C**** Does this ever happen for q? (put this in just in case)
+            if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=q0(1)/(dtime*bydzerho(1))
+              wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
+            end if
           do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wq_nl(l+1)-rhoe(l)*wq_nl(l))
      &              *bydzerho(l)
@@ -348,15 +355,7 @@ C**** check on physicality of non-local fluxes....
      *               *wq_nl(l))/rhoe(l+1)
               end if
           end do
-          flux_bot=rhoe(1)*qflx+rhoe(2)*wq_nl(2)
-C**** fix first layer for rare tracer problems
-C**** Does this ever happen for q? (put this in just in case)
-            if ( q0(1)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=q0(1)/(dtime*bydzerho(1))
-              wq_nl(2)=(flux_bot-rhoe(1)*qflx)/rhoe(2)
-            end if
-          flux_top=0.
-
+          flux_top=rhoe(lm)*wq_nl(lm)
           call de_solver_main(q,q0,kq,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,.true.)
 c          do l=1,lm
@@ -371,6 +370,14 @@ C**** Use q diffusion coefficient for tracers
 C**** Note that non-local effects for tracers can be included
 C**** parallel to the case of Q
           do n=1,nta
+            flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
+C**** fix first layer for rare tracer problems
+            if ( t_qlimit(n) .and.
+     &           tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
+              flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
+              wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
+            end if
+            
             do l=2,lm-1
               p4(l)=-(rhoe(l+1)*wc_nl(l+1,n)-rhoe(l)*wc_nl(l,n))
      &             *bydzerho(l)
@@ -381,19 +388,12 @@ C**** check on physicality of non-local fluxes....
      *               *wc_nl(l,n))/rhoe(l+1)
               end if
             end do
-            flux_bot=rhoe(1)*trflx(n)+rhoe(2)*wc_nl(2,n) !tr0ij(1,n)
-C**** fix first layer for rare tracer problems
-            if ( t_qlimit(n) .and.
-     &           tr0ij(1,n)-dtime*bydzerho(1)*flux_bot.lt.0 ) then
-              flux_bot=tr0ij(1,n)/(dtime*bydzerho(1))
-              wc_nl(2,n)=(flux_bot-rhoe(1)*trflx(n))/rhoe(2)
-            end if
-            flux_top=0.
-
-            call de_solver_main(trij(1,n),tr0ij(1,n),kh,p4,
+            flux_top=rhoe(lm)*wc_nl(lm,n)
+            call de_solver_main(trij(1,n),tr0ij(1,n),kq,p4,
      &        rhoebydz,bydzerho,flux_bot,flux_top,dtime,lm,t_qlimit(n))
 cc          call diff_mom(trmomij)
-          end do
+
+         end do
 #endif
           dclev(i,j)=real(ldbl)
           pblht(i,j)=dbl
@@ -895,27 +895,29 @@ C****
       end do
 
       ! Lower boundary conditions(x=T) :
-      ! d/dt T = -(1/rho)*d/dz(rho*wt)
-      ! d/dt T = (T(1)-T0(1))/dtime
+      ! at main grid 1
+      ! (T(1)-T0(1))/dtime = -(1/rho)*d/dz(rho*wt)
       ! -d/dz(rho*wt)=-(rhoe(2)*wt(2)-rhoe(1)*wt(1))/dze(1)
       ! wt(2)=-p1(2)*(T(2)-T(1))/dz(1)+wt_nl(2)
-      ! wt(1)=-tvflx, therefore,flux_bot(the quantity used below)
-      !       flux_bot=rhoe(1)*tvflx+rhoe(2)*wt_nl(2)
+      ! the above together yield
+      ! (1+alpha)*T(1)-alpha*T(2)=T0(1)-dtime*bydzerho(1)*flux_bot
+      ! where flux_bot=-rhoe(1)*wt(1)+rhoe(2)*wt_nl(2)
+      ! and specify wt(1)=-tvflx
 
       alpha=dtime*p1(2)*rhoebydz(2)*bydzerho(1)
       dia(1)=1.d0+alpha
       sup(1)=-alpha
       rhs(1)=x0(1)-dtime*bydzerho(1)*flux_bot
 
-      ! Upper boundary conditions:
-
       ! Upper boundary conditions(x=T) :
-      ! d/dt T = -(1/rho)*d/dz(rho*wt)
-      ! d/dt T = (T(n)-T0(n))/dtime
+      ! at main grid n(=lm)
+      ! (T(n)-T0(n))/dtime = -(1/rho)*d/dz(rho*wt)
       ! -d/dz(rho*wt)=-(rhoe(n+1)*wt(n+1)-rhoe(n)*wt(n))/dze(n)
       ! wt(n)=-p1(n)*(T(n)-T(n-1))/dz(n-1)+wt_nl(n)
-      ! wt(n+1)=0, therefore,flux_top
-      ! flux_top=0.
+      ! the above together yield
+      ! -alpha*T(n-1)+(1+alpha)*T(n)=T0(n)+dtime*bydzerho(n)*flux_top
+      ! where flux_top=-rhoe(n+1)*wt(n+1)+rhoe(n)*wt_nl(n)
+      ! and specify wt(n+1)=0
 
       alpha=dtime*p1(n)*rhoebydz(n)*bydzerho(n)
       sub(n)=-alpha
@@ -1229,11 +1231,11 @@ c       cgv1=7.2d0*wstar*(-vflx)/(wm1**2*dbl)
                wt_nl(j)=kh_n*cgh1
                uw_nl(j)=km_n*cgu1
                vw_nl(j)=km_n*cgv1
-#ifdef TRACERS_ON
-               do nt=1,nta
-                 wc_nl(j,nt)=kh_n*cgtr(nt)
-               end do
-#endif
+!#ifdef TRACERS_ON
+!               do nt=1,nta
+!                 wc_nl(j,nt)=kh_n*cgtr(nt)
+!               end do
+!#endif
              endif
              tmp=(1.6d0*ustar2*(1.-zzi)+teeny)**1.5d0
      &           +1.2d0*wstar3*zzi*(1.-.9d0*zzi)**1.5d0

@@ -5939,7 +5939,7 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
 C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(year-Jyear0)*maxDaysInYear + month-JMON0
+        months=(year-Jyear0)*12 + month-JMON0 ! 12=months_in_year
         if ( months.ge.NMONAV ) then
           call reset_ADIAG(0)
           if (Kvflxo.ne.0) then
@@ -6651,3 +6651,63 @@ C****
       RETURN
 C****
       END SUBROUTINE vflx_OCEAN
+
+#ifdef CUBED_SPHERE
+      subroutine get_vorticity(vortl)
+      use resolution, only : lm
+      use domain_decomp_atm, only : grid,getDomainBounds
+      use cs2ll_utils, only : uv_derivs_cs_agrid
+      use strat, only : dfm_type ! temporarily borrowing
+      use constant, only : radius
+      use atm_com, only : ualij,valij
+      implicit none
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) :: vortl
+      integer :: l, i_0,i_1,j_0,j_1
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: ul,vl
+      call getDomainBounds(grid,
+     &     i_strt=i_0,i_stop=i_1, j_strt=j_0,j_stop=j_1)
+      do l=1,lm
+        ul(:,:) = ualij(l,:,:)
+        vl(:,:) = valij(l,:,:)
+        call uv_derivs_cs_agrid(grid,dfm_type,ul,vl,vort=vortl(:,:,l))
+        vortl(i_0:i_1,j_0:j_1,l) = vortl(i_0:i_1,j_0:j_1,l)/radius
+      enddo
+      return
+      end subroutine get_vorticity
+#else
+      subroutine get_vorticity(avt)
+      use resolution, only : im,jm,lm
+      use atm_com, only : u,v
+      use domain_decomp_atm, only : grid,hassouthpole,hasnorthpole,
+     *     halo_update,north
+      use geom, only : dxv,dyp,bydxyp
+      implicit none
+      real*8, dimension(im,grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     *     avt
+      integer :: i,j,l
+      if(hassouthpole(grid)) avt(:, 1,:)=0.
+      if(hasnorthpole(grid)) avt(:,jm,:)=0.
+      call halo_update(grid,u,from=north)
+      call halo_update(grid,v,from=north)
+      do l=1,lm
+        do j=grid%j_strt_skp,grid%j_stop_skp
+          i=1
+            avt(i,j,l)=
+     *         (((u(i,j,l)+u(im,j,l))/2.*DXV(J)-
+     *         (u(i,j+1,l)+u(im,j+1,l))/2.*DXV(J+1))
+     *         +((v(i,j,l)+v(i,j+1,l))/2.-(v(im,j,l)+
+     *         v(im,j+1,l))/2.)*DYP(J))*BYDXYP(J)
+          do i=2,im
+            avt(i,j,l)=
+     *           (((u(i,j,l)+u(i-1,j,l))/2.*DXV(J)-
+     *           (u(i,j+1,l)+u(i-1,j+1,l))/2.*DXV(J+1))
+     *           +((v(i,j,l)+v(i,j+1,l))/2.-(v(i-1,j,l)+
+     *           v(i-1,j+1,l))/2.)*DYP(J))*BYDXYP(J)
+          end do
+        end do
+      end do
+      return
+      end subroutine get_vorticity
+#endif  /* CUBED_SPHERE */
