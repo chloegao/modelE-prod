@@ -1863,8 +1863,7 @@ C
         enddo;              enddo;        enddo
         call inc_subdd(subdd,k,sddcp)
       case ('vortcp')
-        call stop_model('import get_vorticity from ar5_v2',255)
-        !call get_vorticity(vortl)
+        call get_vorticity(vortl)
         call inc_subdd(subdd,k,vortl)
       case ('wcp')
         sddarr(:,:,1:lm-1) = wsave
