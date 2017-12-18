@@ -5,6 +5,7 @@
 !@dbparam base_isopreneX factor to tune the base isoprene emissions
 !@+ globally when #defined BIOGENIC_EMISSIONS
       real*8 :: base_isopreneX=1.d0
+!@var baseisop (kg C / m2 /s ) base isoprene emission
       real*8, allocatable, dimension(:,:,:) :: baseisop
       real*8, parameter :: isopcoeff(npolynb) = (/
      *     -1.86E-01, 2.19E+00,  2.12E+00, -2.43E-01, -4.72E+00,
@@ -134,8 +135,8 @@
 !@+  compliant, as I do not suspect we will commit this code.
 !@+  Units are atoms C cm^-2 leaf s^-1
 !@+  Construct the base emission for each grid box                         
-!@+  Output is baseisop in kg C cm^-2
-!@+  emitted in 1 hour time step                                           
+!@+  Output is baseisop in kg C m^-2 s^-1
+
 
       use biogenic_emis
       use tracers_drydep, only : ijreg,ijland
@@ -171,7 +172,7 @@
 ! Isoprene is traced in terms of equivalent C atoms.
 ! Compute the baseline ISOPRENE emissions, which depend on veg type   
 ! 12.d-3 is the carbon mol wt. in kg/mole.
-! 1.d4 because the convert data from file is /1000: greg says "huh?"
+! 1.d4 is for cm^2 -> m^2
 
       factor = 12.d-3*1.d4*byavog      
 
