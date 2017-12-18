@@ -14,7 +14,7 @@
       !                               INUC = 3, NAPARI
       !                               INUC = 4, EISELE AND MCMURRY, 1997
       !-------------------------------------------------------------------------------------------------------------
-      INTEGER, PARAMETER :: INUC = 3
+      INTEGER, PARAMETER :: INUC = 2
       LOGICAL, PARAMETER :: INCLUDE_ION_ION = .TRUE.      ! include Turco scheme
 
       !-------------------------------------------------------------------------------------------------------------
