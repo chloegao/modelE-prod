@@ -953,7 +953,7 @@ C****
 
       type (TracerBundle), target :: subset
       type (TracerIterator) :: iter
-      integer :: i, n
+      integer :: i, j, k, n
       type (Tracer), pointer :: p
       class (AbstractAttribute), pointer :: pattr
 
@@ -971,6 +971,17 @@ C****
         call toType(indices(i), pattr) ! cast to integer
         i = i + 1
         call iter%next()
+      end do
+
+      ! sort to preserve ordering
+      do j = 1, n - 1
+        do i = j + 1, n
+          if (indices(i) < indices(j)) then ! swap
+            k = indices(i)
+            indices(i) = indices(j)
+            indices(j) = k
+          end if
+        end do
       end do
 
       end subroutine get_tracer_subset_indices
