@@ -1871,7 +1871,7 @@ C Bulk species
       USE MODEL_COM, only : dtsrc
       USE CONSTANT, ONLY : pi,gasc,mair 
 
-      USE TRACER_COM, only : nbins,ntm,trm_col,ntsurfsrc,
+      USE TRACER_COM, only : nbins,ntm,trm_col,
      &     n_ASO4,n_ANACL,n_AECOB,n_AECIL,n_AOCOB,
      &     n_AOCIL,n_ADUST,n_ANUM,n_AH2O
  
@@ -1881,7 +1881,6 @@ C Bulk species
 !
       INTEGER :: L
       INTEGER n,ns,c,k,tot_src,tracnum
-      INTEGER tomas_ntsurf !same as ntsurfsrc
       real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
       real*8,dimension(nbins) ::  ndist, ndist2, ndist0 !the number of particles in the box
       real*8,dimension(nbins,icomp) :: mdist,mdist2,mdist0 ! the mass of each component in the box. (kg)
