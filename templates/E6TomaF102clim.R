@@ -35,6 +35,7 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
+#define TRACERS_AIR
 !  OFF #define CALCULATE_LIGHTNING ! Calculate lightning flash rates when NOx is not needed
 !  OFF #define AUTOTUNE_LIGHTNING  ! Automatically generate lightning tuning parameters (present-day only)
 !<--- generic tracers code end
