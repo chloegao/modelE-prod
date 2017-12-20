@@ -89,6 +89,7 @@ module KochTracersMetadata_mod
 
     subroutine SO4_setSpec(name)
       character(len=*), intent(in) :: name
+      type (Tracer), pointer :: t
       n = oldAddTracer(name)
       n_SO4 = n 
       call set_ntm_power(n, -11)
@@ -100,6 +101,10 @@ module KochTracersMetadata_mod
       call set_pm2p5fact(n, 1.d0) ! fraction that's PM2.5
       call set_pm10fact(n, 1.d0) ! fraction that's PM10
       call set_has_chemistry(n, .true.)
+
+      t => tracers%getReference(trim(name))
+      call t%insert('SO4',.true.)
+
     end subroutine SO4_setSpec
 
     subroutine BCII_setSpec(name)

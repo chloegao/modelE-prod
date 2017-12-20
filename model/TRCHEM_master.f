@@ -227,6 +227,7 @@ c
 #endif  /* TRACERS_dCO */
       use photolysis, only: fastj2_drv,o3_fastj,rj
      &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
+      USE TRACER_COM, only: itrSO4
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
@@ -303,14 +304,11 @@ C**** Local parameters and variables and arguments:
      &  HO2pptv,ObyO3,NO2byNO,ClbyClO,voc2nox_denom,tempChangeOx,pNOloc
       integer :: igas,LL,L,N,inss,L2,n2,Jqq,Iqq,
      & maxT,itemp_iter,ih1330e,ih1030e,ih1030,ih1330,m,istep,index1,
-     & index2,nb
+     & index2
       LOGICAL                   :: error, jay, daylight
       character(len=300)        :: out_line
 
       real*8 :: qsat ! this is a function in UTILDBL.f
-#if (defined TRACERS_TOMAS)
-      integer :: k
-#endif
       integer :: hour, idx
 
 !@var ghgCmAtm array of same shape as rad code/ghgmod ulgas for
@@ -321,10 +319,12 @@ C**** Local parameters and variables and arguments:
 !@var jlat46 lat index relative to the rad code 72x46 grid
 !@var ilon72 lon index relative to the rad code 72x46 grid
       integer :: jlat46,ilon72
+      integer :: ntrSO4
 
 
       call modelEclock%get(hour=hour)
 
+      ntrSO4 = size(itrSO4)
 
       ! prep for/call getgas to obtain ghgmod (rad code) species for use in chemistry:
       ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
@@ -894,32 +894,10 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
           ! layer thickness below is in 1/m units:
-           sulfate(i,j,l)=0.0
-#ifdef TRACERS_AMP
-          sulfate(i,j,L)=
-     &    trm_col(L,n_M_AKK_SU)+trm_col(L,n_M_ACC_SU)+
-     &    trm_col(L,n_M_DD1_SU)+trm_col(L,n_M_DS1_SU)+
-     &    trm_col(L,n_M_DD2_SU)+trm_col(L,n_M_DS2_SU)+
-     &    trm_col(L,n_M_SSA_SU)+trm_col(L,n_M_OCC_SU)+
-     &    trm_col(L,n_M_BC1_SU)+trm_col(L,n_M_BC2_SU)+
-#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M5)
-     &    trm_col(L,n_M_BC3_SU)+
-#endif
-#if (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6) || (defined TRACERS_AMP_M9)
-     &    trm_col(L,n_M_OCS_SU)+
-#endif
-#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6)
-     &    trm_col(L,n_M_DBC_SU)+
-#endif
-     &    trm_col(L,n_M_BOC_SU)+trm_col(L,n_M_BCS_SU)+
-     &    trm_col(L,n_M_MXX_SU)
-#elif (defined TRACERS_AEROSOLS_Koch)
-          sulfate(i,j,L)=trm_col(L,n_SO4)
-#elif (defined TRACERS_TOMAS)
-          do k=1,nbins
-            sulfate(i,j,L)=sulfate(i,j,l)+trm_col(L,n_ASO4(k))
-          end do
-#endif
+          sulfate(i,j,l)=0.0
+          do n=1,ntrSO4
+            sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n))
+          enddo
           sulfate(i,j,l)=sulfate(i,j,l)
      &      *1.76d2*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
@@ -2636,12 +2614,13 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: n_ASO4,nbins
 #endif
       USE GEOM, only : lat2d_dg
+      USE TRACER_COM, only: itrSO4
 
       IMPLICIT NONE
 
 C**** Local parameters and variables and arguments:
 !@var I,J passed horizontal position indicies
-!@var dd,pp,fw,rkp,rk2,rk3M,nb,rrrr,temp dummy "working" variables
+!@var dd,pp,fw,rkp,rk2,rk3M,rrrr,temp dummy "working" variables
 !@var L,jj dummy loop variables
 !@var byta reciprocal of the local temperature
 !@var rkext aerosol extinction from SAGE obs
@@ -2651,7 +2630,7 @@ C**** Local parameters and variables and arguments:
       REAL*8:: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon,waterPPMV
       real*8 :: associationReaction, activationReaction,pfactor,
      & bypfactor,k0T,k0TM,kinfT,kinfTbyM,RVELN2O5,wprod_sulf,prod_sulf
-      INTEGER             :: L,jj,nb
+      INTEGER             :: L,jj
       INTEGER, INTENT(IN) :: I,J
 !@var PRES local nominal pressure
 !@var LAXt,LAXb lowest and highest levels to have nonzero 
@@ -2660,9 +2639,12 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
+      integer :: n,ntrSO4
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
+
+      ntrSO4 = size(itrSO4)
 
       aero(:)=0
       PRES(1:LM) = PMIDL00(1:LM)
@@ -2840,31 +2822,9 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
             ! layer thickness below is in 1/m units:
             sulfate(i,j,L)=0.0
-#ifdef TRACERS_AMP
-            sulfate(i,j,L)=
-     &      trm_col(L,n_M_AKK_SU)+trm_col(L,n_M_ACC_SU)+
-     &      trm_col(L,n_M_DD1_SU)+trm_col(L,n_M_DS1_SU)+
-     &      trm_col(L,n_M_DD2_SU)+trm_col(L,n_M_DS2_SU)+
-     &      trm_col(L,n_M_SSA_SU)+trm_col(L,n_M_OCC_SU)+
-     &      trm_col(L,n_M_BC1_SU)+trm_col(L,n_M_BC2_SU)+
-#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M5)
-     &      trm_col(L,n_M_BC3_SU)+
-#endif
-#if (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6) || (defined TRACERS_AMP_M9)
-     &      trm_col(L,n_M_OCS_SU)+
-#endif
-#if (defined TRACERS_AMP_M1) || (defined TRACERS_AMP_M2) || (defined TRACERS_AMP_M6)
-     &      trm_col(L,n_M_DBC_SU)+
-#endif
-     &      trm_col(L,n_M_BOC_SU)+trm_col(L,n_M_BCS_SU)+
-     &      trm_col(L,n_M_MXX_SU)
-#elif (defined TRACERS_AEROSOLS_Koch)
-            sulfate(i,j,L)=trm_col(L,n_SO4)
-#elif (defined TRACERS_TOMAS)
-            do nb=1,nbins
-              sulfate(i,j,L)=sulfate(i,j,L)+trm_col(L,n_ASO4(nb))
-            end do
-#endif
+            do n=1,ntrSO4
+              sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n))
+            enddo
             sulfate(i,j,L)=sulfate(i,j,L)*1.76d2*bythick(L)
      &      *max(0.1d0,rh(L)*1.33333d0)
             ! just in case loop changes (b/c sulfate is defined to LM):

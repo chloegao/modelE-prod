@@ -132,7 +132,10 @@ contains
         end if
         indices(bin) = func(fullName, bin)
 
-        if ((trim(name)=='AECIL').or.(trim(name)=='AECOB')) then
+        if (trim(name)=='ASO4') then
+          t => tracers%getReference(trim(fullName))
+          call t%insert('SO4',.true.)
+        else if ((trim(name)=='AECIL').or.(trim(name)=='AECOB')) then
           t => tracers%getReference(trim(fullName))
           call t%insert('BC',.true.)
         endif

@@ -672,6 +672,7 @@ c note: not applying CPP when declaring counts/lists.
       integer, dimension(:), allocatable ::
      &     active_list,gases_list,aero_list,water_list,
      &     hlaw_list,aqchem_list
+      integer, allocatable, dimension(:) :: itrSO4
       integer, allocatable, dimension(:) :: itrBC
 
       ! temporary support of legacy interface
@@ -808,6 +809,7 @@ c note: not applying CPP when declaring counts/lists.
         aqchem_list = tmplist_aqchem(1:aqchem_count)
       endif
 
+      call get_tracer_subset_indices(tracers, 'SO4', itrSO4)
       call get_tracer_subset_indices(tracers, 'BC', itrBC)
 
       return

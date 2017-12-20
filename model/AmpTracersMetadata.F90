@@ -745,7 +745,10 @@ contains
       end if
 
       lc=min(2,len(component)) ! this is to convert OCM2,OCM1 etc. to OC for M9
-      if (component(1:lc) == 'OC') then
+      if (trim(component) == 'SU') then
+        t => tracers%getReference(trim(tracerName))
+        call t%insert('SO4',.true.)
+      else if (component(1:lc) == 'OC') then
         call set_om2oc(tracerIndex, 1.4d0)
         tmp = om2oc(tracerIndex)
         call sync_param(trim(tracerName)//"_om2oc",tmp)
