@@ -62,7 +62,6 @@ c
 #ifdef TRACERS_SPECIAL_Shindell
 !@var iu_data unit number
 !@var title header read in from file
-      include 'netcdf.inc'
       integer iu_data,i,j,nq
       character*80 title
       character(len=300) :: out_line
@@ -267,68 +266,38 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 
         subroutine getIC(fn,ICs)
         use resolution, only: im
-        use domain_decomp_1d, only : unpack_data
+        use pario, only : par_open, par_close, read_dist_data, 
+     &   get_dimlen, read_data
         implicit none
-        integer :: fid, vid, pid, did, rc, nlev
+        integer :: fid, nlev
         character(len=*), intent(in) :: fn
-        real*8, dimension(LM) :: locCol
-        real*8, dimension(:,:,:), allocatable :: glob3D, loc3D
-        real*8, dimension(:), allocatable :: IClevs, locColIn
+        real*8, dimension(:,:,:), allocatable :: loc3D ! mass mixing ratio
+        real*8, dimension(:), allocatable :: IClevs
         real*8, dimension(:,:,:), allocatable :: ICs
 
-        ! gather information:
-        if(am_i_root()) then
-          rc=nf_open(fn,ncnowrit,fid)
-          if(rc/=nf_noerr)call err(trim(fn)//' open file',rc)
-          rc=nf_inq_varid(fid,fn,vid) ! var name same as file short name
-          if(rc/=nf_noerr)call err(trim(fn)//' find variable',rc)
-          rc=nf_inq_dimid(fid,'pressures',did)
-          if(rc/=nf_noerr)call err(trim(fn)//' find pressures dimen',rc)
-          rc=nf_inq_varid(fid,'pressures',pid)
-          if(rc/=nf_noerr)call err(trim(fn)//' find pressures',rc)
-          rc=nf_inq_dimlen(fid,did,nlev)
-          if(rc/=nf_noerr)call err(trim(fn)//' find pressures size',rc)
-        end if
-        call broadcast(grid,nlev)
-        ! prepare arrays:
-        allocate(glob3D(im,jm,nlev))
+        ! read the file's data:
+        fid = par_open(grid,trim(fn),'read')
+        nlev = get_dimlen(grid,fid,'pressures')
         allocate(IClevs(nlev))
-        allocate(locColIn(nlev))
-        allocate(loc3D(I_0:I_1,J_0:J_1,nlev))
-        ! read data:
-        if(am_i_root()) then
-          rc=nf_get_vara_double(fid,pid,1,nlev,IClevs)
-          if(rc/=nf_noerr)call err(trim(fn)//' read pressures',rc)
-          rc=nf_get_vara_double
-     &    (fid,vid,(/1,1,1/),(/im,jm,nlev/),glob3D)
-          if(rc/=nf_noerr)call err(trim(fn)//' read glob3D',rc)
-        end if
-        ! distribute to all processors, interpolate in pressure,
-        ! and convert units:
-        call broadcast(grid,IClevs)
-        call unpack_data(grid,glob3D,loc3D)
-        do j=J_0,J_1 ; do i=I_0,I_1
-          locColIn(:)=loc3D(I,J,:) ! mass mixing ratio
-          call logpint(nlev,IClevs,locColIn,LM,PMIDL00,locCol,.true.)
-          ICs(i,j,:) = locCol(:)*MA(:,i,j) ! kg/m2 mass
-        end do ; end do
-        ! clean up:
-        if(am_i_root()) then
-          rc=nf_close(fid)
-          if(rc/=nf_noerr)call err(trim(fn)//' close file',rc)
-        end if
-        deallocate(glob3D,loc3D,IClevs,locColIn)
-        end subroutine getIC
+        allocate(loc3D(grid%i_strt_halo:grid%i_stop_halo,
+     &                 grid%j_strt_halo:grid%j_stop_halo,nlev))
+        call read_data(grid,fid,'pressures',IClevs,bcast_all=.true.)
+        call read_dist_data(grid,fid,trim(fn),loc3D) ! var name same as file short name
+        call par_close(grid,fid)
 
-        subroutine err(activity,rc1)
-        implicit none
-        character(len=*) :: activity
-        integer :: rc1
-        print *, 'Tracer initial conditions reading:'
-        print *, 'While doing: '//trim(activity)//','
-        print *, 'encountered netCDF error: '//trim(nf_strerror(rc1))
-        call stop_model('tracer IC netCDF error. See PRT message.',255)
-        end subroutine err
+        ! interpolate in pressure and convert units:
+        if(size(ICs,3)/=LM) call stop_model(
+     &   'Expected LM 3rd dim size in getIC for file '//trim(fn),255)
+        do j=J_0,J_1
+          do i=I_0,I_1
+            call logpint(nlev,IClevs,loc3D(i,j,:),LM,PMIDL00,ICs(i,j,:),
+     &                   .true.)
+            ICs(i,j,:) = ICs(i,j,:) * MA(:,i,j) ! kg/m2 mass
+          end do
+        end do
+
+        deallocate(loc3D,IClevs)
+        end subroutine getIC
 #endif /* TRACERS_SPECIAL_Shindell */
 
       end subroutine initTracerGriddedData

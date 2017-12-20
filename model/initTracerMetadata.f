@@ -431,7 +431,7 @@
        end if
 #endif
 
-      if (tracers_air .or. accmip_like_diags) then
+      if (tracers_air) then
         call  air_setSpec('Air')
       end if
 

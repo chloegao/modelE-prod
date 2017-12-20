@@ -273,7 +273,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_ocean=0
 #endif  /* TRACERS_OCEAN */
 !@var ntm_air: Number of TRACERS_AIR tracers.
-#if defined TRACERS_AIR || defined ACCMIP_LIKE_DIAGS
+#if defined TRACERS_AIR
       integer, parameter :: ntm_air=1
 #else
       integer, parameter :: ntm_air=0
