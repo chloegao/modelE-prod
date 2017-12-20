@@ -475,24 +475,16 @@ c
       SUBROUTINE aerosol_gas_chem_prep
 !@sum prepare info for aerosol gas phase chemistry
 !@auth Dorothy Koch
-      use OldTracer_mod, only: trname, tr_mm
-      use TRACER_COM, only: ntm, oh_live, no3_live, trm
-      USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT, getDomainBounds 
+      USE DOMAIN_DECOMP_ATM, only: getDomainBounds
       USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GRID, write_parallel
+      USE DOMAIN_DECOMP_ATM, only : GRID
       use resolution, only: im,lm
-      use atm_com, only : t,q
       use model_com, only: modelEclock
-      USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
-      USE PBLCOM, only : dclev
-      USE GEOM, only: imaxj
+      USE ATM_COM, only: LTROPO
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,
      &      ohsr,JmonthCache,
      &      ohrCache, dho2rCache, perjrCache, tno3rCache
-      USE CONSTANT, only : mair
-      use TimeConstants_mod, only: SECONDS_PER_DAY
 c Aerosol chemistry
       implicit none
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -579,7 +571,7 @@ c impose diurnal variability
       use resolution, only: im,lm
       use atm_com, only : t,q
       USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,MA,pk,LTROPO,byMA
+      USE ATM_COM, only: pmid,MA,pk,byMA
       USE PBLCOM, only : dclev
       USE FLUXES, only: tr3Dsource
       USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,ohsr,o3_offline
