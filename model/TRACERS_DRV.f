@@ -5311,9 +5311,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       INTEGER n,last_month,kk,nread,xday,xyear,ns
       logical :: checkname
       LOGICAL, INTENT(IN) :: end_of_day
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
-     &     :: daily_gz
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1,I,J,ll,lmax,lmin
 #ifdef TRACERS_TOMAS
@@ -5345,7 +5342,6 @@ C****
          Call COMPUTE_GZ (MA,T,TMOM(MZ,:,:,:), DAILY_Z)
         daily_z = daily_z/grav
       endif
-      daily_gz = grav*daily_z
  
 #ifdef TRACERS_VOLCEXP
 ! Reading explosive volcano emissions for SO2

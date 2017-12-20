@@ -1912,7 +1912,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth Greg Faluvegi
 
       use TRACER_COM, only : n_max_sect,
-     & n_max_reg,alter_sources,ef_REG_IJ,
+     & n_max_reg,alter_sources,
      & ef_fact,num_sectors,sect_name
       USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
