@@ -864,24 +864,31 @@ c note: not applying CPP when declaring counts/lists.
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
+      INTEGER :: I_0,I_1,J_0,J_1
       INTEGER :: J_1H, J_0H, I_1H, I_0H
 
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
+      call getDomainBounds(grid)
+      I_0=GRID%I_STRT
+      I_1=GRID%I_STOP
+      J_0=GRID%J_STRT
+      J_1=GRID%J_STOP
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
+      J_0H=GRID%J_STRT_HALO
+      J_1H=GRID%J_STOP_HALO
 
-      ALLOCATE(   ef_REG_IJ(I_0H:I_1H,J_0H:J_1H) )
-      ALLOCATE(     oh_live(I_0H:I_1H,J_0H:J_1H,LM),
-     *             no3_live(I_0H:I_1H,J_0H:J_1H,LM),
+      ALLOCATE(   ef_REG_IJ(I_0:I_1,J_0:J_1) )
+      ALLOCATE(     oh_live(I_0:I_1,J_0:J_1,LM),
+     *             no3_live(I_0:I_1,J_0:J_1,LM),
      *                  trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
-     *                trdn1(NTM,I_0H:I_1H,J_0H:J_1H),
+     *                trdn1(NTM,I_0:I_1,J_0:J_1),
      *              sfc_src(I_0H:I_1H,J_0H:J_1H,NTM,ntsurfsrcmax))
 
-      ALLOCATE(  daily_z(I_0H:I_1H,J_0H:J_1H,LM) )
+      ALLOCATE(  daily_z(I_0:I_1,J_0:J_1,LM) )
       daily_z = 0.
 
       allocate(trm_col(LM,NTM))

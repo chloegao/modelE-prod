@@ -735,7 +735,9 @@ C**** and convert to WSAVE, units of m/s):
       Real*8,Dimension(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      *                    GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: MAM
       Real*8,Dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     *                 GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: S0,SZ,GZ
+     *                 GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) :: S0,SZ
+      Real*8,Dimension(GRID%I_STRT:GRID%I_STOP,
+     *                 GRID%J_STRT:GRID%J_STOP,LM) :: GZ
       Real*8 :: HUNDREDTHeKAPA, M,PU,PKU,PKPU,PKPPU,DP,zDP,Y,X,
      *          DGZU(LM),DGZA(LM),PD,PKD,PKPD,PKPPD,GZD
 
