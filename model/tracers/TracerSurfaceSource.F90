@@ -20,7 +20,8 @@ module TracerSurfaceSource_mod
 
   type, extends(TracerSource) :: TracerSurfaceSource
     character(len=30) :: sourceName ! holds source name, read from file header, e.g. to be
-    ! placed into lname and sname arrays.
+    ! placed into sname arrays.
+    character(len=30) :: sourceLname ! holds long source name
 !@var EMstream interface for reading and time-interpolating emissions file if it is netcdf.
 !@+   See usage notes in timestream_mod.
     type (timestream) :: EMstream
@@ -132,6 +133,9 @@ contains
       endif
     endif
 
+    ! set default long name to be the same as the short name
+    this%sourceLname = this%sourceName
+	    
     ! -- begin sector stuff --
     tr_sectors_are = ' '
     pname=trim(trim(fileName)//'_sect')

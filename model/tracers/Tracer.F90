@@ -241,12 +241,18 @@ contains
   ! Use this routine to add a new surface source that
   ! is manipulated by custom logic elsewhere.
   ! Optional sourcename is only used by diagnostics
-  subroutine addSurfaceSource(this, sourceName)
+  subroutine addSurfaceSource(this, sourceName, sourceLname)
     type (Tracer), intent(inout) :: this
     character(len=*), intent(in) :: sourceName
-
+    character(len=*), intent(in), optional :: sourceLname
+    
     this%ntSurfSrc = this%ntSurfSrc + 1
     this%surfaceSources(this%ntSurfSrc)%sourceName = sourceName
+    if (present(sourceLname) ) then
+       this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceLname
+    else
+       this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceName
+    end if
 
   end subroutine addSurfaceSource
 
