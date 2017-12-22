@@ -3553,8 +3553,10 @@ C     functions
 
 ! KFPCO2>2 reserved for a specific 102-layer modelE (used in year 2017)
 !  but should also work if layering is the same above 50 mb
-      if (KFPCO2 < 0 .and. abs(PL(NL-38)-45.) < 5.) then ! like
-         KFPCO2 = 4 ; call set_param("KFPCO2",KFPCO2,'o')
+      if (NL > 40) then
+        if (KFPCO2 < 0 .and. abs(PL(NL-38)-45.) < 5.) then ! like
+            KFPCO2 = 4 ; call set_param("KFPCO2",KFPCO2,'o')
+        end if
       end if
       if(KFPCO2 > 2 .or. KFPCO2 == 0) return
 
