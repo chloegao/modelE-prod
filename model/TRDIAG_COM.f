@@ -597,14 +597,13 @@ C**** TCONSRV
 
 #ifdef TRACERS_ON
       SUBROUTINE SET_TCON(QCON,NAME_CON,QSUM,INST_UNIT,SUM_UNIT
-     *     ,INST_SC,CHNG_SC, itr,CONPTs)
+     *     ,INST_SC,CHNG_SC, itr,CONPTs,CONPT0)
 !@sum  SET_TCON assigns conservation diagnostic array indices
 !@auth Gavin Schmidt
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
       USE DYNAMICS, only : nfiltr
       USE DIAG_COM, only: npts,ia_d5d,ia_d5s,ia_filt,ia_12hr,ia_src
-     *     ,conpt0
       USE TRDIAG_COM, only: ktcon,title_tcon,scale_tcon,nsum_tcon
      *     ,nofmt,ia_tcon,name_tconsrv,lname_tconsrv,units_tconsrv
      *     ,ntcons,npts_common
@@ -633,6 +632,8 @@ C**** TCONSRV
       CHARACTER*16, INTENT(IN), DIMENSION(ntcons) :: CONPTS
 !@var CONPTS_sname like CONPTS but without spaces
       CHARACTER*16, DIMENSION(ntcons) :: CONPTS_sname
+!@var CONPT0 conservation diag points for common points
+      CHARACTER*10, INTENT(IN), DIMENSION(npts) :: CONPT0
 !@var CONPT0_sname like CONPT0 but without spaces
       CHARACTER*10, DIMENSION(npts) :: CONPT0_sname
       CHARACTER*11 CHGSTR

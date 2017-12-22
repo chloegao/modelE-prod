@@ -147,6 +147,7 @@
       use TRACER_COM, only: tracers
       use TRACER_COM, only: n_SO2
       use Tracer_mod, only: Tracer
+      use DIAG_COM, only: conpt0,npts
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB, n_AOCOB, n_ANUM
       use TRACER_COM, only: N_AECOB, n_ASO4, xk
@@ -158,6 +159,7 @@
       implicit none
       character*20 sum_unit(NTM),inst_unit(NTM)   ! for conservation
       character*50 :: unit_string
+      character*10 :: conpt(npts)
 #ifdef TRACERS_ON
       logical :: T=.TRUE. , F=.FALSE.
       logical :: Qf
@@ -204,6 +206,9 @@ C**** For example, separate Moist convection/Large scale condensation
       qsum(1:npts_common)=(/F,                                !instant. (1)
      *                      T, T, F, F, T, T,Qf, T, F, F, F/) !2-12 (npts)
       qsum(npts_common+1:npts_common+ntcons)=F                !13-ktcon-1
+C**** this allows you to configure the common check points names.
+      conpt=conpt0
+
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -268,6 +273,8 @@ C**** set some defaults
 !-----
 ! diagnostics for all tracers, if they meet certain conditions
 !-----
+        conpt(8)="SRCS+SNKS"
+
 #ifdef TRACERS_WATER
         if(dowetdep(n)) then
           itcon_mc(n)=tr_con_diag('MOIST CONV',T)
@@ -289,11 +296,12 @@ C**** set some defaults
           itcon_3Dsrc(nBiomass,n)=tr_con_diag('Biomass src',T,T)
         endif
         do kk=1,ntsurfsrc(n_src)
-          itcon_surf(kk,n)=tr_con_diag(trim(sources(kk)%sourceName),T)
+          itcon_surf(kk,n)=tr_con_diag(trim(sources(kk)%sourceLname),T)
         enddo
 
 !-----
-! per-tracer diagnostics
+!     per-tracer diagnostics
+!     Note: Do not include already registered surface sources
 !-----
         select case (trim(pTracer%getName()))
 
@@ -305,16 +313,16 @@ C**** set some defaults
           itcon_decay(n)=tr_con_diag('DECAY',T,T)
 
         case ('CO2')
-          itcon_surf(1,N)=tr_con_diag('FossilFuel',T)
-          itcon_surf(2,N)=tr_con_diag('Fertilization',T)
-          itcon_surf(3,N)=tr_con_diag('Forest Regrowth',T)
-          itcon_surf(4,N)=tr_con_diag('Land Use',T)
-          itcon_surf(5,N)=tr_con_diag('Ecosystem Exch',T)
-          itcon_surf(6,N)=tr_con_diag('Ocean Exch',T)
+c          itcon_surf(1,N)=tr_con_diag('FossilFuel',T)
+c          itcon_surf(2,N)=tr_con_diag('Fertilization',T)
+c          itcon_surf(3,N)=tr_con_diag('Forest Regrowth',T)
+c          itcon_surf(4,N)=tr_con_diag('Land Use',T)
+c          itcon_surf(5,N)=tr_con_diag('Ecosystem Exch',T)
+c          itcon_surf(6,N)=tr_con_diag('Ocean Exch',T)
 
         case ('N2O')   ! two versions dependent on configuration
 #ifdef TRACERS_SPECIAL_Lerner
-          itcon_surf(1,N)=tr_con_diag('Reset in L1',T)
+c          itcon_surf(1,N)=tr_con_diag('Reset in L1',T)
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Strat. Chem.',T,T)
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -324,7 +332,7 @@ C**** set some defaults
 #endif
 
         case ('CFC11')
-          itcon_surf(1,N)=tr_con_diag('L1 Source',T)
+c          itcon_surf(1,N)=tr_con_diag('L1 Source',T)
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Strat. Chem.',T,T)
 
         case ('14CO2')
@@ -337,26 +345,26 @@ C**** set some defaults
           itcon_3Dsrc(nOverwrite,n)=tr_con_diag('Overwrite',T,T)
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
-          itcon_surf(1,N)=tr_con_diag('Animal source',T)
-          itcon_surf(2,N)=tr_con_diag('Coal Mine source',T)
-          itcon_surf(3,N)=tr_con_diag('Gas Leak source',T)
-          itcon_surf(4,N)=tr_con_diag('Gas Vent source',T)
-          itcon_surf(5,N)=tr_con_diag('City Dump source',T)
-          itcon_surf(6,N)=tr_con_diag('Soil sink',T)
-          itcon_surf(7,N)=tr_con_diag('Termite Source',T)
-          itcon_surf(8,N)=tr_con_diag('Coal Combustion',T)
-          itcon_surf(9,N)=tr_con_diag('Ocean source',T)
-          itcon_surf(10,N)=tr_con_diag('Lake source',T)
-          itcon_surf(11,N)=tr_con_diag('Misc. Ground source',T)
-          itcon_surf(12,N)=tr_con_diag('Biomass Burning',T)
-          itcon_surf(13,N)=tr_con_diag('Rice source',T)
-          itcon_surf(14,N)=tr_con_diag('Wetlands+Tundra',T)
+c          itcon_surf(1,N)=tr_con_diag('Animal source',T)
+c          itcon_surf(2,N)=tr_con_diag('Coal Mine source',T)
+c          itcon_surf(3,N)=tr_con_diag('Gas Leak source',T)
+c          itcon_surf(4,N)=tr_con_diag('Gas Vent source',T)
+c          itcon_surf(5,N)=tr_con_diag('City Dump source',T)
+c          itcon_surf(6,N)=tr_con_diag('Soil sink',T)
+c          itcon_surf(7,N)=tr_con_diag('Termite Source',T)
+c          itcon_surf(8,N)=tr_con_diag('Coal Combustion',T)
+c          itcon_surf(9,N)=tr_con_diag('Ocean source',T)
+c          itcon_surf(10,N)=tr_con_diag('Lake source',T)
+c          itcon_surf(11,N)=tr_con_diag('Misc. Ground source',T)
+c          itcon_surf(12,N)=tr_con_diag('Biomass Burning',T)
+c          itcon_surf(13,N)=tr_con_diag('Rice source',T)
+c          itcon_surf(14,N)=tr_con_diag('Wetlands+Tundra',T)
           itcon_3Dsrc(1,n)=tr_con_diag('Tropos. Chem.',T,T)
           itcon_3Dsrc(2,n)=tr_con_diag('Stratos. Chem.',T,T)
 #endif /* TRACERS_SPECIAL_Lerner */
 
         case ('O3')
-          itcon_surf(1,N)=tr_con_diag('Deposition',T)
+c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
           itcon_3Dsrc(1,n)=tr_con_diag('Stratos. Chem.',T,T)
           itcon_3Dsrc(2,n)=tr_con_diag('Trop. Chem. Prod.',T,T)
           itcon_3Dsrc(3,n)=tr_con_diag('Trop. Chem. Loss',T,T)
@@ -686,13 +694,14 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
 #endif
 
         CALL SET_TCON(QCON,pTracer%getName(),QSUM,inst_unit(n),
-     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs)
+     *       sum_unit(n),scale_inst(n),scale_change(n), N,CONPTs,CONPT)
         qcon(npts_common+1:) = .false. ! reset to defaults for next tracer
         qsum(npts_common+1:) = .false. ! reset to defaults for next tracer
         qcon(10)  = .false.     ! reset to defaults for next tracer
         qsum(10)  = .false.     ! reset to defaults for next tracer
         conpts=''
-
+        conpt=conpt0
+        
         call iter%next()
       end do
 
@@ -848,11 +857,11 @@ C**** set defaults for some precip/wet-dep related diags
         k = k + 1
         jls_source(kk,n) = k
         sname_jls(k) = trim(trname(n))//'_'//
-     &                 trim(sources(kk)%sourceName)//'_src'
+     &                 trim(sources(kk)%sourceName)
         lname_jls(k) = trim(trname(n))//' '//
-     &                 trim(sources(kk)%sourceName)//' source'
+     &                 trim(sources(kk)%sourceLname)
         jls_ltop(k) = 1
-        jls_power(k) = 0
+        jls_power(k) = ntm_power(n)+11
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
       end do
 
@@ -883,27 +892,27 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-      case ('SF6','SF6_c')
-        call layer1_init_jls(k,n,trname(n))
-      case ('CFCn')
-        call layer1_init_jls(k,n,trname(n))
+c      case ('SF6','SF6_c')
+c        call layer1_init_jls(k,n,trname(n))
+c      case ('CFCn')
+c        call layer1_init_jls(k,n,trname(n))
       case ('CO2n')
         call CO2n_init_jls(k,n,'CO2n')
       case ('Rn222')
         call Rn222_init_jls(k,n,'Rn222')
 ! keep AIJ and AJL CO2 sources in same order !!
-      case ('CO2')
-        call CO2_init_jls(k,n,'CO2')
+c      case ('CO2')
+c        call CO2_init_jls(k,n,'CO2')
       case ('N2O')
         call N2O_init_jls(k,n,'N2O')
       case ('CFC11')   !!! should start April 1
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(1,n) = k
+c        sname_jls(k) = 'L1_sink_'//trim(trname(n))
+c        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
+c        jls_ltop(k) = 1
+c        jls_power(k) = -1
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
@@ -913,14 +922,14 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
 
-      case ('14CO2')   !!! should start 10/16
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
-        jls_ltop(k) = 1
-        jls_power(k) = -4
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c      case ('14CO2')   !!! should start 10/16
+c        k = k + 1
+c        jls_source(1,n) = k
+c        sname_jls(k) = 'L1_sink_'//trim(trname(n))
+c        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
+c        jls_ltop(k) = 1
+c        jls_power(k) = -4
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
@@ -939,104 +948,104 @@ C**** set defaults for some precip/wet-dep related diags
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
 #else
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'Soil_sink_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' sink due to soil absorption'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(7,n) = k
-        sname_jls(k) = 'Termite_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Termite source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(9,n) = k
-        sname_jls(k) = 'Ocean_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Ocean source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(10,n) = k
-        sname_jls(k) = 'Fresh_Water_lake_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Fresh Water lake source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(11,n) = k
-        sname_jls(k) = 'Misc_Ground_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Misc_Ground source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(14,n) = k
-        sname_jls(k) = 'Wetlands+Tundra_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Wetlands+Tundra source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Animal_source_of_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Animal source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'Coal_Mine_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Coal Mine source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Gas_Leak_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Gas Leak source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'Gas_Venting_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Gas Venting source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'Municipal_solid_waste_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Municipal solid waste source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(8,n) = k
-        sname_jls(k) = 'Coal_combustion_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Coal combustion source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(12,n) = k
-        sname_jls(k) = 'Biomass_burning_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Biomass burning source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(13,n) = k
-        sname_jls(k) = 'Rice_Cultivation_source_'//trim(trname(n))
-        lname_jls(k) = trim(trname(n))//' Rice Cultivation source'
-        jls_ltop(k) = 1
-        jls_power(k) = 0
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(6,n) = k
+c        sname_jls(k) = 'Soil_sink_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' sink due to soil absorption'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(7,n) = k
+c        sname_jls(k) = 'Termite_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Termite source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(9,n) = k
+c        sname_jls(k) = 'Ocean_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Ocean source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(10,n) = k
+c        sname_jls(k) = 'Fresh_Water_lake_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Fresh Water lake source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(11,n) = k
+c        sname_jls(k) = 'Misc_Ground_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Misc_Ground source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(14,n) = k
+c        sname_jls(k) = 'Wetlands+Tundra_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Wetlands+Tundra source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(1,n) = k
+c        sname_jls(k) = 'Animal_source_of_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Animal source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(2,n) = k
+c        sname_jls(k) = 'Coal_Mine_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Coal Mine source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(3,n) = k
+c        sname_jls(k) = 'Gas_Leak_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Gas Leak source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(4,n) = k
+c        sname_jls(k) = 'Gas_Venting_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Gas Venting source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(5,n) = k
+c        sname_jls(k) = 'Municipal_solid_waste_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Municipal solid waste source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(8,n) = k
+c        sname_jls(k) = 'Coal_combustion_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Coal combustion source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(12,n) = k
+c        sname_jls(k) = 'Biomass_burning_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Biomass burning source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(13,n) = k
+c        sname_jls(k) = 'Rice_Cultivation_source_'//trim(trname(n))
+c        lname_jls(k) = trim(trname(n))//' Rice Cultivation source'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 0
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
         k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Tropos_Chem_change_'//trim(trname(n))
@@ -1056,13 +1065,13 @@ C**** set defaults for some precip/wet-dep related diags
 #endif
 
       case ('O3')
-       k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Deposition_L1_'//trim(trname(n))
-        lname_jls(k) = 'Change of O3 by Deposition in Layer 1'
-        jls_ltop(k) = 1
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c       k = k + 1
+c        jls_source(1,n) = k
+c        sname_jls(k) = 'Deposition_L1_'//trim(trname(n))
+c        lname_jls(k) = 'Change of O3 by Deposition in Layer 1'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 1
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Strat_Chem_change_'//trim(trname(n))
@@ -2132,18 +2141,18 @@ c Oxidants
 
       contains
 
-      subroutine layer1_init_jls(k,n, name)
-      integer, intent(inout) :: k
-      integer, intent(in) :: n
-      character(len=*), intent(in) :: name
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'Layer_1_source_of_'//trim(trname(n))
-      lname_jls(k) = trim(trname(n))//' GRID SOURCE, LAYER 1'
-      jls_ltop(k) = 1
-      jls_power(k) = -3
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
-      end subroutine layer1_init_jls
+c      subroutine layer1_init_jls(k,n, name)
+c      integer, intent(inout) :: k
+c      integer, intent(in) :: n
+c      character(len=*), intent(in) :: name
+c      k = k + 1
+c      jls_source(1,n) = k
+c      sname_jls(k) = 'Layer_1_source_of_'//trim(trname(n))
+c      lname_jls(k) = trim(trname(n))//' GRID SOURCE, LAYER 1'
+c      jls_ltop(k) = 1
+c      jls_power(k) = -3
+c      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c      end subroutine layer1_init_jls
 
       subroutine CO2n_init_jls(k,n,name)
       integer, intent(inout) :: k
@@ -2171,63 +2180,63 @@ c Oxidants
       units_jls(k) = unit_string(jls_power(k),'kg mb-1 m-2 s-1')
       jwt_jls(k)=3
       
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'Ground_Source_of_'//trim(trname(n))
-      lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
-      jls_ltop(k) = 1
-      jls_power(k) = -10
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c      k = k + 1
+c      jls_source(1,n) = k
+c      sname_jls(k) = 'Ground_Source_of_'//trim(trname(n))
+c      lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
+c      jls_ltop(k) = 1
+c      jls_power(k) = -10
+c      units_jls(k) = unit_string(jls_power(k),'kg s-1')
       end subroutine Rn222_init_jls
       
-      subroutine CO2_init_jls(k,n,name)
-      integer, intent(inout) :: k
-      integer, intent(in) :: n
-      character(len=*), intent(in) :: name
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Fossil_fuel_source_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(2,n) = k
-        sname_jls(k) = 'fertilization_sink_'//trim(trname(n))
-        lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(3,n) = k
-        sname_jls(k) = 'Northern_forest_regrowth_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Northern forest regrowth sink'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(4,n) = k
-        sname_jls(k) = 'Land_Use_Modification_'//trim(trname(n))
-        lname_jls(k) = 'CO2 from Land use modification (Houton)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(5,n) = k
-        sname_jls(k) = 'Ecosystem_exchange_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-        k = k + 1
-        jls_source(6,n) = k
-        sname_jls(k) = 'Ocean_exchange_'//trim(trname(n))
-        lname_jls(k) = 'CO2 Ocean exchange'
-        jls_ltop(k) = 1
-        jls_power(k) = 3
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
-
-      end subroutine CO2_init_jls
+c      subroutine CO2_init_jls(k,n,name)
+c      integer, intent(inout) :: k
+c      integer, intent(in) :: n
+c      character(len=*), intent(in) :: name
+c        k = k + 1
+c        jls_source(1,n) = k
+c        sname_jls(k) = 'Fossil_fuel_source_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 Fossil fuel source (Marland)'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(2,n) = k
+c        sname_jls(k) = 'fertilization_sink_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 fertilization sink (Friedlingstein)'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(3,n) = k
+c        sname_jls(k) = 'Northern_forest_regrowth_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 Northern forest regrowth sink'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(4,n) = k
+c        sname_jls(k) = 'Land_Use_Modification_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 from Land use modification (Houton)'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(5,n) = k
+c        sname_jls(k) = 'Ecosystem_exchange_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 Ecosystem exchange (Matthews)'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c        k = k + 1
+c        jls_source(6,n) = k
+c        sname_jls(k) = 'Ocean_exchange_'//trim(trname(n))
+c        lname_jls(k) = 'CO2 Ocean exchange'
+c        jls_ltop(k) = 1
+c        jls_power(k) = 3
+c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c
+c      end subroutine CO2_init_jls
 
       subroutine N2O_init_jls(k,n,name)
       integer, intent(inout) :: k
@@ -2251,14 +2260,14 @@ c Oxidants
       units_jls(k) = unit_string(jls_power(k),'kg s-1')
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'L1_sink_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
-     &               ' BY RESETTING TO 462.2d-9, L1'
-      jls_ltop(k) = 1
-      jls_power(k) = 0
-      units_jls(k) = unit_string(jls_power(k),'kg s-1')
+c      k = k + 1
+c      jls_source(1,n) = k
+c      sname_jls(k) = 'L1_sink_'//trim(trname(n))
+c      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
+c     &               ' BY RESETTING TO 462.2d-9, L1'
+c      jls_ltop(k) = 1
+c      jls_power(k) = 0
+c      units_jls(k) = unit_string(jls_power(k),'kg s-1')
       k = k + 1
       jls_3Dsource(1,n) = k
       sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))

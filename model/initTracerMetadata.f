@@ -136,40 +136,49 @@
 
 #ifdef TRACERS_SPECIAL_Lerner
         case ('N2O')
-          call addSurfaceSource(pTracer, "overwrite_at_surface")
+          call addSurfaceSource(pTracer, "overwrite_at_surface",
+     *          "Overwrite")
         case ('CFC11', 'Rn222')
-          call addSurfaceSource(pTracer, "surface_src")
+          call addSurfaceSource(pTracer, "surface_src", "Surface Src")
         case ('CH4')
-          call addSurfaceSource(pTracer, "animal_src")
-          call addSurfaceSource(pTracer, "coal_mine_src")
-          call addSurfaceSource(pTracer, "gas_leak_src")
-          call addSurfaceSource(pTracer, "gas_vent_src")
-          call addSurfaceSource(pTracer, "city_dump_src")
-          call addSurfaceSource(pTracer, "soil_sink")
-          call addSurfaceSource(pTracer, "termite_src")
-          call addSurfaceSource(pTracer, "coal_combustion_src")
-          call addSurfaceSource(pTracer, "ocean_src")
-          call addSurfaceSource(pTracer, "lake_src")
-          call addSurfaceSource(pTracer, "misc_ground_src")
-          call addSurfaceSource(pTracer, "biomass_src")
-          call addSurfaceSource(pTracer, "rice_src")
-          call addSurfaceSource(pTracer, "wetlands_tundra_src")
+          call addSurfaceSource(pTracer, "animal_src", "Animals")
+          call addSurfaceSource(pTracer, "coal_mine_src", "Coal Mines")
+          call addSurfaceSource(pTracer, "gas_leak_src", "Gas Leaks")
+          call addSurfaceSource(pTracer, "gas_vent_src", "Gas Venting")
+          call addSurfaceSource(pTracer, "city_dump_src", "City Dumps")
+          call addSurfaceSource(pTracer, "soil_sink", "Soil Sink")
+          call addSurfaceSource(pTracer, "termite_src", "Termites")
+          call addSurfaceSource(pTracer, "coal_combustion_src", 
+     *         "Coal Combustion")
+          call addSurfaceSource(pTracer, "ocean_src", "Ocean Src")
+          call addSurfaceSource(pTracer, "lake_src", "Lake Src")
+          call addSurfaceSource(pTracer, "misc_ground_src", "Misc Src")
+          call addSurfaceSource(pTracer, "biomass_src", "Biomass")
+          call addSurfaceSource(pTracer, "rice_src", "Rice")
+          call addSurfaceSource(pTracer, "wetlands_tundra_src",
+     *         "WetlandsTundra")
         case ('O3')
-          call addSurfaceSource(pTracer, "deposition_sink")
+          call addSurfaceSource(pTracer, "deposition_sink",
+     *          "Deposition")
         case ('CO2')
-          call addSurfaceSource(pTracer, "fossil_fuel_src")
-          call addSurfaceSource(pTracer, "fertilization_sink")
-          call addSurfaceSource(pTracer, "north_forest_regrowth_src")
-          call addSurfaceSource(pTracer, "land_use_modification")
-          call addSurfaceSource(pTracer, "ecosystem_exchange")
-          call addSurfaceSource(pTracer, "ocean_exchange")
+          call addSurfaceSource(pTracer, "fossil_fuel_src",
+     *          "Fossil Fuel")
+          call addSurfaceSource(pTracer, "fertilization_sink",
+     *         "Fertilization")
+          call addSurfaceSource(pTracer, "north_forest_regrowth_src",
+     *         "Forest Regrow")
+          call addSurfaceSource(pTracer, "land_use_modification",
+     *         "Land Use")
+          call addSurfaceSource(pTracer, "ecosystem_exchange",
+     *         "Ecosystem Exch")
+          call addSurfaceSource(pTracer, "ocean_exchange", "Ocean Exch")
         case ('14CO2')
-          call addSurfaceSource(pTracer, "surface_sink")
+          call addSurfaceSource(pTracer, "surface_sink", "Surface Sink")
 #endif  /* TRACERS_SPECIAL_Lerner */
 
 #ifdef TRACERS_SF6
         case ('SF6', 'SF6_c')
-          call addSurfaceSource(pTracer, "surface_src")
+          call addSurfaceSource(pTracer, "surface_src", "Surface Src")
 #endif  /* TRACERS_SF6 */
 
         end select

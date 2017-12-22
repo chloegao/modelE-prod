@@ -149,14 +149,14 @@ c
       do varid=1,ij_nvars
         vname = ''
         status = nf_inq_varname(ij_fid,varid,vname)
-        if(vname(1:4).ne.'phi_') cycle
+        if(vname(1:4).ne.'phi_' .and. vname(1:2).ne.'z_') cycle
         if(index(vname,'_hemis').gt.0) cycle
         l = l + 1
         if(l.gt.kgz) exit
         status = nf_get_var_real(ij_fid,varid,phi(1,1,l))
       enddo
       if(l.ne.kgz) then
-        write(6,*) 'Differing numbers of geopot. levels in '//
+        write(6,*) 'Differing numbers of geopot./z levels in '//
      &     'agc and aij'
         stop
       endif
