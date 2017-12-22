@@ -3551,10 +3551,12 @@ C     functions
 
       FPXCO2 = 1. ! default
 
-! KFPCO2>2 reserved for a specific 102-layer modelE (used in year 2017)
-!  but should also work if layering is the same above 50 mb
+! KFPCO2>2 is reserved for a specific 102-layer modelE (used in year 2017)
+! but may also work if the layering is the same above 50 mb; the criterion
+! below only checks the number of layers above 50 mb - it may be necessary
+! to specify KFPCO2 rather than rely on the automatic selection 
       if (NL > 40) then
-        if (KFPCO2 < 0 .and. abs(PL(NL-38)-45.) < 5.) then ! like
+        if (KFPCO2 < 0 .and. abs(PL(NL-38)-45.) < 5.) then 
             KFPCO2 = 4 ; call set_param("KFPCO2",KFPCO2,'o')
         end if
       end if
