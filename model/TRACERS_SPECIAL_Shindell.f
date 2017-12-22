@@ -5,6 +5,7 @@
 #ifdef TRACERS_ON
 
       USE TRACER_COM, only: ntm
+      use timestream_mod, only : timestream
 
       IMPLICIT NONE
       SAVE
@@ -61,8 +62,8 @@
       integer, parameter, dimension(nra_ncep):: nday_ncep=(/28,14/)
       real*8, dimension(nra_ch4)             :: by_nday_ch4
       real*8, dimension(nra_ncep)            :: by_nday_ncep
-      integer, dimension(nncep)      :: ncep_units,jmon_nc,jdlnc=0
-      logical, dimension(nncep)      :: nc_first=.true.
+      integer, dimension(nncep)      :: ncep_units,jmon_nc
+      logical :: wetl_first=.true.
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: day_ncep
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:):: DRA_ch4
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)  :: avg_model,PRS_ch4
@@ -74,6 +75,7 @@
       real*8, allocatable, dimension(:,:,:) ::  PTBA,PTBA1,PTBA2
       real*8, allocatable, dimension(:,:) :: add_wet_src
       integer :: maxHR_ch4
+      type(timestream), dimension(nncep) :: wetlStream
 #endif
 #endif
       END MODULE TRACER_SOURCES
@@ -503,7 +505,7 @@ C
 C           
       RETURN
       END SUBROUTINE LOGPINT
- 
+
 
 #ifdef INTERACTIVE_WETLANDS_CH4
       subroutine running_average(var_in,I,J,nicall,m)
@@ -536,7 +538,7 @@ C
       real*8 temp, bynmax
       integer, intent(IN):: m, I, J
       integer n, nmax
-      
+
       if(m > nra_ch4.or.m < 1)call stop_model('nra_ch4 problem',255)
       if(iH(I,J,m) < 0.or.iH(I,J,m) > maxHR_ch4) then
         write(6,*) 'IJM iH maxHR_ch4=',I,J,m,iH(I,J,m),maxHR_ch4
@@ -548,7 +550,7 @@ C
       iH(I,J,m) = iH(I,J,m) + 1
       HRA(I,J,iH(I,J,m),m) = var_in
       ! do no more, unless it is the end of the day:
-      
+
       if(iH(I,J,m) == nmax)then ! end of "day":
         iH(I,J,m) = 0
         if(first_mod(I,J,m) == 1)then ! first averaging period only
@@ -579,44 +581,38 @@ C
           DRA(I,J,i0(I,J,m),m) = temp
           PRS(I,J,m) = PRS(I,J,m) + DRA(I,J,i0(I,J,m),m)
           avg_model(I,J,m)= PRS(I,J,m) * by_nday_ch4(m)
-        end if           
+        end if
       end if
 
-  
       END SUBROUTINE running_average
-#endif
 
-#ifdef INTERACTIVE_WETLANDS_CH4
+
       subroutine read_ncep_for_wetlands(end_of_day)
 !@sum reads NCEP precip and temperature data and the coefficients
 !@+ used to parameterize CH4 wetlands emissions from these. Keeps
 !@+ running average of these. Calculated the portion to add to
 !@+ the CH4 source to be used later in subroutine alter_wetlands_source.
 !@auth Greg Faluvegi based on Jean Lerner
-      USE RESOLUTION, only : im,jm
       use model_com, only: modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
-     &     am_i_root, write_parallel
-      USE FILEMANAGER, only: openunit,closeunit
-      USE TRCHEM_Shindell_COM, only: fix_CH4_chemistry
-      USE TRACER_SOURCES, only: nday_ncep,by_nday_ncep,first_ncep,
+      use timestream_mod, only : init_stream,read_stream
+      use domain_decomp_atm, only: grid, getDomainBounds
+      use TRCHEM_Shindell_COM, only: fix_CH4_chemistry
+      use tracer_sources, only: nday_ncep,by_nday_ncep,first_ncep,
      &iday_ncep,day_ncep,i0_ncep,avg_ncep,sum_ncep,nra_ncep,max_days,
-     &PTBA,PTBA1,PTBA2,nncep,ncep_units,jmon_nc,jdlnc,nc_first
- 
+     &PTBA,PTBA1,PTBA2,nncep,ncep_units,jmon_nc,wetl_first,wetlStream
+
       implicit none
-      
-      integer :: n,m,i,j,k
+
+      integer :: n,m,i,j,k,day,year
       logical, intent(in) :: end_of_day
-      character(len=300) :: out_line
-      real*8 :: frac
       character*10, dimension(nncep) :: ncep_files =
      & (/'PREC_NCEP ','TEMP_NCEP ','BETA_NCEP ','ALPHA_NCEP'/)
-      logical, dimension(nncep) :: ncep_bins =
-     & (/.true.,.true.,.true.,.true./)
+      real*8, dimension(nncep) :: ncepMins=(/0.d0,-1.d3,-1.d30,-1.d30/),
+     &                            ncepMaxs=(/1.d3, 1.d3, 1.d30, 1.d30/)
       real*8,dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nra_ncep)::day_ncep_tmp
 
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
+      integer :: J_1, J_0, I_0, I_1
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
@@ -630,20 +626,19 @@ C
      & call stop_model('nday_ncep out of range',255)
       end do
 
-! read the monthly data and interpolate to current day:   
-      
+      call modelEclock%get(year=year, dayOfYear=day)
+
+      ! read the monthly data and interpolate to current day:
+      if(wetl_first) then
+        wetl_first=.false.
+        do k = 1,nncep
+          call init_stream(grid,wetlStream(k),trim(ncep_files(k)),
+     &    trim(ncep_files(k)),ncepMins(k),ncepMaxs(k),'linm2m',year,day)
+        end do
+      end if
       do k = 1,nncep
-CCCCC   if(nc_first(k))then
-          call openunit(ncep_files(k),ncep_units(k),ncep_bins(k))
-CCCCC     nc_first(k)=.false. 
-CCCCC   endif
-        call read_mon_src_3(ncep_units(k),PTBA(:,:,k),frac)
-CCCCC   jdlnc(k) = jday ! not used at the moment...
-        call closeunit(ncep_units(k))
+        call read_stream(grid,wetlStream(k),year,day,PTBA(:,:,k))
       end do
-      write(out_line,*)
-     &'NCEP for wetlands interpolated to current day',frac
-      call write_parallel(trim(out_line))
 
 ! Then update running averages of NCEP Precip(m=1) & Temp(m=2)
 
@@ -811,7 +806,7 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
      &     avg_model(i,j,n__gwet) < gw_ulim) then
 
              ! if no wetlands there yet:
-             
+
              if(sfc_src(i,j,n,ns_wet) == 0.)then
                zm=0.d0; zmcount=0.d0
                select case (nn_or_zon)
@@ -950,58 +945,5 @@ CCCCC   jdlnc(k) = jday ! not used at the moment...
       rotccw = transpose(arr(:,m:1:-1))
       end function rotccw
       end subroutine flatten_cube
-
-
-      SUBROUTINE read_mon_src_3(iu,data,frac)
-!@sum Read in monthly sources and interpolate to current day
-! I know... yet another copy of this kind of routine...
-! I have them all combined in one, but there is a bug so I
-! can't commit it yet...
-!@auth Greg Faluvegi, Jean Lerner and others
-
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, 
-     & AM_I_ROOT,write_parallel,
-     & READT_PARALLEL, REWIND_PARALLEL, BACKSPACE_PARALLEL
-      USE RESOLUTION, only : im,jm
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only: idofm=>JDmidOfM
-
-      implicit none
-
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::tlca,tlcb,data
-      real*8 :: frac,alpha
-      integer ::  imon,iu,k
-      character(len=300) :: out_line
-
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-
-      imon=1
-      if (modelEclock%getDayOfYear() <= 16)  then ! JDAY in Jan 1-15, first month is Dec
-        call readt_parallel(grid,iu,nameunit(iu),tlca,12)
-        call rewind_parallel( iu )
-      else            ! JDAY is in Jan 16 to Dec 16, get first month
-        do while(modelEclock%getDayOfYear() > idofm(imon).AND.imon<=12)
-          imon=imon+1
-        enddo
-        call readt_parallel(grid,iu,nameunit(iu),tlca,imon-1)
-        if (imon == 13)then
-          call rewind_parallel( iu )
-        endif
-      end if
-      call readt_parallel(grid,iu,nameunit(iu),tlcb,1)
-
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%getDayOfYear()) / 
-     & (idofm(imon)-idofm(imon-1))
-      data(I_0:I_1,J_0:J_1)=tlca(I_0:I_1,J_0:J_1)*frac + 
-     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-
-      return
-      end subroutine read_mon_src_3
 #endif
 
