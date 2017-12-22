@@ -5604,10 +5604,10 @@ C**** add in epsilon=1d-5 to avoid roundoff mistakes
       END IF
 #endif
 
-C**** Calculate the max number of geopotential heights
-      do k=1,kgz
+C**** Calculate the actual number of geopotential heights
+      do k=1,kgz_max
         if (pmb(k).le.pmtop) exit
-        kgz_max = k
+        kgz = k
       end do
 #ifdef TES_LIKE_DIAGS
       do k=1,KGZmore
@@ -5617,7 +5617,7 @@ C**** Calculate the max number of geopotential heights
 #endif
       CALL WRITE_PARALLEL(" Geopotential height diagnostics at (mb): ",
      &                      UNIT=6)
-      CALL WRITE_PARALLEL(PMB(1:kgz_max), UNIT=6, format="(20F9.3)")
+      CALL WRITE_PARALLEL(PMB(1:kgz), UNIT=6, format="(20F9.3)")
 
 c**** Initialize acc-array names, units, idacc-indices
       call def_acc
@@ -6127,10 +6127,9 @@ C****
      *     ij_RTSE, ij_HWV, ij_PVS,
      &     IJ_TRSUP,IJ_TRSDN,IJ_EVAP,IJ_QS,IJ_PRES,
      &     IJ_US,IJ_VS,IJ_UJET,IJ_VJET,IJ_TATM,IJK_DP,IJK_TX,
-     &     IJ_MSUTLT,IJ_MSUTMT,IJ_MSUTLS,KGZ_MAX,GHT,PMB,
+     &     IJ_MSUTLT,IJ_MSUTMT,IJ_MSUTLS,
      &     IJ_SSU1,IJ_SSU2,IJ_SSU3,
      &     ij_LOTI, ij_popocn, ij_tg1,
-     &     KGZ_MAX,PMB,
      &     ij_TminC,ij_TmaxC,ij_TDcomp,
      *     ij_swaerabs,
      *     ij_lwaerabs,ij_swaerabsnt,ij_lwaerabsnt
