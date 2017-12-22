@@ -1,7 +1,7 @@
 !-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
-!AER_CHEM=OXID_E__1TgfF40_2x2.5
+!OFFLINE_CHEM=giss2/sample_for_coupled_chem_zero_144x90x40.nc
 !OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
 !OFFLINE_HNO3.nc=HNO3_dummy_1850_GISS2x2.nc
 !-----------------------------------------------

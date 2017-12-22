@@ -4,8 +4,6 @@
 !@auth Dorothy Koch
 !@ subroutines in this file include:
 !@ alloc_aerosol_sources
-!@ get_O3_offline
-!@ read_mon3Dsources
 !@ READ_OFFHNO3
 !@ read_DMS_sources
 !@ aerosol_gas_chem
@@ -14,6 +12,7 @@
 !@ GET_BC_DALBEDO
 !@ GRAINS
 !@ read_seawifs_chla
+      use timestream_mod, only : timestream
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: ndmssrc  = 1
@@ -32,9 +31,7 @@
      *   oh,dho2,perj,tno3,o3_offline  !im,jm,lm
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
      *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
-      integer :: JmonthCache = -1
-      real*8, allocatable, dimension(:,:,:) :: 
-     &     ohrCache, dho2rCache, perjrCache, tno3rCache
+      real*8, allocatable, dimension(:,:,:) :: readCache
       
 #ifdef BC_ALB
       real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz
@@ -48,6 +45,9 @@
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
+      integer, parameter :: nAeroStream=5
+      type(timestream), dimension(nAeroStream) :: AeroStream
+      logical :: AeroFirst=.true.
 
       END MODULE AEROSOL_SOURCES
 
@@ -61,8 +61,7 @@
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
      * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
-     * ohr,dho2r,perjr, tno3r, 
-     * ohrCache, dho2rCache, perjrCache, tno3rCache,
+     * ohr,dho2r,perjr, tno3r, readCache,
      * oh,dho2,perj,tno3,ohsr
      * ,o3_offline
      * ,off_HNO3
@@ -117,10 +116,7 @@
      *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
      *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
      *                  ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
-        allocate(   ohrCache(I_0H:I_1H,J_0H:J_1H,lm),
-     *            dho2rCache(I_0H:I_1H,J_0H:J_1H,lm),
-     *            perjrCache(I_0H:I_1H,J_0H:J_1H,lm),
-     *            tno3rCache(I_0H:I_1H,J_0H:J_1H,lm))
+        allocate(  readCache(I_0H:I_1H,J_0H:J_1H,lm) )
       endif
 #ifdef BC_ALB
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
@@ -135,168 +131,8 @@ c off line
 #endif
 
       return
-      end SUBROUTINE alloc_aerosol_sources      
-      SUBROUTINE get_O3_offline
-!@sum read in ozone fields for aqueous oxidation
-c
-C**** GLOBAL parameters and variables:
-C
-      use resolution, only: lm
-      use model_com, only: modelEclock
-      use filemanager, only: openunit,closeunit
-      use aerosol_sources, only: o3_offline
-      use domain_decomp_atm, only: grid, getDomainBounds, write_parallel
-C     
-      implicit none
+      end SUBROUTINE alloc_aerosol_sources
 
-C**** Local parameters and variables and arguments:
-c
-!@var nmons: number of monthly input files
-      integer, parameter :: nmons=1,levo3=23
-      integer, dimension(nmons) :: mon_units,imon
-      integer :: i,j,k,l
-      integer :: jdlast=0
-      logical :: ifirst=.true.
-      character*80 title
-      character(len=300) :: out_line
-      character*10 :: mon_files(nmons) = (/'O3_FIELD'/)
-      logical :: mon_bins(nmons)=(/.true./) ! binary file?
-      real*8 :: frac
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,levo3,1):: src
-      real*8, allocatable, dimension(:,:,:,:) :: tlca, tlcb
-      save jdlast,mon_units,imon,ifirst,tlca,tlcb
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0H, I_1H
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-
-      if (ifirst) then
-        call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-        I_0H = grid%I_STRT_HALO
-        I_1H = grid%I_STOP_HALO
-
-        allocate(tlca(i_0H:i_1H,j_0H:j_1H,levo3,nmons),
-     &           tlcb(i_0H:i_1H,j_0H:j_1H,levo3,nmons))
-        ifirst=.false.
-      endif
-      k=1
-      call openunit(mon_files(k),mon_units(k),mon_bins(k),.true.)
-      call read_mon3Dsources(levo3,mon_units(k),jdlast,
-     & tlca(:,:,:,k),tlcb(:,:,:,k),src(:,:,:,k),frac,imon(k))     
-      call closeunit(mon_units(k))
-      
-      jdlast = modelEclock%getDayOfYear()
-
-      if(levo3 /= LM) then ! might be ok, but you should check
-        write(out_line,*)
-     &  'make sure levels are correct in get_O3_offline'
-        call write_parallel(trim(out_line))
-        call stop_model('check on get_O3_offline',255)
-      endif
-      
-      o3_offline(:,J_0:J_1,:)=src(:,J_0:J_1,:,k)
-
-      write(out_line,*)
-     &'offline ozone interpolated to current day',frac
-      call write_parallel(trim(out_line))
-      
-      return
-      END SUBROUTINE get_O3_offline
-      
-      
-      SUBROUTINE read_mon3Dsources(Ldim,iu,jdlast,tlca,tlcb,data1,
-     & frac,imon)
-! we need to combine this with the one that is used in TRACERS_
-! SPECIAL_Shindell, (called read_monthly_3Dsources) and then move it
-! into more general tracer code...
-!@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the lines:
-!@+      real*8 tlca(im,jm,Ldim,nm),tlcb(im,jm,Ldim,nm)
-!@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
-!@+      save jdlast,tlca,tlcb,imon
-!@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array + two monthly data arrays
-!@auth Jean Lerner and others / Greg Faluvegi
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only: idofm=>JDmidOfM
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR,INT_MONTHS_PER_YEAR
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL,
-     &     REWIND_PARALLEL,write_parallel
-      implicit none
-!@var Ldim how many vertical levels in the read-in file?
-!@var L dummy vertical loop variable
-      integer Ldim,L,imon,iu,jdlast
-      character(len=300) :: out_line
-      real*8 :: frac
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
-
-      integer :: J_0, J_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-C
-      if (jdlast == 0) then   ! NEED TO READ IN FIRST MONTH OF DATA
-        imon=1                ! imon=January
-        if (modelEclock%getDayOfYear() <= 16)  then ! DAYOFYEAR in Jan 1-15, first month is Dec
-          do L=1,Ldim*11
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
-          end do
-          DO L=1,Ldim
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),A2D,1)
-            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-          END DO
-          CALL REWIND_PARALLEL( iu )
-        else              ! DAYOFYEAR is in Jan 16 to Dec 16, get first month
-  120     imon=imon+1
-          if (modelEclock%getDayOfYear() > idofm(imon) .AND. 
-     *      imon <= INT_MONTHS_PER_YEAR) go to 120
-          do L=1,Ldim*(imon-2)
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
-          end do
-          DO L=1,Ldim
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),A2D,1)
-            tlca(:,J_0:J_1,L)=A2D(:,J_0:J_1)
-          END DO
-          if (imon == 13)  CALL REWIND_PARALLEL( iu )
-        end if
-      else                         ! Do we need to read in second month?
-        if (modelEclock%getDayOfYear() /= jdlast+1) then ! Check that data is read in daily
-          if (modelEclock%getDayOfYear() /= 1 .OR. 
-     &      jdlast /= INT_DAYS_PER_YEAR) then
-            write(out_line,*)'Bad day values in read_monthly_3Dsources'
-     &      //': JDAY,JDLAST=',modelEclock%getDayOfYear(),JDLAST
-            call write_parallel(trim(out_line),crit=.true.)
-            call stop_model('Bad values in read_monthly_3Dsources',255)
-          end if
-          imon=imon-INT_MONTHS_PER_YEAR             ! New year
-          go to 130
-        end if
-        if (modelEclock%getDayOfYear() <= idofm(imon)) go to 130
-        imon=imon+1                ! read in new month of data
-        if (imon == 13) then
-          CALL REWIND_PARALLEL( iu  )
-        else
-          do L=1,Ldim*(imon-1)
-            CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),dummy,1)
-          end do
-        endif
-      end if
-      DO L=1,Ldim
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),B2D,1)
-        tlcb(:,J_0:J_1,L)=B2D(:,J_0:J_1)
-      END DO
- 130  continue
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%getDayOfYear())
-     &     / (idofm(imon)-idofm(imon-1))
-      data1(:,J_0:J_1,:) =
-     &     tlca(:,J_0:J_1,:)*frac + tlcb(:,J_0:J_1,:)*(1.-frac)
-      return
-      end SUBROUTINE read_mon3Dsources
 
       SUBROUTINE READ_OFFHNO3(OUT)
       use resolution, only: lm
@@ -472,91 +308,61 @@ c
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 
-      SUBROUTINE aerosol_gas_chem_prep
+      subroutine aerosol_gas_chem_prep
 !@sum prepare info for aerosol gas phase chemistry
 !@auth Dorothy Koch
-      USE DOMAIN_DECOMP_ATM, only: getDomainBounds
-      USE DOMAIN_DECOMP_ATM, only: DREAD8_PARALLEL,DREAD_PARALLEL
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      use resolution, only: im,lm
+      use timestream_mod, only : init_stream,read_stream
+      use domain_decomp_atm, only: getDomainBounds, grid
       use model_com, only: modelEclock
-      USE ATM_COM, only: LTROPO
-      USE FILEMANAGER, only: openunit,closeunit,nameunit
-      USE AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,
-     &      ohsr,JmonthCache,
-     &      ohrCache, dho2rCache, perjrCache, tno3rCache
-c Aerosol chemistry
+      use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
+     & ohsr, AeroStream, AeroFirst, nAeroStream, readCache
+
       implicit none
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo) :: ohsr_in
-      integer i,j,l,n,iuc,iun,itau,ichemi,itt,
-     * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,j_0,j_1,
-     * j_0s,j_1s,mmm,J_0H,J_1H,I_0,I_1
-      integer nrecs_skip
-      logical :: newMonth
 
-      call getDomainBounds(grid, J_STRT=J_0,J_STOP=J_1,
-     *    J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,J_STRT_SKP=J_0S,
-     * J_STOP_SKP=J_1S)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
+      integer :: day,year,k
+      character*10, dimension(nAeroStream) :: AeroVars = (/
+     &'ohr       ','dho2r     ','perjr     ','tno3r     ','o3_offline'/)
 
-c Use this for chem inputs from B4360C0M23, from Drew
-c      if (ifirst) then
-        newMonth = jMonthCache /= modelEclock%getMonth()
-        if (newMonth) then
-          jMonthCache = modelEclock%getMonth()
-          call openunit('AER_CHEM',iuc,.true.)
-          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),ohrCache,
-     &         recs_to_skip=5*(modelEclock%getMonth()-1)+1)    ! 5 recs/month + ichemi for this month
-          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),dho2rCache)
-          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),perjrCache)
-          call DREAD8_PARALLEL(grid,iuc,nameunit(iuc),tno3rCache)
-          call closeunit(iuc)
-        end if
-        ohr   = ohrCache  
-        dho2r = dho2rCache
-        perjr = perjrCache
-        tno3r = tno3rCache
-        if (im.eq.72) then
-        call openunit('AER_OH_STRAT',iuc2,.true.)
-        nrecs_skip=lm*(modelEclock%getMonth()-1) ! skip all the preceding months
-        do ll=1,lm
-          call DREAD_PARALLEL(grid,iuc2,nameunit(iuc2),ohsr_in,
-     &       recs_to_skip=nrecs_skip)
-          ohsr(:,:,ll)=ohsr_in(:,:)*1.D5
-          nrecs_skip=0 ! do not skip any more records
-        enddo
-        call closeunit(iuc2)
+      ! if input is expanded to > 1 year of data, one could expand
+      ! day and year difinition to depend on aer_yr, or whatever:
+      call modelEclock%get(year=year, dayOfYear=day)
 
-c skip poles because there was a bug in the input file over the pole
-        do j=j_0s,j_1s   
-        do i=i_0,i_1
-        do l=ltropo(i,j),lm
-          ohr(i,j,l)=ohsr(i,j,l)
+      ! Read the monthly data and interpolate to current day:
+      ! Old code did not do interpolation - just monthly step-
+      ! function. I think you could reproduce this by changing
+      ! 'linm2m' to 'none; in init_stream call.
+      if(AeroFirst) then
+        AeroFirst=.false.
+        do k = 1,nAeroStream
+          call init_stream(grid,AeroStream(k),'OFFLINE_CHEM',
+     &    trim(AeroVars(k)),0d0, 1d30,'linm2m',year,day)
         end do
-        end do
-        end do
-cdmk turning these off because I do not have 2x2.5
-c       ifirst=.false.
-        else    !need to scale inputs (10^5 mol/cm3)
-        ohr(:,:,:)=ohr(:,:,:)*1.D5
-        tno3r(:,:,:)=tno3r(:,:,:)*1.D5
-        dho2r(:,:,:)=dho2r(:,:,:)*1.D7
-        perjr(:,:,:)=perjr(:,:,:)*1.D2
-        endif   !im.eq.72
-c I have to read in every timestep unless I can find a better way
-c
-c impose diurnal variability
-        CALL SCALERAD
+      end if
+
+      do k = 1,nAeroStream
+        call read_stream(grid,AeroStream(k),year,day,readCache)
+        ! need to scale inputs (10^5 mol/cm3):
+        ! (we should move these scalings to the input files)
+        select case(k)
+        case (1) ; ohr = readCache*1.d5
+        case (2) ; dho2r = readCache*1.d7
+        case (3) ; perjr = readCache*1.d2
+        case (4) ; tno3r = readCache*1.d5
+        case (5) ; o3_offline = readCache
+        end select
+      end do
+
+      ! impose diurnal variability:
+      call scalerad
 
       end subroutine aerosol_gas_chem_prep
+
 
       SUBROUTINE aerosol_gas_chem(i,j)
 !@sum aerosol gas phase chemistry
 !@vers 2013/03/27
 !@auth Dorothy Koch
-      use OldTracer_mod, only: trname, tr_mm
+      use OldTracer_mod, only: trname, tr_mm, vol2mass
       use TRACER_COM, only: ntm, oh_live, no3_live, trm_col
       use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
@@ -593,7 +399,7 @@ c Aerosol chemistry
 #ifdef TRACERS_HETCHEM
      *       ,d41,d42,d43,o3mc,rsulfo3
 #endif
-      integer l,n,iuc,iun,itau,ichemi,itt,
+      integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
 
 C Coupled mode: use on-line radical concentrations
@@ -609,7 +415,6 @@ c Set h2o2_s =0 and use on-line h2o2 from chemistry
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
       CALL SULFDUST(i,j)
-c     if (COUPLED_CHEM.ne.1) CALL GET_O3_OFFLINE
 #endif
 
       do l=1,lm
@@ -684,10 +489,12 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
           if (COUPLED_CHEM.ne.1) then
-            o3mc=o3_offline(i,j,l)
+            ! convert ppbv O3 input to kg m-2:
+            o3mc=o3_offline(i,j,l)*MA(l,i,j)*1.d-9*vol2mass(n_Ox)
           else
             o3mc=trm_col(l,n_Ox)
           endif
+          ! convert to molecules O3 cm-3:
           o3mc = o3mc*dmm*(28.0D0/48.0D0)*byMA(L,I,J)
 
           rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te))*10.d5 !assuming pH=5

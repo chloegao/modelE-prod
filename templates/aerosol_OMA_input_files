@@ -1,9 +1,7 @@
 !-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
-!AER_CHEM=OXID_E__1TgfF40_2x2.5
-!AER_OH_STRAT=Strat_OH_drewE_20
-!O3_FIELD=Ox_3D_field_bell
+!OFFLINE_CHEM=giss2/sample_for_coupled_chem_zero_144x90x40.nc
 !OFFLINE_HNO3.nc=HNO3_E70_GISS4x5.nc
 !OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
 !------nitrate inputs--------------
