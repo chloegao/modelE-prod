@@ -134,8 +134,8 @@ contains
     endif
 
     ! set default long name to be the same as the short name
-    this%sourceLname = this%sourceName
-	    
+    this%sourceLname = trim(this%sourceName)
+
     ! -- begin sector stuff --
     tr_sectors_are = ' '
     pname=trim(trim(fileName)//'_sect')

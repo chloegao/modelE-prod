@@ -249,9 +249,9 @@ contains
     this%ntSurfSrc = this%ntSurfSrc + 1
     this%surfaceSources(this%ntSurfSrc)%sourceName = sourceName
     if (present(sourceLname) ) then
-       this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceLname
+       this%surfaceSources(this%ntSurfSrc)%sourceLname = trim(sourceLname)
     else
-       this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceName
+       this%surfaceSources(this%ntSurfSrc)%sourceLname = trim(sourceName)
     end if
 
   end subroutine addSurfaceSource
