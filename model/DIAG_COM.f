@@ -280,14 +280,15 @@ C**** parameters and variables for ISCCP diags
 !@var WISCCP denominator array for ISCCP histograms
       real*8, public, dimension(nisccp) :: WISCCP
 
-!@param KGZ number of pressure levels for some diags
-      INTEGER, PARAMETER, public :: KGZ = 21
-!@param kgz_max is the actual number of geopotential heights saved
-      INTEGER, public :: kgz_max
+!@param KGZ_max maximum number of pressure levels for some diags
+      INTEGER, PARAMETER, public :: KGZ_max = 21
+!@param kgz is the actual number of geopotential heights saved
+!@+     which will be less than kgz_max for low model tops
+      INTEGER, public :: kgz
 !@param PMB pressure levels for geopotential heights (extends to strat)
 !@param GHT ~mean geopotential heights at PMB level (extends to strat)
 !@param PMNAME strings describing PMB pressure levels
-      REAL*8, DIMENSION(KGZ), PARAMETER, public :: 
+      REAL*8, DIMENSION(KGZ_max), PARAMETER, public :: 
      *   GHT = (/     0d0,  900d0, 1500d0, 3000d0, 4500d0, 5600d0,
      *             7800d0, 9500d0,11000d0,12500d0,14500d0,16400d0,
      *            18500d0,20000d0,24000d0,27000d0,30000d0,35000d0,
@@ -296,7 +297,7 @@ C**** parameters and variables for ISCCP diags
      *              400d0,  300d0,  250d0,  200d0,  150d0,  100d0,
      *               70d0,   50d0,   30d0,   20d0,   10d0,    5d0,
      *                1d0,   .5d0,   .1d0 /)
-      CHARACTER*4, DIMENSION(KGZ), PARAMETER, public ::
+      CHARACTER*4, DIMENSION(KGZ_max), PARAMETER, public ::
      *  PMNAME= (/ '1000', '925 ', '850 ', '700 ', '600 ', '500 ',
      *             '400 ', '300 ', '250 ', '200 ', '150 ', '100 ',
      *             '70  ', '50  ', '30  ', '20  ', '10  ', '5   ',
@@ -998,7 +999,7 @@ c instances of arrays
       USE RESOLUTION, ONLY : IM,LM
       USE ATM_COM, ONLY : lm_req
       USE DIAG_COM, ONLY : KAJ,KCON,KAJL,KASJL,KAIJ,KAIJK,KAIJmm,
-     &                   KGZ,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
+     &                   KGZ_max,KOA,KTSF,nwts_ij,KTD,NREG,KAIJL,JM_BUDG
       USE DIAG_COM, ONLY : SQRTM,AJ_loc,JREG,AJL_loc,ASJL_loc
      *     ,AIJ_loc,AIJK_loc,AIJL_loc,AFLX_ST,ftype,ntype
      *     ,Z_inst,RH_inst,T_inst,TDIURN,TSFREZ_loc,OA,P_acc,PM_acc
@@ -1101,29 +1102,29 @@ c instances of arrays
      &         ASJL_loc(J_0BUDG:J_1BUDG,LM_REQ,KASJL),
      &         AIJ_loc(I_0H:I_1H,J_0H:J_1H,KAIJ),
      &         AIJmm(I_0H:I_1H,J_0H:J_1H,KAIJmm),
-     &         Z_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         RH_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         T_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         Z_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         RH_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         T_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
      &         TSFREZ_loc(I_0H:I_1H,J_0H:J_1H,KTSF),
      &         P_acc(I_0H:I_1H,J_0H:J_1H),
      &         PM_acc(I_0H:I_1H,J_0H:J_1H),
 #if (defined ttc_subdd) || (defined etc_subdd)
-     &         u_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         v_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         u_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         v_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
 #endif
 #ifdef ttc_subdd
-     &         vt_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         vt_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
 #endif
 #ifdef etc_subdd
-     &         lwc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         iwc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         omg_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         cldmc_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         cldss_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         tlh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         dlh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         slh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         llh_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         lwc_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         iwc_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         omg_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         cldmc_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         cldss_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         tlh_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         dlh_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         slh_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         llh_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
 #endif
 #if (defined mjo_subdd) || (defined etc_subdd)
      &         qlat_avg(I_0H:I_1H,J_0H:J_1H),
@@ -1155,10 +1156,10 @@ c instances of arrays
      &         saveTCLDI(I_0H:I_1H,J_0H:J_1H),
      &         saveMCCLDTP(I_0H:I_1H,J_0H:J_1H),
 #ifdef TRACERS_SPECIAL_Shindell
-     &         O_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         M_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         N_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
-     &         X_inst(KGZ,I_0H:I_1H,J_0H:J_1H),
+     &         O_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         M_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         N_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
+     &         X_inst(KGZ_max,I_0H:I_1H,J_0H:J_1H),
 #endif
 #ifdef TES_LIKE_DIAGS
      &         Q_more(KGZmore,I_0H:I_1H,J_0H:J_1H),

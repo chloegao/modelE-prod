@@ -890,7 +890,7 @@ C****
      &     jgrid_gc,pow_gc,denom_gc
       USE DIAG_COM, only : im,jm,lm,fim,byim,imh,
      &     kdiag,qdiag,linect,ia_dga,p1000k,
-     &     plm,ple_dn,ple,pmb,kgz,kgz_max,
+     &     plm,ple_dn,ple,pmb,kgz,
      &     aij,aijl,aijk,ijk_q, ij_zpmb1,
      &     ajl,scale_jl,ia_jl,units_jl,sname_jl,lname_jl,
      &     jgrid_jl,pow_jl,
@@ -1797,14 +1797,14 @@ C****
       DO N=1,4
       CALL JLMAP(LNAME_gc(N+ix),SNAME_gc(N+ix),UNITS_gc(N+ix),
      &        POW_gc(N+ix),
-     &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,kgz_max,2,jgrid_gc(N+ix))
+     &      PMB,AMPLTD(1,1,N),SCALET,ONES,ONES,kgz,2,jgrid_gc(N+ix))
       ENDDO
       SCALET = 360./TWOPI
       IX = jl_phi_phase_wave1-1
       DO N=1,4
       CALL JLMAP(LNAME_gc(N+ix),SNAME_gc(N+ix),UNITS_gc(N+ix),
      &        POW_gc(N+ix),
-     &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz_max,2,jgrid_gc(N+ix))
+     &      PMB,PHASE(1,1,N),SCALET,ONES,ONES,kgz,2,jgrid_gc(N+ix))
       ENDDO
 
       if(qdiag) call close_jl
