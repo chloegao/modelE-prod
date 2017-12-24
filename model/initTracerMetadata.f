@@ -125,7 +125,8 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
         (defined TRACERS_TOMAS)
         case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
-          call addSurfaceSource(pTracer, "Terpene_source")
+          call addSurfaceSource(pTracer, "Terpenes_src",
+     &                                   "Terpenes source")
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
@@ -180,6 +181,15 @@
         case ('SF6', 'SF6_c')
           call addSurfaceSource(pTracer, "surface_src", "Surface Src")
 #endif  /* TRACERS_SF6 */
+
+#ifdef TRACERS_TOMAS
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
+          call addSurfaceSource(pTracer, "SO4_src", "SO4 source")
+          call addSurfaceSource(pTracer, "EC_src", "EC source")
+          call addSurfaceSource(pTracer, "OC_src", "OC source")
+#endif  /* TRACERS_TOMAS */
 
         end select
 

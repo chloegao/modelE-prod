@@ -848,12 +848,6 @@ C**** set defaults for some precip/wet-dep related diags
 
 ! surface emissions
       do kk=1,ntsurfsrc(n_src)
-        select case (trname(n))
-        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
-     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
-     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-          cycle ! these tracers contain hardcoded ntsurfsrc, skip them
-        end select
         k = k + 1
         jls_source(kk,n) = k
         sname_jls(k) = trim(trname(n))//'_'//
@@ -1659,9 +1653,6 @@ c SO4
 c industrial source
         do kk=1,ntsurfsrc(n_ANUM(1))
           k = k + 1
-         IF(kk.eq.1) sources(kk)%sourceName='SO4'
-         IF(kk.eq.2) sources(kk)%sourceName='EC'
-         IF(kk.eq.3) sources(kk)%sourceName='OC'
           jls_source(kk,n) = k
           sname_jls(k) = trim(trname(n))//'_'//
      &                   trim(sources(kk)%sourceName)//'_src'
@@ -2410,12 +2401,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 
 ! surface emissions
       do kr=1,ntsurfsrc(n_src)
-        select case (trname(n))
-        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
-     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
-     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-          cycle ! these tracers contain hardcoded ntsurfsrc, skip them
-        end select
         k = k+1
         ijts_source(kr,n) = k
         ia_ijts(k) = ia_src
@@ -3377,10 +3362,6 @@ c put in production of SO4 from gas phase
 c SO4 from industrial emissions
         do kr=1,ntsurfsrc(n_ANUM(1))
           k = k + 1
-         IF(kr.eq.1) sources(kr)%sourceName='SO4'
-         IF(kr.eq.2) sources(kr)%sourceName='EC'
-         IF(kr.eq.3) sources(kr)%sourceName='OC'
-
           ijts_source(kr,n) = k
           ia_ijts(k) = ia_src
           sname_ijts(k) = trim(trname(n))//'_'//

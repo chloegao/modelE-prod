@@ -359,7 +359,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 #ifndef TRACERS_TOMAS
       INTEGER,PARAMETER :: ktajls=1350
 #else
-      INTEGER,PARAMETER :: ktajls=3285 
+      INTEGER,PARAMETER :: ktajls=3400
 #endif
 !@var jls_XXX index for non-tracer specific or special diags
       INTEGER jls_OHconk,jls_HO2con,jls_NO3,jls_O3vmr
@@ -421,7 +421,7 @@ C**** TCONSRV
      &                             +4
 #endif
 #ifdef TRACERS_TOMAS
-     &                             +6
+     &                             +6+15
 #endif
 !@param npts_common total number of conservation diagnostics outside
 !@+                 those defined for tracers

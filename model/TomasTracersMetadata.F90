@@ -143,7 +143,6 @@ contains
       if(bin.le.5) call set_ntm_power(n, 10)
       if(bin.gt.5) call set_ntm_power(n, 8) 
 
-      call set_ntsurfsrc(n,  3) ! 1 for SO4,2 for EC, 3 for OC (4 for SS and 5 for DU)
       call set_tr_mm(n, 1.d+0)
       call set_trpdens(n, TOMAS_dens)
       call set_trradius(n, TOMAS_radius)
