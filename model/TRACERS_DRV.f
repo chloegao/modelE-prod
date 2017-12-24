@@ -856,7 +856,14 @@ C**** set defaults for some precip/wet-dep related diags
      &                 trim(sources(kk)%sourceLname)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+11
-        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        select case(trname(n))
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
+          units_jls(k) = unit_string(jls_power(k),'# s-1')
+        case default
+          units_jls(k) = unit_string(jls_power(k),'kg s-1')
+        end select
       end do
 
 ! aircraft emissions
@@ -1655,9 +1662,9 @@ c industrial source
           k = k + 1
           jls_source(kk,n) = k
           sname_jls(k) = trim(trname(n))//'_'//
-     &                   trim(sources(kk)%sourceName)//'_src'
-          lname_jls(k) = trim(trname(n))//'_'//
-     &                   trim(sources(kk)%sourceName)//' source'
+     &                   trim(sources(kk)%sourceName)
+          lname_jls(k) = trim(trname(n))//' '//
+     &                   trim(sources(kk)%sourceLname)
           jls_ltop(k) = 1
           jls_power(k) =10
           units_jls(k) = unit_string(jls_power(k),'# s-1')
@@ -2405,11 +2412,18 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_source(kr,n) = k
         ia_ijts(k) = ia_src
         sname_ijts(k) = trim(trname(n))//'_'//
-     &                  trim(sources(kr)%sourceName)//'_src'
+     &                  trim(sources(kr)%sourceName)
         lname_ijts(k) = trim(trname(n))//' '//
-     &                  trim(sources(kr)%sourceName)//' source'
+     &                  trim(sources(kr)%sourceLname)
         ijts_power(k) = -15
-        units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+        select case(trname(n))
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
+          units_ijts(k) = unit_string(ijts_power(k),'# m-2 s-1')
+        case default
+          units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
+        end select
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
       end do
 
@@ -3358,20 +3372,6 @@ c put in production of SO4 from gas phase
         ijts_power(k) = 10
         units_ijts(k) = unit_string(ijts_power(k),'# m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
-c SO4 from industrial emissions
-        do kr=1,ntsurfsrc(n_ANUM(1))
-          k = k + 1
-          ijts_source(kr,n) = k
-          ia_ijts(k) = ia_src
-          sname_ijts(k) = trim(trname(n))//'_'//
-     &                    trim(sources(kr)%sourceName)//'_src'
-          lname_ijts(k) = trim(trname(n))//'_'//
-     &                    trim(sources(kr)%sourceName)//' source'
-          ijts_power(k) = 10
-          units_ijts(k) = unit_string(ijts_power(k),'# m-2 s-1')
-          scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-        enddo
 
         k = k + 1
         ijts_isrc(1,n) = k
@@ -6455,7 +6455,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
           do ns=1,ntsurfsrc(n) 
-            if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
+            if(pTracer%surfaceSources(ns)%sourceName==
+     &         'gsfMGOLjal_src') then
               sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean

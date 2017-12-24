@@ -133,8 +133,9 @@ contains
       endif
     endif
 
-    ! set default long name to be the same as the short name
-    this%sourceLname = trim(this%sourceName)
+    ! append ' source' to the long name, and '_src' to the short name
+    this%sourceLname = trim(this%sourceName)//' source'
+    this%sourceName = trim(this%sourceName)//'_src'
 
     ! -- begin sector stuff --
     tr_sectors_are = ' '
