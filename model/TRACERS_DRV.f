@@ -314,6 +314,7 @@ C**** For example, separate Moist convection/Large scale condensation
       qsum(npts_common+1:npts_common+ntcons)=F                !13-ktcon-1
 C**** this allows you to configure the common check points names.
       conpt=conpt0
+
       do n=1,NTM
         kt_power_inst(n)   = ntm_power(n)+2
         kt_power_change(n) = ntm_power(n)-4
@@ -829,10 +830,12 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
       type (TracerSurfaceSource), pointer :: AOCOB01sources(:)
       character(len=7) :: tend_units
-      character(len=7) :: flux_units
+      character(len=7) :: number_flux_units
+      character(len=7) :: mass_flux_units
 
-      tend_units = 'kg/kg/s'
-      flux_units = 'kg/m2/s'
+      tend_units = 'kg kg-1 s-1'
+      number_flux_units = '# m-2 s-1'
+      mass_flux_units = 'kg m-2 s-1'
 
 C**** Please note that short names for diags i.e. sname_jls are used
 C**** in special ways and MUST NOT contain spaces, commas or % signs.
@@ -929,12 +932,6 @@ C**** set defaults for some precip/wet-dep related diags
 
 ! surface emissions
       do kk=1,ntsurfsrc(n_src)
-        select case (trname(n))
-        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
-     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
-     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-          cycle ! these tracers contain hardcoded ntsurfsrc, skip them
-        end select
         k = k + 1
         jls_source(kk,n) = k
         sname_jls(k) = trim(trname(n))//'_'//
@@ -943,7 +940,14 @@ C**** set defaults for some precip/wet-dep related diags
      &                 trim(sources(kk)%sourceLname)
         jls_ltop(k) = 1
         jls_power(k) = ntm_power(n)+11
-        units_jls(k) = unit_string(jls_power(k),flux_units)
+        select case(trname(n))
+        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     *    'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
+          units_jls(k) = unit_string(jls_power(k),number_flux_units)
+        case default
+          units_jls(k) = unit_string(jls_power(k),mass_flux_units)
+        end select
         jwt_jls(k) = jls_not_mass_weighted
       end do
 
@@ -986,14 +990,6 @@ c        call layer1_init_jls(k,n,trname(n))
         call N2O_init_jls(k,n,'N2O')
       case ('CFC11')   !!! should start April 1
         k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' BY SOURCE, L1'
-        jls_ltop(k) = 1
-        jls_power(k) = -1
-        units_jls(k) = unit_string(jls_power(k),flux_units)
-        jwt_jls(k) = jls_not_mass_weighted
-        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
         lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
@@ -1001,16 +997,6 @@ c        call layer1_init_jls(k,n,trname(n))
         jls_ltop(k) = lm
         jls_power(k) = -3
         units_jls(k) = unit_string(jls_power(k),tend_units)
-
-      case ('14CO2')   !!! should start 10/16
-        k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'L1_sink_'//trim(trname(n))
-        lname_jls(k) = 'CHANGE OF '//trim(trname(n))//' by SINK, L1'
-        jls_ltop(k) = 1
-        jls_power(k) = -4
-        units_jls(k) = unit_string(jls_power(k),flux_units)
-        jwt_jls(k) = jls_not_mass_weighted
 
       case ('CH4')
 #ifdef TRACERS_SPECIAL_Shindell
@@ -1048,14 +1034,6 @@ c        call layer1_init_jls(k,n,trname(n))
 #endif
 
       case ('O3')
-       k = k + 1
-        jls_source(1,n) = k
-        sname_jls(k) = 'Deposition_L1_'//trim(trname(n))
-        lname_jls(k) = 'Change of O3 by Deposition in Layer 1'
-        jls_ltop(k) = 1
-        jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),flux_units)
-        jwt_jls(k) = jls_not_mass_weighted
        k = k + 1
         jls_3Dsource(1,n) = k
         sname_jls(k) = 'Strat_Chem_change_'//trim(trname(n))
@@ -1251,7 +1229,7 @@ c gravitational settling of SOA
         lname_jls(k) = 'DMS ocean source'
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),flux_units)
+        units_jls(k) = unit_string(jls_power(k),mass_flux_units)
         jwt_jls(k) = jls_not_mass_weighted
 C
         k = k + 1
@@ -1589,15 +1567,9 @@ c SO4
 c industrial source
         do kk=1,ntsurfsrc(n_ANUM(1))
           k = k + 1
-         IF(kk.eq.1) sources(kk)%sourceName='SO4'
-         IF(kk.eq.2) sources(kk)%sourceName='EC'
-         IF(kk.eq.3) sources(kk)%sourceName='OC'
-
-         sources(kk)%sourceLname=sources(kk)%sourceName//' source'
-
           jls_source(kk,n) = k
           sname_jls(k) = trim(trname(n))//'_'//
-     &                   trim(sources(kk)%sourceName)//'_src'
+     &                   trim(sources(kk)%sourceName)
           lname_jls(k) = trim(trname(n))//' '//
      &                   trim(sources(kk)%sourceLname)
           jls_ltop(k) = 1
@@ -1638,7 +1610,7 @@ c industrial source
         lname_jls(k) = 'Ocean source of '//trim(trname(n))
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),flux_units)
+        units_jls(k) = unit_string(jls_power(k),mass_flux_units)
         jwt_jls(k) = jls_not_mass_weighted
 
       case ('AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
@@ -1681,7 +1653,7 @@ c industrial source
         lname_jls(k) = trim(trname(n))//' dust source'
         jls_ltop(k) = 1
         jls_power(k) =0
-        units_jls(k) = unit_string(jls_power(k),flux_units)
+        units_jls(k) = unit_string(jls_power(k),mass_flux_units)
         jwt_jls(k) = jls_not_mass_weighted
         end select
 
@@ -1695,7 +1667,7 @@ c ocean source
         lname_jls(k) = trim(trname(n))//' ocean source'
         jls_ltop(k) = 1
         jls_power(k) = 1
-        units_jls(k) = unit_string(jls_power(k),flux_units)
+        units_jls(k) = unit_string(jls_power(k),mass_flux_units)
         jwt_jls(k) = jls_not_mass_weighted
 c gravitational settling
         k = k + 1
@@ -1738,7 +1710,7 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_emission'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),flux_units)
+          units_jls(k)=unit_string(jls_power(k),mass_flux_units)
           jwt_jls(k) = jls_not_mass_weighted
         IF ( imDust == 0 .or. imDust >= 3 ) THEN
           k=k+1
@@ -1747,7 +1719,7 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_emission2'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),flux_units)
+          units_jls(k)=unit_string(jls_power(k),mass_flux_units)
           jwt_jls(k) = jls_not_mass_weighted
         END IF
 #ifndef TRACERS_DRYDEP
@@ -1757,7 +1729,7 @@ c gravitational settling
           sname_jls(k)=TRIM(trname(n))//'_turb_depo'
           jls_ltop(k)=1
           jls_power(k)=1
-          units_jls(k)=unit_string(jls_power(k),flux_units)
+          units_jls(k)=unit_string(jls_power(k),mass_flux_units)
           jwt_jls(k) = jls_not_mass_weighted
 #endif
         k=k+1
@@ -2084,20 +2056,6 @@ c Oxidants
 
       contains
 
-      subroutine layer1_init_jls(k,n, name)
-      integer, intent(inout) :: k
-      integer, intent(in) :: n
-      character(len=*), intent(in) :: name
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'Layer_1_source_of_'//trim(trname(n))
-      lname_jls(k) = trim(trname(n))//' GRID SOURCE, LAYER 1'
-      jls_ltop(k) = 1
-      jls_power(k) = -3
-      units_jls(k) = unit_string(jls_power(k),flux_units)
-      jwt_jls(k) = jls_not_mass_weighted
-      end subroutine layer1_init_jls
-
       subroutine CO2n_init_jls(k,n,name)
       integer, intent(inout) :: k
       integer, intent(in) :: n
@@ -2108,7 +2066,7 @@ c Oxidants
       lname_jls(k) = trim(trname(n))//' Ocean/Atmos. Gas Exchange'
       jls_ltop(k) = 1
       jls_power(k) = 3
-      units_jls(k) = unit_string(jls_power(k),flux_units)
+      units_jls(k) = unit_string(jls_power(k),mass_flux_units)
       jwt_jls(k) = jls_not_mass_weighted
       end subroutine CO2n_init_jls
 
@@ -2123,15 +2081,6 @@ c Oxidants
       jls_ltop(k) = lm
       jls_power(k) = -26
       units_jls(k) = unit_string(jls_power(k),tend_units)
-
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'Ground_Source_of_'//trim(trname(n))
-      lname_jls(k) = 'RADON-222 SOURCE, LAYER 1'
-      jls_ltop(k) = 1
-      jls_power(k) = -10
-      units_jls(k) = unit_string(jls_power(k),flux_units)
-      jwt_jls(k) = jls_not_mass_weighted
       end subroutine Rn222_init_jls
       
       subroutine N2O_init_jls(k,n,name)
@@ -2156,15 +2105,6 @@ c Oxidants
       units_jls(k) = unit_string(jls_power(k),tend_units)
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
-      k = k + 1
-      jls_source(1,n) = k
-      sname_jls(k) = 'L1_sink_'//trim(trname(n))
-      lname_jls(k) = 'CHANGE OF '//trim(trname(n))//
-     &               ' BY RESETTING TO 462.2d-9, L1'
-      jls_ltop(k) = 1
-      jls_power(k) = 0
-      units_jls(k) = unit_string(jls_power(k),flux_units)
-      jwt_jls(k) = jls_not_mass_weighted
       k = k + 1
       jls_3Dsource(1,n) = k
       sname_jls(k) = 'Stratos_chem_change_'//trim(trname(n))
@@ -2320,15 +2260,22 @@ C**** This needs to be 'hand coded' depending on circumstances
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-          cycle ! these tracers contain hardcoded ntsurfsrc, skip them
+          ijts_source(kr,n)=
+     *      ijts_diag(trim(trname(n))//'_'//
+     *                  trim(sources(kr)%sourceName),
+     *                  trim(trname(n))//' '//
+     *                  trim(sources(kr)%sourceLname),
+     *                  '# m-2 s-1', power=-15,
+     *                  scalediv=dtsrc)
+        case default
+          ijts_source(kr,n)=
+     *      ijts_diag(trim(trname(n))//'_'//
+     *                  trim(sources(kr)%sourceName),
+     *                  trim(trname(n))//' '//
+     *                  trim(sources(kr)%sourceLname),
+     *                  'kg m-2 s-1', power=-15,
+     *                  scalediv=dtsrc)
         end select
-        ijts_source(kr,n)=
-     *    ijts_diag(trim(trname(n))//'_'//
-     *                trim(sources(kr)%sourceName),
-     *                trim(trname(n))//' '//
-     *                trim(sources(kr)%sourceLname),
-     *                'kg m-2 s-1', power=-15,
-     *                scalediv=dtsrc)
       end do
 
 ! aircraft emissions
@@ -2890,12 +2837,6 @@ c put in production of SO4 from gas phase
 
 c SO4 from industrial emissions
         do kr=1,ntsurfsrc(n_ANUM(1))
-          if (kr.eq.1) sources(kr)%sourceName='SO4'
-          if (kr.eq.2) sources(kr)%sourceName='EC'
-          if (kr.eq.3) sources(kr)%sourceName='OC'
-          
-          sources(kr)%sourceLname=sources(kr)%sourceName//' source'
-
           ijts_source(kr,n)=
      *      ijts_diag(trim(trname(n))//'_'//
      *                  trim(sources(kr)%sourceName)//'_src',
@@ -2919,7 +2860,6 @@ c SO4 from industrial emissions
         case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04','ANACL_05',
      *        'ANACL_06','ANACL_07','ANACL_08','ANACL_09','ANACL_10',
      *        'ANACL_11','ANACL_12','ANACL_13','ANACL_14','ANACL_15')
-
           ijts_isrc(1,n)=
      *      ijts_diag(trim(trname(n))//'_emission',
      *                trim(trname(n))//' Ocean source',
@@ -5563,7 +5503,8 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
         case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
           do ns=1,ntsurfsrc(n) 
-            if(pTracer%surfaceSources(ns)%sourceName=='gsfMGOLjal') then
+            if(pTracer%surfaceSources(ns)%sourceName==
+     &         'gsfMGOLjal_src') then
               sfc_src(I_0:I_1,J_0:J_1,n,ns)=
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean

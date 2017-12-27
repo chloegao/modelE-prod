@@ -528,8 +528,8 @@ c
      &     coordvalues=lat_gc)
       call add_coord(cdl_gc,'lat2',jmlat,units='degrees_north',
      &     coordvalues=lat_gc2)
-      call add_coord(cdl_gc,'pgz',kgz_max,units='mb',
-     &     coordvalues=pmb(1:kgz_max))
+      call add_coord(cdl_gc,'pgz',kgz,units='mb',
+     &     coordvalues=pmb(1:kgz))
       call add_dim(cdl_gc,'shnhgm',3)
       call add_dim(cdl_gc,'lat_plus3',jmlat+3)
       call add_dim(cdl_gc,'lat2_plus3',jmlat+3)

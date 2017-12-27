@@ -349,7 +349,7 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
 !@param ktajls number of source/sink TAJLS tracer diagnostics;
 !@+   please just increase this if needed - do not bother with pp options
 #ifdef TRACERS_TOMAS
-      INTEGER,PARAMETER :: ktajls=3285
+      INTEGER,PARAMETER :: ktajls=3400
 #elif defined TRACERS_AMP_M9
       INTEGER,PARAMETER :: ktajls=3000
 #else
@@ -417,7 +417,7 @@ C**** TCONSRV
      &                             +4
 #endif
 #ifdef TRACERS_TOMAS
-     &                             +6
+     &                             +6+15
 #endif
 !@param npts_common total number of conservation diagnostics outside
 !@+                 those defined for tracers
