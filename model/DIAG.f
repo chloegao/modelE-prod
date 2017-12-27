@@ -128,6 +128,10 @@ C**** Some local constants
      *     ,jk_dpwt,jk_tx,jk_hght,jk_q,jk_rh,jk_cldh2o
      *     ,jk_cldwtr,jk_cldice
      *    ,z_inst,rh_inst,t_inst,plm,ijl_templ,ijl_gridh,ijl_husl,ijl_zL
+#ifdef AIJL_CP_TRANSPORTS
+     *     ,ijk_ucp,ijk_vcp
+     *     ,ijk_utcp,ijk_vtcp,ijk_uqcp,ijk_vqcp,ijk_uphicp,ijk_vphicp
+#endif
 #ifdef TRACERS_SPECIAL_Shindell
      *     ,o_inst,x_inst,n_inst,m_inst
 #endif
@@ -182,6 +186,12 @@ C**** Some local constants
       integer :: lmx
       real*8, dimension(lmxmax) :: dpx
       integer, dimension(lmxmax) :: lmod,lcp
+#ifdef AIJL_CP_TRANSPORTS
+      integer, parameter :: nqmax=8
+      integer :: kq,nqty,ijk_qty(nqmax)
+      real*8, dimension(lm,nqmax) :: qty
+      real*8, dimension(lm) :: qtydp
+#endif
 
       INTEGER :: J_0, J_1, J_0S, J_1S, I_0,I_1,I_0H,I_1H
      &     ,IM1S,IP1S,IP1E
@@ -792,6 +802,47 @@ c
           call inc_ajl(i,j,l,jk_cldice,wmfrzdp(l))
           call inc_ajl(i,j,l,jk_cldwtr,wmliqdp(l))
         enddo
+#ifdef AIJL_CP_TRANSPORTS
+
+c horizontal transports:
+        kq = 0
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_ucp
+        qty(:,kq) = ua(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_vcp
+        qty(:,kq) = va(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_utcp
+        qty(:,kq) = tx(i,j,:)*ua(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_vtcp
+        qty(:,kq) = tx(i,j,:)*va(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_uqcp
+        qty(:,kq) = q(i,j,:)*ua(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_vqcp
+        qty(:,kq) = q(i,j,:)*va(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_uphicp
+        qty(:,kq) = phi(i,j,:)*ua(:,i,j)
+c
+        kq = kq + 1; ijk_qty(kq) = ijk_vphicp
+        qty(:,kq) = phi(i,j,:)*va(:,i,j)
+c
+        nqty = kq
+        do kq=1,nqty
+          qtydp(:) = 0d0
+          do l=1,lmx
+            qtydp(lcp(l)) = qtydp(lcp(l)) + dpx(l)*qty(lmod(l),kq)
+          enddo
+          aijl(i,j,:,ijk_qty(kq)) = aijl(i,j,:,ijk_qty(kq)) + qtydp(:)
+        enddo
+
+c vertical transports: will be added after decisions which definitions
+c are most appropriate for the intended applications
+#endif
       enddo
       enddo
 
