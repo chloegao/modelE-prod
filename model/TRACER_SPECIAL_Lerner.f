@@ -460,6 +460,12 @@ C**** Needed for linoz chemistry
       real*8    XPSD,XPSLM1,XPSL
       real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
       real*8, dimension(:,:), allocatable :: arr_dummy_2d
+      integer :: i_0,i_1,j_0,j_1
+
+      i_0=grid%i_strt
+      i_1=grid%i_stop
+      j_0=grid%j_strt
+      j_1=grid%j_stop
 
       call set_prather_constants
       lmtc = lm-nstrtc
@@ -502,7 +508,8 @@ C     Loss rates
         ! interpolation to model layering is performed within the model,
         ! the units should become 1/s.
         do l=1,lmtc
-          O3trop_Loss(:,:,l,m) = arr_dummy_3d(:,:,l)*axyp
+          O3trop_Loss(i_0:i_1,j_0:j_1,l,m)=
+     &      arr_dummy_3d(i_0:i_1,j_0:j_1,l)*axyp(i_0:i_1,j_0:j_1)
         enddo
       enddo
       call closeunit(iu)
