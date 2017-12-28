@@ -25,12 +25,10 @@
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/m2/s)
       INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
-!@var PBLH boundary layer height
-!@var MDF is the mass of the downdraft flux
+      real*8, allocatable, dimension(:) :: oh,tno3 ! both for online and offline
+      real*8, allocatable, dimension(:) :: dho2,perj ! COUPLED_CHEM=0 only
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
-     *   oh,dho2,perj,tno3,o3_offline  !im,jm,lm
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: ohr,dho2r,perjr,
-     *   tno3r,ohsr  !im,jm,lm,12   DMK jmon
+     &  ohr,dho2r,perjr,tno3r,o3_offline ! COUPLED_CHEM=0 only
       real*8, allocatable, dimension(:,:,:) :: readCache
       
 #ifdef BC_ALB
@@ -62,7 +60,7 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
      * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
      * ohr,dho2r,perjr, tno3r, readCache,
-     * oh,dho2,perj,tno3,ohsr
+     * oh,dho2,perj,tno3
      * ,o3_offline
      * ,off_HNO3
 #ifdef TRACERS_RADON
@@ -105,17 +103,16 @@
         iso2volcanoexpl=nso2src_3d
       endif
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate(         oh(I_0H:I_1H,J_0H:J_1H,lm))
-      allocate(       tno3(I_0H:I_1H,J_0H:J_1H,lm))
-      allocate(       dho2(I_0H:I_1H,J_0H:J_1H,lm))
+      allocate(         oh(lm))
+      allocate(       tno3(lm))
       if (coupled_chem==0) then
-        allocate(       perj(I_0H:I_1H,J_0H:J_1H,lm),
-     *            o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+        allocate(       dho2(lm))
+        allocate(       perj(lm))
         allocate(        ohr(I_0H:I_1H,J_0H:J_1H,lm),
      *                 dho2r(I_0H:I_1H,J_0H:J_1H,lm),
      *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
      *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
-     *                  ohsr(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+     *                 o3_offline(I_0H:I_1H,J_0H:J_1H,lm))
         allocate(  readCache(I_0H:I_1H,J_0H:J_1H,lm) )
       endif
 #ifdef BC_ALB
@@ -315,7 +312,7 @@ c
       use domain_decomp_atm, only: getDomainBounds, grid
       use model_com, only: modelEclock
       use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
-     & ohsr, AeroStream, AeroFirst, nAeroStream, readCache
+     & AeroStream, AeroFirst, nAeroStream, readCache
 
       implicit none
 
@@ -352,9 +349,6 @@ c
         end select
       end do
 
-      ! impose diurnal variability:
-      call scalerad
-
       end subroutine aerosol_gas_chem_prep
 
 
@@ -380,7 +374,7 @@ c
       USE ATM_COM, only: pmid,MA,pk,byMA
       USE PBLCOM, only : dclev
       USE FLUXES, only: tr3Dsource
-      USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,ohsr,o3_offline
+      USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,o3_offline
       USE CONSTANT, only : mair
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : h2so4_chem
@@ -402,14 +396,13 @@ c Aerosol chemistry
       integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
 
-C Coupled mode: use on-line radical concentrations
       if (coupled_chem.eq.1) then
-        oh(i,j,:)=oh_live(i,j,:)
-        tno3(i,j,:)=no3_live(i,j,:)
-c Set h2o2_s =0 and use on-line h2o2 from chemistry
-        if(n_H2O2_s>0) trm_col(:,n_h2o2_s)=0.0
+! coupled mode: use online radical concentrations
+        oh(:)=oh_live(i,j,:)
+        tno3(:)=no3_live(i,j,:)
       else
-        ! above species were already read in
+! offline: read-in radical concentrations and impose diurnal variability
+        call scalerad(i,j)
       endif
 
 #ifdef TRACERS_HETCHEM
@@ -424,7 +417,7 @@ C Initialise
 
 c DMM is number density of air in molecules/cm3
         dmm=ppres/(.082d0*te)*6.02d20
-        ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
+        ohmc = oh(l) !oh is alread in units of molecules/cm3
 
 ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
         do n=1,NTM
@@ -445,7 +438,7 @@ c - not necessary for Shindell source
           if (l.gt.dclev(i,j)) then
             ttno3=0.d0
           else
-            ttno3 = tno3(i,j,l) !*6.02d20*ppres/(.082056d0*te)
+            ttno3 = tno3(l) !*6.02d20*ppres/(.082056d0*te)
           endif
           call inc_tajls2(i,j,l,jls_NO3,ma(l,i,j)*ttno3)
 
@@ -482,7 +475,6 @@ c SO2 production from DMS
      *                                 )/dtsrc
 
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-          ohmc = oh(i,j,l)        !oh is alread in units of molecules/cm3
           r4=rsulf4(l)*ohmc
           d4 = exp(-r4*dtsrc)
 
@@ -520,9 +512,9 @@ c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
         if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,
-     &       ma(l,i,j)*oh(i,j,l))
+     &       ma(l,i,j)*oh(l))
         if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,
-     &       ma(l,i,j)*dho2(i,j,l))
+     &       ma(l,i,j)*dho2(l))
 
 ! SO4 and H2O2_s formation MUST be in a separate loop, since SO2 does not have
 ! to be before SO4 or H2SO4 or H2O2_s in the tracer list
@@ -592,8 +584,8 @@ C     HO2 + HO2 + H2O + M ->
           ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
           ch2o = q(i,j,l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*te)
           eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
-          dho2mc = dho2(i,j,l)  !/mm*1.292/.033*6.02e17
-          dho2kg = dho2(i,j,l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
+          dho2mc = dho2(l)  !/mm*1.292/.033*6.02e17
+          dho2kg = dho2(l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
           eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
           xk9 = dho2kg*eeee
 c         if (i.eq.2.and.l.eq.1.and.j.eq.46) write(6,*) 
@@ -608,13 +600,13 @@ c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
 c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
 c         endif
 c H2O2 losses:5 and 6
-          r5 = perj(i,j,l)
+          r5 = perj(l)
           d5 = exp(-r5*dtsrc)
 
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
 
-          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,perj(i,j,l))
+          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,perj(l))
           endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop
@@ -626,60 +618,34 @@ c H2O2 losses:5 and 6
 
 #endif /* oma or matrix or tomas */
 
-      SUBROUTINE SCALERAD
+      SUBROUTINE SCALERAD(i,j)
+
       use constant, only : pi
       use resolution, only: lm
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
+      integer, intent(in) :: i,j
       real*8, parameter ::
      &     night_frac_min=.01d0 ! minimum night_frac for tno3 scaling
       real*8 stfac,night_frac
-      integer i,j,l,i_0,i_1,j_0,j_1
-c      real*8, DIMENSION(JM) :: tczen
-c      integer, DIMENSION(JM) :: nradn
 
-      call getDomainBounds(grid, 
-     &     I_STRT=I_0,I_STOP=I_1, J_STRT=J_0,J_STOP=J_1)
-
-c      nradn(:)=0
-c      tczen(:)=0.d0
-c      do 100 j = j_0,j_1
-c      do 100 i = 1, im
-c      if (cosz1(i,j).gt.0.) then
-c      tczen(j)=tczen(j)+cosz1(i,j)
-c      else
-c      nradn(j)=nradn(j)+1
-c      endif
-c 100  continue
-
-      do j = j_0,j_1
-      do i = i_0,i_1
 c Get NO3 only if dark, weighted by number of dark hours
-        night_frac = 1.-sunset(i,j)/pi
-c        night_frac = real(nradn(j))/real(im)
-        if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
-          tno3(i,j,:)=tno3r(i,j,:)/night_frac !DMK jmon
-        else
-          tno3(i,j,:)=0.d0
-        endif
-        if (cosz1(i,j).gt.0.) then
-c          stfac=cosz1(i,j)/tczen(j)*real(IM)
-          stfac=cosz1(i,j)/cosz_day(i,j)
-          oh(i,j,:)=ohr(i,j,:)*stfac
-          perj(i,j,:)=perjr(i,j,:)*stfac
-          dho2(i,j,:)=dho2r(i,j,:)*stfac
-        end if
-      end do
-      end do
+      night_frac = 1.-sunset(i,j)/pi
+      if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
+        tno3(:)=tno3r(i,j,:)/night_frac !DMK jmon
+      else
+        tno3(:)=0.d0
+      endif
+      if (cosz1(i,j).gt.0.) then
+        stfac=cosz1(i,j)/cosz_day(i,j)
+        oh(:)=ohr(i,j,:)*stfac
+        perj(:)=perjr(i,j,:)*stfac
+        dho2(:)=dho2r(i,j,:)*stfac
+      endif
 
-c        if (I.EQ.1.AND.L.EQ.1) write(6,*)'NO3R',TAU,J,NRADN(I,J)
-c            if (l.eq.1.and.j.eq.23.and.i.eq.10) write(6,*)
-c    *     'RRR SCALE ',stfac,cosz1(i,j),tczen(j),oh(i,j,l),ohr(i,j,l)
-      RETURN
       END SUBROUTINE SCALERAD
-
 
 
       SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
