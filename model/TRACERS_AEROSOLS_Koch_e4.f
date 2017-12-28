@@ -369,9 +369,12 @@ c
       USE TRDIAG_COM, only : 
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
       use resolution, only: im,lm
-      use atm_com, only : t,q
       USE MODEL_COM, only: dtsrc
-      USE ATM_COM, only: pmid,MA,pk,byMA
+      use atmcol_com, only: tl   ! layer temperature (K)
+      use atmcol_com, only: ql   ! layer humidity (kg/kg)
+      use atmcol_com, only: pl   ! layer pmid (mb)
+      use atmcol_com, only: ma   ! layer mass (kg/m2)
+      use atmcol_com, only: byma ! 1/ma
       USE PBLCOM, only : dclev
       USE FLUXES, only: tr3Dsource
       USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,o3_offline
@@ -385,8 +388,8 @@ c Aerosol chemistry
       implicit none
       integer, intent(in) :: i,j
 !
-      real*8 ppres,te,tt,mm,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
-     * ddno3,dddms,ddno3a,fmom,dtt
+      real*8 ppres,tt,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
+     * ddno3,dddms,ddno3a,fmom
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
@@ -412,11 +415,10 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 
       do l=1,lm
 C Initialise       
-        ppres=pmid(l,i,j)*9.869d-4 !in atm
-        te=pk(l,i,j)*t(i,j,l)
+        ppres=pl(l)*9.869d-4 !in atm
 
 c DMM is number density of air in molecules/cm3
-        dmm=ppres/(.082d0*te)*6.02d20
+        dmm=ppres/(.082d0*tl(l))*6.02d20
         ohmc = oh(l) !oh is alread in units of molecules/cm3
 
 ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
@@ -438,9 +440,9 @@ c - not necessary for Shindell source
           if (l.gt.dclev(i,j)) then
             ttno3=0.d0
           else
-            ttno3 = tno3(l) !*6.02d20*ppres/(.082056d0*te)
+            ttno3 = tno3(l) !*6.02d20*ppres/(.082056d0*tl(l))
           endif
-          call inc_tajls2(i,j,l,jls_NO3,ma(l,i,j)*ttno3)
+          call inc_tajls2(i,j,l,jls_NO3,ma(l)*ttno3)
 
           r3=rsulf3(l)*ttno3
           d3= exp(-r3*dtsrc)
@@ -482,14 +484,15 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #ifdef TRACERS_HETCHEM
           if (COUPLED_CHEM.ne.1) then
             ! convert ppbv O3 input to kg m-2:
-            o3mc=o3_offline(i,j,l)*MA(l,i,j)*1.d-9*vol2mass(n_Ox)
+            o3mc=o3_offline(i,j,l)*MA(l)*1.d-9*vol2mass(n_Ox)
           else
             o3mc=trm_col(l,n_Ox)
           endif
           ! convert to molecules O3 cm-3:
-          o3mc = o3mc*dmm*(28.0D0/48.0D0)*byMA(L,I,J)
+          o3mc = o3mc*dmm*(28.0D0/48.0D0)*byMA(L)
 
-          rsulfo3 = 4.39d11*exp(-4131/te)+( 2.56d3*exp(-966/te))*10.d5 !assuming pH=5
+          rsulfo3 = 4.39d11*exp(-4131/tl(l))+
+     &            ( 2.56d3*exp(-966/tl(l)))*10.d5 !assuming pH=5
           rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
           d41 = exp(-rxts1(l)*dtsrc)     
           d42 = exp(-rxts2(l)*dtsrc)     
@@ -512,9 +515,9 @@ c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
         if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,
-     &       ma(l,i,j)*oh(l))
+     &       ma(l)*oh(l))
         if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,
-     &       ma(l,i,j)*dho2(l))
+     &       ma(l)*dho2(l))
 
 ! SO4 and H2O2_s formation MUST be in a separate loop, since SO2 does not have
 ! to be before SO4 or H2SO4 or H2O2_s in the tracer list
@@ -575,22 +578,20 @@ C     HO2 + HO2 + M ->
 C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
-          dtt=dtsrc
-          mm = MA(l,i,j)
-          tt = 1.d0/te
+          tt = 1.d0/tl(l)
           r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
           d6 = exp(-r6*dtsrc)
           ek9 = 2.2d-13*exp(600.d0*tt)
           ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
-          ch2o = q(i,j,l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*te)
+          ch2o = ql(l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*tl(l))
           eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
-          dho2mc = dho2(l)  !/mm*1.292/.033*6.02e17
-          dho2kg = dho2(l)*mm*te*.082056d0/(ppres*28.97d0*6.02d20)
-          eeee = eh2o*(ek9+ek9t)*dtt*dho2mc
+          dho2mc = dho2(l)  !/ma(l)*1.292/.033*6.02e17
+          dho2kg = dho2(l)*ma(l)*tl(l)*.082056d0/(ppres*28.97d0*6.02d20)
+          eeee = eh2o*(ek9+ek9t)*dtsrc*dho2mc
           xk9 = dho2kg*eeee
 c         if (i.eq.2.and.l.eq.1.and.j.eq.46) write(6,*) 
 c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
-c    *    ,eh2o,ek9,ek9t,dtt
+c    *    ,eh2o,ek9,ek9t,dtsrc
 c         if (i.eq.72.and.l.eq.1.and.j.le.46) write(6,*) 
 c    *    'RRR CHEM DEBUG ',i,j,xk9,dho2kg,eeee,dho2mc
 c H2O2 production: eqn 9
