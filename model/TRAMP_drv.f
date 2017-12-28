@@ -71,16 +71,15 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AEROSOL_SOURCES, only: off_HNO3
 
       USE RESOLUTION, only : lm     ! dimensions
-      USE ATM_COM, only : 
-     $                      t            ! potential temperature (C)
-     $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: imaxj
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
-      USE ATM_COM,   only: pmid,pk,byMA,MA   ! midpoint pressure in hPa (mb)
-!                                           and pk is t mess up factor
-!                                           byMA  1/Air mass (m^2/kg)
+      use ATMCOL_COM, only: tl   ! layer temperature (K)
+      use ATMCOL_COM, only: ql   ! layer humidity (kg/kg)
+      use ATMCOL_COM, only: pl   ! layer pressure (mb)
+      use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
+      use ATMCOL_COM, only: byma ! 1/ma
       USE AERO_CONFIG
       USE AERO_INIT
       USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
@@ -94,7 +93,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       IMPLICIT NONE
       integer, intent(in) :: i,j
 !
-      REAL(8):: TK,RH,PRES,TSTEP,AQSO4RATE
+      REAL(8):: RH,PRES,TSTEP,AQSO4RATE
       REAL(8):: AERO(NAEROBOX)     ! aerosol conc. [ug/m^3] or [#/m^3]
       REAL(8):: GAS(NGASES)        ! gas-phase conc. [ug/m^3]
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
@@ -124,14 +123,13 @@ C**** functions
       EMIS_MASS(:) = 0.d0
       AERO(:)      = 0.d0
 ! meteo
-      TK = pk(l,i,j)*t(i,j,l)           !should be in [K]
-      RH = MIN(1.d0,q(i,j,l)/QSAT(TK,lhe,pmid(l,i,j))) ! rH [0-1]
-      PRES= pmid(l,i,j)*100.                  ! pmid in [hPa]
+      RH = MIN(1.d0,ql(l)/QSAT(tl(l),lhe,pl(l))) ! rH [0-1]
+      PRES= pl(l)*100. ! PRES in [Pa]
       TSTEP=dtsrc
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
 c avol [m3/m2/gb] mass of air pro m3      
-      AVOL = MA(l,i,j)/mair*1000.d0*gasc*tk/pres 
+      AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 
@@ -208,7 +206,7 @@ c     Biomass BC OC is NOT mixed
 #endif
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
-       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO)
+       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO)
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)
@@ -291,7 +289,7 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
-        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j))
+        taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
