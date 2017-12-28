@@ -24,14 +24,14 @@
       USE AEROSOL_SOURCES, only: off_HNO3
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
-      USE ATM_COM, only :   t            ! potential temperature (C)
-     $                     ,q            ! saturatered pressure
+      use ATMCOL_COM, only: tl   ! layer temperature (K)
+      use ATMCOL_COM, only: ql   ! layer humidity (kg/kg)
+      use ATMCOL_COM, only: pl   ! layer pressure (mb)
+      use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
       USE MODEL_COM, only : dtsrc
       USE CONSTANT,   only: mair,gasc,lhe
       USE FLUXES, only: tr3Dsource
       USE TRACER_COM, only: nThermo
-      USE ATM_COM,   only: pmid,pk,MA   ! midpoint pressure in hPa (mb)
-!                                             and pk is t mess up factor
       use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
 
       IMPLICIT NONE
@@ -61,7 +61,6 @@
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
       REAL(8) :: DUST      ! fine dust(sol+insol) [ug/m^3]
       REAL(8) :: SALT      ! fine salt(sol+insol) [ug/m^3]
-      REAL(8) :: TK        ! absolute temperature  [K]          
       REAL(8) :: RH        ! relative humidity     [0-1] w/r/t liquid water
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
       REAL(8) :: RHC       ! RH of crystallization [0-1]
@@ -154,10 +153,9 @@
 
       DO L=1,LTOP
 ! meteo
-      TK = pk(l,i,j)*t(i,j,l)           ! in [K]
-      RH = q(i,j,l)/QSAT(pk(l,i,j)*t(i,j,l),lhe,pmid(l,i,j)) ! rH [0-1]
+      RH = ql(l)/QSAT(tl(l),lhe,pl(l)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3
-      AVOL = MA(l,i,j)/mair*1000.d0*gasc*tk/(pmid(l,i,j)*100.d0)
+      AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/(pl(l)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
       GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
       ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
@@ -187,7 +185,7 @@ c avol [m3/gb] mass of air pro m3
       OTHER(:)  = 0.0D+00
 
 
-      CALL ISOROPIA ( WI, H, TK, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
+      CALL ISOROPIA ( WI, H, tl(l), CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
 
       GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
