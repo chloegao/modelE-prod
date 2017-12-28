@@ -7127,7 +7127,7 @@ c    Aging of industrial carbonaceous aerosols
           kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
      &            (MA(l,i,j)*gasc*te)
           vbs_cond%dt=dtsrc
-          vbs_cond%OH=oh(i,j,l)
+          vbs_cond%OH=oh(l)
           vbs_cond%temp=te
           vbs_cond%nvoa=(trm_col(l,n_BCII)
      &                  +trm_col(l,n_BCIA)
