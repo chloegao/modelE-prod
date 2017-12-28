@@ -10,16 +10,14 @@
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
       USE RESOLUTION, only : lm
-      USE ATM_COM, only :
-     $                      t            ! potential temperature (C)
-     $                     ,q            ! saturatered pressure
+      use atmcol_com, only: tl   ! layer temperature (K)
+      use atmcol_com, only: pl   ! layer pressure (mb)
+      use atmcol_com, only: byma ! 1/ma
 
       USE TRACER_COM, only: trm_col, krate, rhet
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, ntm_clay,
      &     ntm_sil1, ntm_sil2, ntm_sil3
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
-c                                          and pk is t mess up factor
       USE CONSTANT,   only:  pi, avog, byavog, gasc
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       use SpecialFunctions_mod, only: erf
@@ -60,7 +58,7 @@ c                                          and pk is t mess up factor
       real( kind=8 ), parameter :: Mgas  = 28.97d0 /1000.d0 ! Molekular Gewicht Luft
       real( kind=8 ), parameter :: Diaq  = 4.5d-10      ! m Molecul Diameter
 C**** functions
-      real*8 :: QSAT,RH,te,temp
+      real*8 :: QSAT,RH,temp
 
       real( kind=8 ) :: Kn(rhet), Mdc(rhet), Kdj(rhet)
       real( kind=8 ) :: lamb(rhet), wrk(rhet),VSP(rhet)
@@ -183,7 +181,7 @@ c  Or use online dust
 
       do nd = 1,ndtr ; do l  = 1,lm
         dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
-     &       ntix_dust( nd ) ) * byMA( l, i, j )
+     &       ntix_dust( nd ) ) * byMA( l )
       end do ; end do
 
 c--------------------------------------------------------------
@@ -203,9 +201,7 @@ c number concentration
         dustnc(l,nd) = dusttx(l,nd)/pi*0.75d0/rop(nd)/Dradi(nd)**3
        if(dustnc(l,nd).GT.0.d0) then
 c pressure
-        phelp = Min (99999d0, pmid(l,i,j)*100d0)
-c potential temperature, temperature
-        te=pk(l,i,j)*t(i,j,l)
+        phelp = Min (99999d0, pl(l)*100d0)
 c pressure interpolation
         np1=min(11,1+nint((10.d0-phelp/10000.d0)-0.499d0))  !pressure
         np1=max(1,np1)
@@ -222,7 +218,7 @@ c radii interpolation
 
         if  (dustnc(l,nd).gt.1000.d0.and.dustnc(l,nd).lt.(1.d30))then
         rxtnox(l,nd,il) = klook* dustnc(l,nd)
-     .              / (287.054d0 * te / (pmid(l,i,j)*100.d0))
+     .              / (287.054d0 * tl(l) / (pl(l)*100.d0))
         else
         rxtnox(l,nd,il) = 0.d0
         endif
@@ -261,16 +257,16 @@ c radii interpolation
 !   Susanne E Bauer, 2003
 !-----------------------------------------------------------------------
       USE RESOLUTION, only : lm
-      USE ATM_COM, only :
-     $                      t            ! potential temperature (C)
-     $                     ,q            ! saturatered pressure
+      use atmcol_com, only: tl   ! layer temperature (K)
+      use atmcol_com, only: ql   ! layer humidity (kg/kg)
+      use atmcol_com, only: pl   ! layer pressure (mb)
+      use atmcol_com, only: byma ! 1/ma
 
       USE TRACER_COM, only: trm_col, rxts, rhet
       use TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, ntm_clay,
      &     ntm_sil1, ntm_sil2, ntm_sil3
       use TRACER_COM, only: rxts1, rxts2, rxts3, rxts4
       USE CONSTANT,   only:  lhe       ! latent heat of evaporation at 0 C
-      USE ATM_COM,    only:  byMA ,pmid,pk   ! midpoint pressure in hPa (mb)
       USE CONSTANT,   only:  pi, avog, byavog, gasc
       USE DOMAIN_DECOMP_ATM, only : am_i_root
       use SpecialFunctions_mod, only: erf
@@ -307,11 +303,11 @@ c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independe
       real( kind=8 ), parameter :: Mgas  = 28.97d0 /1000.d0 ! Molekular Gewicht Luft
       real( kind=8 ), parameter :: Diaq  = 4.5d-10      ! m Molecul Diameter
 C**** functions
-      real*8 :: QSAT,RH,te,temp
+      real*8 :: QSAT,RH,temp
 
       real( kind=8 ) :: Kn(rhet), Mdc(rhet), Kdj(2)
       real( kind=8 ) :: lamb(rhet), wrk(rhet),VSP(rhet)
-      real( kind=8 ) :: lsig0,drada,dn,Roh!,te,temp
+      real( kind=8 ) :: lsig0,drada,dn,Roh!,temp
 
       logical, save             :: entereda = .false.
       real( kind=8 ), save, dimension(ktoa) :: rada
@@ -443,7 +439,7 @@ c  Or use online dust
 
       do nd = 1,ndtr ; do l  = 1,lm
         dusttx( l, nd )= wttr_dust( nd ) * trm_col( l,
-     &       ntix_dust( nd ) ) * byMA( l, i, j )
+     &       ntix_dust( nd ) ) * byMA( l )
       end do ; end do
 
 c--------------------------------------------------------------
@@ -460,11 +456,9 @@ c number concentration
         dustnc(l,nd) = dusttx(l,nd)/pi*0.75d0/rop(nd)/Dradi(nd)**3
         if(dustnc(l,nd).GT.0.d0) then
 c pressure
-        phelp = Min (99999d0, pmid(l,i,j)*100d0)
-c potential temperature, temperature
-        te=pk(l,i,j)*t(i,j,l)
+        phelp = Min (99999d0, pl(l)*100d0)
 c compute relative humidity
-        RH=Q(i,j,l)/QSAT(te,lhe,pmid(l,i,j))    !temp in K, pres in mb
+        RH=ql(l)/QSAT(tl(l),lhe,pl(l))    !temp in K, pres in mb
         IF(RH.LT.0.6d0) ll = 1
         IF(RH.GE.0.6d0) ll = 2
 c pressure interpolation
@@ -484,7 +478,7 @@ c radii interpolation
         if  (dustnc(l,nd).gt.1000.d0.and.dustnc(l,nd).lt.(1.d30)) then
 c        if  (dustnc(i,j,l,nd).gt.1000.)
           rxt(l,nd) = klook* dustnc(l,nd)
-     .              / (287.054d0 * te / (pmid(l,i,j)*100.d0))
+     .              / (287.054d0 * tl(l) / (pl(l)*100.d0))
         else
           rxt(l,nd) = 0.d0
         endif
