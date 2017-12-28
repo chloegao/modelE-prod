@@ -148,6 +148,7 @@ c
       USE DOMAIN_DECOMP_ATM,only: write_parallel
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
+      use ATMCOL_COM, only: ql
       USE ATM_COM, only     : T,Q
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
@@ -508,6 +509,7 @@ c based on tropical tropopause H2O and CH4:
            if(clim_interact_chem > 0)then 
              fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
              Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
+             ql(l)=q(i,j,l)
              if(fraQ < 1.)qmom(:,i,j,L)=qmom(:,i,j,L)*fraQ
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
