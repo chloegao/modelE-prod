@@ -6520,7 +6520,7 @@ C****
       use TRACER_COM, only: n_Be7, n_Be10
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: itime
-      USE ATM_COM, only: MA ! Air mass of each box (kg/m^2)
+      use atmcol_com, only: ma   ! layer mass (kg/m2)
       USE apply3d, only : apply_tracer_3Dsource
       USE COSMO_SOURCES, only: be7_src_3d, be10_src_3d
       implicit none
@@ -6531,7 +6531,7 @@ C****Be7
 c cosmogenic src 
       if (itime.ge.itime_tr0(n_Be7)) then
         do l=1,lm
-          tr3Dsource(l,nChemistry,n_Be7) = MA(l,i,j)*
+          tr3Dsource(l,nChemistry,n_Be7) = ma(l)*
      &         be7_src_3d(i,j,l)
         enddo
         call apply_tracer_3Dsource(i,j,nChemistry,n_Be7)
@@ -6541,7 +6541,7 @@ C****Be10
 c cosmogenic src
       if (itime.ge.itime_tr0(n_Be10)) then
         do l=1,lm
-          tr3Dsource(l,nChemistry,n_Be10) = MA(l,i,j)*
+          tr3Dsource(l,nChemistry,n_Be10) = ma(l)*
      &         be10_src_3d(i,j,l)
         enddo
         call apply_tracer_3Dsource(i,j,nChemistry,n_Be10)
@@ -6628,7 +6628,7 @@ C*****
       use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: nBiomass
       USE FLUXES, only: tr3Dsource
-      use atm_com, only : MA
+      use atmcol_com, only: ma   ! layer mass (kg/m2)
       USE apply3d, only : apply_tracer_3Dsource
       USE PBLCOM, only: dclev
 #ifdef TRACERS_TOMAS
@@ -6698,9 +6698,9 @@ C**** 3D biomass source
           end if
             blay=int(dclev(i,j)+0.5d0)
             blsrc = get_src_fact(n,do_fire(n))* ! not src_fact here
-     &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
+     &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay))
             do l=1,blay
-              tr3Dsource(l,nBiomass,n) = blsrc*MA(l,i,j)
+              tr3Dsource(l,nBiomass,n) = blsrc*MA(l)
             end do
         end if 
 #ifndef TRACERS_TOMAS
@@ -7084,7 +7084,9 @@ c$$$#endif
       use TRACER_COM, only: n_BCB, n_isopp1a, n_isopp2a, n_apinp1a,
      &                      n_apinp2a, n_NH4, n_NO3p
       use CONSTANT, only : gasc,mair
-      USE ATM_COM, only: pmid,MA,pk,t
+      use atmcol_com, only: tl   ! layer temperature (K)
+      use atmcol_com, only: pl   ! layer pressure (mb)
+      use atmcol_com, only: ma   ! layer mass (kg/m2)
       use AEROSOL_SOURCES, only: oh
       use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
      &                       vbs_calc, vbs_tr
@@ -7098,7 +7100,7 @@ c$$$#endif
       type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
       type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
 !@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
-      real*8 :: kg2ugm3,te
+      real*8 :: kg2ugm3
       integer :: l,v
 #endif /* TRACERS_AEROSOLS_VBS */
       real*8 :: bciage,ociage
@@ -7123,12 +7125,10 @@ c    Aging of industrial carbonaceous aerosols
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
         do l=1,lm
-          te=pk(l,i,j)*t(i,j,l)
-          kg2ugm3=1.d9*(1.d2*pmid(l,i,j))*mair/
-     &            (MA(l,i,j)*gasc*te)
+          kg2ugm3=1.d9*(1.d2*pl(l))*mair/(ma(l)*gasc*tl(l))
           vbs_cond%dt=dtsrc
           vbs_cond%OH=oh(l)
-          vbs_cond%temp=te
+          vbs_cond%temp=tl(l)
           vbs_cond%nvoa=(trm_col(l,n_BCII)
      &                  +trm_col(l,n_BCIA)
      &                  +trm_col(l,n_BCB)
@@ -8009,14 +8009,14 @@ C**** no fractionation for ice evap
 !@vers 2013/03/26
 !@auth Bell
       USE RESOLUTION, only : im,jm,lm
-      USE ATM_COM, only: t
-      USE ATM_COM, only: pmid,MA,pk
+      use atmcol_com, only: tl   ! layer temperature (K)
+      use atmcol_com, only: pl   ! layer pressure (mb)
       USE TRACER_COM, only: rsulf1,rsulf2,rsulf3,rsulf4
       implicit none
       integer, intent(in) :: i,j
 !
       integer :: l
-      real*8 ppres,te,tt,dmm,rk4,ek4,f
+      real*8 ppres,tt,dmm,rk4,ek4,f
 C Greg: certain things now done outside the loops for speed:
       real*8, parameter ::  a= 73.41463d20, ! 6.02d20/.082d0
      *     aa=1.d-20,
@@ -8035,9 +8035,8 @@ C***4.SO2 + OH -> SO4 + HO2
 
 C Calculate effective temperature
 
-        ppres=pmid(l,i,j)*9.869d-4 !in atm
-        te=pk(l,i,j)*t(i,j,l)
-        tt = 1.d0/te
+        ppres=pl(l)*9.869d-4 !in atm
+        tt = 1.d0/tl(l)
 
 c DMM is number density of air in molecules cm-3
 
