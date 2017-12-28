@@ -800,6 +800,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE MODEL_COM, only: dtsrc
+      use TRACER_COM, only: coupled_chem
       use TRACER_COM, only: n_SO2, naircraft, nbiomass, nchemistry
       use TRACER_COM, only: nMicrophys, nChemprod
       use TRACER_COM, only: nOther, nOverwrite, nVolcanic, nChemloss
@@ -1988,33 +1989,36 @@ c
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c Oxidants
+        if (coupled_chem==0) then
 #ifndef TRACERS_SPECIAL_Shindell
-        k = k + 1
-        jls_OHconk = k
-        sname_jls(k) = 'OH_conc'
-        lname_jls(k) = 'OH Concentration'
-        jls_ltop(k) = LM
-        jls_power(k) =5
-        scale_jls(k) = 1.
-        units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
+          k = k + 1
+          jls_OHconk = k
+          sname_jls(k) = 'OH_conc'
+          lname_jls(k) = 'OH Concentration'
+          jls_ltop(k) = LM
+          jls_power(k) =5
+          scale_jls(k) = 1.
+          units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
 #endif
-        k = k + 1
-        jls_HO2con = k
-        sname_jls(k) = 'HO2_conc'
-        lname_jls(k) = 'HO2 Concentration'
-        jls_ltop(k) =LM
-        jls_power(k) =7
-        scale_jls(k) =1.
-        units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
 
-        k = k + 1
-        jls_NO3 = k
-        sname_jls(k) = 'NO3_conc'
-        lname_jls(k) = 'NO3 Concentration'
-        jls_ltop(k) =LM
-        jls_power(k) =5
-        scale_jls(k) =1.
-        units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
+          k = k + 1
+          jls_HO2con = k
+          sname_jls(k) = 'HO2_conc'
+          lname_jls(k) = 'HO2 Concentration'
+          jls_ltop(k) =LM
+          jls_power(k) =7
+          scale_jls(k) =1.
+          units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
+
+          k = k + 1
+          jls_NO3 = k
+          sname_jls(k) = 'NO3_conc'
+          lname_jls(k) = 'NO3 Concentration'
+          jls_ltop(k) =LM
+          jls_power(k) =5
+          scale_jls(k) =1.
+          units_jls(k) = unit_string(jls_power(k),'molecules cm-3')
+        endif
 #endif  /* TRACERS_AEROSOLS_Koch || TRACERS_AMP || TRACERS_TOMAS */
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
