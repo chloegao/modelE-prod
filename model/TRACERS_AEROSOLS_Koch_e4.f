@@ -372,7 +372,7 @@ c
       USE MODEL_COM, only: dtsrc
       use atmcol_com, only: tl   ! layer temperature (K)
       use atmcol_com, only: ql   ! layer humidity (kg/kg)
-      use atmcol_com, only: pl   ! layer pmid (mb)
+      use atmcol_com, only: pl   ! layer pressure (mb)
       use atmcol_com, only: ma   ! layer mass (kg/m2)
       use atmcol_com, only: byma ! 1/ma
       USE PBLCOM, only : dclev
