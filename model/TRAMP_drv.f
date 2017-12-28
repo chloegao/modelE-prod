@@ -70,7 +70,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
 
-      USE RESOLUTION, only : im,jm,lm     ! dimensions
+      USE RESOLUTION, only : lm     ! dimensions
       USE ATM_COM, only : 
      $                      t            ! potential temperature (C)
      $                     ,q            ! saturated pressure
@@ -78,7 +78,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE GEOM, only: imaxj
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
-      USE ATM_COM,   only: pmid,pk,byMA,gz, MA   ! midpoint pressure in hPa (mb)
+      USE ATM_COM,   only: pmid,pk,byMA,MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
 !                                           byMA  1/Air mass (m^2/kg)
       USE AERO_CONFIG
@@ -100,7 +100,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
       REAL(8):: SPCMASS(NMASS_SPCS+2)
       REAL(8):: DT_AERO(NDIAG_AERO,NAEROBOX) !NDIAG_AERO=15
-      REAL(8):: yS, yM, ZHEIGHT1,WUP,AVOL
+      REAL(8):: yS, yM, WUP,AVOL
       REAL(8) :: PDF1(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       REAL(8) :: PDF2(NBINS)               ! number or mass conc. at each grid point [#/m^3] or [ug/m^3]       
       INTEGER:: l,n,J_0, J_1, I_0, I_1, m,nAMP
@@ -128,7 +128,6 @@ C**** functions
       RH = MIN(1.d0,q(i,j,l)/QSAT(TK,lhe,pmid(l,i,j))) ! rH [0-1]
       PRES= pmid(l,i,j)*100.                  ! pmid in [hPa]
       TSTEP=dtsrc
-      ZHEIGHT1 = GZ(i,j,l) /1000./9.81
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
 c avol [m3/m2/gb] mass of air pro m3      
@@ -457,7 +456,7 @@ c -----------------------------------------------------------------
 !@+    at run-time
 !@auth Susanne Bauer
       use domain_decomp_atm, only : dist_grid, getDomainBounds
-      use resolution, only     : im,lm
+      use resolution, only     : lm
       use amp_aerosol
       use aero_config, only   : nmodes
 
