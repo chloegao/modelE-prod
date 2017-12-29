@@ -32,10 +32,41 @@ module atmcol_com
 !@var thl potential temperature w.r.t. 1 hPa (K): 1D version of atm_com:t
 !@var tl in-situ temperature (K)
 !@var ql humidity (kg/kg): 1D version of atm_com:q
+!@var rhl relative humidity, or saturation water vapor mixing ratio (0-1)
 !@var rhol density calculated from tl (kg/m3)
 !@var rhotvl density calculated from virtual temperature (kg/m3)
 !@var zl height above nominal sea level (m)
-  real*8, dimension(lm) :: thl,tl,ql,rhol,rhotvl,zl
+  real*8, dimension(lm) :: thl,tl,ql,rhl,rhol,rhotvl,zl
+
+  interface update_ql
+    module procedure update_ql_0d
+    module procedure update_ql_1d
+  end interface update_ql
+
+  contains
+
+  subroutine update_ql_0d(l,q)
+!@sum update_ql Calculate new values for ql and rhl for a given q
+    use constant, only: lhe
+    implicit none
+    real*8, intent(in) :: q
+    integer, intent(in) :: l
+    real*8 :: qsat
+
+    ql(l)=q
+    rhl(l)=ql(l)/qsat(tl(l),lhe,pl(l))
+  end subroutine update_ql_0d
+
+  subroutine update_ql_1d(q)
+!@sum update_ql Calculate new values for ql and rhl for a given q
+    implicit none
+    real*8, dimension(lm), intent(in) :: q
+    integer :: l
+
+    do l=1,lm
+      call update_ql_0d(l,q(l))
+    enddo
+  end subroutine update_ql_1d
 
 end module atmcol_com
 
@@ -72,7 +103,7 @@ subroutine load_atmcol(i,j)
   ! temperature, humidity, density, height
   thl(:) = t(i,j,:)
   tl(:) = thl(:)*plk(:)
-  ql(:) = q(i,j,:)
+  call update_ql(q(i,j,:))
   rhol(:) = pres(:)/(rgas*tl(:))
   rhotvl(:) = pres(:)/(rgas*tl(:)*(1d0+deltx*ql(:)))
   zl(:) = gz(i,j,:)*bygrav

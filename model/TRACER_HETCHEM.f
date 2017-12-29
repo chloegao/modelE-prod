@@ -58,7 +58,7 @@
       real( kind=8 ), parameter :: Mgas  = 28.97d0 /1000.d0 ! Molekular Gewicht Luft
       real( kind=8 ), parameter :: Diaq  = 4.5d-10      ! m Molecul Diameter
 C**** functions
-      real*8 :: QSAT,RH,temp
+      real*8 :: QSAT,temp
 
       real( kind=8 ) :: Kn(rhet), Mdc(rhet), Kdj(rhet)
       real( kind=8 ) :: lamb(rhet), wrk(rhet),VSP(rhet)
@@ -258,7 +258,7 @@ c radii interpolation
 !-----------------------------------------------------------------------
       USE RESOLUTION, only : lm
       use atmcol_com, only: tl   ! layer temperature (K)
-      use atmcol_com, only: ql   ! layer humidity (kg/kg)
+      use atmcol_com, only: rhl  ! layer relative humidity (0-1)
       use atmcol_com, only: pl   ! layer pressure (mb)
       use atmcol_com, only: byma ! 1/ma
 
@@ -303,7 +303,7 @@ c      real, parameter :: alph1  = 0.0001 !uptake coeff of Rossi EPFL (independe
       real( kind=8 ), parameter :: Mgas  = 28.97d0 /1000.d0 ! Molekular Gewicht Luft
       real( kind=8 ), parameter :: Diaq  = 4.5d-10      ! m Molecul Diameter
 C**** functions
-      real*8 :: QSAT,RH,temp
+      real*8 :: QSAT,temp
 
       real( kind=8 ) :: Kn(rhet), Mdc(rhet), Kdj(2)
       real( kind=8 ) :: lamb(rhet), wrk(rhet),VSP(rhet)
@@ -458,9 +458,8 @@ c number concentration
 c pressure
         phelp = Min (99999d0, pl(l)*100d0)
 c compute relative humidity
-        RH=ql(l)/QSAT(tl(l),lhe,pl(l))    !temp in K, pres in mb
-        IF(RH.LT.0.6d0) ll = 1
-        IF(RH.GE.0.6d0) ll = 2
+        IF(rhl(l).LT.0.6d0) ll = 1
+        IF(rhl(l).GE.0.6d0) ll = 2
 c pressure interpolation
         np1=min(11,1+nint((10.d0-phelp/10000.d0)-0.499d0))  !pressure
         np1=max(1,np1)

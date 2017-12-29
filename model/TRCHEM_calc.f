@@ -12,7 +12,7 @@ C
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
-      use ATMCOL_COM, only: ql
+      use ATMCOL_COM, only: update_ql
       USE ATM_COM, only         : MA, byMA,ltropo
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
@@ -1054,7 +1054,7 @@ C       --- Q --- :
         if(clim_interact_chem > 0)then
           fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
           Q(I,J,L) = Q(I,J,L) + dQ(L)
-          ql(l)=q(i,j,l)
+          call update_ql(l,Q(I,J,L))
 C       -- Qmom --:
           if(changeH2O(L) < 0.)then
             qmom(:,i,j,l)=qmom(:,i,j,l)*fraQ2(l)

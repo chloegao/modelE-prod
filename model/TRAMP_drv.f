@@ -76,7 +76,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE CONSTANT,   only:  lhe,mair,gasc   
       USE FLUXES, only: tr3Dsource,trsource,trflux1
       use ATMCOL_COM, only: tl   ! layer temperature (K)
-      use ATMCOL_COM, only: ql   ! layer humidity (kg/kg)
+      use ATMCOL_COM, only: rhl  ! layer relative humidity (0-1)
       use ATMCOL_COM, only: pl   ! layer pressure (mb)
       use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
       use ATMCOL_COM, only: byma ! 1/ma
@@ -123,7 +123,7 @@ C**** functions
       EMIS_MASS(:) = 0.d0
       AERO(:)      = 0.d0
 ! meteo
-      RH = MIN(1.d0,ql(l)/QSAT(tl(l),lhe,pl(l))) ! rH [0-1]
+      RH = MIN(1.d0,rhl(l)) ! rH [0-1]
       PRES= pl(l)*100. ! PRES in [Pa]
       TSTEP=dtsrc
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity

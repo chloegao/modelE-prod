@@ -36,7 +36,7 @@
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
       use ATMCOL_COM, only: tl   ! layer temperature (K)
-      use ATMCOL_COM, only: ql   ! layer humidity (kg/kg)
+      use ATMCOL_COM, only: rhl  ! layer relative humidity (0-1)
       use ATMCOL_COM, only: pl   ! layer pressure (mb)
       use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
       USE MODEL_COM, only : dtsrc
@@ -70,7 +70,6 @@
       REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
       REAL(8) :: DUST      ! fine dust(sol+insol) [ug/m^3]
       REAL(8) :: SALT      ! fine salt(sol+insol) [ug/m^3]
-      REAL(8) :: RH        ! relative humidity     [0-1] w/r/t liquid water
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
       REAL(8) :: RHC       ! RH of crystallization [0-1]
 
@@ -134,8 +133,6 @@
       YO(1,:) = 0.d0
 
       DO L=1,LTOP
-! meteo
-      RH = ql(l)/QSAT(tl(l),lhe,pl(l)) ! rH [0-1]
 c avol [m3/gb] mass of air pro m3
       AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/(pl(l)*100.d0)
 ! gas and aerosol trm [kg/gb] -> [ug/m^3]
@@ -147,7 +144,7 @@ c avol [m3/gb] mass of air pro m3
       DUST = trm_col(l,n_Clay)      *1.d9 /AVOL
       SALT = trm_col(l,n_seasalt1)  *1.d9 /AVOL
 
-      H = MAX( MIN( RH, RHMAX ), RHMIN )
+      H = MAX( MIN( rhl(l), RHMAX ), RHMIN )
       
       YI(1,1)  = tl(l)                            ! [K]
       YI(1,2)  = H                                ! [0-1]

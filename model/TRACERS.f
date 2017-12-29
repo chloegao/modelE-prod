@@ -899,10 +899,10 @@ C****
       SUBROUTINE TRGRAV(i,j)
 !@sum TRGRAV gravitationally settles particular tracers
 !@auth Gavin Schmidt/Reha Cakmur
-      USE CONSTANT, only : lhe,visc_air
+      USE CONSTANT, only : visc_air
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only : itime,dtsrc
-      use atmcol_com, only : pl,tl,ql,airden=>rhotvl,zl
+      use atmcol_com, only : tl,airden=>rhotvl,zl,rhl
       USE SOMTQ_COM, only : mz,mzz,mzx,myz,zmoms
       use OldTracer_mod, only: trradius, itime_tr0, trname, trpdens
       USE TRACER_COM, only : NTM,trm_col,trmom_col
@@ -917,8 +917,8 @@ C****
       IMPLICIT NONE
       integer, intent(in) :: i,j
 !
-      real*8 :: stokevdt,press,fgrfluxd,qsat,vgs,tr_radius,tr_dens,temp
-      real*8, dimension(lm) :: told,visc,rh,gbygz
+      real*8 :: stokevdt,fgrfluxd,vgs,tr_radius,tr_dens
+      real*8, dimension(lm) :: told,visc,gbygz
       real*8 :: fluxd, fluxu
       integer n,najl,l
       logical :: hydrate
@@ -939,10 +939,7 @@ C****
 C**** Calculate some tracer independent arrays      
 C**** air density + relative humidity (wrt water) + air viscosity
       do l=1,lm
-        press=pl(l)
-        temp=tl(l)
-        rh(l)=ql(l)/qsat(temp,lhe,press)
-        visc(l)=visc_air(temp)
+        visc(l)=visc_air(tl(l))
         if (l.eq.1) then
           gbygz(l)=0.
         else
@@ -979,13 +976,13 @@ C**** set particle properties
 #ifndef TRACERS_TOMAS
 C**** calculate stokes velocity (including possible hydration effects
 C**** and slip correction factor)
-            stokevdt=dtsrc*vgs(airden(l),rh(l),tr_radius
+            stokevdt=dtsrc*vgs(airden(l),rhl(l),tr_radius
      *           ,tr_dens,visc(l),hydrate)
 #else 
        
             if(n.lt.n_ASO4(1))then
 !     no size resolved aerosol tracer (e.g. NH4)
-              stokevdt=dtsrc*vgs(airden(l),rh(l),tr_radius
+              stokevdt=dtsrc*vgs(airden(l),rhl(l),tr_radius
      *             ,tr_dens,visc(l),hydrate)
           
             elseif(n.ge.n_ASO4(1)) then
