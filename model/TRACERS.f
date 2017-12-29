@@ -2891,8 +2891,8 @@ C
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),
      &     intent(IN) :: phi
 !@var airtracer 3D source of tracer from aircraft (on model levels)
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      real*8, dimension(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,LM)
      &     :: airtracer
       logical, intent(IN) :: need_read
 

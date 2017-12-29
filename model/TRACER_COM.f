@@ -900,7 +900,7 @@ C****
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE( AIRCstreams(NTM) )
-      ALLOCATE( AIRCsrc(I_0H:I_1H,J_0H:J_1H,LM,NTM) )
+      ALLOCATE( AIRCsrc(I_0:I_1,J_0:J_1,LM,NTM) )
 #endif
 
       END SUBROUTINE ALLOC_TRACER_COM
