@@ -453,32 +453,34 @@ c -----------------------------------------------------------------
 !@SUM  To alllocate arrays whose sizes now need to be determined
 !@+    at run-time
 !@auth Susanne Bauer
-      use domain_decomp_atm, only : dist_grid, getDomainBounds
-      use resolution, only     : lm
-      use amp_aerosol
-      use aero_config, only   : nmodes
+      use domain_decomp_atm, only: dist_grid, getDomainBounds
+      use resolution, only : lm
+      use amp_aerosol, only: AQsulfRATE, DIAM, NACTV
+      use aero_config, only: nmodes
 
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H, I_1H, I_0H
+      integer :: I_0,I_1,J_0,J_1
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
-      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO 
+      call getDomainBounds(grid)
+      I_0=GRID%I_STRT
+      I_1=GRID%I_STOP
+      J_0=GRID%J_STRT
+      J_1=GRID%J_STOP
 
 ! I,J,L
-      allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
+      allocate(  AQsulfRATE(I_0:I_1,J_0:J_1,LM)   )
 ! other dimensions
-      allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
-      allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
+      allocate(  DIAM(I_0:I_1,J_0:J_1,LM,nmodes)  )
+      allocate(  NACTV(I_0:I_1,J_0:J_1,LM,nmodes) )
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30
-      return
+
       end subroutine alloc_tracer_amp_com
-      
+
