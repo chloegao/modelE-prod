@@ -442,7 +442,7 @@ c - not necessary for Shindell source
           else
             ttno3 = tno3(l) !*6.02d20*ppres/(.082056d0*tl(l))
           endif
-          call inc_tajls2(i,j,l,jls_NO3,ma(l)*ttno3)
+          if (jls_NO3>0) call inc_tajls2(i,j,l,jls_NO3,ma(l)*ttno3)
 
           r3=rsulf3(l)*ttno3
           d3= exp(-r3*dtsrc)
