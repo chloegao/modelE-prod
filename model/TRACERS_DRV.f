@@ -6927,112 +6927,90 @@ C**** Apply chemistry and overwrite changes:
       integer :: src_index,get_src_index
       integer :: k,kn,jc,tracnum
       real*8, dimension (NBINS,LM) :: TOMAS_bio,TOMAS_air
-      REAL*8 :: TAU_hydro
+      REAL*8 :: TAU_hydro,hfact
 
 ! EC/OC aging
-       TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
+      TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
+      hfact=(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
 
-       do k=1,nbins
-         tr3Dsource(:,nChemistry,n_AECIL(K))=
-     &     trm_col(:,n_AECOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
-         tr3Dsource(:,nChemistry,n_AECOB(K))=
-     &     -trm_col(:,n_AECOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
-         tr3Dsource(:,nChemistry,n_AOCIL(K))=
-     &     trm_col(:,n_AOCOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
-         tr3Dsource(:,nChemistry,n_AOCOB(K))=
-     &     -trm_col(:,n_AOCOB(K))*(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc 
+      do k=1,nbins
+        tr3Dsource(:,nChemistry,n_AECIL(K))= trm_col(:,n_AECOB(K))*hfact
+        tr3Dsource(:,nChemistry,n_AECOB(K))=-trm_col(:,n_AECOB(K))*hfact
+        tr3Dsource(:,nChemistry,n_AOCIL(K))= trm_col(:,n_AOCOB(K))*hfact
+        tr3Dsource(:,nChemistry,n_AOCOB(K))=-trm_col(:,n_AOCOB(K))*hfact
        
-          call apply_tracer_3Dsource(i,j,nChemistry,n_AECOB(k))
-          call apply_tracer_3Dsource(i,j,nChemistry,n_AECIL(k))
-          call apply_tracer_3Dsource(i,j,nChemistry,n_AOCOB(k))
-          call apply_tracer_3Dsource(i,j,nChemistry,n_AOCIL(k))
-       enddo
+        call apply_tracer_3Dsource(i,j,nChemistry,n_AECOB(k))
+        call apply_tracer_3Dsource(i,j,nChemistry,n_AECIL(k))
+        call apply_tracer_3Dsource(i,j,nChemistry,n_AOCOB(k))
+        call apply_tracer_3Dsource(i,j,nChemistry,n_AOCIL(k))
+      enddo
 
-       do l=1,lm
-         trm_preemis(:,l)=trm_col(l,:)
-       end do
+! save trm_col before emissions for internal TOMAS usage
+      do l=1,lm
+        trm_preemis(:,l)=trm_col(l,:)
+      end do
    
-       TOMAS_air(:,:)=0.d0
+! aircraft, biomass and volcanic emissions. Keep the two loops separate.
+      TOMAS_air(:,:)=0.d0
 
-       do k=1,nbins
-         TOMAS_bio(k,:)=
-     &       tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(k)
+      do k=1,nbins
+        TOMAS_bio(k,:)=
+     &    tr3Dsource(:,nBiomass,n_AECOB(1))*scalesizeCARBO100(k)
 
-         if(do_aircraft(n_AECOB(1)))then
-           TOMAS_air(k,:)=
-     &       tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(k)
-         endif
-       enddo
+        if(do_aircraft(n_AECOB(1)))then
+          TOMAS_air(k,:)=
+     &      tr3Dsource(:,nAircraft,n_AECOB(1))*scalesizeCARBO30(k)
+        endif
+      enddo
 
        !TODO: once reproducibility is determined, pull these
        ! if's out of the k loop and do a second conditional
        ! k-loop instead:
-       do k=1,nbins
+      do k=1,nbins
+        tr3Dsource(:,nBiomass,n_AECOB(k))=TOMAS_bio(k,:)*0.8d0
+        tr3Dsource(:,nBiomass,n_AECIL(k))=TOMAS_bio(k,:)*0.2d0
+        tr3Dsource(:,nECanum,n_ANUM(k))=TOMAS_bio(k,:)/sqrt_xk_xk1(k)
+        call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
 
-         tr3Dsource(:,nBiomass,n_AECOB(k))=
-     *        TOMAS_bio(k,:)*0.8d0
-         tr3Dsource(:,nBiomass,n_AECIL(k))=
-     *        TOMAS_bio(k,:)*0.2d0
+        if(do_aircraft(n_AECOB(1))) then
+          tr3Dsource(:,nAircraft,n_AECOB(k))=TOMAS_air(k,:)*0.8d0
+          tr3Dsource(:,nAircraft,n_AECIL(k))=TOMAS_air(k,:)*0.2d0
+          tr3Dsource(:,nECanum,n_ANUM(k))=TOMAS_air(k,:)/sqrt_xk_xk1(k)
+          call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
+        end if
 
-         if(do_aircraft(n_AECOB(1))) then
-           tr3Dsource(:,nAircraft,n_AECOB(k))=
-     *        TOMAS_air(k,:)*0.8d0
-           tr3Dsource(:,nAircraft,n_AECIL(k))=
-     *        TOMAS_air(k,:)*0.2d0
-         end if
-
-         ! Here TOMAS_air() would be 0 when do_aircraft(n_AECOB(1)) is false,
-         ! so leaving it unconditional:
-         tr3Dsource(:,nECanum,n_ANUM(k))=
-     &      TOMAS_bio(k,:)/sqrt_xk_xk1(k)
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
-
-         tr3Dsource(:,nECanum,n_ANUM(k))=
-     &      TOMAS_air(k,:)/sqrt_xk_xk1(k)
-         call apply_tracer_3Dsource(i,j,nECanum, n_ANUM(k))
-
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(k))
-         if(do_aircraft(n_AECOB(1)))
+        call apply_tracer_3Dsource(i,j,nBiomass, n_AECOB(k))
+        if(do_aircraft(n_AECOB(1)))
      &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECOB(k))
-         call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(k))
-         if(do_aircraft(n_AECOB(1)))
+        call apply_tracer_3Dsource(i,j,nBiomass, n_AECIL(k))
+        if(do_aircraft(n_AECOB(1)))
      &    call apply_tracer_3Dsource(i,j,nAircraft,n_AECIL(k))
 
-         call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
-         call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(k))
-         call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(k)) 
+        call apply_tracer_3Dsource(i,j,nVolcanic,n_ASO4(k))
+        call apply_tracer_3Dsource(i,j,nBiomass, n_ASO4(k))
+        call apply_tracer_3Dsource(i,j,nSO4anum, n_ANUM(k)) 
+      enddo
 
-       enddo
-
-       do k=1,nbins
+! OC from biomass burning. Keep the two loops separate.
+      do k=1,nbins
          TOMAS_bio(k,:)=
-     &       tr3Dsource(:,nBiomass,n_AOCOB(1))*scalesizeCARBO100(k)
-       enddo
-       
-       do k=1,nbins
-         
-         tr3Dsource(:,nBiomass,n_AOCOB(k))=
-     *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nBiomass,n_AOCIL(k))=
-     *        TOMAS_bio(k,:)*0.5d0
-         tr3Dsource(:,nOCanum,n_ANUM(k))=
-     &        (TOMAS_bio(k,:)
-     &        )/sqrt_xk_xk1(k)  
+     &     tr3Dsource(:,nBiomass,n_AOCOB(1))*scalesizeCARBO100(k)
+      enddo
+
+      do k=1,nbins
+         tr3Dsource(:,nBiomass,n_AOCOB(k))=TOMAS_bio(k,:)*0.5d0
+         tr3Dsource(:,nBiomass,n_AOCIL(k))=TOMAS_bio(k,:)*0.5d0
+         tr3Dsource(:,nOCanum,n_ANUM(k))=TOMAS_bio(k,:)/sqrt_xk_xk1(k)
  
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCOB(k))
          call apply_tracer_3Dsource(i,j,nBiomass, n_AOCIL(k))
          call apply_tracer_3Dsource(i,j,nOCanum, n_ANUM(k))
-         
-       enddo
+      enddo
        
-       call subgridcoag_drv(i,j,dtsrc)
-
-c$$$#ifdef  TRACERS_SPECIAL_Shindell
-c$$$        tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
-c$$$#endif
-
-        call TOMAS_DRV(i,j)
-!        if(am_i_root()) print*,'exit TOMAS DRV'
+! call TOMAS code
+      call subgridcoag_drv(i,j,dtsrc)
+      call TOMAS_DRV(i,j)
+!      if(am_i_root()) print*,'exit TOMAS DRV'
 
 ! the following loop assumes that n_ASO4(1) is the first TOMAS tracer and the last
 ! nbins ones are all water tracers.
@@ -7044,9 +7022,6 @@ c$$$#endif
       call apply_tracer_3Dsource(i,j,nThermo,n_NH4) !simple equilibrium model in TOMAS
       call apply_tracer_3Dsource(i,j,nMicrophys,n_H2SO4) ! H2SO4 chem prod
       call apply_tracer_3Dsource(i,j,nChemistry,n_SOAgas) ! SOAgas chem prod
-c$$$#ifdef  TRACERS_SPECIAL_Shindell
-c$$$       call apply_tracer_3Dsource(i,j,3,n_HNO3) ! H2SO4 chem prod
-c$$$#endif
 
       end subroutine calculate_and_apply_tomas
 #endif /* TRACERS_TOMAS */
