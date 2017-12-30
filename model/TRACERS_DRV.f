@@ -2824,40 +2824,28 @@ c put in production of SO4 from gas phase
      *    'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
 
           ijts_3Dsource(nSO4anum,n)=
-     *      ijts_diag('SO4_src_'//trim(trname(n)),
-     *                'SO4 source '//trim(trname(n)),
+     *      ijts_diag(trim(trname(n))//'_SO4_3D_src',
+     *                trim(trname(n))//' SO4 3D source',
      *                '# m-2 s-1', power=10,
      *                scalediv=dtsrc)
           ijts_3Dsource(nECanum,n)=
-     *      ijts_diag('EC_src_'//trim(trname(n)),
-     *                'EC source'//trim(trname(n)),
+     *      ijts_diag(trim(trname(n))//'_EC_3D_src',
+     *                trim(trname(n))//' EC 3D source',
      *                '# m-2 s-1', power=10,
      *                scalediv=dtsrc)
           ijts_3Dsource(nOCanum,n)=
-     *      ijts_diag('OC_src_'//trim(trname(n)),
-     *                'OC source'//trim(trname(n)),
+     *      ijts_diag(trim(trname(n))//'_OC_3D_src',
+     *                trim(trname(n))//' OC 3D source',
      *                '# m-2 s-1', power=10,
      *                scalediv=dtsrc)
-
-c SO4 from industrial emissions
-        do kr=1,ntsurfsrc(n_ANUM(1))
-          ijts_source(kr,n)=
-     *      ijts_diag(trim(trname(n))//'_'//
-     *                  trim(sources(kr)%sourceName)//'_src',
-     *                trim(trname(n))//' '//
-     *                  trim(sources(kr)%sourceLname),
-     *                '# m-2 s-1', power=10,
-     *                scalediv=dtsrc)
-        enddo
-
           ijts_isrc(1,n)=
-     *      ijts_diag('NACL_src_'//trim(trname(n)),
-     *                'NACL source '//trim(trname(n)),
+     *      ijts_diag(trim(trname(n))//'_NACL_src',
+     *                trim(trname(n))//' NACL source',
      *                '# m-2 s-1', power=10,
      *                scalediv=dtsrc)
           ijts_isrc(2,n)=
-     *      ijts_diag('DUST_src_'//trim(trname(n)),
-     *                'DUST source'//trim(trname(n)),
+     *      ijts_diag(trim(trname(n))//'_DUST_src',
+     *                trim(trname(n))//' DUST source',
      *                '# m-2 s-1', power=10,
      *                scalediv=dtsrc)
 
