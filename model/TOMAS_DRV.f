@@ -1908,16 +1908,16 @@ c$$$      ENDIF
       boxvol = MA(l,i,j)/mair*1000.d0
      &     *gasc*temp/pres*1e6  !cm3/m2
 
-      do k=1,nbins
-        ndist0(k)=trm_preemis(n_ANUM(k),l)
-        do c=1,icomp-idiag
+      ndist0(:)=trm_preemis(n_ANUM(:),l)
+      do c=1,icomp-idiag
+        do k=1,nbins
           mdist0(k,c)=trm_preemis(n_ASO4(k)+(c-1)*nbins,l)
         enddo
-        mdist0(k,srtnh4)=0.0
-        mdist0(k,srth2o)=trm_preemis(n_AH2O(k),l)
-        ndistfinal(k)=0
-        maddfinal(k)=0
       enddo
+      mdist0(:,srtnh4)=0.d0
+      mdist0(:,srth2o)=trm_preemis(n_AH2O(:),l)
+      ndistfinal(:)=0.d0
+      maddfinal(:)=0.d0
       
       ndist(:)=0.
       mdist(:,:)=0.
@@ -1969,12 +1969,8 @@ c$$$      ENDIF
         enddo                   !ns
         
 !     fix the inconsistancies in the distribution
-        do k=1,nbins
-          ndist2(k)=ndist(k)+ndist0(k)
-          do c=1,icomp !-idiag
-            mdist2(k,c)=mdist(k,c)+mdist0(k,c)
-          enddo
-        enddo
+        ndist2(:)=ndist(:)+ndist0(:)
+        mdist2(:,:)=mdist(:,:)+mdist0(:,:)
  
 c$$$        IF(I.EQ.25.AND.J.EQ.62)THEN
 c$$$          do k=1,nbins
@@ -2119,16 +2115,16 @@ C-----VARIABLE DECLARATIONS-----------------------------------
      &       *gasc*temp/pres*1e6 !cm3/m2
         
 !     Amount of tracer before emission is applied.         
-        do k=1,nbins
-          ndist0(k)=TRM(I,J,L,n_ANUM(k))
-          do c=1,icomp-idiag
+        ndist0(:)=TRM(I,J,L,n_ANUM(:))
+        do c=1,icomp-idiag
+          do k=1,nbins
             mdist0(k,c)=TRM(I,J,L,n_ASO4(k)+(c-1)*nbins)
           enddo
-          mdist0(k,srtnh4)=0.0
-          mdist0(k,srth2o)=TRM(I,J,L,n_AH2O(k))
-          ndistfinal(k)=0
-          maddfinal(k)=0
         enddo
+        mdist0(:,srtnh4)=0.d0
+        mdist0(:,srth2o)=TRM(I,J,L,n_AH2O(:))
+        ndistfinal(:)=0.d0
+        maddfinal(:)=0.d0
               
 !     Only initialize when 2-D emission starts! 
         tot_ndistinit(:)=0.
