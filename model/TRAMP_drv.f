@@ -53,7 +53,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_NUMB_MAP,
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
-     *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
+     *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS, n_M_SSS_SS,
      *  n_NH3, nBiomass, ntmAMPe, nVolcanic, trm_col,ntmAMPi,
      *  nMicrophys, nThermo
 #ifdef  TRACERS_SPECIAL_Shindell
@@ -120,7 +120,6 @@ C**** functions
 
       ILAY = L
       DT_AERO(:,:) = 0.d0
-      EMIS_MASS(:) = 0.d0
       AERO(:)      = 0.d0
 ! meteo
       RH = MIN(1.d0,rhl(l)) ! rH [0-1]
@@ -165,45 +164,33 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
           endif
        ENDDO
 
-       if (L.eq.1) then     
+! save emissions to EMIS_MASS
+      EMIS_MASS(:) = 0.d0
+      if (L.eq.1) then
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/m2/s]
-#ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSS_SS)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
-#else
-      EMIS_MASS(1) =  MAX(trflux1(i,j,n_M_AKK_SU)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(2) =  MAX(trflux1(i,j,n_M_ACC_SU)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(3) =  MAX(trflux1(i,j,n_M_BC1_BC)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(4) =  MAX(trflux1(i,j,n_M_OCC_OC)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(5) =  MAX(trflux1(i,j,n_M_DD1_DU)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(6) =  MAX(trflux1(i,j,n_M_SSA_SS)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(7) =  MAX(trflux1(i,j,n_M_SSC_SS)*1.d9 / AVOL,0.d0)
-      EMIS_MASS(10)=  MAX(trflux1(i,j,n_M_DD2_DU)*1.d9 / AVOL,0.d0)
-#endif
-        endif
+        if (n_M_AKK_SU>0) EMIS_MASS(1) =MAX(trflux1(i,j,n_M_AKK_SU)*1.d9/ AVOL,0.d0)
+        if (n_M_ACC_SU>0) EMIS_MASS(2) =MAX(trflux1(i,j,n_M_ACC_SU)*1.d9/ AVOL,0.d0)
+        if (n_M_BC1_BC>0) EMIS_MASS(3) =MAX(trflux1(i,j,n_M_BC1_BC)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OC>0) EMIS_MASS(4) =MAX(trflux1(i,j,n_M_OCC_OC)*1.d9/ AVOL,0.d0)
+        if (n_M_DD1_DU>0) EMIS_MASS(5) =MAX(trflux1(i,j,n_M_DD1_DU)*1.d9/ AVOL,0.d0)
+        if (n_M_SSS_SS>0) EMIS_MASS(6) =MAX(trflux1(i,j,n_M_SSS_SS)*1.d9/ AVOL,0.d0) ! only for M4/M8
+        if (n_M_SSA_SS>0) EMIS_MASS(6) =MAX(trflux1(i,j,n_M_SSA_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
+        if (n_M_SSC_SS>0) EMIS_MASS(7) =MAX(trflux1(i,j,n_M_SSC_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
+        if (n_M_DD2_DU>0) EMIS_MASS(10)=MAX(trflux1(i,j,n_M_DD2_DU)*1.d9/ AVOL,0.d0)
+      endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
-#ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#else
-      EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(l,nVolcanic,n_M_AKK_SU)+
-     *                                 tr3Dsource(l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
+      if (n_M_AKK_SU>0) EMIS_MASS(1) =EMIS_MASS(1) +(tr3Dsource(l,nVolcanic,n_M_AKK_SU)+
+     *                                               tr3Dsource(l,nBiomass,n_M_AKK_SU))*1.d9/AVOL
+      if (n_M_ACC_SU>0) EMIS_MASS(2) =EMIS_MASS(2) +(tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
+     *                                               tr3Dsource(l,nBiomass,n_M_ACC_SU))*1.d9/AVOL
+      if (n_M_BC1_BC>0) EMIS_MASS(3) =EMIS_MASS(3) + tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9/AVOL
 c     Biomass BC OC is Mixed
-c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
-c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
+c      if (n_M_BOC_BC>0) EMIS_MASS(8) =EMIS_MASS(8) + tr3Dsource(l,nBiomass,n_M_BOC_BC)*1.d9/AVOL
+c      if (n_M_BOC_OC>0) EMIS_MASS(9) =EMIS_MASS(9) + tr3Dsource(l,nBiomass,n_M_BOC_OC)*1.d9/AVOL
 c     Biomass BC OC is NOT mixed
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#endif
+      if (n_M_BC1_BC>0) EMIS_MASS(3) =EMIS_MASS(3) + tr3Dsource(l,nBiomass,n_M_BC1_BC)*1.d9/AVOL
+      if (n_M_OCC_OC>0) EMIS_MASS(4) =EMIS_MASS(4) + tr3Dsource(l,nBiomass,n_M_OCC_OC)*1.d9/AVOL
+
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
        CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO)
