@@ -6006,6 +6006,11 @@ c
       IJK_DP = k  ! not output - this field serves only as a weight
       ia_ijl(k) = ia_dga
       lgrid_ijl(k) = ctr_cp ! constant pressure levels
+#ifdef AIJL_CP_TRANSPORTS /* for vertical integrals.  output always? */
+      name_ijl(k) = 'dpcp'
+      lname_ijl(k) = 'pressure thickness'
+      units_ijl(k) = 'mb'
+#endif
 c
       k=k+1
       IJL_U = k   ! e-w wind on model layers
@@ -6384,6 +6389,90 @@ c
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
+c
+#ifdef AIJL_CP_TRANSPORTS
+c
+      k=k+1        ! u on constant-pressure layers
+      ijk_ucp      = k
+      name_ijl(k)  = 'ucp'
+      lname_ijl(k) = 'Eastward velocity'
+      units_ijl(k) = 'm/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! v on constant-pressure layers
+      ijk_vcp      = k
+      name_ijl(k)  = 'vcp'
+      lname_ijl(k) = 'Northward velocity'
+      units_ijl(k) = 'm/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! u*t on constant-pressure layers
+      ijk_utcp     = k
+      name_ijl(k)  = 'utcp'
+      lname_ijl(k) = 'Eastward temperature flux'
+      units_ijl(k) = 'K * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! v*t on constant-pressure layers
+      ijk_vtcp     = k
+      name_ijl(k)  = 'vtcp'
+      lname_ijl(k) = 'Northward temperature flux'
+      units_ijl(k) = 'K * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! u*q on constant-pressure layers
+      ijk_uqcp     = k
+      name_ijl(k)  = 'uqcp'
+      lname_ijl(k) = 'Eastward humidity flux'
+      units_ijl(k) = 'kg/kg * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! v*q on constant-pressure layers
+      ijk_vqcp     = k
+      name_ijl(k)  = 'vqcp'
+      lname_ijl(k) = 'Northward humidity flux'
+      units_ijl(k) = 'kg/kg * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! u*phi on constant-pressure layers
+      ijk_uphicp   = k
+      name_ijl(k)  = 'uphicp'
+      lname_ijl(k) = 'Eastward geopotential flux'
+      units_ijl(k) = 'm2/s2 * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+      k=k+1        ! v*phi on constant-pressure layers
+      ijk_vphicp   = k
+      name_ijl(k)  = 'vphicp'
+      lname_ijl(k) = 'Northward geopotential flux'
+      units_ijl(k) = 'm2/s2 * m/s'
+      scale_ijl(k) = 1.
+      denom_ijl(k) = IJK_DP
+      ia_ijl(k) = ia_dga
+      lgrid_ijl(k) = ctr_cp ! constant pressure levels
+c
+#endif
 c
       if (k .gt. kaijl) then
         if(am_i_root())

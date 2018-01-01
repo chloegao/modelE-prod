@@ -346,7 +346,7 @@ def createScriptTask(config, compconfig, deck, comp, mode):
             elif re.search('ctomas', deckName):
                 walltime = '02:00:00'
             elif re.search('Ttomas', deckName):
-                walltime = '02:00:00'
+                walltime = '03:00:00'
             elif re.search('Tmatrix', deckName):
                 walltime = '02:00:00'
             elif re.search('vsd', deckName):
