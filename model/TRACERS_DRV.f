@@ -26,7 +26,7 @@
       select case (trname(n))
         case ('SO4', 'M_ACC_SU', 'ASO4__01')
           get_src_index=n_SO2
-#ifdef TRACERS_AMP_M4
+#ifndef TRACERS_AMP_M4
         case ('M_AKK_SU')
           get_src_index=n_SO2
 #endif  /* TRACERS_AMP_M4 */
@@ -56,7 +56,7 @@
       integer, intent(in) :: n
       logical, intent(in), optional :: vibb
       real*8, parameter :: so4_fraction=0.025d0
-#ifdef TRACERS_AMP_M4
+#ifndef TRACERS_AMP_M4
       real*8, parameter :: akk_fraction=0.01d0
 #else
       real*8, parameter :: akk_fraction=0.d0
