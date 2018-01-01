@@ -1200,7 +1200,7 @@
 
       DO L=1, NLAYS
         CALL ATMOSPHERE( REAL( ZHEIGHT(L) ), SIGMA, DELTA, THETA )
-        P = DELTA * P_STDATM                                           ! [Pa}
+        P = DELTA * P_STDATM                                           ! [Pa]
         T = THETA * T_STDATM                                           ! [K]
         D = D0 * ( P0 / P ) * ( T / T0 )**1.75                         ! [m^2/s]
         DIFFCOEF_M2S(L) = D                                            ! [m^2/s]
