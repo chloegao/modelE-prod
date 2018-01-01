@@ -168,7 +168,7 @@ c -----------------------------------------------------------------
 
       
       SUBROUTINE SIZE_PDFS(AERO,PDF1,PDF2)
-      USE AERO_PARAM, ONLY: PI6, DENSP, IXXX, IYYY, ILAY
+      USE AERO_PARAM, ONLY: PI6, DENSP
       USE AERO_CONFIG, ONLY: NMODES, NAEROBOX,NBINS
       USE AERO_SETUP, ONLY: SIG0, CONV_DPAM_TO_DGN, NUMB_MAP, MODE_NAME
       USE AERO_DIAM

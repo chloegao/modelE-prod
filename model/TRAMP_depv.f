@@ -1,5 +1,4 @@
       MODULE AERO_DEPV
-      USE AERO_PARAM,  ONLY: NLAYS, IXXX, IYYY, ILAY
       USE AERO_CONFIG, ONLY: NMODES
 !-------------------------------------------------------------------------------------------------------------------------
       

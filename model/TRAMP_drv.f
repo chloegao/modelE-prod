@@ -82,7 +82,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       use ATMCOL_COM, only: byma ! 1/ma
       USE AERO_CONFIG
       USE AERO_INIT
-      USE AERO_PARAM, only: IXXX, IYYY, ILAY, NEMIS_SPCS
+      USE AERO_PARAM, only: ILAY, NEMIS_SPCS
       USE AERO_DIAM, only: DP
       USE AERO_ACTV, only: NACTIV
       USE AERO_SETUP 
@@ -112,9 +112,6 @@ C**** functions
 
       NACTV(I,J,:,:)      = 0.d0 
       DIAM(I,J,:,:)       = 0.d0
-
-      IXXX = I
-      IYYY = J
 
       DO L=1,LM                            
 

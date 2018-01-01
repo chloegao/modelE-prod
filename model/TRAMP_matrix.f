@@ -956,8 +956,8 @@
       !-----------------------------------------------------------------------------------------------------------------
       CI(1) = CI(1) + DNDT                                        ! add secondary particle formation number term
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
-#ifdef TRACERS_AMP_M9
 
+#ifdef TRACERS_AMP_M9
 ! initialize VBS, only once
       if (.not.allocated(vbs_tr%igasinv)) then
         do ivbs=1,vbs_bins              ! index of VBS bin
@@ -1006,7 +1006,8 @@
           DIAGTMP1(11,MASS_MAP(I,PROD_INDEX_INV(I,Q)))=VBS_FLUXES(I,Q)
         ENDDO
       ENDDO
-#endif
+#endif /* TRACERS_AMP_M9 */
+
       IF( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(/A,5X,3D15.8)')'XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH = ', XH2SO4_INIT, XH2SO4_NUCL, PQ_GROWTH
         WRITE(AUNIT1,*)'PIQ(1,PROD_INDEX_SULF) = ', PIQ(1,PROD_INDEX_SULF)

@@ -8,7 +8,6 @@
 !@auth Susanne Bauer/Doug Wright
 
       USE AERO_PARAM, ONLY: WRITE_LOG, AUNIT1
-      USE AERO_PARAM, only: IXXX, IYYY, ILAY
       IMPLICIT NONE
 
       !------------------------------------------------------------------------------------------------------
