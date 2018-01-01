@@ -273,8 +273,7 @@ C
       real slipc(nbins)
 #endif
 C Use cosine of the solar zenith angle from the radiation code,
-C ...which seems to have a minumum of 0, like suncos used to have
-C when defined in SCALERAD subroutine from Harvard CTM.
+C ...which seems to have a minumum of 0
 
       SUNCOS = COSZ1(I,J)
 
