@@ -144,6 +144,9 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef ACCMIP_LIKE_DIAGS
      &                                  +  1
 #endif
+#ifdef AIJL_CP_TRANSPORTS
+     &                                  +  8
+#endif
 !@var IJL_xxx,IJK_xxx AIJL diagnostic indices
 !@+   IJL/IJK refer to model versus constant-pressure levels
       INTEGER, public ::
@@ -156,6 +159,10 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
      &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL,IJL_CDTOMAS
+#ifdef AIJL_CP_TRANSPORTS
+      INTEGER, public :: ijk_ucp,ijk_vcp,
+     &     ijk_utcp,ijk_vtcp,ijk_uqcp,ijk_vqcp,ijk_uphicp,ijk_vphicp
+#endif
 
 !@var AIJL 3D accumulations for longitude/latitude/level diagnostics
       REAL*8, DIMENSION(:,:,:,:), allocatable, public :: AIJL,AIJL_loc
