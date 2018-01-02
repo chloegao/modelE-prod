@@ -5212,16 +5212,15 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: coupled_chem,daily_z
       USE TRACER_COM, only: n_CO2n
-      USE TRACER_COM, only: NTM,
+      USE TRACER_COM, only: NTM,n_SO4,n_SO2,N_M_ACC_SU,N_M_AKK_SU,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: 
-     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
-     * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
-     * ,n_M_BOC_OC
+     *  aer_int_yr,n_NH3,n_BCII,n_BCB,n_OCII,n_OCB
+     * ,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AOCOB,n_ASO4,nbins,n_ADUST
 #endif
