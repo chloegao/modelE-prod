@@ -7,7 +7,7 @@
 !@ READ_OFFHNO3
 !@ read_DMS_sources
 !@ aerosol_gas_chem
-!@ SCALERAD
+!@ get_oxidants
 !@ GET_SULFATE
 !@ GET_BC_DALBEDO
 !@ GRAINS
@@ -357,7 +357,7 @@ c
 !@vers 2013/03/27
 !@auth Dorothy Koch
       use OldTracer_mod, only: trname, tr_mm, vol2mass
-      use TRACER_COM, only: ntm, oh_live, no3_live, trm_col
+      use TRACER_COM, only: ntm, trm_col
       use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
       use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
@@ -388,7 +388,7 @@ c Aerosol chemistry
       implicit none
       integer, intent(in) :: i,j
 !
-      real*8 ppres,tt,dmm,ohmc,r1,d1,r2,d2,ttno3,r3,d3,
+      real*8 ppres,tt,dmm,r1,d1,r2,d2,ttno3,r3,d3,
      * ddno3,dddms,ddno3a,fmom
       real*8 rk4,ek4,r4,d4
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
@@ -399,14 +399,7 @@ c Aerosol chemistry
       integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
 
-      if (coupled_chem.eq.1) then
-! coupled mode: use online radical concentrations
-        oh(:)=oh_live(i,j,:)
-        tno3(:)=no3_live(i,j,:)
-      else
-! offline: read-in radical concentrations and impose diurnal variability
-        call scalerad(i,j)
-      endif
+      call get_oxidants(i,j) ! get oxidant concentrations
 
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
@@ -414,12 +407,9 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 #endif
 
       do l=1,lm
-C Initialise       
-        ppres=pl(l)*9.869d-4 !in atm
-
 c DMM is number density of air in molecules/cm3
+        ppres=pl(l)*9.869d-4 !in atm
         dmm=ppres/(.082d0*tl(l))*6.02d20
-        ohmc = oh(l) !oh is alread in units of molecules/cm3
 
 ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
         do n=1,NTM
@@ -430,9 +420,9 @@ C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
 
-          r1=rsulf1(l)*ohmc 
+          r1=rsulf1(l)*oh(l) 
           d1 = exp(-r1*dtsrc)
-          r2=rsulf2(l)*ohmc
+          r2=rsulf2(l)*oh(l)
           d2 = exp(-r2*dtsrc)
 
 c     NO3 is in mixing ratio: convert to molecules/cm3
@@ -477,7 +467,7 @@ c SO2 production from DMS
      *                                 )/dtsrc
 
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-          r4=rsulf4(l)*ohmc
+          r4=rsulf4(l)*oh(l)
           d4 = exp(-r4*dtsrc)
 
           IF (d4.GE.1.) d4=0.99999d0
@@ -579,7 +569,7 @@ C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
           tt = 1.d0/tl(l)
-          r6 = 2.9d-12 * exp(-160.d0*tt)*ohmc
+          r6 = 2.9d-12 * exp(-160.d0*tt)*oh(l)
           d6 = exp(-r6*dtsrc)
           ek9 = 2.2d-13*exp(600.d0*tt)
           ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
@@ -619,34 +609,41 @@ c H2O2 losses:5 and 6
 
 #endif /* oma or matrix or tomas */
 
-      SUBROUTINE SCALERAD(i,j)
+      SUBROUTINE get_oxidants(i,j)
 
       use constant, only : pi
       use resolution, only: lm
+      use TRACER_COM, only: coupled_chem, oh_live, no3_live
       use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
       integer, intent(in) :: i,j
-      real*8, parameter ::
-     &     night_frac_min=.01d0 ! minimum night_frac for tno3 scaling
+      real*8, parameter :: night_frac_min=.01d0 !min night_frac for tno3 scaling
       real*8 stfac,night_frac
 
-c Get NO3 only if dark, weighted by number of dark hours
-      night_frac = 1.-sunset(i,j)/pi
-      if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
-        tno3(:)=tno3r(i,j,:)/night_frac !DMK jmon
+      if (coupled_chem.eq.1) then
+! coupled mode: use online radical concentrations
+        oh(:)=oh_live(i,j,:)
+        tno3(:)=no3_live(i,j,:)
       else
-        tno3(:)=0.d0
-      endif
-      if (cosz1(i,j).gt.0.) then
-        stfac=cosz1(i,j)/cosz_day(i,j)
-        oh(:)=ohr(i,j,:)*stfac
-        perj(:)=perjr(i,j,:)*stfac
-        dho2(:)=dho2r(i,j,:)*stfac
+! offline: read-in radical concentrations and impose diurnal variability
+        night_frac = 1.-sunset(i,j)/pi
+        if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
+c Get NO3 only if dark, weighted by number of dark hours
+          tno3(:)=tno3r(i,j,:)/night_frac !DMK jmon
+        else
+          tno3(:)=0.d0
+        endif
+        if (cosz1(i,j).gt.0.) then
+          stfac=cosz1(i,j)/cosz_day(i,j)
+          oh(:)=ohr(i,j,:)*stfac
+          perj(:)=perjr(i,j,:)*stfac
+          dho2(:)=dho2r(i,j,:)*stfac
+        endif
       endif
 
-      END SUBROUTINE SCALERAD
+      END SUBROUTINE get_oxidants
 
 
       SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
