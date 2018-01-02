@@ -6907,7 +6907,7 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nbins
       use TRACER_COM, only: n_AOCIL, n_ANUM
       use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAgas
-      use TRACER_COM, only: nChemistry, nChemloss, n_AECIL, ntm_tomas
+      use TRACER_COM, only: nChemistry, n_AECIL, ntm_tomas
       USE FLUXES, only: tr3Dsource
       USE MODEL_COM, only: dtsrc
       USE apply3d, only : apply_tracer_3Dsource
@@ -7169,7 +7169,6 @@ c    Aging of industrial carbonaceous aerosols
       use TRACER_COM, only: n_NH3
       use TRACER_COM, only: n_H2SO4
       use TRACER_COM, only: nChemistry, nThermo, nMicrophys
-      use TRACER_COM, only: nChemloss, nChemprod
       use TRACER_COM, only: ntmAMPi, ntmAMPe
       use TRACER_COM, only: coupled_chem 
       USE apply3d, only : apply_tracer_3Dsource
