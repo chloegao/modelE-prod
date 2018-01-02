@@ -5218,11 +5218,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-      use TRACER_COM, only: 
-     *  aer_int_yr,n_NH3,n_BCII,n_BCB,n_OCII,n_OCB
-     * ,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC,n_M_BOC_OC
+      use TRACER_COM, only: aer_int_yr
 #ifdef TRACERS_TOMAS
-      use TRACER_COM, only: n_AOCOB,n_ASO4,nbins,n_ADUST
+      use TRACER_COM, only: n_ASO4,nbins
 #endif
 #endif
 #ifdef TRACERS_SPECIAL_Lerner
