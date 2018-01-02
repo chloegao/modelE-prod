@@ -26,10 +26,8 @@
       select case (trname(n))
         case ('SO4', 'M_ACC_SU', 'ASO4__01')
           get_src_index=n_SO2
-#ifndef TRACERS_AMP_M4
         case ('M_AKK_SU')
           get_src_index=n_SO2
-#endif  /* TRACERS_AMP_M4 */
         case default
           get_src_index=n
       end select
@@ -45,6 +43,7 @@
       use OldTracer_mod, only: trname
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: om2oc
+      use TRACER_COM, only: n_M_AKK_SU
 #ifdef TRACERS_AEROSOLS_VBS
       use aerosol_sources, only: VBSemifact
       use tracers_vbs, only: vbs_tr
@@ -56,13 +55,15 @@
       integer, intent(in) :: n
       logical, intent(in), optional :: vibb
       real*8, parameter :: so4_fraction=0.025d0
-#ifndef TRACERS_AMP_M4
-      real*8, parameter :: akk_fraction=0.01d0
-#else
-      real*8, parameter :: akk_fraction=0.d0
-#endif  /* TRACERS_AMP_M4 */
+      real*8 :: akk_fraction
       logical ibb
       integer get_src_index
+
+      if (n_M_AKK_SU>0) then
+        akk_fraction=0.01d0
+      else
+        akk_fraction=0.d0
+      endif
 
       ibb=.false.
       if (present(vibb)) ibb=vibb
