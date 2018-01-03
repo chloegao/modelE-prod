@@ -1292,7 +1292,7 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_WATER
       USE TRACER_COM, only: trwm
 #endif
-      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
+      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate
@@ -1576,6 +1576,9 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
          header='TRACERS_SPECIAL_Shindell: no3_live(i,j,l)'
           call pack_data(grid,no3_live,Aijl_glob)! still global.
           if(am_i_root())write(kunit,err=10)header,Aijl_glob
+         header='TRACERS_SPECIAL_Shindell: o3_live(i,j,l)'
+          call pack_data(grid,o3_live,Aijl_glob)! still global.
+          if(am_i_root())write(kunit,err=10)header,Aijl_glob
        endif
        header='TRACERS_SPECIAL_Shindell: SF3(i,j,l)'
         call pack_data(grid,SF3,Aijl_chem)
@@ -1786,6 +1789,8 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
             call unpack_data(grid,Aijl_glob,oh_live)
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,no3_live)
+            if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
+            call unpack_data(grid,Aijl_glob,o3_live)
           endif
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,SF3)
@@ -2025,7 +2030,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       use domain_decomp_atm, only : grid
       USE Dictionary_mod
       USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
-      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live
+      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,ydms,yso2,sulfate,pNO3
@@ -2155,6 +2160,7 @@ c daily_z is currently only needed for CS
       if(coupled_chem == 1) then
         call doVar(handle,action,oh_live,'oh_live'//ijldims)   ! stays ijldims
         call doVar(handle,action,no3_live,'no3_live'//ijldims) ! stays ijldims
+        call doVar(handle,action,o3_live,'o3_live'//ijldims) ! stays ijldims
       endif
       call doVar(handle,action,SF3,'SF3'//ijcdims)
       call doVar(handle,action,SF2,'SF2'//ijcdims)

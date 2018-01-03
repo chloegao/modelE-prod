@@ -10,7 +10,7 @@ C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
-      USE TRACER_COM, only: oh_live,no3_live
+      USE TRACER_COM, only: oh_live,no3_live,o3_live
       USE TRCHEM_Shindell_COM, only: nc
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
@@ -97,6 +97,7 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
 #endif  /* TRACERS_dCO */
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
+        o3_live(I_0:I_1,J_0:J_1,:)  =0.d0
         pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
         pClx(I_0:I_1,J_0:J_1,:)     =0.d0
         pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0

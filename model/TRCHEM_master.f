@@ -167,10 +167,11 @@ c
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
+      USE TRACER_COM, only  : oh_live,no3_live,o3_live
       USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,
      &                      n_Isoprene,n_AlkylNit,n_Alkenes,
-     &                      n_Terpenes,n_SO4,n_H2O2_s,oh_live,no3_live,
+     &                      n_Terpenes,n_SO4,n_H2O2_s,
      &                      ntm_chem,n_DMS,n_MSA,n_SO2,
      &                      trm_col,trmom_col,nChemistry,nOverwrite,
      &                      n_isopp1g,n_isopp1a,n_isopp2g,n_isopp2a,
@@ -826,10 +827,7 @@ C Save 3D radical arrays to pass to aerosol code:
         do L=1,topLevelOfChemistry
           oh_live(i,j,L)=y(nOH,L)
           no3_live(i,j,L)=yNO3(i,j,L)
-        end do
-        do L=topLevelOfChemistry+1,LM
-          oh_live(i,j,L)=0.d0
-          no3_live(i,j,L)=0.d0
+          o3_live(i,j,L)=y(nO3,L)
         end do
       end if
 
@@ -1628,6 +1626,7 @@ C Make sure we get the nightime values; Set OH to zero for now:
         if(coupled_chem == 1) then
           oh_live(i,j,L)=0.d0
           no3_live(i,j,L)=yNO3(i,j,L)
+          o3_live(i,j,L)=y(nO3,L)
         end if
 
 c --  Ox --   ( Ox from gas phase rxns)
@@ -1718,19 +1717,19 @@ C       ACCUMULATE 3D NO3 diagnostic:
        end do  ! L loop <===========
 
 
-       ! aerosol code uses radicals up to LM, so fill in above
-       ! chemistry (nighttime case):
-       if(coupled_chem == 1) then
-         do L=topLevelOfChemistry+1,LM
-           oh_live(i,j,L)=0.d0
-           no3_live(i,j,L)=0.d0
-         end do
-       end if
-
 CCCCCCCCCCCCCCCC END NIGHTTIME CCCCCCCCCCCCCCCCCCCC
 
       end if
 CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
+
+      ! aerosol code uses radicals up to LM, so fill in above chemistry
+      if(coupled_chem == 1) then
+        do L=topLevelOfChemistry+1,LM
+          oh_live(i,j,L)=0.d0
+          no3_live(i,j,L)=0.d0
+          o3_live(i,j,L)=0.d0
+        end do
+      end if
 
       save_NO2column(i,j)=0.d0 ! initialize sum outside L loop.
 

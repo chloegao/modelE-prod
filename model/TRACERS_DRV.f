@@ -7047,7 +7047,7 @@ C**** Apply chemistry and overwrite changes:
       use atmcol_com, only: tl   ! layer temperature (K)
       use atmcol_com, only: pl   ! layer pressure (mb)
       use atmcol_com, only: ma   ! layer mass (kg/m2)
-      use AEROSOL_SOURCES, only: oh
+      use AEROSOL_SOURCES, only: oxid
       use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
      &                       vbs_calc, vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
@@ -7085,9 +7085,10 @@ c    Aging of industrial carbonaceous aerosols
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
         do l=1,lm
+          call get_oxidants(i,j,l) ! get oxidant concentrations
           kg2ugm3=1.d9*(1.d2*pl(l))*mair/(ma(l)*gasc*tl(l))
           vbs_cond%dt=dtsrc
-          vbs_cond%OH=oh(l)
+          vbs_cond%OH=oxid%OH
           vbs_cond%temp=tl(l)
           vbs_cond%nvoa=(trm_col(l,n_BCII)
      &                  +trm_col(l,n_BCIA)

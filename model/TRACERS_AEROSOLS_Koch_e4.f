@@ -25,8 +25,12 @@
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/m2/s)
       INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
-      real*8, allocatable, dimension(:) :: oh,tno3 ! both for online and offline
-      real*8, allocatable, dimension(:) :: dho2,perj ! COUPLED_CHEM=0 only
+
+      type oxidants
+        real*8 :: OH,NO3,O3 ! both for online and offline
+        real*8 :: HO2,H2O2  ! COUPLED_CHEM=0 only
+      end type oxidants
+      type(oxidants) :: oxid
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
      &  ohr,dho2r,perjr,tno3r,o3_offline ! COUPLED_CHEM=0 only
       real*8, allocatable, dimension(:,:,:) :: readCache
@@ -60,8 +64,7 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
      * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
      * ohr,dho2r,perjr, tno3r, readCache,
-     * oh,dho2,perj,tno3
-     * ,o3_offline
+     * o3_offline
      * ,off_HNO3
 #ifdef TRACERS_RADON
      * ,rn_src
@@ -103,11 +106,7 @@
         iso2volcanoexpl=nso2src_3d
       endif
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate(         oh(lm))
-      allocate(       tno3(lm))
       if (coupled_chem==0) then
-        allocate(       dho2(lm))
-        allocate(       perj(lm))
         allocate(        ohr(I_0H:I_1H,J_0H:J_1H,lm),
      *                 dho2r(I_0H:I_1H,J_0H:J_1H,lm),
      *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
@@ -356,11 +355,11 @@ c
 !@sum aerosol gas phase chemistry
 !@vers 2013/03/27
 !@auth Dorothy Koch
-      use OldTracer_mod, only: trname, tr_mm, vol2mass
+      use OldTracer_mod, only: trname, tr_mm
       use TRACER_COM, only: ntm, trm_col
       use TRACER_COM, only: coupled_chem, n_BCIA, n_BCII, n_DMS,n_H2O2_s
       use TRACER_COM, only: rsulf1, rsulf2, rsulf3, rsulf4
-      use TRACER_COM, only: n_MSA, N_OCII, n_OX, n_SO2, n_OCIA
+      use TRACER_COM, only: n_MSA, N_OCII, n_SO2, n_OCIA
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3, n_H2SO4
       use TRACER_COM, only: nChemistry, nChemprod, nChemLoss, nOther
 #if (defined TRACERS_HETCHEM) || (defined TRACERS_NITRATE)
@@ -377,7 +376,7 @@ c
       use atmcol_com, only: byma ! 1/ma
       USE PBLCOM, only : dclev
       USE FLUXES, only: tr3Dsource
-      USE AEROSOL_SOURCES, only: oh,dho2,perj,tno3,o3_offline
+      USE AEROSOL_SOURCES, only: oxid
       USE CONSTANT, only : mair
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : h2so4_chem
@@ -394,12 +393,10 @@ c Aerosol chemistry
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,o3mc,rsulfo3
+     *       ,d41,d42,d43,rsulfo3
 #endif
       integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
-
-      call get_oxidants(i,j) ! get oxidant concentrations
 
 #ifdef TRACERS_HETCHEM
 c calculation of heterogeneous reaction rates: SO2 on dust 
@@ -407,9 +404,10 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 #endif
 
       do l=1,lm
-c DMM is number density of air in molecules/cm3
-        ppres=pl(l)*9.869d-4 !in atm
-        dmm=ppres/(.082d0*tl(l))*6.02d20
+        call get_oxidants(i,j,l) ! get oxidant concentrations
+
+        ppres=pl(l)*9.869d-4 ! [atm]
+        dmm=ppres/(.082d0*tl(l))*6.02d20! number density of air [molecules/cm3]
 
 ! ===== THIS IS CHEMISTRY OF Koch AEROSOLS =====
         do n=1,NTM
@@ -420,17 +418,15 @@ C***1.DMS + OH -> 0.75SO2 + 0.25MSA
 C***2.DMS + OH -> SO2
 C***3.DMS + NO3 -> HNO3 + SO2
 
-          r1=rsulf1(l)*oh(l) 
+          r1=rsulf1(l)*oxid%OH
           d1 = exp(-r1*dtsrc)
-          r2=rsulf2(l)*oh(l)
+          r2=rsulf2(l)*oxid%OH
           d2 = exp(-r2*dtsrc)
 
-c     NO3 is in mixing ratio: convert to molecules/cm3
-c - not necessary for Shindell source
           if (l.gt.dclev(i,j)) then
             ttno3=0.d0
           else
-            ttno3 = tno3(l) !*6.02d20*ppres/(.082056d0*tl(l))
+            ttno3=oxid%NO3
           endif
           if (jls_NO3>0) call inc_tajls2(i,j,l,jls_NO3,ma(l)*ttno3)
 
@@ -467,23 +463,14 @@ c SO2 production from DMS
      *                                 )/dtsrc
 
 c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
-          r4=rsulf4(l)*oh(l)
+          r4=rsulf4(l)*oxid%OH
           d4 = exp(-r4*dtsrc)
 
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
-          if (COUPLED_CHEM.ne.1) then
-            ! convert ppbv O3 input to kg m-2:
-            o3mc=o3_offline(i,j,l)*MA(l)*1.d-9*vol2mass(n_Ox)
-          else
-            o3mc=trm_col(l,n_Ox)
-          endif
-          ! convert to molecules O3 cm-3:
-          o3mc = o3mc*dmm*(28.0D0/48.0D0)*byMA(L)
-
           rsulfo3 = 4.39d11*exp(-4131/tl(l))+
      &            ( 2.56d3*exp(-966/tl(l)))*10.d5 !assuming pH=5
-          rsulfo3 = exp(-rsulfo3*o3mc *dtsrc) !O3 oxidation Maahs '83
+          rsulfo3 = exp(-rsulfo3*oxid%O3*dtsrc) !O3 oxidation Maahs '83
           d41 = exp(-rxts1(l)*dtsrc)     
           d42 = exp(-rxts2(l)*dtsrc)     
           d43 = exp(-rxts3(l)*dtsrc)     
@@ -496,7 +483,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #endif  /* TRACERS_HETCHEM */
 
         end select
-        
+
         enddo                     ! tracer loop
 
 ! ===== END OF CHEMISTRY OF Koch AEROSOLS ====
@@ -505,9 +492,9 @@ c diagnostics to save oxidant fields
 c No need to accumulate Shindell version here because it
 c   is done elsewhere
         if (jls_OHconk>0) call inc_tajls2(i,j,l,jls_OHconk,
-     &       ma(l)*oh(l))
+     &       ma(l)*oxid%OH)
         if (jls_HO2con>0) call inc_tajls2(i,j,l,jls_HO2con,
-     &       ma(l)*dho2(l))
+     &       ma(l)*oxid%HO2)
 
 ! SO4 and H2O2_s formation MUST be in a separate loop, since SO2 does not have
 ! to be before SO4 or H2SO4 or H2O2_s in the tracer list
@@ -569,14 +556,14 @@ C     HO2 + HO2 + H2O ->
 C     HO2 + HO2 + H2O + M ->
 
           tt = 1.d0/tl(l)
-          r6 = 2.9d-12 * exp(-160.d0*tt)*oh(l)
+          r6 = 2.9d-12 * exp(-160.d0*tt)*oxid%OH
           d6 = exp(-r6*dtsrc)
           ek9 = 2.2d-13*exp(600.d0*tt)
           ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
           ch2o = ql(l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*tl(l))
           eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
-          dho2mc = dho2(l)  !/ma(l)*1.292/.033*6.02e17
-          dho2kg = dho2(l)*ma(l)*tl(l)*.082056d0/(ppres*28.97d0*6.02d20)
+          dho2mc=oxid%HO2
+          dho2kg=oxid%HO2*ma(l)*tl(l)*.082056d0/(ppres*28.97d0*6.02d20)
           eeee = eh2o*(ek9+ek9t)*dtsrc*dho2mc
           xk9 = dho2kg*eeee
 c         if (i.eq.2.and.l.eq.1.and.j.eq.46) write(6,*) 
@@ -591,13 +578,13 @@ c        if (i.eq.10.and.j.eq.45.and.l.eq.1) then
 c        write(6,*) 'RRR OXID H2O2',xk9,dho2kg,eeee
 c         endif
 c H2O2 losses:5 and 6
-          r5 = perj(l)
+          r5 = oxid%H2O2
           d5 = exp(-r5*dtsrc)
 
           tr3Dsource(l,nChemLoss,n)=(trm_col(l,n))*(d5*d6-1.d0)
      *         /dtsrc
 
-          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,perj(l))
+          if (jls_phot>0) call inc_tajls2(i,j,l,jls_phot,oxid%H2O2)
           endif ! coupled_chem.ne.1
         end select
         enddo ! tracer loop
@@ -609,38 +596,52 @@ c H2O2 losses:5 and 6
 
 #endif /* oma or matrix or tomas */
 
-      SUBROUTINE get_oxidants(i,j)
+      SUBROUTINE get_oxidants(i,j,l)
 
       use constant, only : pi
       use resolution, only: lm
-      use TRACER_COM, only: coupled_chem, oh_live, no3_live
-      use AEROSOL_SOURCES, only: ohr,dho2r,perjr,tno3r,oh,dho2,perj,tno3
+      use ATMCOL_COM, only: pl,tl,byma
+#ifdef TRACERS_HETCHEM
+      use TRACER_COM, only: n_Ox,trm_col
+      use OldTracer_mod, only: vol2mass
+#endif  /* TRACERS_HETCHEM */
+      use TRACER_COM, only: coupled_chem, oh_live, no3_live, o3_live
+      use TRACER_COM, only: trm_col
+      use AEROSOL_SOURCES, only: oxid,ohr,dho2r,perjr,tno3r,o3_offline
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
-      integer, intent(in) :: i,j
-      real*8, parameter :: night_frac_min=.01d0 !min night_frac for tno3 scaling
+      integer, intent(in) :: i,j,l
+      real*8, parameter :: night_frac_min=0.01d0 !min night_frac for NO3 scaling
       real*8 stfac,night_frac
+      real*8 :: ppres,dmm
 
       if (coupled_chem.eq.1) then
 ! coupled mode: use online radical concentrations
-        oh(:)=oh_live(i,j,:)
-        tno3(:)=no3_live(i,j,:)
+        oxid%OH=oh_live(i,j,l)
+        oxid%NO3=no3_live(i,j,l)
+        oxid%O3=o3_live(i,j,l)
+        oxid%HO2=0.d0
+        oxid%H2O2=0.d0
       else
 ! offline: read-in radical concentrations and impose diurnal variability
-        night_frac = 1.-sunset(i,j)/pi
-        if (cosz1(i,j).le.0.and.night_frac.gt.night_frac_min) then
-c Get NO3 only if dark, weighted by number of dark hours
-          tno3(:)=tno3r(i,j,:)/night_frac !DMK jmon
-        else
-          tno3(:)=0.d0
-        endif
         if (cosz1(i,j).gt.0.) then
           stfac=cosz1(i,j)/cosz_day(i,j)
-          oh(:)=ohr(i,j,:)*stfac
-          perj(:)=perjr(i,j,:)*stfac
-          dho2(:)=dho2r(i,j,:)*stfac
+          oxid%OH=ohr(i,j,l)*stfac
+          oxid%HO2=dho2r(i,j,l)*stfac
+          oxid%H2O2=perjr(i,j,l)*stfac
+        else
+c Get NO3 only if dark, weighted by number of dark hours
+          night_frac = 1.-sunset(i,j)/pi
+          if (night_frac.gt.night_frac_min) then
+            oxid%NO3=tno3r(i,j,l)/night_frac !DMK jmon
+          else
+            oxid%NO3=0.d0
+          endif
         endif
+        ppres=pl(l)*9.869d-4 ! [atm]
+        dmm=ppres/(.082d0*tl(l))*6.02d20! number density of air [molecules/cm3]
+        oxid%O3=o3_offline(i,j,l)*1.d-9*dmm
       endif
 
       END SUBROUTINE get_oxidants
