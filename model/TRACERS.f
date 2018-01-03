@@ -12,22 +12,14 @@
       MODULE apply3d
 !@sum apply3d is used simply so that I can get optional arguments
 !@+   to work. If anyone can some up with something neater, let me know.
-      use TracerSource_mod, only: TracerSource3D
-      use Tracer_mod, only: Tracer
-      use OldTracer_mod, only: trname
-      USE TRACER_COM, only : NTM,trm_col,trmom_col,alter_sources,tracers
-      USE CONSTANT, only : teeny
+      USE TRACER_COM, only : trm_col,trmom_col
       USE RESOLUTION, only: lm
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only : imaxj,lat2d_dg,lon2d_dg
-      USE QUSDEF, only: nmom
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only : tr3Dsource
 #endif
       USE TRDIAG_COM, only : jls_3Dsource,itcon_3Dsrc
      *     ,ijts_3Dsource,taijs=>taijs_loc
-      USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, am_i_root
-      use EmissionRegion_mod, only: numRegions, regions
 
       IMPLICIT NONE
 
@@ -1914,15 +1906,13 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@auth Greg Faluvegi
 
       use TRACER_COM, only : n_max_sect,
-     & n_max_reg,alter_sources,
      & ef_fact,num_sectors,sect_name
       USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
-      USE GEOM, only: lat2d_dg, lon2d_dg, imaxj
+      USE GEOM, only: imaxj
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use Dictionary_mod, only : sync_param
       use EmissionRegion_mod, only: initializeEmissionsRegions
-      use EmissionRegion_mod, only: regions, numRegions
 
       implicit none
 
@@ -1960,8 +1950,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 !@+ region. Output IJ map of regions.
 !@auth Greg Faluvegi
 
-      use TRACER_COM, only : n_max_sect,
-     & n_max_reg,alter_sources,ef_REG_IJ,
+      use TRACER_COM, only : 
+     & alter_sources,ef_REG_IJ,
      & ef_fact,num_sectors,sect_name
       USE DOMAIN_DECOMP_ATM, only: GRID,getDomainBounds
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT,writet_parallel
