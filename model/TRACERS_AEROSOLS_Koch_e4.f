@@ -628,16 +628,20 @@ c H2O2 losses:5 and 6
         if (cosz1(i,j).gt.0.) then
           stfac=cosz1(i,j)/cosz_day(i,j)
           oxid%OH=ohr(i,j,l)*stfac
+          oxid%NO3=0.d0
           oxid%HO2=dho2r(i,j,l)*stfac
           oxid%H2O2=perjr(i,j,l)*stfac
         else
 c Get NO3 only if dark, weighted by number of dark hours
+          oxid%OH=0.d0
           night_frac = 1.-sunset(i,j)/pi
           if (night_frac.gt.night_frac_min) then
             oxid%NO3=tno3r(i,j,l)/night_frac !DMK jmon
           else
             oxid%NO3=0.d0
           endif
+          oxid%HO2=0.d0
+          oxid%H2O2=0.d0
         endif
         ppres=pl(l)*9.869d-4 ! [atm]
         dmm=ppres/(.082d0*tl(l))*6.02d20! number density of air [molecules/cm3]
