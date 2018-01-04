@@ -19,8 +19,7 @@ c
       USE TRACER_COM, only  : ntm
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req
-      use ATMCOL_COM, only: ple
+      USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
       USE RAD_COM, only     : CH4X_RADoverCHEM
@@ -96,7 +95,7 @@ C running-averages for interactive wetlands CH4:
             if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
               avgTT_H2O_part(I,J) = Q(I,J,LTROPO(I,J))*MWabyMWw
               if(use_rad_ch4 > 0) then
-                ghgplb(1:LM+1)=ple(1:LM+1)
+                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
                 call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                 call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
                 avgTT_CH4_part(I,J) =
