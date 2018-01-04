@@ -8,7 +8,7 @@ c
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian, byavog, undef
-      USE ATM_COM, only    : MA, byMA, PMID
+      USE ATM_COM, only    : MA, byMA
       USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
 

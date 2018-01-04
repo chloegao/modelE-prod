@@ -271,7 +271,7 @@
 !@+   the chemical mechanism files itself, not here.
 !@auth Kostas Tsigaridis (with content collected from TRCHEM_master.f)
 
-      use atm_com, only: pedn,pmid
+      use ATMCOL_COM, only: pl, ple
       use rad_com, only: nraero_koch,nraero_nitrate,nraero_dust,
      &                   nraero_seasalt
       use domain_decomp_1d, only: am_i_root
@@ -402,8 +402,8 @@ c  Ensure all aerosol types are valid selections:
 #endif  /* TRACERS_ON */
 
 c       define pressures to be sent to FASTJ (centers):
-        PFASTJ2(1:NLGCM)=PMID(1:NLGCM,I,J)
-        PFASTJ2(NLGCM+1)=PEDN(NLGCM+1,I,J)  ! P at SIGE(NLGCM+1)
+        PFASTJ2(1:NLGCM)=pl(1:NLGCM)
+        PFASTJ2(NLGCM+1)=ple(NLGCM+1)  ! P at SIGE(NLGCM+1)
         PFASTJ2(NLGCM+2)=PFASTJ2(NLGCM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
         PFASTJ2(NLGCM+3)=PFASTJ2(NLGCM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
         

@@ -19,7 +19,8 @@ c
       USE TRACER_COM, only  : ntm
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : PMIDL00,LTROPO,Q,pedn,lm_req
+      USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req
+      use ATMCOL_COM, only: ple
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
       USE RAD_COM, only     : CH4X_RADoverCHEM
@@ -95,7 +96,7 @@ C running-averages for interactive wetlands CH4:
             if(LAT2D_DG(I,J) >= -20. .and. LAT2D_DG(I,J) <= 20.)then
               avgTT_H2O_part(I,J) = Q(I,J,LTROPO(I,J))*MWabyMWw
               if(use_rad_ch4 > 0) then
-                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+                ghgplb(1:LM+1)=ple(1:LM+1)
                 call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                 call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
                 avgTT_CH4_part(I,J) =
@@ -148,7 +149,7 @@ c
       USE DOMAIN_DECOMP_ATM,only: write_parallel
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
-      use ATMCOL_COM, only: update_ql,tl
+      use ATMCOL_COM, only: update_ql,tl,pl,ple
       USE ATM_COM, only     : Q
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
@@ -159,7 +160,7 @@ c
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : MA,pedn,PMIDL00,LTROPO,lm_req
+      USE ATM_COM, only     : MA,PMIDL00,LTROPO,lm_req
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
@@ -330,7 +331,7 @@ C**** Local parameters and variables and arguments:
 
       ! prep for/call getgas to obtain ghgmod (rad code) species for use in chemistry:
       ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
-      ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+      ghgplb(1:LM+1)=ple(1:LM+1)
       call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
       call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
 
@@ -403,7 +404,7 @@ c This is to work around initial instabilities.
         acetone(L)=max(0.d0, ! in molec/cm3
      &  (1.25d0*(
      &    zonalIsop(i,j)-trm_col(L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byMA(L,i,j)))*PMID(L,i,j)/(tl(L)*cboltz))
+     &    byMA(L,i,j)))*pl(L)/(tl(L)*cboltz))
       enddo
 #ifdef TRACERS_dCO
       do L=1,topLevelOfChemistry
@@ -417,11 +418,11 @@ c This is to work around initial instabilities.
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0  
 c Save presure, temperature, thickness, rel. hum. in local arrays:
-       rh(L)=Q(i,j,l)/min(1.d0,QSAT(tl(L),lhe,pmid(L,i,j)))
-       bythick(L)=1.d0/
-     & (rgas*bygrav*tl(L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
+       ! could use rhl() instead of rh() but for the min(1.d0, ) part:
+       rh(L)=Q(i,j,l)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
+       bythick(L)=1.d0/(rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1)))
 c Calculate M and set fixed ratios for O2 & H2:
-       y(nM,L)=pmid(L,i,j)/(tl(L)*cboltz)
+       y(nM,L)=pl(L)/(tl(L)*cboltz)
        y(nO2,L)=y(nM,L)*pO2*o2x
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
@@ -687,8 +688,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
      &      +ss(rj%NO2__NO_O,L,i,j)
           taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
      &      +ss(rj%H2O2__OH_OH,L,i,j)
-          thick=
-     &    1.d-3*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+          thick=1.d-3*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
 ! SF3 is photolysis of water in Schumann-Runge bands based on:
@@ -1874,8 +1874,8 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
             end if
 
             if(index1/=0 .and. index2/=0)then
-              thick= ! layer thickness in cm
-     &        1.d2*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+              ! layer thickness in cm:
+              thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
               taijs(i,j,index1)=taijs(i,j,index1)+thick*
      &        pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
               if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
@@ -1889,8 +1889,8 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! save_NO2column is initialized to 0 outside this L loop.
 ! [note: we should consolodate all these "thick/byThick" guys.]
         if(L<=min(maxT,LTROPO(I,J)))then
-          thick= ! layer thickness in cm
-     &    1.d2*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+          ! layer thickness in cm:
+          thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
           save_NO2column(i,j) = save_NO2column(i,j)+
      &    thick*pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
         end if
@@ -2529,7 +2529,7 @@ C Make sure nighttime chemistry changes are not too big:
       use resolution, only : ls1=>ls1_nominal
       use resolution, only : lm
       use model_com, only: modelEclock
-      use atm_com, only: pmid
+      use ATMCOL_COM, only: pl
       use geom, only:  lat2d ! lat is in radians
       use constant, only: twopi,pi,radian,teeny
       use TimeConstants_mod, only: HOURS_PER_DAY, DAYS_PER_YEAR
@@ -2558,7 +2558,7 @@ C Make sure nighttime chemistry changes are not too big:
       Jacet0=max(0.d0,C1*(COS(sza)*C2)*EXP(-1.*C3*sec_func))
       Jacet(:)=0.d0
       do L=1,min(LS1-1,topLevelOfChemistry)
-        Jacet(L)=3.d0*Jacet0/LOG(pmid(L,i,j))
+        Jacet(L)=3.d0*Jacet0/LOG(pl(L))
       enddo
       
       return
