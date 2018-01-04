@@ -97,13 +97,12 @@ C**** Some local constants
 
       SUBROUTINE DIAGA
 !@sum  DIAGA accumulate various diagnostics during dynamics
-!@vers 2015/06/25
+!@vers 2018/01/04
       USE CONSTANT, only : grav,rgas,kapa,lhe,lhs,sha,bygrav,tf
      *     ,rvap,gamd,teeny,undef,radius,omega,kg2mb,mair
       Use Resolution, Only: IM,JM,LM, LS1=>LS1_NOMINAL
       Use MODEL_COM,  Only: IDACC,MDYN,MDIAG, DTSRC
       Use ATM_COM,    Only: U,V,T,Q,QCL,QCI, ZATMO, LM_REQ,REQ_FAC_M
-     *                     ,MWs
       USE GEOM, only : sinlat2d,coslat2d,axyp,imaxj,
      &     lon2d_dg,byaxyp
 #ifndef SCM
@@ -148,7 +147,7 @@ C**** Some local constants
 #endif
       USE ATM_COM, only : pk,pek,phi,pmid,pdsig,pedn,MA,MASUM
      &     ,ua=>ualij,va=>valij
-      USE DYNAMICS, only : SD,wcp
+      USE DYNAMICS, only : MW,SD,wcp
       USE CLOUDS_COM, only : svlhx
       USE DIAG_LOC, only : w,tx,jet
       USE DOMAIN_DECOMP_ATM, only : getDomainBounds, GRID, HALO_UPDATE
@@ -455,14 +454,14 @@ C**** Follows logic for geopotential section following this...
           GoTo 30  ;  EndIf
 
 !**** Compute omega = dP/dt from model edge to constant pressure levels
-!**** omega(Pa/s) = MWs(mb*m^2) * byAXYP(1/m^2) * 100(Pa/mb) / DTSRC(s)
-   40 OFACTOR = byAXYP(I,J) * 100 / DTSRC
+!**** omega(Pa/s) = MW(kg/s) * GRAV(m/s^2) * byAXYP(1/m^2)
+   40 OFACTOR = GRAV * byAXYP(I,J)
       L = 0  ;  PDN = PEDN(1,I,J)  ;  ODN = 0
       K = 0  ;  NP = IJ_ PMB1-1  ;  NO = IJ_OMEGAPMB1-1
    41 K = K+1  ;  NP = NP+1  ;  NO = NO+1
       If (PDN < PMB(K))  GoTo 41
    42 If (L == LM)  GoTo 50
-      L = L+1  ;  PUP = PEDN(L+1,I,J)  ;  OUP = MWs(I,J,L)*OFACTOR
+      L = L+1  ;  PUP = PEDN(L+1,I,J)  ;  OUP = MW(I,J,L)*OFACTOR
    43 If (PMB(K) < PUP)  Then
           PDN = PUP  ;  ODN = OUP
           GoTo 42  ;  EndIf
