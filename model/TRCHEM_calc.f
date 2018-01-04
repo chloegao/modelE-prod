@@ -11,6 +11,7 @@ C
       USE RESOLUTION, only      : ls1=>ls1_nominal
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : Q
+      use ATMCOL_COM, only: tl
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
       use ATMCOL_COM, only: update_ql
       USE ATM_COM, only         : MA, byMA,ltropo
@@ -59,7 +60,7 @@ C
      &                   ndCH317O2,ndCH318O2,nd13CH3O2,
      &                   d17Oacetone,d18Oacetone,d13Cacetone,
 #endif  /* TRACERS_dCO */
-     &                   rr,nO1D,nOH,nNO,nHO2,ta,nM,ss,
+     &                   rr,nO1D,nOH,nNO,nHO2,nM,ss,
      &                   nO3,nNO2,nNO3,prnrts,ijlprn,trchemname,
      &                   prnchg,y,nps,kps,nds,kds,n_rx,n_rj,
      &                   npnr,nnr,ndnr,kpnr,kdnr,nH2O,which_trop,
@@ -141,7 +142,7 @@ C**** Local parameters and variables and arguments:
      & total,rnewval,dNOx,ratio,sumD,newD,ratioD,newP,ratioP,
      & changeA,sumP,tempiter,sumC,sumN,sumH,sumB,sumO,sumA,
      & dxbym2v,changeX,vClONO2,vBrONO2,conc2mass,rNO3prod,rNO2prod,
-     & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,byta,
+     & rNOprod,changeAldehyde,rxnN2,rxnN3,rxnN4,NprodOx,NlossNOx,bytl,
      & diffCH3O2,tempAcet,prodCH3O2,dQMsum
       integer :: idx
 
@@ -2030,12 +2031,12 @@ c          reduce NOx destruction to match N production:
 
 c       Calculate NOx and Ox changes due to atomic nitrogen
 c       produced by SRB photlysis (SF2 is NO + hv rate) :
-        byta=1.d0/ta(L)
-c       rxnN1=3.8d-11*exp(85d0*byta)*y(nOH,L)
+        bytl=1.d0/tl(L)
+c       rxnN1=3.8d-11*exp(85d0*bytl)*y(nOH,L)
         ! that's N+OH->NO+H, not in JPL (rates from IUPAC 1989)
-        rxnN2=1.5d-11*exp(-3600.d0*byta)*y(nO2,L) ! N+O2->NO+O
-        rxnN3=5.8d-12*exp(220.d0*byta)*y(nNO2,L)  ! N+NO2->N2O+O
-        rxnN4=2.1d-11*exp(100.d0*byta)*y(nNO,L)   ! N+NO->N2+O
+        rxnN2=1.5d-11*exp(-3600.d0*bytl)*y(nO2,L) ! N+O2->NO+O
+        rxnN3=5.8d-12*exp(220.d0*bytl)*y(nNO2,L)  ! N+NO2->N2O+O
+        rxnN4=2.1d-11*exp(100.d0*bytl)*y(nNO,L)   ! N+NO->N2+O
         NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
         NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
         changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx

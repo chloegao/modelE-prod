@@ -79,7 +79,7 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only         : n_NOx,nn_NOx,nn_Alkenes
       use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,nO,nC2O3,nCH3O2,
-     & pNO3,ta,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
+     & pNO3,nXO2,ss,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
      & nBrO,rrbi,rrtri
 
       IMPLICIT NONE
@@ -157,17 +157,16 @@ C**** GLOBAL parameters and variables:
       USE RESOLUTION, only : LM
       USE GEOM, only : LAT2D_DG
       USE ATM_COM, only: LTROPO,PMIDL00
-
+      use ATMCOL_COM, only: tl
       USE TRACER_COM, only : rsulf1,rsulf2,rsulf4
       USE TRACER_COM, only : nn_CH4,nn_HNO3,nn_CH3OOH,nn_H2O2,nn_HCHO,
      &                       nn_CO,nn_Paraffin,nn_Alkenes,nn_Isoprene,
      &                       nn_AlkylNit,nn_Terpenes,
      &                       nn_HBr,nn_HOCl,nn_HCl
-
       use photolysis, only: rj
       USE TRCHEM_Shindell_COM, only:pHOx,rr,y,nNO2,nNO,nH2O,nO3,nCH3O2,
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
-     &                        ta,ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
+     &                        ss,nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
      &         ,rrbi,rrtri,yNO3
 
@@ -283,9 +282,9 @@ c Include loss of OH into atomic H using production
 c via O + OH -> O2 + H, loss via H + O3 -> OH + O2 and
 c H + O2 + M -> HO2 + M , and affects on OH/HO2 and Ox
         rHprod=rr(rrbi%O_OH__O2_H,L)*y(nOH,L)*y(nO,L)
-        rHspecloss=y(nO3,L)*1.4d-10*exp(-470./ta(L))
-        rkzero=y(nM,L)*4.4d-32*((ta(L)/300.d0)**(-1.3))
-        rktot=(rkzero/(1+(rkzero/(7.5d-11*(ta(L)/300.d0)**0.2))))
+        rHspecloss=y(nO3,L)*1.4d-10*exp(-470./tl(L))
+        rkzero=y(nM,L)*4.4d-32*((tl(L)/300.d0)**(-1.3))
+        rktot=(rkzero/(1+(rkzero/(7.5d-11*(tl(L)/300.d0)**0.2))))
         rktot=y(nO2,L)*rktot
         rHspecloss=rHspecloss+rktot
         if(rHspecloss==0.) call stop_model('rHspecloss=0.',255)
@@ -349,13 +348,14 @@ c which also produces HO2 and R15 then S4/(S4+S14) fraction.
 C**** GLOBAL parameters and variables:
 
       USE ATM_COM, only   : LTROPO
+      use ATMCOL_COM, only: tl
       USE RESOLUTION, only : LS1=>LS1_NOMINAL
       USE TRACER_COM, only : n_ClOx,n_HOCl,n_ClONO2,n_HCl,n_H2O2,n_CH4
       USE TRACER_COM, only : nn_ClOx,nn_HOCl,nn_ClONO2,nn_HCl,nn_H2O2,
      &    nn_CH4
       use photolysis, only : sza,rj
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
-     &    ta,ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
+     &    ss,nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
      &    rrmono,rrbi,rrtri
 
@@ -385,7 +385,7 @@ c Full ClOxfam code from offline photochemistry:
 
 c Low temperature stabilizes ClO dimer, use [Cl2O2] only for
 c calculating Cl amount, otherwise ignore:
-        if(ta(L) <= 220.)then
+        if(tl(L) <= 220.)then
           y(nCl2O2,L)=
      &       (rr(rrtri%ClO_ClO__Cl2O2_M,L)*y(nClO,L)*y(nClO,L))
      &      /(rr(rrmono%Cl2O2_M__ClO_ClO,L)
@@ -436,9 +436,9 @@ c calculating Cl amount, otherwise ignore:
      &      +rr(rrbi%BrO_ClO__Br_Cl,L))
      &    +ss(rj%ClO__Cl_O,L,i,j)
      &    +rr(rrbi%ClO_CH3O2__Cl_HCHO,L)*y(nCH3O2,L)
-     &    +y(nClO,L)*(1.d-12*exp(-1590./TA(L))
-     &      +3.d-11*exp(-2450./TA(L))
-     &      +3.5d-13*exp(-1370./TA(L))) 
+     &    +y(nClO,L)*(1.d-12*exp(-1590./tl(L))
+     &      +3.d-11*exp(-2450./tl(L))
+     &      +3.5d-13*exp(-1370./tl(L)))
         D=y(nO3,L)*rr(rrbi%ClO_O3__OClO_O2,L)
      &    +y(nBrO,L)*rr(rrbi%BrO_ClO__OClO_Br,L)
         F=(rr(rrbi%OH_HOCl__H2O_ClO,L)*y(nOH,L)*y(nn_HOCl,L)

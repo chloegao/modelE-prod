@@ -148,8 +148,8 @@ c
       USE DOMAIN_DECOMP_ATM,only: write_parallel
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
-      use ATMCOL_COM, only: update_ql
-      USE ATM_COM, only     : T,Q
+      use ATMCOL_COM, only: update_ql,tl
+      USE ATM_COM, only     : Q
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
       use TimeConstants_mod, only: HOURS_PER_DAY
@@ -389,12 +389,6 @@ c This is to work around initial instabilities.
       endif
       maxPSC=0.2d0/dt2
 
-
-C CALCULATE TX, THE REAL TEMPERATURE:
-      DO L=1,LM
-        TX(I,J,L)=T(I,J,L)*PK(L,I,J)
-      END DO
-
       y = 0.d0
 
       select case(which_trop)
@@ -409,7 +403,7 @@ C CALCULATE TX, THE REAL TEMPERATURE:
         acetone(L)=max(0.d0, ! in molec/cm3
      &  (1.25d0*(
      &    zonalIsop(i,j)-trm_col(L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byMA(L,i,j)))*PMID(L,i,j)/(TX(i,j,L)*cboltz))
+     &    byMA(L,i,j)))*PMID(L,i,j)/(tl(L)*cboltz))
       enddo
 #ifdef TRACERS_dCO
       do L=1,topLevelOfChemistry
@@ -423,12 +417,11 @@ C CALCULATE TX, THE REAL TEMPERATURE:
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0  
 c Save presure, temperature, thickness, rel. hum. in local arrays:
-       ta(L)=TX(I,J,L)
-       rh(L)=Q(i,j,l)/min(1.d0,QSAT(ta(L),lhe,pmid(L,i,j)))
+       rh(L)=Q(i,j,l)/min(1.d0,QSAT(tl(L),lhe,pmid(L,i,j)))
        bythick(L)=1.d0/
-     & (rgas*bygrav*TX(i,j,L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
+     & (rgas*bygrav*tl(L)*LOG(pedn(L,i,j)/pedn(L+1,i,j)))
 c Calculate M and set fixed ratios for O2 & H2:
-       y(nM,L)=pmid(L,i,j)/(ta(L)*cboltz)
+       y(nM,L)=pmid(L,i,j)/(tl(L)*cboltz)
        y(nO2,L)=y(nM,L)*pO2*o2x
        if(pres2(l) > 20.d0)then
          y(nH2,L)=y(nM,L)*pfix_H2
@@ -619,7 +612,7 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         END DO
 
 ! calculate photolysis rates
-        call fastj2_drv(I, J, ta, rh, albedoToUse)
+        call fastj2_drv(I,J, tl(1:topLevelOfChemistry), rh,albedoToUse)
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
 
 C Define and alter resulting photolysis coefficients (zj --> ss):
@@ -695,7 +688,7 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
      &      +ss(rj%H2O2__OH_OH,L,i,j)
           thick=
-     &    1.d-3*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+     &    1.d-3*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
 ! SF3 is photolysis of water in Schumann-Runge bands based on:
@@ -741,9 +734,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         if(pres2(L) <= 250.d0 .and. pres2(L) >= 30.d0)then    ! pres crit for now
           if(lat2D_dg(I,J)<=PSClatS.or.lat2D_dg(I,J)>=PSClatN)then! lat crit for now
             if(lat2d_dg(I,J)<=PSClatS)then
-              Ttemp=ta(L)+Tpsc_offset_S
+              Ttemp=tl(L)+Tpsc_offset_S
             else if(lat2d_dg(I,J)>=PSClatN)then
-              Ttemp=ta(L)+Tpsc_offset_N
+              Ttemp=tl(L)+Tpsc_offset_N
             endif
             if(Ttemp <= T_thresh)then                         ! cold enough
               bHNO3=38.9855d0-11397.d0/Ttemp+0.009179d0*Ttemp ! H2O and HNO3
@@ -883,8 +876,8 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           rgammasulf = 1.5d-2
         else
           rgammasulf = 5.2d-2 - 2.79d-4*100.d0*rh(L)
-          if(ta(L)>290.) rgammasulf=
-     &    max(1.d-3,rgammasulf-log10(ta(L)-290.d0)*5.d-2)
+          if(tl(L)>290.) rgammasulf=
+     &    max(1.d-3,rgammasulf-log10(tl(L)-290.d0)*5.d-2)
         end if
 ! --------------------------------------------------------------------
         if (coupled_chem == 1) then
@@ -907,7 +900,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 
         pfactor=MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
-        RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
+        RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
 c       in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
         wprod_sulf=
@@ -1882,7 +1875,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 
             if(index1/=0 .and. index2/=0)then
               thick= ! layer thickness in cm
-     &        1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+     &        1.d2*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
               taijs(i,j,index1)=taijs(i,j,index1)+thick*
      &        pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
               if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
@@ -1897,7 +1890,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! [note: we should consolodate all these "thick/byThick" guys.]
         if(L<=min(maxT,LTROPO(I,J)))then
           thick= ! layer thickness in cm
-     &    1.d2*rgas*bygrav*TX(I,J,L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
+     &    1.d2*rgas*bygrav*tl(L)*LOG(PEDN(L,i,j)/PEDN(L+1,i,j))
           save_NO2column(i,j) = save_NO2column(i,j)+
      &    thick*pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
         end if
@@ -2242,10 +2235,10 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
      &    'dark, SALBFJ,sza,I,J,L,Itime= ',albedoToUse,sza,I,J,L,Itime
           call write_parallel(trim(out_line),crit=jay)
           if(pscX(L))then
-            write(out_line,*) 'There are PSCs, T =',ta(L)
+            write(out_line,*) 'There are PSCs, T =',tl(L)
             call write_parallel(trim(out_line),crit=jay)
           else
-            write(out_line,*) 'There are no PSCs, T =',ta(L)
+            write(out_line,*) 'There are no PSCs, T =',tl(L)
             call write_parallel(trim(out_line),crit=jay)
           endif
           write(out_line,198) trchemname(nn_NOx),': ',
@@ -2589,7 +2582,8 @@ C**** GLOBAL parameters and variables:
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI, pN2
       USE ATM_COM, only : MA, PMIDL00
-      USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
+      use ATMCOL_COM, only: tl
+      USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet
 
@@ -2623,12 +2617,12 @@ C**** Local parameters and variables and arguments:
 !@var I,J passed horizontal position indicies
 !@var dd,pp,fw,rkp,rk2,rk3M,rrrr,temp dummy "working" variables
 !@var L,jj dummy loop variables
-!@var byta reciprocal of the local temperature
+!@var bytl reciprocal of the local temperature
 !@var rkext aerosol extinction from SAGE obs
 !@var pscEx NAT PSC surface conc per unit volume (cm^2/cm^3)
 !@var beta branching ratio for (HO2+NO) reactions
 !@var pcon variable for some pressure conversions
-      REAL*8:: byta,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon,waterPPMV
+      REAL*8:: bytl,dd,pp,fw,rkp,rk2,rk3M,rrrr,temp,beta,pcon,waterPPMV
       real*8 :: associationReaction, activationReaction,pfactor,
      & bypfactor,k0T,k0TM,kinfT,kinfTbyM,RVELN2O5,wprod_sulf,prod_sulf
       INTEGER             :: L,jj
@@ -2673,10 +2667,10 @@ C**** Local parameters and variables and arguments:
      &call stop_model('LAXb or LAXt problem in TRCHEM_master',13)
 
       do L=1,topLevelOfChemistry            !  ==> BEGIN ALTITUDE LOOP <==
-        byta=1.d0/ta(L)
-        pcon=y(nM,L)*ta(L)*cboltz/1013.d0
+        bytl=1.d0/tl(L)
+        pcon=y(nM,L)*tl(L)*cboltz/1013.d0
         do jj=1,n_bi+n_nst             ! bimolecular rates start
-          rr(jj,L)=pe(jj)*exp(-ea(jj)*byta)
+          rr(jj,L)=pe(jj)*exp(-ea(jj)*bytl)
           if (jj==rrbi%O1D_M__O_M) then
 !           M is really N2
             rr(jj,L)=rr(jj,L)*pN2
@@ -2688,7 +2682,7 @@ C**** Local parameters and variables and arguments:
 #endif  /* TRACERS_dCO */
      &           ) then
 !           based on three-parameters from JPL2011
-            rr(jj,L)=rr(jj,L)*(ta(L)**0.667)
+            rr(jj,L)=rr(jj,L)*(tl(L)**0.667)
           else if (jj==rrbi%CO_OH__HO2_O2
 #ifdef TRACERS_dCO
      &        .or. jj==rrbi%dC17O_OH__HO2_O2
@@ -2698,26 +2692,26 @@ C**** Local parameters and variables and arguments:
      &           ) then
 !           based on termolecular reaction from JPL2011
 !           (see pages 185-188 and note D1)
-            k0TM=y(nM,L)*pe(jj)*((300.d0*byta)**1.4)
-            kinfT=1.1d-12*(300.d0*byta)**(-1.3)
+            k0TM=y(nM,L)*pe(jj)*((300.d0*bytl)**1.4)
+            kinfT=1.1d-12*(300.d0*bytl)**(-1.3)
             dd=k0TM/kinfT
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             associationReaction=(k0TM/(1.d0+dd))*pp
-            k0T=1.5d-13*((300.d0*byta)**(-0.6))
-            kinfTbyM=(2.1d9*((300.d0*byta)**(-6.1)))/y(nM,L)
+            k0T=1.5d-13*((300.d0*bytl)**(-0.6))
+            kinfTbyM=(2.1d9*((300.d0*bytl)**(-6.1)))/y(nM,L)
             dd=k0T/kinfTbyM
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             activationReaction=(k0T/(1.d0+dd))*pp
             rr(jj,L)=associationReaction+activationReaction
           else if (jj==rrbi%HO2_HO2__H2O2_O2) then
 !           k=(kc+kp)fw, kc=rr
-            rkp=2.1d-33*y(nM,L)*exp(920.d0*byta)
-            fw=(1.d0+1.4d-21*y(nH2O,L)*exp(2200.d0*byta))
+            rkp=2.1d-33*y(nM,L)*exp(920.d0*bytl)
+            fw=(1.d0+1.4d-21*y(nH2O,L)*exp(2200.d0*bytl))
             rr(jj,L)=(rr(jj,L)+rkp)*fw
           else if (jj==rrbi%OH_HNO3__H2O_NO3) then
-!           k=[pe*exp(-e(jj)/ta(l))]+k3[M]/(1+k3[M]/k2)
-            rk3M=y(nM,l)*6.5d-34*exp(1335.d0*byta)
-            rk2=2.7d-17*exp(2199.d0*byta)
+!           k=[pe*exp(-e(jj)/tl(l))]+k3[M]/(1+k3[M]/k2)
+            rk3M=y(nM,l)*6.5d-34*exp(1335.d0*bytl)
+            rk2=2.7d-17*exp(2199.d0*bytl)
             rr(jj,L)=rr(jj,L)+rk3M/(1.d0+(rk3M/rk2))
           else if (jj==rrbi%XO2N_HO2__CH3OOH_O2) then
             rr(jj,L)=rr(rrbi%XO2_HO2__CH3OOH_O2,L)
@@ -2757,8 +2751,8 @@ C**** Local parameters and variables and arguments:
      &        .or. jj==rrbi%HO2_NO__HNO3_M) then
 !           calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007
             waterPPMV=1.d6*y(nH2O,L)/y(nM,L)
-            if(ta(L)<298.d0 .and. waterPPMV > 100.)then
-              beta=(530.d0*byta + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
+            if(tl(L)<298.d0 .and. waterPPMV > 100.)then
+              beta=(530.d0*bytl + 6.4d-4*pcon*760.d0 - 1.73d0)*1.d-2
             else
               beta=0.d0
             endif
@@ -2773,9 +2767,9 @@ C**** Local parameters and variables and arguments:
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
          
         do jj=1,n_tri         ! trimolecular rates start
-          rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*byta)**sn(jj)
+          rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*bytl)**sn(jj)
           if(r1(jj) .ne. 0.d0)then 
-            dd=rr(n_bi+n_nst+jj,L)/(r1(jj)*(300.d0*byta)**sb(jj))
+            dd=rr(n_bi+n_nst+jj,L)/(r1(jj)*(300.d0*bytl)**sb(jj))
             pp=0.6d0**(1.d0/(1.d0+(log10(dd))**2.))
             rr(n_bi+n_nst+jj,L)=(rr(n_bi+n_nst+jj,L)/(1.d0+dd))*pp
           end if
@@ -2783,7 +2777,7 @@ C**** Local parameters and variables and arguments:
 
         do jj=1,n_nst         ! monomolecular rates start
           ! 0.5 for precision,correct following line:
-          rrrr=exp(0.5d0*ea(n_bi+jj)*byta)
+          rrrr=exp(0.5d0*ea(n_bi+jj)*bytl)
           rr(n_bi+jj,L)=rr(nst(jj),L)/(rrrr*pe(n_bi+jj)*rrrr*y(nM,l))
         end do              ! monomolecular rates end
 
@@ -2812,8 +2806,8 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             rgammasulf = 1.5d-2
           else
             rgammasulf = 5.2d-2 - 2.79d-4*100.d0*rh(L)
-            if(ta(L)>290.) rgammasulf=
-     &      max(1.d-3,rgammasulf-log10(ta(L)-290.d0)*5.d-2)
+            if(tl(L)>290.) rgammasulf=
+     &      max(1.d-3,rgammasulf-log10(tl(L)-290.d0)*5.d-2)
           end if
           if (coupled_chem == 1) then
             ! Convert SO4 from mass (kg) to aerosol surface per grid box:
@@ -2832,7 +2826,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
           end if
 
-          RVELN2O5=SQRT(ta(L)*RKBYPIM)*100.d0
+          RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C         Calculate sulfate sink, and cap it at 20% of N2O5:
 c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           wprod_sulf=
@@ -2901,7 +2895,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           end if
 
 c         Reaction rrhet%N2O5_H2O__HNO3_HNO3 on sulfate and PSCs:
-          temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
+          temp=sqrt(8.d0*1.38d-16*tl(l)*6.02d23/(PI*108.d0))
           rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
      &      0.5d0*rkext(l)*1.d-5*temp*0.2d0
           if(pres(l) > 31.6d0) rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
@@ -2909,7 +2903,7 @@ c         Reaction rrhet%N2O5_H2O__HNO3_HNO3 on sulfate and PSCs:
      &      +0.25d0*pscEx(l)*temp*4.d-4
 
 c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
-          temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*97.d0))
+          temp=sqrt(8.d0*1.38d-16*tl(l)*6.02d23/(PI*97.d0))
           rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
      &      0.5d0*rkext(l)*1.d-5*temp*0.8d-2
           if(pres(l) > 31.6d0) rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
@@ -2919,11 +2913,11 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
           if(pres(l) > 31.6d0) then
             rr(rrhet%ClONO2_HCl__Cl_HNO3,L)=0.25d0*pscEx(l)*temp*0.2d0
             rr(rrhet%HOCl_HCl__Cl_H2O,L)=
-     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
+     &        sqrt(8.d0*1.38d-16*tl(l)*6.02d23/(PI*52.d0))
             rr(rrhet%HOCl_HCl__Cl_H2O,L)=
      &        0.25d0*pscEx(l)*rr(rrhet%HOCl_HCl__Cl_H2O,L)*0.1d0
             rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
-     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
+     &        sqrt(8.d0*1.38d-16*tl(l)*6.02d23/(PI*108.d0))
             rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
      &        0.25d0*pscEx(l)*rr(rrhet%N2O5_HCl__Cl_HNO3,L)*0.003d0
           end if
@@ -2942,21 +2936,21 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
 #ifdef TRACERS_AEROSOLS_SOA
       ! Kostas had a comment on this do loop that it should be up to LM whether or
       ! not "strat chem is on or off". But I had to change it here because of the
-      ! use of ta(L). I will talk with him, but hopefully he just meant he didn't
+      ! use of ta(L) (originally). Hopefully he just meant he didn't
       ! want it limited to the troposphere?
       do L=1,topLevelOfChemistry
         kpart(L,whichsoa(n_isopp1a))=
-     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp1a)),ta(L),
+     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp1a)),tl(L),
      &              kpart_temp_ref(whichsoa(n_isopp1a)))
         kpart(L,whichsoa(n_isopp2a))=
-     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),ta(L),
+     &       KpCALC(dH_isoprene,kpart_ref(whichsoa(n_isopp2a)),tl(L),
      &              kpart_temp_ref(whichsoa(n_isopp2a)))
 #ifdef TRACERS_TERP
         kpart(L,whichsoa(n_apinp1a))=
-     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp1a)),ta(L),
+     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp1a)),tl(L),
      &              kpart_temp_ref(whichsoa(n_apinp1a)))
         kpart(L,whichsoa(n_apinp2a))=
-     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp2a)),ta(L),
+     &       KpCALC(dH_apinene,kpart_ref(whichsoa(n_apinp2a)),tl(L),
      &              kpart_temp_ref(whichsoa(n_apinp2a)))
 #endif  /* TRACERS_TERP */
       end do

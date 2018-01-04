@@ -8,7 +8,7 @@ c
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
       USE CONSTANT, only   : pi, mair, mwat, radian, byavog, undef
-      USE ATM_COM, only    : MA, byMA, PMID, PK
+      USE ATM_COM, only    : MA, byMA, PMID
       USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
 
@@ -476,7 +476,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var ro,r1,sn,sb rate parameters for trimolecular reactions
 !@var conc concentration of optically important gases (O2 & O3), first
 !@+   vertivle level, second=gas number (1=O2,2=O3)
-!@var TXL temperature profile
 !@var prnrts logical: print rate of each chemical reaction?
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
@@ -510,8 +509,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var HClalt altitude dependence HCl (unitless,LM levels)
 !@var CH4altT tropical strat adjustments to CH4 (unitless, LM levels)
 !@var CH4altX xtra-tropical strat adjustments to CH4 (LM levels)
-!@var TX temperature variable for master chem
-!@var ta local array to hold temperature
 !@var rh local array to hold relative humidity
 !@var FASTJLAT,FASTJLON latitude & LONGITUDE (degrees) for use in fastj
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
@@ -568,7 +565,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 #endif  /* TRACERS_dCO */
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
-     & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,TX,sulfate,OxIC,
+     & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,sulfate,OxIC,
 #ifdef TRACERS_dCO
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd13CXPAR,
@@ -612,7 +609,7 @@ C**************  Not Latitude-Dependant ****************************
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rr
-      REAL*8, ALLOCATABLE, DIMENSION(:)   :: odtmp,ta,Jacet,rh,bythick
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: odtmp,Jacet,rh,bythick
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
@@ -642,7 +639,7 @@ C**************  Not Latitude-Dependant ****************************
       use tracer_com, only: ntm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     & TX,sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
+     & sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
 #ifdef TRACERS_dCO
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd13CXPAR,
@@ -654,7 +651,7 @@ C**************  Not Latitude-Dependant ****************************
      & n_rj,LCOalt,acetone,mNO2,
      & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
-     & y,rr,odtmp,ta,Jacet,chemrate,photrate,dest,prod,
+     & y,rr,odtmp,Jacet,chemrate,photrate,dest,prod,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
      & zonalIsop
 
@@ -711,7 +708,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(        y(nc,   topLevelOfChemistry) )
       allocate(       rr(n_rx, topLevelOfChemistry) )
       allocate(    odtmp(      topLevelOfChemistry) )
-      allocate(       ta(      topLevelOfChemistry) )
       allocate(       rh(      topLevelOfChemistry) )
       allocate(  bythick(      topLevelOfChemistry) )
       allocate( ClOx_old(      topLevelOfChemistry) )
@@ -787,7 +783,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(          TX(I_0H:I_1H,J_0H:J_1H,LM)      ) 
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      ) ! could be read from 3D file
