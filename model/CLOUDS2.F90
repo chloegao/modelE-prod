@@ -24,7 +24,7 @@ module CLOUDS
        ,mb2kg
   use RESOLUTION, only : lm
   USE ATM_COM, only : pdsigl00
-  use MODEL_COM, only : dtsrc,itime  ! ,coupled_chem
+  use MODEL_COM, only : dtsrc,itime
   use TimeConstants_mod, only: SECONDS_PER_HOUR
   use CLOUDS_COM, only : ncol
   use QUSDEF, only : nmom,xymoms,zmoms,zdir

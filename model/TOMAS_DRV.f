@@ -133,7 +133,6 @@ C-----INCLUDE FILES--------------------------------------------------
      &     n_ANUM
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
      *     ,ijts_TOMAS,itcon_TOMAS
-!      USE AEROSOL_SOURCES, only: off_HNO3
       USE FLUXES, only: tr3Dsource
       USE RESOLUTION, only : lm          ! dimensions
       USE ATM_COM, only :   t            ! potential temperature (C)
