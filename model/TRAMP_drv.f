@@ -130,7 +130,7 @@ c avol [m3/m2/gb] mass of air pro m3
 
 c conversion trm_col [kg/gridbox] -> [ug/m^3]
       GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL ! [ug H2SO4/m^3]
-      if (tracers_special_shindell.or.coupled_chem==1) then
+      if (tracers_special_shindell.and.coupled_chem==1) then
         GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL  ! [ug HNO3/m^3]
       else
         GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL     ! [ug HNO3/m^3]

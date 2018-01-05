@@ -137,7 +137,7 @@ c avol [m3/gb] mass of air pro m3
       GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
       ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
       ASO4 = trm_col(l,n_SO4)       *1.d9 /AVOL
-      if (tracers_special_shindell.or.coupled_chem==1) then
+      if (tracers_special_shindell.and.coupled_chem==1) then
         ANO3 = trm_col(l,n_NO3p)    *1.d9 /AVOL
       else
         ANO3 = off_HNO3(i,j,l)      *1.d9 /AVOL
