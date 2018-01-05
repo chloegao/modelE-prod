@@ -4,7 +4,6 @@
 !@auth Dorothy Koch
 !@ subroutines in this file include:
 !@ alloc_aerosol_sources
-!@ READ_OFFHNO3
 !@ read_DMS_sources
 !@ aerosol_gas_chem
 !@ get_oxidants
@@ -31,23 +30,22 @@
         real*8 :: HO2,H2O2  ! COUPLED_CHEM=0 only
       end type oxidants
       type(oxidants) :: oxid
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
-     &  ohr,dho2r,perjr,tno3r,o3_offline ! COUPLED_CHEM=0 only
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) ::
+     &  ohr,dho2r,perjr,tno3r,o3_offline, ! COUPLED_CHEM=0 only
+     &  off_HNO3 !@var off_HNO3 offline HNO3 for nitrate + AMP when gas phase chem off
       real*8, allocatable, dimension(:,:,:) :: readCache
-      
+
 #ifdef BC_ALB
       real*8, ALLOCATABLE, DIMENSION(:,:) :: snosiz
 #endif  /* BC_ALB */
 #ifdef TRACERS_RADON
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
 #endif
-!var off_HNO3 off-line HNO3 field, used for nitrate and AMP when gas phase chemistry turned off
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)     ::  off_HNO3
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
-      integer, parameter :: nAeroStream=5
+      integer, parameter :: nAeroStream=6
       type(timestream), dimension(nAeroStream) :: AeroStream
       logical :: AeroFirst=.true.
 
@@ -64,8 +62,7 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
      * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
      * ohr,dho2r,perjr, tno3r, readCache,
-     * o3_offline
-     * ,off_HNO3
+     * o3_offline,off_HNO3
 #ifdef TRACERS_RADON
      * ,rn_src
 #endif
@@ -111,9 +108,9 @@
      *                 dho2r(I_0H:I_1H,J_0H:J_1H,lm),
      *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
      *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 o3_offline(I_0H:I_1H,J_0H:J_1H,lm))
+     *                 o3_offline(I_0H:I_1H,J_0H:J_1H,lm),
+     *                 off_HNO3(I_0H:I_1H,J_0H:J_1H,lm))
         allocate(  readCache(I_0H:I_1H,J_0H:J_1H,lm) )
-        allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
       endif
 #ifdef BC_ALB
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
@@ -128,91 +125,6 @@
       return
       end SUBROUTINE alloc_aerosol_sources
 
-
-      SUBROUTINE READ_OFFHNO3(OUT)
-      use resolution, only: lm
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only : JDendOFM
-      USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
-      IMPLICIT NONE
-      include 'netcdf.inc'
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM),intent(out) :: OUT
-!@param  nlevnc vertical levels of off-line data  - 4x5 model=23, 2x2.5 model = 40
-      INTEGER, PARAMETER :: nlevnc =40
-      REAL*4, DIMENSION(GRID%I_STRT:GRID%I_STOP,
-     &                  GRID%J_STRT:GRID%J_STOP,nlevnc) ::
-     &     IN1_nohalo, IN2_nohalo
-      REAL*8, DIMENSION(:,:,:), pointer, save :: IN1, IN2
-!@var netcdf integer
-      INTEGER :: ncid,id
-      INTEGER, save :: step_rea=0, first_call=1
-!@var time interpoltation
-      REAL*8 :: tau
-      integer start(4),count(4),status,l
-      integer :: i_0,i_1,j_0,j_1
-c -----------------------------------------------------------------
-c   Initialisation of the files to be read
-c ----------------------------------------------------------------     
-
-      if (first_call==1) then
-        first_call=0
-        allocate( IN1(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
-        allocate( IN2(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *       ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,nlevnc) )
-      endif
-      if (step_rea.ne.modelEclock%getMonth()) then 
-        step_rea = modelEclock%getMonth()
-        if ( am_i_root() ) then
-        print*,'READING HNO3 OFFLINE ',modelEclock%getMonth(), step_rea
-        endif
-c -----------------------------------------------------------------
-c   Opening of the files to be read
-c -----------------------------------------------------------------
-        status=NF_OPEN('OFFLINE_HNO3.nc',NCNOWRIT,ncid)
-        status=NF_INQ_VARID(ncid,'FELD',id)
-C------------------------------------------------------------------
-c -----------------------------------------------------------------
-c   read
-c   this is still latlon-specific.
-c   will call read_dist_data for cubed sphere compatibility
-c -----------------------------------------------------------------
-        i_0 = grid%i_strt
-        i_1 = grid%i_stop
-        j_0 = grid%j_strt
-        j_1 = grid%j_stop
-        start(1)=i_0
-        start(2)=j_0
-        start(3)=1
-        start(4)=step_rea
-        count(1)=1+(i_1-i_0)
-        count(2)=1+(j_1-j_0)
-        count(3)=nlevnc
-        count(4)=1
-
-        status=NF_GET_VARA_REAL(ncid,id,start,count,IN1_nohalo)
-        start(4)=step_rea+1
-        if (start(4).gt.12) start(4)=1
-        status=NF_GET_VARA_REAL(ncid,id,start,count,IN2_nohalo)
-
-        status=NF_CLOSE(ncid)
-
-        IN1(I_0:I_1,J_0:J_1,:) = IN1_nohalo(I_0:I_1,J_0:J_1,:)
-        IN2(I_0:I_1,J_0:J_1,:) = IN2_nohalo(I_0:I_1,J_0:J_1,:)
-
-      endif
-C-----------------------------------------------------------------
-      tau = 
-     & (modelEclock%getDate()-.5)/(JDendOFM(modelEclock%getMonth()) - 
-     &     JDendOFM(modelEclock%getMonth()-1))
-         do l=1,lm
-         OUT(:,:,l) = (1.-tau)*IN1(:,:,l)+tau*IN2(:,:,l)  
-         enddo
-c -----------------------------------------------------------------
-      RETURN
-      END SUBROUTINE READ_OFFHNO3
-c -----------------------------------------------------------------
 
       SUBROUTINE read_DMS_sources(swind,itype,i,j,DMS_flux) !!! T
 !@sum generates DMS ocean source
@@ -310,24 +222,28 @@ c
       use domain_decomp_atm, only: getDomainBounds, grid
       use model_com, only: modelEclock
       use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
-     & AeroStream, AeroFirst, nAeroStream, readCache
-      use RunTimeControls_mod, only: tracers_nitrate,tracers_amp
-      use aerosol_sources, only: off_HNO3
+     & off_HNO3, AeroStream, AeroFirst, nAeroStream, readCache
+      use atm_com, only: ma
+      use constant, only: mair
+      use OldTracer_mod, only: vol2mass
+      use tracer_com, only: n_HNO3
+      use resolution, only: LM
 
       implicit none
 
-      integer :: day,year,k
+      integer :: day,year,k,L
       character*10, dimension(nAeroStream) :: AeroVars = (/
-     &'ohr       ','dho2r     ','perjr     ','tno3r     ','o3_offline'/)
+     &'ohr       ','dho2r     ','perjr     ','tno3r     ','o3_offline',
+     &'off_HNO3  '/)
 
       ! if input is expanded to > 1 year of data, one could expand
       ! day and year difinition to depend on aer_yr, or whatever:
       call modelEclock%get(year=year, dayOfYear=day)
 
       ! Read the monthly data and interpolate to current day:
-      ! Old code did not do interpolation - just monthly step-
-      ! function. I think you could reproduce this by changing
-      ! 'linm2m' to 'none; in init_stream call.
+      ! Except for HNO3, the old code did not do interpolation -
+      ! just monthly step-function. I think you could reproduce this by
+      ! changing 'linm2m' to 'none; in init_stream call.
       if(AeroFirst) then
         AeroFirst=.false.
         do k = 1,nAeroStream
@@ -338,18 +254,25 @@ c
 
       do k = 1,nAeroStream
         call read_stream(grid,AeroStream(k),year,day,readCache)
-        ! need to scale inputs (10^5 mol/cm3):
-        ! (we should move these scalings to the input files)
+        ! Need to scale inputs (10^5 mol/cm3).
+        ! (we should check these scalings and likely move them to within
+        ! the input files when possible):
         select case(k)
         case (1) ; ohr = readCache*1.d5
         case (2) ; dho2r = readCache*1.d7
         case (3) ; perjr = readCache*1.d2
         case (4) ; tno3r = readCache*1.d5
         case (5) ; o3_offline = readCache
+        ! In the case of HNO3, convert from normal taijl model output
+        ! units of mole HNO3 per 1E10 mole of air to trm_col units
+        ! (kg m-2 layer-1):
+        case (6)
+          do L=1,LM
+            off_HNO3(:,:,L)=readCache(:,:,L)*ma(L,:,:)*vol2mass(n_HNO3)
+     &      *1.d-10
+          end do
         end select
       end do
-
-      if (tracers_nitrate.or.tracers_amp) call read_offHNO3(off_HNO3)
 
       end subroutine aerosol_gas_chem_prep
 

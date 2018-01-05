@@ -2,8 +2,6 @@
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
 !OFFLINE_CHEM=giss2/sample_for_coupled_chem_zero_144x90x40.nc
-!OFFLINE_HNO3.nc=HNO3_dummy_2000_GISS2x2.nc
-!OFFLINE_HNO3.nc=HNO3_dummy_1850_GISS2x2.nc
 !-----------------------------------------------
 !       AMP Radiation Input
 AMP_MIE_TABLES=AMP_MIE_Q_G_A_S.nc
