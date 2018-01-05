@@ -48,7 +48,6 @@ C       Environmental Protection Agency Report EPA/600/3-88/025,
 C       Research Triangle Park (NC), 1988.   
 C     Wesely, M.L., same title, Atmos. Environ., 23, 1293-1304, 1989.
 C*********************************************************************
-      USE TRACER_COM, only   : NTM
 
       IMPLICIT NONE
       SAVE
@@ -123,38 +122,39 @@ C*********************************************************************
 #ifdef BIN_OLSON
      &     ,FUSE_loc,XOLAI_loc,XOLAI2_loc
 #endif
-      use tracer_com, only    : NTM
 
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: ier, J_1H, J_0H, I_1H, I_0H
+      integer :: I_0,I_1,J_0,J_1
       logical :: init = .false.
 
       if(init)return
       init=.true.
     
-      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO
+      call getDomainBounds(grid)
+      I_0=grid%I_STRT
+      I_1=grid%I_STOP
+      J_0=grid%J_STRT
+      J_1=grid%J_STOP
  
-      allocate(   XYLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(    XLAI(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(   XLAI2(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(   FRCLND(I_0H:I_1H,J_0H:J_1H)      )      
-      allocate(   IJREG(I_0H:I_1H,J_0H:J_1H)       )
-      allocate(    IREG(I_0H:I_1H,J_0H:J_1H)       )
-      allocate(IREG_loc(I_0H:I_1H,J_0H:J_1H)       )
-      allocate(  IJLAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(   IJUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(   ILAND(I_0H:I_1H,J_0H:J_1H,NTYPE) )
-      allocate(    IUSE(I_0H:I_1H,J_0H:J_1H,NTYPE) )
+      allocate(   XYLAI(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(    XLAI(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(   XLAI2(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(  FRCLND(I_0:I_1,J_0:J_1)       )
+      allocate(   IJREG(I_0:I_1,J_0:J_1)       )
+      allocate(    IREG(I_0:I_1,J_0:J_1)       )
+      allocate(IREG_loc(I_0:I_1,J_0:J_1)       )
+      allocate(  IJLAND(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(   IJUSE(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(   ILAND(I_0:I_1,J_0:J_1,NTYPE) )
+      allocate(    IUSE(I_0:I_1,J_0:J_1,NTYPE) )
 #ifdef BIN_OLSON
-      allocate(XOLAI_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
-      allocate(XOLAI2_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
-      allocate(FUSE_loc(I_0H:I_1H,J_0H:J_1H,NVEGTYPE))
+      allocate( XOLAI_loc(I_0:I_1,J_0:J_1,NVEGTYPE))
+      allocate(XOLAI2_loc(I_0:I_1,J_0:J_1,NVEGTYPE))
+      allocate(  FUSE_loc(I_0:I_1,J_0:J_1,NVEGTYPE))
 #endif              
-      return
+
       end subroutine alloc_trdrydep 
 
 

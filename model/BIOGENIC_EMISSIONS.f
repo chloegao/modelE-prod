@@ -26,12 +26,15 @@
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
-      integer :: J_1H, J_0H, I_1H, I_0H
+      integer :: I_0,I_1,J_0,J_1
 
-      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO
-      allocate( baseisop(I_0H:I_1H,J_0H:J_1H,nvegtype) )
+      call getDomainBounds(grid)
+      I_0=grid%I_STRT
+      I_1=grid%I_STOP
+      J_0=grid%J_STRT
+      J_1=grid%J_STOP
+
+      allocate( baseisop(I_0:I_1,J_0:J_1,nvegtype) )
 
       end subroutine alloc_biogenic_emis
 
