@@ -171,7 +171,7 @@ C**** linearly in time (at 1% increase per year)
       USE RESOLUTION, only : im,jm
       USE MODEL_COM, only: itime,itimei,DTsrc
       use TimeConstants_mod, only: SECONDS_PER_YEAR
-      USE ATM_COM, only: MA
+      use atmcol_com, only: ma, byma
       use OldTracer_mod, only: trname, vol2mass, itime_tr0
       USE TRACER_COM, only: trm_col,n_GLT
       USE TRACER_COM, only: nOverwrite
@@ -196,7 +196,7 @@ C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
       new_mr = GLTic * (1.d0 +
      &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
-      new_mass=new_mr*vol2mass(n_GLT)*MA(1,i,j) ! kg
+      new_mass=new_mr*vol2mass(n_GLT)*ma(1) ! kg
       tr3Dsource(1,nOverwrite,n_GLT)=(new_mass-trm_col(1,n_GLT))*bydtsrc
       !i.e. tr3Dsource in kg/s 
 
@@ -309,7 +309,8 @@ C====
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : DTsrc
       USE GEOM, only       : lat2d_dg
-      USE ATM_COM, only: MA
+      USE ATM_COM, only: MA3D=>MA
+      use atmcol_com, only: ma
       USE CONSTANT, only: mair
       use OldTracer_mod, only: vol2mass
       USE TRACER_COM, only : trm, trm_col, n_CH4, nOverwrite
@@ -339,18 +340,18 @@ C       Initial latitudinal gradient for CH4:
       select case(icall)
       case(0)                   ! initial conditions
         DO L=1,LS1-1
-          trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT
+          trm(i,j,l,n_CH4) = MA3D(L,I,J)*CH4INIT
         END DO
       case(1)                   ! overwriting
         DO L=1,LS1-1
-          tr3Dsource(l,nOverwrite,n_CH4) = (MA(L,I,J)*
+          tr3Dsource(l,nOverwrite,n_CH4) = (ma(L)*
      &         CH4INIT-trm_col(l,n_CH4))*bydtsrc
         END DO
       end select
- 
+
 C     Now, the stratosphere:
       do L=LS1,LM
- 
+
 c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
@@ -366,9 +367,9 @@ c     mixing ratios to 1.79 (observed):
         END IF
         select case(icall)
         case(0) ! initial conditions
-          trm(i,j,l,n_CH4) = MA(L,I,J)*CH4INIT
+          trm(i,j,l,n_CH4) = MA3D(L,I,J)*CH4INIT
         case(1) ! overwriting
-          tr3Dsource(l,nOverwrite,n_CH4) = (MA(L,I,J)*
+          tr3Dsource(l,nOverwrite,n_CH4) = (ma(L)*
      &    CH4INIT-trm_col(l,n_CH4))*bydtsrc
         end select
       end do ! l

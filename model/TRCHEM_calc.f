@@ -10,11 +10,9 @@ C
       USE RAD_COM, only         : clim_interact_chem
       USE RESOLUTION, only      : ls1=>ls1_nominal
       USE RESOLUTION, only      : im,jm,lm
-      USE ATM_COM, only         : Q
-      use ATMCOL_COM, only: tl
+      USE ATM_COM, only         : Q, ltropo
+      use ATMCOL_COM, only: tl, ma, byma, update_ql
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
-      use ATMCOL_COM, only: update_ql
-      USE ATM_COM, only         : MA, byMA,ltropo
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
      &     ,ijlt_OHvmr,ijlt_OHconc
@@ -1051,7 +1049,7 @@ C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
 C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
-        dQM(L) = dQ(L)*MA(L,I,J)
+        dQM(L) = dQ(L)*ma(L)
         if(clim_interact_chem > 0)then
           fraQ2(l)=(Q(I,J,L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
           Q(I,J,L) = Q(I,J,L) + dQ(L)
@@ -1463,7 +1461,7 @@ c (chem1prn: argument before multip is index = number of call):
 
 c Loops to calculate tracer changes:
 
-      rMAbyM(1:maxL)=MA(1:maxL,I,J)/y(nM,1:maxL)
+      rMAbyM(1:maxL)=ma(1:maxL)/y(nM,1:maxL)
 
       do igas=1,ntm_chem ! TRACER LOOP -----------------
        idx = igas+ntm_chem_beg-1
@@ -2097,7 +2095,7 @@ c Print chemical changes in a particular grid box if desired:
         do igas=1,ntm_chem
           idx=igas+ntm_chem_beg-1
           changeA=changeL(ijlprn(3),idx)*y(nM,ijlprn(3))*mass2vol(idx)*
-     &    byMA(ijlprn(3),I,J)
+     &    byma(ijlprn(3))
           if(y(igas,ijlprn(3)) == 0.d0)then
             write(out_line,156) trchemname(igas),': ',changeA,
      &                          ' molecules;  y=0'
@@ -2255,9 +2253,9 @@ C**** special diags not associated with a particular tracer
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
      &       conH2O(l) = y(nH2O,L)/y(nM,L)
       END DO
-      conOH = conOH*ma(1:maxL,i,j) ! for mass weighting
-      conClO = conClO*ma(1:maxL,i,j) ! for mass weighting
-      conH2O = conH2O*ma(1:maxL,i,j) ! for mass weighting
+      conOH = conOH*ma(1:maxL) ! for mass weighting
+      conClO = conClO*ma(1:maxL) ! for mass weighting
+      conH2O = conH2O*ma(1:maxL) ! for mass weighting
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_OHcon,conOH)
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_ClOcon,conClO)
       call inc_tajls2_column(i,j,1,maxL,maxL,jls_H2Ocon,conH2O)
