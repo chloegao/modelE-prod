@@ -19,7 +19,7 @@ c
       USE TRACER_COM, only  : ntm
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn
+      USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn,byMA
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
       USE RAD_COM, only     : CH4X_RADoverCHEM
@@ -148,8 +148,7 @@ c
       USE DOMAIN_DECOMP_ATM,only: write_parallel
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
-      use ATMCOL_COM, only: update_ql,tl,pl,ple
-      USE ATM_COM, only     : Q
+      use ATMCOL_COM, only: update_ql,tl,pl,ple,ma,byma
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
       use TimeConstants_mod, only: HOURS_PER_DAY
@@ -159,7 +158,7 @@ c
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : MA,PMIDL00,LTROPO,lm_req
+      USE ATM_COM, only     : Q,PMIDL00,LTROPO,lm_req
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
@@ -403,7 +402,7 @@ c This is to work around initial instabilities.
         acetone(L)=max(0.d0, ! in molec/cm3
      &  (1.25d0*(
      &    zonalIsop(i,j)-trm_col(L,n_Isoprene)*mass2vol(n_Isoprene)*
-     &    byMA(L,i,j)))*pl(L)/(tl(L)*cboltz))
+     &    byma(L)))*pl(L)/(tl(L)*cboltz))
       enddo
 #ifdef TRACERS_dCO
       do L=1,topLevelOfChemistry
@@ -436,8 +435,7 @@ c Calculate M and set fixed ratios for O2 & H2:
 c Tracers (converted from mass to number density):
        do igas=1,ntm_chem
          idx=igas+ntm_chem_beg-1
-         y(igas,L)=trm_col(L,idx)*y(nM,L)*mass2vol(idx)*
-     &   byMA(L,I,J)
+         y(igas,L)=trm_col(L,idx)*y(nM,L)*mass2vol(idx)*byma(L)
        enddo
 
 ! If we are fixing methane for chemistry purposes set it's y here:
@@ -475,10 +473,8 @@ c Tracers (converted from mass to number density):
 #ifdef TRACERS_AEROSOLS_Koch
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
-         ydms(i,j,L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
-     &   byMA(L,I,J)
-         yso2(i,j,L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*
-     &   byMA(L,I,J)
+         ydms(i,j,L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*byma(L)
+         yso2(i,j,L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*byma(L)
        else
          ! Convert from pptv to molecule cm-3:
          ydms(i,j,L)=dms_offline(i,j,L)*1.0d-12*y(nM,L)
@@ -487,8 +483,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
 #endif /* TRACERS_AEROSOLS_Koch */
 
 c Save initial ClOx amount for use in ClOxfam:
-       ClOx_old(L)=trm_col(L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
-     & byMA(L,I,J)
+       ClOx_old(L)=trm_col(L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*byma(L)
 
 c Limit N2O5 number density:
        if(y(nn_N2O5,L) < 1.) y(nn_N2O5,L)=1.d0
@@ -897,7 +892,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
         end if
 
-        pfactor=MA(L,I,J)/y(nM,L)
+        pfactor=ma(L)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
@@ -1702,9 +1697,9 @@ C       ACCUMULATE 3D NO3 diagnostic:
      &  taijls(i,j,L,ijlt_NO3)=taijls(i,j,L,ijlt_NO3)+yNO3(i,j,L)
 
         if (y(nClO,L) > 0.d0 .and. y(nClO,L) < 1.d20)
-     &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,MA(L,I,J)*y(nClO,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_ClOcon,ma(L)*y(nClO,L)/y(nM,L))
         if (y(nH2O,L) > 0.d0 .and. y(nH2O,L) < 1.d20)
-     &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,MA(L,I,J)*y(nH2O,L)/y(nM,L))
+     &  CALL INC_TAJLS2(I,J,L,jls_H2Ocon,ma(L)*y(nH2O,L)/y(nM,L))
      
        end do  ! L loop <===========
 
@@ -1749,13 +1744,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(nn_ClOx,L)=(trm_col(L,n_ClOx)+changeL(L,n_ClOx))*y(nM,L)*
-     &    mass2vol(n_ClOx)*byMA(L,I,J)
+     &    mass2vol(n_ClOx)*byma(L)
           y(nn_HCl,L)= (trm_col(L,n_HCl)+changeL(L,n_HCl))*y(nM,L)*
-     &    mass2vol(n_HCl)*byMA(L,I,J)
+     &    mass2vol(n_HCl)*byma(L)
           y(nn_HOCl,L)=(trm_col(L,n_HOCl)+changeL(L,n_HOCl))*y(nM,L)*
-     &    mass2vol(n_HOCl)*byMA(L,I,J)
+     &    mass2vol(n_HOCl)*byma(L)
           y(nn_ClONO2,L)=(trm_col(L,n_ClONO2)+changeL(L,n_ClONO2))*
-     &    y(nM,L)*mass2vol(n_ClONO2)*byMA(L,I,J)
+     &    y(nM,L)*mass2vol(n_ClONO2)*byma(L)
           CLTOT=((y(nn_CFC,1)/y(nM,1) -
      &         y(nn_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(nn_CFC,1)/(1.8d-9*y(nM,1)))
@@ -1793,14 +1788,14 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           !WARNING: RESETTING SOME Y's HERE; SO DON'T USE THEM BELOW!     
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           y(nn_BrOx,L)=(trm_col(L,n_BrOx)+changeL(L,n_BrOx))*y(nM,L)*
-     &    mass2vol(n_BrOx)*byMA(L,I,J)
+     &    mass2vol(n_BrOx)*byma(L)
           y(nn_HBr,L)= (trm_col(L,n_HBr)+changeL(L,n_HBr))*y(nM,L)*
-     &    mass2vol(n_HBr)*byMA(L,I,J)
+     &    mass2vol(n_HBr)*byma(L)
           y(nn_HOBr,L)=(trm_col(L,n_HOBr)+changeL(L,n_HOBr))*y(nM,L)*
-     &    mass2vol(n_HOBr)*byMA(L,I,J)
+     &    mass2vol(n_HOBr)*byma(L)
           y(nn_BrONO2,L)=(trm_col(L,n_BrONO2)+changeL(L,n_BrONO2))*
-     &    y(nM,L)*mass2vol(n_BrONO2)*byMA(L,I,J)
-     
+     &    y(nM,L)*mass2vol(n_BrONO2)*byma(L)
+
           BRTOT=((y(nn_CFC,1)/y(nM,1) - 
      &         y(nn_CFC,L)/y(nM,L))*(4.5d-3/1.8d0)
      &    *y(nn_CFC,1)/(1.8d-9*y(nM,1)))
@@ -1834,16 +1829,14 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         end if ! i.e. y(nH2O,L)/y(nM,L) <= 10.d-6 
 
 #ifdef TRACERS_AEROSOLS_SOA
-        pfactor=MA(L,I,J)/y(nM,L)
+        pfactor=ma(L)/y(nM,L)
         bypfactor=1.D0/pfactor
         call soa_aerosolphase(I,J,L,changeL,bypfactor)
 #endif  /* TRACERS_AEROSOLS_SOA */
 
-        tempChangeNOx= ! this needed for several diags below:
-     &  changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/MA(L,I,J)
-
-        tempChangeOx=
-     &  changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/MA(L,I,J)
+        ! this needed for several diags below:
+        tempChangeNOx=changeL(L,n_NOx)*mass2vol(n_NOx)*y(nM,L)/ma(L)
+        tempChangeOx=changeL(L,n_Ox)*mass2vol(n_Ox)*y(nM,L)/ma(L)
 
 ! Accumulate NO2 10:30am/1:30pm tropo column diags:
 ! -- moved from sunlight/darkness sections because needed changeNOx
@@ -1951,7 +1944,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
           taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
      &    1.e9*pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
           CALL INC_TAJLS2  ! (V/V air)
-     &    (I,J,L,jls_O3vmr,MA(L,I,J)*
+     &    (I,J,L,jls_O3vmr,ma(L)*
      &         pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
         end if
 
@@ -2035,7 +2028,7 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
       fact6=2.69d20*byavog
-      fact1=bymair*MA(1,i,j)
+      fact1=bymair*ma(1)
       fact5=fact6
       fact4=fact6
       if(use_rad_n2o == 0)fact4=fact1
@@ -2070,17 +2063,17 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
      &         tr3Dsource(L,nChemistry,n_Ox)*dtsrc))*bydtsrc
               ! -- ClOx --
           tr3Dsource(L,nOverwrite,n_ClOx)=(1.d-11*ClOxalt(l)
-     &         *vol2mass(n_CLOx)*MA(L,i,j) - (
+     &         *vol2mass(n_CLOx)*ma(L) - (
      &         trm_col(L,n_ClOx)+tr3Dsource(L,nChemistry,n_ClOx)
-     &         *dtsrc))*bydtsrc    
+     &         *dtsrc))*bydtsrc
               ! -- BrOx --
           tr3Dsource(L,nOverwrite,n_BrOx)=(1.d-11*BrOxalt(l)
-     &         *vol2mass(n_BrOx)*MA(L,i,j) - (
+     &         *vol2mass(n_BrOx)*ma(L) - (
      &         trm_col(L,n_BrOx)+tr3Dsource(L,nChemistry,n_BrOx)
      &         *dtsrc))*bydtsrc
               ! -- NOx --
           tr3Dsource(L,nOverwrite,n_NOx)=(75.d-11 !75=1*300*2.5*.1
-     &         *MA(L,i,j)-(trm_col(L,n_NOx)+ 
+     &         *ma(L)-(trm_col(L,n_NOx)+
      &         tr3Dsource(L,nChemistry,n_NOx)*dtsrc))*bydtsrc
         end if    ! pressure
       end do ! L
@@ -2136,7 +2129,7 @@ c (radiation code wants atm-cm units):
       do L=topLevelOfChemistry+1,LM
         taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
      &       1.e9*(trm_col(L,n_Ox)+(tr3Dsource(L,nChemistry,n_Ox)+
-     &       tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byMA(L,i,j)*
+     &       tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byma(L)*
      &       mass2vol(n_Ox) ! ppbv
         CALL INC_TAJLS2         ! (V/V air)
      &      (I,J,L,jls_O3vmr,(trm_col(L,n_Ox)+
@@ -2580,8 +2573,8 @@ C**** GLOBAL parameters and variables:
       USE OldTracer_mod, only: vol2mass
       USE RAD_COM, only  : rad_to_chem
       USE CONSTANT, only : PI, pN2
-      USE ATM_COM, only : MA, PMIDL00
-      use ATMCOL_COM, only: tl
+      USE ATM_COM, only : PMIDL00
+      use ATMCOL_COM, only: tl, ma
       USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet
@@ -2792,7 +2785,7 @@ C Aerosols (14-33 km) & PSCs 14-22 km.
 C
 c Aerosol profiles and latitudinal distribution of extinction 
 c coefficients(in km**-1) are from SAGE II data on GISS web site:
-        pfactor=MA(L,I,J)/y(nM,L)
+        pfactor=ma(L)/y(nM,L)
         bypfactor=1.d0/pfactor
 
         if(pres(L) >= 245.d0 .or. pres(L) <= 5.d0)then 
