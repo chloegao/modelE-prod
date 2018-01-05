@@ -21,6 +21,8 @@
 #endif  /* TRACERS_AEROSOLS_SEASALT */
       use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
       use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
+      use RunTimeControls_mod, only: tracers_special_shindell
+      use TRACER_COM, only: coupled_chem
       USE AEROSOL_SOURCES, only: off_HNO3
 
       USE RESOLUTION, only : im,jm,lm     ! dimensions
@@ -144,10 +146,6 @@
       REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
       REAL(8)            :: H                    ! local RH, with RHMIN < H < RHMAX
 
-#ifndef  TRACERS_SPECIAL_Shindell
-      call stop_model('move read_offhno3 to a prep step',255)
-      CALL READ_OFFHNO3(OFF_HNO3)
-#endif
       WI(:) = 0.d0
 
       DO L=1,LTOP
@@ -157,7 +155,11 @@ c avol [m3/gb] mass of air pro m3
       GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
       ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
       ASO4 = trm_col(l,n_SO4)       *1.d9 /AVOL
-      ANO3 = trm_col(l,n_NO3p)      *1.d9 /AVOL
+      if (tracers_special_shindell.or.coupled_chem==1) then
+        ANO3 = trm_col(l,n_NO3p)    *1.d9 /AVOL
+      else
+        ANO3 = off_HNO3(i,j,l)      *1.d9 /AVOL
+      endif
       GHNO3= trm_col(l,n_HNO3)      *1.d9 /AVOL
       DUST = trm_col(l,n_Clay)      *1.d9 /AVOL
       SALT = trm_col(l,n_seasalt1)  *1.d9 /AVOL

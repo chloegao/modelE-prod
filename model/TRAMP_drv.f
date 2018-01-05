@@ -68,6 +68,8 @@ C**************  Latitude-Dependant (allocatable) *******************
      *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf
      *     ,itcon_AMP,itcon_AMPm
       USE AMP_AEROSOL
+      use RunTimeControls_mod, only: tracers_special_shindell
+      use TRACER_COM, only: coupled_chem
       USE AEROSOL_SOURCES, only: off_HNO3
 
       USE RESOLUTION, only : lm     ! dimensions
@@ -106,9 +108,6 @@ C**************  Latitude-Dependant (allocatable) *******************
 C**** functions
       REAL(8):: QSAT
 
-#ifndef  TRACERS_SPECIAL_Shindell
-      CALL READ_OFFHNO3(OFF_HNO3)
-#endif
 
       NACTV(I,J,:,:)      = 0.d0 
       DIAM(I,J,:,:)       = 0.d0
@@ -131,11 +130,11 @@ c avol [m3/m2/gb] mass of air pro m3
 
 c conversion trm_col [kg/gridbox] -> [ug/m^3]
       GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL ! [ug H2SO4/m^3]
-#ifdef  TRACERS_SPECIAL_Shindell
-      GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL    ! [ug HNO3/m^3]
-#else
-      GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL       ! [ug HNO3/m^3]
-#endif
+      if (tracers_special_shindell.or.coupled_chem==1) then
+        GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL  ! [ug HNO3/m^3]
+      else
+        GAS(GAS_HNO3) = off_HNO3(i,j,l)*1.d9 /AVOL     ! [ug HNO3/m^3]
+      endif
       GAS(GAS_NH3) = trm_col(l,n_NH3)* 1.d9 / AVOL     ! [ug NH3/m^3]
 #ifdef TRACERS_AMP_M9
       GAS(GAS_OCM2) = trm_col(l,n_vbsGm2)* 1.d9 / AVOL ! [ug OM/m^3]

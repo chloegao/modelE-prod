@@ -113,6 +113,7 @@
      *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
      *                 o3_offline(I_0H:I_1H,J_0H:J_1H,lm))
         allocate(  readCache(I_0H:I_1H,J_0H:J_1H,lm) )
+        allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
       endif
 #ifdef BC_ALB
       allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
@@ -120,8 +121,6 @@
 #ifdef TRACERS_RADON
       allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif
-c off line 
-      allocate(  off_HNO3(I_0H:I_1H,J_0H:J_1H,LM)     )
 #ifdef TRACERS_AEROSOLS_VBS
       allocate(VBSemifact(vbs_tr%nbins))
 #endif
@@ -312,6 +311,7 @@ c
       use model_com, only: modelEclock
       use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
      & AeroStream, AeroFirst, nAeroStream, readCache
+      use aerosol_sources, only: off_HNO3
 
       implicit none
 
@@ -347,6 +347,8 @@ c
         case (5) ; o3_offline = readCache
         end select
       end do
+
+      call read_offHNO3(off_HNO3)
 
       end subroutine aerosol_gas_chem_prep
 
