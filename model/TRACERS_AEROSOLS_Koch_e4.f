@@ -311,6 +311,7 @@ c
       use model_com, only: modelEclock
       use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
      & AeroStream, AeroFirst, nAeroStream, readCache
+      use RunTimeControls_mod, only: tracers_nitrate,tracers_amp
       use aerosol_sources, only: off_HNO3
 
       implicit none
@@ -348,7 +349,7 @@ c
         end select
       end do
 
-      call read_offHNO3(off_HNO3)
+      if (tracers_nitrate.or.tracers_amp) call read_offHNO3(off_HNO3)
 
       end subroutine aerosol_gas_chem_prep
 
