@@ -6900,7 +6900,6 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nAircraft, nBiomass, nThermo, nMicrophys
       use TRACER_COM, only: nVolcanic, nChemprod
       use TRACER_COM, only: nSO4anum, nECanum, nOCanum
-      use TRACER_COM, only: coupled_chem
       use TRACER_COM, only: nbins
       use TRACER_COM, only: n_AOCIL, n_ANUM
       use TRACER_COM, only: n_AECOB, n_AOCOB, n_ASO4, n_H2SO4, n_SOAgas
@@ -7036,7 +7035,6 @@ C**** Apply chemistry and overwrite changes:
       use TRACER_COM, only: nChemistry
       use TRACER_COM, only: nChemloss, nChemprod
       use TRACER_COM, only: nOther
-      use TRACER_COM, only: coupled_chem
       USE FLUXES,     only: tr3Dsource
       USE MODEL_COM,  only: dtsrc
       USE apply3d, only : apply_tracer_3Dsource
@@ -7168,7 +7166,6 @@ c    Aging of industrial carbonaceous aerosols
       use TRACER_COM, only: n_H2SO4
       use TRACER_COM, only: nChemistry, nThermo, nMicrophys
       use TRACER_COM, only: ntmAMPi, ntmAMPe
-      use TRACER_COM, only: coupled_chem 
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef  TRACERS_SPECIAL_Shindell
       use TRACER_COM, only: n_HNO3
