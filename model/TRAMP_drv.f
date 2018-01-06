@@ -123,12 +123,12 @@ C**** functions
       TSTEP=dtsrc
       WUP = SQRT(.6666667*EGCM(l,i,j))  ! updraft velocity
 
-c avol [m3/m2/gb] mass of air pro m3      
+!@var avol volume of air per m2 of surface area per layer [m3/m2/layer]
       AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
       AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
 
-c conversion trm_col [kg/gridbox] -> [ug/m^3]
+c conversion trm_col [kg/m2/layer] -> GAS [ug/m^3]
       GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL ! [ug H2SO4/m^3]
       if (tracers_special_shindell.and.coupled_chem==1) then
         GAS(GAS_HNO3) = trm_col(l,n_HNO3)*1.d9 / AVOL  ! [ug HNO3/m^3]
@@ -151,7 +151,7 @@ c conversion trm_col [kg/gridbox] -> [ug/m^3]
 
        DO n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1
-c conversion trm [kg/gb] -> AERO [ug/m3]
+c conversion trm_col [kg/m2/layer] -> AERO [ug/m3]
          if(AMP_NUMB_MAP(nAMP).eq. 0) then
        AERO(AMP_AERO_MAP(nAMP)) =trm_col(l,n)*1.d9 / AVOL ! ug/m3
           else
