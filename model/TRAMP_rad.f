@@ -32,7 +32,6 @@ c -----------------------------------------------------------------
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
-      USE TRACER_COM,  only: TRM
       USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
 
       IMPLICIT NONE
