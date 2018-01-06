@@ -14,7 +14,6 @@
       use timestream_mod, only : timestream
       IMPLICIT NONE
       SAVE
-      INTEGER, PARAMETER :: ndmssrc  = 1
 !@var DMSinput           DMS ocean source (kg/s/m2)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: DMSinput ! DMSinput(im,jm,12)
 #ifndef TRACERS_AEROSOLS_SOA
@@ -293,7 +292,7 @@ c
 #endif
       USE TRDIAG_COM, only : 
      *     jls_OHconk,jls_HO2con,jls_NO3,jls_phot
-      use resolution, only: im,lm
+      use resolution, only: lm
       USE MODEL_COM, only: dtsrc
       use atmcol_com, only: tl   ! layer temperature (K)
       use atmcol_com, only: ql   ! layer humidity (kg/kg)
@@ -323,11 +322,6 @@ c Aerosol chemistry
 #endif
       integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
-
-#ifdef TRACERS_HETCHEM
-c calculation of heterogeneous reaction rates: SO2 on dust 
-      CALL SULFDUST(i,j)
-#endif
 
       do l=1,lm
         call get_oxidants(i,j,l) ! get oxidant concentrations
@@ -525,14 +519,8 @@ c H2O2 losses:5 and 6
       SUBROUTINE get_oxidants(i,j,l)
 
       use constant, only : pi
-      use resolution, only: lm
       use ATMCOL_COM, only: pl,tl,byma
-#ifdef TRACERS_HETCHEM
-      use TRACER_COM, only: n_Ox,trm_col
-      use OldTracer_mod, only: vol2mass
-#endif  /* TRACERS_HETCHEM */
       use TRACER_COM, only: coupled_chem, oh_live, no3_live, o3_live
-      use TRACER_COM, only: trm_col
       use AEROSOL_SOURCES, only: oxid,ohr,dho2r,perjr,tno3r,o3_offline
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
@@ -592,7 +580,7 @@ c Get NO3 only if dark, weighted by number of dark hours
       use OldTracer_mod, only: tr_RKD, tr_DHD
       USE TRACER_COM, only: n_H2O2_s,n_SO2
      *     ,NTM
-     *     ,lm,n_SO4,n_H2O2,coupled_chem
+     *     ,n_SO4,n_H2O2,coupled_chem
       use tracer_com, only: aqchem_count,aqchem_list
       USE CLOUDS, only: NTX
       USE MODEL_COM, only: dtsrc

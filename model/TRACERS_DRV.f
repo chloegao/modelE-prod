@@ -6849,6 +6849,9 @@ C**** Apply chemistry and overwrite changes:
       implicit none
       integer, intent(in) :: i,j
 
+c calculation of heterogeneous reaction rates: SO2 on dust 
+      CALL SULFDUST(i,j)
+
 #ifdef TRACERS_NITRATE
        call apply_tracer_3Dsource(i,j,nChemistry,n_N_d1) ! NO3 chem prod on dust
        call apply_tracer_3Dsource(i,j,nChemistry,n_N_d2) ! NO3 chem prod on dust
