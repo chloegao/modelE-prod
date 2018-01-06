@@ -23,7 +23,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       ! TRUE  : nmodes Radiation calls
       INTEGER                            :: AMP_RAD_KEY = 1 ! 1=Volume Mixing || 2=Core - Shell || 3=Maxwell Garnett
 
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(l,i,j)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
 
@@ -126,7 +126,7 @@ C**** functions
 !@var avol volume of air per m2 of surface area per layer [m3/m2/layer]
       AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/pres 
 ! in-cloud SO4 production rate [ug/m^3/s] ::: AQsulfRATE [kg] 
-      AQSO4RATE = AQsulfRATE (i,j,l)* 1.d9  / AVOL /dtsrc
+      AQSO4RATE = AQsulfRATE (l,i,j)* 1.d9  / AVOL /dtsrc
 
 c conversion trm_col [kg/m2/layer] -> GAS [ug/m^3]
       GAS(GAS_H2SO4) = trm_col(l,n_H2SO4)* 1.d9 / AVOL ! [ug H2SO4/m^3]
@@ -457,7 +457,7 @@ c -----------------------------------------------------------------
       J_1=GRID%J_STOP
 
 ! I,J,L
-      allocate(  AQsulfRATE(I_0:I_1,J_0:J_1,LM)   )
+      allocate(  AQsulfRATE(LM,I_0:I_1,J_0:J_1)   )
 ! other dimensions
       allocate(  DIAM(I_0:I_1,J_0:J_1,LM,nmodes)  )
       allocate(  NACTV(I_0:I_1,J_0:J_1,LM,nmodes) )
