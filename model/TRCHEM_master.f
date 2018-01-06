@@ -27,6 +27,7 @@ c
       USE GEOM, only        : LAT2D_DG,IMAXJ,LAT2D,LON2D
       use OldTracer_mod, only: tr_wd_type, nWater
 
+      USE TRACER_COM, only  : trm
       USE TRACER_COM, only  : N_N2O,N_CH4,N_CFC,N_Isoprene
       use OldTracer_mod, only: tr_mm,mass2vol
 #ifdef INTERACTIVE_WETLANDS_CH4
