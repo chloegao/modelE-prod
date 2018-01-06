@@ -4376,8 +4376,6 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
       stratm = 101.9368
       DO J=J_0,J_1
       DO I=I_0,I_1
-        trm(i,j,:,n) = 0.
-        trm(i,j,:,n) = 0.
         PUP = STRATM*GRAV
         DO LS=LM,1,-1
           PDN = PUP + MA(ls,I,J)*GRAV
@@ -7465,7 +7463,7 @@ C**** GLOBAL parameters and variables:
      &     ,n_AOCIL,n_AOCOB,n_ADUST,n_AH2O
 #endif
 #ifdef TRACERS_HETCHEM
-      USE TRACER_COM, only: trm ,n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
+      USE TRACER_COM, only: n_SO4_d1, n_SO4_d2, n_SO4_d3,n_SO4
      *     ,n_N_d1,n_N_d2,n_N_d3,n_NO3p, n_Clay,n_Silt1,n_Silt2
       USE MODEL_COM, only  : dtsrc
 #endif
