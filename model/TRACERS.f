@@ -3220,3 +3220,49 @@ CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
       end subroutine read_monthly_3Dsources
 
 #endif /* defined TRACERS_SPECIAL_Shindell or Koch/AMP/TOMAS aerosols */
+
+!=======================================================================
+
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || \
+    defined(TRACERS_TOMAS)
+      subroutine calc_and_apply_expo_decay(i,j,time,tri,tre)
+!@sum Calculate and apply the exponetial decay of a tracer, and
+!@+   (optionally) form a product.
+!@auth Kostas Tsigaridis
+
+      use TimeConstants_mod, only: SECONDS_PER_DAY
+      use MODEL_COM,  only: dtsrc
+      use TRACER_COM, only: trm_col
+      use TRACER_COM, only: nChemistry
+      use TRACER_COM, only: tr_mm
+      use FLUXES, only: tr3dsource
+      use apply3d, only: apply_tracer_3Dsource
+
+      implicit none
+!@var i Longitude index
+!@var j Latitude index
+      integer, intent(in) :: i,j
+!@var time Timescale of exponetial decay [days]
+      real*8, intent(in) :: time
+!@var tri Index of the tracer that ages (i for initial tracer)
+      integer, intent(in) :: tri
+!@var tre Index of the tracer that forms (e for end tracer)
+      integer, intent(in), optional :: tre
+!@var fact Factor of source tracer that would be affected by the decay
+      real*8 :: fact
+
+      fact=(1.d0-exp(-dtsrc/(time*SECONDS_PER_DAY)))/dtsrc
+
+      tr3Dsource(:,nChemistry,tri)=-fact*trm_col(:,tri)
+      call apply_tracer_3Dsource(i,j,nChemistry,tri)
+
+      if (present(tre)) then
+        tr3Dsource(:,nChemistry,tre)=-tr3Dsource(:,nChemistry,tri)
+     &                               *(tr_mm(tre)/tr_mm(tri))
+        call apply_tracer_3Dsource(i,j,nChemistry,tre)
+      endif
+
+      end subroutine calc_and_apply_expo_decay
+#endif  /* Koch/AMP/TOMAS aerosols */
+
+!=======================================================================

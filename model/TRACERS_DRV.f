@@ -6920,22 +6920,11 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       integer :: src_index,get_src_index
       integer :: k,kn,jc,tracnum
       real*8, dimension (NBINS,LM) :: TOMAS_bio,TOMAS_air
-      REAL*8 :: TAU_hydro,hfact
 
 ! EC/OC aging
-      TAU_hydro=1.5D0*SECONDS_PER_DAY !24.D0*3600.D0 !1.5 day 
-      hfact=(1.D0-EXP(-dtsrc/TAU_hydro))/dtsrc
-
       do k=1,nbins
-        tr3Dsource(:,nChemistry,n_AECIL(K))= trm_col(:,n_AECOB(K))*hfact
-        tr3Dsource(:,nChemistry,n_AECOB(K))=-trm_col(:,n_AECOB(K))*hfact
-        tr3Dsource(:,nChemistry,n_AOCIL(K))= trm_col(:,n_AOCOB(K))*hfact
-        tr3Dsource(:,nChemistry,n_AOCOB(K))=-trm_col(:,n_AOCOB(K))*hfact
-       
-        call apply_tracer_3Dsource(i,j,nChemistry,n_AECOB(k))
-        call apply_tracer_3Dsource(i,j,nChemistry,n_AECIL(k))
-        call apply_tracer_3Dsource(i,j,nChemistry,n_AOCOB(k))
-        call apply_tracer_3Dsource(i,j,nChemistry,n_AOCIL(k))
+        call calc_and_apply_expo_decay(i,j,1.5d0,n_AECOB(k),n_AECIL(k))
+        call calc_and_apply_expo_decay(i,j,1.5d0,n_AOCOB(k),n_AOCIL(k))
       enddo
 
 ! save trm_col before emissions for internal TOMAS usage
@@ -7062,24 +7051,13 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       real*8 :: kg2ugm3
       integer :: l,v
 #endif /* TRACERS_AEROSOLS_VBS */
-      real*8 :: bciage,ociage
       integer :: n
-
-      !efold time of 1 days
-      bciage=(1.d0-exp(-dtsrc/(1.0d0*SECONDS_PER_DAY)))/dtsrc 
-      !efold time of 1.6 days
-      ociage=(1.d0-exp(-dtsrc/(1.6d0*SECONDS_PER_DAY)))/dtsrc
 
       do n=1,NTM
 
       select case (trname(n))
         case ('BCII')
-c    Aging of industrial carbonaceous aerosols 
-          tr3Dsource(:,nChemistry,n)=-bciage*trm_col(:,n)
-          tr3Dsource(:,nChemistry,n_BCIA)=bciage*trm_col(:,n)
-
-          call apply_tracer_3Dsource(i,j,nChemistry,n_BCII)   ! BCII aging sink
-          call apply_tracer_3Dsource(i,j,nChemistry,n_BCIA)   ! BCIA aging source
+          call calc_and_apply_expo_decay(i,j,1.d0,n_BCII,n_BCIA) ! efold time of 1 days
 
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2') ! This handles all VBS tracers
@@ -7146,11 +7124,7 @@ c    Aging of industrial carbonaceous aerosols
         enddo
 #else
         case ('OCII')
-          tr3Dsource(:,nChemistry,n)=-ociage*trm_col(:,n)
-          tr3Dsource(:,nChemistry,n_OCIA)=ociage*trm_col(:,n)
-
-          call apply_tracer_3Dsource(i,j,nChemistry,n) ! OCII aging sink
-          call apply_tracer_3Dsource(i,j,nChemistry,n_OCIA) ! OCIA aging source
+          call calc_and_apply_expo_decay(i,j,1.6d0,n_OCII,n_OCIA) ! efold time of 1.6 days
 #endif /* TRACERS_AEROSOLS_VBS */
       end select
 
