@@ -5638,6 +5638,7 @@ C**** at the start of any day
       USE LAKES_COM, only : flake
       use OldTracer_mod, only: vol2mass
       use OldTracer_mod, only: trname
+      use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: do_fire
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
@@ -6022,18 +6023,16 @@ C****
       do j=J_0,J_1
       do i=I_0,I_1
          if (lat2d(i,j).lt.0.) then
-               tnew = MA(1,i,j)*(4.82d-18*46./mair)*
+               tnew = MA(1,i,j)*(4.82d-18*tr_mm(n)/mair)*
      *          (44.5 + tmon*(1.02535d0 - tmon*
      *                  (2.13565d-2 - tmon*8.61853d-5)))
-               if (tnew.lt.trm(i,j,1,n))
-     *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
          else
-               tnew = MA(1,i,j)*(4.82d-18*46./mair)*
+               tnew = MA(1,i,j)*(4.82d-18*tr_mm(n)/mair)*
      *          (73.0 - tmon*(0.27823d0 + tmon*
      *                  (3.45648d-3 - tmon*4.21159d-5)))
-               if (tnew.lt.trm(i,j,1,n))
-     *             trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
          endif
+         if (tnew.lt.trm(i,j,1,n))
+     *     trsource(i,j,1,n) = (tnew-trm(i,j,1,n))*bydt
       end do
       end do
 #endif
