@@ -5,6 +5,7 @@ module ShindellTracersMetadata_mod
 !@sum  ShindellTracersMetadata_mod encapsulates the TRACERS_SPECIAL_Shindell
 !@+    metadata.
 !@auth NCCS ASTG
+  use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_dCO
   use TRCHEM_Shindell_COM, only: &
     ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR, &
@@ -979,7 +980,7 @@ contains
       n_codirect = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 28.01d0)
-      call set_trdecay(n,  2.31482d-7) ! 1/(50 days)
+      call set_trdecay(n,  1.d0/(50.d0*SECONDS_PER_DAY))
       ! not a radiactive decay, but functionally identical
       call set_has_chemistry(n, .true.)
     end subroutine codirect_setSpec

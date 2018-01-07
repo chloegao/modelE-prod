@@ -5,6 +5,7 @@ module sharedTracersMetadata_mod
 !@sum  sharedTracersMetadata_mod encapsulates the metadata shared among various
 !@+    tracers.
 !@auth NCCS ASTG
+  use TimeConstants_mod, only: SECONDS_PER_DAY
   use OldTracer_mod, only: nPart
   use OldTracer_mod, only: set_fq_aer
   use OldTracer_mod, only: set_tr_mm
@@ -248,7 +249,7 @@ contains
       n_Rn222 = n 
       call set_ntm_power(n, -21)
       call set_tr_mm(n, 222.d0)
-      call set_trdecay(n,  2.1d-6)
+      call set_trdecay(n,  1.d0/(5.51609d0*SECONDS_PER_DAY)) ! lifetime 5.51609 days
       call set_has_chemistry(n, .true.)
     end subroutine Rn222_setSpec
 

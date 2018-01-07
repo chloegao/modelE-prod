@@ -5,6 +5,8 @@ module MiscTracersMetadata_mod
 !@sum  MiscTracersMetadata_mod encapsulates the tracers metadata for tracers
 !@+    that have NOT been classified as belonging to any particular group.
 !@auth NCCS ASTG
+  use TimeConstants_mod, only: SECONDS_PER_DAY
+  use TimeConstants_mod, only: SECONDS_PER_YEAR
   USE CONSTANT, only: mair,mwat,pi,gasc
   use RunTimeControls_mod, only: tracers_ocean
   use RunTimeControls_mod, only: tracers_drydep
@@ -110,7 +112,7 @@ contains
     call set_trli0(n, 0d0)
     call set_trsi0(n, 0d0)
     call set_tr_H2ObyCH4(n, 0d0)
-    call set_trdecay(n,  1.77d-9) ! =5.59d-2 /yr
+    call set_trdecay(n,  1.d0/(17.77d0*SECONDS_PER_YEAR)) ! lifetime 17.77 years
     call set_ntrocn(n, -18)
 #ifdef TRACERS_OCEAN
     if (tracers_ocean) call set_trglac(n, 0d0)
@@ -416,7 +418,7 @@ contains
     n_Pb210 = n
     call set_ntm_power(n, -23)
     call set_tr_mm(n, 210.d0)
-    call set_trdecay(n,  9.85d-10)
+    call set_trdecay(n,  1.d0/(32.d0*SECONDS_PER_YEAR)) ! lifetime 32 years
     call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
     call set_trradius(n, 3.d-7  ) !again S04 value
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
@@ -432,7 +434,7 @@ contains
     n_Be7 = n
     call set_ntm_power(n, -23) ! power of ten for tracer
     call set_tr_mm(n, 7.d0)
-    call set_trdecay(n,  1.51d-7)
+    call set_trdecay(n,  1.d0/(76.78d0*SECONDS_PER_DAY)) ! lifetime 76.78 days
     call set_trpdens(n, 1.7d3) !kg/m3 this is SO4 value
     call set_trradius(n, 1.d-7  ) !appropriate for stratosphere
     call set_fq_aer(n, 1.d0   ) !fraction of aerosol that dissolves
