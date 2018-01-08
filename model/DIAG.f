@@ -6704,6 +6704,7 @@ C****
 C****
       END SUBROUTINE vflx_OCEAN
 
+#ifndef SCM
 #ifdef CUBED_SPHERE
       subroutine get_vorticity(vortl)
       use resolution, only : lm
@@ -6763,3 +6764,4 @@ C****
       return
       end subroutine get_vorticity
 #endif  /* CUBED_SPHERE */
+#endif  /* SCM */

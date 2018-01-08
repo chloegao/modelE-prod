@@ -1863,8 +1863,12 @@ C
         enddo;              enddo;        enddo
         call inc_subdd(subdd,k,sddcp)
       case ('vortcp')
+#ifdef SCM
+        call stop_model('no SUBDD vorticity in SCM mode',255)
+#else
         call get_vorticity(vortl)
         call inc_subdd(subdd,k,vortl)
+#endif
       case ('wcp')
         sddarr(:,:,1:lm-1) = wsave
         sddarr(:,:,lm) = 0.
