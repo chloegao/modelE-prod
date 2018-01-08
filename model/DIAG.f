@@ -461,7 +461,10 @@ C**** Follows logic for geopotential section following this...
    41 K = K+1  ;  NP = NP+1  ;  NO = NO+1
       If (PDN < PMB(K))  GoTo 41
    42 If (L == LM)  GoTo 50
-      L = L+1  ;  PUP = PEDN(L+1,I,J)  ;  OUP = MW(I,J,L)*OFACTOR
+      L = L+1  ;  PUP = PEDN(L+1,I,J)
+      If (L < LM)
+     *   Then  ;  OUP = MW(I,J,L)*OFACTOR
+         Else  ;  OUP = 0  ;  EndIf
    43 If (PMB(K) < PUP)  Then
           PDN = PUP  ;  ODN = OUP
           GoTo 42  ;  EndIf
