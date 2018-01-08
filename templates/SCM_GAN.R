@@ -229,7 +229,6 @@ SCM_lat=-0.63              ! GAN Island Maldives (deg)
 SCM_area=61809004706.52    ! nominal grid box area (m2) from 144x90 grid
 SCM_sfc=2                  ! 1:land,2:ocean
 SCM_tau=10800.             ! nudging time constant
-SCM_TopHat=1               ! input profiles treated as top-hat? (default=0)
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.
