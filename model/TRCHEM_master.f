@@ -145,11 +145,11 @@ C
 C**** GLOBAL parameters and variables:
 c
 !!    use precision_mod, only : reduce_precision 
-      USE SOMTQ_COM, only   : qmom
       USE DOMAIN_DECOMP_ATM,only: write_parallel
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
-      use ATMCOL_COM, only: update_ql,tl,pl,ple,ma,byma
+      use ATMCOL_COM, only: tl,pl,ple,ma,byma
+      use ATMCOL_COM, only: ql,update_ql,update_qmoml,qmoml
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
       use TimeConstants_mod, only: HOURS_PER_DAY
@@ -159,7 +159,7 @@ c
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
-      USE ATM_COM, only     : Q,PMIDL00,LTROPO,lm_req
+      USE ATM_COM, only     : PMIDL00,LTROPO,lm_req
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
      &                        chem_tracer_save,H2ObyCH4,
      &                        SRDN,clim_interact_chem
@@ -418,7 +418,8 @@ c Initialize the 2D change variable:
        changeL(L,:)=0.d0  
 c Save presure, temperature, thickness, rel. hum. in local arrays:
        ! could use rhl() instead of rh() but for the min(1.d0, ) part:
-       rh(L)=Q(i,j,l)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
+       ! try: rh(L)=min(rhl(L),ql(L)) ?
+       rh(L)=ql(L)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
        bythick(L)=1.d0/(rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pl(L)/(tl(L)*cboltz)
@@ -489,7 +490,7 @@ c Save initial ClOx amount for use in ClOxfam:
 c Limit N2O5 number density:
        if(y(nn_N2O5,L) < 1.) y(nn_N2O5,L)=1.d0
 c Set H2O, based on Q:
-       y(nH2O,L)=Q(I,J,L)*MWabyMWw*y(nM,L)
+       y(nH2O,L)=ql(L)*MWabyMWw*y(nM,L)
 c Initialize stratospheric y(H2O) & GCM Q variable (!),
 c based on tropical tropopause H2O and CH4:
        if(allowSomeChemReinit == 1) then
@@ -497,10 +498,9 @@ c based on tropical tropopause H2O and CH4:
            y(nH2O,L) =  y(nM,L)*(avgTT_H2O/countTT +
      &     2.d0*(avgTT_CH4/countTT-y(nn_CH4,L)/y(nM,L)))
            if(clim_interact_chem > 0)then 
-             fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/Q(I,J,L)
-             Q(I,J,L)=y(nH2O,L)/(y(nM,L)*MWabyMWw)
-             call update_ql(l,Q(I,J,L))
-             if(fraQ < 1.)qmom(:,i,j,L)=qmom(:,i,j,L)*fraQ
+             fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/ql(L)
+             call update_ql(L,y(nH2O,L)/(y(nM,L)*MWabyMWw))
+             if(fraQ < 1.)call update_qmoml(L,qmoml(:,L)*fraQ)
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
              do n=1,ntm

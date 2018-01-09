@@ -7222,6 +7222,13 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 #ifndef SKIP_TRACER_SRCS
       USE FLUXES, only: tr3Dsource
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use rad_com, only: clim_interact_chem
+      use somtq_com, only : qmom
+      use atm_com, only : q
+      use qusdef, only : nmom
+      use atmcol_com, only: ql, qmoml
+#endif
       use geom, only : imaxj
       implicit none
       INTEGER J_0, J_1, I_0, I_1
@@ -7369,6 +7376,13 @@ c**** Calculate and apply sources from AMP/MATRIX
         ! copy out of column array
         trm(i,j,:,:) = trm_col(:,:)
         trmom(:,i,j,:,:) = trmom_col(:,:,:)
+#ifdef TRACERS_SPECIAL_Shindell
+        ! also update humidity if it's been changed by chemistry:
+        if(clim_interact_chem > 0)then
+          q(i,j,:) = ql(:)
+          qmom(1:nmom,i,j,1:lm) = qmoml(1:nmom,1:lm)
+        end if
+#endif
 
       enddo
       enddo

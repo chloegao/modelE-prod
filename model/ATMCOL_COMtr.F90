@@ -9,6 +9,7 @@ module atmcol_com
 !@+   The filename ATMCOL_COMtr has the tr suffix to prevent merge collisions with
 !@+   the module of the same name previously introduced on downstream branches.
   use resolution, only : lm
+  use qusdef, only : nmom
   implicit none
 
 !@var pl layer pressure (mb)
@@ -32,16 +33,23 @@ module atmcol_com
 !@var thl potential temperature w.r.t. 1 hPa (K): 1D version of atm_com:t
 !@var tl in-situ temperature (K)
 !@var ql humidity (kg/kg): 1D version of atm_com:q
+!@var qmoml moments of humidity Q: 2D version of somtq_com:qmom
 !@var rhl relative humidity, or saturation water vapor mixing ratio (0-1)
 !@var rhol density calculated from tl (kg/m3)
 !@var rhotvl density calculated from virtual temperature (kg/m3)
 !@var zl height above nominal sea level (m)
   real*8, dimension(lm) :: thl,tl,ql,rhl,rhol,rhotvl,zl
+  real*8, dimension(nmom,lm) :: qmoml
 
   interface update_ql
     module procedure update_ql_0d
     module procedure update_ql_1d
   end interface update_ql
+
+  interface update_qmoml
+    module procedure update_qmoml_1d
+    module procedure update_qmoml_2d
+  end interface update_qmoml
 
   contains
 
@@ -68,6 +76,28 @@ module atmcol_com
     enddo
   end subroutine update_ql_1d
 
+  subroutine update_qmoml_1d(l,qmom)
+!@sum update_qmoml Fill in new values for qmoml for a given qmom
+    use qusdef, only: nmom
+    implicit none
+    real*8, dimension(nmom), intent(in) :: qmom
+    integer, intent(in) :: l
+    integer :: m
+    do m=1,nmom
+      qmoml(m,l)=qmom(m)
+    end do
+  end subroutine update_qmoml_1d
+
+  subroutine update_qmoml_2d(qmom)
+!@sum update_qmoml Fill in new values for qmoml for a given qmom
+    implicit none
+    real*8, dimension(nmom,lm), intent(in) :: qmom
+    integer :: l
+    do l=1,lm
+      call update_qmoml_1d(l,qmom(:,l))
+    end do
+  end subroutine update_qmoml_2d
+
 end module atmcol_com
 
 subroutine load_atmcol(i,j)
@@ -76,6 +106,7 @@ subroutine load_atmcol(i,j)
   use atmcol_com
   use constant, only : grav,bygrav,rgas,deltx
   use atm_com, only : ma_3d=>ma,byma_3d=>byma,pk,pek,pmid,pedn,pdsig,t,q,gz
+  use somtq_com, only : qmom
 !#ifdef TRACERS_ON
 !  use tracer_com, only : trm,trm_col
 !  use tracer_com, only : trmom,trmom_col
@@ -104,6 +135,7 @@ subroutine load_atmcol(i,j)
   thl(:) = t(i,j,:)
   tl(:) = thl(:)*plk(:)
   call update_ql(q(i,j,:))
+  call update_qmoml(qmom(:,i,j,:))
   rhol(:) = pres(:)/(rgas*tl(:))
   rhotvl(:) = pres(:)/(rgas*tl(:)*(1d0+deltx*ql(:)))
   zl(:) = gz(i,j,:)*bygrav
