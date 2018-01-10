@@ -1,10 +1,11 @@
 #include "rundeck_opts.h"
 
-      module flammability_com    
+      module flammability_com
 !@sum for routines to calculate flammability potential of surface 
 !@+   vegetation. Optionally also altering tracer biomass sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony including
 !@+ her document Flammability.doc
+      use timestream_mod, only : timestream
 
       implicit none
       save
@@ -56,11 +57,9 @@
       real*8, allocatable, dimension(:,:,:):: HRAlai
       integer :: maxHR_lai
 #ifdef ANTHROPOGENIC_FIRE_MODEL
-      real*8, allocatable, dimension(:,:) :: populationDensity,flamPopA,
-     &                                       flamPopB
-      logical :: firstFlamPop = .true. 
-      integer :: flamPopYearStart=2000, flamPopYearEnd=2000, 
-     & flamPopDelYear=10
+      type(timestream):: popDensStream
+      logical :: firstPopDensStream=.true.
+      real*8, allocatable, dimension(:,:) :: populationDensity
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
       real*8, allocatable, dimension(:,:) :: saveFireCount
@@ -84,7 +83,7 @@
      & first_lai,iHlai,iDlai,i0lai,DRAlai,ravg_lai,PRSlai,HRAlai,
      & nday_lai,maxHR_lai
 #ifdef ANTHROPOGENIC_FIRE_MODEL
-      use flammability_com, only: populationDensity,flamPopA,flamPopB
+      use flammability_com, only: populationDensity
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
       use flammability_com, only: saveFireCount
@@ -133,8 +132,6 @@
       allocate( HRAlai      (I_0H:I_1H,J_0H:J_1H,maxHR_lai) )
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       allocate( populationDensity(I_0H:I_1H,J_0H:J_1H) )
-      allocate( flamPopA         (I_0H:I_1H,J_0H:J_1H) )
-      allocate( flamPopB         (I_0H:I_1H,J_0H:J_1H) )
 #endif /* ANTHROPOGENIC_FIRE_MODEL */
 #ifdef DYNAMIC_BIOMASS_BURNING
       allocate( saveFireCount    (I_0H:I_1H,J_0H:J_1H) )

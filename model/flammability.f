@@ -441,102 +441,25 @@
       subroutine readFlamPopDens(xyear,xday)
 !@sum reads 2D human population density for flammability purposes
 !@auth Greg Faluvegi
-      use domain_decomp_atm, only: GRID,getDomainBounds,readt_parallel, 
-     & write_parallel,rewind_parallel
-      use filemanager, only: openunit,closeunit,nameunit !,is_fbsa
-      use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
+      use domain_decomp_atm, only: grid
       use timestream_mod, only : init_stream,read_stream
-      use flammability_com, only: populationDensity,flamPopB,flamPopA,
-     & firstFlamPop,flamPopYearStart,flamPopYearEnd,flamPopDelYear
- 
+      use flammability_com, only: populationDensity,popDensStream,
+     &                            firstPopDensStream
+
       implicit none
 
-      integer :: iuPopDen,k,ipos,kx,kstep=10,half
-      character*80 :: fname,title
-      character(len=300) :: out_line
-      real*8 :: alpha
       integer, intent(IN) :: xyear, xday
 
-      SAVE iuPopDen ! flamPopB,flamPopA, etc. saved in module
-
-      integer :: J_1, J_0, J_0H, J_1H, I_0, I_1
-
-      fname='FLAMPOPDEN'
-
-      half=NINT((EARTH_DAYS_PER_YEAR+1.)/2.)
-
-!     if(.not.is_fbsa(fname)) then
-!       call stop_model('population netCDF input not implemented.',255) 
-!     else
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-
-
-      ! If first time through after restart, open file and read its header:
-      if(firstFlamPop) then
-        call openunit(fname,iuPopDen,.true.)
-        read(iuPopDen)
-     &  title,flamPopYearStart,flamPopYearEnd,flamPopDelYear
+      if(firstPopDensStream) then
+        firstPopDensStream=.false.
+        call init_stream(grid,popDensStream,'FLAMPOPDEN',
+     &   'populationDensity',0d0,1d10,'linm2m',xyear,xday )
+         ! I think it's OK to allow cyclic argument to default (false).
+         ! If you want to make sure a single year is repeated, you could
+         ! always list a single-time nc file for FLAMPOPDEN.
       end if
-
-      ! now read the data: (should be in humans/km2, please)
-
-! -------------- non-transient case ----------------------------!
-      if(flamPopYearStart==flamPopYearEnd)then
-        if(firstFlamPop) then 
-          call readt_parallel
-     &    (grid,iuPopDen,fname,populationDensity(:,:),1)
-          write(out_line,*)'Population Density for Fire Model Read.'
-          call write_parallel(trim(out_line))
-          firstFlamPop = .false.
-          call closeunit(iuPopDen)
-        end if
-
-! --------------- transient case -------------------------------!
-      else ! only annual files allowed; only read first time + new steps
-        kstep=flamPopDelYear
-        ipos=1
-        alpha=0.d0 ! before start year, use start year value
-        kx=flamPopYearStart 
-        if(xyear>flamPopYearEnd .or.
-     &    (xyear==flamPopYearEnd.and.xday>=half))then
-          alpha=1.d0 ! after end year, use end year value     
-          ipos=(flamPopYearEnd-flamPopYearStart)/kstep
-          kx=flamPopYearEnd-kstep
-        endif
-        do k=flamPopYearStart,flamPopYearEnd-kstep,kstep
-          if(xyear==k .and. xday==half)firstFlamPop=.true. ! tell model need to read
-          if(xyear>k .or. (xyear==k.and.xday>=half)) then
-            if(xyear<k+kstep.or.(xyear==k+kstep.and.xday<half))then
-              ipos=1+(k-flamPopYearStart)/kstep ! (integer artithmatic)
-              alpha=(EARTH_DAYS_PER_YEAR*(0.5+real(xyear-1-k))+xday) /
-     &              (EARTH_DAYS_PER_YEAR*real(kstep))
-              kx=k
-              exit
-            endif
-          endif
-        enddo
-        ! if time to read, update interpolation arrays:
-        if(firstFlamPop) then
-          call rewind_parallel(iuPopDen)
-          call readt_parallel(grid,iuPopDen,fname,flamPopA(:,:),ipos+1) ! +1 for header
-          call readt_parallel(grid,iuPopDen,fname,flamPopB(:,:),1)
-          firstFlamPop = .false.
-        end if
-        populationDensity(I_0:I_1,J_0:J_1)=flamPopA(I_0:I_1,J_0:J_1)*
-     &   (1.d0-alpha)+flamPopB(I_0:I_1,J_0:J_1)*alpha
-
-        write(out_line,'("FireModel PopDens at ",F9.4,a16,I4,a8,I4)')
-     &  100.d0*alpha,'% of period mid ',kx,' to mid ',kx+kstep
-        call write_parallel(trim(out_line))
-      end if ! tras/non-trans
-
-!     endif ! fbsa format or not
+      call read_stream(grid,popDensStream,xyear,xday,populationDensity)
       return
-      ! this keeps transient files open. maybe study TracerSurfaceSource.F90/
-      ! subroutine readSurfaceSource on how to not do that. 
       end subroutine readFlamPopDens
 
 #endif /* DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL */
