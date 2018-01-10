@@ -19,7 +19,6 @@
      &     itime
       use TimeConstants_mod, only: INT_DAYS_PER_YEAR,
      &     INT_MONTHS_PER_YEAR, SECONDS_PER_DAY
-      use atm_com, only: byMA, pk, pmid, T
       use fluxes, only: dust_flux_glob, dust_flux2_glob
 #ifdef TRACERS_DRYDEP
      &     ,depo_turb_glob,depo_grav_glob
@@ -636,6 +635,7 @@ c accSubddDust
 !@sum  accSubddDust accumulates specific soil dust aerosol variables for
 !@+                 subdaily diagnostics
 !@auth Jan Perlwitz
+      use atm_com, only: byMA, pk, pmid, T
 
       implicit none
 
