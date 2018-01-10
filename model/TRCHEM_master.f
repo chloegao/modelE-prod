@@ -7,7 +7,7 @@
 C
 C**** GLOBAL parameters and variables:
 c
-!!    use precision_mod, only : reduce_precision 
+      use timestream_mod, only : init_stream,read_stream
       USE Dictionary_mod, only : get_param, is_set_param
       USE DOMAIN_DECOMP_ATM,only: GRID,getDomainBounds,AM_I_ROOT,
      &                        GLOBALSUM,GLOBALMAX,
@@ -16,13 +16,13 @@ c
       USE RESOLUTION, only  : IM,JM
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI, itime0
-      USE TRACER_COM, only  : ntm
+      USE TRACER_COM, only  : ntm,coupled_chem
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
      &                        bygrav,lhe,undef,teeny,byavog
       USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn,byMA
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
-      USE RAD_COM, only     : CH4X_RADoverCHEM
+      USE RAD_COM, only     : CH4X_RADoverCHEM, o3_yr
       use ghgmod
       USE GEOM, only        : LAT2D_DG,IMAXJ,LAT2D,LON2D
       use OldTracer_mod, only: tr_wd_type, nWater
@@ -63,15 +63,15 @@ C**** Local parameters and variables and arguments:
       real*8, dimension(lxghg+1) :: ghgplb
 !@var jlat46 lat index relative to the rad code 72x46 grid
 !@var ilon72 lon index relative to the rad code 72x46 grid
-      integer :: jlat46,ilon72
+      integer :: jlat46,ilon72,xyear,xday,k
 
       INTEGER :: J_0, J_1, I_0, I_1
 
-      call getDomainBounds(grid, 
+      call getDomainBounds(grid,
      &               J_STRT    =J_0,  J_STOP    =J_1,
      &               I_STRT    =I_0,  I_STOP    =I_1)
-      
-      if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)                
+
+      if(H2ObyCH4 /= 0. .and. clim_interact_chem > 0)
      &call stop_model('H2ObyCH4.ne.0 .and. clim_interact_chem > 0',13)
 
 #ifdef INTERACTIVE_WETLANDS_CH4
@@ -134,6 +134,28 @@ C running-averages for interactive wetlands CH4:
       CALL LOGPINT(LCOalt,PCOalt,ClOxaltIN,LM,PRES2,ClOxalt,.true.)
 
       if(prnchg) DU_O3(:)=0.d0  ! Drew's diagnostic...
+
+      ! For chemistry not coupled to aerosol scheme, need to read/update
+      ! offline aerosol fields:
+      if(coupled_chem.ne.1)then
+        call modelEclock%get(year=xyear, dayOfYear=xday)
+        if(o3_yr > 0) xyear=o3_yr ! allows override of model date
+        if(offAeroFirst) then
+          offAeroFirst=.false.
+          do k = 1,nOffAeroStream
+            call init_stream(grid,offAeroStream(k),'OFFLINE_AERO',
+     &      trim(offAeroVars(k)),0d0, 1d30,'linm2m',xyear,xday)
+          end do
+        end if
+        do k = 1,nOffAeroStream
+          call read_stream(grid,offAeroStream(k),xyear,xday,readCache)
+          select case(k)
+          case (1) ; dms_offline = readCache
+          case (2) ; so2_offline = readCache
+          case (3) ; sulfate = readCache
+          end select
+        end do
+      end if ! coupled_chem.ne.1
 
       end subroutine masterchem_prep
 
@@ -478,9 +500,10 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          ydms(i,j,L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*byma(L)
          yso2(i,j,L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*byma(L)
        else
-         ! Convert from pptv to molecule cm-3:
-         ydms(i,j,L)=dms_offline(i,j,L)*1.0d-12*y(nM,L)
-         yso2(i,j,L)=so2_offline(i,j,L)*1.0d-12*y(nM,L)
+         ! Convert from volume mixing ratio to molecules cm-3:
+         ! (take care of factors of 10 in the input file, please):
+         ydms(i,j,L)=dms_offline(i,j,L)*y(nM,L)
+         yso2(i,j,L)=so2_offline(i,j,L)*y(nM,L)
        end if
 #endif /* TRACERS_AEROSOLS_Koch */
 
@@ -838,8 +861,9 @@ C (Dentener and Crutzen, 1993). GAMMA = RGAMMASULF defined below,
 c SA = given, v = molecular velocity (cm/s) where v = SQRT (8.Kb.T / PI*M);
 C Kb = 1.38062E-23; T = Temp (K); M = mass N2O5 (Kg)
 C
-C Off-line sulfate fields to run in uncoupled mode give SO4 in
-C cm2/cm3 'surface area density'.
+C Off-line sulfate fields read in in mass mixing ratio (kg SO4 / kg air)
+C and  must be converted to aerosol cm2/cm3 'surface area density'.
+C See notes here for On-line case:
 C
 C On-line sulfate in coupled mode must be converted to aerosol
 C surface (cm2 aerosol/cm3 air) via aerosol volume fraction
@@ -876,7 +900,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
         end if
 ! --------------------------------------------------------------------
         if (coupled_chem == 1) then
-          ! Convert SO4 from mass (kg) to aerosol surface per grid box:
+          ! Convert SO4 from mass (kg/m2) to aerosol surface per grid box:
           ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
           ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
@@ -884,14 +908,15 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! layer thickness below is in 1/m units:
           sulfate(i,j,l)=0.0
           do n=1,ntrSO4
-            sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n))
+            sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n)) ! kgSO4/m2
           enddo
-          sulfate(i,j,l)=sulfate(i,j,l)
-     &      *1.76d2*bythick(L)
-     &      *max(0.1d0,rh(L)*1.33333d0)
-          ! just in case loop changes (b/c sulfate is defined to LM):
-          if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
+        else
+          sulfate(i,j,l)=sulfate(i,j,l)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
         end if
+        sulfate(i,j,l)=sulfate(i,j,l) ! kgSO4/m2-->cm2/cm3
+     &    *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
+        ! just in case loop changes (b/c sulfate is defined to LM):
+        if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
 
         pfactor=ma(L)/y(nM,L)
         bypfactor=1.D0/pfactor
@@ -2803,7 +2828,7 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
      &      max(1.d-3,rgammasulf-log10(tl(L)-290.d0)*5.d-2)
           end if
           if (coupled_chem == 1) then
-            ! Convert SO4 from mass (kg) to aerosol surface per grid box:
+            ! Convert SO4 from mass (kg/m2) to aerosol surface per grid box:
             ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
             ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
             ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
@@ -2811,13 +2836,15 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             ! layer thickness below is in 1/m units:
             sulfate(i,j,L)=0.0
             do n=1,ntrSO4
-              sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n))
+              sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n)) ! kgSO4/m2
             enddo
-            sulfate(i,j,L)=sulfate(i,j,L)*1.76d2*bythick(L)
-     &      *max(0.1d0,rh(L)*1.33333d0)
-            ! just in case loop changes (b/c sulfate is defined to LM):
-            if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
+          else
+            sulfate(i,j,l)=sulfate(i,j,l)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
           end if
+          sulfate(i,j,l)=sulfate(i,j,l) ! kgSO4/m2-->cm2/cm3
+     &      *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
+          ! just in case loop changes (b/c sulfate is defined to LM):
+          if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
 
           RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C         Calculate sulfate sink, and cap it at 20% of N2O5:

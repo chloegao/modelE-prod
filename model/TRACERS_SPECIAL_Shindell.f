@@ -10,8 +10,6 @@
       IMPLICIT NONE
       SAVE
 
-!@param Lsulf the number of layers of sulfate SA data read from file
-      INTEGER, PARAMETER :: Lsulf = 23 ! not LM
 #ifdef SHINDELL_STRAT_EXTRA
       REAL*8, PARAMETER ::  GLTic = 1.d-9 ! pppv
 #endif   
@@ -203,86 +201,6 @@ C we change that.)
       return
       end subroutine overwrite_GLT
 #endif
-
-
-      SUBROUTINE read_aero(field,fn)
-!@sum read_aero, read in monthly mean fields of SO2 concentration or
-!@+ DMS concentration or sulfate surface area for use in chemistry.
-!@+ This source is not applied directly to the tracer mass like
-!@+ other 3D sources are but used for e.g. HOx, N2O5 chemistry.
-!@+ call it like so:
-!@+    call read_aero(dms_offline,'DMS_FIELD')
-!@+    call read_aero(sulfate,'SULFATE_SA')
-!@+    call read_aero(so2_offline,'SO2_FIELD')
-!@auth Drew Shindell / Greg Faluvegi
-      USE RESOLUTION, only : lm
-      USE RESOLUTION, only : im,jm
-      Use ATM_COM,    Only: PMIDL00
-      use model_com, only: modelEclock
-      USE DOMAIN_DECOMP_ATM, only: GRID
-      USE DOMAIN_DECOMP_ATM, only: getDomainBounds, write_parallel
-      USE FILEMANAGER, only: openunit,closeunit
-      use TRACER_SOURCES, only: Lsulf
- 
-      IMPLICIT NONE
-      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM) ::field
-      CHARACTER(LEN=*),  INTENT(IN) :: fn
-
-!@var nmons: number of monthly input files
-!@param Psulf pressure levels of the input file
-      real*8, parameter, dimension(Lsulf) :: Psulf = (/
-     & 0.9720D+03,0.9445D+03,0.9065D+03,
-     & 0.8515D+03,0.7645D+03,0.6400D+03,0.4975D+03,0.3695D+03,
-     & 0.2795D+03,0.2185D+03,0.1710D+03,0.1335D+03,0.1016D+03,
-     & 0.7120D+02,0.4390D+02,0.2470D+02,0.1390D+02,0.7315D+01,
-     & 0.3045D+01,0.9605D+00,0.3030D+00,0.8810D-01,0.1663D-01/)
-      integer, parameter :: ncalls=3
-      integer, dimension(ncalls):: mon_units
-      integer i,j,iu,k,l,nc
-      character*80 :: title
-      character(len=300) :: out_line
-      logical, dimension(ncalls) :: mon_bins=(/.true.,.true.,.true./)
-      REAL*8, DIMENSION(LM)    :: srcLout
-      REAL*8, DIMENSION(Lsulf) :: srcLin
-      REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Lsulf,ncalls):: src
-      logical :: trans_emis=.false.
-      INTEGER :: J_1, J_0, J_0H, J_1H, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      I_0 = grid%I_STRT
-      I_1 = grid%I_STOP
-
-      select case(trim(fn))
-      case('DMS_FIELD') ; nc=1
-      case('SO2_FIELD') ; nc=2
-      case('SULFATE_SA'); nc=3
-      case default
-        call stop_model('please address filename in read_aero',255)
-      end select
- 
-C**** Input file is monthly, on LM levels.
-C     Read it in here and interpolated each day.
-C     Interpolation in the vertical.
-  
-      call openunit(trim(fn),mon_units(nc),mon_bins(nc))
-      call read_monthly_3Dsources(Lsulf,mon_units(nc),
-     &   src(:,:,:,nc),trans_emis,0,0,modelEclock%getYear(),
-     &   modelEclock%getDayOfYear())
-      call closeunit(mon_units(nc))
-C====
-C====   Place field onto model levels
-C====              
-      DO J=J_0,J_1; DO I=I_0,I_1
-        srcLin(1:Lsulf)=src(I,J,1:Lsulf,nc)
-        Call LOGPINT (Lsulf,Psulf,srcLin,LM,PMIDL00,srcLout,.true.)
-        field(I,J,1:LM)=srcLout(1:LM)
-      END DO   ; END DO    
-  
-      return
-      END SUBROUTINE read_aero
 
       subroutine get_CH4_IC(icall)
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds

@@ -5208,7 +5208,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use OldTracer_mod, only: trname, itime_tr0, MAX_LEN_NAME
       use OldTracer_mod, only: nBBsources,do_fire,vol2mass
       use TRACER_COM, only: tracers, set_ntsurfsrc
-      USE TRACER_COM, only: coupled_chem,daily_z
+      USE TRACER_COM, only: daily_z
       USE TRACER_COM, only: n_CO2n
       USE TRACER_COM, only: NTM,n_SO4,n_SO2,N_M_ACC_SU,N_M_AKK_SU,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
@@ -5227,8 +5227,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM,only:
-     & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
       use photolysis, only: rad_FL,read_FL
 #endif
 #ifdef TRACERS_COSMO
@@ -5373,11 +5371,6 @@ C**** Prather StratChem tracers and linoz tables change each month
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Next line for fastj photon fluxes to vary with time:
       if(rad_FL.gt.0) call READ_FL(end_of_day)
-C**** Daily tracer-specific calls to read 2D and 3D sources:
-      if (COUPLED_CHEM.ne.1) then
-        call read_aero(dms_offline,'DMS_FIELD') !not applied directly to tracer
-        call read_aero(so2_offline,'SO2_FIELD') !not applied directly to tracer
-      endif
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
@@ -5505,13 +5498,6 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #endif
-
-#ifdef TRACERS_SPECIAL_Shindell
-        case ('N2O5')
-          if (COUPLED_CHEM.ne.1)
-     &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
-#endif
-
         case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
             if (ntsurfsrc(n)>1) then

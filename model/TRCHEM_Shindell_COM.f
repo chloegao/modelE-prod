@@ -10,6 +10,7 @@ c
       USE CONSTANT, only   : pi, mair, mwat, radian, byavog, undef
       USE TRACER_COM, only : ntm_chem
       use OldTracer_mod, only: TR_MM
+      use timestream_mod, only : timestream
 
       IMPLICIT NONE
       SAVE
@@ -292,7 +293,9 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param PSClatS SH latitude limit for PSCs
 !@param PSClatN NH latitude limit for PSCs
 !@param minKG minimum kg for trm before we set to this after change
+!@param nOffAeroStream number of variables to read from OFFLINE_AERO
       INTEGER, PARAMETER ::
+     & nOffAeroStream=3,
      & LCOalt =   23,
      & LCH4alt=    6,
 #ifdef TRACERS_TERP
@@ -544,6 +547,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
 !@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
 !@+ for given I,J point (saved in rsf for reproducibilty purposes)
+!@var readCache for reading offline aerosol timestreams when coupled_chem.ne.1
       integer, dimension(3) :: ijlprn
       INTEGER :: L75P,L75M,L569P,L569M,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(numfam+1)     :: nfam = (/0,0,0,0,ny+1/)
@@ -574,6 +578,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 #endif  /* TRACERS_dCO */
      & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
+     & ,readCache
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
@@ -599,6 +604,9 @@ C**************  Not Latitude-Dependant ****************************
 !@var ch4_init_sh methane inital conditions (ppmv) for Southern Hemisphere
 !@var ch4_init_nh methane inital conditions (ppmv) for Northern Hemisphere
       ! these currently have a grid shape (1,1) to use timestream:
+!@var offAeroFirst determined whether timestream needs to be initialized
+!@+ for reading offline aerosols for coupled_chem.ne.1
+!@var offAeroVars names of variables to read from OFFLINE_AERO
       real*8, dimension(1,1) :: ICfact_N=undef, ICfact_COt=undef,
      & ICfact_COs=undef, ICfact_Oth=undef, ICfact_N2O=undef,
      & ICfact_CFC=undef, ch4_init_sh=undef, ch4_init_nh=undef
@@ -621,8 +629,12 @@ C**************  Not Latitude-Dependant ****************************
      &                                       prnchg=.false.,
      &                                       prnls=.false.
       LOGICAL, ALLOCATABLE, DIMENSION(:)  :: pscX
+      logical :: offAeroFirst=.true.
 
       CHARACTER*8, DIMENSION(nc)          :: trchemname=''
+      character*3, dimension(nOffAeroStream) :: offAeroVars =
+     &  (/'DMS', 'SO2', 'SO4'/)
+      type(timestream), dimension(nOffAeroStream):: offAeroStream
       
       END MODULE TRCHEM_Shindell_COM
       
@@ -652,7 +664,7 @@ C**************  Not Latitude-Dependant ****************************
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
      & y,rr,odtmp,Jacet,chemrate,photrate,dest,prod,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
-     & zonalIsop
+     & zonalIsop,readCache
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
       use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
@@ -785,6 +797,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      ) ! could be read from 3D file
+      allocate(   readCache(I_0H:I_1H,J_0H:J_1H,LM)      )
 
       allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
       mostRecentNonZeroAlbedo=0.d0
