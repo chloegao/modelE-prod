@@ -171,7 +171,7 @@ c
       USE RESOLUTION, only  : ls1=>ls1_nominal,plbot
       USE RESOLUTION, only  : IM,JM
       use ATMCOL_COM, only: tl,pl,ple,ma,byma
-      use ATMCOL_COM, only: ql,update_ql,update_qmoml,qmoml
+      use ATMCOL_COM, only: qv,update_qv,update_qvmom,qvmom
       use model_com, only: modelEclock
       use model_com, only: itime, itimeI
       use TimeConstants_mod, only: HOURS_PER_DAY
@@ -440,8 +440,8 @@ c Initialize the 2D change variable:
        changeL(L,:)=0.d0  
 c Save presure, temperature, thickness, rel. hum. in local arrays:
        ! could use rhl() instead of rh() but for the min(1.d0, ) part:
-       ! try: rh(L)=min(rhl(L),ql(L)) ?
-       rh(L)=ql(L)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
+       ! try: rh(L)=min(rhl(L),qv(L)) ?
+       rh(L)=qv(L)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
        bythick(L)=1.d0/(rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1)))
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pl(L)/(tl(L)*cboltz)
@@ -513,7 +513,7 @@ c Save initial ClOx amount for use in ClOxfam:
 c Limit N2O5 number density:
        if(y(nn_N2O5,L) < 1.) y(nn_N2O5,L)=1.d0
 c Set H2O, based on Q:
-       y(nH2O,L)=ql(L)*MWabyMWw*y(nM,L)
+       y(nH2O,L)=qv(L)*MWabyMWw*y(nM,L)
 c Initialize stratospheric y(H2O) & GCM Q variable (!),
 c based on tropical tropopause H2O and CH4:
        if(allowSomeChemReinit == 1) then
@@ -521,9 +521,9 @@ c based on tropical tropopause H2O and CH4:
            y(nH2O,L) =  y(nM,L)*(avgTT_H2O/countTT +
      &     2.d0*(avgTT_CH4/countTT-y(nn_CH4,L)/y(nM,L)))
            if(clim_interact_chem > 0)then 
-             fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/ql(L)
-             call update_ql(L,y(nH2O,L)/(y(nM,L)*MWabyMWw))
-             if(fraQ < 1.)call update_qmoml(L,qmoml(:,L)*fraQ)
+             fraQ=(y(nH2O,L)/(y(nM,L)*MWabyMWw))/qv(L)
+             call update_qv(L,y(nH2O,L)/(y(nM,L)*MWabyMWw))
+             if(fraQ < 1.)call update_qvmom(L,qvmom(:,L)*fraQ)
 #ifdef TRACERS_WATER
 C**** Add water to relevant tracers as well
              do n=1,ntm

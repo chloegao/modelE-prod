@@ -30,73 +30,72 @@ module atmcol_com
   real*8, dimension(lm) :: pres,dp,ma,byma
   real*8, dimension(lm+1) :: pedge
 
-!@var thl potential temperature w.r.t. 1 hPa (K): 1D version of atm_com:t
 !@var tl in-situ temperature (K)
-!@var ql humidity (kg/kg): 1D version of atm_com:q
-!@var qmoml moments of humidity Q: 2D version of somtq_com:qmom
+!@var qv humidity (kg/kg): 1D version of atm_com:q
+!@var qvmom moments of humidity Q: 2D version of somtq_com:qmom
 !@var rhl relative humidity, or saturation water vapor mixing ratio (0-1)
 !@var rhol density calculated from tl (kg/m3)
 !@var rhotvl density calculated from virtual temperature (kg/m3)
 !@var zl height above nominal sea level (m)
-  real*8, dimension(lm) :: thl,tl,ql,rhl,rhol,rhotvl,zl
-  real*8, dimension(nmom,lm) :: qmoml
+  real*8, dimension(lm) :: tl,qv,rhl,rhol,rhotvl,zl
+  real*8, dimension(nmom,lm) :: qvmom
 
-  interface update_ql
-    module procedure update_ql_0d
-    module procedure update_ql_1d
-  end interface update_ql
+  interface update_qv
+    module procedure update_qv_0d
+    module procedure update_qv_1d
+  end interface update_qv
 
-  interface update_qmoml
-    module procedure update_qmoml_1d
-    module procedure update_qmoml_2d
-  end interface update_qmoml
+  interface update_qvmom
+    module procedure update_qvmom_1d
+    module procedure update_qvmom_2d
+  end interface update_qvmom
 
   contains
 
-  subroutine update_ql_0d(l,q)
-!@sum update_ql Calculate new values for ql and rhl for a given q
+  subroutine update_qv_0d(l,q)
+!@sum update_qv Calculate new values for qv and rhl for a given q
     use constant, only: lhe
     implicit none
     real*8, intent(in) :: q
     integer, intent(in) :: l
     real*8 :: qsat
 
-    ql(l)=q
-    rhl(l)=ql(l)/qsat(tl(l),lhe,pl(l))
-  end subroutine update_ql_0d
+    qv(l)=q
+    rhl(l)=qv(l)/qsat(tl(l),lhe,pl(l))
+  end subroutine update_qv_0d
 
-  subroutine update_ql_1d(q)
-!@sum update_ql Calculate new values for ql and rhl for a given q
+  subroutine update_qv_1d(q)
+!@sum update_qv Calculate new values for ql and rhl for a given q
     implicit none
     real*8, dimension(lm), intent(in) :: q
     integer :: l
 
     do l=1,lm
-      call update_ql_0d(l,q(l))
+      call update_qv_0d(l,q(l))
     enddo
-  end subroutine update_ql_1d
+  end subroutine update_qv_1d
 
-  subroutine update_qmoml_1d(l,qmom)
-!@sum update_qmoml Fill in new values for qmoml for a given qmom
+  subroutine update_qvmom_1d(l,qmom)
+!@sum update_qvmom Fill in new values for qvmom for a given qmom
     use qusdef, only: nmom
     implicit none
     real*8, dimension(nmom), intent(in) :: qmom
     integer, intent(in) :: l
     integer :: m
     do m=1,nmom
-      qmoml(m,l)=qmom(m)
+      qvmom(m,l)=qmom(m)
     end do
-  end subroutine update_qmoml_1d
+  end subroutine update_qvmom_1d
 
-  subroutine update_qmoml_2d(qmom)
-!@sum update_qmoml Fill in new values for qmoml for a given qmom
+  subroutine update_qvmom_2d(qmom)
+!@sum update_qvmom Fill in new values for qvmom for a given qmom
     implicit none
     real*8, dimension(nmom,lm), intent(in) :: qmom
     integer :: l
     do l=1,lm
-      call update_qmoml_1d(l,qmom(:,l))
+      call update_qvmom_1d(l,qmom(:,l))
     end do
-  end subroutine update_qmoml_2d
+  end subroutine update_qvmom_2d
 
 end module atmcol_com
 
@@ -132,12 +131,11 @@ subroutine load_atmcol(i,j)
   byma(:) = byma_3d(:,i,j)
 
   ! temperature, humidity, density, height
-  thl(:) = t(i,j,:)
-  tl(:) = thl(:)*plk(:)
-  call update_ql(q(i,j,:))
-  call update_qmoml(qmom(:,i,j,:))
+  tl(:) = t(i,j,:)*plk(:)
+  call update_qv(q(i,j,:))
+  call update_qvmom(qmom(:,i,j,:))
   rhol(:) = pres(:)/(rgas*tl(:))
-  rhotvl(:) = pres(:)/(rgas*tl(:)*(1d0+deltx*ql(:)))
+  rhotvl(:) = pres(:)/(rgas*tl(:)*(1d0+deltx*qv(:)))
   zl(:) = gz(i,j,:)*bygrav
 
 end subroutine load_atmcol

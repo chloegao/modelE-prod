@@ -10,7 +10,7 @@ C
       USE RESOLUTION, only      : ls1=>ls1_nominal
       USE RESOLUTION, only      : im,jm,lm
       USE ATM_COM, only         : ltropo
-      use ATMCOL_COM, only: tl,ma,byma,update_ql,ql,update_qmoml,qmoml
+      use ATMCOL_COM, only: tl,ma,byma,update_qv,qv,update_qvmom,qvmom
       USE DOMAIN_DECOMP_ATM,only : grid,getDomainBounds,write_parallel
       USE TRDIAG_COM, only : taijls=>taijls_loc,jls_OHcon,jls_day
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
@@ -1050,11 +1050,11 @@ C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
         dQM(L) = dQ(L)*ma(L)
         if(clim_interact_chem > 0)then
-          fraQ2(l)=(ql(L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/ql(L)
-          call update_ql(l,ql(L)+dQ(L))
+          fraQ2(l)=(qv(L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/qv(L)
+          call update_qv(l,qv(L)+dQ(L))
 C       -- Qmom --:
           if(changeH2O(L) < 0.)then
-            call update_qmoml(L,qmoml(:,L)*fraQ2(L))
+            call update_qvmom(L,qvmom(:,L)*fraQ2(L))
             if(fraQ2(l) <= 0.98)then
               write(out_line,*)'> 2% Q change in calc IJL,change='
      &        ,I,J,L,fraQ2(l)

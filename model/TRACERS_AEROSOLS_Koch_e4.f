@@ -295,7 +295,7 @@ c
       use resolution, only: lm
       USE MODEL_COM, only: dtsrc
       use atmcol_com, only: tl   ! layer temperature (K)
-      use atmcol_com, only: ql   ! layer humidity (kg/kg)
+      use atmcol_com, only: qv   ! layer humidity (kg/kg)
       use atmcol_com, only: pl   ! layer pressure (mb)
       use atmcol_com, only: ma   ! layer mass (kg/m2)
       use atmcol_com, only: byma ! 1/ma
@@ -480,7 +480,7 @@ C     HO2 + HO2 + H2O + M ->
           d6 = exp(-r6*dtsrc)
           ek9 = 2.2d-13*exp(600.d0*tt)
           ek9t = 1.9d-20*dmm*0.78d0*exp(980.d0*tt)*1.d-13
-          ch2o = ql(l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*tl(l))
+          ch2o = qv(l)*6.02d20*28.97d0/18.d0*ppres/(.082d0*tl(l))
           eh2o = 1.+1.4d-21*exp(2200.d0*tt)*ch2o
           dho2mc=oxid%HO2
           dho2kg=oxid%HO2*ma(l)*tl(l)*.082056d0/(ppres*28.97d0*6.02d20)

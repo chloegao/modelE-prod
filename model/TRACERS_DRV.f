@@ -7213,7 +7213,7 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       use somtq_com, only : qmom
       use atm_com, only : q
       use qusdef, only : nmom
-      use atmcol_com, only: ql, qmoml
+      use atmcol_com, only: qv, qvmom
 #endif
       use geom, only : imaxj
       implicit none
@@ -7365,8 +7365,8 @@ c**** Calculate and apply sources from AMP/MATRIX
 #ifdef TRACERS_SPECIAL_Shindell
         ! also update humidity if it's been changed by chemistry:
         if(clim_interact_chem > 0)then
-          q(i,j,:) = ql(:)
-          qmom(1:nmom,i,j,1:lm) = qmoml(1:nmom,1:lm)
+          q(i,j,:) = qv(:)
+          qmom(1:nmom,i,j,1:lm) = qvmom(1:nmom,1:lm)
         end if
 #endif
 
