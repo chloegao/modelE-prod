@@ -438,7 +438,7 @@
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
 
-      subroutine readFlamPopDens(xyear,xday)
+      subroutine readFlamPopDens(xyear,xday,cyclic)
 !@sum reads 2D human population density for flammability purposes
 !@auth Greg Faluvegi
       use domain_decomp_atm, only: grid
@@ -449,14 +449,13 @@
       implicit none
 
       integer, intent(IN) :: xyear, xday
+      logical :: cyclic
 
       if(firstPopDensStream) then
         firstPopDensStream=.false.
         call init_stream(grid,popDensStream,'FLAMPOPDEN',
-     &   'populationDensity',0d0,1d10,'linm2m',xyear,xday )
-         ! I think it's OK to allow cyclic argument to default (false).
-         ! If you want to make sure a single year is repeated, you could
-         ! always list a single-time nc file for FLAMPOPDEN.
+     &   'populationDensity',0d0,1d10,'linm2m',xyear,xday,
+     &   cyclic=cyclic)
       end if
       call read_stream(grid,popDensStream,xyear,xday,populationDensity)
       return

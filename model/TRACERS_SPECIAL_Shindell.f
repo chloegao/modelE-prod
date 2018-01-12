@@ -551,6 +551,9 @@ C
       if(wetl_first) then
         wetl_first=.false.
         do k = 1,nncep
+          ! note these files are 12-months only, so no need to
+          ! allow override of modelEclock year, and no need to set
+          ! cyclic optional argument:
           call init_stream(grid,wetlStream(k),trim(ncep_files(k)),
      &    trim(ncep_files(k)),ncepMins(k),ncepMaxs(k),'linm2m',year,day)
         end do

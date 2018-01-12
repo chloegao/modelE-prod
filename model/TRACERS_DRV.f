@@ -5380,7 +5380,7 @@ C**** Next line for fastj photon fluxes to vary with time:
       else
         xyear=year
       endif
-      call readflamPopDens(xyear,xday)
+      call readflamPopDens(xyear,xday, (trans_emis_overr_yr>0) )
 #endif
 
 !-------------------------------------------------------------------------------

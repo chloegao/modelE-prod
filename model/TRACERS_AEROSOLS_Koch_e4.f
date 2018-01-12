@@ -218,8 +218,9 @@ c
 !@sum prepare info for aerosol gas phase chemistry
 !@auth Dorothy Koch
       use timestream_mod, only : init_stream,read_stream
+      use Dictionary_mod, only : get_param
       use domain_decomp_atm, only: getDomainBounds, grid
-      use model_com, only: modelEclock
+      use model_com, only: modelEclock, master_yr
       use aerosol_sources, only: ohr,dho2r,perjr,tno3r,o3_offline,
      & off_HNO3, AeroStream, AeroFirst, nAeroStream, readCache
       use atm_com, only: ma
@@ -230,14 +231,18 @@ c
 
       implicit none
 
-      integer :: day,year,k,L
+      integer :: xday,xyear,clockYear,k,L
+      logical :: cyclic
       character*10, dimension(nAeroStream) :: AeroVars = (/
      &'ohr       ','dho2r     ','perjr     ','tno3r     ','o3_offline',
      &'off_HNO3  '/)
 
-      ! if input is expanded to > 1 year of data, one could expand
-      ! day and year difinition to depend on aer_yr, or whatever:
-      call modelEclock%get(year=year, dayOfYear=day)
+      cyclic=.true.
+      call modelEclock%get(year=clockYear, dayOfYear=xday)
+      call get_param( "aer_int_yr", xyear, default=master_yr )
+      if(xyear==0)then
+        xyear=clockYear ; cyclic=.false.
+      end if
 
       ! Read the monthly data and interpolate to current day:
       ! Except for HNO3, the old code did not do interpolation -
@@ -247,12 +252,13 @@ c
         AeroFirst=.false.
         do k = 1,nAeroStream
           call init_stream(grid,AeroStream(k),'OFFLINE_CHEM',
-     &    trim(AeroVars(k)),0d0, 1d30,'linm2m',year,day)
+     &    trim(AeroVars(k)),0d0, 1d30,'linm2m',xyear,xday,
+     &    cyclic=cyclic )
         end do
       end if
 
       do k = 1,nAeroStream
-        call read_stream(grid,AeroStream(k),year,day,readCache)
+        call read_stream(grid,AeroStream(k),xyear,xday,readCache)
         ! Need to scale inputs (10^5 mol/cm3).
         ! (we should check these scalings and likely move them to within
         ! the input files when possible):

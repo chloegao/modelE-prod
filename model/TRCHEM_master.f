@@ -14,7 +14,7 @@ c
      &                        write_parallel,writet8_column,
      &                        writet_parallel
       USE RESOLUTION, only  : IM,JM
-      use model_com, only: modelEclock
+      use model_com, only: modelEclock, master_yr
       use model_com, only: itime, itimeI, itime0
       USE TRACER_COM, only  : ntm,coupled_chem
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
@@ -22,7 +22,7 @@ c
       USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn,byMA
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
-      USE RAD_COM, only     : CH4X_RADoverCHEM, o3_yr
+      USE RAD_COM, only     : CH4X_RADoverCHEM
       use ghgmod
       USE GEOM, only        : LAT2D_DG,IMAXJ,LAT2D,LON2D
       use OldTracer_mod, only: tr_wd_type, nWater
@@ -63,7 +63,8 @@ C**** Local parameters and variables and arguments:
       real*8, dimension(lxghg+1) :: ghgplb
 !@var jlat46 lat index relative to the rad code 72x46 grid
 !@var ilon72 lon index relative to the rad code 72x46 grid
-      integer :: jlat46,ilon72,xyear,xday,k
+      integer :: jlat46,ilon72,xyear,clockYear,xday,k
+      logical :: cyclic
 
       INTEGER :: J_0, J_1, I_0, I_1
 
@@ -138,13 +139,18 @@ C running-averages for interactive wetlands CH4:
       ! For chemistry not coupled to aerosol scheme, need to read/update
       ! offline aerosol fields:
       if(coupled_chem.ne.1)then
-        call modelEclock%get(year=xyear, dayOfYear=xday)
-        if(o3_yr > 0) xyear=o3_yr ! allows override of model date
+        cyclic=.true.
+        call modelEclock%get(year=clockYear, dayOfYear=xday)
+        call get_param( "O3_yr", xyear, default=master_yr )
+        if(xyear==0)then
+          xyear=clockYear ; cyclic=.false.
+        end if
         if(offAeroFirst) then
           offAeroFirst=.false.
           do k = 1,nOffAeroStream
             call init_stream(grid,offAeroStream(k),'OFFLINE_AERO',
-     &      trim(offAeroVars(k)),0d0, 1d30,'linm2m',xyear,xday)
+     &      trim(offAeroVars(k)),0d0, 1d30,'linm2m',xyear,xday,
+     &      cyclic=cyclic)
           end do
         end if
         do k = 1,nOffAeroStream
