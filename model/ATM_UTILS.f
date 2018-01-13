@@ -772,7 +772,7 @@ C**** and convert to WSAVE, units of m/s):
          GZD = ZATMO(I,J)
          Do L=1,LM
             GZ(I,J,L) = GZD + DGZA(L)
-      IF(J==1.OR.J==JM) WRITE (6,*) 'COMP_GZ:',J,L,GZD,GZ(I,J,L)
+!      IF(J==1.OR.J==JM) WRITE (6,*) 'COMP_GZ:',J,L,GZD,GZ(I,J,L)
             GZD = GZD + DGZU(L)  ;  EndDo  ;  EndDo  ;  EndDo
 
       If (QSP)  Then
