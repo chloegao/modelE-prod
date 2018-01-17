@@ -168,6 +168,7 @@ use megan_objects_mod, only: runningAverage, biogenicSpecies, nMeganPFT
 use OldTracer_mod, only: trname,itime_tr0
 use tracer_com, only: ntm, sfc_src, tracers
 use tracer_mod, only: Tracer
+use TracerSurfaceSource_mod, only: itsMegan
 
 implicit none
 
@@ -400,7 +401,7 @@ tracers_loop: do nTracer=1,ntm
 
  sources_loop: do ns=1,trc%ntSurfSrc
   ! skip if not a megan source:
-  if( .not. trc%surfaceSources(ns)%isMegan ) cycle sources_loop
+  if(trc%surfaceSources(ns)%skipReason /= itsMegan) cycle sources_loop
 
   ! try to match tracer with megan-defined species, otherwise skip:
   species_loop: do n=1,size(species)

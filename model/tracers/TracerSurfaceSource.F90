@@ -17,6 +17,8 @@ module TracerSurfaceSource_mod
   public :: PARSE_SUCCESS
   public :: PARSE_MISSING_FIELD
   public :: PARSE_UNEXPECTED_VALUE
+  public :: itsMegan
+  public :: itsCH4MGOL
 
   type, extends(TracerSource) :: TracerSurfaceSource
     character(len=30) :: sourceName ! holds source name, read from file header, e.g. to be
@@ -32,9 +34,8 @@ module TracerSurfaceSource_mod
     integer :: yearStart ! starting year/decade for a transient emissions file
     integer :: yearEnd   ! ending year/decade for a transient emissions file
     integer :: yearStep  ! interval between records in a transient emissions file
+    integer :: skipReason = 0 ! > 0 is to tag sources to be skipped in trname_## file reading
     logical :: firstTrip = .true.
-    logical :: isMegan = .false. ! for tagging sources as a MEGAN vegetation source
-
     integer :: monthA = -1 ! first month for the current interpolation
     real*8, allocatable :: month1cache(:,:) ! used for interpolating from file source
     real*8, allocatable :: month2cache(:,:)
@@ -44,6 +45,8 @@ module TracerSurfaceSource_mod
   integer, parameter :: PARSE_SUCCESS = 0
   integer, parameter :: PARSE_MISSING_FIELD = 1
   integer, parameter :: PARSE_UNEXPECTED_VALUE = 2
+  integer, parameter :: itsMegan=1 ! for skipReason: online MEGAN vegetation source
+  integer, parameter :: itsCH4MGOL=2 ! for skipReason: CH4 ocean, lake, misc ground source
 
 contains
 

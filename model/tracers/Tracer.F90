@@ -241,11 +241,11 @@ contains
   ! Use this routine to add a new surface source that
   ! is manipulated by custom logic elsewhere.
   ! Optional sourcename is only used by diagnostics
-  subroutine addSurfaceSource(this, sourceName, sourceLname, isMegan)
+  subroutine addSurfaceSource(this, sourceName, sourceLname, skipReason)
     type (Tracer), intent(inout) :: this
     character(len=*), intent(in) :: sourceName
     character(len=*), intent(in), optional :: sourceLname
-    logical, intent(in), optional :: isMegan
+    integer, intent(in), optional :: skipReason
 
     this%ntSurfSrc = this%ntSurfSrc + 1
     this%surfaceSources(this%ntSurfSrc)%sourceName = sourceName
@@ -254,8 +254,8 @@ contains
     else
        this%surfaceSources(this%ntSurfSrc)%sourceLname = sourceName
     end if
-    if (present(isMegan) ) then
-       this%surfaceSources(this%ntSurfSrc)%isMegan = isMegan
+    if (present(skipReason) ) then
+       this%surfaceSources(this%ntSurfSrc)%skipReason = skipReason
     end if
   end subroutine addSurfaceSource
 
@@ -292,7 +292,7 @@ contains
 
     nread=0
     do ns=1,nsrc
-      if(trcer%surfaceSources(ns)%isMegan)cycle ! skip file reading if ns is a MEGAN source
+      if(trcer%surfaceSources(ns)%skipReason>0)cycle ! skip file reading for this source
       nread=nread+1
       call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)

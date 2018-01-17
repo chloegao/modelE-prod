@@ -5196,7 +5196,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef CUBED_SPHERE
       USE tracer_com, only: AIRCstreams
 #endif
-
+      use TracerSurfaceSource_mod, only: itsCH4MGOL
 #ifdef TRACERS_COSMO
       USE COSMO_SOURCES, only : variable_phi
 #endif
@@ -5483,14 +5483,14 @@ C**** Next line for fastj photon fluxes to vary with time:
         select case (trname(n))
         case ('CH4')
 #ifdef WATER_MISC_GRND_CH4_SRC
-          do ns=1,ntsurfsrc(n) 
-            if(pTracer%surfaceSources(ns)%sourceName==
-     &         'gsfMGOLjal_src') then
+          do ns=1,ntsurfsrc(n)
+            if(pTracer%surfaceSources(ns)%skipReason==itsCH4MGOL) then
               sfc_src(I_0:I_1,J_0:J_1,n,ns)=
-     &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! 5.3558e-5 Jean
-     &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! 17.330e-4 Jean
-     &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! 3.5997e-5 Jean
-            endif
+     &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! incl. 5.3558e-5 from Jean
+     &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! incl. 17.330e-4 from Jean
+     &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! incl. 3.5997e-5 from Jean
+              exit ! Found. Should be only one source.
+            end if
           end do
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5756,11 +5756,11 @@ C****
 #endif
 #ifdef DO_MEGAN
       ! Outside of tracer loop, call MEGAN-based biogenic emissions.
-      ! Emissions will be experienced by any tracers with isMegan
-      ! defined as .true. in their tracer source object. The souce
-      ! short name also must match one of the MEGAN-defined species.
-      ! Call will fill sfc_src, to be added to trsource below. Let's
-      ! skip the poles.
+      ! Emissions will be experienced by any tracers with
+      ! skipReason=itsMegan defined in their tracer source object. The
+      ! source short name also must match one of the MEGAN-defined
+      ! species. Call will fill sfc_src, to be added to trsource below.
+      ! Let's skip the poles.
       do j=J_0S,J_1S
         do i=I_0,imaxj(j)
           ! Do we have to zero the polar boxes for 2:IM ??

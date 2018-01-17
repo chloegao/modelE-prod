@@ -37,4 +37,3 @@
   CH4_09=emis_lerner/CH4BURN_2x2.5.nc
   CH4_10=emis_lerner/CH4RICEC_2x2.5.nc
   CH4_11=emis_lerner/CH4WETL+TUNDRA_2x2.5.nc
-  CH4_12=emis_lerner/CH4gsfMGOLjal_blank_2x2.5_h.nc ! ocean, lake, misc. ground src

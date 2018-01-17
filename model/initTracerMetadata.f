@@ -19,6 +19,7 @@
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
+      use TracerSurfaceSource_mod, only: itsMegan, itsCH4MGOL
       use SystemTools, only: stLinkStatus
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: use_rad_ch4
@@ -112,9 +113,9 @@
 !     allow some tracers to have MEGAN-base vegetation emissions
 !-------------------------------------------------------------------------------
 !     These will be accounted among the surface sources. Tag any such
-!     source as isMegan=.true., so this can be used inside MEGAN to fill
-!     in the sources and in the general tracer code to skip same sources
-!     (e.g. when reading from files). Please KEEP THIS SECTION after
+!     source as skipReason=itsMegan, so this can be used inside MEGAN to
+!     fill in the sources and in the general tracer code to skip same
+!     sources (e.g. when reading from files). KEEP THIS SECTION after
 !     nBBsources were removed from ntsurfsrc(n) above.
 !
 !    sourceName will be used inside MEGAN to match sub-species!
@@ -122,46 +123,57 @@
         select case (trname(n))
         case ('Isoprene')
           pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &    sourceName='MegISOP_src',
      &    sourceLname='MEGAN '//trim(trname(n)))
         case ('Acetone')
           pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &    sourceName='MegACTO_src',
      &    sourceLname='MEGAN '//trim(trname(n)))
 #ifdef TERPENES_MEGAN
         case ('Terpenes')
           pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegMYRC_src', sourceLname='MEGAN Myrcene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegSABI_src', sourceLname='MEGAN Sabinene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegLIMO_src', sourceLname='MEGAN Limonene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='Meg3CAR_src', sourceLname='MEGAN 3-Carene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegOCIM_src',sourceLname='MEGAN t-beta-Ocimene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegBPIN_src', sourceLname='MEGAN beta-Pinene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegAPIN_src', sourceLname='MEGAN alpha-Pinene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegOMTP_src',
      &      sourceLname='MEGAN Other Monoterpenes')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegFARN_src',
      &      sourceLname='MEGAN alpha-Farnesene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegBCAR_src',
      &      sourceLname='MEGAN beta-Caryophyllene')
-          call addSurfaceSource(this=pTracer, isMegan=.true.,
+          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &      sourceName='MegOSQT_src',
      &      sourceLname='MEGAN Other Sesquiterpenes')
 #endif /* TERPENES_MEGAN */
         end select
 #endif /* DO_MEGAN */
+
+#ifdef WATER_MISC_GRND_CH4_SRC
+        ! For CH4 (Shindell or Lerner) allow online lakes, ocean
+        ! and misc. ground source, as set by Jean Lerner:
+        select case (trname(n))
+        case ('CH4')
+          pTracer => tracers%getReference(trname(n))
+          call addSurfaceSource(this=pTracer, skipReason=itsCH4MGOL,
+     &    sourceName='gsfMGOLjal_src', sourceLname='gsfMGOLjal source')
+        end select
+#endif
 
         if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
           write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
