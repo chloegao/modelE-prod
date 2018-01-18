@@ -68,45 +68,45 @@
 !-------------------------------------------------------------------------------
 !     allow some tracers to have biomass burning based on fire model:
 !-------------------------------------------------------------------------------
-        select case (trname(n))
-          case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
+      select case (trname(n))
+        case('NOx','CO','Alkenes','Paraffin','BCB','OCB','NH3','SO2',
 #ifdef TRACERS_AMP
-     &         'M_BC1_BC','M_OCC_OC','M_ACC_SU','M_AKK_SU',
+     &       'M_BC1_BC','M_OCC_OC','M_ACC_SU','M_AKK_SU',
 #endif
 #ifdef TRACERS_dCO
-     &         'd13Calke', 'd13CPAR',
-     &         'dC17O', 'dC18O', 'd13CO',
+     &       'd13Calke', 'd13CPAR',
+     &       'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
-     &         'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
-     &         'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
+     &       'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
+     &       'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
 #ifdef TRACERS_TOMAS
-     &         ,'AECOB_01','AOCOB_01' !BCB and OCB hygroscopities? Need to put emission into OB and IL.
+     &       ,'AECOB_01','AOCOB_01' !BCB and OCB hygroscopities? Need to put emission into OB and IL.
 #endif
-     &         )
-            call set_do_fire(n, .true.)
+     &       )
+          call set_do_fire(n, .true.)
 #ifdef TRACERS_SPECIAL_Shindell
-          case('CH4') ! in here to avoid potential Lerner tracers conflict
-            if(use_rad_ch4==0) call set_do_fire(n, .true.)
+        case('CH4') ! in here to avoid potential Lerner tracers conflict
+          if(use_rad_ch4==0) call set_do_fire(n, .true.)
 #endif
-        end select
+      end select
 #endif /* DYNAMIC_BIOMASS_BURNING */
 
 !-------------------------------------------------------------------------------
 !     allow some tracers to have biomass burning sources that mix over
 !     PBL layers (these become 3D sources no longer within ntsurfsrc(n)):
 !-------------------------------------------------------------------------------
-        val = nBBsources(n)
-        call sync_param(trim(trname(n))//"_nBBsources",val)
-        call set_nBBsources(n, val)
-        if(nBBsources(n)>0)then
-          if(do_fire(n))then
-            if(am_i_root())write(6,*)
-     &           'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
-            call stop_model('nBBsource do_fire conflict',13)
-          else
-            call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
-          end if
+      val = nBBsources(n)
+      call sync_param(trim(trname(n))//"_nBBsources",val)
+      call set_nBBsources(n, val)
+      if(nBBsources(n)>0)then
+        if(do_fire(n))then
+          if(am_i_root())write(6,*)
+     &         'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
+          call stop_model('nBBsource do_fire conflict',13)
+        else
+          call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
         end if
+      end if
 
 #ifdef DO_MEGAN
 !-------------------------------------------------------------------------------
@@ -120,147 +120,116 @@
 !
 !    sourceName will be used inside MEGAN to match sub-species!
 !-------------------------------------------------------------------------------
-        select case (trname(n))
-        case ('Isoprene')
-          pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &    sourceName='MegISOP_src',
-     &    sourceLname='MEGAN '//trim(trname(n)))
-        case ('Acetone')
-          pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &    sourceName='MegACTO_src',
-     &    sourceLname='MEGAN '//trim(trname(n)))
+      select case (trname(n))
+      case ('Isoprene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &  sourceName='MegISOP_src',
+     &  sourceLname='MEGAN '//trim(trname(n)))
+      case ('Acetone')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &  sourceName='MegACTO_src',
+     &  sourceLname='MEGAN '//trim(trname(n)))
 #ifdef TERPENES_MEGAN
-        case ('Terpenes')
-          pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegMYRC_src', sourceLname='MEGAN Myrcene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegSABI_src', sourceLname='MEGAN Sabinene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegLIMO_src', sourceLname='MEGAN Limonene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='Meg3CAR_src', sourceLname='MEGAN 3-Carene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegOCIM_src',sourceLname='MEGAN t-beta-Ocimene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegBPIN_src', sourceLname='MEGAN beta-Pinene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegAPIN_src', sourceLname='MEGAN alpha-Pinene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegOMTP_src',
-     &      sourceLname='MEGAN Other Monoterpenes')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegFARN_src',
-     &      sourceLname='MEGAN alpha-Farnesene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegBCAR_src',
-     &      sourceLname='MEGAN beta-Caryophyllene')
-          call addSurfaceSource(this=pTracer, skipReason=itsMegan,
-     &      sourceName='MegOSQT_src',
-     &      sourceLname='MEGAN Other Sesquiterpenes')
+      case ('Terpenes')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegMYRC_src', sourceLname='MEGAN Myrcene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegSABI_src', sourceLname='MEGAN Sabinene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegLIMO_src', sourceLname='MEGAN Limonene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='Meg3CAR_src', sourceLname='MEGAN 3-Carene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegOCIM_src',sourceLname='MEGAN t-beta-Ocimene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegBPIN_src', sourceLname='MEGAN beta-Pinene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegAPIN_src', sourceLname='MEGAN alpha-Pinene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegOMTP_src',
+     &    sourceLname='MEGAN Other Monoterpenes')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegFARN_src',
+     &    sourceLname='MEGAN alpha-Farnesene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegBCAR_src',
+     &    sourceLname='MEGAN beta-Caryophyllene')
+        call addSurfaceSource(this=pTracer, skipReason=itsMegan,
+     &    sourceName='MegOSQT_src',
+     &    sourceLname='MEGAN Other Sesquiterpenes')
 #endif /* TERPENES_MEGAN */
-        end select
+      end select
 #endif /* DO_MEGAN */
 
 #ifdef WATER_MISC_GRND_CH4_SRC
-        ! For CH4 (Shindell or Lerner) allow online lakes, ocean
-        ! and misc. ground source, as set by Jean Lerner:
-        select case (trname(n))
-        case ('CH4')
-          pTracer => tracers%getReference(trname(n))
-          call addSurfaceSource(this=pTracer, skipReason=itsCH4MGOL,
-     &    sourceName='gsfMGOLjal_src', sourceLname='gsfMGOLjal source')
-        end select
+      ! For CH4 (Shindell or Lerner) allow online lakes, ocean
+      ! and misc. ground source, as set by Jean Lerner:
+      select case (trname(n))
+      case ('CH4')
+        call addSurfaceSource(this=pTracer, skipReason=itsCH4MGOL,
+     &  sourceName='gsfMGOLjal_src', sourceLname='gsfMGOLjal source')
+      end select
 #endif
 
-        if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
-          write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
-          call stop_model('do_fire+ntsurfsrc too large',13)
-        end if
-        if(ntsurfsrc(n)+nBBsources(n) > ntsurfsrcmax)then
-          write(6,*)trname(n),'ntsurfsrc+nBBsources > max of ',
-     &         ntsurfsrcmax
-          call stop_model('ntsurfsrc+nBBsources too large',13)
-        end if
+      if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
+        write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax
+        call stop_model('do_fire+ntsurfsrc too large',13)
+      end if
+      if(ntsurfsrc(n)+nBBsources(n) > ntsurfsrcmax)then
+        write(6,*)trname(n),'ntsurfsrc+nBBsources > max of ',
+     &       ntsurfsrcmax
+        call stop_model('ntsurfsrc+nBBsources too large',13)
+      end if
 
 !-------------------------------------------------------------------------------
 ! add surface sources to tracers that don't follow the TRACERNAME_XX convention
 !-------------------------------------------------------------------------------
-        select case (trname(n))
+      select case (trname(n))
 
 #ifndef TRACERS_AEROSOLS_SOA
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-        (defined TRACERS_TOMAS)
-        case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
-          call addSurfaceSource(pTracer, "Terpenes_src",
+      (defined TRACERS_TOMAS)
+      case ('OCII', 'M_OCC_OC', 'SOAgas') ! this handles OCT_src (terpene source)
+        call addSurfaceSource(pTracer, "Terpenes_src",
      &                                   "Terpenes source")
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 
 #ifdef TRACERS_SPECIAL_Shindell
-        case('CH4') ! in case use_rad_ch4/=0 but the rundeck lists CH4_XX files
-          if (use_rad_ch4/=0) call set_ntsurfsrc(n,0)
+      case('CH4') ! in case use_rad_ch4/=0 but the rundeck lists CH4_XX files
+        if (use_rad_ch4/=0) call set_ntsurfsrc(n,0)
 #endif
 
 #ifdef TRACERS_SPECIAL_Lerner
-        case ('N2O')
-          call addSurfaceSource(pTracer, "overwrite_at_surface",
-     *          "Overwrite")
-        case ('CFC11', 'Rn222')
-          call addSurfaceSource(pTracer, "surface_src", "Surface Src")
-!        case ('CH4')
-!          call addSurfaceSource(pTracer, "animal_src", "Animals")
-!          call addSurfaceSource(pTracer, "coal_mine_src", "Coal Mines")
-!          call addSurfaceSource(pTracer, "gas_leak_src", "Gas Leaks")
-!          call addSurfaceSource(pTracer, "gas_vent_src", "Gas Venting")
-!          call addSurfaceSource(pTracer, "city_dump_src", "City Dumps")
-!          call addSurfaceSource(pTracer, "soil_sink", "Soil Sink")
-!          call addSurfaceSource(pTracer, "termite_src", "Termites")
-!          call addSurfaceSource(pTracer, "coal_combustion_src", 
-!     *         "Coal Combustion")
-!          call addSurfaceSource(pTracer, "ocean_src", "Ocean Src")
-!          call addSurfaceSource(pTracer, "lake_src", "Lake Src")
-!          call addSurfaceSource(pTracer, "misc_ground_src", "Misc Src")
-!          call addSurfaceSource(pTracer, "biomass_src", "Biomass")
-!          call addSurfaceSource(pTracer, "rice_src", "Rice")
-!          call addSurfaceSource(pTracer, "wetlands_tundra_src",
-!     *         "WetlandsTundra")
-        case ('O3')
-          call addSurfaceSource(pTracer, "deposition_sink",
-     *          "Deposition")
-!        case ('CO2')
-!          call addSurfaceSource(pTracer, "fossil_fuel_src",
-!     *          "Fossil Fuel")
-!          call addSurfaceSource(pTracer, "fertilization_sink",
-!     *         "Fertilization")
-!          call addSurfaceSource(pTracer, "north_forest_regrowth_src",
-!     *         "Forest Regrow")
-!          call addSurfaceSource(pTracer, "land_use_modification",
-!     *         "Land Use")
-!          call addSurfaceSource(pTracer, "ecosystem_exchange",
-!     *         "Ecosystem Exch")
-!          call addSurfaceSource(pTracer, "ocean_exchange", "Ocean Exch")
-        case ('14CO2')
-          call addSurfaceSource(pTracer, "surface_sink", "Surface Sink")
+      ! Note: Lerner CH4 and CO2 surface sources now handled
+      ! automatically from the input files.
+      case ('N2O')
+        call addSurfaceSource(pTracer, "overwrite_at_surface",
+     *        "Overwrite")
+      case ('CFC11', 'Rn222')
+        call addSurfaceSource(pTracer, "surface_src", "Surface Src")
+      case ('O3')
+        call addSurfaceSource(pTracer, "deposition_sink",
+     *        "Deposition")
+      case ('14CO2')
+        call addSurfaceSource(pTracer, "surface_sink", "Surface Sink")
 #endif  /* TRACERS_SPECIAL_Lerner */
 
 #ifdef TRACERS_SF6
-        case ('SF6', 'SF6_c')
-          call addSurfaceSource(pTracer, "surface_src", "Surface Src")
+      case ('SF6', 'SF6_c')
+        call addSurfaceSource(pTracer, "surface_src", "Surface Src")
 #endif  /* TRACERS_SF6 */
 
 #ifdef TRACERS_TOMAS
-        case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
-     &        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
-     &        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-          call addSurfaceSource(pTracer, "SO4_src", "SO4 source")
-          call addSurfaceSource(pTracer, "EC_src", "EC source")
-          call addSurfaceSource(pTracer, "OC_src", "OC source")
+      case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
+     &      'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
+     &      'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
+        call addSurfaceSource(pTracer, "SO4_src", "SO4 source")
+        call addSurfaceSource(pTracer, "EC_src", "EC source")
+        call addSurfaceSource(pTracer, "OC_src", "OC source")
 #endif  /* TRACERS_TOMAS */
 
-        end select
+      end select
 
       end subroutine setDefaultSpec
 
