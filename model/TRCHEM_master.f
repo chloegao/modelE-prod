@@ -503,13 +503,13 @@ c Tracers (converted from mass to number density):
 #ifdef TRACERS_AEROSOLS_Koch
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
-         ydms(i,j,L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*byma(L)
-         yso2(i,j,L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*byma(L)
+         ydms(L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*byma(L) ! todo: use mair and tr_mm
+         yso2(L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*byma(L) ! todo: use mair and tr_mm
        else
          ! Convert from volume mixing ratio to molecules cm-3:
          ! (take care of factors of 10 in the input file, please):
-         ydms(i,j,L)=dms_offline(i,j,L)*y(nM,L)
-         yso2(i,j,L)=so2_offline(i,j,L)*y(nM,L)
+         ydms(L)=dms_offline(i,j,L)*y(nM,L)
+         yso2(L)=so2_offline(i,j,L)*y(nM,L)
        end if
 #endif /* TRACERS_AEROSOLS_Koch */
 
@@ -1015,7 +1015,7 @@ c       paths if lead to negative conc:
 #endif  /* TRACERS_TERP */
         rClOplusNO2=
      &    y(nClO,L)*rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)*dt2
-        rDMSplusNO3=ydms(i,j,L)*rsulf3(L)*yNO3(I,J,L)*dt2
+        rDMSplusNO3=ydms(L)*rsulf3(L)*yNO3(I,J,L)*dt2
         rBrOplusNO2=rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L) 
      &      *y(nn_BrOx,L)*pBrOx(I,J,L)*dt2
         chgHT3=rr(rrhet%ClONO2_HCl__Cl_HNO3,L)*y(nn_ClONO2,L)*dt2

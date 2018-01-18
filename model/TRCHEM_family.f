@@ -219,8 +219,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &      +rr(rrbi%ClO_OH__HCl_O2,L)*y(nClO,L)
      &      +rr(rrbi%HBr_OH__H2O_Br,L)*y(nn_HBr,L)
      &      +rr(rrbi%BrO_OH__HBr_O2,L)*y(nBrO,L)
-     &      +rsulf1(l)*ydms(i,j,l) ! oxidation of DMS
-     &      +rsulf2(l)*ydms(i,j,l) ! oxidation of SO2
+     &      +rsulf1(l)*ydms(L) ! oxidation of DMS
+     &      +rsulf2(l)*ydms(L) ! oxidation of SO2
      &    )
      &    +rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nCH3O2,L)
      &    +rr(rrbi%XO2_HO2__CH3OOH_O2,L)*y(nXO2,L)
@@ -305,7 +305,7 @@ c Now partition HOx into OH and HO2:
      &    +rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*y(nn_Terpenes,L)*0.85d0
 #endif  /* TRACERS_TERP */
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
-     &    +rsulf4(l)*yso2(i,j,l) ! SO2 oxidation
+     &    +rsulf4(l)*yso2(L) ! SO2 oxidation
      &    +rr(rrbi%ClO_OH__HO2_Cl,L)*y(nClO,L)
      &    +rr(rrbi%BrO_OH__Br_HO2,L)*y(nBrO,L)
      &    +rr(rrbi%O_OH__O2_H,L)*y(nO,L)*rktot/rHspecloss

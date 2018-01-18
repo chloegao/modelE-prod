@@ -576,7 +576,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
-     & CH4ICX,dms_offline,so2_offline,yso2,ydms,mNO2,COIC,pNO3
+     & CH4ICX,dms_offline,so2_offline,mNO2,COIC,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
      & ,readCache
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
@@ -620,6 +620,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: ydms, yso2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
       REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
@@ -725,6 +726,8 @@ C**************  Not Latitude-Dependant ****************************
       allocate(    Jacet(      topLevelOfChemistry) )
       allocate(     aero(      topLevelOfChemistry) )
       allocate(     pscX(      topLevelOfChemistry) )
+      allocate(     yso2(      topLevelOfChemistry) )
+      allocate(     ydms(      topLevelOfChemistry) )
       allocate( chemrate(n_rx, topLevelOfChemistry) )
       allocate( photrate(n_rj, topLevelOfChemistry) )
       allocate(     dest(ny,   topLevelOfChemistry) )
@@ -778,8 +781,6 @@ C**************  Not Latitude-Dependant ****************************
 #ifdef TRACERS_dCO
       allocate(   yd13CXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
-      allocate(        yso2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        ydms(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        pClx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
