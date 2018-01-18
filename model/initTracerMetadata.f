@@ -167,7 +167,8 @@
       select case (trname(n))
       case ('CH4')
         call addSurfaceSource(this=pTracer, skipReason=itsCH4MGOL,
-     &  sourceName='gsfMGOLjal_src', sourceLname='gsfMGOLjal source')
+     &  sourceName='OcnLkMiscG_src',
+     &  sourceLname='Ocean+Lake+MiscGround source')
       end select
 #endif
 
