@@ -95,7 +95,7 @@ AIC=SGP_extractions/AIC.RES_F40.D771201.nc
 O3file=SGP_extractions/o3_2005_shindelltrop_144x90x49_1850-1997_ple.nc
 
 ! Optional: if absent, dust is set to zero
-DUSTaer=SGP_extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12.nc
+DUSTaer=SGP_extractions/dust_mass_CakmurMillerJGR06_144x90x20x7x12_unlim.nc
 
 ! Optional: if absent and MADAER flag not set, aerosols are zero.
 ! If these files are omitted, rundeck parameters od_cdncx and cc_cdncx
@@ -159,7 +159,7 @@ RADN5=H2Ocont_MT_CKD
 RADN3=miescatpar.abcdv2
 RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN7=STRATAER.VOL.SATO.1850-1999.Apr02_hdr
-RADN9=solar.DBbglean.ann850-2000.uvflux_hdr
+RADN9=solar.CMIP6official.ann1850-2299.nc ! need KSOLAR=2
 RADNE=topcld.trscat8
 
 ! optional files for optional diagnostics
