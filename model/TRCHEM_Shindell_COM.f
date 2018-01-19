@@ -516,6 +516,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var sulfate N2O5 sulfate sink (formerly SRC(I,J,L,20) variable)   
 !@var dms_offline DMS concentration for HOx sink reactions
 !@var so2_offline SO2 concentration for HOx conversion reactions
+!@var so4_offline SO4 concentration for chem sulfate array
 !@var prod_sulfate  N2O5 change by sulfate reactions in mass units
 !@var wprod_sulf N2O5 change by sulfate reactions in molecules/cm3/s
 !@var DT2 variable chemical time step, set in masterchem
@@ -568,7 +569,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 #endif  /* TRACERS_dCO */
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
-     & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,sulfate,OxIC,
+     & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,
 #ifdef TRACERS_dCO
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd13CXPAR,
@@ -576,7 +577,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
-     & CH4ICX,dms_offline,so2_offline,mNO2,COIC,pNO3
+     & CH4ICX,dms_offline,so2_offline,so4_offline,mNO2,COIC,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,readCache
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
@@ -624,7 +625,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
       REAL*8, DIMENSION(LM)  :: CH4altT,CH4altX, ! stays LM
-     &                        BrOxalt,ClOxalt,ClONO2alt,HClalt
+     &               sulfate, BrOxalt,ClOxalt,ClONO2alt,HClalt
       LOGICAL                             :: prnrts=.false.,
      &                                       prnchg=.false.,
      &                                       prnls=.false.
@@ -650,7 +651,7 @@ C**************  Not Latitude-Dependant ****************************
       use tracer_com, only: ntm
       use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
-     & sulfate,COIC,OxIC,CH4ICX,dms_offline,so2_offline,yso2,ydms,
+     & COIC,OxIC,CH4ICX,dms_offline,so2_offline,so4_offline,yso2,ydms,
 #ifdef TRACERS_dCO
      & ydC217O3,ydC218O3,yd13C2O3,
      & yd13CXPAR,
@@ -796,7 +797,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(     sulfate(I_0H:I_1H,J_0H:J_1H,LM)      ) ! could be read from 3D file
+      allocate( so4_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(   readCache(I_0H:I_1H,J_0H:J_1H,LM)      )
 
       allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))

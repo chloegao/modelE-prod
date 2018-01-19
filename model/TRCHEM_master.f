@@ -158,7 +158,7 @@ C running-averages for interactive wetlands CH4:
           select case(k)
           case (1) ; dms_offline = readCache
           case (2) ; so2_offline = readCache
-          case (3) ; sulfate = readCache
+          case (3) ; so4_offline = readCache
           end select
         end do
       end if ! coupled_chem.ne.1
@@ -236,7 +236,9 @@ c
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
      &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2,ijlt_O3ppbv,ijlt_O3cmatm
      &     ,jls_ClOcon,jls_H2Ocon
+
       USE TRCHEM_Shindell_COM
+
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_aerosolphase,voc2nox,soa_apart,
      &                       whichsoa,apartmolar,LM_soa
@@ -914,17 +916,17 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
           ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
           ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
           ! layer thickness below is in 1/m units:
-          sulfate(i,j,l)=0.0
+          sulfate(L)=0.0
           do n=1,ntrSO4
-            sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n)) ! kgSO4/m2
+            sulfate(L)=sulfate(L)+trm_col(L,itrSO4(n)) ! kgSO4/m2
           enddo
         else
-          sulfate(i,j,l)=sulfate(i,j,l)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
+          sulfate(L)=so4_offline(i,j,L)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
         end if
-        sulfate(i,j,l)=sulfate(i,j,l) ! kgSO4/m2-->cm2/cm3
+        sulfate(L)=sulfate(L) ! kgSO4/m2-->cm2/cm3
      &    *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
         ! just in case loop changes (b/c sulfate is defined to LM):
-        if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
+        if(L>topLevelOfChemistry)sulfate(L)=0.d0
 
         pfactor=ma(L)/y(nM,L)
         bypfactor=1.D0/pfactor
@@ -932,7 +934,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 C       Calculate sulfate sink, and cap it at 20% of N2O5:
 c       in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
         wprod_sulf=
-     &  dt2*sulfate(I,J,L)*y(nn_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
+     &  dt2*sulfate(L)*y(nn_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
         if(pres2(L)>5.d0)then
 c       if there is reaction on strat particulate (in Crates), use that
           if(rr(rrhet%N2O5_H2O__HNO3_HNO3,L)>1.0d-25)
@@ -2611,7 +2613,8 @@ C**** GLOBAL parameters and variables:
       use ATMCOL_COM, only: tl, ma
       USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
-     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet
+     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet,
+     & so4_offline
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2842,23 +2845,23 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
             ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
             ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
             ! layer thickness below is in 1/m units:
-            sulfate(i,j,L)=0.0
+            sulfate(L)=0.0
             do n=1,ntrSO4
-              sulfate(i,j,l)=sulfate(i,j,l)+trm_col(L,itrSO4(n)) ! kgSO4/m2
-            enddo
+              sulfate(L)=sulfate(L)+trm_col(L,itrSO4(n)) ! kgSO4/m2
+            end do
           else
-            sulfate(i,j,l)=sulfate(i,j,l)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
+            sulfate(L)=so4_offline(i,j,L)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
           end if
-          sulfate(i,j,l)=sulfate(i,j,l) ! kgSO4/m2-->cm2/cm3
+          sulfate(L)=sulfate(L) ! kgSO4/m2-->cm2/cm3
      &      *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
           ! just in case loop changes (b/c sulfate is defined to LM):
-          if(L>topLevelOfChemistry)sulfate(i,j,L)=0.d0
+          if(L>topLevelOfChemistry)sulfate(L)=0.d0
 
           RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C         Calculate sulfate sink, and cap it at 20% of N2O5:
 c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           wprod_sulf=
-     &    dt2*sulfate(I,J,L)*y(nn_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
+     &    dt2*sulfate(L)*y(nn_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
 
           if(wprod_sulf>0.2d0*y(nn_N2O5,L))wprod_sulf=0.2d0*y(nn_N2O5,L)
           prod_sulf=wprod_sulf*pfactor

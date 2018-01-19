@@ -1287,7 +1287,7 @@ C**** check whether air mass is conserved
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,sulfate
+     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss
 #ifdef TRACERS_dCO
      &     ,ydC217O3,ydC218O3,yd13C2O3
      &     ,yd13CXPAR
@@ -1551,9 +1551,6 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
         call pack_data(grid,yd13CXPAR,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
 #endif  /* TRACERS_dCO */
-       header='TRACERS_SPECIAL_Shindell: sulfate(i,j,l)'
-        call pack_data(grid,sulfate,Aijl_glob) ! still global.
-        if(am_i_root())write(kunit,err=10)header,Aijl_glob
        if(coupled_chem == 1)then
          header='TRACERS_SPECIAL_Shindell: oh_live(i,j,l)'
           call pack_data(grid,oh_live,Aijl_glob) ! still global.
@@ -1757,8 +1754,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yd13CXPAR)
 #endif  /* TRACERS_dCO */
-          if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
-          call unpack_data(grid,Aijl_glob,sulfate)
           if(coupled_chem == 1)then
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,oh_live)
@@ -2002,7 +1997,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,sulfate,pNO3
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,pNO3
 #ifdef TRACERS_dCO
      &,ydC217O3,ydC218O3,yd13C2O3
      &,yd13CXPAR
@@ -2118,7 +2113,6 @@ c daily_z is currently only needed for CS
 #ifdef TRACERS_dCO
       call doVar(handle,action,yd13CXPAR,'yd13CXPAR'//ijcdims)
 #endif  /* TRACERS_dCO */
-      call doVar(handle,action,sulfate,'sulfate'//ijldims) ! stays ijldims
       if(trim(action) == 'read_dist') then
            ! read_dist is a badly chosen synonym for read
         if(is_set_param("coupled_chem"))
