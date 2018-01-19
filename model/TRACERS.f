@@ -1295,8 +1295,7 @@ C**** check whether air mass is conserved
      &     ,yd17Oald,yd18Oald,yd13Cald
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
 #endif  /* TRACERS_dCO */
-     &     ,pNO3
-     &     ,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &     ,pNO3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
@@ -1566,12 +1565,6 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
           call pack_data(grid,o3_live,Aijl_glob)! still global.
           if(am_i_root())write(kunit,err=10)header,Aijl_glob
        endif
-       header='TRACERS_SPECIAL_Shindell: SF3(i,j,l)'
-        call pack_data(grid,SF3,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: SF2(i,j,l)'
-        call pack_data(grid,SF2,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
        header='TRACERS_SPECIAL_Shindell: pClOx(i,j,l)'
         call pack_data(grid,pClOx,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1774,10 +1767,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,o3_live)
           endif
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,SF3)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,SF2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,pClOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
@@ -2021,7 +2010,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
      &,yd17Oald,yd18Oald,yd13Cald
      &,ydCH317O2,ydCH318O2,yd13CH3O2
 #endif  /* TRACERS_dCO */
-     &,SF3,SF2,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
+     &,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
@@ -2140,8 +2129,6 @@ c daily_z is currently only needed for CS
         call doVar(handle,action,no3_live,'no3_live'//ijldims) ! stays ijldims
         call doVar(handle,action,o3_live,'o3_live'//ijldims) ! stays ijldims
       endif
-      call doVar(handle,action,SF3,'SF3'//ijcdims)
-      call doVar(handle,action,SF2,'SF2'//ijcdims)
       call doVar(handle,action,pClOx,'pClOx'//ijcdims)
       call doVar(handle,action,pClx,'pClx'//ijcdims)
       call doVar(handle,action,pOClOx,'pOClOx'//ijcdims)

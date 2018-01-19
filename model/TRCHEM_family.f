@@ -271,7 +271,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 #endif  /* TRACERS_TERP */
 
         ! water vapor photolysis in SRBs (Schumann-Runge bands):
-        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(I,J,L)*y(nH2O,L)
+        if(PMIDL00(L) < 10.d0) cqqz = cqqz + 0.5d0*SF3(L)*y(nH2O,L)
 
         sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
         y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)

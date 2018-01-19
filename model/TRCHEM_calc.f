@@ -1042,7 +1042,7 @@ c Calculate water vapor change AND APPLY TO MODEL Q VARIABLE:
      &    (rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
      &      +rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
      &      +rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nCl,L))
-     &      -SF3(I,J,L)*y(nH2O,L))*dt2  
+     &      -SF3(L)*y(nH2O,L))*dt2
 C       And apply that change here and accumulate a diagnostic:
 C       --- y --- :
         y(nH2O,L)=y(nH2O,L)+changeH2O(L)
@@ -1447,7 +1447,7 @@ c (chem1prn: argument before multip is index = number of call):
      &      rr(rrbi%ClO_O__Cl_O2,Lz)*y(nClO,Lz)*y(nO,Lz),
      &      rr(rrbi%Cl_O3__ClO_O2,Lz)*y(nCl,Lz)*y(nO3,Lz),
      &      ss(rj%NO2__NO_O,Lz,i,j)*y(nNO2,Lz),sumA,
-     &      ss(rj%O2__O_O,Lz,i,j),SF2(i,j,Lz)
+     &      ss(rj%O2__O_O,Lz,i,j),SF2(Lz)
           call write_parallel(trim(out_line),crit=jay)
         end do
         write(out_line,*) ' '
@@ -2033,7 +2033,7 @@ c       rxnN1=3.8d-11*exp(85d0*bytl)*y(nOH,L)
         rxnN2=1.5d-11*exp(-3600.d0*bytl)*y(nO2,L) ! N+O2->NO+O
         rxnN3=5.8d-12*exp(220.d0*bytl)*y(nNO2,L)  ! N+NO2->N2O+O
         rxnN4=2.1d-11*exp(100.d0*bytl)*y(nNO,L)   ! N+NO->N2+O
-        NprodOx=2.0d0*SF2(I,J,L)*y(nNO,L)*dt2               
+        NprodOx=2.0d0*SF2(L)*y(nNO,L)*dt2
         NlossNOx=3.0d1*NprodOx*(rxnN3+rxnN4)/(rxnN2+rxnN3+rxnN4)
         changeL(L,n_NOx)=changeL(L,n_NOx)-NlossNOx
      &  *(rMAbyM(L))*vol2mass(n_NOx)

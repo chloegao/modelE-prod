@@ -412,12 +412,15 @@ c This is to work around initial instabilities.
         elseif(Itime-ItimeI > 30)then
           dt2=dtsrc                ! e.g. 3600
         endif
-      else 
+      else
         dt2=dtsrc
       endif
       maxPSC=0.2d0/dt2
 
       y = 0.d0
+
+      SF2 = 0.d0 ! In case anyone uses these in darkness, they
+      SF3 = 0.d0 ! won't be undefined.
 
       select case(which_trop)
       case(0); maxT=min(ltropo(I,J),topLevelOfChemistry)
@@ -726,22 +729,21 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           if(pres2(L) <= 10.)then
             if((SF3_FACT+1.3d-6) < 0.)call stop_model
      &      ('(SF3_FACT+1.3d-6) < 0 in master',255)
-            SF3(I,J,L)=(SF3_FACT+1.3d-6)*EXP(-1.d-7*colmO2**.35)
+            SF3(L)=(SF3_FACT+1.3d-6)*EXP(-1.d-7*colmO2**.35)
      &      *by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
-            ! SF3(I,J,L)=SF3(I,J,L)*5.d-2
+            ! SF3(L)=SF3(L)*5.d-2
           else
-            SF3(I,J,L)=0.d0
+            SF3(L)=0.d0
           endif
 ! SF2 is photlysis of NO in bands (0-0) and (1-0) based on Nicolet,
 ! Pl. Space Sci., p 111, 1980. SF2_fact is a ratio representative of
 ! bands (0-0) and (1-0); =  bin5_flux[present] / bin5_flux[1988] :
           if(colmO2 > 2.d19)then
-            SF2(I,J,L)=4.5d-6*EXP(-(1.d-8*colmO2**.38+5.d-19*colmO3))
+            SF2(L)=4.5d-6*EXP(-(1.d-8*colmO2**.38+5.d-19*colmO3))
           else
-            SF2(I,J,L)=4.75d-6*EXP(-1.5d-20*colmO2)
+            SF2(L)=4.75d-6*EXP(-1.5d-20*colmO2)
           endif
-          SF2(I,J,L)=SF2(I,J,L)*SF2_fact*
-     &    by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
+          SF2(L)=SF2(L)*SF2_fact*by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
         END DO
 
       endif ! (sunlight)

@@ -577,8 +577,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      & ydCH317O2,ydCH318O2,yd13CH3O2,
 #endif  /* TRACERS_dCO */
      & CH4ICX,dms_offline,so2_offline,mNO2,COIC,pNO3
-     & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2
-     & ,readCache
+     & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,readCache
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
@@ -620,7 +619,7 @@ C**************  Not Latitude-Dependant ****************************
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
-      REAL*8, ALLOCATABLE, DIMENSION(:)   :: ydms, yso2
+      REAL*8, ALLOCATABLE, DIMENSION(:)   :: ydms, yso2, SF3, SF2
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: changeL
       REAL*8, DIMENSION(n_bi+n_nst)       :: pe, ea
       REAL*8, DIMENSION(n_tri)            :: ro, r1, sn, sb
@@ -728,6 +727,8 @@ C**************  Not Latitude-Dependant ****************************
       allocate(     pscX(      topLevelOfChemistry) )
       allocate(     yso2(      topLevelOfChemistry) )
       allocate(     ydms(      topLevelOfChemistry) )
+      allocate(      SF3(      topLevelOfChemistry) )
+      allocate(      SF2(      topLevelOfChemistry) )
       allocate( chemrate(n_rx, topLevelOfChemistry) )
       allocate( photrate(n_rj, topLevelOfChemistry) )
       allocate(     dest(ny,   topLevelOfChemistry) )
@@ -787,8 +788,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(       pBrOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
       allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(         SF3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(         SF2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
       allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
