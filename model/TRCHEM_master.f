@@ -503,8 +503,8 @@ c Tracers (converted from mass to number density):
 #ifdef TRACERS_AEROSOLS_Koch
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
-         ydms(L)=trm_col(L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*byma(L) ! todo: use mair and tr_mm
-         yso2(L)=trm_col(L,n_so2)*y(nM,L)*(28.0D0/64.0D0)*byma(L) ! todo: use mair and tr_mm
+         ydms(L)=trm_col(L,n_dms)*y(nM,L)*mass2vol(n_dms)*byma(L)
+         yso2(L)=trm_col(L,n_so2)*y(nM,L)*mass2vol(n_so2)*byma(L)
        else
          ! Convert from volume mixing ratio to molecules cm-3:
          ! (take care of factors of 10 in the input file, please):
