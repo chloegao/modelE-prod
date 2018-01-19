@@ -259,7 +259,6 @@ c
 #endif  /* TRACERS_dCO */
       use photolysis, only: fastj2_drv,o3_fastj,rj
      &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
-      USE TRACER_COM, only: itrSO4
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
@@ -351,12 +350,9 @@ C**** Local parameters and variables and arguments:
 !@var jlat46 lat index relative to the rad code 72x46 grid
 !@var ilon72 lon index relative to the rad code 72x46 grid
       integer :: jlat46,ilon72
-      integer :: ntrSO4
 
 
       call modelEclock%get(hour=hour)
-
-      ntrSO4 = size(itrSO4)
 
       ! prep for/call getgas to obtain ghgmod (rad code) species for use in chemistry:
       ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
@@ -893,40 +889,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
 
       DO L=1,topLevelOfChemistry
 
-! ----------------- RGAMMASULF ---------------------------------------
-! Until more sophisticated method arrives, or when aerosol tracers are
-! off, use method recommended by Faye, based on Kane et al., JPC, 2001
-! and Hallquist et al., PCCP, 2003:
-! For RH>50%, gamma=0.015. For RH <=50%:
-! T<=290K, gamma=0.052 - 2.79d-4*RH [RH in percent]
-! T>290K, gamma=above - log10(T-290)*0.05 [minimum gamma=0.001]
-!
-        if(rh(L)>0.5)then
-          rgammasulf = 1.5d-2
-        else
-          rgammasulf = 5.2d-2 - 2.79d-4*100.d0*rh(L)
-          if(tl(L)>290.) rgammasulf=
-     &    max(1.d-3,rgammasulf-log10(tl(L)-290.d0)*5.d-2)
-        end if
-! --------------------------------------------------------------------
-        if (coupled_chem == 1) then
-          ! Convert SO4 from mass (kg/m2) to aerosol surface per grid box:
-          ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
-          ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
-          ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
-          ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
-          ! layer thickness below is in 1/m units:
-          sulfate(L)=0.0
-          do n=1,ntrSO4
-            sulfate(L)=sulfate(L)+trm_col(L,itrSO4(n)) ! kgSO4/m2
-          enddo
-        else
-          sulfate(L)=so4_offline(i,j,L)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
-        end if
-        sulfate(L)=sulfate(L) ! kgSO4/m2-->cm2/cm3
-     &    *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
-        ! just in case loop changes (b/c sulfate is defined to LM):
-        if(L>topLevelOfChemistry)sulfate(L)=0.d0
+        call updateSulfate(i,j,L,rh(L),bythick(L),sulfate(L),rgammasulf)
 
         pfactor=ma(L)/y(nM,L)
         bypfactor=1.D0/pfactor
@@ -2638,7 +2601,6 @@ C**** GLOBAL parameters and variables:
       USE TRACER_COM, only: n_ASO4,nbins
 #endif
       USE GEOM, only : lat2d_dg
-      USE TRACER_COM, only: itrSO4
 
       IMPLICIT NONE
 
@@ -2663,12 +2625,10 @@ C**** Local parameters and variables and arguments:
       REAL*8, DIMENSION(LM) :: PRES ! = PMIDL00(1:LM). Keeps LM dimension not top of chem
       INTEGER               :: LAXt,LAXb
       real*8, allocatable, dimension(:) :: PSCEX,rkext
-      integer :: n,ntrSO4
+      integer :: n
 
       allocate( PSCEX(topLevelOfChemistry) )
       allocate( rkext(topLevelOfChemistry) )
-
-      ntrSO4 = size(itrSO4)
 
       aero(:)=0
       PRES(1:LM) = PMIDL00(1:LM)
@@ -2829,33 +2789,10 @@ c coefficients(in km**-1) are from SAGE II data on GISS web site:
           do jj=n_bi+n_nst+n_tri+1,n_bi+n_nst+n_tri+n_het
             if (jj == rrhet%N2O5_H2O__HNO3_HNO3) cycle
             rr(jj,L)=1.0d-35
-          enddo 
+          enddo
           ! Add rxn of N2O5 on sulfate analogous to what is done in darkness:
-          if(rh(L)>0.5)then
-            rgammasulf = 1.5d-2
-          else
-            rgammasulf = 5.2d-2 - 2.79d-4*100.d0*rh(L)
-            if(tl(L)>290.) rgammasulf=
-     &      max(1.d-3,rgammasulf-log10(tl(L)-290.d0)*5.d-2)
-          end if
-          if (coupled_chem == 1) then
-            ! Convert SO4 from mass (kg/m2) to aerosol surface per grid box:
-            ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
-            ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
-            ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
-            ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
-            ! layer thickness below is in 1/m units:
-            sulfate(L)=0.0
-            do n=1,ntrSO4
-              sulfate(L)=sulfate(L)+trm_col(L,itrSO4(n)) ! kgSO4/m2
-            end do
-          else
-            sulfate(L)=so4_offline(i,j,L)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
-          end if
-          sulfate(L)=sulfate(L) ! kgSO4/m2-->cm2/cm3
-     &      *1.76d2*bythick(L)*max(0.1d0,rh(L)*1.33333d0)
-          ! just in case loop changes (b/c sulfate is defined to LM):
-          if(L>topLevelOfChemistry)sulfate(L)=0.d0
+          call updateSulfate
+     &     (i,j,L,rh(L),bythick(L),sulfate(L),rgammasulf)
 
           RVELN2O5=SQRT(tl(L)*RKBYPIM)*100.d0
 C         Calculate sulfate sink, and cap it at 20% of N2O5:
@@ -2869,7 +2806,7 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
      &                   -1.d0*prod_sulf*vol2mass(n_N2O5))
           rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=wprod_sulf/(dt2*y(nn_N2O5,L))
 
-        else  
+        else
 
           if((pres(l) < 245.d0.and.pres(l) > 150.d0) .or. 
      &    LAXb < 1.or.LAXb > topLevelOfChemistry .or.
@@ -2992,5 +2929,60 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
  
       RETURN
       END SUBROUTINE Crates
+
+
+      subroutine updateSulfate(i,j,L,rh,byth,so4,rgam)
+      !@sum updateSulfate to fill in sulfate surface area density array
+      !@+ at one level
+      !@auth Greg Faluvegi from Drew Shindell (masterchem and Crates)
+      use atmcol_com, only: tl,ma
+      use trchem_shindell_com, only: topLevelOfChemistry, so4_offline
+      use tracer_com, only: trm_col, coupled_chem, itrSO4
+      implicit none
+      !@var rh chemistry-calculated relative humidity at L
+      !@var byth chemistry-calculated reciprical layer thickness (m-1)
+      !@var so4 sulfate surface area density to return (cm2 cm-3)
+      !@var rgam RGAMMASULF to return
+      integer :: n
+      integer, intent(in) :: i,j,L
+      real*8, intent(in) :: rh, byth
+      real*8 :: so4, rgam
+      ! ----------------- RGAMMASULF -----------------------------------
+      ! Until a more sophisticated method arrives, or when aerosol
+      ! tracers are off, use method recommended by Faye, based on Kane
+      ! et al., JPC, 2001 and Hallquist et al., PCCP, 2003:
+      ! For RH > 50%, gamma=0.015. 
+      ! For RH <=50%:
+      ! T <= 290K, gamma=0.052 - 2.79d-4*RH [RH in percent]
+      ! T > 290K, gamma=above - log10(T-290)*0.05 [minimum gamma=0.001]
+      if(rh > 0.5) then
+        rgam = 1.5d-2
+      else
+        rgam = 5.2d-2 - 2.79d-4 * 100.d0 * rh
+        if(tl(L) > 290.) then
+          rgam=max(1.d-3,rgam-log10(tl(L)-290.d0)*5.d-2)
+        end if
+      end if
+      ! ----------------------------------------------------------------
+      if (coupled_chem == 1) then
+        ! Convert SO4 from mass (kg/m2) to aerosol surface density:
+        ! Here there is a factor of 1d-3  that converts kg/m3 to g/cm3
+        ! and 1.76d5 is cm2/g from Dentener and Crutzen, 1993.
+        ! So 1.d-3*1.76d5=1.76d2, and that value is for a relative
+        ! humidity of 0.75 (1/0.75 = 1.33333d0 below). Reciprocal
+        ! layer thickness below is in 1/m units:
+        so4=0.0
+        do n=1,size(itrSO4)
+          so4=so4+trm_col(L,itrSO4(n)) ! kgSO4/m2
+        end do
+      else
+        so4=so4_offline(i,j,L)*ma(L) ! kgSO4/kgAir-->kgSO4/m2
+      end if
+      ! convert kgSO4/m2-->cm2/cm3:
+      so4=so4 * 1.76d2 * byth * max(0.1d0,rh*1.33333d0)
+      ! Sulfate array dimensioned LM, set to 0 above chemistry:
+      if(L > topLevelOfChemistry) so4=0.d0
+      return
+      end subroutine updateSulfate
 
 
