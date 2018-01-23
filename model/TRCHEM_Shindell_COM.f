@@ -748,47 +748,41 @@ C**************  Not Latitude-Dependant ****************************
       allocate( d18Oacetone(topLevelOfChemistry) )
       allocate( d13Cacetone(topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
+
+      allocate(        pHOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(        pNOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(        pNO3(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(         pOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(       pClOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(        pClx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(      pOClOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(       pBrOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+
       allocate(        yNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        pHOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        pNOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        pNO3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(         pOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(      yCH3O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
 #ifdef TRACERS_dCO
       allocate(   ydCH317O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(   ydCH318O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(   yd13CH3O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#endif  /* TRACERS_dCO */
-      allocate(       yC2O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#ifdef TRACERS_dCO
+      allocate(   yd13CXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    ydC217O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    ydC218O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    yd13C2O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#endif  /* TRACERS_dCO */
-      allocate(        yROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#ifdef TRACERS_dCO
       allocate(    yd17OROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    yd18OROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    yd13CROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#endif  /* TRACERS_dCO */
-      allocate(        yXO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(   yAldehyde(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#ifdef TRACERS_dCO
       allocate(    yd17Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    yd18Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(    yd13Cald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
-      allocate(       yXO2N(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(      yRXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#ifdef TRACERS_dCO
-      allocate(   yd13CXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-#endif  /* TRACERS_dCO */
-      allocate(       pClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        pClx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(      pOClOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
-      allocate(       pBrOx(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(        yCl2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) 
-      allocate(      yCl2O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
       allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )

@@ -60,50 +60,43 @@ c Set up arrays of reaction numbers involving each molecule:
 C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
       IF(Itime == ItimeI .and. allowSomeChemReinit == 1) THEN
         ! allowSomeChemReinit condition b/c these are in RSF files:
-        pHOx(I_0:I_1,J_0:J_1,:)     =1.d0
-        pOx(I_0:I_1,J_0:J_1,:)      =1.d0
-        pNOx(I_0:I_1,J_0:J_1,:)     =1.d0
-        pNO3(I_0:I_1,J_0:J_1,:)     =0.d0
+        pHOx(:,I_0:I_1,J_0:J_1)     =1.d0
+        pOx(:,I_0:I_1,J_0:J_1)      =1.d0
+        pNOx(:,I_0:I_1,J_0:J_1)     =1.d0
+        pNO3(:,I_0:I_1,J_0:J_1)     =0.d0
+        pClOx(:,I_0:I_1,J_0:J_1)    =1.d0
+        pClx(:,I_0:I_1,J_0:J_1)     =0.d0
+        pOClOx(:,I_0:I_1,J_0:J_1)   =0.d0
+        pBrOx(:,I_0:I_1,J_0:J_1)    =1.d0
+
         yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0
+        yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
+        yROR(I_0:I_1,J_0:J_1,:)     =0.d0
+        yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
+        yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
+        yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
+        yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
+        yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
+        yCl2(I_0:I_1,J_0:J_1,:)     =0.d0
+        yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
 #ifdef TRACERS_dCO
         ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
         ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
         yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
-#endif  /* TRACERS_dCO */
-        yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
-#ifdef TRACERS_dCO
         ydC217O3(I_0:I_1,J_0:J_1,:) =0.d0
         ydC218O3(I_0:I_1,J_0:J_1,:) =0.d0
         yd13C2O3(I_0:I_1,J_0:J_1,:) =0.d0
-#endif  /* TRACERS_dCO */
-        yROR(I_0:I_1,J_0:J_1,:)     =0.d0
-#ifdef TRACERS_dCO
         yd17OROR(I_0:I_1,J_0:J_1,:) =0.d0
         yd18OROR(I_0:I_1,J_0:J_1,:) =0.d0
         yd13CROR(I_0:I_1,J_0:J_1,:) =0.d0
-#endif  /* TRACERS_dCO */
-        yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
-        yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
-#ifdef TRACERS_dCO
         yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
         yd18Oald(I_0:I_1,J_0:J_1,:) =0.d0
         yd13Cald(I_0:I_1,J_0:J_1,:) =0.d0
-#endif  /* TRACERS_dCO */
-        yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
-        yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
-        yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
-#ifdef TRACERS_dCO
         yd13CXPAR(I_0:I_1,J_0:J_1,:)=0.d0
 #endif  /* TRACERS_dCO */
         oh_live(I_0:I_1,J_0:J_1,:)  =0.d0
         no3_live(I_0:I_1,J_0:J_1,:) =0.d0
         o3_live(I_0:I_1,J_0:J_1,:)  =0.d0
-        pClOx(I_0:I_1,J_0:J_1,:)    =1.d0
-        pClx(I_0:I_1,J_0:J_1,:)     =0.d0
-        pOClOx(I_0:I_1,J_0:J_1,:)   =0.d0
-        pBrOx(I_0:I_1,J_0:J_1,:)    =1.d0
-        yCl2(I_0:I_1,J_0:J_1,:)     =0.d0
-        yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
       END IF
 
       if(Itime == ItimeI)then

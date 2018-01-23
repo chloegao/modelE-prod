@@ -335,8 +335,8 @@ C  Check for species-dependant corrections to drydep parameters:
           ! For NOx, sum deposition for NO and NO2
           ! HSTAR: NO2 = 0.01, NO = 0.002, F0: NO2 = 0.1, NO = 0.0
           if(trname(K) == 'NOx')then
-             HSTAR(K)=pNOx(i,j,1)*0.01d0+(1.-pNOx(i,j,1))*2.d-3
-             F0(K)=pNOx(i,j,1)*1.d-1
+             HSTAR(K)=pNOx(1,i,j)*0.01d0+(1.-pNOx(1,i,j))*2.d-3
+             F0(K)=pNOx(1,i,j)*1.d-1
           endif 
 #endif
         end if

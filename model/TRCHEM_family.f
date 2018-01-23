@@ -58,7 +58,7 @@ c       for concentration of O:
         if(y(nO1D,L) < 0.)y(nO1D,L)=0.d0
         if(y(nO3,L) < 1.) y(nO3,L) =1.d0
         if(y(nn_Ox,L) < 1.)y(nn_Ox,L)=1.d0
-        pOx(I,J,L)=y(nO3,L)/y(nn_Ox,L)
+        pOx(L,I,J)=y(nO3,L)/y(nn_Ox,L)
       end do
 c
       return
@@ -137,8 +137,8 @@ C       Set limits on NO, NO2, NOx:
         if(y(nNO,L)   < 1.)   y(nNO,L) = 1.d0
         if(y(nNO2,L)  < 1.)  y(nNO2,L) = 1.d0
         if(y(nn_NOx,L) < 1.) y(nn_NOx,L) = 1.d0
-        pNOx(I,J,L)=y(nNO2,L)/y(nn_NOx,L)
-        pNO3(I,J,L)=yNO3(I,J,L)/y(nn_NOx,L)
+        pNOx(L,I,J)=y(nNO2,L)/y(nn_NOx,L)
+        pNO3(L,I,J)=yNO3(I,J,L)/y(nn_NOx,L)
         y(nNO3,L)=yNO3(I,J,L)
         y(nHONO,L)=1.d0
       end do
@@ -191,13 +191,13 @@ c A: loss rxns with HOx**2
 c B: loss rxns linear in HOx
 c C: prod equations
 c all: in terms of HO2 (so *pHOx when OH is reactant)
-        aqqz=2.d0*(pHOx(I,J,L)*rr(rrbi%OH_HO2__H2O_O2,L)
-     &    +pHOx(I,J,L)*pHOx(I,J,L)
+        aqqz=2.d0*(pHOx(L,I,J)*rr(rrbi%OH_HO2__H2O_O2,L)
+     &    +pHOx(L,I,J)*pHOx(L,I,J)
      &      *(rr(rrbi%OH_OH__H2O_O,L)
      &        +rr(rrtri%OH_OH__H2O2_M,L))
      &      +rr(rrbi%HO2_HO2__H2O2_O2,L))
 
-        bqqz=pHOx(I,J,L)
+        bqqz=pHOx(L,I,J)
      &    *(rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nn_CH4,L)
      &      +rr(rrbi%OH_HNO3__H2O_NO3,L)*y(nn_HNO3,L)
      &      +rr(rrtri%OH_NO2__HNO3_M,L)*y(nNO2,L)
@@ -275,7 +275,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
 
         sqroot=sqrt(bqqz*bqqz+4.d0*aqqz*cqqz)
         y(nHO2,L)=(sqroot-bqqz)/(2.d0*aqqz)
-        y(nOH,L)=pHOx(I,J,L)*y(nHO2,L)
+        y(nOH,L)=pHOx(L,I,J)*y(nHO2,L)
         temp_yHOx=y(nOH,L)+y(nHO2,L)
 
 c Include loss of OH into atomic H using production
@@ -331,7 +331,7 @@ c which also produces HO2 and R15 then S4/(S4+S14) fraction.
         if(y(nOH,L) < 1.d0)y(nOH,L)=1.d0
         if(y(nHO2,L) < 1.d0)y(nHO2,L)=1.d0
         if(y(nHO2,L) > 1.d12)y(nHO2,L)=1.d12
-        pHOx(I,J,L)=y(nOH,L)/y(nHO2,L)
+        pHOx(L,I,J)=y(nOH,L)/y(nHO2,L)
 
       end do
 
@@ -378,9 +378,9 @@ c Set Cl2 and default Cl2O2:
         y(nCl2O2,L)=yCl2O2(I,J,L)   ! non-zero at low temp, see below
 
 c Full ClOxfam code from offline photochemistry:
-        y(nClO,L)=y(nn_ClOx,L)*pClOx(I,J,L)
-        y(nOClO,L)=y(nn_ClOx,L)*pOClOx(I,J,L)
-        y(nCl,L)=y(nn_ClOx,L)*pClx(I,J,L)
+        y(nClO,L)=y(nn_ClOx,L)*pClOx(L,I,J)
+        y(nOClO,L)=y(nn_ClOx,L)*pOClOx(L,I,J)
+        y(nCl,L)=y(nn_ClOx,L)*pClx(L,I,J)
         if(y(nn_ClOx,L) == 0) CYCLE
 
 c Low temperature stabilizes ClO dimer, use [Cl2O2] only for
@@ -514,9 +514,9 @@ c Normalize so that amount of ClOx doesn't change:
           y(nOClO,L)=y(nOClO,L)*rnormnum
         end if
 
-        pClOx(I,J,L)=y(nClO,L)/y(nn_ClOx,L)
-        pClx(I,J,L)=y(nCl,L)/y(nn_ClOx,L)
-        pOClOx(I,J,L)=y(nOClO,L)/y(nn_ClOx,L)
+        pClOx(L,I,J)=y(nClO,L)/y(nn_ClOx,L)
+        pClx(L,I,J)=y(nCl,L)/y(nn_ClOx,L)
+        pOClOx(L,I,J)=y(nOClO,L)/y(nn_ClOx,L)
 
       end do  ! end of stratosphere loop
 
@@ -584,7 +584,7 @@ C**** Local parameters and variables and arguments:
         if(y(nBr,L) > 1d9) y(nBr,L)   =0.d0
         if(y(nBrO,L) > 1d9)y(nBrO,L)  =0.d0
         if(y(nn_BrOx,L) < 1)y(nn_BrOx,L)=1.d0
-        pBrOx(I,J,L)=y(nBrO,L)/y(nn_BrOx,L)
+        pBrOx(L,I,J)=y(nBrO,L)/y(nn_BrOx,L)
       end do ! end of stratosphere loop
 
       return

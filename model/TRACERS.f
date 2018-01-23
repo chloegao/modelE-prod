@@ -1336,7 +1336,7 @@ C**** check whether air mass is conserved
 #endif  /* BC_ALB */
 #ifdef TRACERS_SPECIAL_Shindell
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
-      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem
+      REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem, Alij_chem
 #ifdef INTERACTIVE_WETLANDS_CH4 
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
      &     rHch4,rDch4,r0ch4,rfirst_mod
@@ -1396,7 +1396,8 @@ C**** check whether air mass is conserved
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
      &    ss_glob(n_rj,topLevelOfChemistry,img,jmg)
-     &    ,Aijl_chem(img,jmg,topLevelOfChemistry) )
+     &    ,Aijl_chem(img,jmg,topLevelOfChemistry)
+     &    ,Alij_chem(topLevelOfChemistry,img,jmg) )
 #ifdef INTERACTIVE_WETLANDS_CH4
       allocate(
      &     day_ncep_glob(img,jmg,max_days,nra_ncep)
@@ -1462,25 +1463,25 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
         if(am_i_root())write(kunit,err=10)header,snosiz_glob
 #endif  /* BC_ALB */
 
-#ifdef TRACERS_SPECIAL_Shindell       
+#ifdef TRACERS_SPECIAL_Shindell
        header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
         call pack_block(grid,ss(:,:,:,:),ss_glob(:,:,:,:))
         if(am_i_root())write(kunit,err=10)header,ss_glob
        header='TRACERS_SPECIAL_Shindell: yNO3(i,j,l)'
         call pack_data(grid,yNO3,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pHOx(i,j,l)'
-        call pack_data(grid,pHOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pNOx(i,j,l)'
-        call pack_data(grid,pNOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pNO3(i,j,l)'
-        call pack_data(grid,pNO3,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pOx(i,j,l)'
-        call pack_data(grid,pOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: pHOx(L,i,j)'
+        call pack_column(grid,pHOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pNOx(L,i,j)'
+        call pack_column(grid,pNOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pNO3(L,i,j)'
+        call pack_column(grid,pNO3,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pOx(L,i,j)'
+        call pack_column(grid,pOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
        header='TRACERS_SPECIAL_Shindell: yCH3O2(i,j,l)'
         call pack_data(grid,yCH3O2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1562,18 +1563,18 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
           call pack_data(grid,o3_live,Aijl_glob)! still global.
           if(am_i_root())write(kunit,err=10)header,Aijl_glob
        endif
-       header='TRACERS_SPECIAL_Shindell: pClOx(i,j,l)'
-        call pack_data(grid,pClOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pClx(i,j,l)'
-        call pack_data(grid,pClx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pOClOx(i,j,l)'
-        call pack_data(grid,pOClOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
-       header='TRACERS_SPECIAL_Shindell: pBrOx(i,j,l)'
-        call pack_data(grid,pBrOx,Aijl_chem)
-        if(am_i_root())write(kunit,err=10)header,Aijl_chem
+       header='TRACERS_SPECIAL_Shindell: pClOx(L,i,j)'
+        call pack_column(grid,pClOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pClx(L,i,j)'
+        call pack_column(grid,pClx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pOClOx(L,i,j)'
+        call pack_column(grid,pOClOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
+       header='TRACERS_SPECIAL_Shindell: pBrOx(L,i,j)'
+        call pack_column(grid,pBrOx,Alij_chem)
+        if(am_i_root())write(kunit,err=10)header,Alij_chem
        header='TRACERS_SPECIAL_Shindell: yCl2(i,j,l)'
         call pack_data(grid,yCl2,Aijl_chem)
         if(am_i_root())write(kunit,err=10)header,Aijl_chem
@@ -1691,19 +1692,19 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
           call unpack_data(grid,snosiz_glob(:,:),snosiz(:,:))
 #endif  /* BC_ALB */
 
-#ifdef TRACERS_SPECIAL_Shindell       
+#ifdef TRACERS_SPECIAL_Shindell
           if(am_i_root())read(kunit,err=10)header,ss_glob
           call unpack_block(grid,ss_glob(:,:,:,:),ss(:,:,:,:))
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yNO3)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pHOx)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pNOx)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pNO3)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pHOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pNOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pNO3)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCH3O2)
 #ifdef TRACERS_dCO
@@ -1762,14 +1763,14 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
             if(am_i_root())read(kunit,err=10)header,Aijl_glob ! stays global.
             call unpack_data(grid,Aijl_glob,o3_live)
           endif
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pClOx)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pClx)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pOClOx)
-          if(am_i_root())read(kunit,err=10)header,Aijl_chem
-          call unpack_data(grid,Aijl_chem,pBrOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pClOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pClx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pOClOx)
+          if(am_i_root())read(kunit,err=10)header,Alij_chem
+          call unpack_column(grid,Alij_chem,pBrOx)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
           call unpack_data(grid,Aijl_chem,yCl2)
           if(am_i_root())read(kunit,err=10)header,Aijl_chem
@@ -1859,8 +1860,8 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
-      deallocate(ss_glob,Aijl_chem)
-#ifdef INTERACTIVE_WETLANDS_CH4 
+      deallocate(ss_glob,Aijl_chem,Alij_chem)
+#ifdef INTERACTIVE_WETLANDS_CH4
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
 #endif
@@ -2046,12 +2047,14 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       character(len=:), allocatable :: ijldims
 #ifdef TRACERS_SPECIAL_Shindell
       character(len=:), allocatable :: ijcdims
+      character(len=:), allocatable :: cijdims
 #endif
       integer :: n
 
       ijldims='(dist_im,dist_jm,lm)' 
 #ifdef TRACERS_SPECIAL_Shindell
       ijcdims='(dist_im,dist_jm,topLevelOfChemistry)'
+      cijdims='(topLevelOfChemistry,dist_im,dist_jm)'
 #endif
       handle = ParallelIo(grid, fid)
 
@@ -2072,17 +2075,17 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,daily_z,'daily_z'//ijldims)
 #endif
 
-#ifdef TRACERS_SPECIAL_Shindell       
+#ifdef TRACERS_SPECIAL_Shindell
 
       handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
 
       call doVar(handle,action,ss,
      & 'ss(n_rj,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
       call doVar(handle,action,yNO3,'yNO3'//ijcdims)
-      call doVar(handle,action,pHOx,'pHOx'//ijcdims)
-      call doVar(handle,action,pNOx,'pNOx'//ijcdims)
-      call doVar(handle,action,pNO3,'pNO3'//ijcdims)
-      call doVar(handle,action,pOx ,'pOx'//ijcdims)
+      call doVar(handle,action,pHOx,'pHOx'//cijdims,jdim=3)
+      call doVar(handle,action,pNOx,'pNOx'//cijdims,jdim=3)
+      call doVar(handle,action,pNO3,'pNO3'//cijdims,jdim=3)
+      call doVar(handle,action,pOx ,'pOx'//cijdims,jdim=3)
       call doVar(handle,action,yCH3O2,'yCH3O2'//ijcdims)
 #ifdef TRACERS_dCO
       call doVar(handle,action,ydCH317O2,'ydCH317O2'//ijcdims)
@@ -2123,10 +2126,10 @@ c daily_z is currently only needed for CS
         call doVar(handle,action,no3_live,'no3_live'//ijldims) ! stays ijldims
         call doVar(handle,action,o3_live,'o3_live'//ijldims) ! stays ijldims
       endif
-      call doVar(handle,action,pClOx,'pClOx'//ijcdims)
-      call doVar(handle,action,pClx,'pClx'//ijcdims)
-      call doVar(handle,action,pOClOx,'pOClOx'//ijcdims)
-      call doVar(handle,action,pBrOx,'pBrOx'//ijcdims)
+      call doVar(handle,action,pClOx,'pClOx'//cijdims,jdim=3)
+      call doVar(handle,action,pClx,'pClx'//cijdims,jdim=3)
+      call doVar(handle,action,pOClOx,'pOClOx'//cijdims,jdim=3)
+      call doVar(handle,action,pBrOx,'pBrOx'//cijdims,jdim=3)
       call doVar(handle,action,yCl2,'yCl2'//ijcdims)
       call doVar(handle,action,yCl2O2,'yCl2O2'//ijcdims)
 

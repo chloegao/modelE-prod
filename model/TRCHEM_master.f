@@ -564,11 +564,11 @@ c - set reactive species for use in family chemistry & nighttime NO2:
          y(nd13Cald,L)=yd13Cald(I,J,L)
 #endif  /* TRACERS_dCO */
        endif
-       yNO3(I,J,L)   =pNO3(I,J,L)*y(nn_NOx,L)
-       y(nNO2,L)     =y(nn_NOx,L)*pNOx(I,J,L)
+       yNO3(I,J,L)   =pNO3(L,I,J)*y(nn_NOx,L)
+       y(nNO2,L)     =y(nn_NOx,L)*pNOx(L,I,J)
        y(nNO,L)      =y(nn_NOx,L)-(y(nNO2,L)+yNO3(I,J,L))
        if(y(nNO,L) < 1.d0)y(nNO,L)=1.d0
-       y(nO3,L)      =pOx(I,J,L)*y(nn_Ox,L)
+       y(nO3,L)      =pOx(L,I,J)*y(nn_Ox,L)
        y(nCH3O2,L)   =yCH3O2(I,J,L)
 #ifdef TRACERS_dCO
        y(ndCH317O2,L)=ydCH317O2(I,J,L)
@@ -595,11 +595,11 @@ c - set reactive species for use in family chemistry & nighttime NO2:
 #endif  /* TRACERS_dCO */
        y(nCl2,L)     =yCl2(I,J,L)
        y(nCl2O2,L)   =yCl2O2(I,J,L)
-       y(nOClO,L)    =y(nn_ClOx,L)*pOClOx(I,J,L)
-       y(nClO,L)     =y(nn_ClOx,L)*pClOx(I,J,L)
-       y(nCl,L)      =y(nn_ClOx,L)*pClx(I,J,L)
-       y(nBr,L)      =y(nn_BrOx,L)*(1.d0-pBrOx(I,J,L))
-       y(nBrO,L)     =y(nn_BrOx,L)*pBrOx(I,J,L)
+       y(nOClO,L)    =y(nn_ClOx,L)*pOClOx(L,I,J)
+       y(nClO,L)     =y(nn_ClOx,L)*pClOx(L,I,J)
+       y(nCl,L)      =y(nn_ClOx,L)*pClx(L,I,J)
+       y(nBr,L)      =y(nn_BrOx,L)*(1.d0-pBrOx(L,I,J))
+       y(nBrO,L)     =y(nn_BrOx,L)*pBrOx(L,I,J)
       END DO ! L
 
 C For solar zenith angle, we use the arccosine of the COSZ1
@@ -932,7 +932,7 @@ C*****************************************************************
 c       calculate NO3 vs NO2 (assume no NO at night)
         do itemp_iter=1,5
           rprodNO3=rr(rrbi%NO2_O3__NO3_O2,L)*y(nNO2,L)*y(nn_Ox,L)
-     &      *pOx(I,J,L)
+     &      *pOx(L,I,J)
           rlossNO3=(2.d0*rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(I,J,L))
      &        *yNO3(I,J,L)
      &      -(rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L))
@@ -945,8 +945,8 @@ c       calculate NO3 vs NO2 (assume no NO at night)
           yNO3(I,J,L)=pNO3temp*y(nn_NOx,L)
           y(nNO2,L)=y(nn_NOx,L)-yNO3(I,J,L)
         end do
-        pNOx(I,J,L)=y(nNO2,L)/y(nn_NOx,L)
-        pNO3(I,J,L)=yNO3(I,J,L)/y(nn_NOx,L)
+        pNOx(L,I,J)=y(nNO2,L)/y(nn_NOx,L)
+        pNO3(L,I,J)=yNO3(I,J,L)/y(nn_NOx,L)
 
 c       set reaction rates, then limit any uniformly across all
 c       paths if lead to negative conc:
@@ -984,7 +984,7 @@ c       paths if lead to negative conc:
      &    y(nClO,L)*rr(rrtri%ClO_NO2__ClONO2_M,L)*y(nNO2,L)*dt2
         rDMSplusNO3=ydms(L)*rsulf3(L)*yNO3(I,J,L)*dt2
         rBrOplusNO2=rr(rrtri%BrO_NO2__BrONO2_M,L)*y(nNO2,L) 
-     &      *y(nn_BrOx,L)*pBrOx(I,J,L)*dt2
+     &      *y(nn_BrOx,L)*pBrOx(L,I,J)*dt2
         chgHT3=rr(rrhet%ClONO2_HCl__Cl_HNO3,L)*y(nn_ClONO2,L)*dt2
         changehetClONO2=
      &    -1.d0*(rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)*y(nn_ClONO2,L))*dt2
@@ -1313,7 +1313,7 @@ c       Nighttime changes in Bromine-containing species
 
 c       Br+H2O2 converts to HBr+HO2. HO2 assumed to revert to H2O2
         changeBrOx2=-rr(rrbi%Br_H2O2__HBr_HO2,L)*y(nn_H2O2,L)
-     &    *y(nn_BrOx,L)*(1.d0-pBrOx(I,J,L))*dt2
+     &    *y(nn_BrOx,L)*(1.d0-pBrOx(L,I,J))*dt2
         if(-1.d0*changeBrOx2>0.2d0*y(nn_BrOx,L))
      &    changeBrOx2=-0.2d0*y(nn_BrOx,L)
         changeBrOx=changeBrOx+changeBrOx2
@@ -1617,7 +1617,7 @@ C Make sure we get the nightime values; Set OH to zero for now:
 
 c --  Ox --   ( Ox from gas phase rxns)
         changeOx=-1.d0*rr(rrbi%NO2_O3__NO3_O2,L)*y(nNO2,L)*y(nn_Ox,L)
-     &    *pOx(I,J,L)*dt2
+     &    *pOx(L,I,J)*dt2
         changeL(L,n_Ox)=changeOx*pfactor*vol2mass(n_Ox)
         IF((trm_col(L,n_Ox)+changeL(L,n_Ox)) < minKG) THEN
           changeL(L,n_Ox) = minKG - trm_col(L,n_Ox)
@@ -1868,7 +1868,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
               ! layer thickness in cm:
               thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
               taijs(i,j,index1)=taijs(i,j,index1)+thick*
-     &        pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
+     &        pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
               if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
             end if
 
@@ -1883,7 +1883,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
           ! layer thickness in cm:
           thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
           save_NO2column(i,j) = save_NO2column(i,j)+
-     &    thick*pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)
+     &    thick*pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
         end if
 
 #ifdef ACCMIP_LIKE_DIAGS
@@ -1919,11 +1919,11 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         !Save 3D NO2 separately from NOx (pppv here):
         ! need to add NOx change to match the NOx tracer diag:
         taijls(i,j,l,ijlt_NO2vmr)=taijls(i,j,l,ijlt_NO2vmr)+
-     &  pNOx(i,j,l)*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
+     &  pNOx(L,i,j)*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
 
         !Save 3D NO separately from NOx (pppv here):
         ! need to add NOx change to match the NOx tracer diag:
-        pNOloc=1.d0-pNOx(i,j,L)-pNO3(i,j,L)
+        pNOloc=1.d0-pNOx(L,i,j)-pNO3(L,i,j)
         if(pNOloc > 0.d0)then
           taijls(i,j,l,ijlt_NOvmr)=taijls(i,j,l,ijlt_NOvmr)+
      &    pNOloc*(y(nn_NOx,l)+tempChangeNOx)/y(nM,l)
@@ -1941,10 +1941,10 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         ! input anyway) further on in code below:
         if(L <= topLevelOfChemistry) then
           taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
-     &    1.e9*pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
+     &    1.e9*pOx(L,i,j)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
           CALL INC_TAJLS2  ! (V/V air)
      &    (I,J,L,jls_O3vmr,ma(L)*
-     &         pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
+     &         pOx(L,i,j)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L))
         end if
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -1959,10 +1959,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         ! Note that for a long time the NON-Cached version of this used to
         ! neglect +tempChangeNOx. That term is needed to match the
         ! NOx tracer values:
-        mNO2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        mNO2(i,j,L)=pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
 #ifdef CACHED_SUBDD
-        mrno2(i,j,L)=pNOx(i,j,L)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
-        pNOloc=1.d0-pNOx(i,j,L)-pNO3(i,j,L)
+        mrno2(i,j,L)=pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
+        pNOloc=1.d0-pNOx(L,i,j)-pNO3(L,i,j)
         if(pNOloc > 0.d0)then
           mrno(i,j,L)=pNOloc*(y(nn_NOx,L)+tempChangeNOx)/y(nM,L)
         else
@@ -1970,7 +1970,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           ! of local pNO (e.g. at night)
           mrno(i,j,L)=0.d0
         end if
-        mro3(i,j,L)=pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
+        mro3(i,j,L)=pOx(L,i,j)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
         OH_conc(i,j,l)=y(nOH,L)
         HO2_conc(i,j,l)=y(nHO2,L)
 #endif
@@ -2096,7 +2096,7 @@ c (radiation code wants atm-cm units):
             ! (likely, depending on rundeck settings, your Ox above
             ! the top of the chemistry is actually NINT O3 anyway):
         if(L <= topLevelOfChemistry) chem_tracer_save(1,L,i,j)=
-     &                          pOx(i,j,L)*chem_tracer_save(1,L,i,j)
+     &                          pOx(L,i,j)*chem_tracer_save(1,L,i,j)
         chem_tracer_save(2,L,i,j)=(trm_col(L,n_CH4) +
      &      (tr3Dsource(L,nChemistry,n_CH4) + 
      &      tr3Dsource(L,nOverwrite,n_CH4))*dtsrc)
@@ -2111,7 +2111,7 @@ c (radiation code wants atm-cm units):
           ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers, Ox
           ! tracer above (which is likely anyway actually O3 from NINT input):
       taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
-     &    sum( pOx(i,j,1:topLevelOfChemistry)*
+     &    sum( pOx(1:topLevelOfChemistry,i,j)*
      &    (trm_col(1:topLevelOfChemistry,n_Ox)+
      &    (tr3Dsource(1:topLevelOfChemistry,nChemistry,n_Ox)+
      &    tr3Dsource(1:topLevelOfChemistry,nOverwrite,n_Ox))
@@ -2206,9 +2206,9 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
          write(out_line,*)
      &    'Br,BrO = ',y(nBr,ijlprn(3)),y(nBrO,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
-         write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(I,J,ijlprn(3)),
-     &    pClOx(I,J,ijlprn(3)),pOClOx(I,J,ijlprn(3)),
-     &    pBrOx(I,J,ijlprn(3))
+         write(out_line,*) 'pCl,pClO,pOClO,pBrO = ',pClx(ijlprn(3),I,J),
+     &    pClOx(ijlprn(3),I,J),pOClOx(ijlprn(3),I,J),
+     &    pBrOx(ijlprn(3),I,J)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
      &   'sun, SALBFJ,sza,I,J,Itime= ',albedoToUse,sza,I,J,Itime
