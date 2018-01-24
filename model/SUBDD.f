@@ -1440,7 +1440,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: kdd
       character(len=namedd_strlen), DIMENSION(kddmax) :: namedd_thisfreq
       integer, dimension(kddmax) :: ddfreq
-      logical :: is_inst(kddmax),instcat
+      logical :: is_inst(kddmax),instcat,found
       integer, dimension(8), parameter :: allowed_hrfreqs_timeavg=
      &     (/ 1, 2, 3, 4, 6, 8, 12, 24 /)
       integer, dimension(11) :: allowed_freqs_timeavg
@@ -1685,6 +1685,25 @@ c add (calls to) the analogs of ijh_defs et al.
 #endif
 
 c
+c check whether each requested diagnostic is in the list
+c of declared possible outputs
+c
+      do k=1,kdd
+        found = .false.
+        name_check_loop: do idcat=1,ncats_max
+        do kk=1,diaglens(idcat)
+          if(trim(namedd(k)).eq.trim(diaglists(kk,idcat)%sname)) then
+            found = .true.
+            exit name_check_loop
+          endif
+        enddo
+        enddo name_check_loop
+        if(.not. found) call stop_model('subdd request '//
+     &       trim(namedd(k))//' not found',255)
+      enddo
+
+
+c
 c compose the list of actual output groups
 c
       ngroups = 0
@@ -1880,18 +1899,6 @@ c
      &     )
 c
       arr(next()) = info_type_(
-     &  sname = 'qlat',
-     &  lname = 'SURFACE LATENT HEAT FLUX',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'qsen',
-     &  lname = 'SURFACE SENSIBLE HEAT FLUX',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'sst',
      &  lname = 'SEA SURFACE TEMPERATURE',
      &  units = 'C'
@@ -2074,65 +2081,13 @@ c
      &  scale = 1d2
      &     )
 c
-      arr(next()) = info_type_(
-     &  sname = 'swd',
-     &  lname = 'SOLAR DOWNWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swu',
-     &  lname = 'SOLAR UPWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swdf',
-     &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwd',
-     &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwu',
-     &  lname = 'LONGWAVE UPWARD FLUX at SURFACE',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwt',
-     &  lname = 'LONGWAVE UPWARD FLUX at TOA',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swt',
-     &  lname = 'SOLAR NET FLUX AT TOA',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'olrrad',
-     &  lname = 'OUTGOING LW RADIATION at TOA'//
-     &                 ' (via RADIA), same as AIC: trnf_toa',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'olr',
-     &  lname = 'Outgoing Longwave Radiation at TOA '//
-     &                     '(via SURFCE), same as getsubdd OLR',
-     &  units = 'W/m^2'
-     &     )
+c NOT IMPLEMENTED YET
+c      arr(next()) = info_type_(
+c     &  sname = 'olrsrf',
+c     &  lname = 'Outgoing Longwave Radiation at TOA '//
+c     &         'accounting for tsurf variability not seen by RADIA',
+c     &  units = 'W/m^2'
+c     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'snowd',
@@ -2152,14 +2107,6 @@ c
      &  lname = 'Ice Fraction Over Open Water',
      &  units = '%',
      &  scale = 1d2
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'tcld',
-     &  lname = 'Total Cloud Cover (as seen by rad)',
-     &  units = '%',
-     &  scale = 1d2,
-     &  sched = sched_rad
      &     )
 c
       arr(next()) = info_type_(
@@ -2191,30 +2138,6 @@ c
      &  sname = 'cdnc_RB',
      &  lname = 'CDNC large scale screened after Bennartz',
      &  units = '#/cm^3'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'cod',
-     &  lname = 'Cloud optical depth warm clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'cid',
-     &  lname = 'Cloud optical depth ice clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'wtrcld',
-     &  lname = 'Water cloud frequency',
-     &  units = '-'
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'icecld',
-     &  lname = 'Ice cloud frequency',
-     &  units = '-'
      &     )
 c
       arr(next()) = info_type_(
