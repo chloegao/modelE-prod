@@ -1440,7 +1440,7 @@ C**** Note: for longer string increase MAX_CHAR_LENGTH in PARAM
       INTEGER :: kdd
       character(len=namedd_strlen), DIMENSION(kddmax) :: namedd_thisfreq
       integer, dimension(kddmax) :: ddfreq
-      logical :: is_inst(kddmax),instcat
+      logical :: is_inst(kddmax),instcat,found
       integer, dimension(8), parameter :: allowed_hrfreqs_timeavg=
      &     (/ 1, 2, 3, 4, 6, 8, 12, 24 /)
       integer, dimension(11) :: allowed_freqs_timeavg
@@ -1683,6 +1683,25 @@ c add (calls to) the analogs of ijh_defs et al.
       input_sizes3(k) = lm
       call tijph_defs(diaglists(1,k),nmax_possible,diaglens(k))
 #endif
+
+c
+c check whether each requested diagnostic is in the list
+c of declared possible outputs
+c
+      do k=1,kdd
+        found = .false.
+        name_check_loop: do idcat=1,ncats_max
+        do kk=1,diaglens(idcat)
+          if(trim(namedd(k)).eq.trim(diaglists(kk,idcat)%sname)) then
+            found = .true.
+            exit name_check_loop
+          endif
+        enddo
+        enddo name_check_loop
+        if(.not. found) call stop_model('subdd request '//
+     &       trim(namedd(k))//' not found',255)
+      enddo
+
 
 c
 c compose the list of actual output groups
