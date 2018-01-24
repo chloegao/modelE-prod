@@ -1880,18 +1880,6 @@ c
      &     )
 c
       arr(next()) = info_type_(
-     &  sname = 'qlat',
-     &  lname = 'SURFACE LATENT HEAT FLUX',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'qsen',
-     &  lname = 'SURFACE SENSIBLE HEAT FLUX',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
      &  sname = 'sst',
      &  lname = 'SEA SURFACE TEMPERATURE',
      &  units = 'C'
