@@ -2081,65 +2081,13 @@ c
      &  scale = 1d2
      &     )
 c
-      arr(next()) = info_type_(
-     &  sname = 'swd',
-     &  lname = 'SOLAR DOWNWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swu',
-     &  lname = 'SOLAR UPWARD FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swdf',
-     &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwd',
-     &  lname = 'LONGWAVE DOWNWARD FLUX at SURFACE',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwu',
-     &  lname = 'LONGWAVE UPWARD FLUX at SURFACE',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'lwt',
-     &  lname = 'LONGWAVE UPWARD FLUX at TOA',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'swt',
-     &  lname = 'SOLAR NET FLUX AT TOA',
-     &  units = 'W/m^2'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'olrrad',
-     &  lname = 'OUTGOING LW RADIATION at TOA'//
-     &                 ' (via RADIA), same as AIC: trnf_toa',
-     &  units = 'W/m^2',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'olr',
-     &  lname = 'Outgoing Longwave Radiation at TOA '//
-     &                     '(via SURFCE), same as getsubdd OLR',
-     &  units = 'W/m^2'
-     &     )
+c NOT IMPLEMENTED YET
+c      arr(next()) = info_type_(
+c     &  sname = 'olrsrf',
+c     &  lname = 'Outgoing Longwave Radiation at TOA '//
+c     &         'accounting for tsurf variability not seen by RADIA',
+c     &  units = 'W/m^2'
+c     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'snowd',
@@ -2159,14 +2107,6 @@ c
      &  lname = 'Ice Fraction Over Open Water',
      &  units = '%',
      &  scale = 1d2
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'tcld',
-     &  lname = 'Total Cloud Cover (as seen by rad)',
-     &  units = '%',
-     &  scale = 1d2,
-     &  sched = sched_rad
      &     )
 c
       arr(next()) = info_type_(
@@ -2198,30 +2138,6 @@ c
      &  sname = 'cdnc_RB',
      &  lname = 'CDNC large scale screened after Bennartz',
      &  units = '#/cm^3'
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'cod',
-     &  lname = 'Cloud optical depth warm clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'cid',
-     &  lname = 'Cloud optical depth ice clouds',
-     &  units = '-',
-     &  sched = sched_rad
-     &     )
-c
-      arr(next()) = info_type_(
-     &  sname = 'wtrcld',
-     &  lname = 'Water cloud frequency',
-     &  units = '-'
-     &     )
-      arr(next()) = info_type_(
-     &  sname = 'icecld',
-     &  lname = 'Ice cloud frequency',
-     &  units = '-'
      &     )
 c
       arr(next()) = info_type_(
