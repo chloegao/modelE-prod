@@ -97,7 +97,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files"
 #include "chemistry_input_files_nosoa"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
@@ -120,7 +120,7 @@ E6TmatrixF40 (prescribed ocean atmospheric tracer model with MATRIX and Shindell
 
 ! The following two lines are only used when aerosol/radiation interactions are off
 FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
-FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.3,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.66   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds

@@ -26,6 +26,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 #define ALT_MC_EXITS
 #define SPECIFY_MU_SCALE
 #define TAPER_UTCF
@@ -134,7 +135,7 @@ E6TomaF102clim (climatological prescribed ocean atmospheric tracer model with OM
 
 ! The following two lines are only used when aerosol/radiation interactions are off
 FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
-FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.3,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.63   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
