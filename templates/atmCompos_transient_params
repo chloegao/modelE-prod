@@ -18,3 +18,4 @@ dalbsnX=.024
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
 !variable_orb_par=1   ! variable w/o offset
+MADVOL=2

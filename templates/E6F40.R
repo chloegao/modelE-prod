@@ -89,8 +89,6 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 
 #include "atmCompos_1850_params"
 
-MADVOL=2
-
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
 ! parameters that control the Shapiro filter

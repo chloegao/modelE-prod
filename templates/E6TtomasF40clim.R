@@ -21,6 +21,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
@@ -124,7 +125,7 @@ E6TtomasF40clim (climatological prescribed ocean atmospheric tracer model with T
 
 ! The following two lines are only used when aerosol/radiation interactions are off
 FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
-FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.3,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
 U00a=0.71   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
