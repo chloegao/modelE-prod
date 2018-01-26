@@ -20,6 +20,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 End Preprocessor Options
 
 Object modules:
@@ -73,10 +74,10 @@ E6F40 (LLF40 + updated aerosol/ozone input files for CMIP6 simulations, 1850 atm
 
 ! The following two lines are only used when aerosol/radiation interactions are off
 FS8OPX=1.,1.,1.,1.,1.5,1.5,1.,1.
-FT8OPX=1.,1.,1.,1.,1.,1.,1.,1.
+FT8OPX=1.,1.,1.,1.,1.,1.,1.3,1.
 
 ! Increasing U00a decreases the high cloud cover; increasing U00b decreases net rad at TOA
-U00a=0.64   ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
+U00a=0.655  ! above 850mb w/o MC region;  tune this first to get 30-35% high clouds
 U00b=1.00   ! below 850mb and MC regions; tune this last  to get rad.balance
 WMUI_multiplier = 2.
 use_vmp=1

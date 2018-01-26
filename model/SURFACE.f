@@ -1019,6 +1019,32 @@ c****  (replaced with dummy sub when ATURB is used)
 c****
       call apply_fluxes_to_atm(dtsurf)
 
+#ifdef CACHED_SUBDD
+C****
+C**** Collect some high-frequency outputs over the surface
+C**** sub-timesteps
+C****
+      call find_groups('aijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('tsmin', 'tsmax')
+        sddarr2d = atmsrf%tsavg(:,:)-tf
+        call inc_subdd(subdd,k,sddarr2d)
+      case ('wsmax')
+        call inc_subdd(subdd,k,atmsrf%wsavg)
+      case ('rsmin', 'rsmax')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) =
+     &         atmsrf%qsavg(i,j)/qsat(atmsrf%tsavg(i,j),lhe,pedn(1,i,j))
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+      end select
+      enddo
+      enddo
+#endif
+
 C**** Call dry convection or aturb depending on rundeck
       CALL ATM_DIFFUS(1,1,dtsurf)
 

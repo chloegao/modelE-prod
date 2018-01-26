@@ -1430,6 +1430,28 @@ C**** Collect high-frequency outputs
 C****
       if(ns.eq.nisurf) then ! do only once per physics timestep
 C
+      call find_groups('aijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+C
+      case ('smst')
+        where(fearth.gt.0.)
+          sddarr2d = soil_surf_moist
+        elsewhere
+          sddarr2d = 0.
+        end where
+        call inc_subdd(subdd,k,sddarr2d)
+C
+      case ('rnft')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr2d(i,j) = atmlnd%runo(i,j)*fearth(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr2d)
+      end select
+      enddo
+      enddo
 C
       call find_groups('gijlh',grpids,ngroups)
       do igrp=1,ngroups

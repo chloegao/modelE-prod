@@ -3911,6 +3911,11 @@ C****
           sddarr(i,j)=fsrdif(i,j)+difnir(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
+      case ('swtoa')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j) = snfs(3,i,j)*cosz2(i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
       case ('totcld')
         call inc_subdd(subdd,k,cfrac)
       case ('totcld_diag')
@@ -4727,6 +4732,13 @@ c
       arr(next()) = info_type_(
      &  sname = 'swdf',
      &  lname = 'SOLAR DOWNWARD DIFFUSE FLUX at SURFACE',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swtoa',
+     &  lname = 'SOLAR NET FLUX, TOA',
      &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
