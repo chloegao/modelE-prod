@@ -841,27 +841,33 @@ c
 #include "do_write_nc.inc"
       end subroutine write_nc_5D
 
-      subroutine read_nc_0D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_0D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr
 #include "do_read_nc.inc"
       end subroutine read_nc_0D
-      subroutine read_nc_1D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_1D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr(:)
 #include "do_read_nc.inc"
       end subroutine read_nc_1D
-      subroutine read_nc_2D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_2D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr(:,:)
 #include "do_read_nc.inc"
       end subroutine read_nc_2D
-      subroutine read_nc_3D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_3D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr(:,:,:)
 #include "do_read_nc.inc"
       end subroutine read_nc_3D
-      subroutine read_nc_4D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_4D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr(:,:,:,:)
 #include "do_read_nc.inc"
       end subroutine read_nc_4D
-      subroutine read_nc_5D(grid,fid,varname,arr,bcast_all)
+      subroutine read_nc_5D(grid,fid,varname,arr,bcast_all,
+     &     record,record1)
       real*8 :: arr(:,:,:,:,:)
 #include "do_read_nc.inc"
       end subroutine read_nc_5D
