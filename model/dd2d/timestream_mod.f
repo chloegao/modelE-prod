@@ -23,9 +23,13 @@
 !@+        periodicity, etc.
 !@+
 !@+        call init_stream(grid,tstream,fbase,vname,qmin,qmax,method,
-!@+                         jyear,jday,nskip,msk,cyclic)
+!@+                         jyear,jday,nskip,msk,cyclic,ijless)
 !@+                        grid: instance of dist_grid corresponding to
 !@+                              the grid on which data will be requested
+!@+                              (but if optional argument ijless is true,
+!@+                               the data are not on the model grid, and
+!@+                               the grid argument is for inter-process
+!@+                               communcation only).
 !@+                     tstream: timestream object to be initialized
 !@+             character fbase: path to input data (file, directory, or
 !@+                              symbolic link thereto)
@@ -38,9 +42,12 @@
 !@+               integer nskip: optional, unused, only applies to giss-fmt files
 !@+                  real*8 msk: optional 0/1 mask array defining the set of
 !@+                              gridpoints that read_stream should fill
-!@+              logical cyclic: optional, whether to impose annual periodicity
-!@+                              (only matters for multi-year input data)
-!@+        
+!@+              logical cyclic: optional (default false), whether to impose
+!@+                              annual periodicity (only matters for multi-year
+!@+                              input data)
+!@+              logical ijless: optional (default false), whether the input data
+!@+                              is NOT on the grid corresponding to dist_grid
+!@+
 !@+    Obtaining values via read_stream (or get_by_index)
 !@+        
 !@+        read_stream() is the primary access method.
@@ -49,7 +56,12 @@
 !@+                        grid: instance of dist_grid
 !@+                     tstream: timestream object
 !@+          integer jyear,jday: date info
-!@+                  real*8 arr: output array (2D i,j or 3D i,j,k or 4D i,j,k,l)
+!@+                  real*8 arr: the output array (2D i,j or 3D i,j,k or 4D i,j,k,l)
+!@+                              If arr has i,j halos, see comments in misc below.
+!@+
+!@+        For a tstream having ijless=true,
+!@+        call read_stream_ijless(grid,tstream,jyear,jday,arr)
+!@+                  real*8 arr: output array 0D, 1D, or 2D
 !@+
 !@+        Time interpolation may be performed to obtain the output array,
 !@+        and partial reads from the datafile occur as necessary.  The
@@ -83,6 +95,11 @@
 !@+           integer ind: index of desired input-file timestep (1-based)
 !@+                        for the last year passed to init/read_stream
 !@+            real*8 arr: the output array (2D i,j or 3D i,j,k or 4D i,j,k,l)
+!@+                        If arr has i,j halos, see comments in misc below.
+!@+
+!@+        For a tstream having ijless=true,
+!@+        call get_by_index_ijless(grid,tstream,ind,arr)
+!@+            real*8 arr: output array 0D, 1D, or 2D
 !@+        
 !@+    Time-registration conventions for datafiles
 !@+
@@ -141,17 +158,20 @@
 !@+        once it is required in Model E for nudged runs, high-frequency
 !@+        inputs to single-component "standalone" runs, etc.
 !@+        
-!@+        The rank of input data can be either 2 or 3 (2 horizontal
-!@+        dimensions, one optional 3rd dimension which must the the
-!@+        last).  Support for rank-4 arrays may be added in the future.
+!@+        When ijless is false (the default case), the rank of input data,
+!@+        excluding the time dimension, can be either 2, 3, or 4 (2 horizontal
+!@+        dimensions which must be the first, with optional 3rd, 4th dimensions).
+!@+
+!@+        When ijless is true, the rank of input data, excluding the time
+!@+        dimension, can be either 0, 1, or 2.
 !@+        
 !@+        Files are assumed to be in netcdf format.  An early version of
 !@+        this module supported GISS format for 2D data, but that effort
 !@+        was postponed pending evaluation of actual interest in the option.
 !@+
-!@+        The horizontal grid of the input data must match that of the
-!@+        calling program.  On-the-fly horizontal remapping may be added
-!@+        in the future.
+!@+        When ijless is false, the horizontal grid of the input data must
+!@+        match that of the calling program.  On-the-fly horizontal remapping
+!@+        may be added in the future.
 !@+
 !@+        Calling programs expose two explicit assumptions about the names
 !@+        of input data:
@@ -186,6 +206,11 @@
 !@+        
 !@+        Datafiles are not kept open between calls to read_stream().
 !@+
+!@+        The output array of read_stream (or get_by_index) is not
+!@+        required to contain halo padding elements.   If it does,
+!@+        halo positions will not be set.   Halo sizes are assumed to
+!@+        be equal on the lower and upper edges of an array when
+!@+        calculating addressing offsets.
 
       module timestream_mod
       IMPLICIT NONE
@@ -201,6 +226,7 @@
       public :: timestream
       public :: init_stream,read_stream,get_by_index
      &     ,reset_stream_properties,getname_firstfile
+     &     ,read_stream_ijless,get_by_index_ijless
 
       interface read_stream
         module procedure read_stream_2d
@@ -208,11 +234,23 @@
         module procedure read_stream_4d
       end interface read_stream
 
+      interface read_stream_ijless
+        module procedure read_stream_0d_ijless
+        module procedure read_stream_1d_ijless
+        module procedure read_stream_2d_ijless
+      end interface read_stream_ijless
+
       interface get_by_index
         module procedure get_by_index_2d
         module procedure get_by_index_3d
         module procedure get_by_index_4d
       end interface get_by_index
+
+      interface get_by_index_ijless
+        module procedure get_by_index_0d_ijless
+        module procedure get_by_index_1d_ijless
+        module procedure get_by_index_2d_ijless
+      end interface get_by_index_ijless
 
       integer, parameter :: firstcall_int=-9999,reset_int=999999
 
@@ -236,6 +274,8 @@
          logical :: eom_from_file=.false.
 !@var cyclic impose that the first year of data is used subsequently
          logical :: cyclic=.false.
+!@var ijless whether the time series is NOT on the model grid
+         logical :: ijless=.false.
 !@var daily_data flag indicating whether input file contains daily data
 !@var annual_data flag indicating whether input file contains annual data
 !@var monthly_data flag indicating whether input file contains monthly data
@@ -310,7 +350,7 @@ C**** (Simplified) Calendar Related Terms
       contains
 
       subroutine init_stream(grid,tstream,fbase,vname,qmin,qmax,method,
-     &     jyear,jday,nskip,msk,cyclic
+     &     jyear,jday,nskip,msk,cyclic,ijless
      &     )
 !@sum init_stream initializes an instance of the timestream object.
 !@+   see usage notes at beginning of module
@@ -322,13 +362,11 @@ C**** (Simplified) Calendar Related Terms
       real*8 :: qmin,qmax
       integer :: jyear,jday
       integer, optional :: nskip
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo), optional ::
-     &     msk
-      logical, optional :: cyclic
+      real*8, dimension(:,:), optional :: msk
+      logical, optional :: cyclic,ijless
 c
       integer :: jmon
-      integer :: i_0,i_1,j_0,j_1
+      integer :: i_0,i_1,j_0,j_1,i,j,ioff,joff
 c
       tstream%fbase = fbase
       tstream%vname = vname
@@ -353,7 +391,12 @@ c
       j_1 = grid%j_stop
       allocate(tstream%msk(i_0:i_1,j_0:j_1))
       if(present(msk)) then
-        tstream%msk = msk(i_0:i_1,j_0:j_1)
+        call check_bounds(grid,size(msk,1),size(msk,2),ioff,joff)
+        do j=j_0,j_1
+        do i=i_0,i_1
+          tstream%msk(i,j) = msk(i+ioff,j+joff)
+        enddo
+        enddo
       else
         tstream%msk = 1d0
       endif
@@ -367,6 +410,7 @@ c
       enddo
 
       if(present(cyclic)) tstream%cyclic = cyclic
+      if(present(ijless)) tstream%ijless = ijless
 
       call read_year(grid,tstream,jyear,jmon)
 
@@ -412,14 +456,19 @@ c
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: ind
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo) :: arr
+      real*8, dimension(:,:) :: arr
+c
+      integer :: i,j,ioff,joff
+
       if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
         call stop_model('get_by_index: bad_index',255)
       endif
-      arr(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop) =
-     &     tstream%qty(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop
-     &     ,1,ind)
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+      do j=grid%j_strt,grid%j_stop
+      do i=grid%i_strt,grid%i_stop
+        arr(i+ioff,j+joff) = tstream%qty(i,j,1,ind)
+      enddo
+      enddo
       return
       end subroutine get_by_index_2d
 
@@ -429,14 +478,21 @@ c
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: ind
-      real*8, dimension(grid%i_strt_halo:,
-     &                  grid%j_strt_halo:,:) :: arr
+      real*8, dimension(:,:,:) :: arr
+c
+      integer :: i,j,ioff,joff,k
+
       if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
         call stop_model('get_by_index: bad_index',255)
       endif
-      arr(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,:) =
-     & tstream%qty(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop
-     &     ,:,ind)
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+      do k=1,tstream%lm
+      do j=grid%j_strt,grid%j_stop
+      do i=grid%i_strt,grid%i_stop
+        arr(i+ioff,j+joff,k) = tstream%qty(i,j,k,ind)
+      enddo
+      enddo
+      enddo
       return
       end subroutine get_by_index_3d
 
@@ -446,22 +502,73 @@ c
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: ind,k,l,kl
-      real*8, dimension(grid%i_strt_halo:,
-     &                  grid%j_strt_halo:,:,:) :: arr
+      real*8, dimension(:,:,:,:) :: arr
+c
+      integer :: i,j,ioff,joff
+
       if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
         call stop_model('get_by_index: bad_index',255)
       endif
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+
       kl = 0
       do l=1,tstream%dlens(2)
       do k=1,tstream%dlens(1)
         kl = kl + 1
-        arr(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,k,l) =
-     &      tstream%qty(grid%i_strt:grid%i_stop,grid%j_strt:grid%j_stop,
-     &       kl,ind)
+        do j=grid%j_strt,grid%j_stop
+        do i=grid%i_strt,grid%i_stop
+          arr(i+ioff,j+joff,k,l) = tstream%qty(i,j,kl,ind)
+        enddo
+        enddo
       enddo
       enddo
       return
       end subroutine get_by_index_4d
+
+      subroutine get_by_index_0d_ijless(grid,tstream,ind,arr)
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: ind
+      real*8 :: arr
+c
+      if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
+        call stop_model('get_by_index: bad_index',255)
+      endif
+      arr = tstream%qty(1,1,1,ind)
+      return
+      end subroutine get_by_index_0d_ijless
+
+      subroutine get_by_index_1d_ijless(grid,tstream,ind,arr)
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: ind
+      real*8, dimension(:) :: arr
+c
+      if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
+        call stop_model('get_by_index: bad_index',255)
+      endif
+      arr(:) = tstream%qty(1,1,:,ind)
+      return
+      end subroutine get_by_index_1d_ijless
+
+      subroutine get_by_index_2d_ijless(grid,tstream,ind,arr)
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: ind
+      real*8, dimension(:,:) :: arr
+c
+      if(ind.lt.1 .or. ind.gt.size(tstream%qty,4)) then
+        call stop_model('get_by_index: bad_index',255)
+      endif
+      arr(:,:) = reshape(tstream%qty(1,1,:,ind),shape(arr))
+      return
+      end subroutine get_by_index_2d_ijless
 
       subroutine read_year(grid,tstream,jyear,jmon)
       use dd2d_utils, only : dist_grid
@@ -611,10 +718,17 @@ c
 c
       cyclic = tstream%cyclic
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      if(tstream%ijless) then
+        i_0 = 1
+        i_1 = 1
+        j_0 = 1
+        j_1 = 1
+      else
+        i_0 = grid%i_strt
+        i_1 = grid%i_stop
+        j_0 = grid%j_strt
+        j_1 = grid%j_stop
+      endif
 
       lm = tstream%lm
 
@@ -804,14 +918,23 @@ c
       rdimlen = get_record_dimlen(grid,fid,
      &     checkvar=trim(tstream%vname))
       call get_dimlens(grid,fid,trim(tstream%vname),ndims,dlens)
-      if(ndims.lt.3 .or. ndims.gt.5) then
-        call stop_model('read_stream: bad dimension count'//
-     &         'for variable '//trim(tstream%vname),255)
-      endif
       call par_close(grid,fid)
       tstream%dlens(:) = 1
-      if(ndims.ge.4) tstream%dlens(1) = dlens(3)
-      if(ndims.ge.5) tstream%dlens(2) = dlens(4)
+      if(tstream%ijless) then
+        if(ndims.gt.3) then
+          call stop_model('read_stream: bad dimension count'//
+     &         'for variable '//trim(tstream%vname),255)
+        endif
+        if(ndims.ge.2) tstream%dlens(1) = dlens(1)
+        if(ndims.ge.3) tstream%dlens(2) = dlens(2)
+      else
+        if(ndims.lt.3 .or. ndims.gt.5) then
+          call stop_model('read_stream: bad dimension count'//
+     &         'for variable '//trim(tstream%vname),255)
+        endif
+        if(ndims.ge.4) tstream%dlens(1) = dlens(3)
+        if(ndims.ge.5) tstream%dlens(2) = dlens(4)
+      endif
       lm = product(tstream%dlens)
       tstream%lm = lm
       tstream%ndims = ndims-1 ! not including time dimension
@@ -955,9 +1078,11 @@ c
       real*8 :: wtl,wtr,wtlp,wtrp,wtln,wtrn
       logical :: cyclic,multiple_yrs,multiple_files,do_yr_interp
      &     ,do_yrm1_interp,do_yrp1_interp,continuous,early_in_year
+     &     ,ijless
       integer :: record0
       integer :: m1,m2,record1
       real*8, dimension(:,:,:,:,:), allocatable :: qty4d
+      real*8, dimension(:,:,:), allocatable :: qty2d
 c
 
       if(tstream%year_sv == jyear) return
@@ -966,10 +1091,19 @@ c
         if(.not.firstcall .and. tstream%year_sv .ne. reset_int) return
       endif
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      ijless = tstream%ijless
+
+      if(ijless) then
+        i_0 = 1
+        i_1 = 1
+        j_0 = 1
+        j_1 = 1
+      else
+        i_0 = grid%i_strt
+        i_1 = grid%i_stop
+        j_0 = grid%j_strt
+        j_1 = grid%j_stop
+      endif
 
       fnames(:) = ''
       fnames_eom(:) = ''
@@ -1145,20 +1279,41 @@ c
         endif
 
         fid = par_open(grid,trim(fnames(k)),'read')
-        if(ndims.eq.2) then
-          call read_dist_data(grid,fid,trim(tstream%vname),
-     &         tstream%qty(:,:,1,m1:m2),record1=record1)
-        elseif(ndims.eq.3) then
-          call read_dist_data(grid,fid,trim(tstream%vname),
-     &         tstream%qty(:,:,:,m1:m2),record1=record1)
-        else ! infrequent case - recreate extra dims for read_dist_data
-          allocate(qty4d(i_0:i_1,j_0:j_1,
-     &         tstream%dlens(1),tstream%dlens(2),m1:m2))
-          call read_dist_data(grid,fid,trim(tstream%vname),
-     &         qty4d,record1=record1)
-          tstream%qty(:,:,:,m1:m2) =
-     &         reshape(qty4d,shape(tstream%qty(:,:,:,m1:m2)))
-          deallocate(qty4d)
+        if(ijless) then
+          if(ndims.eq.0) then
+            call read_data(grid,fid,trim(tstream%vname),
+     &           tstream%qty(1,1,1,m1:m2),record1=record1,
+     &           bcast_all=.true.)
+          elseif(ndims.eq.1) then
+            call read_data(grid,fid,trim(tstream%vname),
+     &           tstream%qty(1,1,:,m1:m2),record1=record1,
+     &           bcast_all=.true.)
+          elseif(ndims.eq.2) then
+            allocate(qty2d(
+     &           tstream%dlens(1),tstream%dlens(2),m1:m2))
+            call read_data(grid,fid,trim(tstream%vname),
+     &           qty2d,record1=record1,
+     &           bcast_all=.true.)
+            tstream%qty(:,:,:,m1:m2) =
+     &           reshape(qty2d,shape(tstream%qty(:,:,:,m1:m2)))
+            deallocate(qty2d)
+          endif
+        else
+          if(ndims.eq.2) then
+            call read_dist_data(grid,fid,trim(tstream%vname),
+     &           tstream%qty(:,:,1,m1:m2),record1=record1)
+          elseif(ndims.eq.3) then
+            call read_dist_data(grid,fid,trim(tstream%vname),
+     &           tstream%qty(:,:,:,m1:m2),record1=record1)
+          else   ! infrequent case - recreate extra dims for read_dist_data
+            allocate(qty4d(i_0:i_1,j_0:j_1,
+     &           tstream%dlens(1),tstream%dlens(2),m1:m2))
+            call read_dist_data(grid,fid,trim(tstream%vname),
+     &           qty4d,record1=record1)
+            tstream%qty(:,:,:,m1:m2) =
+     &           reshape(qty4d,shape(tstream%qty(:,:,:,m1:m2)))
+            deallocate(qty4d)
+          endif
         endif
         call par_close(grid,fid)
 
@@ -1376,74 +1531,212 @@ c
       endif
       end subroutine make_fname
 
+      subroutine read_stream_0d_ijless(grid,tstream,jyear,jday,arr)
+!@sum read_stream_0d_ijless a wrapper to call do_read_stream_3d for 0d ijless outputs
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: jyear,jday
+      real*8 :: arr
+!
+      real*8 :: arr_(1,1,1)
+      if(tstream%ndims .ne. 0) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_0d: incorrect ndims',255)
+      endif
+      call do_read_stream_3d(grid,tstream,jyear,jday,arr_)
+      arr = arr_(1,1,1)
+
+      end subroutine read_stream_0d_ijless
+
+      subroutine read_stream_1d_ijless(grid,tstream,jyear,jday,arr)
+!@sum read_stream_1d_ijless a wrapper to call do_read_stream_3d for 1d ijless outputs
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: jyear,jday
+      real*8, dimension(:) :: arr
+!
+      real*8, dimension(:,:,:), allocatable :: arr_
+      if(tstream%ndims .ne. 1) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_1d: incorrect ndims',255)
+      endif
+      allocate(arr_(1,1,size(arr)))
+      call do_read_stream_3d(grid,tstream,jyear,jday,arr_)
+      arr = arr_(1,1,:)
+
+      end subroutine read_stream_1d_ijless
+
+      subroutine read_stream_2d_ijless(grid,tstream,jyear,jday,arr)
+!@sum read_stream_2d_ijless a wrapper to call do_read_stream_3d for 2d ijless outputs
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: jyear,jday
+      real*8, dimension(:,:) :: arr
+!
+      real*8, dimension(:,:,:), allocatable :: arr_
+      if(tstream%ndims .ne. 2) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_2d_ijless: incorrect ndims',255)
+      endif
+      allocate(arr_(1,1,size(arr)))
+      call do_read_stream_3d(grid,tstream,jyear,jday,arr_)
+      arr = reshape(arr_(1,1,:),shape(arr))
+
+      end subroutine read_stream_2d_ijless
+
+      subroutine check_bounds(grid,nx,ny,ioff,joff)
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      integer :: nx,ny,ioff,joff
+c
+      integer :: nxg,nyg,i_0,i_1,j_0,j_1
+
+      nxg = grid%i_stop-grid%i_strt+1
+      nyg = grid%j_stop-grid%j_strt+1
+
+      if(nx .lt. nxg .or. ny .lt. nyg) then
+        call stop_model('read_stream input array bounds error',255)
+      endif
+
+      if(mod(nx-nxg,2).ne.0 .or. mod(ny-nyg,2).ne.0) then
+        call stop_model('read_stream input array halo error',255)
+      endif
+
+      i_0 = grid%i_strt
+      i_1 = grid%i_stop
+      j_0 = grid%j_strt
+      j_1 = grid%j_stop
+      ioff = 1-i_0 + (nx-(i_1-i_0+1))/2
+      joff = 1-j_0 + (ny-(j_1-j_0+1))/2
+
+      end subroutine check_bounds
+
       subroutine read_stream_2d(grid,tstream,jyear,jday,arr,tlim)
-!@sum read_stream_2d a wrapper to call read_stream_3d for 2d outputs
+!@sum read_stream_2d a wrapper to call do_read_stream_3d for 2d outputs
 !@+   by adding an extra dimension of size 1.
       use dd2d_utils, only : dist_grid
       implicit none
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: jyear,jday
-      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:) :: arr
-      real*8, dimension(2,grid%i_strt_halo:grid%i_stop_halo,
-     &                    grid%j_strt_halo:grid%j_stop_halo),
-     &     optional :: tlim
+      real*8, dimension(:,:) :: arr
+      real*8, dimension(:,:,:), optional :: tlim
       real*8, dimension(:,:,:), allocatable :: arr3d
-      integer :: i,j
-      allocate(arr3d(grid%i_strt_halo:grid%i_stop_halo,
-     &               grid%j_strt_halo:grid%j_stop_halo,1))
-      if(present(tlim)) then
-        call read_stream_3d(grid,tstream,jyear,jday,arr3d,tlim)
-      else
-        call read_stream_3d(grid,tstream,jyear,jday,arr3d)
+      integer :: i,j, ioff,joff
+      if(tstream%ndims .ne. 2) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_2d: incorrect ndims',255)
       endif
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+
+      allocate(arr3d(size(arr,1),size(arr,2),1))
+
+      if(present(tlim)) then
+        call do_read_stream_3d(grid,tstream,jyear,jday,arr3d,tlim)
+      else
+        call do_read_stream_3d(grid,tstream,jyear,jday,arr3d)
+      endif
+
       do j=grid%j_strt,grid%j_stop
       do i=grid%i_strt,grid%i_stop
         if(tstream%msk(i,j).eq.0d0) cycle
-        arr(i,j) = arr3d(i,j,1)
+        arr(i+ioff,j+joff) = arr3d(i+ioff,j+joff,1)
       enddo
       enddo
       deallocate(arr3d)
       end subroutine read_stream_2d
 
       subroutine read_stream_4d(grid,tstream,jyear,jday,arr)!,tlim)
-!@sum read_stream_4d a wrapper to call read_stream_3d for 4d outputs
+!@sum read_stream_4d a wrapper to call do_read_stream_3d for 4d outputs
       use dd2d_utils, only : dist_grid
       implicit none
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: jyear,jday
-      real*8, dimension(grid%i_strt_halo:,grid%j_strt_halo:,:,:) :: arr
+      real*8, dimension(:,:,:,:) :: arr
 !      real*8, dimension(2,grid%i_strt_halo:grid%i_stop_halo,
 !     &                    grid%j_strt_halo:grid%j_stop_halo,:,:),
 !     &     optional :: tlim
       real*8, dimension(:,:,:), allocatable :: arr3d
-      integer :: k,l,kl
-      integer :: j_0,j_1, i_0,i_1
-      allocate(arr3d(grid%i_strt_halo:grid%i_stop_halo,
-     &               grid%j_strt_halo:grid%j_stop_halo,tstream%lm))
+      integer :: k,l,kl,ioff,joff
+      if(tstream%ndims .ne. 4) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_4d: incorrect ndims',255)
+      endif
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+
+      allocate(arr3d(size(arr,1),size(arr,2),tstream%lm))
+
 !      if(present(tlim)) then
-!        call read_stream_3d(grid,tstream,jyear,jday,arr3d,tlim)
+!        call do_read_stream_3d(grid,tstream,jyear,jday,arr3d,tlim)
 !      else
-        call read_stream_3d(grid,tstream,jyear,jday,arr3d)
+        call do_read_stream_3d(grid,tstream,jyear,jday,arr3d)
+
 !      endif
       !arr = reshape(arr3d,shape(arr))
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+
       kl = 0
       do l=1,tstream%dlens(2)
       do k=1,tstream%dlens(1)
         kl = kl + 1
-        arr(i_0:i_1,j_0:j_1,k,l) = arr3d(i_0:i_1,j_0:j_1,kl)
+        arr(:,:,k,l) = arr3d(:,:,kl)
       enddo
       enddo
       deallocate(arr3d)
       end subroutine read_stream_4d
 
       subroutine read_stream_3d(grid,tstream,jyear,jday,arr,tlim)
-!@sum read_stream_3d implementation of read_stream interface for 3D outputs.
+!@sum read_stream_3d wrapper for do_read_stream_3d
+      use dd2d_utils, only : dist_grid
+      implicit none
+      type(dist_grid) :: grid
+      type(timestream) :: tstream
+      integer :: jyear,jday
+      real*8, dimension(:,:,:) :: arr
+      real*8, dimension(:,:,:), optional :: tlim
+      integer :: ioff,joff
+
+      if(tstream%ndims .ne. 3) then
+        if(grid%am_i_globalroot) then
+          write(6,*) 'for '//trim(tstream%fbase)
+          write(6,*) 'tstream%ndims ',tstream%ndims
+        endif
+        call stop_model('read_stream_3d: incorrect ndims',255)
+      endif
+      call check_bounds(grid,size(arr,1),size(arr,2),ioff,joff)
+
+      if(present(tlim)) then
+        call do_read_stream_3d(grid,tstream,jyear,jday,arr,tlim)
+      else
+        call do_read_stream_3d(grid,tstream,jyear,jday,arr)
+      endif
+
+      end subroutine read_stream_3d
+
+      subroutine do_read_stream_3d(grid,tstream,jyear,jday,arr,tlim)
+!@sum do_read_stream_3d implementation of read_stream interface for 3D outputs.
 !@+   See documentation at beginning of module for the read_stream interface.
 !@+   The reads from disk and inter-annual time interpolations are performed
 !@+   by read_year. This routine performs the intra-annual time interpolation.
@@ -1452,18 +1745,15 @@ c
       type(dist_grid) :: grid
       type(timestream) :: tstream
       integer :: jyear,jday
-      real*8, dimension(grid%i_strt_halo:,
-     &                  grid%j_strt_halo:,:) :: arr
+      real*8, dimension(:,:,:) :: arr
 !@var tlim optional argument used for PPM interpolation with limits.
 !@+   tlim(1) = t0  tlim(2) = t1
 !@+   see ppm_frac,ppm_tlim code blocks below for definition of t0 and t1
-      real*8, dimension(2,grid%i_strt_halo:grid%i_stop_halo,
-     &                    grid%j_strt_halo:grid%j_stop_halo),
-     &     optional :: tlim
+      real*8, dimension(:,:,:), optional :: tlim
       real*8, parameter :: by12=1d0/12d0, teeny=1d-30
       integer i,j,imon,jmon,jdate,tinterp_method
       real*8 time,frac
-      integer :: j_0,j_1, i_0,i_1
+      integer :: j_0,j_1, i_0,i_1, ioff,joff, ii,jj
 
       real*8 :: a,b,c,e0,e1,csq,t0,t1
       integer, parameter :: ppm_frac = -99*ppm,ppm_tlim=-999*ppm,
@@ -1482,10 +1772,21 @@ c
 
       call read_year(grid,tstream,jyear,jmon)
 
-      i_0 = grid%i_strt
-      i_1 = grid%i_stop
-      j_0 = grid%j_strt
-      j_1 = grid%j_stop
+      if(tstream%ijless) then
+        i_0 = 1
+        i_1 = 1
+        j_0 = 1
+        j_1 = 1
+        ioff = 0
+        joff = 0
+      else
+        i_0 = grid%i_strt
+        i_1 = grid%i_stop
+        j_0 = grid%j_strt
+        j_1 = grid%j_stop
+        ioff = 1-i_0 + (size(arr,1)-(i_1-i_0+1))/2
+        joff = 1-j_0 + (size(arr,2)-(j_1-j_0+1))/2
+      endif
 
       tinterp_method = tstream%tinterp_method
 
@@ -1520,7 +1821,11 @@ c
         endif
 
         do l=1,lm
-          arr(i_0:i_1,j_0:j_1,l) = tstream%qty(i_0:i_1,j_0:j_1,l,imon)
+        do j=j_0,j_1
+        do i=i_0,i_1
+          arr(i+ioff,j+joff,l) = tstream%qty(i,j,l,imon)
+        enddo
+        enddo
         enddo
 
       case(linm2m)
@@ -1553,7 +1858,7 @@ c
         do j=j_0,j_1
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
-          arr(i,j,l) =
+          arr(i+ioff,j+joff,l) =
      &        frac*tstream%qty(i,j,l,imon-1)
      &  +(1.-frac)*tstream%qty(i,j,l,imon)
         enddo
@@ -1573,7 +1878,7 @@ c
           e1 = tstream%eom(i,j,l,jmon)   ! value at end of period
           b = e1-e0                      ! mean of first time derivative
           c = 3.*(e1+e0) - 6.*a          ! second time derivative (curvature)
-          arr(i,j,l) = a+b*time+c*(time**2-by12)
+          arr(i+ioff,j+joff,l) = a+b*time+c*(time**2-by12)
         enddo
         enddo
         enddo
@@ -1596,31 +1901,33 @@ c
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
           a = tstream%qty(i,j,l,jmon)
+          ii = i+ioff
+          jj = j+joff
           if(a.le.0.) then
             !call stop_model('read_stream: bad monthly mean',255)
-            arr(i,j,l) = a ! keep constant value
-            cycle               
+            arr(ii,jj,l) = a ! keep constant value
+            cycle
           endif
           e0 = tstream%eom(i,j,l,jmon-1)
           e1 = tstream%eom(i,j,l,jmon)
           b=e1-e0
           c=3.*(e1+e0) - 6.*a
-          arr(i,j,l)=a+b*time+c*(time**2-by12) ! default: pure PPM
+          arr(ii,jj,l)=a+b*time+c*(time**2-by12) ! default: pure PPM
           if(abs(c) .gt. abs(b)) then ! but check if linear fit is needed
             csq=c*(a*c - .25*b**2 - c**2*by12)
             if(csq.lt.0.) then        ! quadratic fit at apex < 0
               b = .5*(e0**2 + e1**2) / a
               if(e0-b*(time+.5) .gt. 0.)  then
-                arr(i,j,l) = e0 - b*(time+.5) !  time < t0
+                arr(ii,jj,l) = e0 - b*(time+.5) !  time < t0
               elseif(e1-b*(.5-time) .gt. 0.)  then
-                arr(i,j,l) = e1 - b*(.5-time) !  t1 < time
+                arr(ii,jj,l) = e1 - b*(.5-time) !  t1 < time
               else
-                arr(i,j,l) = 0.               !  t0 < time < t1
+                arr(ii,jj,l) = 0.               !  t0 < time < t1
               end if
             end if
           end if
-          !if(arr(i,j,l).lt.0.) then
-          !  write(6,*) 'negative output',i,j,l,jday,jmon,arr(i,j,l)
+          !if(arr(ii,jj,l).lt.0.) then
+          !  write(6,*) 'negative output',i,j,l,jday,jmon,arr(ii,jj,l)
           !endif
         enddo
         enddo
@@ -1644,40 +1951,42 @@ c
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
           a = tstream%qty(i,j,1,jmon)
-          if(present(tlim)) tlim(:,i,j) = (/ -1d30, 1d30 /)
+          ii = i+ioff
+          jj = j+joff
+          if(present(tlim)) tlim(:,ii,jj) = (/ -1d30, 1d30 /)
           if(a.le.0. .or. a.ge.1.) then
             !call stop_model('read_stream: bad monthly mean',255)
-            arr(i,j,1) = a ! keep constant value
+            arr(ii,jj,1) = a ! keep constant value
             cycle               
           endif
           e0 = tstream%eom(i,j,1,jmon-1)
           e1 = tstream%eom(i,j,1,jmon)
           b=e1-e0
           c=3.*(e1+e0) - 6.*a
-          arr(i,j,1)=a+b*time+c*(time**2-by12) ! default: pure PPM
+          arr(ii,jj,1)=a+b*time+c*(time**2-by12) ! default: pure PPM
           if(abs(c) .gt. abs(b)) then ! but check if linear fit is needed
             csq=c*(a*c - .25*b**2 - c**2*by12)
             if(csq.lt.0.) then        ! quadratic fit at apex < 0
               b = .5*(e0**2 + e1**2) / a
               if(present(tlim)) then
-                tlim(1,i,j) = e0/b - .5d0
-                tlim(2,i,j) = .5d0 - e1/b
+                tlim(1,ii,jj) = e0/b - .5d0
+                tlim(2,ii,jj) = .5d0 - e1/b
               endif
               if(e0-b*(time+.5) .gt. 0.)  then
-                arr(i,j,1) = e0 - b*(time+.5) !  time < t0
+                arr(ii,jj,1) = e0 - b*(time+.5) !  time < t0
               elseif(e1-b*(.5-time) .gt. 0.)  then
-                arr(i,j,1) = e1 - b*(.5-time) !  t1 < time
+                arr(ii,jj,1) = e1 - b*(.5-time) !  t1 < time
               else
-                arr(i,j,1) = 0.               !  t0 < time < t1
+                arr(ii,jj,1) = 0.               !  t0 < time < t1
               end if
             elseif(csq.gt.c**2)  then ! quadratic fit at apex > 1
               b = .5*((e0-1.)**2 + (e1-1.)**2) / (a-1.)
               if(e0-b*(time+.5) .lt. 1.)  then
-                arr(i,j,1) = e0 - b*(time+.5) !  time < t0
+                arr(ii,jj,1) = e0 - b*(time+.5) !  time < t0
               elseif(e1-b*(.5-time) .lt. 1.)  then
-                arr(i,j,1) = e1 - b*(.5-time) !  t1 < time
+                arr(ii,jj,1) = e1 - b*(.5-time) !  t1 < time
               else
-                arr(i,j,1) = 1.               !  t0 < time < t1
+                arr(ii,jj,1) = 1.               !  t0 < time < t1
               end if
             end if
           end if
@@ -1698,22 +2007,24 @@ c
         do j=j_0,j_1
         do i=i_0,i_1
           if(tstream%msk(i,j).eq.0d0) cycle
+          ii = i+ioff
+          jj = j+joff
           e0 = tstream%eom(i,j,1,jmon-1)
           e1 = tstream%eom(i,j,1,jmon)
-          t0 = tlim(1,i,j)
-          t1 = tlim(2,i,j)
-          arr(i,j,1) = 0.
+          t0 = tlim(1,ii,jj)
+          t1 = tlim(2,ii,jj)
+          arr(ii,jj,1) = 0.
           if(t0.lt.-1. .and. t1.gt.1.) then ! unadjusted parabola
             a = tstream%qty(i,j,1,jmon)
             b = e1-e0
             c = 3.*(e1+e0) - 6.*a
-            arr(i,j,1)=a+b*time+c*(time**2-by12)
+            arr(ii,jj,1)=a+b*time+c*(time**2-by12)
           elseif(time.lt.t0) then
-            arr(i,j,1)=e0*(1d0-(time+.5d0)/(t0+.5d0+teeny))
+            arr(ii,jj,1)=e0*(1d0-(time+.5d0)/(t0+.5d0+teeny))
           elseif(time.gt.t1) then
-            arr(i,j,1)=e1*(1d0-(.5d0-time)/(.5d0-t1+teeny))
+            arr(ii,jj,1)=e1*(1d0-(.5d0-time)/(.5d0-t1+teeny))
           else
-            arr(i,j,1)=0.
+            arr(ii,jj,1)=0.
           endif
         enddo
         enddo
@@ -1721,7 +2032,7 @@ c
       end select ! tinterp_method
 
       return
-      end subroutine read_stream_3d
+      end subroutine do_read_stream_3d
 
       end module timestream_mod
 
