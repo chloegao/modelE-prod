@@ -2,8 +2,7 @@
       SUBROUTINE initTracerGriddedData(is_coldstart)
 !@sum init_tracer initializes trace gas attributes
 !@calls sync_param, SET_TCON, RDLAND, RDDRYCF
-      USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT,
-     &     write_parallel,readt8_parallel
+      USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT
       USE RESOLUTION, only : jm,lm
       USE ATM_COM, only: pmidl00
       USE ATM_COM, only: MA  ! Air mass of each box (kg/m^2)
@@ -20,11 +19,11 @@
 #ifdef TRACERS_SPECIAL_Shindell
       use model_com, only: master_yr, modelEclock
       use dist_grid_mod, only : dist_grid
-      use timestream_mod, only: init_stream, read_stream, timestream
-      use domain_decomp_atm, only : init_grid, broadcast
+      use timestream_mod, only: init_stream, read_stream_ijless,
+     &     timestream
       USE TRCHEM_Shindell_COM,only:LCOalt,PCOalt,
      &     CH4altINT,CH4altINX,LCH4alt,PCH4alt,
-     &     CH4altX,CH4altT,ch4_init_sh,ch4_init_nh,scale_ch4_IC_file,
+     &     CH4altX,CH4altT,ch4_init_shnh,scale_ch4_IC_file,
      &     OxIC,fix_CH4_chemistry,
      &     CH4ICX,use_rad_ch4,
      &     COIC,Lmax_rad_O3,Lmax_rad_CH4,N2OICX,CFCIC,
@@ -67,9 +66,8 @@ c
       character(len=300) :: out_line
       real*8, dimension(6) :: temp_ghg
       integer :: temp_year, xyear, year, day
-      type(dist_grid), target :: chemIC_grid
       type(timestream) :: trICratN, trICratCOt, trICratCOs,
-     & trICratOth, trICratN2O, trICratCFC, trICch4NH, trICch4SH
+     & trICratOth, trICratN2O, trICratCFC, trICch4
 #endif /* TRACERS_SPECIAL_Shindell */
 
 ! temp storage for new tracer interfaces
@@ -163,22 +161,18 @@ C          check on GHG files 1995 value for CFCs:
 #ifdef TRACERS_SPECIAL_Shindell
       ! Read time-dependant factors to scale chemical tracer initial conditions.
       ! Some of these are not single-tracer specific, so not done under trname
-      ! select case above. For now, use a single-column grid, but still using
-      ! timestream, in case we expand to have these read on the model grid instead:
-      call init_grid(chemIC_grid,1,1,1,width=0)
+      ! select case above. For now, no horizontal variation, but since using
+      ! timestream, it should be easy to read these on the model grid instead:
       call modelEclock%get(year=year, dayOfYear=day)
       call get_param( "O3_yr", xyear, default=master_yr )
       if(xyear==0) xyear=year
-      call getIC2(chemIC_grid,trICratN,'trICratN',ICfact_N,grid)
-      call getIC2(chemIC_grid,trICratCOt,'trICratCOt',ICfact_COt,grid)
-      call getIC2(chemIC_grid,trICratCOs,'trICratCOs',ICfact_COs,grid)
-      call getIC2(chemIC_grid,trICratOth,'trICratOth',ICfact_Oth,grid)
-      call getIC2(chemIC_grid,trICratN2O,'trICratN2O',ICfact_N2O,grid)
-      call getIC2(chemIC_grid,trICratCFC,'trICratCFC',ICfact_CFC,grid)
-      call getIC2(chemIC_grid,trICch4SH,'trICch4SH',ch4_init_sh,grid,
-     &            'ch4')
-      call getIC2(chemIC_grid,trICch4NH,'trICch4NH',ch4_init_nh,grid,
-     &            'ch4')
+      call getIC2(trICratN,'trICratN',ICfact_N,grid)
+      call getIC2(trICratCOt,'trICratCOt',ICfact_COt,grid)
+      call getIC2(trICratCOs,'trICratCOs',ICfact_COs,grid)
+      call getIC2(trICratOth,'trICratOth',ICfact_Oth,grid)
+      call getIC2(trICratN2O,'trICratN2O',ICfact_N2O,grid)
+      call getIC2(trICratCFC,'trICratCFC',ICfact_CFC,grid)
+      call getIC2hems(trICch4,'trICch4',ch4_init_shnh,grid,'ch4')
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_init
@@ -246,23 +240,47 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #ifdef TRACERS_SPECIAL_Shindell
       CONTAINS
 
-        subroutine getIC2(Dgrid,Dstream,Dfile,Dvar,mainGrid,vname)
+        subroutine getIC2(Dstream,Dfile,Dvar,mainGrid,vname)
         implicit none
-        type(dist_grid) :: Dgrid,mainGrid
+        type(dist_grid) :: mainGrid
         type(timestream) :: Dstream
         character(len=*) :: Dfile
         character(len=*), optional :: vname
         character*80 :: rvname
-        real*8, dimension(1,1) :: Dvar
+        real*8 :: Dvar
         rvname='ICscale'
         if (present(vname) ) rvname=vname
+
         call init_stream
-     &  (Dgrid,Dstream,Dfile,trim(rvname),0.d0,1.d30,'none',xyear,day)
-        call read_stream(Dgrid,Dstream,xyear,day,Dvar)
-        call broadcast(mainGrid,Dvar)
+     &  (maingrid,Dstream,Dfile,trim(rvname),0.d0,1.d30,'none',
+     &       xyear,day,ijless=.true.)
+        call read_stream_ijless(maingrid,Dstream,xyear,day,Dvar)
+
+
         if(am_i_root())
      &    write(6,*)trim(rvname),' from ',trim(Dfile),' = ',Dvar
         end subroutine getIC2
+
+        subroutine getIC2hems(Dstream,Dfile,Dvar,mainGrid,vname)
+        implicit none
+        type(dist_grid) :: mainGrid
+        type(timestream) :: Dstream
+        character(len=*) :: Dfile
+        character(len=*), optional :: vname
+        character*80 :: rvname
+        real*8 :: Dvar(2)
+        rvname='ICscale'
+        if (present(vname) ) rvname=vname
+
+        call init_stream
+     &  (maingrid,Dstream,Dfile,trim(rvname),0.d0,1.d30,'none',
+     &       xyear,day,ijless=.true.)
+        call read_stream_ijless(maingrid,Dstream,xyear,day,Dvar)
+
+
+        if(am_i_root())
+     &    write(6,*)trim(rvname),' from ',trim(Dfile),' = ',Dvar
+        end subroutine getIC2hems
 
         subroutine getIC(fn,ICs)
         use resolution, only: im

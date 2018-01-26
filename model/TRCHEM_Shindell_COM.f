@@ -601,15 +601,13 @@ C**************  Not Latitude-Dependant ****************************
 !@+ initial conditions
 !@var ICfact_N2O scales N2O initial conditions
 !@var ICfact_CFC scales CFC initial conditions
-!@var ch4_init_sh methane inital conditions (ppmv) for Southern Hemisphere
-!@var ch4_init_nh methane inital conditions (ppmv) for Northern Hemisphere
-      ! these currently have a grid shape (1,1) to use timestream:
+!@var ch4_init_shnh methane inital conditions (ppmv) for Southern, Northern Hemispheres
 !@var offAeroFirst determined whether timestream needs to be initialized
 !@+ for reading offline aerosols for coupled_chem.ne.1
 !@var offAeroVars names of variables to read from OFFLINE_AERO
-      real*8, dimension(1,1) :: ICfact_N=undef, ICfact_COt=undef,
+      real*8 :: ICfact_N=undef, ICfact_COt=undef,
      & ICfact_COs=undef, ICfact_Oth=undef, ICfact_N2O=undef,
-     & ICfact_CFC=undef, ch4_init_sh=undef, ch4_init_nh=undef
+     & ICfact_CFC=undef, ch4_init_shnh(2)=undef
       real*8 :: avgTT_H2O,avgTT_CH4,countTT
       REAL*8 :: XLTAU,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF

@@ -473,29 +473,29 @@ c Tracers (converted from mass to number density):
 ! 0.55866d0 below is 1/1.79 (HALOE observations)
        if(fix_CH4_chemistry == 1) then
          if(lat2d_dg(i,j) < 0.) then         ! Southern Hemisphere
-           if(L<LS1)y(nn_CH4,L)=y(nM,L)*ch4_init_sh(1,1)*1.d-6 !troposphere
+           if(L<LS1)y(nn_CH4,L)=y(nM,L)*ch4_init_shnh(1)*1.d-6 !troposphere
            if(abs(lat2d_dg(i,j)) > 30.) then ! extratropics
              if(L>=LS1)then
                y(nn_CH4,L)=                   ! stratosphere
-     &         y(nM,L)*ch4_init_sh(1,1)*0.55866d0*1.d-6*CH4altX(L)
+     &         y(nM,L)*ch4_init_shnh(1)*0.55866d0*1.d-6*CH4altX(L)
              end if
            else                              ! tropics
              if(L>=LS1)then
                y(nn_CH4,L)=                   ! stratosphere
-     &         y(nM,L)*ch4_init_sh(1,1)*0.55866d0*1.d-6*CH4altT(L)
+     &         y(nM,L)*ch4_init_shnh(1)*0.55866d0*1.d-6*CH4altT(L)
              end if
            end if
          else                                ! Northern Hemisphere
-           if(L<LS1)y(nn_CH4,L)=y(nM,L)*ch4_init_sh(1,1)*1.d-6 !troposphere
+           if(L<LS1)y(nn_CH4,L)=y(nM,L)*ch4_init_shnh(2)*1.d-6 !troposphere
            if(abs(lat2d_dg(i,j)) > 30.) then ! extratropics
              if(L>=LS1)then
                y(nn_CH4,L)=                   ! stratosphere
-     &         y(nM,L)*ch4_init_nh(1,1)*0.55866d0*1.d-6*CH4altX(L)
+     &         y(nM,L)*ch4_init_shnh(2)*0.55866d0*1.d-6*CH4altX(L)
              end if
            else                              ! tropics
              if(L>=LS1)then
                y(nn_CH4,L)=                   ! stratosphere
-     &         y(nM,L)*ch4_init_nh(1,1)*0.55866d0*1.d-6*CH4altT(L)
+     &         y(nM,L)*ch4_init_shnh(2)*0.55866d0*1.d-6*CH4altT(L)
              end if
            end if
          end if

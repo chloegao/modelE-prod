@@ -233,8 +233,8 @@ C we change that.)
       use OldTracer_mod, only: vol2mass
       USE TRACER_COM, only : trm, trm_col, n_CH4, nOverwrite
       USE FLUXES, only: tr3Dsource
-      USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_sh,
-     *     ch4_init_nh,fix_CH4_chemistry
+      USE TRCHEM_Shindell_COM, only: CH4altT, CH4altX, ch4_init_shnh,
+     *     fix_CH4_chemistry
  
       IMPLICIT NONE
       integer, intent(in) :: icall,i,j
@@ -251,9 +251,9 @@ C we change that.)
 C     First, the troposphere:
 C       Initial latitudinal gradient for CH4:
       IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
-        CH4INIT=ch4_init_sh(1,1)*vol2mass(n_CH4)*1.d-6
+        CH4INIT=ch4_init_shnh(1)*vol2mass(n_CH4)*1.d-6
       ELSE                      ! Northern Hemisphere
-        CH4INIT=ch4_init_nh(1,1)*vol2mass(n_CH4)*1.d-6
+        CH4INIT=ch4_init_shnh(2)*vol2mass(n_CH4)*1.d-6
       ENDIF
       select case(icall)
       case(0)                   ! initial conditions
@@ -274,9 +274,9 @@ c     Define stratospheric ch4 based on HALOE obs for tropics
 c     and extratropics and scale by the ratio of initial troposphere
 c     mixing ratios to 1.79 (observed):
         IF(LAT2D_DG(I,J) < 0.) THEN ! Southern Hemisphere
-          CH4INIT=ch4_init_sh(1,1)/1.79d0*vol2mass(n_CH4)*1.d-6
+          CH4INIT=ch4_init_shnh(1)/1.79d0*vol2mass(n_CH4)*1.d-6
         ELSE                        ! Northern Hemisphere
-          CH4INIT=ch4_init_nh(1,1)/1.79d0*vol2mass(n_CH4)*1.d-6
+          CH4INIT=ch4_init_shnh(2)/1.79d0*vol2mass(n_CH4)*1.d-6
         ENDIF
         IF(ABS(LAT2D_DG(I,J)) > 30.) THEN ! extratropics
           CH4INIT=CH4INIT*CH4altX(L)
