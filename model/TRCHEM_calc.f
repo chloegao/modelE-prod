@@ -169,31 +169,31 @@ C**** Local parameters and variables and arguments:
       PRES(1:LM)=PMIDL00(1:LM)   !SIG(1:maxL)*(PSF-PTOP)+PTOP
       
       do L=1,maxL
-        y(nCH3O2,L)   =    yCH3O2(I,J,L)
+        y(nCH3O2,L)   =    yCH3O2(L,I,J)
 #ifdef TRACERS_dCO
         y(ndCH317O2,L)= ydCH317O2(I,J,L)
         y(ndCH318O2,L)= ydCH318O2(I,J,L)
         y(nd13CH3O2,L)= yd13CH3O2(I,J,L)
 #endif  /* TRACERS_dCO */
-        y(nC2O3,L)    =     yC2O3(I,J,L)
+        y(nC2O3,L)    =     yC2O3(L,I,J)
 #ifdef TRACERS_dCO
         y(ndC217O3,L) =  ydC217O3(I,J,L)
         y(ndC218O3,L) =  ydC218O3(I,J,L)
         y(nd13C2O3,L) =  yd13C2O3(I,J,L)
 #endif  /* TRACERS_dCO */
-        y(nXO2,L)     =      yXO2(I,J,L)
-        y(nXO2N,L)    =     yXO2N(I,J,L)
-        y(nRXPAR,L)   =    yRXPAR(I,J,L)
+        y(nXO2,L)     =      yXO2(L,I,J)
+        y(nXO2N,L)    =     yXO2N(L,I,J)
+        y(nRXPAR,L)   =    yRXPAR(L,I,J)
 #ifdef TRACERS_dCO
         y(nd13CXPAR,L)= yd13CXPAR(I,J,L)
 #endif  /* TRACERS_dCO */
-        y(nAldehyde,L)= yAldehyde(I,J,L)
+        y(nAldehyde,L)= yAldehyde(L,I,J)
 #ifdef TRACERS_dCO
         y(nd17Oald,L) =  yd17Oald(I,J,L)
         y(nd18Oald,L) =  yd18Oald(I,J,L)
         y(nd13Cald,L) =  yd13Cald(I,J,L)
 #endif  /* TRACERS_dCO */
-        y(nROR,L)     =      yROR(I,J,L)
+        y(nROR,L)     =      yROR(L,I,J)
 #ifdef TRACERS_dCO
         y(nd17OROR,L) =  yd17OROR(I,J,L)
         y(nd18OROR,L) =  yd18OROR(I,J,L)
@@ -431,7 +431,7 @@ c Set CH3O2 values (concentration = production/specific loss):
         end do
         
 c Conserve carbon wrt CH3O2 changes:
-        diffCH3O2=y(nCH3O2,L)-yCH3O2(I,J,L)
+        diffCH3O2=y(nCH3O2,L)-yCH3O2(L,I,J)
         if(diffCH3O2 > tempAcet)then
 c         reduce non-acetone source gases (CH4 and CH3OOH):
           dest(nn_CH4,L)=dest(nn_CH4,L)-(diffCH3O2-tempAcet)
@@ -449,7 +449,7 @@ c         increase non-acetone product gases:
      &      *(rr(rrbi%CH3O2_HO2__CH3OOH_O2,L)*y(nHO2,L))
      &      /CH3O2loss
         end if
-        yCH3O2(I,J,L)=y(nCH3O2,L)
+        yCH3O2(L,I,J)=y(nCH3O2,L)
 
 #ifdef TRACERS_dCO
 c Set dCH317O2 values (concentration = production/specific loss):
@@ -596,7 +596,7 @@ c         increase non-acetone product gases:
 
 c       Set value for C2O3:
         iter=1
-        C2O3prod=rr(rrbi%Aldehyde_OH__C2O3_M,L)*yAldehyde(I,J,L)
+        C2O3prod=rr(rrbi%Aldehyde_OH__C2O3_M,L)*yAldehyde(L,I,J)
      &      *y(nOH,L)
      &    +(rr(rrbi%PAN_M__C2O3_NO2,L)*y(nM,L)
      &      +ss(rj%PAN__C2O3_NO2,L,I,J))*y(nn_PAN,L)
@@ -619,7 +619,7 @@ c       Set value for C2O3:
           endif
           iter=iter+1
         end do
-        yC2O3(I,J,L)=y(nC2O3,L)
+        yC2O3(L,I,J)=y(nC2O3,L)
 #ifdef TRACERS_dCO
 ! ok to overwrite C2O3prod and C2O3dest
 c       Set value for dC217O3:
@@ -705,13 +705,13 @@ c       Set value for d13C2O3:
 c       Set value for XO2:
 ! remember to update voc2nox if you update any of the following XO2 loss reactions
         iter=1
-        XO2prod=ss(rj%Aldehyde__HCHO_CO,L,I,J)*yAldehyde(I,J,L)
+        XO2prod=ss(rj%Aldehyde__HCHO_CO,L,I,J)*yAldehyde(L,I,J)
      &    +y(nC2O3,L)*(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO2,L)
      &      +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0
      &      +rr(rrbi%C2O3_HO2__HCHO_HO2,L)*y(nHO2,L))
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.91d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.96d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*0.96d0
      &    +y(nOH,L)*(rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *0.87d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)
@@ -740,14 +740,14 @@ c       Set value for XO2:
           end if
           iter=iter+1
         end do
-        yXO2(I,J,L)=y(nXO2,L)
+        yXO2(L,I,J)=y(nXO2,L)
 
 c       Set value for XO2N:
         XO2Nprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.13d0
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
      &      *0.09d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.04d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*0.04d0
      &    +rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*y(nn_Isoprene,L)*
      &      y(nOH,L)*0.15d0
 #ifdef TRACERS_TERP
@@ -761,7 +761,7 @@ c       Set value for XO2N:
         else
           y(nXO2N,L)=1.d0
         end if
-        yXO2N(I,J,L)=y(nXO2N,L)
+        yXO2N(L,I,J)=y(nXO2N,L)
 
 #ifdef ACCMIP_LIKE_DIAGS
         TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)
@@ -773,7 +773,7 @@ c       Set value for RXPAR:
         RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*2.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*2.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)*0.9d0
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nNO3,L)*y(nn_Alkenes,L)
         RXPARdest=rr(rrbi%Paraffin_RXPAR__M_M,L)*y(nn_Paraffin,L)
@@ -782,7 +782,7 @@ c       Set value for RXPAR:
         else
           y(nRXPAR,L)=1.d0
         end if
-        yRXPAR(I,J,L)=y(nRXPAR,L)
+        yRXPAR(L,I,J)=y(nRXPAR,L)
 
 #ifdef TRACERS_dCO
 ! ok to overwrite RXPARprod and RXPARdest here
@@ -808,7 +808,7 @@ c       Set value for Aldehyde:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.11d0
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*1.1d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*1.1d0
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)
      &      *y(nO3,L)*0.44d0
         Aldehydedest=rr(rrbi%Aldehyde_OH__C2O3_M,L)*y(nOH,L)
@@ -824,7 +824,7 @@ c       Check for equilibrium:
         else
           y(nAldehyde,L)=(Aldehydeprod/(Aldehydedest+0.5d-5))
         end if
-        yAldehyde(I,J,L)=y(nAldehyde,L)
+        yAldehyde(L,I,J)=y(nAldehyde,L)
 
 #ifdef TRACERS_dCO
 c       Set value for d17Oald:
@@ -910,7 +910,7 @@ c       Check for equilibrium:
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(I,J,L)*0.02d0
+     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*0.02d0
         RORdest=rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)
      &    +rr(rrbi%ROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
@@ -918,7 +918,7 @@ c       Set value for ROR:
         else
           y(nROR,L)=1.d0
         end if
-        yROR(I,J,L)=y(nROR,L)
+        yROR(L,I,J)=y(nROR,L)
 
 #ifdef TRACERS_dCO
 ! ok ot overwrite RORprod,RORdest
@@ -1097,9 +1097,9 @@ C 2016.
 
 c Calculate ozone change due to Cl2O2 cycling:
       do L=1,maxL
-        if(yCl2O2(I,J,L) > 1d1)dest(nn_Ox,L)=dest(nn_Ox,L)
+        if(yCl2O2(L,I,J) > 1d1)dest(nn_Ox,L)=dest(nn_Ox,L)
      &    -0.75d0*rr(rrbi%Cl_O3__ClO_O2,L)*y(nCl,L)*y(nO3,L)*dt2
-     &      *yCl2O2(I,J,L)*1.5d9/y(nM,L)
+     &      *yCl2O2(L,I,J)*1.5d9/y(nM,L)
       end do
 
 ! c Include oxidation of CO by O(1D)
@@ -1627,7 +1627,7 @@ c Cacluate Cl2 amount to P/L:
          else
            y(nCl2,L)=0.d0
          end if
-         yCl2(I,J,L)=y(nCl2,L)
+         yCl2(L,I,J)=y(nCl2,L)
 
 c Set HOBr to equilibrium when necessary:
          if(idx == n_HOBr.and.(-dest(igas,L) >= y(nn_HOBr,L).or.
@@ -2114,7 +2114,7 @@ c Print chemical changes in a particular grid box if desired:
      &  ' ppmv)'
         call write_parallel(trim(out_line),crit=jay)
         write(out_line,'(a10,58x,e13.3,6x,f10.3,a5)')
-     &  ' CH3O2   :',yCH3O2(I,J,ijlprn(3)),(yCH3O2(I,J,ijlprn(3))/
+     &  ' CH3O2   :',yCH3O2(ijlprn(3),I,J),(yCH3O2(ijlprn(3),I,J)/
      &  y(nM,ijlprn(3)))*1.d9,' ppbv'
         call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_dCO

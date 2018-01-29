@@ -123,23 +123,23 @@ C       Set NO3: D is loss rxns NO3->NO2 or NO
      &    +ss(rj%NO3__NO2_O,L,I,J)
      &    +rr(rrbi%NO3_NO__NO2_NO2,L)*p1*y(nn_NOx,L)
      &    +rr(rrbi%NO2_NO3__NO_NO2,L)*p2*y(nn_NOx,L)
-     &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(I,J,L)
+     &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(L,I,J)
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
 
-        yNO3(I,J,L)=(rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)*p2
+        yNO3(L,I,J)=(rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)*p2
      &    *y(nn_NOx,L))/D
-        if(yNO3(I,J,L).ge.1.d-1*y(nn_NOx,L))
-     &    yNO3(I,J,L)=1.d-1*y(nn_NOx,L)
-        y(nNO,L)= p1*(y(nn_NOx,L)-yNO3(I,J,L))
-        y(nNO2,L)=p2*(y(nn_NOx,L)-yNO3(I,J,L))
+        if(yNO3(L,I,J).ge.1.d-1*y(nn_NOx,L))
+     &    yNO3(L,I,J)=1.d-1*y(nn_NOx,L)
+        y(nNO,L)= p1*(y(nn_NOx,L)-yNO3(L,I,J))
+        y(nNO2,L)=p2*(y(nn_NOx,L)-yNO3(L,I,J))
 
 C       Set limits on NO, NO2, NOx:
         if(y(nNO,L)   < 1.)   y(nNO,L) = 1.d0
         if(y(nNO2,L)  < 1.)  y(nNO2,L) = 1.d0
         if(y(nn_NOx,L) < 1.) y(nn_NOx,L) = 1.d0
         pNOx(L,I,J)=y(nNO2,L)/y(nn_NOx,L)
-        pNO3(L,I,J)=yNO3(I,J,L)/y(nn_NOx,L)
-        y(nNO3,L)=yNO3(I,J,L)
+        pNO3(L,I,J)=yNO3(L,I,J)/y(nn_NOx,L)
+        y(nNO3,L)=yNO3(L,I,J)
         y(nHONO,L)=1.d0
       end do
 
@@ -264,7 +264,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &      *y(nO3,L)*0.58d0
      &    +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &      *yNO3(I,J,L)*0.9d0
+     &      *yNO3(L,I,J)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nO3,L)*0.58d0
@@ -373,9 +373,9 @@ C**** Local parameters and variables and arguments:
 
       do L=1,Lmax
 c Set Cl2 and default Cl2O2:
-        y(nCl2,L)=yCl2(I,J,L)       ! set in chemstep
-        yCl2O2(I,J,L)=0.d0          ! non-zero at low temp, see below
-        y(nCl2O2,L)=yCl2O2(I,J,L)   ! non-zero at low temp, see below
+        y(nCl2,L)=yCl2(L,I,J)       ! set in chemstep
+        yCl2O2(L,I,J)=0.d0          ! non-zero at low temp, see below
+        y(nCl2O2,L)=yCl2O2(L,I,J)   ! non-zero at low temp, see below
 
 c Full ClOxfam code from offline photochemistry:
         y(nClO,L)=y(nn_ClOx,L)*pClOx(L,I,J)
@@ -520,7 +520,7 @@ c Normalize so that amount of ClOx doesn't change:
 
       end do  ! end of stratosphere loop
 
-      yCl2O2(I,J,:)=y(nCl2O2,:)
+      yCl2O2(:,I,J)=y(nCl2O2,:)
 
       return
       END SUBROUTINE ClOxfam

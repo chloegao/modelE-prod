@@ -68,17 +68,16 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         pClx(:,I_0:I_1,J_0:J_1)     =0.d0
         pOClOx(:,I_0:I_1,J_0:J_1)   =0.d0
         pBrOx(:,I_0:I_1,J_0:J_1)    =1.d0
-
-        yCH3O2(I_0:I_1,J_0:J_1,:)   =1.d0
-        yC2O3(I_0:I_1,J_0:J_1,:)    =0.d0
-        yROR(I_0:I_1,J_0:J_1,:)     =0.d0
-        yXO2(I_0:I_1,J_0:J_1,:)     =0.d0
-        yAldehyde(I_0:I_1,J_0:J_1,:)=0.d0
-        yNO3(I_0:I_1,J_0:J_1,:)     =0.d0
-        yXO2N(I_0:I_1,J_0:J_1,:)    =0.d0
-        yRXPAR(I_0:I_1,J_0:J_1,:)   =0.d0
-        yCl2(I_0:I_1,J_0:J_1,:)     =0.d0
-        yCl2O2(I_0:I_1,J_0:J_1,:)   =0.d0
+        yCH3O2(:,I_0:I_1,J_0:J_1)   =1.d0
+        yC2O3(:,I_0:I_1,J_0:J_1)    =0.d0
+        yROR(:,I_0:I_1,J_0:J_1)     =0.d0
+        yXO2(:,I_0:I_1,J_0:J_1)     =0.d0
+        yAldehyde(:,I_0:I_1,J_0:J_1)=0.d0
+        yNO3(:,I_0:I_1,J_0:J_1)     =0.d0
+        yXO2N(:,I_0:I_1,J_0:J_1)    =0.d0
+        yRXPAR(:,I_0:I_1,J_0:J_1)   =0.d0
+        yCl2(:,I_0:I_1,J_0:J_1)     =0.d0
+        yCl2O2(:,I_0:I_1,J_0:J_1)   =0.d0
 #ifdef TRACERS_dCO
         ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
         ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
