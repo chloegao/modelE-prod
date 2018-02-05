@@ -114,7 +114,8 @@ C**** some B-grid conservation quantities
       SUBROUTINE GEOM_ATM
 !@sum  GEOM_ATM Calculate spherical geometry for B grid
 !@auth Original development team (modifications by G. Schmidt)
-      use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole
+      use domain_decomp_atm, only : grid, hasSouthPole, hasNorthPole,
+     *                              Am_I_Root
       IMPLICIT NONE
 
       INTEGER :: I,J,K,IM1  !@var I,J,K,IM1  loop variables
@@ -138,8 +139,13 @@ C**** some B-grid conservation quantities
 
       allocate(indx(i_0h:i_1h, j_0h:j_1h))
       allocate(jndx(i_0h:i_1h, j_0h:j_1h))
-      print *,'GEOM_SPECS',i_0h, i_1h, j_0h, j_1h,
-     &      i_0, i_1, j_0, j_1, j_0s, j_1s
+
+      If (Am_I_Root()) Write (6,900)
+      Write (6,901) i_0h,i_0,i_1,i_1h, j_0h,j_0,j_0s,j_1s,j_1,j_1h,
+     *              HasSouthPole(Grid), HasNorthPole(Grid)
+  900 Format ('GEOM_B:   I_0H   I_0   I_1  I_1H',
+     *               '   J_0H   J_0  J_0S  J_1S   J_1  J_1H   QSP  QNP') 
+  901 Format ('GEOM_B: ',4I6,1X,6I6,2L5)
 
       allocate(
      &       axyp(i_0h:i_1h,j_0h:j_1h)
