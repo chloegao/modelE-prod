@@ -40,7 +40,7 @@ RVR=RD_modelE_M.nc                ! river direction file
 NAMERVR=RD_modelE_M.names.txt     ! named river outlets
 
 #include "land72x46_input_files"
-#include "rad_input_files_noCO2profile"
+#include "rad_input_files"        ! CO2profile is disregarded since LM<27
 #include "rad_72x46_input_files"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag

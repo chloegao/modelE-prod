@@ -132,6 +132,7 @@ KSIALB=0        ! 6-band albedo (Hansen) (=-1 no land ice fixup, 1 Lacis' scheme
 KSOLAR=2
 
 madaer=3        ! updated aerosols
+MADVOL=2
 ! parameters that control the atmospheric/boundary conditions
 ! if set to 0, the current (day/) year is used: transient run
 crops_yr=1850 ! if -1, crops in VEG-file is used   ! =1979 , also change OSST,SICE

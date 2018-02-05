@@ -107,6 +107,7 @@ c --- distribute brine ejected during ice formation in interval (brntop,brnbot)
       else
         amount=0.
         brnflx(i,j)=0.
+        sqiflx(i,j)=0.
       endif
 c
 c --- add diagnostics

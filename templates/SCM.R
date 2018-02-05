@@ -231,7 +231,6 @@ SCM_sfc=1                  ! 1:land,2:ocean
 SCM_z0m=0.0005             ! surface roughness height (m)
 SCM_alb=0.3                ! mid-visible surface albedo (-)
 SCM_tau=10800.             ! nudging time constant
-SCM_TopHat=1               ! input profiles treated as top-hat? (default=0)
 
 DTsrc=1800.     ! Atm. physics timestep.
 NIsurf=1        ! Number of surface physics timesteps per atm. physics timestep.

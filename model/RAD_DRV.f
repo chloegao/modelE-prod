@@ -3916,6 +3916,18 @@ C****
           sddarr(i,j) = snfs(3,i,j)*cosz2(i,j)
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr)
+      !Net solar flux at surface:
+      case ('swns')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j)=snfs(1,i,j)*cosz2(i,j)
+        enddo;       enddo
+        call inc_subdd(subdd,k,sddarr)
+      !Net Longwave flux at surface:
+      case ('lwns')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j)=tnfs(1,i,j)
+        enddo;       enddo
+        call inc_subdd(subdd,k,sddarr)
       case ('totcld')
         call inc_subdd(subdd,k,cfrac)
       case ('totcld_diag')
@@ -4739,6 +4751,20 @@ c
       arr(next()) = info_type_(
      &  sname = 'swtoa',
      &  lname = 'SOLAR NET FLUX, TOA',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swns',
+     &  lname = 'Solar net flux at surface',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'lwns',
+     &  lname = 'Longwave net flux at surface',
      &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
