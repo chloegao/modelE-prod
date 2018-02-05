@@ -15,23 +15,12 @@ Tpsc_offset_S=0.d0
 ! 40-layer model with VMP clouds chemistry tuning parameters: 
 windowN2Ocorr=1.0
 windowO2corr=1.0
-   ! these worked well with the older solar/FLTRAN file like 
-   ! *solar.lean2015.ann1610-2014*
-! reg1Power_SpherO2andN2Ocorr=2.0
-! reg1TopPres_SpherO2andN2Ocorr=50.
-! reg2Power_SpherO2andN2Ocorr=2.0
-! reg2TopPres_SpherO2andN2Ocorr=10.
-! reg3Power_SpherO2andN2Ocorr=1.0
-! reg3TopPres_SpherO2andN2Ocorr=5.
-! reg4Power_SpherO2andN2Ocorr=0.5
-   ! these worked better with the official CMIP6 solar file
-   ! and related photolysis input:
-reg1Power_SpherO2andN2Ocorr=1.5
+reg1Power_SpherO2andN2Ocorr=2.0
 reg1TopPres_SpherO2andN2Ocorr=50.
-reg2Power_SpherO2andN2Ocorr=1.5
+reg2Power_SpherO2andN2Ocorr=2.0
 reg2TopPres_SpherO2andN2Ocorr=10.
-reg3Power_SpherO2andN2Ocorr=0.2
-reg3TopPres_SpherO2andN2Ocorr=1.
+reg3Power_SpherO2andN2Ocorr=1.0
+reg3TopPres_SpherO2andN2Ocorr=5.
 reg4Power_SpherO2andN2Ocorr=0.5
 ! -----------------------------------
 COUPLED_CHEM=1     ! to couple chemistry and aerosols

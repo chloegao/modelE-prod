@@ -13,7 +13,7 @@ RH_QG_Mie=oct2003.relhum.nr.Q633G633.table
 RADN7=STRATAER.VOL.1850-2012.May13_hdr
 RADN8=cloud.epsilon4.72x46
 !RADN9=solar.lean2015.ann1610-2014.nc ! need KSOLAR=2
-RADN9=solar.CMIP6official.ann1850-2299.nc ! need KSOLAR=2
+RADN9=solar.CMIP6official.ann1850-2299_with_E3_fastJ.nc ! need KSOLAR=2
 RADNE=topcld.trscat8
 
 ISCCP=ISCCP.tautables
