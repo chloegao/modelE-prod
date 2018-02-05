@@ -505,7 +505,8 @@ c Tracers (converted from mass to number density):
          end if
        end if
 
-#ifdef TRACERS_AEROSOLS_Koch
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || \
+    defined(TRACERS_TOMAS)
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
          ydms(i,j,L)=trm(i,j,L,n_dms)*y(nM,L)*(28.0D0/62.0D0)*
@@ -517,7 +518,7 @@ C Concentrations of DMS and SO2 for sulfur chemistry:
          ydms(i,j,L)=dms_offline(i,j,L)*1.0d-12*y(nM,L)
          yso2(i,j,L)=so2_offline(i,j,L)*1.0d-12*y(nM,L)
        end if
-#endif /* TRACERS_AEROSOLS_Koch */
+#endif /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm(I,J,L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*
