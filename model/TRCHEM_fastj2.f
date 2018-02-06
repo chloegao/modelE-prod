@@ -25,7 +25,7 @@
 !@param jpnl number of photolysis levels
 !@param szamax max Zenith Angle(98 deg at 63 km;99 degrees at 80 km)
 !@param ncfastj2 number of levels in the fastj2 atmosphere
-!@param nbfastj number of boundaries for fastj2 (e.g. jpnl+1...)
+!@param nbfastj number of layers for fastj2 (e.g. jpnl+1...)
 !@param N__ Number of levels in Mie grid: 2*(2*lpar+2+jaddto(1))+3
 !@param M__ Number of Gauss points used
 !@param nfastj number of quadrature points in OPMIE
@@ -839,6 +839,8 @@ C**** Local parameters and variables and arguments:
       logical             :: jay
       REAL*8, allocatable, dimension(:)   :: COLO2,COLO3
 #ifdef TRACERS_ON
+!@var colax accumulated aerosol extinction, which is the sum of aer2
+!@+         of the current layer plus all layers above (in NBFASTJ dimension)
       REAL*8, allocatable, DIMENSION(:,:) :: COLAX
 #endif
       REAL*8, DIMENSION(9)               :: climat
@@ -852,14 +854,14 @@ C---Calculate columns, for diagnostic output only:
       COLO3(NBFASTJ) = DO32(NBFASTJ)
       COLO2(NBFASTJ) = DMFASTJ2(NBFASTJ)*pO2*o2x
 #ifdef TRACERS_ON
-      allocate(colax(njaero,NBFASTJ))
-      COLAX(:,NBFASTJ) = AER2(NBFASTJ,:)
+      allocate(colax(NBFASTJ,njaero))
+      COLAX(NBFASTJ,:) = AER2(NBFASTJ,:)
 #endif
       do I=NBFASTJ-1,1,-1
         COLO3(i) = COLO3(i+1)+DO32(i)
         COLO2(i) = COLO2(i+1)+DMFASTJ2(i)*pO2*o2x
 #ifdef TRACERS_ON
-        COLAX(:,i) = COLAX(:,i+1)+AER2(i,:)
+        COLAX(i,:) = COLAX(i+1,:)+AER2(i,:)
 #endif
       enddo
       write(out_line,1200) '  SZA=',sza
@@ -868,7 +870,7 @@ C---Calculate columns, for diagnostic output only:
       call write_parallel(trim(out_line),crit=jay)
 #ifdef TRACERS_ON
       write(out_line,1202) 'column aerosol @1000nm=',
-     &                     (COLAX(K,1),K=1,njaero)
+     &                     (COLAX(1,K),K=1,njaero)
       call write_parallel(trim(out_line),crit=jay)
 #endif
 
@@ -885,7 +887,7 @@ C---Print out atmosphere:
           write(out_line2,1100) I,ZKM,ZSTAR,DMFASTJ2(I),DO32(I),
      &    1.d6*DO32(I)/DMFASTJ2(I),TJ2(I),PJC,COLO3(I),COLO2(I)
 #ifdef TRACERS_ON
-     &   ,(AER2(I,K),COLAX(K,I),K=1,njaero)
+     &   ,(AER2(I,K),COLAX(I,K),K=1,njaero)
 #endif
           call write_parallel(trim(out_line2),crit=jay)
         enddo
