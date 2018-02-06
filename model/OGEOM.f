@@ -35,13 +35,13 @@ C****
       j_1 = oGRID%j_stop
 
       If (Am_I_Root()) Write (6,900)
-      Write (6,901) 
+      Write (6,901) oGRID%RANK,
      *   oGRID%I_STRT_HALO,oGRID%I_STRT,oGRID%I_STOP,oGRID%I_STOP_HALO,
      *   oGRID%J_STRT_HALO,oGRID%J_STRT,oGRID%J_STRT_SKP ,
      *   oGRID%J_STOP_SKP ,oGRID%J_STOP,oGRID%J_STOP_HALO
-  900 Format (' GEOMO:   I_0H   I_0   I_1  I_1H',   
+  900 Format (' GEOMO:   Rank  I_0H   I_0   I_1  I_1H',   
      *               '   J_0H   J_0  J_0S  J_1S   J_1  J_1H')
-  901 Format (' GEOMO: ',4I6,1X,6I6)
+  901 Format (' GEOMO: ',5I6,1X,6I6)
 
 C**** Define some key values that depend on resolution (and grid)
       DLON   = TWOPI/IM
