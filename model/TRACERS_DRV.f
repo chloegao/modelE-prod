@@ -79,7 +79,10 @@
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #ifdef TRACERS_AEROSOLS_VBS
         case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
-     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
+     &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
+     &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
+     &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
           get_src_fact=VBSemifact(vbs_tr%iaerinv(n))
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #endif  /* TRACERS_AEROSOLS_VBS */
@@ -5498,7 +5501,10 @@ C**** Next line for fastj photon fluxes to vary with time:
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #endif
-        case ('M_OCC_OC', 'OCII')
+        case ('M_OCC_OC', 'OCII',
+     &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
+     &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
+     &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
           if (.not.tracers_aerosols_soa) then
             if (ntsurfsrc(n)>1) then
               sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
@@ -6648,8 +6654,11 @@ C**** All sources are saved as kg s-1
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_ACC_SU', 'M_AKK_SU',
-     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC'
-     &      ,'ASO4__01','AECOB_01','AOCOB_01')
+     &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
+     &      'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
+     &      'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
+     &      'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6',
+     &      'ASO4__01','AECOB_01','AOCOB_01')
 
 C**** 3D biomass source
         if(do_fire(src_index) .or. nBBsources(src_index) > 0) then
