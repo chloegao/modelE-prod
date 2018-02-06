@@ -139,9 +139,15 @@
 #else
       real*8, dimension(3,njval)       :: tqq
 #endif
-!@var qaafastj Aerosol scattering phase functions
+
 !@var waafastj Wavelengths for the NK supplied phase functions
-      real*8, dimension(4,np)          :: qaafastj,waafastj
+!@var qaafastj Q for the NK supplied phase functions
+!@var raa effective radii for the NK supplied phase functions
+!@var ssa single scattering albedo for the NK supplied phase functions
+!@var paa Scaling for extinctions (isn't this the phase function?)
+      real*8, dimension(4,np) :: waafastj,qaafastj,raa,ssa
+      real*8, dimension(mfit,4,np) :: paa
+
 !@var wl Centres of wavelength bins - 'effective wavelength'
 !@var fl Solar flux incident on top of atmosphere (cm-2.s-1)
 !@var qrayl Rayleigh scattering ?
@@ -184,11 +190,6 @@
       real*8, allocatable, dimension(:) :: pfastj2
 !@var o3_fastj ozone sent to fastj
       real*8, allocatable, dimension(:) :: o3_fastj
-!@var ssa single scattering albedo ?
-!@var raa ?
-      real*8, dimension(4,np) :: ssa,raa
-!@var paa Scaling for extinctions
-      real*8, dimension(8,4,np) :: paa
 !@var jlabel Reference label identifying appropriate J-value to use
       character(len=7), allocatable, dimension(:) :: jlabel
 !@var jind mapping index for jvalues
@@ -1319,13 +1320,14 @@ C---Pick nearest Mie wavelength, no interpolation--------------
 
 C---For Mie code scale extinction at 1000 nm to wavelength WAVEL(QXMIE)
 #ifdef TRACERS_ON
-      allocate(piaer2(njaero,NBFASTJ))
-      allocate(qxmie(njaero,NBFASTJ))
-      allocate(ssalb(njaero,NBFASTJ))
+      allocate(piaer2(NBFASTJ,njaero))
+      allocate(qxmie(NBFASTJ,njaero))
+      allocate(ssalb(NBFASTJ,njaero))
       allocate(xlaer(njaero))
+
       do j=1,NBFASTJ
-        QXMIE(:,j) = QAAFASTJ(KM,MIEDX2(j,:)) / QAAFASTJ(4,MIEDX2(j,:))
-        SSALB(:,j) = SSA(KM,MIEDX2(j,:))
+        QXMIE(j,:) = QAAFASTJ(KM,MIEDX2(j,:)) / QAAFASTJ(NK,MIEDX2(j,:))
+        SSALB(j,:) = SSA(KM,MIEDX2(j,:))
       enddo
 #endif
 
@@ -1342,7 +1344,7 @@ C---Set up total optical depth over each CTM level, DTAUX:
         if(WAVEL <= 291.d0) XLRAY=XLRAY * 0.57d0
         DTAUX(J)=XLO3+XLO2+XLRAY
 #ifdef TRACERS_ON
-        XLAER(:)=AER2(J,:)*QXMIE(:,J) ! njaero
+        XLAER(:)=AER2(J,:)*QXMIE(J,:) ! njaero
 c Total optical depth from all elements:
         do I=1,njaero
           DTAUX(J)=DTAUX(J)+XLAER(I)
@@ -1351,7 +1353,7 @@ c Total optical depth from all elements:
 c Fractional extinction for Rayleigh scattering and each aerosol type:
         PIRAY2(J)=XLRAY/DTAUX(J)
 #ifdef TRACERS_ON
-        PIAER2(:,J)=SSALB(:,J)*XLAER(:)/DTAUX(J) ! njaero
+        PIAER2(J,:)=SSALB(J,:)*XLAER(:)/DTAUX(J) ! njaero
 #endif
       enddo ! J
 
@@ -1392,7 +1394,7 @@ C No. of quadrature pts fixed at 4 (M__), expansion of phase fn @ 8
          pomegaj(i,j) = PIRAY2(J)*PAA(i,KM,1)
 #ifdef TRACERS_ON
          do k=1,njaero
-          pomegaj(i,j)=pomegaj(i,j)+PIAER2(K,j)*PAA(i,KM,MIEDX2(j,K))
+          pomegaj(i,j)=pomegaj(i,j)+PIAER2(j,K)*PAA(i,KM,MIEDX2(j,K))
          enddo
 #endif
         enddo
@@ -2288,7 +2290,7 @@ C Read aerosol phase functions:
         read(NJ1,110) title_aer_pf(j)
         do k=1,NK
           read(NJ1,106) WAAFASTJ(k,j),
-     &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,8)
+     &    QAAFASTJ(k,j),RAA(k,j),SSA(k,j),(PAA(i,k,j),i=1,MFIT)
         enddo
       enddo
 
