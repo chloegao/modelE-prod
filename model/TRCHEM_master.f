@@ -630,10 +630,6 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-! initialize photolysis rates to 0, as they only get set in daylight:
-      zj(:,:)=0.d0
-      ss(:,:,I,J)=0.d0 ! this one can be removed once zj is used instead
-
       if(daylight)then
 
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these
@@ -646,7 +642,7 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         call fastj2_drv(I,J, tl(1:topLevelOfChemistry), rh,albedoToUse)
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
 
-C Define and alter resulting photolysis coefficients (zj --> ss):
+! Apply some alterations to the fastj photolysis rates just calculated: 
 
         ! Set above-chemistry-top O2 and O3 columns. Initial hardcoded numbers here
         ! were for the 0.1 model top. Scaling this linearly in pressure now. Note
@@ -672,28 +668,26 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
 
         DO L=min(JPNL,topLevelOfChemistry),1,-1
           do inss=1,n_rj
-            ss(inss,L,I,J)=zj(L,inss)
-#ifndef SHINDELL_SKIP_WINDOW_TUNE /* note NOT defined */
             !reduce rates for gases that photolyze in window region (~200nm):
             if(inss == rj%O2__O_O .or.
      &         inss == rj%N2O__M_O1D) then ! for O2 and N2O reactions:
               ! Apply spherical corrections:
               if(pres2(L)>reg1TopPres_SpherO2andN2Ocorr)then
-                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg1
+                zj(L,inss)=zj(L,inss)*sphericalCorrectionReg1
               else if(pres2(L)>reg2TopPres_SpherO2andN2Ocorr .and.
      &                pres2(L).le.reg1TopPres_SpherO2andN2Ocorr) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg2
+                zj(L,inss)=zj(L,inss)*sphericalCorrectionReg2
               else if(pres2(L)>reg3TopPres_SpherO2andN2Ocorr .and.
      &                pres2(L).le.reg2TopPres_SpherO2andN2Ocorr) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg3
+                zj(L,inss)=zj(L,inss)*sphericalCorrectionReg3
               else
-                ss(inss,L,I,J)=ss(inss,L,I,J)*sphericalCorrectionReg4
+                zj(L,inss)=zj(L,inss)*sphericalCorrectionReg4
               end if
               ! Then apply linear corrections for same reactions:
               if(inss == rj%O2__O_O) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)*windowO2corr
+                zj(L,inss)=zj(L,inss)*windowO2corr
               else if(inss == rj%N2O__M_O1D) then
-                ss(inss,L,I,J)=ss(inss,L,I,J)*windowN2Ocorr
+                zj(L,inss)=zj(L,inss)*windowN2Ocorr
               end if
 #ifdef TRACERS_dCO
 #ifndef TRACERS_dCO_bin_reprod
@@ -706,18 +700,17 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
      &             ) then
               ! the yield is one third, since one isotopically labeled atom
               ! is assumed to exist in each aldehyde, not two
-              ss(inss,L,I,J)=ss(inss,L,I,J)/2.d0
+              zj(L,inss)=zj(L,inss)/2.d0
 #endif  /* not TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO */
             end if
-#endif /* not defined to skip */
           enddo
           taijls(i,j,L,ijlt_JO1D)=taijls(i,j,L,ijlt_JO1D)
-     &      +ss(rj%O3__O1D_O2,L,i,j)
+     &      +zj(L,rj%O3__O1D_O2)
           taijls(i,j,L,ijlt_JNO2)=taijls(i,j,L,ijlt_JNO2)
-     &      +ss(rj%NO2__NO_O,L,i,j)
+     &      +zj(L,rj%NO2__NO_O)
           taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
-     &      +ss(rj%H2O2__OH_OH,L,i,j)
+     &      +zj(L,rj%H2O2__OH_OH)
           thick=1.d-3*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
           colmO2=colmO2+y(nO2,L)*thick*1.d5
           colmO3=colmO3+y(nO3,L)*thick*1.d5
@@ -749,8 +742,11 @@ C Define and alter resulting photolysis coefficients (zj --> ss):
           SF2(L)=SF2(L)*SF2_fact*by35*SQRT(1.224d3*COSZ1(I,J)**2.+1.d0)
         END DO
 
+      else
+        ! darkness: set photolysis rates to 0; no longer saved to restart files
+        zj(:,:)=0.d0
       endif ! (sunlight)
-      
+
 CCCCCCCCCCCCCCCCC END PHOTOLYSIS SECTION CCCCCCCCCCCCCCCCCCCCCCCCC
 
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -856,7 +852,7 @@ C Save 3D radical arrays to pass to aerosol code:
       call ClOxfam(topLevelOfChemistry,I,J) ! needed something from chemstep.
 
       call printDaytimeChemistryDiags()
-      
+
       else
 
 CCCCCCCCCCCCCCCCCCCC END SUNLIGHT CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
@@ -1895,7 +1891,7 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
-     &  ss(rj%O3__O1D_O2,l,i,j)*y(nO3,l)*cpd
+     &  zj(l,rj%O3__O1D_O2)*y(nO3,l)*cpd
 
         ! chemical_production_of_OH_from_O1D_plus_H2O:
         taijls(i,j,l,ijlt_pOH)=taijls(i,j,l,ijlt_pOH)+
@@ -2157,9 +2153,9 @@ c (radiation code wants atm-cm units):
         write(out_line,*)
      &  'L, O3pO2, O3pO2*C, OHpptv, HO2pptv, O/O3, NO2/NO, Cl/ClO:'
         call write_parallel(trim(out_line),crit=jay)
-        do LPRINT=LS1,topLevelOfChemistry
+        do LPRINT=LS1,min(JPNL,topLevelOfChemistry)
           if(daylight)then
-            ss27x2=2.d0*ss(rj%O2__O_O,LPRINT,i,j)*y(nO2,LPRINT)
+            ss27x2=2.d0*zj(LPRINT,rj%O2__O_O)*y(nO2,LPRINT)
      &        *(rr(rrtri%O_O2__O3_M,LPRINT)*y(nO2,LPRINT))
      &        /(rr(rrtri%O_O2__O3_M,LPRINT)*y(nO2,LPRINT)
      &          +rr(rrbi%O_O3__O2_O2,LPRINT)*y(nO3,LPRINT))
@@ -2184,7 +2180,7 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
       subroutine printDaytimeChemistryDiags()
       if(prnchg .and. J == ijlprn(2) .and. I == ijlprn(1)) then
        jay = .true.!(J >= J_0 .and. J <= J_1) 
-       if(ijlprn(3) <= topLevelOfChemistry) then
+       if(ijlprn(3) <= min(JPNL,topLevelOfChemistry)) then
          write(out_line,*) ' '
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'Family ratios at I,J,L: ',i,j,ijlprn(3)
@@ -2196,11 +2192,11 @@ CCCCCCCCCCCCC PRINT SOME CHEMISTRY DIAGNOSTICS CCCCCCCCCCCCCCCC
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
      &    'O1D/O3 = ',y(nO1D,ijlprn(3))/y(nO3,ijlprn(3)),
-     &    '  J(O1D) = ',ss(rj%O3__O1D_O2,ijlprn(3),I,J)
+     &    '  J(O1D) = ',zj(ijlprn(3),rj%O3__O1D_O2)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*)
      &    'NO/NO2 = ',y(nNO,ijlprn(3))/y(nNO2,ijlprn(3)),
-     &    '   J(NO2) = ',ss(rj%NO2__NO_O,ijlprn(3),I,J)
+     &    '   J(NO2) = ',zj(ijlprn(3),rj%NO2__NO_O)
          call write_parallel(trim(out_line),crit=jay)
          write(out_line,*) 'conc OH = ',y(nOH,ijlprn(3))
          call write_parallel(trim(out_line),crit=jay)
@@ -2550,7 +2546,7 @@ C Make sure nighttime chemistry changes are not too big:
       SS=SIN(lat2d(I,J))*SIN(dec)
 
       sec_func=1.d0/max(teeny,COS(lha)*CC+SS)
- 
+
       Jacet0=max(0.d0,C1*(COS(sza)*C2)*EXP(-1.*C3*sec_func))
       Jacet(:)=0.d0
       do L=1,min(LS1-1,topLevelOfChemistry)
