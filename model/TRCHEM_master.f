@@ -630,6 +630,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 C                 BEGIN PHOTOLYSIS                               C
 CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
+! initialize photolysis rates to 0, as they only get set in daylight:
+      zj(:,:)=0.d0
+      ss(:,:,I,J)=0.d0 ! this one can be removed once zj is used instead
+
       if(daylight)then
 
 c Pass O3 array (in ppmv; here seems to be ppv) to fastj. Above these

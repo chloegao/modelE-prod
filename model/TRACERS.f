@@ -1287,7 +1287,7 @@ C**** check whether air mass is conserved
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss
+     &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR
 #ifdef TRACERS_dCO
      &     ,ydC217O3,ydC218O3,yd13C2O3
      &     ,yd13CXPAR
@@ -1296,7 +1296,7 @@ C**** check whether air mass is conserved
      &     ,ydCH317O2,ydCH318O2,yd13CH3O2
 #endif  /* TRACERS_dCO */
      &     ,pNO3,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
-     &     ,topLevelOfChemistry,n_rj,mostRecentNonZeroAlbedo
+     &     ,topLevelOfChemistry,mostRecentNonZeroAlbedo
 #ifdef INTERACTIVE_WETLANDS_CH4 
       use TRACER_SOURCES, only: day_ncep,DRA_ch4,sum_ncep,PRS_ch4,
      &     HRA_ch4,iday_ncep,i0_ncep,iHch4,iDch4,i0ch4,first_ncep,
@@ -1335,9 +1335,8 @@ C**** check whether air mass is conserved
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: snosiz_glob
 #endif  /* BC_ALB */
 #ifdef TRACERS_SPECIAL_Shindell
-      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: ss_glob
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE :: Aijl_chem, Alij_chem
-#ifdef INTERACTIVE_WETLANDS_CH4 
+#ifdef INTERACTIVE_WETLANDS_CH4
       REAL*8, DIMENSION(:,:,:), ALLOCATABLE ::
      &     rHch4,rDch4,r0ch4,rfirst_mod
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
@@ -1395,8 +1394,7 @@ C**** check whether air mass is conserved
 
 #ifdef TRACERS_SPECIAL_Shindell
       allocate(
-     &    ss_glob(n_rj,topLevelOfChemistry,img,jmg)
-     &    ,Aijl_chem(img,jmg,topLevelOfChemistry)
+     &     Aijl_chem(img,jmg,topLevelOfChemistry)
      &    ,Alij_chem(topLevelOfChemistry,img,jmg) )
 #ifdef INTERACTIVE_WETLANDS_CH4
       allocate(
@@ -1464,9 +1462,6 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
-       header='TRACERS_SPECIAL_Shindell: ss(n_rj,l,i,j)'
-        call pack_block(grid,ss(:,:,:,:),ss_glob(:,:,:,:))
-        if(am_i_root())write(kunit,err=10)header,ss_glob
        header='TRACERS_SPECIAL_Shindell: yNO3(L,i,j)'
         call pack_column(grid,yNO3,Alij_chem)
         if(am_i_root())write(kunit,err=10)header,Alij_chem
@@ -1693,8 +1688,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
 #endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
-          if(am_i_root())read(kunit,err=10)header,ss_glob
-          call unpack_block(grid,ss_glob(:,:,:,:),ss(:,:,:,:))
           if(am_i_root())read(kunit,err=10)header,Alij_chem
           call unpack_column(grid,Alij_chem,yNO3)
           if(am_i_root())read(kunit,err=10)header,Alij_chem
@@ -1860,7 +1853,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
 
       deallocate(Aijl_glob)
 #ifdef TRACERS_SPECIAL_Shindell
-      deallocate(ss_glob,Aijl_chem,Alij_chem)
+      deallocate(Aijl_chem,Alij_chem)
 #ifdef INTERACTIVE_WETLANDS_CH4
       deallocate(day_ncep_glob,DRA_ch4_glob,HRA_ch4_glob,Rijch4_glob,
      & Rijncep_glob,rfirst_mod,rHch4,rDch4,r0ch4)
@@ -1998,7 +1991,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
-     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,ss,pNO3
+     &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,pNO3
 #ifdef TRACERS_dCO
      &,ydC217O3,ydC218O3,yd13C2O3
      &,yd13CXPAR
@@ -2079,8 +2072,6 @@ c daily_z is currently only needed for CS
 
       handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
 
-      call doVar(handle,action,ss,
-     & 'ss(n_rj,topLevelOfChemistry,dist_im,dist_jm)',jdim=4)
       call doVar(handle,action,yNO3,'yNO3'//cijdims,jdim=3)
       call doVar(handle,action,pHOx,'pHOx'//cijdims,jdim=3)
       call doVar(handle,action,pNOx,'pNOx'//cijdims,jdim=3)
