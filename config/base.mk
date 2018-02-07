@@ -102,7 +102,8 @@ $(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options .current_srcs $(RUN_H)
 
 
 clean:
-	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options .current_srcs rundeck_opts.h *.cpp
+	-rm -f $(LIB) lib.a *.o *.mod *.smod .depend* .current_options \
+	.current_srcs rundeck_opts.h *.cpp $(CLEAN_LIST)
 
 deplist:
 	echo $(THIS)_dir: $(DEPENDS_ON:=_dir)

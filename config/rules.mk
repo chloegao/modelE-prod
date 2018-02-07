@@ -3,6 +3,7 @@
 #
 
 .PHONY:
+.DELETE_ON_ERROR:
 
 ifdef MOD_DIR
   VPATH += $(MOD_DIR)
@@ -115,6 +116,11 @@ endif
 #ifneq ($(SRC_DIR),)
 #  CPPFLAGS += -I$(SRC_DIR)
 #endif
+
+#check if m4 is present
+ifeq ($(shell $(M4) --version),)
+  $(error compatible m4 preprocessor was not found on your system)
+endif
 
 ifeq ($(MPI),YES)
   CPPFLAGS += -DUSE_MPI
@@ -414,12 +420,12 @@ endif
 
 %.f: %.m4f
 	-rm -f $@
-	m4 -I`dirname $<` $< > $@
+	$(M4) -I`dirname $<` $< > $@
 	chmod -w $@
 
 %.F90: %.m4F90
 	-rm -f $@
-	m4 -I`dirname $<` $< > $@
+	$(M4) -I`dirname $<` $< > $@
 	chmod -w $@
 
 

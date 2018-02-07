@@ -64,6 +64,9 @@ F90SRCS += KindParameters.F90 \
 	PlanetaryOrbit.F90 \
 	ModelClock.F90
 
+# automatically generated files
+CLEAN_LIST = AttributeDictionary.F90 Attributes.F90 RunTimeControls_mod.F90
+
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
 endif
