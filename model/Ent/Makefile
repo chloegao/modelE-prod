@@ -60,6 +60,8 @@ ifeq ($(MIXED_CANOPY_OPT),YES)
   FSRCS += ent_make_struct.f
 endif
 
+# automatically generated files
+CLEAN_LIST = ent_mod.f
 
 ifndef GISSCLIM_DIR
        GISSCLIM_DIR := $(shell pwd)/../..
