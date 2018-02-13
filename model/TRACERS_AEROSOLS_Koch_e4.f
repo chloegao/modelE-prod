@@ -12,6 +12,9 @@
 !@ GRAINS
 !@ read_seawifs_chla
       use timestream_mod, only : timestream
+#ifdef TRACERS_AEROSOLS_VBS
+      use TRACERS_VBS, only: vbs_tracers
+#endif /* TRACERS_AEROSOLS_VBS */
       IMPLICIT NONE
       SAVE
 !@var DMSinput           DMS ocean source (kg/s/m2)
@@ -42,6 +45,7 @@
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
+      type(vbs_tracers) :: vbs_conc
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
       integer, parameter :: nAeroStream=6

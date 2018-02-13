@@ -69,21 +69,22 @@ type(vbs_conditions), public :: vbs_cond
 contains
 !===============================================================================
 !===============================================================================
-subroutine vbs_init(ntm_host)
+subroutine vbs_init(tr, ntm_host)
 !===============================================================================
 implicit none
 !-------------------------------------------------------------------------------
 !@var ntm_host number of tracers in the host model
+type(vbs_tracers) :: tr
 integer, intent(in) :: ntm_host
 integer :: bin
 !-------------------------------------------------------------------------------
-allocate(vbs_tr%igasinv(ntm_host))
-allocate(vbs_tr%iaerinv(ntm_host))
-vbs_tr%igasinv=0
-vbs_tr%iaerinv=0
+allocate(tr%igasinv(ntm_host))
+allocate(tr%iaerinv(ntm_host))
+tr%igasinv=0
+tr%iaerinv=0
 do bin=1,vbs_bins
-  vbs_tr%igasinv(vbs_tr%igas(bin))=bin
-  vbs_tr%iaerinv(vbs_tr%iaer(bin))=bin
+  tr%igasinv(vbs_tr%igas(bin))=bin
+  tr%iaerinv(vbs_tr%iaer(bin))=bin
   vbs_prop%sat(bin)=10.d0**(dble(bin-3)) ! from -2 to +6 with step of 1
 enddo
 ! generic dH/Tref
@@ -159,6 +160,7 @@ do ! loop indefinitely until a solution is found, or iter > maxit
   ksi=1.d0/(1.d0+Ccurr/Mo_guess)
   Mo=vbs_cond%nvoa+sum(vbs_tot*ksi)
   if (Mo == Mo_guess) then
+!  if (abs(Mo-Mo_guess) < 1.d-14) then
 !    print *,'Solution found after ',iter,' iterations'
 !    print *,'ksi=',ksi
 !    print *,'temp=',vbs_cond%temp

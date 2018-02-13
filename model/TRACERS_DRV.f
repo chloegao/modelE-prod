@@ -42,8 +42,7 @@
       use OldTracer_mod, only: om2oc
       use TRACER_COM, only: n_M_AKK_SU
 #ifdef TRACERS_AEROSOLS_VBS
-      use aerosol_sources, only: VBSemifact
-      use tracers_vbs, only: vbs_tr
+      use aerosol_sources, only: VBSemifact, vbs_conc
 #endif  /* TRACERS_AEROSOLS_VBS */
       implicit none
 !@var n index of current tracer whose emissions factor is being seeked
@@ -83,7 +82,7 @@
      &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
      &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
      &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
-          get_src_fact=VBSemifact(vbs_tr%iaerinv(n))
+          get_src_fact=VBSemifact(vbs_conc%iaerinv(n))
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #endif  /* TRACERS_AEROSOLS_VBS */
         case default

@@ -36,6 +36,7 @@
 #ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_init
+      use AEROSOL_SOURCES, only: vbs_conc
 #endif  /* TRACERS_AEROSOLS_VBS */
 #endif  /* not TRACERS_AMP */
 #if (defined TRACERS_AMP)
@@ -179,7 +180,7 @@ C          check on GHG files 1995 value for CFCs:
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
-      call vbs_init(ntm)
+      call vbs_init(vbs_conc, ntm)
 #endif  /* TRACERS_AEROSOLS_VBS */
 #endif  /* not TRACERS_AMP */
 C**** Get to_volume_MixRat from rundecks if it exists

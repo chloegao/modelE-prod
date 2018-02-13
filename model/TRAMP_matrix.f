@@ -207,7 +207,7 @@
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
 #ifdef TRACERS_AMP_M9
-      type(vbs_tracers) :: tr
+      type(vbs_tracers) :: vbs_conc
       type(vbs_conditions) :: vbs_cond
       real*8 :: nvoa
       integer :: v,ivbs,igas,iaer
@@ -958,16 +958,14 @@
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 
 #ifdef TRACERS_AMP_M9
-! initialize VBS, only once
-      if (.not.allocated(vbs_tr%igasinv)) then
-        do ivbs=1,vbs_bins              ! index of VBS bin
-          igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
-          iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
-          vbs_tr%igas(ivbs)=igas
-          vbs_tr%iaer(ivbs)=iaer
-        enddo
-        call vbs_init(NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
-      endif
+! initialize VBS
+      do ivbs=1,vbs_bins              ! index of VBS bin
+        igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
+        iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
+        vbs_tr%igas(ivbs)=igas
+        vbs_tr%iaer(ivbs)=iaer
+      enddo
+      call vbs_init(vbs_conc, NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
 
 ! set conditions needed for VBS calculations
       vbs_cond%dt=TSTEP
@@ -980,8 +978,8 @@
 
 ! save VBS-related concentrations
         do v=1,vbs_bins
-          tr%gas(v)=GAS(vbs_tr%igas(v))
-          tr%aer(v)=AERO(vbs_tr%iaer(v))
+          vbs_conc%gas(v)=GAS(vbs_tr%igas(v))
+          vbs_conc%aer(v)=AERO(vbs_tr%iaer(v))
         enddo
 
 ! save non-VBS concentrations
@@ -993,7 +991,7 @@
         vbs_cond%nvoa=nvoa
 
 ! calculate
-        call vbs_calc(tr,vbs_cond)
+        call vbs_calc(vbs_conc,vbs_cond)
 
 ! send output back to MATRIX
         do v=1,vbs_bins
