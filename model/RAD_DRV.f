@@ -2480,32 +2480,31 @@ C**** more than one tracer is lumped together for radiation purposes
       do n=1,nraero_aod
         select case (trname(ntrix_aod(n)))
           case ("OCIA", "vbsAm2")
-            TRACER(L,n)=(
+            TRACER(L,n)=0.d0
 #ifdef TRACERS_AEROSOLS_VBS
-     *           sum(trm(i,j,l,vbs_tr%iaer))
+            TRACER(L,n)=TRACER(L,n)+sum(trm(i,j,l,vbs_tr%iaer))
 #else
-     *           trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA)
+            TRACER(L,n)=TRACER(L,n)+trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA)
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_OCEAN
-     *          +trm(i,j,l,n_ococean)
+            TRACER(L,n)=TRACER(L,n)+trm(i,j,l,n_ococean)
 #endif  /* TRACERS_AEROSOLS_OCEAN */
-     *                  )
           case ("OCB")
 #ifdef TRACERS_AEROSOLS_VBS
-           TRACER(L,n)=0.d0
+            TRACER(L,n)=0.d0
 #else
-           TRACER(L,n)=trm(i,j,l,n_OCB)
+            TRACER(L,n)=trm(i,j,l,n_OCB)
 #endif  /* TRACERS_AEROSOLS_VBS */
 #ifdef TRACERS_AEROSOLS_SOA
           case ("isopp1a")
-           TRACER(L,n)=( trm(i,j,l,n_isopp1a)+trm(i,j,l,n_isopp2a)
+            TRACER(L,n)=( trm(i,j,l,n_isopp1a)+trm(i,j,l,n_isopp2a)
 #ifdef TRACERS_TERP
-     &                  +trm(i,j,l,n_apinp1a)+trm(i,j,l,n_apinp2a)
+     &                   +trm(i,j,l,n_apinp1a)+trm(i,j,l,n_apinp2a)
 #endif /* TRACERS_TERP */
      &                 )
 #endif /* TRACERS_AEROSOLS_SOA */
           case ("BCIA")
-           TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))
+            TRACER(L,n)=(trm(i,j,l,n_BCII)+trm(i,j,l,n_BCIA))
           case default
 #ifdef TRACERS_NITRATE
 ! assume full neutralization of NO3p, if NH4 suffice
