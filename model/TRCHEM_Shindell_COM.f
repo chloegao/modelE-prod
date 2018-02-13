@@ -390,22 +390,22 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Tpsc_offset_N NH offset for the above T_thresh
 !@dbparam Tpsc_offset_S SH offset for the above T_thresh
 !@dbparam reg1Power_SpherO2andN2Ocorr first from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
+!@+ cos(sza)^x of spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D)
 !@dbparam reg2Power_SpherO2andN2Ocorr second from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
+!@+ cos(sza)^x of spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D)
 !@dbparam reg3Power_SpherO2andN2Ocorr third from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
+!@+ cos(sza)^x of spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D)
 !@dbparam reg4Power_SpherO2andN2Ocorr fourth and last from surface region power of 
-!@+ cos(sza)^x of spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D)
+!@+ cos(sza)^x of spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D)
 !@dbparam reg1TopPres_SpherO2andN2Ocorr pressure at top of first from surface region
-!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
+!@+ for spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D) (hPa)
 !@dbparam reg2TopPres_SpherO2andN2Ocorr pressure at top of second from surface region
-!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
+!@+ for spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D) (hPa)
 !@dbparam reg3TopPres_SpherO2andN2Ocorr pressure at top of third from surface region
-!@+ for spherical correction to ss(rj%O2__O_O) and ss(rj%N2O__M_O1D) (hPa)
+!@+ for spherical correction to zj(rj%O2__O_O) and zj(rj%N2O__M_O1D) (hPa)
 ! (fourth = top region needs no upper pressure)
-!@dbparam windowO2corr linear correction to ss(rj%O2__O_O) O2 in window region (in addition to spherical)
-!@dbparam windowN2Ocorr linear correction to ss(rj%N2O__M_O1D) N2O in window region (in addition to spherical)
+!@dbparam windowO2corr linear correction to zj(rj%O2__O_O) O2 in window region (in addition to spherical)
+!@dbparam windowN2Ocorr linear correction to zj(rj%N2O__M_O1D) N2O in window region (in addition to spherical)
 !@dbparam allowSomeChemReinit (1=YES) to allow some chemistry variables
 !@+       to cold-start even if tracers don't. Warning: this includes
 !@+       model strat Q( ) spec. hum. reinitialization, and default =1!
@@ -472,7 +472,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var y concentration of gas, 1st index=gas number, 2nd=verticle level
 !@var rr rate constant of chemical reaction, first index - reaction
 !@+   number, 2nd is verticle level
-!@var ss photodissociation coefficient, indicies; rxn #,L,I,J
 !@var pe rate constant for bimolecular chemical reaction
 !@var ea activation energy constant for bimolecular chemical reactions
 !@var ro,r1,sn,sb rate parameters for trimolecular reactions
@@ -567,7 +566,6 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d18Oacetone
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d13Cacetone
 #endif  /* TRACERS_dCO */
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: ss
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,
 #ifdef TRACERS_dCO
@@ -647,7 +645,7 @@ C**************  Not Latitude-Dependant ****************************
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use resolution, only: im,lm,Plbot
       use tracer_com, only: ntm
-      use TRCHEM_Shindell_COM, only: DU_O3,ss,yNO3,
+      use TRCHEM_Shindell_COM, only: DU_O3,yNO3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & COIC,OxIC,CH4ICX,dms_offline,so2_offline,so4_offline,yso2,ydms,
 #ifdef TRACERS_dCO
@@ -738,8 +736,6 @@ C**************  Not Latitude-Dependant ****************************
       ! Normally allocated things:
       allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H) )
       allocate(         DU_O3(          J_0H:J_1H) )
-      allocate(ss(n_rj, topLevelOfChemistry,
-     &                      I_0H:I_1H,J_0H:J_1H) )
       allocate(     acetone(topLevelOfChemistry) )
 #ifdef TRACERS_dCO
       allocate( d17Oacetone(topLevelOfChemistry) )
