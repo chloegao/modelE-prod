@@ -719,7 +719,9 @@ contains
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
     ! for sulfur chemistry
 !@var WA_VOL Cloud water volume (L/m2). Used by GET_SULFATE.
-    real*8 WA_VOL
+!@var dt_get_sulf Time step seen by the sulfur chemistry in GET_SULFATE [seconds].
+!@var rain_dist_slope is the slope (lambda) of the rain size distribution [1/meters].
+    real*8 WA_VOL, dt_get_sulf, rain_dist_slope
     real*8, dimension(aqchem_count) ::SULFIN,SULFINOM,SULFINC, SULFOUT,TR_LEFT
     integer :: IAQCH
 #endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
@@ -1549,9 +1551,32 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
             WA_VOL=COND(L)*1.d2*BYGRAV
+
+            !------------------------------------------
+            !Chemistry time step set to length of time air parcel spends 
+            !in given vertical model level before being advected to the
+            !level above, i.e. dt = dz/W, where W is the updraft velocity.
+            !NOTE:  Uses the updraft velocity from the level below, as 
+            !the updraft from the current level is calculated later in
+            !the loop, and thus is not usable here.
+            !NOTE:  DWCU = 1/2*dz/dt, so dz = DWCU*2*dt
+            !------------------------------------------
+            if(WCU(L-1) .gt. teeny) then
+              dt_get_sulf = (DWCU*2.d0*dtsrc)/WCU(L-1)
+            else
+              dt_get_sulf = dtsrc  !updraft near zero, so just set to model time setp
+            end if
+
+            !If time step is longer than model time step, then just set to model time step:
+            if(dt_get_sulf > dtsrc) then
+              dt_get_sulf = dtsrc
+            end if
+            !-----------------------------------------
+
             call GET_SULFATE(PL(L),TPOLD(L),FPLUME,WA_VOL,WMXTR,SULFIN, &
                  SULFINOM,SULFINC,SULFOUT,TR_LEFT,TMP,TRCOND(:,L), &
-                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT)
+                 AIRM(L),LHX,DT_SULF_MC(:,L),CLDSAVT,dt_get_sulf)
+
             do iaqch=1,aqchem_count
               n = aqchem_list(iaqch)
               TMP(N)=TMP(N)+SULFIN(iaqch)
@@ -2755,9 +2780,45 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
               WA_VOL= precip_mm
 
+              !----------------------------------------
+              !Chemistry time step set to length of time it takes for precip
+              !to fall through given vertical model level, i.e.
+              !dt = dz/Vp, where Vp is the fall velocity of precipitation.
+              !Since this particular sulfate chemistry process only applies
+              !to liquid water, it will be assumed that a Marshall-Palmer
+              !distribution can be used.
+              !NOTE:  DWCU = 1/2*dz/dt, so dz = DWCU*2*dt
+              !----------------------------------------
+              !Calculate air density from ideal gas law:
+              RHO = 100.d0*PL(L)/(RGAS*TL(L))
+
+              !Calculate the terminal fall velocity
+              !From Fowler et al., 1996 (CSU GCM microphysics),
+              !from which Del Genio et al., 2005 gets original VT equation
+              !present in CONVECTIVE_MICROPHYSICS subroutine:
+
+              rain_dist_slope = (pi*1000.d0*CN0/(RHO*WMXTR))**0.25d0
+
+              VT = (-0.267d0 + 206d-2/rain_dist_slope - &
+                    2.045d-7/(rain_dist_slope**2d0) + &
+                    9.06d9/(rain_dist_slope**3d0))*(1000.d0/PL(L))**.4d0
+
+              !Calculate sulfate chemistry time step:
+              if(VT > teeny) then
+                dt_get_sulf = (DWCU*2.d0*dtsrc)/VT
+              else
+                dt_get_sulf = dtsrc !Set to model time step 
+              end if
+
+              !If time step is longer than model time step, then just set to model time step:
+              if(dt_get_sulf > dtsrc) then
+                dt_get_sulf = dtsrc
+              end if
+              !-----------------------------------------
+
               call GET_SULFATE(PL(L),TOLD,FPLUME,WA_VOL,WMXTR,SULFIN,SULFINOM, &
                    SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FPLUME,TRPRCP,AIRM(L),LHX, &
-                   DT_SULF_MC(:,L),CLDSAVT)
+                   DT_SULF_MC(:,L),CLDSAVT,dt_get_sulf)
 
               do iaqch=1,aqchem_count
                 n = aqchem_list(iaqch)
@@ -4046,7 +4107,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
       call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM &
            ,SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L) &
-           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT)
+           ,LHX_WA,DT_SULF_SS(:,L),CLDSAVT,dtsrc)
 
       do iaqch=1,aqchem_count
         n = aqchem_list(iaqch)
@@ -4297,7 +4358,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
           call GET_SULFATE(PL(L),TL(L),FCLD,WA_VOL,WMXTR,SULFIN,SULFINOM, &
                SULFINC,SULFOUT,TR_LEFT,TM(L,:)*FCLD,TRWML(:,L),AIRM(L),LHX, &
-               DT_SULF_SS(:,L),CLDSAVT)
+               DT_SULF_SS(:,L),CLDSAVT,dtsrc)
 
           do iaqch=1,aqchem_count
             n = aqchem_list(iaqch)
