@@ -643,8 +643,7 @@
       USE COSMO_SOURCES, only: be7_src_param
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-      USE AEROSOL_SOURCES, only: VBSemifact
-      USE TRACERS_VBS, only: vbs_tr
+      USE AEROSOL_SOURCES, only: VBSemifact,vbs_sets,vbs_conc
 #endif  /* TRACERS_AEROSOLS_VBS */
       USE TRACER_COM, only: no_emis_over_ice
 #ifdef TRACERS_MINERALS
@@ -653,7 +652,7 @@
 #endif
       use Model_com, only: itime
       implicit none
-      integer :: n
+      integer :: n,v
 
 ! call routine to read/set up regions for emissions:
       call setup_emis_sectors_regions()
@@ -688,7 +687,9 @@ C**** determine year of emissions
       endif
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-      call sync_param("VBSemifact",VBSemifact,vbs_tr%nbins)
+      do v=1,vbs_sets
+        call sync_param("VBSemifact",VBSemifact,vbs_conc(v)%nbins) ! same for all
+      enddo
 #endif
 #ifdef TRACERS_SPECIAL_O18
 C**** set super saturation parameter for isotopes if needed

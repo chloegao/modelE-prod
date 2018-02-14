@@ -180,7 +180,7 @@ C          check on GHG files 1995 value for CFCs:
 #endif  /* TRACERS_AEROSOLS_SOA */
 #ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
-      call vbs_init(vbs_conc, ntm)
+      call vbs_init(vbs_conc(1), ntm)
 #endif  /* TRACERS_AEROSOLS_VBS */
 #endif  /* not TRACERS_AMP */
 C**** Get to_volume_MixRat from rundecks if it exists

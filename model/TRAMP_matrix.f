@@ -60,7 +60,7 @@
       USE AERO_ACTV,   ONLY: GETACTFRAC, NACTIV
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
 #ifdef TRACERS_AMP_M9
-      use TRACERS_VBS, only: vbs_tracers,vbs_bins,vbs_tr,vbs_init,vbs_conditions,vbs_calc
+      use TRACERS_VBS, only: vbs_tracers,vbs_bins,vbs_init,vbs_conditions,vbs_calc
 #endif  /* TRACERS_AMP_M9 */
       IMPLICIT NONE
 
@@ -207,7 +207,8 @@
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
 #ifdef TRACERS_AMP_M9
-      type(vbs_tracers) :: vbs_conc
+      integer, parameter :: vbs_sets=nmodes
+      type(vbs_tracers), dimension(vbs_sets) :: vbs_conc
       type(vbs_conditions) :: vbs_cond
       real*8 :: nvoa
       integer :: v,ivbs,igas,iaer
@@ -958,15 +959,6 @@
       PIQ(1,PROD_INDEX_SULF) = PIQ(1,PROD_INDEX_SULF) + DMDT_SO4  ! add secondary particle formation mass   term
 
 #ifdef TRACERS_AMP_M9
-! initialize VBS
-      do ivbs=1,vbs_bins              ! index of VBS bin
-        igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
-        iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
-        vbs_tr%igas(ivbs)=igas
-        vbs_tr%iaer(ivbs)=iaer
-      enddo
-      call vbs_init(vbs_conc, NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
-
 ! set conditions needed for VBS calculations
       vbs_cond%dt=TSTEP
       vbs_cond%OH=0.d0 ! FIX THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -976,10 +968,22 @@
       DO I=1,NMODES
         IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
 
+! initialize VBS
+! CONTINUE FROM HERE: Use NAEROBOX-sized indices.
+        if (.not.allocated(vbs_conc(i)%iaerinv)) then
+          do ivbs=1,vbs_bins              ! index of VBS bin
+            igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
+            iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
+            vbs_conc(i)%igas(ivbs)=igas
+            vbs_conc(i)%iaer(ivbs)=iaer
+          enddo
+          call vbs_init(vbs_conc, NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
+        endif
+
 ! save VBS-related concentrations
         do v=1,vbs_bins
-          vbs_conc%gas(v)=GAS(vbs_tr%igas(v))
-          vbs_conc%aer(v)=AERO(vbs_tr%iaer(v))
+          vbs_conc%gas(v)=GAS(vbs_conc(i)%igas(v))
+          vbs_conc%aer(v)=AERO(vbs_conc(i)%iaer(v))
         enddo
 
 ! save non-VBS concentrations
@@ -995,8 +999,8 @@
 
 ! send output back to MATRIX
         do v=1,vbs_bins
-          GAS(vbs_tr%igas(v))=vbs_tr%gas(v)
-          VBS_FLUXES(I,vbs_tr%iaer(v))=vbs_tr%aer(v)
+          GAS(vbs_conc(i)%igas(v))=vbs_conc(i)%gas(v)
+          VBS_FLUXES(I,vbs_conc(i)%iaer(v))=vbs_conc(i)%aer(v)
         enddo
 
         DO Q=PROD_INDEX_OCM2,PROD_INDEX_OCP6

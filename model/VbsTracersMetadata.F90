@@ -82,7 +82,7 @@ module VbsTracersMetadata_mod
 
     subroutine VBS_setSpec(name, index, type)
       use OldTracer_mod, only: om2oc, set_om2oc, set_is_VBS_tracer
-      use tracers_vbs, only: vbs_tr
+      use aerosol_sources, only: vbs_conc
       implicit none
       character(len=*), intent(in) :: name
       real*8 :: tmp
@@ -114,9 +114,9 @@ module VbsTracersMetadata_mod
       end select
       select case (type)
       case ('igas')
-        vbs_tr%igas(index) = n
+        vbs_conc(1)%igas(index) = n
       case ('iaer')
-        vbs_tr%iaer(index) = n
+        vbs_conc(1)%iaer(index) = n
       end select
 
       call set_om2oc(n, 1.4d0)

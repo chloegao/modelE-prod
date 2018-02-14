@@ -416,7 +416,7 @@ use TRACER_COM, only: trm_col,n_bcii,n_bcia,n_bcb,n_ocii,n_ocia,n_ocb,n_ococean,
 #endif
                       n_msa,n_so4
 #ifdef TRACERS_AEROSOLS_VBS
-use TRACERS_VBS, only: vbs_tr
+use AEROSOL_SOURCES, only: vbs_sets, vbs_conc
 #endif
 #ifdef SOA_DIAGS
 use TRDIAG_COM, only: taijls=>taijls_loc,&
@@ -483,7 +483,7 @@ real*8                      :: M0,PCP,M0temp,M0a,M0b,M0err_curr
 !@var partfact,partfact1,partfact2 help variable for the M0 calculation
 real*8, dimension(nsoa)     :: soamass,partfact,partfact1,partfact2
 !@var iternum counter for the number of iterations per box (not saved)
-integer                     :: i,iternum
+integer                     :: i,v,iternum
 !@var x1,x2,y1,y2,a,b iteration help parameter
 real*8                      :: x1,x2,y1,y2,a,b
 
@@ -536,7 +536,9 @@ DO JL=L,L
 !
   PCP=y_ug(n_bcii)+y_ug(n_bcia)+y_ug(n_bcb)
 #ifdef TRACERS_AEROSOLS_VBS
-  PCP=PCP+sum(vbs_tr%aer(:))
+  do v=1,vbs_sets
+    PCP=PCP+sum(vbs_conc(v)%aer(:))
+  enddo
 #else
   PCP=PCP+y_ug(n_ocii)+y_ug(n_ocia)+y_ug(n_ocb)
 #endif /* TRACERS_AEROSOLS_VBS */
@@ -559,7 +561,9 @@ DO JL=L,L
   enddo
   AEROtot=y_mw(n_bcii)+y_mw(n_bcia)+y_mw(n_bcb)
 #ifdef TRACERS_AEROSOLS_VBS
-  AEROtot=AEROtot+sum(y_mw(vbs_tr%iaer))
+  do v=1,vbs_sets
+    AEROtot=AEROtot+sum(y_mw(vbs_conc(v)%iaer))
+  enddo
 #else
   AEROtot=AEROtot+y_mw(n_ocii)+y_mw(n_ocia)+y_mw(n_ocb)
 #endif /* TRACERS_AEROSOLS_VBS */
@@ -620,7 +624,9 @@ DO JL=L,L
     xmf(imfbcb)=y_mw(n_bcb)/AEROtot
 #ifdef TRACERS_AEROSOLS_VBS
     xmf(imfocii)=0.d0
-    xmf(imfocia)=sum(y_mw(vbs_tr%iaer))/AEROtot
+    do v=1,vbs_sets
+      xmf(imfocia)=xmf(imfocia)+sum(y_mw(vbs_conc(v)%iaer))/AEROtot
+    enddo
     xmf(imfocb)=0.d0
 #else
     xmf(imfocii)=y_mw(n_ocii)/AEROtot
@@ -689,8 +695,10 @@ DO JL=L,L
   if (AEROtot > 0.d0) then
     meanmw=0.d0
 #ifdef TRACERS_AEROSOLS_VBS
-    do i=1,vbs_tr%nbins
-      meanmw=meanmw+y_mw(vbs_tr%iaer(i))*mw(vbs_tr%iaer(i))/AEROtot
+    do v=1,vbs_sets
+      do i=1,vbs_conc(v)%nbins
+        meanmw=meanmw+y_mw(vbs_conc(v)%iaer(i))*mw(vbs_conc(v)%iaer(i))/AEROtot
+      enddo
     enddo
 #else
     meanmw=meanmw+y_mw(n_ocii)*mw(n_ocii)/AEROtot

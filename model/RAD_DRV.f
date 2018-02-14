@@ -1696,7 +1696,7 @@ C     OUTPUT DATA
       use TRACER_COM, only: n_ococean
 #endif  /* TRACERS_AEROSOLS_OCEAN */
 #ifdef TRACERS_AEROSOLS_VBS
-      use TRACERS_VBS, only: vbs_tr
+      use AEROSOL_SOURCES, only: vbs_sets,vbs_conc
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,taijls=>taijls_loc,ijts_fc
      *     ,ijts_tau,ijts_tausub,ijts_fcsub
@@ -1776,7 +1776,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,nraero_rf) ::
      &     sddarr3drf
-      integer :: f
+      integer :: f,v
 #endif  /* TRACERS_ON */
 #ifdef SCM
 C     radiative flux profiles for sub-daily output, generalized
@@ -2482,7 +2482,9 @@ C**** more than one tracer is lumped together for radiation purposes
           case ("OCIA", "vbsAm2")
             TRACER(L,n)=0.d0
 #ifdef TRACERS_AEROSOLS_VBS
-            TRACER(L,n)=TRACER(L,n)+sum(trm(i,j,l,vbs_tr%iaer))
+            do v=1,vbs_sets
+              TRACER(L,n)=TRACER(L,n)+sum(trm(i,j,l,vbs_conc(v)%iaer))
+            enddo
 #else
             TRACER(L,n)=TRACER(L,n)+trm(i,j,l,n_OCII)+trm(i,j,l,n_OCIA)
 #endif  /* TRACERS_AEROSOLS_VBS */

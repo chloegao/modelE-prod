@@ -82,7 +82,7 @@
      &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
      &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
      &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
-          get_src_fact=VBSemifact(vbs_conc%iaerinv(n))
+          get_src_fact=VBSemifact(vbs_conc(1)%iaerinv(n)) ! same factor for all, so just use index 1 here
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #endif  /* TRACERS_AEROSOLS_VBS */
         case default
@@ -7028,9 +7028,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       use atmcol_com, only: tl   ! layer temperature (K)
       use atmcol_com, only: pl   ! layer pressure (mb)
       use atmcol_com, only: ma   ! layer mass (kg/m2)
-      use AEROSOL_SOURCES, only: oxid
-      use TRACERS_VBS, only: vbs_tracers, vbs_conditions, 
-     &                       vbs_calc, vbs_tr
+      use AEROSOL_SOURCES, only: oxid,vbs_sets,vbs_conc
+      use TRACERS_VBS, only: vbs_tracers,vbs_conditions,vbs_calc
 #endif  /* TRACERS_AEROSOLS_VBS */
       use TimeConstants_mod, only: SECONDS_PER_DAY
 
@@ -7038,7 +7037,7 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       integer, intent(in) :: i,j
 
 #ifdef TRACERS_AEROSOLS_VBS
-      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
+!      type(vbs_tracers) :: vbs_tr_old ! concentrations, ug m-3
       type(vbs_conditions) :: vbs_cond ! current box conditions (meteo+chem)
 !@var kg2ugm3 factor to convert kilograms gridbox-1 to ug m-3
       real*8 :: kg2ugm3
@@ -7079,41 +7078,41 @@ c calculation of heterogeneous reaction rates: SO2 on dust
      &                  +trm_col(l,n_no3p)
 #endif
      &                  )*kg2ugm3
-          vbs_tr_old%gas=trm_col(l,vbs_tr%igas)*kg2ugm3
-          vbs_tr_old%aer=trm_col(l,vbs_tr%iaer)*kg2ugm3
+          vbs_conc(1)%gas=trm_col(l,vbs_conc(1)%igas)*kg2ugm3
+          vbs_conc(1)%aer=trm_col(l,vbs_conc(1)%iaer)*kg2ugm3
 
-          call vbs_calc(vbs_tr_old,vbs_cond)
+          call vbs_calc(vbs_conc(1),vbs_cond)
 
-          tr3Dsource(l,nChemprod,vbs_tr%igas)=
-     &      vbs_tr%chem_prod/kg2ugm3/vbs_cond%dt
-          tr3Dsource(l,nChemloss,vbs_tr%igas)=
-     &      vbs_tr%chem_loss/kg2ugm3/vbs_cond%dt
-          tr3Dsource(l,nOther,vbs_tr%igas)=
-     &      -vbs_tr%partition/kg2ugm3/vbs_cond%dt ! partitioning
-          tr3Dsource(l,nOther,vbs_tr%iaer)=
-     &      vbs_tr%partition/kg2ugm3/vbs_cond%dt
-!     &      (vbs_tr%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
+          tr3Dsource(l,nChemprod,vbs_conc(1)%igas)=
+     &      vbs_conc(1)%chem_prod/kg2ugm3/vbs_cond%dt
+          tr3Dsource(l,nChemloss,vbs_conc(1)%igas)=
+     &      vbs_conc(1)%chem_loss/kg2ugm3/vbs_cond%dt
+          tr3Dsource(l,nOther,vbs_conc(1)%igas)=
+     &      -vbs_conc(1)%partition/kg2ugm3/vbs_cond%dt ! partitioning
+          tr3Dsource(l,nOther,vbs_conc(1)%iaer)=
+     &      vbs_conc(1)%partition/kg2ugm3/vbs_cond%dt
+!     &      (vbs_conc(1)%gas-vbs_tr_old%gas)/kg2ugm3/vbs_cond%dt
 !      if (sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer) /= 0.) then
 !        print '(a,3e)','KOSTAS gas',
 !     &                 sum(vbs_tr_old%gas),
-!     &                 sum(vbs_tr%gas),
+!     &                 sum(vbs_conc(1)%gas),
 !     &                 sum(vbs_tr_old%gas)+sum(vbs_tr_old%aer)
 !        print '(a,3e)','KOSTAS aer',
 !     &                 sum(vbs_tr_old%aer),
-!     &                 sum(vbs_tr%aer),
-!     &                 sum(vbs_tr%gas)+sum(vbs_tr%aer)
+!     &                 sum(vbs_conc(1)%aer),
+!     &                 sum(vbs_conc(1)%gas)+sum(vbs_conc(1)%aer)
 !        print '(a,3e)','KOSTAS bud',
-!     &                 sum(vbs_tr%chem_prod),
-!     &                 sum(vbs_tr%chem_loss),
-!     &                 sum(vbs_tr%partition)
+!     &                 sum(vbs_conc(1)%chem_prod),
+!     &                 sum(vbs_conc(1)%chem_loss),
+!     &                 sum(vbs_conc(1)%partition)
 !      endif
         enddo
 
-        do v=1,vbs_tr%nbins
-          call apply_tracer_3Dsource(i,j,nChemprod,vbs_tr%igas(v))  ! aging source
-          call apply_tracer_3Dsource(i,j,nChemloss,vbs_tr%igas(v))  ! aging loss
-          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%igas(v))     ! partitioning
-          call apply_tracer_3Dsource(i,j,nOther,vbs_tr%iaer(v))     ! partitioning
+        do v=1,vbs_conc(1)%nbins
+          call apply_tracer_3Dsource(i,j,nChemprod,vbs_conc(1)%igas(v))  ! aging source
+          call apply_tracer_3Dsource(i,j,nChemloss,vbs_conc(1)%igas(v))  ! aging loss
+          call apply_tracer_3Dsource(i,j,nOther,vbs_conc(1)%igas(v))     ! partitioning
+          call apply_tracer_3Dsource(i,j,nOther,vbs_conc(1)%iaer(v))     ! partitioning
         enddo
 #else
         case ('OCII')

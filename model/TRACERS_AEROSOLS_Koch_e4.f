@@ -45,7 +45,8 @@
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
 !@var VBSemifact factor that distributes organic aerosols in volatility bins
-      type(vbs_tracers) :: vbs_conc
+      integer, parameter :: vbs_sets=1
+      type(vbs_tracers), dimension(vbs_sets) :: vbs_conc
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
       integer, parameter :: nAeroStream=6
@@ -70,8 +71,7 @@
      * ,rn_src
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-     * ,VBSemifact
-      use TRACERS_VBS, only: vbs_tr
+      use AEROSOL_SOURCES, only: VBSemifact,vbs_sets,vbs_conc
 #endif
 #ifdef BC_ALB
       use AEROSOL_SOURCES, only: snosiz
@@ -84,6 +84,7 @@
       type (dist_grid), intent(in) :: grid
       integer ::  J_1H, J_0H, I_0H, I_1H
       integer :: IER
+      integer :: v
       logical :: init = .false.
 
       if(init)return
@@ -122,7 +123,9 @@
       allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-      allocate(VBSemifact(vbs_tr%nbins))
+      do v=1,vbs_sets
+        allocate(VBSemifact(vbs_conc(v)%nbins))
+      enddo
 #endif
 
       return

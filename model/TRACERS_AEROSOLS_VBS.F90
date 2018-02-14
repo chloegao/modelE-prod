@@ -60,7 +60,7 @@ end type vbs_conditions
 !-------------------------------------------------------------------------------
 !@var vbs_tr vbs tracers concentrations (ug m-3), indices and diagnostics
 !@+ (ug m-3 timestep-1)
-type(vbs_tracers), public :: vbs_tr
+type(vbs_tracers) :: vbs_tr
 !@var vbs_prop vbs bin properties
 type(vbs_properties) :: vbs_prop
 !@var vbs_cond current contitions of the atmosphere
@@ -74,7 +74,7 @@ subroutine vbs_init(tr, ntm_host)
 implicit none
 !-------------------------------------------------------------------------------
 !@var ntm_host number of tracers in the host model
-type(vbs_tracers) :: tr
+type(vbs_tracers), intent(inout) :: tr
 integer, intent(in) :: ntm_host
 integer :: bin
 !-------------------------------------------------------------------------------
@@ -83,8 +83,8 @@ allocate(tr%iaerinv(ntm_host))
 tr%igasinv=0
 tr%iaerinv=0
 do bin=1,vbs_bins
-  tr%igasinv(vbs_tr%igas(bin))=bin
-  tr%iaerinv(vbs_tr%iaer(bin))=bin
+  tr%igasinv(tr%igas(bin))=bin
+  tr%iaerinv(tr%iaer(bin))=bin
   vbs_prop%sat(bin)=10.d0**(dble(bin-3)) ! from -2 to +6 with step of 1
 enddo
 ! generic dH/Tref
@@ -105,14 +105,14 @@ implicit none
 !-------------------------------------------------------------------------------
 !@var gas input gas-phase vbs concentration (ug m-3)
 !@var aer input aerosol-phase vbs concentration (ug m-3)
-type(vbs_tracers) :: tr
+type(vbs_tracers), intent(inout) :: tr
 type(vbs_conditions), intent(in) :: cond
 !-------------------------------------------------------------------------------
-vbs_tr%gas=tr%gas
-vbs_tr%aer=tr%aer
+vbs_tr=tr
 vbs_cond=cond
 call vbs_age
 call vbs_partition
+tr=vbs_tr
 !===============================================================================
 end subroutine vbs_calc
 !===============================================================================
