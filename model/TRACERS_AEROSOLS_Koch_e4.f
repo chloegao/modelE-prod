@@ -574,7 +574,7 @@ c Get NO3 only if dark, weighted by number of dark hours
 
       SUBROUTINE GET_SULFATE(pl,temp_in,fcloud,
      *  wa_vol,wmxtr,sulfin,sulfinom,sulfinc,sulfout,tr_left,
-     *  tmg,tmd,airm,lhx,dt_sulf,fcld0)
+     *  tmg,tmd,airm,lhx,dt_sulf,fcld0,dtime)
 
 !@sum  GET_SULFATE calculates formation of sulfate from SO2 and H2O2
 !@+    within or below convective or large-scale clouds. Gas
@@ -590,7 +590,6 @@ c Get NO3 only if dark, weighted by number of dark hours
      *     ,n_SO4,n_H2O2,coupled_chem
       use tracer_com, only: aqchem_count,aqchem_list
       USE CLOUDS, only: NTX
-      USE MODEL_COM, only: dtsrc
 
       IMPLICIT NONE
 
@@ -621,6 +620,10 @@ c Get NO3 only if dark, weighted by number of dark hours
 !@var amass airmass in kg/m2, calculated by airm*mb2kg
       real*8, intent(in) :: airm
       real*8 :: amass
+
+!@var dtime time step over which these chemical reactions take place.
+!@+   Units are in seconds (s).
+      real*8, intent(in) :: dtime
 
 !@var pl pressure at current altitude (mbar)
 !@var press pressure at current altitude (Pa)
@@ -775,7 +778,7 @@ c Get NO3 only if dark, weighted by number of dark hours
       endif
 
 ! production from the gas phase, moles/kg/kg
-      dso4g=kso2h2o2*k1so2dissoc*tmgrate(ihx)*tmgrate(isx)*dtsrc*wa_vol
+      dso4g=kso2h2o2*k1so2dissoc*tmgrate(ihx)*tmgrate(isx)*dtime*wa_vol
       dso4g=dso4g*finc ! increase production based on current cloud water volume
       dso4gt=dso4g*tmg(ih)*tmg(is) ! moles
 
@@ -798,7 +801,7 @@ c Get NO3 only if dark, weighted by number of dark hours
       endif
 
 ! production from the already-dissolved aqueous phase, moles/kg/kg
-      dso4d=kso2h2o2*k1so2dissoc*tmdrate(ihx)*tmdrate(isx)*dtsrc*wa_vol
+      dso4d=kso2h2o2*k1so2dissoc*tmdrate(ihx)*tmdrate(isx)*dtime*wa_vol
       dso4dt=dso4d*tmd(ih)*tmd(is) ! moles
 
 ! can't be more than the moles we started with
