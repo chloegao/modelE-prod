@@ -331,7 +331,7 @@ c Aerosol chemistry
       real*8 r6,d6,ek9,ek9t,ch2o,eh2o,dho2mc,dho2kg,eeee,xk9,
      * r5,d5,dmssink
 #ifdef TRACERS_HETCHEM
-     *       ,d41,d42,d43,rsulfo3
+     *       ,d41,d42,d43
 #endif
       integer l,n,iuc,iun,itau,itt,
      * ittime,isp,iix,jjx,llx,ii,jj,ll,iuc2,it,mmm
@@ -401,9 +401,6 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 
           IF (d4.GE.1.) d4=0.99999d0
 #ifdef TRACERS_HETCHEM
-          rsulfo3 = 4.39d11*exp(-4131/tl(l))+
-     &            ( 2.56d3*exp(-966/tl(l)))*10.d5 !assuming pH=5
-          rsulfo3 = exp(-rsulfo3*oxid%O3*dtsrc) !O3 oxidation Maahs '83
           d41 = exp(-rxts1(l)*dtsrc)     
           d42 = exp(-rxts2(l)*dtsrc)     
           d43 = exp(-rxts3(l)*dtsrc)     
@@ -440,7 +437,6 @@ c sulfate production from SO2 on mineral dust aerosol due to O3 oxidation
        tr3Dsource(l,nChemistry,n)=tr3Dsource(l,nChemistry,n)
      *         +tr_mm(n)/tr_mm(n_so2)
      *         *(1.d0-d41)*trm_col(l,n_so2)            !  SO2
-     *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
        case ('SO4_d2')
@@ -448,7 +444,6 @@ c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(l,nChemistry,n) = tr3Dsource(l,nChemistry,n)+
      *   tr_mm(n)/tr_mm(n_so2)*(1.d0-d42)*trm_col(l,n_so2)
-     *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
        case ('SO4_d3')
@@ -456,7 +451,6 @@ c sulfate production from SO2 on mineral dust aerosol
 
        tr3Dsource(l,nChemistry,n) = tr3Dsource(l,nChemistry,n)+
      *   tr_mm(n)/tr_mm(n_so2)*(1.d0-d43)*trm_col(l,n_so2)
-     *         * (1.d0-rsulfo3)                              !+ O3
      *           /dtsrc
 
 #endif
