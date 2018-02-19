@@ -25,6 +25,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN               ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 #define ALT_MC_EXITS
 #define SPECIFY_MU_SCALE
 #define TAPER_UTCF
@@ -68,9 +69,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "aerosol_144x90_input_files"
-! O3file=jan2012_o3_shindell_144x90x49x12_1850-2010_ple.nc
-O3file=O3/o3_shindell_144x90x53x12_E6TomaF40clim_c12_2000_ple.nc
+#include "rad_144x90_input_files_CMIP6clim"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

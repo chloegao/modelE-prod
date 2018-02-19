@@ -69,7 +69,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files_CMIP6clim"
 #include "lerner_input_files"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag

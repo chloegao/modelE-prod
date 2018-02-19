@@ -60,7 +60,7 @@ NAMERVR=RD_Fb.names_hycom_jan2017.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files_CMIP6clim"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
