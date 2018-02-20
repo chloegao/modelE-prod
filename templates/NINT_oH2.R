@@ -13,6 +13,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN               ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define TRACERS_AGE_OCEAN
 #define ATM2x2h                      ! 2x2.5 40 layer atm
