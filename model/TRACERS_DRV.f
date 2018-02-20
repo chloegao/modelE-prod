@@ -42,7 +42,13 @@
       use OldTracer_mod, only: om2oc
       use TRACER_COM, only: n_M_AKK_SU
 #ifdef TRACERS_AEROSOLS_VBS
-      use aerosol_sources, only: VBSemifact, vbs_conc
+      use aerosol_sources, only: VBSemifact
+#ifdef TRACERS_AMP
+      use AMP_AEROSOL, only: vbs_conc
+      use AERO_CONFIG, only: nmodes,mname
+#else
+      use aerosol_sources, only: vbs_conc
+#endif
 #endif  /* TRACERS_AEROSOLS_VBS */
       implicit none
 !@var n index of current tracer whose emissions factor is being seeked
@@ -52,8 +58,9 @@
       logical, intent(in), optional :: vibb
       real*8, parameter :: so4_fraction=0.025d0
       real*8 :: akk_fraction
-      logical ibb
-      integer get_src_index
+      logical :: ibb
+      integer :: get_src_index
+      integer :: i
 
       if (n_M_AKK_SU>0) then
         akk_fraction=0.01d0
@@ -82,7 +89,16 @@
      &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
      &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
      &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
+#ifdef TRACERS_AMP
+          do i=1,nmodes
+            if (mname(i)=='OCC') then ! indices from OCC are needed here
+              get_src_fact=VBSemifact(vbs_conc(i)%iaerinv(n))
+              exit
+            endif
+          enddo
+#else
           get_src_fact=VBSemifact(vbs_conc(1)%iaerinv(n)) ! same factor for all, so just use index 1 here
+#endif
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #endif  /* TRACERS_AEROSOLS_VBS */
         case default

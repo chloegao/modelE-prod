@@ -5,6 +5,9 @@
       USE AERO_CONFIG, ONLY: NMODES
       USE AERO_PARAM,  ONLY: NEMIS_SPCS
       USE RESOLUTION,   ONLY: LM
+#ifdef TRACERS_AMP_M9
+      use TRACERS_VBS, only: vbs_tracers
+#endif  /* TRACERS_AMP_M9 */
       IMPLICIT NONE
       SAVE
 
@@ -46,6 +49,12 @@ C**************  Latitude-Dependant (allocatable) *******************
 !     with Mi the total mass concentration (including water) in mode i, Ni the number concentration in mode i, and
 !     D a constant ambient particle density, currently set to D = DENSP = 1.4 g/cm^3. 
 !-------------------------------------------------------------------------------------------------------------------------      
+
+#ifdef TRACERS_AMP_M9
+      integer, parameter :: vbs_sets=nmodes
+      type(vbs_tracers), dimension(vbs_sets) :: vbs_conc ! only used for storing tracer indices
+#endif  /* TRACERS_AMP_M9 */
+
       END MODULE AMP_AEROSOL
 
       SUBROUTINE MATRIX_DRV(i,j)

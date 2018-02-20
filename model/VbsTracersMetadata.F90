@@ -82,7 +82,9 @@ module VbsTracersMetadata_mod
 
     subroutine VBS_setSpec(name, index, type)
       use OldTracer_mod, only: om2oc, set_om2oc, set_is_VBS_tracer
+#ifdef TRACERS_AEROSOLS_Koch
       use aerosol_sources, only: vbs_conc
+#endif  /* TRACERS_AEROSOLS_Koch */
       implicit none
       character(len=*), intent(in) :: name
       real*8 :: tmp
@@ -112,12 +114,14 @@ module VbsTracersMetadata_mod
         case("vbsAp5"); n_vbsAp5 = n
         case("vbsAp6"); n_vbsAp6 = n
       end select
+#ifdef TRACERS_AEROSOLS_Koch
       select case (type)
       case ('igas')
         vbs_conc(1)%igas(index) = n
       case ('iaer')
         vbs_conc(1)%iaer(index) = n
       end select
+#endif  /* TRACERS_AEROSOLS_Koch */
 
       call set_om2oc(n, 1.4d0)
       tmp = om2oc(n)

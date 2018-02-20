@@ -60,7 +60,7 @@
       USE AERO_ACTV,   ONLY: GETACTFRAC, NACTIV
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV
 #ifdef TRACERS_AMP_M9
-      use TRACERS_VBS, only: vbs_tracers,vbs_bins,vbs_init,vbs_conditions,vbs_calc
+      use TRACERS_VBS, only: vbs_conditions,vbs_tracers,vbs_bins,vbs_calc
 #endif  /* TRACERS_AMP_M9 */
       IMPLICIT NONE
 
@@ -207,11 +207,10 @@
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
 #ifdef TRACERS_AMP_M9
-      integer, parameter :: vbs_sets=nmodes
-      type(vbs_tracers), dimension(vbs_sets) :: vbs_conc
+      type(vbs_tracers) :: vbs_conc ! no need to save it per mode, since indices are not used
       type(vbs_conditions) :: vbs_cond
       real*8 :: nvoa
-      integer :: v,ivbs,igas,iaer
+      integer :: v
 #endif  /* TRACERS_AMP_M9 */
 
       !----------------------------------------------------------------------------------------------------------------
@@ -968,22 +967,10 @@
       DO I=1,NMODES
         IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
 
-! initialize VBS
-! CONTINUE FROM HERE: Use NAEROBOX-sized indices.
-        if (.not.allocated(vbs_conc(i)%iaerinv)) then
-          do ivbs=1,vbs_bins              ! index of VBS bin
-            igas=GAS_OCM2-1 + ivbs        ! index of gaseous tracer for the current VBS bin
-            iaer=PROD_INDEX_OCM2-1 + ivbs ! index of aerosol tracer for the current VBS bin
-            vbs_conc(i)%igas(ivbs)=igas
-            vbs_conc(i)%iaer(ivbs)=iaer
-          enddo
-          call vbs_init(vbs_conc, NAEROBOX) ! THE USE OF NAEROBOX IS WRONG BUT DOES NOT AFFECT RESULTS (YET)
-        endif
-
 ! save VBS-related concentrations
         do v=1,vbs_bins
-          vbs_conc%gas(v)=GAS(vbs_conc(i)%igas(v))
-          vbs_conc%aer(v)=AERO(vbs_conc(i)%iaer(v))
+          vbs_conc%gas(v)=GAS(GAS_OCM2-1+v)/dble(nmodes) ! FIX THIS by multiplying with surface area fraction instead!!!!!
+          vbs_conc%aer(v)=AERO(PROD_INDEX_OCM2-1+v)
         enddo
 
 ! save non-VBS concentrations
@@ -999,8 +986,8 @@
 
 ! send output back to MATRIX
         do v=1,vbs_bins
-          GAS(vbs_conc(i)%igas(v))=vbs_conc(i)%gas(v)
-          VBS_FLUXES(I,vbs_conc(i)%iaer(v))=vbs_conc(i)%aer(v)
+          GAS(GAS_OCM2-1+v)=vbs_conc%gas(v)
+          VBS_FLUXES(I,PROD_INDEX_OCM2-1+v)=vbs_conc%aer(v)
         enddo
 
         DO Q=PROD_INDEX_OCM2,PROD_INDEX_OCP6

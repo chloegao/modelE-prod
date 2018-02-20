@@ -33,12 +33,16 @@
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
-#ifndef TRACERS_AMP
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_init
+#ifndef TRACERS_AMP
       use AEROSOL_SOURCES, only: vbs_conc
-#endif  /* TRACERS_AEROSOLS_VBS */
+#else
+      USE TRACERS_VBS, only: vbs_bins
+      use AMP_AEROSOL, only: vbs_conc
+      use AERO_CONFIG, only: mname
 #endif  /* not TRACERS_AMP */
+#endif  /* TRACERS_AEROSOLS_VBS */
 #if (defined TRACERS_AMP)
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP
@@ -70,6 +74,9 @@ c
       type(timestream) :: trICratN, trICratCOt, trICratCOs,
      & trICratOth, trICratN2O, trICratCFC, trICch4
 #endif /* TRACERS_SPECIAL_Shindell */
+#if defined(TRACERS_AEROSOLS_VBS) && defined(TRACERS_AMP)
+      integer :: ivbs,igasm2,iaerm2
+#endif  /* TRACERS_AEROSOLS_VBS and TRACERS_AMP */
 
 ! temp storage for new tracer interfaces
       integer :: values(ntm)
@@ -178,11 +185,42 @@ C          check on GHG files 1995 value for CFCs:
 #ifdef TRACERS_AEROSOLS_SOA
       call soa_init
 #endif  /* TRACERS_AEROSOLS_SOA */
-#ifndef TRACERS_AMP
+
 #ifdef TRACERS_AEROSOLS_VBS
+! initialize vbs
+#ifndef TRACERS_AMP
       call vbs_init(vbs_conc(1), ntm)
-#endif  /* TRACERS_AEROSOLS_VBS */
+#else
+! find index of first VBS gas tracer. Brute force, but only happens once.
+      igasm2=0
+      do n=1,ntm
+        if (trim(trname(n)).eq.'vbsGm2') then
+          igasm2=n
+          exit
+        endif
+      enddo
+      if (igasm2==0) call stop_model('Could not find vbsGm2 tracer',255)
+
+      do i=1,nmodes
+! find index of first VBS aerosol tracer. Brute force, but only happens once.
+        iaerm2=0
+        do n=1,ntm
+          if (trim(trname(n)).eq.'M_'//mname(i)//'_OCM2') then
+            iaerm2=n
+            exit
+          endif
+        enddo
+        if (iaerm2==0) cycle ! No VBS species in this population
+
+        do ivbs=1,vbs_bins
+          vbs_conc(i)%igas(ivbs)=igasm2-1+ivbs
+          vbs_conc(i)%iaer(ivbs)=iaerm2-1+ivbs
+        enddo
+        call vbs_init(vbs_conc(i), ntm)
+      enddo
 #endif  /* not TRACERS_AMP */
+#endif  /* TRACERS_AEROSOLS_VBS */
+
 C**** Get to_volume_MixRat from rundecks if it exists
       call syncProperty(tracers, "to_volume_MixRat",
      &     set_to_volume_MixRat,to_volume_MixRat())
