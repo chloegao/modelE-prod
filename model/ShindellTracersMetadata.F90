@@ -10,7 +10,7 @@ module ShindellTracersMetadata_mod
   use TRCHEM_Shindell_COM, only: &
     ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR, &
     nd18OROR, nd13CROR, nd17Oald, nd18Oald, nd13Cald, &
-    ndCH317O2, ndCH318O2, nd13CH3O2,
+    ndCH317O2, ndCH318O2, nd13CH3O2
 #endif  /* TRACERS_dCO */
   use TRCHEM_Shindell_COM, only: &
     nC2O3, nXO2, nXO2N, nRXPAR, nROR, nAldehyde, nH2O, &

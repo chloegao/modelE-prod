@@ -332,7 +332,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 ! define below ntm_dCO_nontransp tracers
       integer :: ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR,
      &           nd18OROR, nd13CROR, nd17Oald, nd18Oald, nd13Cald,
-     &           ndCH317O2, ndCH318O2, nd13CH3O2,
+     &           ndCH317O2, ndCH318O2, nd13CH3O2
 #endif  /* TRACERS_dCO */
 ! define below ntm_shindell_nontransp tracers
       integer :: nC2O3, nXO2, nXO2N, nRXPAR, nROR, nAldehyde, nH2O,
