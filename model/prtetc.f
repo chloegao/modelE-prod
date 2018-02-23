@@ -464,16 +464,19 @@ c
       real     ,intent(IN) :: array(idm,jdm),scale,offset
       character,intent(IN) :: what*(*)
       integer jwrap,i,j
-      character string*12
+      character(len=132) :: string
       jwrap(j)=mod(j-1+jdm,jdm)+1               !  for use in cyclic domain
 c
- 100  format(/a12,9i7)
- 101  format(i10,3x,9f7.1)
+ 100  format(/a)
+ 101  format(/15x,9i7)
+ 102  format(i12,3x,9f7.1)
 c
-      string='            '
+      string=' '
       string(1:len_trim(what))=trim(what)
-      write (*,100) string,(jwrap(j),j=jz-4,jz+4)
-      write (*,101) (i,(scale*(array(i,jwrap(j))+offset),
+
+      write (*,100) trim(string)
+      write (*,101) (jwrap(j),j=jz-4,jz+4)
+      write (*,102) (i,(scale*(array(i,jwrap(j))+offset),
      .   j=jz-4,jz+4),i=max(1,iz-4),min(idm,iz+4))
 c
       return
@@ -980,3 +983,29 @@ c
  2    alist(i,j)=(1.-wgt-wgt)*blist(i,j)+wgt*(blist(ia,j)+blist(ib,j))
       return
       end
+      subroutine pr_9x9_distribute(fldo_loc,iz,jz,offset,scale,what)
+        USE HYCOM_DIM_GLOB,   only : iio,jjo
+        USE HYCOM_DIM,        only : ogrid, J_0H, J_1H
+        USE DOMAIN_DECOMP_1D, only : am_i_root, pack_data
+        implicit none
+        real*8, dimension(iio,J_0H:J_1H), intent(IN):: fldo_loc
+        integer, intent(in) :: iz,jz
+        real*8, intent(IN) :: scale,offset
+        character(len=*), intent(IN) :: what
+
+        real*8, allocatable  :: fldo(:,:)
+
+        if(am_i_root()) then
+          allocate(fldo(iio,jjo))
+        else
+          allocate(fldo(1,1))
+        endif
+
+        call pack_data(ogrid,fldo_loc,fldo)
+        if (am_i_root()) then
+          call pr_9x9(fldo,iio,jjo,iz,jz,offset,scale,trim(what))
+        end if
+        deallocate(fldo)
+        return
+
+      end subroutine pr_9x9_distribute
