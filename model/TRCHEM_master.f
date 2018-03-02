@@ -271,7 +271,6 @@ C**** Local parameters and variables and arguments:
 !@var bydtsrc reciprocal of the timestep dtsrc
 !@var local logical for error checking 
 !@var PRES2 local nominal pressure for verticle interpolations
-!@var thick thickness of each layer in various units
 !@var ClTOT total chlorine in all forms (reactive and reservoir)
 !@var BrTOT total bromine in all forms (reactive and reservoir)
 !@var colmO2, colmO3 are overhead oxygen and ozone columns
@@ -320,7 +319,7 @@ C**** Local parameters and variables and arguments:
      &  sphericalCorrectionReg4,
      &  changeTerpenes,rTerpplusNO3,changeisopp1g,changeisopp2g,
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
-     &  thick,changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
+     &  changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
 #ifdef TRACERS_dCO
      &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
      &  changed13Calke,
@@ -444,12 +443,13 @@ c This is to work around initial instabilities.
 #endif  /* TRACERS_dCO */
       DO L=1,topLevelOfChemistry
 c Initialize the 2D change variable:
-       changeL(L,:)=0.d0  
+       changeL(L,:)=0.d0
 c Save presure, temperature, thickness, rel. hum. in local arrays:
        ! could use rhl() instead of rh() but for the min(1.d0, ) part:
        ! try: rh(L)=min(rhl(L),qv(L)) ?
        rh(L)=qv(L)/min(1.d0,QSAT(tl(L),lhe,pl(L)))
-       bythick(L)=1.d0/(rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1)))
+       thick(L)=rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
+       bythick(L)=1.d0/thick(L)
 c Calculate M and set fixed ratios for O2 & H2:
        y(nM,L)=pl(L)/(tl(L)*cboltz)
        y(nO2,L)=y(nM,L)*pO2*o2x
@@ -711,9 +711,9 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
      &      +zj(L,rj%NO2__NO_O)
           taijls(i,j,L,ijlt_JH2O2)=taijls(i,j,L,ijlt_JH2O2)
      &      +zj(L,rj%H2O2__OH_OH)
-          thick=1.d-3*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
-          colmO2=colmO2+y(nO2,L)*thick*1.d5
-          colmO3=colmO3+y(nO3,L)*thick*1.d5
+          ! 1.d-3 changes thickness from m to km
+          colmO2=colmO2+y(nO2,L)*(1.d-3*thick(L))*1.d5
+          colmO3=colmO3+y(nO3,L)*(1.d-3*thick(L))*1.d5
 ! SF3 is photolysis of water in Schumann-Runge bands based on:
 ! Nicolet, Pl. Space Sci., p 871, 1984.
 ! SF3_fact is, if x[ ] = bin4_flux[ ]:
@@ -1866,9 +1866,8 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
             end if
 
             if(index1/=0 .and. index2/=0)then
-              ! layer thickness in cm:
-              thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
-              taijs(i,j,index1)=taijs(i,j,index1)+thick*
+              ! 1.d2 changes thickness from m to cm:
+              taijs(i,j,index1)=taijs(i,j,index1)+(thick(L)*1.d2)*
      &        pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
               if(L==1)taijs(i,j,index2)=taijs(i,j,index2)+1.d0
             end if
@@ -1879,12 +1878,10 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
 ! Also save instantaneous NO2 tropospheric column for SUBDDiag:
 ! Conversion is only from molecules/cm3 to molecules/cm2:
 ! save_NO2column is initialized to 0 outside this L loop.
-! [note: we should consolodate all these "thick/byThick" guys.]
         if(L<=min(maxT,LTROPO(I,J)))then
-          ! layer thickness in cm:
-          thick=1.d2*rgas*bygrav*tl(L)*LOG(ple(L)/ple(L+1))
+          ! 1.d2 changes thickness from m to cm:
           save_NO2column(i,j) = save_NO2column(i,j)+
-     &    thick*pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
+     &    (thick(L)*1.d2)*pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
         end if
 
 #ifdef ACCMIP_LIKE_DIAGS

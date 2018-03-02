@@ -541,8 +541,8 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
 !@var changeL 2D array holds the local change due to chem until
 !@+   adding to tr3Dsource
-!@var bythick recipricol thickness of each layer (1/m) saved on
-!@+ model layers.
+!@var thick estimated thickness of model layers (1/m)
+!@var bythick estimated recipricol thickness of model layers (1/m)
 !@var ClOx_old total ClOx at start of chemical timestep
 !@var aero yes(1) or no(0) tag of non-zero rkext from Crates
 !@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
@@ -612,7 +612,7 @@ C**************  Not Latitude-Dependant ****************************
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rr
-      REAL*8, ALLOCATABLE, DIMENSION(:)   :: odtmp,Jacet,rh,bythick
+      REAL*8, ALLOCATABLE, DIMENSION(:)  :: odtmp,Jacet,rh,bythick,thick
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
@@ -659,7 +659,7 @@ C**************  Not Latitude-Dependant ****************************
      & n_rj,LCOalt,acetone,mNO2,
      & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
-     & y,rr,odtmp,Jacet,chemrate,photrate,dest,prod,
+     & y,rr,odtmp,Jacet,chemrate,photrate,dest,prod,thick,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
      & zonalIsop,readCache
 
@@ -717,6 +717,7 @@ C**************  Not Latitude-Dependant ****************************
       allocate(       rr(n_rx, topLevelOfChemistry) )
       allocate(    odtmp(      topLevelOfChemistry) )
       allocate(       rh(      topLevelOfChemistry) )
+      allocate(    thick(      topLevelOfChemistry) )
       allocate(  bythick(      topLevelOfChemistry) )
       allocate( ClOx_old(      topLevelOfChemistry) )
       allocate(    Jacet(      topLevelOfChemistry) )
