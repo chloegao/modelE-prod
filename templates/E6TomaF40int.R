@@ -50,9 +50,7 @@ Preprocessor Options
 #define DETAILED_FIRE_OUTPUT
 #define LIMIT_BARREN_FLAMMABILITY
 #define ANTHROPOGENIC_FIRE_MODEL
-#define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-#define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
 !---> OMA start
 #define TRACERS_DUST             ! include dust tracers

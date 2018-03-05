@@ -1072,7 +1072,7 @@ C**** Local variables initialised in init_RAD
      &     ,ij_iwprad=1
      &     ,ij_h2och4 = 1
 
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)
       integer, dimension(2,4) :: ij_fcghg
 #endif

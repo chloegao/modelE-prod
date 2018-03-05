@@ -116,7 +116,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 
 !@param KAIJ number of AIJ diagnostics
       INTEGER, PARAMETER, public :: KAIJ=600
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
      &                                   + 8
 #endif
 #ifdef HEALY_LM_DIAGS
@@ -141,7 +141,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #ifdef CLD_AER_CDNC
      &                                  + 16
 #endif
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
      &                                  +  1
 #endif
 #ifdef AIJL_CP_TRANSPORTS

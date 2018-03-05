@@ -75,11 +75,11 @@ C
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_CH3OOH,   nn_HCHO, 
      &      nn_HO2NO2, nn_CO,    nn_PAN,   nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes, nn_Paraffin,   
-     &      nn_Terpenes,nn_codirect,                
+     &      nn_Terpenes,
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
-     &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+     &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC
 #ifdef TRACERS_dCO
      &     ,nn_d13Calke,nn_d13CPAR
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
@@ -90,9 +90,7 @@ C
 
       USE DIAG_COM_RAD, only : j_h2och4
       use photolysis, only: rj,ks,kss,zj,jpnl
-#ifdef ACCMIP_LIKE_DIAGS
       use MODEL_COM, only: DTsrc
-#endif  /* ACCMIP_LIKE_DIAGS */
 c
       IMPLICIT NONE
 c
@@ -763,11 +761,10 @@ c       Set value for XO2N:
         end if
         yXO2N(L,I,J)=y(nXO2N,L)
 
-#ifdef ACCMIP_LIKE_DIAGS
+        ! ACCMIP diag:
         TAIJLS(I,J,L,ijlt_OxpRO2)=TAIJLS(I,J,L,ijlt_OxpRO2)
      &    +(y(nXO2,L)*y(nNO,L)*rr(rrbi%XO2_NO__NO2_M,L)
      &      +y(nXO2N,L)*y(nNO,L)*rr(rrbi%XO2N_NO__AlkylNit_M,L))*cpd
-#endif
 
 c       Set value for RXPAR:
         RXPARprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
@@ -1469,7 +1466,7 @@ c Loops to calculate tracer changes:
          c2ml(l) = conc2mass
          changeL(L,idx)=
      &   (dest(igas,L)+prod(igas,L))*conc2mass
-#ifdef ACCMIP_LIKE_DIAGS
+         ! ACCMIP diags:
          if(idx == n_CO)then
            TAIJLS(I,J,L,ijlt_COp)=TAIJLS(I,J,L,ijlt_COp)+prod(igas,L)
      *          *cpd/DTsrc
@@ -1485,8 +1482,7 @@ c Loops to calculate tracer changes:
            TAIJLS(I,J,L,ijlt_CH4d)=
      &          TAIJLS(I,J,L,ijlt_CH4d)+dest(igas,L)*cpd/DTsrc
          end if
-#endif
-         
+
 c Set N2O5 to equilibrium when necessary (near ground,
 c N2O5 is thermally unstable, has a very short lifetime):
          if(idx==n_N2O5.and.(-dest(igas,L) >= y(nn_N2O5,L)*0.75d0
@@ -2042,18 +2038,16 @@ c       rxnN1=3.8d-11*exp(85d0*bytl)*y(nOH,L)
         if(NprodOx <  0.) then ! necessary?
           NprodOx_pos(l) = 0.
           NprodOx_neg(l) = NprodOx*conc2mass
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           TAIJLS(I,J,L,ijlt_Oxd)=TAIJLS(I,J,L,ijlt_Oxd)+NprodOx
      *         *cpd/DTsrc
-#endif
-        else 
+        else
           NprodOx_neg(l) = 0.
           NprodOx_pos(l) = NprodOx*conc2mass
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           TAIJLS(I,J,L,ijlt_Oxp)=TAIJLS(I,J,L,ijlt_Oxp)+NprodOx
      *         *cpd/DTsrc
-#endif
-        end if 
+        end if
         if (prnchg.and.
      &      J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3)) then
           write(out_line,*) 'NOx loss & Ox gain due to rxns  w/ N '
@@ -2231,15 +2225,14 @@ c Limit the change due to chemistry:
       end do     ! igas
 
 C**** special diags not associated with a particular tracer
-      
+
       DO L=1,maxL
         conOH(L) = 0.
         if (y(nOH,L) > 0.d0 .and. y(nOH,L) < 1.d20)then
           conOH(l) = y(nOH,L)
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           TAIJLS(I,J,L,ijlt_OHvmr)=TAIJLS(I,J,L,ijlt_OHvmr)+y(nOH,L)
      &                                             /y(nM,L)
-#endif
           TAIJLS(I,J,L,ijlt_OHconc)=TAIJLS(I,J,L,ijlt_OHconc)+y(nOH,L)
         end if
         if (y(nHO2,L) > 0.d0 .and. y(nHO2,L) < 1.d20)

@@ -241,8 +241,6 @@
       use Dictionary_mod, only: set_param, sync_param
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_terp
-      use RunTimeControls_mod, only: shindell_strat_extra
-      use RunTimeControls_mod, only: accmip_like_diags
       use RunTimeControls_mod, only: tracers_drydep
       use RunTimeControls_mod, only: tracers_tomas
       use RunTimeControls_mod, only: tracers_water
@@ -294,6 +292,7 @@
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
       use TRCHEM_Shindell_COM, only: use_rad_ch4
+      use TRACER_SOURCES, only: GLToffset
 #endif   
 #ifdef TRACERS_TOMAS
       use TomasTracersMetadata_mod
@@ -333,6 +332,7 @@
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param( "use_rad_ch4", use_rad_ch4 )
+      call sync_param( "GLToffset", GLToffset )
 #endif
 
 ! call routine to read/set up sectors for emissions:

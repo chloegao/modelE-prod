@@ -72,8 +72,6 @@ module ShindellTracersMetadata_mod
   use RunTimeControls_mod, only: tracers_drydep
   use RunTimeControls_mod, only: tracers_terp
   use RunTimeControls_mod, only: tracers_aerosols_soa
-  use RunTimeControls_mod, only: shindell_strat_extra
-  use RunTimeControls_mod, only: accmip_like_diags
   use RunTimeControls_mod, only: dynamic_biomass_burning
   USE CONSTANT, only: mair
   USE CONSTANT, only: gasc
@@ -163,12 +161,9 @@ contains
     call  CO_setSpec('d13CO')
 #endif  /* TRACERS_dCO */
 
-    if (shindell_strat_extra) then
-      if (accmip_like_diags) then
-        call  codirect_setSpec('codirect')
-        call  GLT_setSpec('GLT') ! generic linear tracer
-      end if
-    end if
+    ! diagnostic tracers:
+    call  codirect_setSpec('codirect')
+    call  GLT_setSpec('GLT') ! generic linear tracer
 
 ! define trchemname (old ay from MOLEC file)
     do n=ntm_chem_beg, ntm_chem_end

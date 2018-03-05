@@ -1704,12 +1704,10 @@ subroutine CONDSE
               taijs(i,j,ijts_aq(n))=taijs(i,j,ijts_aq(n))+ &
                    (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l))
             end if
-#ifdef ACCMIP_LIKE_DIAGS
             if(trname(n).eq."SO4".and.ijlt_prodSO4aq.gt.0) &
             taijls(i,j,l,ijlt_prodSO4aq)=taijls(i,j,l,ijlt_prodSO4aq)+ &
             (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)) &
             /DTsrc
-#endif /* ACCMIP_LIKE_DIAGS */
 #endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP or TRACERS_TOMAS */
 #ifdef TRACERS_AMP
             if (trname(n).eq."M_ACC_SU") then

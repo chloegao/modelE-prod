@@ -1359,12 +1359,6 @@ C****
 #ifdef TRACERS_DRYDEP
       write(6,*) '...and tracer dry deposition'
 #endif
-#ifdef EDGAR_HYDE_SOURCES
-      write(6,*) '...and EDGAR HYDE sources instead of GISS'
-#endif
-#ifdef SHINDELL_STRAT_EXTRA
-      write(6,*) '...and Drew Shindell extra strat tracers'
-#endif
 #ifdef INTERACTIVE_WETLANDS_CH4
       write(6,*) '...and interactive CH4 wetlands emissions'
 #endif
@@ -1374,13 +1368,6 @@ C****
       write(6,*) '   WITH MERRA WINDS.'
 #endif
 #endif
-#ifdef ACCMIP_LIKE_DIAGS
-      write(6,*) '...and ACCMIP set of diagnostics'
-#ifndef SHINDELL_STRAT_EXTRA
-      call stop_model
-     & ('SHINDELL_STRAT_EXTRA should be on for ACCMIP_LIKE_DIAGS',255)
-#endif
-#endif /* ACCMIP_LIKE_DIAGS */
 
       return
       end subroutine print_and_check_PPopts

@@ -463,11 +463,8 @@ C SO4 production
           H2SO4_chem(l)=trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
      *         *tr_mm(n)/tr_mm(n_so2)
 #endif
-
-#ifdef ACCMIP_LIKE_DIAGS
           taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
      &      tr3Dsource(l,nChemistry,n)
-#endif
 
         case('H2O2_s')
 

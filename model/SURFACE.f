@@ -901,7 +901,7 @@ C****
      &         ptype*rtsdt*depvel
           taijn(i,j,tij_gsdep ,n)=taijn(i,j,tij_gsdep ,n) +
      &         ptype*rtsdt* gsvel
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
 ! estimate stomatal tracer flux:
           if(n .eq. n_Ox)
      &    taijs(i,j,ijts_Sdrydep)=taijs(i,j,ijts_Sdrydep)+

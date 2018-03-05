@@ -40,9 +40,7 @@ Preprocessor Options
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
-#define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
-#define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
 !<--- chemistry end
 !---> OMA start
 #define TRACERS_DUST             ! include dust tracers

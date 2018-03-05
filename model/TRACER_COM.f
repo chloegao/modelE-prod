@@ -117,16 +117,6 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_terp=0
 #endif  /* TRACERS_TERP */
-!@var ntm_shindell_extra: Number of SHINDELL_STRAT_EXTRA tracers.
-#ifdef SHINDELL_STRAT_EXTRA
-#ifdef ACCMIP_LIKE_DIAGS
-      integer, parameter :: ntm_shindell_extra=2
-#else
-      integer, parameter :: ntm_shindell_extra=1
-#endif /* ACCMIP_LIKE_DIAGS*/
-#else
-      integer, parameter :: ntm_shindell_extra=0
-#endif  /* SHINDELL_STRAT_EXTRA */
 !@var ntm_koch: Number of TRACERS_AEROSOLS_Koch tracers.
 !@var ntm_vbs: Number of TRACERS_AEROSOLS_VBS tracers.
 #ifdef TRACERS_AEROSOLS_Koch

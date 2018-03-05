@@ -1129,7 +1129,6 @@ C**** special one unique to HTO
       end if
 #endif
 
-#ifdef SHINDELL_STRAT_EXTRA
       case ('GLT')
         k = k + 1
         jls_3Dsource(1,n) = k
@@ -1138,7 +1137,6 @@ C**** special one unique to HTO
         jls_ltop(k) = 1
         jls_power(k) = -5
         units_jls(k) = unit_string(jls_power(k),tend_units)
-#endif
 
       case ('codirect')
         k = k + 1
@@ -2501,7 +2499,7 @@ c#endif
             endif
 #endif /* AUXILIARY_OX_RADF */
           endif
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
           if(trname(n)=='Ox' .and. dodrydep(n))then
             ijts_Sdrydep=
      *        ijts_diag('stomatal_'//trim(trname(n)),
@@ -2509,7 +2507,7 @@ c#endif
      *                  'kg m-2 s-1', power=ntm_power(n)-4,
      *                  scalediv=dtsrc)
           end if
-#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_SPECIAL_Shindell */
         end select
       end select
 
@@ -3583,9 +3581,7 @@ c find indices of denominators
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
-#ifdef ACCMIP_LIKE_DIAGS
       USE MODEL_COM, only: dtsrc
-#endif
       USE DIAG_COM
 #ifdef SOA_DIAGS
       use tracers_soa, only: issoa
@@ -3770,12 +3766,10 @@ c- 3D diagnostic per mode
 C**** 3D tracer-related arrays but not attached to any one tracer
 
 #ifdef TRACERS_SPECIAL_Shindell
-#ifdef ACCMIP_LIKE_DIAGS
         ijlt_OHvmr=
      &    ijlt_diag(sname='OH_vmr',
      &              lname='OH mixing ratio',
      &              units='V/V air', power=-10)
-#endif
         ijlt_OHconc=
      &    ijlt_diag(sname='OH_conc',
      &              lname='OH concentration',
@@ -3808,7 +3802,6 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='O3_cm_atm',
      &              lname='O3 not Ox in cm-atm units',
      &              units='cm-atm')
-#ifdef ACCMIP_LIKE_DIAGS
         ijlt_COp=
      &    ijlt_diag(sname='COprod',
      &              lname='CO production rate',
@@ -3873,6 +3866,10 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='NO2_vmr',
      &              lname='NO2 mixing ratio',
      &              units='V/V air', power=-10) ! to match NOx
+#endif /* TRACERS_SPECIAL_Shindell */
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
+    (defined TRACERS_TOMAS)
         ijlt_prodSO4aq=
      &    ijlt_diag(sname='SO4aqSrc3D',
      &              lname='SO4 aqueous chem source 3D',
@@ -3881,8 +3878,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='SO4gasSrc3D',
      &              lname='SO4 gas phase source 3D',
      &              units='kg m-2 s-1', power=-15) ! to match ijts 2D
-#endif /* ACCMIP_LIKE_DIAGS */
-#endif /* TRACERS_SPECIAL_Shindell */
+#endif /* Koch or AMP or Tomas */
 
 #ifdef TRACERS_NITRATE
         ijlt_aH2O=
@@ -4163,9 +4159,7 @@ c find indices of denominators
       USE TRACER_SOURCES, only:first_mod,first_ncep,avg_model,avg_ncep,
      & PRS_ch4,sum_ncep
 #endif
-#ifdef SHINDELL_STRAT_EXTRA
       USE TRACER_SOURCES, only:GLTic
-#endif
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
@@ -4705,14 +4699,12 @@ c**** earth
             trm(i,j,l,n) = MA(l,i,j)*5.d-10
           end do; end do; end do
 
-#ifdef SHINDELL_STRAT_EXTRA
+#ifdef TRACERS_SPECIAL_Shindell
         case ('GLT')
           do l=1,lm; do j=J_0,J_1; do i=i_0,i_1
             trm(i,j,l,n) = GLTic*vol2mass(n)*MA(l,i,j)
           end do; end do; end do
-#endif
 
-#ifdef TRACERS_SPECIAL_Shindell
         case ('CH3OOH',
 #ifdef TRACERS_dCO
      *        'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
@@ -5453,7 +5445,6 @@ C**** Next line for fastj photon fluxes to vary with time:
         endif
 
         select case (trname(n))
-#if (defined SHINDELL_STRAT_EXTRA) && (defined ACCMIP_LIKE_DIAGS)
         case ('codirect')
           checkname=.false.
           isChemTracer=.true.
@@ -5462,7 +5453,6 @@ C**** Next line for fastj photon fluxes to vary with time:
           else
             xyear=year
           endif
-#endif
         case ('OCII','M_OCC_OC','SOAgas') ! Koch/AMP/TOMAS cases
           if (.not.tracers_aerosols_soa) nread=nread-1
         case ('SO4','M_AKK_SU','M_ACC_SU',
@@ -6807,9 +6797,7 @@ C**** Get current model time
       USE MODEL_COM, only: itime,dtsrc,itimeI
       USE apply3d, only : apply_tracer_3Dsource
       USE Dictionary_mod, only : get_param, is_set_param
-#ifdef SHINDELL_STRAT_EXTRA
       use TRACER_COM, only: n_GLT
-#endif
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACERS_SOA, only: n_soa_i,n_soa_e
 #endif  /* TRACERS_AEROSOLS_SOA */
@@ -6820,7 +6808,6 @@ C**** Get current model time
 
       INTEGER n,l
 
-#ifdef SHINDELL_STRAT_EXTRA
 C**** Update General Linear Tracer:
 C Applying non-chemistry 3D sources, so they can be "seen" by chemistry:
 C (Note: using this method, tracer moments are changed just like they
@@ -6829,7 +6816,6 @@ C sources are done? -- GSF 11/26/02)
 c
       call overwrite_GLT(i,j)
       call apply_tracer_3Dsource(i,j,nOverwrite,n_GLT)
-#endif
 
       call get_lightning_NOx(i,j)
       call apply_tracer_3Dsource(i,j,nOther,n_NOx)
@@ -7868,7 +7854,7 @@ c      fq(water_list) = 0d0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_COSMO) ||\
     (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AEROSOLS_SEASALT) ||\
-    (defined SHINDELL_STRAT_EXTRA) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_AMP) ||\
     (defined TRACERS_RADON) || (defined TRACERS_TOMAS)
 c
 c aerosols

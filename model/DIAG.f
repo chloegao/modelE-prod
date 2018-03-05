@@ -493,7 +493,7 @@ c ajl(jl_dtdyn) was incremented by -t(i,j,l) before dynamics
             AIJ(I,J,IJ_QM) = AIJ(I,J,IJ_QM) + Q(I,J,L)*MA(L,I,J)
             aijl(i,j,L,ijl_tempL)=aijl(i,j,L,ijl_tempL)+TX(i,j,L)
             aijl(i,j,L,ijl_husL)=aijl(i,j,L,ijl_husL)+Q(i,j,L)
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
             aijl(i,j,L,ijl_gridH)=aijl(i,j,L,ijl_gridH)+
      &      rgas/grav*TX(i,j,L)*log(pedn(l,i,j)/pedn(L+1,i,j))
 #endif

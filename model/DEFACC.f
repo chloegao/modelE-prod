@@ -4585,7 +4585,7 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e10/DTsrc
 #endif
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
       k=k+1
         ij_fcghg(1,1) = k
         lname_ij(k) = 'SW TOA CH4 RADIATIVE FORCING'
@@ -4642,7 +4642,7 @@ c
         name_ij(k) = 'lwc12_toa'
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
-#endif /* ACCMIP_LIKE_DIAGS */
+#endif /* TRACERS_SPECIAL_Shindell */
 
 c
 c the following are not accumulated
@@ -6360,7 +6360,7 @@ c
       scale_ijl(k) = 1.
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
 c
       k=k+1        ! grid box geometric thickness (model layers)
       ijl_gridh    = k

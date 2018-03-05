@@ -670,7 +670,7 @@
       use atm_com, only             : zatmo, gz, ltropo
       use resolution, only          : LM
       use domain_decomp_atm, only   : GRID, getDomainBounds
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
       use trdiag_com, only          : taijls=>taijls_loc,ijlt_NOxLgt
 #endif
 
@@ -722,7 +722,7 @@
       tr3Dsource(:,nOther,n_NOx) =
      &     tr3Dsource(:,nOther,n_NOx)*byaxyp(i,j)
 
-#ifdef ACCMIP_LIKE_DIAGS
+#ifdef TRACERS_SPECIAL_Shindell
       do L=1,LM
         taijls(i,j,L,ijlt_NOxLgt)=taijls(i,j,L,ijlt_NOxLgt) +
      &     tr3Dsource(L,nOther,n_NOx)

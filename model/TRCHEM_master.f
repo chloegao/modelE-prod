@@ -248,11 +248,11 @@ c
      &      nn_N2O5,   nn_HNO3,  nn_H2O2,  nn_HCHO,
      &      nn_HO2NO2, nn_H2O17,             
      &      nn_Isoprene, nn_AlkylNit, nn_Alkenes,
-     &      nn_Terpenes,nn_codirect,                
+     &      nn_Terpenes,
      &      nn_isopp1g,nn_isopp1a,nn_isopp2g,nn_isopp2a,         
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
-     &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+     &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC
 #ifdef TRACERS_dCO
      &     ,nn_d13Calke
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
@@ -1449,17 +1449,15 @@ C -- CO --
         wprodCO=rHCHOplusNO3   ! <-- note
         if(changeL(L,n_CO) >= 0.) then  
           CALL INC_TAJLS2(I,J,L,jls_COp,changeL(L,n_CO))
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           taijls(i,j,L,ijlt_COp)=taijls(i,j,L,ijlt_COp)+changeCO
      *         *cpd/DTsrc
-#endif
         else
           CALL INC_TAJLS2(I,J,L,jls_COd,changeL(L,n_CO))
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
      *         *cpd/DTsrc
-#endif
-        end if       
+        end if
 #ifdef TRACERS_dCO
 C -- dC17O --
         changeL(L,n_dC17O)=rdHCH17OplusNO3*pfactor*vol2mass(n_dC17O)
@@ -1629,18 +1627,16 @@ c --  Ox --   ( Ox from gas phase rxns)
           CALL INC_TAJLS2(I,J,L,jls_Oxp,changeL(L,n_Ox))
           if(L<=maxT)
      &       CALL INC_TAJLS2(I,J,L,jls_OxpT,changeL(L,n_Ox))
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           taijls(i,j,L,ijlt_Oxp)=taijls(i,j,L,ijlt_Oxp)+changeOx
      *         *cpd/DTsrc
-#endif
         else
           CALL INC_TAJLS2(I,J,L,jls_Oxd,changeL(L,n_Ox))
           if(L<=maxT)
      &       CALL INC_TAJLS2(I,J,L,jls_OxdT,changeL(L,n_Ox))
-#ifdef ACCMIP_LIKE_DIAGS
+          ! ACCMIP diag:
           taijls(i,j,L,ijlt_Oxd)=taijls(i,j,L,ijlt_Oxd)+changeOx
      *         *cpd/DTsrc
-#endif
         end if
 c -- ClONO2 --   (ClONO2 from gas and het phase rxns)
         changeL(L,n_ClONO2)=changeClONO2*pfactor*
@@ -1884,8 +1880,8 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
      &    (thick(L)*1.d2)*pNOx(L,i,j)*(y(nn_NOx,L)+tempChangeNOx)
         end if
 
-#ifdef ACCMIP_LIKE_DIAGS
-! accumulate some 3D diagnostics in moles/m3/s units:
+        ! ACCMIP diags section:
+        ! accumulate some 3D diagnostics in moles/m3/s units:
         ! chemical_production_of_O1D_from_ozone:
         taijls(i,j,l,ijlt_pO1D)=taijls(i,j,l,ijlt_pO1D)+
      &  zj(l,rj%O3__O1D_O2)*y(nO3,l)*cpd
@@ -1897,11 +1893,11 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
         ! chemical_production_rate_of_ozone_by_HO2_plus_NO:
         taijls(i,j,l,ijlt_OxpHO2)=taijls(i,j,l,ijlt_OxpHO2)+
      &  rr(rrbi%HO2_NO__OH_NO2,l)*y(nHO2,l)*y(nNO,l)*cpd
-   
+
         ! chemical_production_rate_of_ozone_by_CH3O2_plus_NO:
         taijls(i,j,l,ijlt_OxpCH3O2)=taijls(i,j,l,ijlt_OxpCH3O2)+
      &  rr(rrbi%CH3O2_NO__HCHO_NO2,l)*y(nCH3O2,l)*y(nNO,l)*cpd
-    
+
         ! chemical_destruction_rate_of_ozone_by_OH:
         taijls(i,j,l,ijlt_OxlOH)=taijls(i,j,l,ijlt_OxlOH)+
      &  rr(rrbi%OH_O3__HO2_O2,l)*y(nOH,l)*y(nO3,l)*cpd ! (positive)
@@ -1930,7 +1926,6 @@ c           Conserve N wrt BrONO2 once inital Br changes past:
           ! of local pNO (e.g. at night)
           continue
         end if
-#endif
 
         ! Below there is a 3D O3 diagnostic in cm-atm units for more
         ! direct NINT input. Here try to save it in vmr(ppbv) for humans,

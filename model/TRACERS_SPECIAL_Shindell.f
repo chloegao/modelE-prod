@@ -10,9 +10,10 @@
       IMPLICIT NONE
       SAVE
 
-#ifdef SHINDELL_STRAT_EXTRA
-      REAL*8, PARAMETER ::  GLTic = 1.d-9 ! pppv
-#endif   
+!@var GLTic vmr initial conditions for GLT tracer
+      REAL*8, PARAMETER ::  GLTic = 1.d-9
+!@dbparam GLToffset
+      integer :: GLToffset = 0
 
 #ifdef INTERACTIVE_WETLANDS_CH4
 !@dbparam nn_or_zon approach to use for expanding wetlands 1=
@@ -156,9 +157,8 @@
       
       return
       end subroutine alloc_tracer_sources 
-            
-      
-#ifdef SHINDELL_STRAT_EXTRA
+
+
       subroutine overwrite_GLT(i,j)
 !@sum L=1 overwriting of generic linear tracer    
 !@vers 2013/03/26
@@ -170,10 +170,10 @@ C**** linearly in time (at 1% increase per year)
       USE MODEL_COM, only: itime,itimei,DTsrc
       use TimeConstants_mod, only: SECONDS_PER_YEAR
       use atmcol_com, only: ma, byma
-      use OldTracer_mod, only: trname, vol2mass, itime_tr0
+      use OldTracer_mod, only: trname, vol2mass
       USE TRACER_COM, only: trm_col,n_GLT
       USE TRACER_COM, only: nOverwrite
-      USE TRACER_SOURCES, only: GLTic
+      USE TRACER_SOURCES, only: GLTic,GLToffset
       USE FLUXES, only : tr3Dsource
       
       IMPLICIT NONE
@@ -193,14 +193,14 @@ C 1% every year, linearly in time. (note: vol2mass should
 C just be 1 for this tracer, but kept it in here, in case
 C we change that.)
       new_mr = GLTic * (1.d0 +
-     &(Itime-ItimeI-itime_tr0(n_GLT))*DTsrc*by_s_in_yr*1.d-2) !pppv
+     &(Itime-ItimeI+GLToffset)*DTsrc*by_s_in_yr*1.d-2) !pppv
       new_mass=new_mr*vol2mass(n_GLT)*ma(1) ! kg
       tr3Dsource(1,nOverwrite,n_GLT)=(new_mass-trm_col(1,n_GLT))*bydtsrc
       !i.e. tr3Dsource in kg/s 
 
       return
       end subroutine overwrite_GLT
-#endif
+
 
       subroutine get_CH4_IC(icall)
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
