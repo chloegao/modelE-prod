@@ -673,6 +673,7 @@ C**************  Not Latitude-Dependant ****************************
 
       type (dist_grid), intent(in) :: grid
       integer :: ier, J_1H, J_0H, I_1H, I_0H, L
+      integer :: J_1, J_0, I_1, I_0
       logical :: init = .false.
       real*8  :: x
 
@@ -680,8 +681,11 @@ C**************  Not Latitude-Dependant ****************************
       init=.true.
     
       call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
+      call getDomainBounds( grid , J_STRT=J_0, J_STOP=J_1 )
       I_0H=GRID%I_STRT_HALO
       I_1H=GRID%I_STOP_HALO
+      I_0=GRID%I_STRT
+      I_1=GRID%I_STOP
 
       ! First, determine the number of layers where we'll do
       ! chemistry. (Currently, this includes photolysis, as
@@ -744,38 +748,38 @@ C**************  Not Latitude-Dependant ****************************
       allocate( d13Cacetone(topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
 
-      allocate(        pHOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        pNOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        pNO3(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(         pOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(       pClOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        pClx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(      pOClOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(       pBrOx(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        yNO3(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(      yCH3O2(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(       yC2O3(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        yROR(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        yXO2(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(       yXO2N(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(   yAldehyde(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(      yRXPAR(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(        yCl2(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
-      allocate(      yCl2O2(topLevelOfChemistry,I_0H:I_1H,J_0H:J_1H) )
+      allocate(        pHOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        pNOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        pNO3(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(         pOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(       pClOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        pClx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(      pOClOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(       pBrOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        yNO3(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(      yCH3O2(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(       yC2O3(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        yROR(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        yXO2(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(       yXO2N(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(   yAldehyde(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(      yRXPAR(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(        yCl2(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
+      allocate(      yCl2O2(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
 #ifdef TRACERS_dCO
-      allocate(   ydCH317O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(   ydCH318O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(   yd13CH3O2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(   yd13CXPAR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    ydC217O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    ydC218O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd13C2O3(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd17OROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd18OROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd13CROR(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd17Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd18Oald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
-      allocate(    yd13Cald(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) )
+      allocate(   ydCH317O2(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(   ydCH318O2(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(   yd13CH3O2(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(   yd13CXPAR(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    ydC217O3(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    ydC218O3(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd13C2O3(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd17OROR(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd18OROR(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd13CROR(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd17Oald(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd18Oald(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
+      allocate(    yd13Cald(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
       allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
