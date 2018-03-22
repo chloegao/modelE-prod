@@ -782,17 +782,17 @@ C**************  Not Latitude-Dependant ****************************
       allocate(    yd13Cald(I_0:I_1,J_0:J_1,topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
       allocate(        mNO2(I_0H:I_1H,J_0H:J_1H,topLevelOfChemistry) ) ! set to undef above chem in DIAG.f
-      allocate(        OxIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(        COIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(       CFCIC(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      CH4ICX(I_0H:I_1H,J_0H:J_1H,LM)      )
-      allocate(      N2OICX(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( dms_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so2_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate( so4_offline(I_0H:I_1H,J_0H:J_1H,LM)      )
       allocate(   readCache(I_0H:I_1H,J_0H:J_1H,LM)      )
+      allocate(        OxIC(I_0:I_1,J_0:J_1,LM)      )
+      allocate(        COIC(I_0:I_1,J_0:J_1,LM)      )
+      allocate(       CFCIC(I_0:I_1,J_0:J_1,LM)      )
+      allocate(      CH4ICX(I_0:I_1,J_0:J_1,LM)      )
+      allocate(      N2OICX(I_0:I_1,J_0:J_1,LM)      )
 
-      allocate( mostRecentNonZeroAlbedo(I_0H:I_1H,J_0H:J_1H))
+      allocate( mostRecentNonZeroAlbedo(I_0:I_1,J_0:J_1))
       mostRecentNonZeroAlbedo=0.d0
 
       allocate(   zonalIsop(I_0H:I_1H,J_0H:J_1H) )

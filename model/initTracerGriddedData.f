@@ -336,8 +336,8 @@ C Read landuse parameters and coefficients for tracer dry deposition:
         fid = par_open(grid,trim(fn),'read')
         nlev = get_dimlen(grid,fid,'pressures')
         allocate(IClevs(nlev))
-        allocate(loc3D(grid%i_strt_halo:grid%i_stop_halo,
-     &                 grid%j_strt_halo:grid%j_stop_halo,nlev))
+        allocate(loc3D(grid%i_strt:grid%i_stop,
+     &                 grid%j_strt:grid%j_stop,nlev))
         call read_data(grid,fid,'pressures',IClevs,bcast_all=.true.)
         call read_dist_data(grid,fid,trim(fn),loc3D) ! var name same as file short name
         call par_close(grid,fid)
