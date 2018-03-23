@@ -229,8 +229,17 @@ C     Swap T0M into Nk, Mk, Gc arrays
                   MK(n,srtocil)=TRM(i,j,l,n_AOCIL(1) -1+n)      
                   Mk(n,srtdust)=TRM(i,j,l,n_ADUST(1) -1+n)            
                   Mk(n,srth2o)=TRM(i,j,l,n_AH2O(1)-1+n)
-                  Mk(n,srtnh4)=0.
+                  Mk(n,srtnh4)=0.d0
                enddo
+
+Cdmw  Temporary fix to a bug in which TRM(NH3) concentrations
+Cdmw  become tiny negative numbers (-1e-100) before passed to 
+Cdmw  TOMAS. Full fix needed
+               if (TRM(i,j,l,n_NH3) .lt. 0.d0) then
+                  print*, 'TRM NH3 < zero',TRM(i,j,l,n_NH3), i,j,l
+                  print*,'Warning: setting TRM NH3 to zero'
+                  TRM(i,j,l,n_NH3) = 0.d0
+               endif
 
                INIT_NK(:) = NK(:)
                INIT_MK(:,:)=MK(:,:)
@@ -239,15 +248,23 @@ C     Swap T0M into Nk, Mk, Gc arrays
                INIT_NH4=TRM(I,J,L,n_NH4)
                INIT_SOA=TRM(I,J,L,n_SOAgas)
 
+               call mnfix(Nk,Mk)
+
+
 ! swap NH3 from giss to tomas               
                tot_n_i = TRM(i,j,l,n_NH3)*14.d0/17.d0 + 
      &              TRM(i,j,l,n_NH4)*14.d0/18.d0
 
+
                call NH3_GISStoTOMAS(TRM(i,j,l,n_NH3), 
      &              TRM(i,j,l,n_NH4),Gc,Mk)
+
               
                                 ! nitrogen and sulfur mass checks
-                                ! get the total mass of N
+
+               call mnfix(Nk,Mk)
+
+
                tot_n_1 = Gc(srtnh4)*14.d0/17.d0
                do k=1,ibins
                   tot_n_1 = tot_n_1 + Mk(k,srtnh4)*14.d0/18.d0
@@ -255,9 +272,11 @@ C     Swap T0M into Nk, Mk, Gc arrays
 
                H2SO4rate_o = H2SO4_chem(i,j,l) !kg of h2so4/sec  (from SO2+OH)
                SOAmass=TRM(i,j,l,n_SOAgas) !kg of SOA 
+
                
 ! Do water eqm at appropriate times
                call ezwatereqm(Mk)
+
 
                call storenm()
                call mnfix(Nk,Mk)
@@ -276,6 +295,7 @@ C     Swap T0M into Nk, Mk, Gc arrays
 ! Do water eqm at appropriate times
                call ezwatereqm(Mk)
 
+
                call storenm()
                call mnfix(Nk,Mk)
                mpnum=6 
@@ -291,6 +311,8 @@ C     Swap T0M into Nk, Mk, Gc arrays
 
 ! Do water eqm at appropriate times
                call ezwatereqm(Mk)
+
+
 
                call storenm()
                call mnfix(Nk,Mk)
@@ -335,15 +357,15 @@ C     ****************
                Gc(:)=0.d0  ! back to zero
 !YUNHA LEE - Gc=0 is moved here due to shorter time step.
  
-! WHAT TO DO WITH Gc initialization!! ? 
+
 
 Cjrp  Initialize all components condensible gas values to zero      
 Cjrp  Gc(srtso4) will remain zero until within cond_nuc where the
 Cjrp  pseudo steady state H2SO4 concentration will be put in this place.
 
                Gc(srtso4)=h2so4rate_o*adt ! this is for condensation diagnostics 
-
                call storenm()
+               call mnfix(Nk,Mk)
 
                Gc(srtso4)=0.
 
@@ -351,9 +373,11 @@ C If any Nk are zero, then set them to a small value to avoid division by zero
                call cond_nuc(Nk,Mk,Gc,Nkout,Mkout,Gcout,fn,fn1,
      &             H2SO4rate_o,adt,num_iter,Nknuc,Mknuc,Nkcond,Mkcond,l)
                                 !get nucleation diagnostic
- 
+
                Mk(:,:)=Mknuc(:,:)
                Nk(:)=Nknuc(:)
+               call mnfix(Nk,Mk)
+
 
                Gc(srtso4)=h2so4rate_o*adt !to make zero nucleation diag
             
@@ -404,12 +428,12 @@ c$$$               T3DC(I,J,L,2)=T3DC(I,J,L,2)+fn1*boxvol*adt
                mpnum=6 
                call aerodiag(mpnum,i,j,l)
 
-
 C YHL - This should be called for next multicoag.  This does not need to be called in last timestep but do it anyway. 
 
                                 !Coagulation
                call storenm()
                call multicoag(adt)
+!Cdmw               call mnfix(Nk,Mk)
 
                mpnum=2
                call aerodiag(mpnum,i,j,l)
@@ -418,7 +442,6 @@ C YHL - This should be called for next multicoag.  This does not need to be call
 C     Do water eqm at appropriate times
                call eznh3eqm(Gc,Mk)
                call ezwatereqm(Mk)
-                  
 C     ***********************
 C     End of aerosol dynamics
 C     ***********************
@@ -448,7 +471,7 @@ C     ***********************
                   endif
                   
                   if (abs(tot_s_2-tot_s_1)/tot_s_1.gt.1.0D-4)then !TOMAS - increase from 1.0D-4 
-                     print*,'Sulfur not conserved in aerophys'
+!                     print*,'Sulfur not conserved in aerophys'
 !                     print*,'i',i,'j',j,'l',l
 !                     print*,'Init,Init1,Intm,Final',tot_s_1,
 !     *                    tot_s_1b,tot_s_2
@@ -458,7 +481,7 @@ C     ***********************
 
              enddo              ! timestep
 
-          call getCCN_kappa(i,j,l,Nk,Mk,Temp,boxmass,boxvol) 
+          call getCCN_kappa(i,j,l)!,Nk,Mk,Temp,boxmass,boxvol) 
               
 C     Check for negative tracer problems
                flag=0
@@ -469,7 +492,7 @@ C     Check for negative tracer problems
                   endif
                   do jc=1,icomp
                      if (Mk(n,jc) .lt. 0.0) then
-                    write(*,*) 'Mk < 0 for i,j,l,bin,comp:',i,j,l,n,jc
+                     write(*,*) 'Mk < 0 for i,j,l,bin,comp:',i,j,l,n,jc
                         flag=1
                      endif
                   enddo
@@ -1219,6 +1242,8 @@ C contributes to neutralizing sulfate
 
       !Calculate mixture density
       d=1./(xan/dan+xs0/ds0+xs1/ds1+xs2/ds2+xnacl/dss)  !Tang, eq. 10
+
+!dmw
       if (abs(d).ge.0) then
       else
          write(*,*) d,xtot,xan,xs0,xs1,xs2,xnacl,dan,ds0,ds1,ds2,dss
@@ -1765,6 +1790,7 @@ C Bulk species
       INTEGER :: L,I,J
 
       REAL*8, INTENT(IN) :: dtstep
+      real*8,parameter :: eps=1.d-40
       INTEGER n,ns,c,k,tot_src,tracnum
       INTEGER tomas_ntsurf !same as ntsurfsrc
       real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
@@ -1823,7 +1849,7 @@ c$$$      ENDIF
           enddo
 
           if(sum(ndistinit(1:nbins)).gt.0.)then
-!     only when there is emission! 
+!     only when there is emission!
             call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
      &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
             
@@ -1981,6 +2007,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
 
       integer :: J_1, J_0, I_1, I_0,L,I,J
       REAL*8, INTENT(IN) :: dtstep
+      real*8,parameter :: eps=1.d-40
       INTEGER n,ns,c,k,tot_src,tracnum
       INTEGER tomas_ntsurf !same as ntsurfsrc
       real*8 ndistinit(nbins) !the number of particles being added to the gridbox before subgrid coag
@@ -2037,7 +2064,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
           enddo
           
 !     only when there is emission!   
-          if(sum(ndistinit(1:nbins)).gt.0.)then        
+          if(sum(ndistinit(1:nbins)).gt.0.)then     
             call subgridcoag(ndistinit,ndist0,mdist0,boxvol,
      &           tscale,ndistfinal,maddfinal) ! account for subgrid coagulation
             
@@ -2150,6 +2177,7 @@ C-----VARIABLE DECLARATIONS-----------------------------------
       real*8, intent(out) :: ndistfinal(nbins) !the number of particles being added to the gridbox after subgrid coag
       real*8, intent(out) :: maddfinal(nbins) !the mass that should be added to each bin due to coagulation (kg)
       real*8 mp ! mass of the particle (kg)
+      real*8,parameter :: eps=1.d-50
       real*8 density                !density (kg/m3) of particles
       real*8 diameter(nbins) ! diamter of the particle (m)
       real*8 diaml(nbins) ! total diamter of particles larger (m/cm3)
@@ -2167,8 +2195,18 @@ C-----VARIABLE DECLARATIONS-----------------------------------
 C     get the wet diameter of particles in each size bin
       do k=1,nbins
          mp=0.1875*mdist2(k,srtso4)
+         if (mp .le. 0.0) then 
+            print*, 'Warning: fixing mp for density calc'
+            print*, mp, mdist2(k,srtso4),k
+            mp = eps
+         endif
          do c=1,icomp
             mp = mp + mdist2(k,c)
+            if (mp .le. 0.0) then
+               print*, 'Warning: fixing mp for density calc'
+               print*, mp, mdist2(k,c),k,c
+               mp = eps
+            endif
          enddo
          if (ndist2(k).eq.0.)then
             mp=sqrt(xk(k)*xk(k+1))
@@ -2194,6 +2232,11 @@ C     get the wet diameter of particles in each size bin
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
          endif
+         if (mp .le. 0.0) then
+            print*, 'Warning: fixing mp for density calc'
+            mp = eps
+         endif
+
          diameter(k)=2.*(3./4./pi*mp/density)**(1./3.) ! m
       enddo
 
