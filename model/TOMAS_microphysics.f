@@ -1749,15 +1749,6 @@ c     Mnuce(srtnh4) = Mnuce(srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
         Gce(srtnh4) = (tot_nh3 - tot_so4*2.d0)*17.d0 ! put whats left over in the gas phase
       endif
       
-      if (Mke(k,srtnh4) .lt. 0.d0) then
-         print*, 'MKE less than zero in Nh3 GTT'
-         print*, Mke(k,srtnh4), k
-      endif
-
-      if (Gce(srtnh4) .lt. 0.d0) then
-         print*, 'GCE less than zero in Nh3 GTT'
-         print*, Gce(srtnh4)
-      endif
 
       RETURN
       END
