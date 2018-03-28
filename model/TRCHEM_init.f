@@ -7,11 +7,13 @@
 C**** GLOBAL parameters and variables:
       use Dictionary_mod, only: sync_param
       use pario, only : par_open,par_close,read_dist_data
+      use constant, only : loschmidt_constant, byavog
       USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
-      USE TRACER_COM, only: oh_live,no3_live,o3_live
-      USE TRCHEM_Shindell_COM, only: nc
+      USE TRACER_COM, only: oh_live,no3_live,o3_live,n_Ox
+      use OldTracer_mod, only: tr_mm
+      USE TRCHEM_Shindell_COM, only: nc,o3mult,byo3mult
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,
@@ -41,6 +43,20 @@ C**** Local parameters and variables and arguments:
       ! Note that topLevelOfChemistry is set in 
       ! alloc_trchem_shindell_com routine
 
+! Determine some conversion factors, between atm-cm units (i.e.
+! 1000 Dobson Units) and kg/m2, based on constants:
+! (Formerly O3MULT was a hardcoded parameter set to 2.14d-2.)
+! In the formula below:
+! - loschmidt_constant has units of molecules/cm3 (at STP)
+! - tr_mm(n_Ox) has units of g/mole
+! - byavog has units of mole/molecules
+! - a 1.d4 factor has units of cm2/m2
+! - a 1.d-3 factor has units of kg/g
+! and the 1.d4 and 1.d-3 have been combined into 1.d1.
+! Hence, o3mult units work out to: (kg/m2)/cm and byo3mult to cm/(kg/m2)
+
+      o3mult=1.d1*loschmidt_constant*tr_mm(n_Ox)*byavog
+      byo3mult=1.d0/o3mult
 
 c sync some diagnostics, as needed (formerly in MOLEC file)
       call sync_param('print_reaction_lists', prnls)

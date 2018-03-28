@@ -18,7 +18,7 @@ c
       use model_com, only: itime, itimeI, itime0
       USE TRACER_COM, only  : ntm,coupled_chem
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
-     &                        bygrav,lhe,undef,teeny,byavog
+     &                 bygrav,lhe,undef,teeny,byavog,loschmidt_constant
       USE ATM_COM, only     : PMIDL00,LTROPO,Q,lm_req,pedn,byMA
       USE FILEMANAGER, only : openunit,closeunit,nameunit
       USE RAD_COM, only     : H2ObyCH4,plb0,clim_interact_chem
@@ -101,8 +101,9 @@ C running-averages for interactive wetlands CH4:
                 call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                 call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
                 avgTT_CH4_part(I,J) =
-     &          (ghgCmAtm(LTROPO(I,J),7)/CH4X_RADoverCHEM)
-     &          *2.69d20*byavog*mair*byMA(LTROPO(I,J),I,J)
+     &          (ghgCmAtm(LTROPO(I,J),7)/CH4X_RADoverCHEM)*1.d1
+     &          *loschmidt_constant*byavog*mair*byMA(LTROPO(I,J),I,J)
+                ! Units of 1.d1 factor above are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
               else
                 avgTT_CH4_part(I,J) =
      &          trm(I,J,LTROPO(I,J),n_CH4)
@@ -186,11 +187,10 @@ c
       USE RAD_COM, only     : o2x, plb0
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
-     &                        bygrav,lhe,undef,teeny,byavog
+     &                bygrav,lhe,undef,teeny,byavog,loschmidt_constant
       USE ATM_COM, only     : PMIDL00,LTROPO,lm_req
       USE RAD_COM, only     : COSZ1,alb,rcloudfj=>rcld,CH4X_RADoverCHEM,
-     &                        chem_tracer_save,H2ObyCH4,
-     &                        SRDN,clim_interact_chem
+     &                        H2ObyCH4,SRDN,clim_interact_chem
       USE GEOM, only        : LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only: tr_wd_type, nWater
@@ -231,10 +231,10 @@ c
       USE TRDIAG_COM, only    : taijs=>taijs_loc,taijls=>taijls_loc
      &     ,ijlt_NO3,jls_COp,jls_COd,jls_Oxp,jls_N2O5sulf,jls_O3vmr
      &     ,jls_Oxd,jls_OxpT,jls_OxdT,ijs_NO2_1030,ijs_NO2_1030c
-     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D,ijs_O3mass
+     &     ,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_pO1D
      &     ,ijlt_pOH,ijlt_OxpHO2,ijlt_OxpCH3O2,ijlt_OxlHO2,ijlt_OxlALK
      &     ,ijlt_OxlOH,ijs_NO2_1330,ijs_NO2_1330c,ijlt_NO2vmr,ijlt_NOvmr
-     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2,ijlt_O3ppbv,ijlt_O3cmatm
+     &     ,ijlt_JO1D,ijlt_JNO2,ijlt_JH2O2,ijlt_O3ppbv
      &     ,jls_ClOcon,jls_H2Ocon
 
       USE TRCHEM_Shindell_COM
@@ -766,8 +766,9 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             if(Ttemp <= T_thresh)then                         ! cold enough
               bHNO3=38.9855d0-11397.d0/Ttemp+0.009179d0*Ttemp ! H2O and HNO3
               mHNO3= -2.7836d0 - 8.8d-4*Ttemp                 ! criteria from
-              HNO3_thresh=2.69d19/760.d0*10.d0**              ! Hanson+Mauersberger
-     &        (mHNO3*log10(y(nH2O,L)*760.d0/2.69d19)+bHNO3)   ! 1988
+              HNO3_thresh=loschmidt_constant/760.d0*10.d0**   ! Hanson+Mauersberger
+     &        (mHNO3*log10(y(nH2O,L)*760.d0/loschmidt_constant) ! 1988
+     &        +bHNO3)
               if(y(nn_HNO3,L) >= HNO3_thresh) pscX(L)=.true.! <-- yes PSC
             endif ! temperature
           endif   ! lat
@@ -2014,12 +2015,13 @@ C N2O, CFC, and optional CH4 L=1 overwriting: with all these "fact"s
 C this looks complicated, but basically, you are either converting
 C from mixing ratio to KG (normal case) or from cm-atm to KG  
 C (interactive radiation case - for more on that conversion, see
-C the notes on O3MULT in the TRCHEM_Shindell_COM program):
+C the notes on O3MULT in the TRCHEM_init program):
       fact2=n2o_pppv  ! default N2O mixing ratio overwrite
       fact3=cfc_pppv  ! default CFC mixing ratio overwrite
       fact7=fact_cfc
       if(use_rad_cfc == 0)fact7=1.d0
-      fact6=2.69d20*byavog
+      ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
+      fact6=1.d1*loschmidt_constant*byavog
       fact1=bymair*ma(1)
       fact5=fact6
       fact4=fact6
@@ -2073,51 +2075,9 @@ C the notes on O3MULT in the TRCHEM_Shindell_COM program):
 
 CCCCCCCCCCCCCCCCCC END OVERWRITE SECTION CCCCCCCCCCCCCCCCCCCCCC
 
-
-! I believe the next section could be simplified and moved into
-! the rad code or GHGMOD once the radiation is called after
-! tracer 3D source:
-c Save new tracer O3 and CH4 fields for use in radiation or elsewhere:
-c (radiation code wants atm-cm units):
-      do L=1,LM                 ! all model layers
-            ! Pass Ox to the rad code, except...
-        chem_tracer_save(1,L,i,j)=(trm_col(L,n_Ox) +
-     &      (tr3Dsource(L,nChemistry,n_Ox) + 
-     &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)
-     &      *byO3MULT
-            ! ... if on active chemistry level, pass O3 instead.
-            ! (likely, depending on rundeck settings, your Ox above
-            ! the top of the chemistry is actually NINT O3 anyway):
-        if(L <= topLevelOfChemistry) chem_tracer_save(1,L,i,j)=
-     &                          pOx(L,i,j)*chem_tracer_save(1,L,i,j)
-        chem_tracer_save(2,L,i,j)=(trm_col(L,n_CH4) +
-     &      (tr3Dsource(L,nChemistry,n_CH4) + 
-     &      tr3Dsource(L,nOverwrite,n_CH4))*dtsrc)
-     &      *avog/(tr_mm(n_CH4)*2.69e20)
-        if(prnchg)DU_O3(J)=DU_O3(J)+chem_tracer_save(1,L,i,j)
-            ! Above 3D O3 diagnostic in ppbv units is saved (for humans to see).
-            ! Here do it in atm-cm units for direct NINT input for rad code.
-        taijls(i,j,L,ijlt_O3cmatm)=taijls(i,j,L,ijlt_O3cmatm)+
-     &       chem_tracer_save(1,L,i,j)
-      end do
-          ! accumulate diag for the column sum of O3 mass hopefully similarly to
-          ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers, Ox
-          ! tracer above (which is likely anyway actually O3 from NINT input):
-      taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
-     &    sum( pOx(1:topLevelOfChemistry,i,j)*
-     &    (trm_col(1:topLevelOfChemistry,n_Ox)+
-     &    (tr3Dsource(1:topLevelOfChemistry,nChemistry,n_Ox)+
-     &    tr3Dsource(1:topLevelOfChemistry,nOverwrite,n_Ox))
-     &    *dtsrc))
-      taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+
-     &    sum( 
-     &    (trm_col(topLevelOfChemistry+1:LM,n_Ox)+
-     &    (tr3Dsource(topLevelOfChemistry+1:LM,nChemistry,n_Ox)+
-     &    tr3Dsource(topLevelOfChemistry+1:LM,nOverwrite,n_Ox))
-     &    *dtsrc))
-
-          ! and the above-chemistry O3 (using the Ox tracer which is probably
-          ! O3 from NINT anyway):
+      ! In loops over chemistry levels above, the 3D O3 ppbv diag is
+      ! accumulated. Here, do the levels above-chemistry O3 (using the
+      ! Ox tracer which is probably O3 from NINT anyway):
       do L=topLevelOfChemistry+1,LM
         taijls(i,j,L,ijlt_O3ppbv)=taijls(i,j,L,ijlt_O3ppbv)+
      &       1.e9*(trm_col(L,n_Ox)+(tr3Dsource(L,nChemistry,n_Ox)+
@@ -2128,8 +2088,22 @@ c (radiation code wants atm-cm units):
      &      (tr3Dsource(L,nChemistry,n_Ox)+
      &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*
      &      mass2vol(n_Ox))
-      end do 
+      end do
 
+      if(prnchg) then
+        ! Accumulate Drew's debugging diag (over all model levels):
+        do L=1,LM
+          if (L <= topLevelOfChemistry) then
+            DU_O3(J)=DU_O3(J)+pOx(L,i,j)*(trm_col(L,n_Ox) +
+     &      (tr3Dsource(L,nChemistry,n_Ox) +
+     &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byO3MULT
+          else
+            DU_O3(J)=DU_O3(J)+           (trm_col(L,n_Ox) +
+     &      (tr3Dsource(L,nChemistry,n_Ox) +
+     &      tr3Dsource(L,nOverwrite,n_Ox))*dtsrc)*byO3MULT
+          end if
+        end do
+      end if
 
       RETURN
 
@@ -2414,25 +2388,68 @@ C Make sure nighttime chemistry changes are not too big:
 
       END SUBROUTINE masterchem
 
+
       subroutine masterchem_post
-      USE DOMAIN_DECOMP_ATM, only : GRID,AM_I_ROOT
+      USE DOMAIN_DECOMP_ATM, only : GRID,AM_I_ROOT,getDomainBounds
       USE DOMAIN_DECOMP_1D, only : PACK_DATA
       USE TRCHEM_Shindell_COM, only : prnchg,DU_O3
-      USE RESOLUTION, only  : JM
+      USE RESOLUTION, only  : JM,LM
+      use rad_com, only : chem_tracer_save
       use geom, only : imaxj
+      use trchem_shindell_com, only : pOx, topLevelOfChemistry
 #ifdef CACHED_SUBDD
       use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
 #endif
+      USE TRDIAG_COM, only: taijs=>taijs_loc,ijs_O3mass,
+     &                      taijls=>taijls_loc,ijlt_O3cmatm
+      use tracer_com, only: trm, n_Ox
       implicit none
-      integer :: j
+      integer :: i,j
       real*8, dimension(JM)     :: DU_O3_glob
 #ifdef CACHED_SUBDD
       integer :: k,igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
 #endif
+      integer :: J_0, J_1, I_0, I_1
 
+      call getDomainBounds(grid,
+     & J_STRT=J_0,J_STOP=J_1,I_STRT=I_0,I_STOP=I_1)
+
+! --------------------------------------------------------
+      ! Export CH4 and O3 for use in radiation code. Later,
+      ! these calls could be moved outside of the chemistry,
+      ! and (potentially) i,j,chem_tracer_save deleted:
+      ! Please read note below about ijlt_O3cmatm
+      do j=j_0,j_1
+        do i=i_0,imaxj(j)
+          call getMethaneForRadiation(i,j,chem_tracer_save(2,1:LM,i,j))
+          call getOzoneForRadiation(i,j,chem_tracer_save(1,1:LM,i,j))
+
+          ! Accumulate 3D atm-cm O3 for direct NINT input for rad code:
+          ! This should really be moved along with the call to
+          ! getOzoneForRadiation if that gets moved out of the chemistry.
+          ! But I didn't want to put it *in* that routine in case it
+          ! ends up getting called more than once in a timestep...
+          taijls(i,j,1:LM,ijlt_O3cmatm)=taijls(i,j,1:LM,ijlt_O3cmatm)+
+     &       chem_tracer_save(1,1:LM,i,j)
+! --------------------------------------------------------
+
+          ! Accumulate diag for the column sum of O3 mass similarly to
+          ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers,
+          ! Ox tracer above (which is likely anyway actually O3 from NINT
+          ! input):
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+ sum(
+     &      pOx(1:topLevelOfChemistry,i,j) *
+     &      trm(i,j,1:topLevelOfChemistry,n_Ox)
+     &                                                    )
+          if(topLevelOfChemistry < LM) then
+            taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+ sum(
+     &        trm(i,j,topLevelOfChemistry+1:LM,n_Ox)        )
+          end if
+        end do ! i
+      end do ! j
 
 #ifdef CACHED_SUBDD
       ! These are in masterchem_post rather than masterchem until
@@ -2504,6 +2521,46 @@ C Make sure nighttime chemistry changes are not too big:
       end if
 
       end subroutine masterchem_post
+
+
+      subroutine getOzoneForRadiation(i,j,exportTracer)
+!@sum getOzoneForRadiation for exporting ozone tracer in cm-atm units
+      use resolution, only : LM
+      use tracer_com, only : trm, n_Ox
+      use OldTracer_mod, only: tr_mm
+      use TRCHEM_Shindell_COM, only: topLevelOfChemistry,byO3MULT,pOx
+      implicit none
+      integer, intent(in) :: i,j
+      real*8, dimension(LM) :: exportTracer
+      ! On active chemistry levels, use O3:
+      exportTracer(1:topLevelOfChemistry)=pOx(1:topLevelOfChemistry,i,j)
+     & * trm(i,j,1:topLevelOfChemistry,n_Ox)*byO3MULT
+      ! Above chemistry levels, use Ox:
+      if(topLevelOfChemistry < LM) then
+        exportTracer(topLevelOfChemistry+1:LM)=
+     &   trm(i,j,topLevelOfChemistry+1:LM,n_Ox)*byO3MULT
+      end if
+      end subroutine getOzoneForRadiation
+
+
+      subroutine getMethaneForRadiation(i,j,exportTracer)
+!@sum getMethanForRadiation for exporting CH4 tracer in cm-atm units
+      use constant, only : loschmidt_constant,avog
+      use resolution, only : LM
+      use tracer_com, only : trm, n_CH4
+      use OldTracer_mod, only: tr_mm
+      implicit none
+      integer, intent(in) :: i,j
+      real*8, dimension(LM) :: exportTracer
+      ! This turned out to be a trivial routine, so could just be
+      ! applied directly to trm() when needed in the non-tracer code.
+      ! But keeping here for now for organizational purposes (to
+      ! accompany routine getOzoneForRadiation).
+      ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
+      exportTracer(1:LM)=
+     & trm(i,j,1:LM,n_CH4)*avog/(tr_mm(n_CH4)*1.d1*loschmidt_constant)
+      end subroutine getMethaneForRadiation
+
 
       subroutine photo_acetone(I,J,sza)
 !@sum calculate photolysis rate for acetone geometrically

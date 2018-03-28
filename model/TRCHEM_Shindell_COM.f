@@ -266,13 +266,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param CMEQ1 ?
 !@param nc total number of molecules included (incl. O2 and N2)
 !@param ny number of chemically calculated gases (no O2 or N2)
-!@param O3MULT =2.14d-2 This is the conversion from (atm*cm) units
-!@+     (i.e. 1000 Dobson Units) to KG/m2. It is: 
-!@+     1.E4*2.69E19*48./6.02E26 where 1.E4 is cm2/m2, 2.69E19 is 
-!@+     molecules/cm3 at 1 atm pressure, 48. is molecular wt of O3,
-!@+     and 6.02E26 is Avogadro's number in molecules/Kmol.
 !@param cpd conversion from molecules/cm3 to mole/m3
-!@param BYO3MULT = 1/O3MULT
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param MWabyMWw ratio of molecular weights of air/water
@@ -342,9 +336,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 ! define below ntm_chem_extra tracers
       integer :: nO2, nM
 
-      REAL*8, PARAMETER ::  O3MULT       = 2.14d-2,
-     &                      BYO3MULT     = 1./O3MULT,
-     &                      T_thresh     = 200.d0,
+      REAL*8, PARAMETER ::  T_thresh     = 200.d0,
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
@@ -548,6 +540,9 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var mostRecentNonZeroAlbedo remembers last time that ALB(I,J,1) was non-zer
 !@+ for given I,J point (saved in rsf for reproducibilty purposes)
 !@var readCache for reading offline aerosol timestreams when coupled_chem.ne.1
+!@var O3MULT conversion from atm-cm units (or 1000 Dobson Units) to kg/m2
+!@+   e.g. O3MULT units are (kg/m2)/cm
+!@var BYO3MULT inverse of O3MULT. units are cm / (kg/m2)
       integer, dimension(3) :: ijlprn
       INTEGER :: L75P,L75M,L569P,L569M,MIEDX,NCFASTJ,topLevelOfChemistry
       INTEGER, DIMENSION(numfam+1)     :: nfam = (/0,0,0,0,ny+1/)
@@ -607,7 +602,7 @@ C**************  Not Latitude-Dependant ****************************
      & ICfact_COs=undef, ICfact_Oth=undef, ICfact_N2O=undef,
      & ICfact_CFC=undef, ch4_init_shnh(2)=undef
       real*8 :: avgTT_H2O,avgTT_CH4,countTT
-      REAL*8 :: XLTAU,
+      REAL*8 :: XLTAU, O3MULT, BYO3MULT,
      & FASTJLAT,FASTJLON,DT2,F75P,F75M,F569P,F569M,RGAMMASULF
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y

@@ -4095,7 +4095,7 @@ c find indices of denominators
 #ifdef GLINT2
       USE FLUXES, only : atmglas_hp
 #endif
-      USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas
+      USE CONSTANT, only: mair,rhow,grav,tf,avog,rgas,loschmidt_constant
       use TimeConstants_mod, only: SECONDS_PER_DAY
       USE resolution,ONLY : Im,Jm,Lm,Ls1=>ls1_nominal
       USE ATM_COM, only : q,qcl,qci,pedn,lm_req
@@ -4149,7 +4149,7 @@ c find indices of denominators
       use tracers_dCO, only: dHCHO_IC_fact
       use tracers_dCO, only: dCO_IC_fact
 #endif  /* TRACERS_dCO */
-      USE TRCHEM_Shindell_COM,only:O3MULT,ch4icx,
+      USE TRCHEM_Shindell_COM,only: ch4icx,
      &  OxIC,COIC,byO3MULT,fix_CH4_chemistry,
      &  ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth
      &  ,use_rad_n2o,use_rad_cfc,use_rad_ch4
@@ -4363,8 +4363,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
                call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
-               ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
-               CMATMtoKG=2.69d20*byavog*tr_mm(n_N2O)
+               ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
+               CMATMtoKG=1.d1*loschmidt_constant*byavog*tr_mm(n_N2O)
                trm(i,j,1:LM,n) = ghgCmAtm(1:LM,6) * CMATMtoKG
              end do
            end do
@@ -4444,8 +4444,8 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
                ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
                call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
-               ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
-               CMATMtoKG=2.69d20*byavog*tr_mm(n_CH4)
+               ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
+               CMATMtoKG=1.d1*loschmidt_constant*byavog*tr_mm(n_CH4)
                trm(i,j,1:LM,n) = ghgCmAtm(1:LM,7) * CMATMtoKG /
      &                                              CH4X_RADoverCHEM
              end do
@@ -4454,8 +4454,9 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
          ! should be able to remove this next block once radiation comes
          ! after tracer 3d source (chemistry) in sequence:
          do l=1,lm; do j=J_0,J_1; do i=I_0,I_1
+           ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
            chem_tracer_save(2,L,I,J)=trm(I,J,L,n)
-     &          *avog/(tr_mm(n)*2.69e20) ! to atm*cm
+     &          *avog/(tr_mm(n)*1.d1*loschmidt_constant) ! to atm*cm
          end do   ; end do   ; end do
 #endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_SPECIAL_Lerner
@@ -4881,8 +4882,8 @@ c**** earth
                 ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
                 call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
                 call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
-                ! next line should switch to using ppmv_to_cm_at_stp or loschmidt_constant:
-                CMATMtoKG=2.69d20*byavog*tr_mm(n_CFC)
+                ! Units of 1.d1 factor below are: 1d3(mole/Kmole)*1d-4(m-2/cm-2)
+                CMATMtoKG=1.d1*loschmidt_constant*byavog*tr_mm(n_CFC)
                 trm(i,j,1:LM,n) = (ghgCmAtm(1:LM,8) + ghgCmAtm(1:LM,9))
      &                            * CMATMtoKG * fact_cfc
               end do
