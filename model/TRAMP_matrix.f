@@ -960,7 +960,7 @@
 #ifdef TRACERS_AMP_M9
 ! set conditions needed for VBS calculations
       vbs_cond%dt=TSTEP
-      vbs_cond%OH=0.d0 ! FIX THIS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      vbs_cond%OH=GAS(GAS_OH)
       vbs_cond%temp=TK
 
 ! calculate VBS

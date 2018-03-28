@@ -6162,6 +6162,9 @@ C****
      &      'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
+     &      'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
+     &      'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
+     &      'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6',
      &      'ASO4__01','AOCOB_01','AECOB_01')
 
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -7133,6 +7136,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       use TRACER_COM, only: n_DMS, n_H2O2_s, n_SO2
       use TRACER_COM, only: n_NH3
       use TRACER_COM, only: n_H2SO4
+      use TRACER_COM, only: n_vbsGm2,n_vbsGm1,n_vbsGz,n_vbsGp1,n_vbsGp2,
+     &                      n_vbsGp3,n_vbsGp4,n_vbsGp5,n_vbsGp6,nOther
       use TRACER_COM, only: nChemistry, nThermo, nMicrophys
       use TRACER_COM, only: ntmAMPi, ntmAMPe
       USE apply3d, only : apply_tracer_3Dsource
@@ -7161,6 +7166,15 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 #ifdef  TRACERS_SPECIAL_Shindell
       call apply_tracer_3Dsource(i,j,nThermo,n_HNO3)    ! HNO3 change due to thermodynamics
 #endif
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGm2)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGm1)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGz)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp1)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp2)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp3)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp4)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp5)
+      call apply_tracer_3Dsource(i,j,nOther, n_vbsGp6)
 
       end subroutine calculate_and_apply_matrix
 #endif
