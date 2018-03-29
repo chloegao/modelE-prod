@@ -61,6 +61,9 @@ C**** 1-8 anti-clockwise from top RH corner
 !@dbparam lake_rise_max amount of lake rise (m) over sill level before
 !@+       spillover into next box (only if lake covers >95% of box)
       REAL*8 :: lake_rise_max = 1d2 ! default 100m
+!@dbparam  Lake ice exceeding  lake_ice_max (m)  of water equivalent  
+!@+        is dumped into ice berg arrays
+      REAL*8 :: lake_ice_max = 5.
 
       CONTAINS
 
@@ -499,6 +502,7 @@ C**** Get parameters from rundeck
       if (init_flake == 1 .and. istart < 9) inilake = .true.
       call sync_param("variable_lk",variable_lk)
       call sync_param("lake_rise_max",lake_rise_max)
+      call sync_param("lake_ice_max" ,lake_ice_max)
 
 C**** Read Lake Depths
       fid = par_open(grid,'TOPO','read')
@@ -1721,7 +1725,7 @@ C****
 #ifdef SCM
       USE SCM_COM, only : SCMopt,SCMin
 #endif
-      USE LAKES, only : minmld,variable_lk,hlake_min
+      USE LAKES, only : minmld,variable_lk,hlake_min, lake_ice_max
       USE LAKES_COM, only : mwl,flake,tanlk,mldlk,tlake,gml
      &     ,svflake,hlake,dlake,glake
 #ifdef TRACERS_WATER
@@ -1757,7 +1761,7 @@ C****
      *     ,hlk2,ftsi2(ntm),ftsi3(ntm),ftsi4(ntm),sumt,dtr(ntm)
      &     ,tottr(ntm)
 #endif
-      real*8 :: a,b,c,d, x(3), mwtot1, y, mwsat
+      real*8 :: a,b,c,d, x(3), mwtot1, y, mwsat, FRACI
       real*8 :: m1,m2,m1t1,m2t2,f_entr,new_tlake
       integer :: n_roots
 
@@ -2112,6 +2116,42 @@ C**** Set GTEMP array for lakes
      *           *AXYP(I,J))
 #endif
             atmocn%MLHC(I,J) = SHW*MLDLK(I,J)*RHOW
+
+!****
+!****       Dump lake ice exceeding LAKE_ICE_MAX (m) into ice berg arrays
+!****
+            If (MSI(I,J) > LAKE_ICE_MAX * RHOW) Then     
+              IMLT  = MSI(I,J) - LAKE_ICE_MAX * RHOW
+              FRACI = IMLT / MSI(I,J)
+              HMLT  = Sum(HSI(3:4,I,J)) * FRACI               
+              PLKIC = FLAKE(I,J) * RSI(I,J)
+              MDWNIMP(I,J) = MDWNIMP(I,J) + PLKIC*IMLT*AXYP(I,J)
+              EDWNIMP(I,J) = EDWNIMP(I,J) + PLKIC*HMLT*AXYP(I,J)
+#ifdef TRACERS_WATER
+              DO ITM=1,NTM    
+                TRDWNIMP(ITM,I,J) = TRDWNIMP(ITM,I,J) 
+     +            + Sum(TRSI(ITM,3:4,I,J))*PLKIC*AXYP(I,J)*FRACI                   
+                TRSI(ITM,3:4,I,J) = TRSI(ITM,3:4,I,J) * (1-FRACI) 
+              END DO    
+#endif
+!**** save some diags
+              AIJ(I,J,IJ_IMPMKI) = AIJ(I,J,IJ_IMPMKI) + PLKIC*IMLT    
+              AIJ(I,J,IJ_IMPHKI) = AIJ(I,J,IJ_IMPHKI) + PLKIC*HMLT    
+              CALL INC_AJ(I,J,ITLKICE,J_IMPLM,PLKIC*IMLT)    
+              CALL INC_AJ(I,J,ITLKICE,J_IMPLH,PLKIC*HMLT)    
+!             CALL INC_AJ(I,J,ITLKICE,J_IMELT,PLKIC*IMLT)     
+!             CALL INC_AJ(I,J,ITLKICE,J_HMELT,PLKIC*HMLT)     
+!**** Accumulate regional diagnostics  
+              JR = JREG(I,J)
+!             CALL INC_AREG(I,J,JR,J_IMELT,PLKIC*IMLT)     
+!             CALL INC_AREG(I,J,JR,J_HMELT,PLKIC*HMLT)     
+              CALL INC_AREG(I,J,JR,J_IMPLM,PLKIC*IMLT)    
+              CALL INC_AREG(I,J,JR,J_IMPLH,PLKIC*HMLT)    
+!****
+              MSI(I,J)     = (1-FRACI)*MSI(I,J)  ! = LAKE_ICE_MAX * RHOW
+              HSI(3:4,I,J) = (1-FRACI)*HSI(3:4,I,J)
+            EndIf
+
           ELSE
             DLAKE(I,J)=0.
             GLAKE(I,J)=0.
