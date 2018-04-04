@@ -202,6 +202,9 @@ c     Biomass BC OC is NOT mixed
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
        CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO)
+!=========
+! WARNING: EMIS_MASS is only used to modify number, the mass is already modified in ATURB.
+!=========
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)

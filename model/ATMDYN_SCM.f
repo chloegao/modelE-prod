@@ -102,6 +102,9 @@ c       large-scale forcings
         if( ( SCMopt%omega .and. .not. SCMopt%ls_v ) .or. SCMopt%w )then
 c       *** apply omega defined at layer bottom to upwind gradient
 
+          SCMin%SadvV(L) = 0.
+          SCMin%QadvV(L) = 0.
+
           if ( L < LM ) then ! omega assumed zero at top of layer LM
             if ( SCMin%Omega(L+1) > 0. ) then ! upwind gradient above
               SCMin%SadvV(L) = -SCMin%Omega(L+1)*

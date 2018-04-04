@@ -134,4 +134,8 @@ u2015.nc=nudgeF_hold/uwnd.2015.GISS.144x89.nc
 v2015.nc=nudgeF_hold/vwnd.2015.GISS.144x89.nc
 u2016.nc=nudgeF_hold/uwnd.2016.GISS.144x89_MANIP.nc
 v2016.nc=nudgeF_hold/vwnd.2016.GISS.144x89_MANIP.nc
+u2017.nc=nudgeF_hold/uwnd.2017.GISS.144x89.nc
+v2017.nc=nudgeF_hold/vwnd.2017.GISS.144x89.nc
+u2018.nc=nudgeF_hold/uwnd.2018.GISS.144x89.nc
+v2018.nc=nudgeF_hold/vwnd.2018.GISS.144x89.nc
 

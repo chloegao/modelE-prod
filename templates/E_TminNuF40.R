@@ -80,7 +80,7 @@ RVR=RD_Fb.nc             ! river direction file
 NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
-#include "nudging_144x89_input_files"
+#include "nudging_NCEP_144x89_input_files"
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 

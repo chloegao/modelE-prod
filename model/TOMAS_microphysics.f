@@ -975,7 +975,7 @@ C-----OUTPUTS-----------------------------------------------------------
       real*8 fn1avg   ! formation rate of particles to first size bin cm-3 s-1
       integer, intent(in) :: lev
       real*8 dt
-      integer i,j,k,c,jc           ! counters
+      integer i,j,k,c,jc,l,n,flag  !dmw         ! counters
       real*8 fn       ! nucleation rate of clusters cm-3 s-1
       real*8 fn1      ! formation rate of particles to first size bin cm-3 s-1
       real*8 CSi,CSa   ! intial and average condensation sinks
@@ -1013,6 +1013,7 @@ C-----OUTPUTS-----------------------------------------------------------
 
       dt = dble(dti)
 
+
 C Initialize values of Nkf, Mkf, Gcf, and time
       do j=1,icomp-1
          Gc1(j)=Gci(j)
@@ -1023,6 +1024,7 @@ C Initialize values of Nkf, Mkf, Gcf, and time
       Mk1(:,:)=Mki(:,:)
       Mknuc(:,:)=Mki(:,:)
       Mkcond(:,:)=Mki(:,:)
+
 
 C     Get initial condensation sink
       CS1 = 0.d0
@@ -1098,6 +1100,7 @@ C     Get change size distribution due to nucleation with initial guess
          mcond_soa=tmass
       endif
 
+
 C     Get guess for condensation
       call ezcond(Nk2,Mk2,mcond,srtso4,Nk3,Mk3)
 
@@ -1109,9 +1112,15 @@ C     Get guess for condensation
  17   continue
 
       Gc3(srtnh4) = Gc1(srtnh4)   
+      if (Gc1(srtnh4) .lt. 0.0) then
+         print*, 'less than zero Gc', Gc1(srtnh4)
+      endif
+
+
 
       call eznh3eqm(Gc3,Mk3)
       call ezwatereqm(Mk3)
+
 
 ! check to see how much condensation sink changed
       call getCondSink(Nk3,Mk3,srtso4,CS2,sinkfrac) !problem here. 
@@ -1705,6 +1714,7 @@ c     Mnuce(srtnh4) = Mnuce(srtso4)/96.d0*2.d0*18.d0 ! fill the particle phase
         Gce(srtnh4) = (tot_nh3 - tot_so4*2.d0)*17.d0 ! put whats left over in the gas phase
       endif
       
+
       RETURN
       END
 
@@ -2388,7 +2398,7 @@ C     particles into the first size bin.  don't let it go less than zero.
       real*8 mcondi
       integer spec
 
-      integer i,j,k,c           ! counters
+      integer i,j,k,c,n,jc,flag,l           ! counters
       real*8 mcond
       real*8 CS                 ! condensation sink [s^-1]
       real*8 sinkfrac(ibins+1)  ! fraction of CS in size bin
@@ -2425,7 +2435,11 @@ C     particles into the first size bin.  don't let it go less than zero.
       Nk1(:)=Nki(:)
       Mk1(:,:)=Mki(:,:)
 
+
+
+
       call mnfix(Nk1,Mk1)
+
 
 ! get the sink fractions
       call getCondSink(Nk1,Mk1,spec,CS,sinkfrac) ! set Nnuc to zero for this calc
@@ -3364,7 +3378,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
       real*8 tmpvar             ! temporary variable
       real*8 frac_lo_n, frac_lo_m ! fraction of the number and mass going to the lower bin
       real*8 totmass
-      parameter(Neps=1.d-20,Meps=1.d0-42)
+      parameter(Neps=1.d-20,Meps=1.d0-50)
 
 
       ! first check for negative tracers
@@ -3383,7 +3397,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
                print*,'Negative tracer in mnfix'
                print*,'Nk',Nkx
                print*,'Mkx',Mkx
-               call stop_model('- tracer in mnfix',255)
+               call stop_model('neg tracer in mnfix - bin loop',255)
             endif
          endif
          totmass=0.d0
@@ -3402,7 +3416,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
          endif            
          do j=1,icomp-idiag
             if (Mkx(k,j).lt.0.d0)then
-               if (Mkx(k,j).gt.-1.0d0)then
+               if (Mkx(k,j).gt.-10.0d0)then  !dmw trying to relax this # a bit
                   Nkx(k)=Neps
                   do jj=1,icomp
                      if (jj.eq.srtso4)then
@@ -3415,7 +3429,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
                   print*,'Negative tracer in mnfix'
                   print*,'Nk',Nkx
                   print*,'Mkx',Mkx
-                  call stop_model('- tracer in mnfix',255)
+                  call stop_model('neg tracer in mnfix - comp loop',255)
                endif
             endif
          enddo

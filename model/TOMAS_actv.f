@@ -1594,7 +1594,7 @@ C
      &        (DLOG((DBIG+(2*DV/ACCOM)*COEF)/(DLOW+(2*DV/ACCOM)*
      &        COEF))))                      ! NON-CONTINUUM EFFECTS
 C
-c      PSAT  = VPRES(SNGL(TEMP))*(1E5/1.0D3) ! SATURATION VAPOR PRESSURE
+C      PSAT  = VPRES(SNGL(TEMP))*(1E5/1.0D3) ! SATURATION VAPOR PRESSURE
       psat = wv_psat( temp, lhe ) * 100.d0 ! [Pa], jan perlwitz, Nov 2017
 C
       SURT  = SFT(SNGL(TEMP))       ! SURFACE TENSION FOR WATER (J M-2)
