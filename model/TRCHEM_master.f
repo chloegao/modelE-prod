@@ -2909,38 +2909,38 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           else
             if(pres(l) <= 150..and.pres(l) > 31.60)then
               if(l < LAXb) then
-                rkext(l)=5.d-2*rad_to_chem(2,LAXb,i,j)
+                rkext(l)=rad_to_chem(2,LAXb,i,j)
               else if(l > LAXt) then
                 rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=rad_to_chem(2,l,i,j)
               end if
             end if
             if(pres(l) <= 31.6d0.and.pres(l) >= 17.8d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 1',255)
               else if(l > LAXt) then
-                rkext(l)=2.0d0*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=rad_to_chem(2,l,i,j)
               end if
             end if
             if(pres(l) <= 17.8d0.and.pres(l) >= 10.0d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 2',255)
               else if(l > LAXt) then
-                rkext(l)=16.d0*8.33333d-2*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=rad_to_chem(2,l,i,j)
               end if
             end if
             if(pres(l) <= 10.0d0.and.pres(l) >= 4.6d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 3',255)
               else if(l > LAXt) then
-                rkext(l)=0.4d0*6.6667d-1*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=0.5d-2*rad_to_chem(2,l,i,j)
+                rkext(l)=rad_to_chem(2,l,i,j)
               end if
             end if
           end if
