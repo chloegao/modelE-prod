@@ -96,7 +96,7 @@ def setupModelEenv(config, compconfig):
        # For planet branches we need SOCRATESPATH in modelErc
        if 'planet' in branch:
 	  with open(scratchDir + '/' + comp + '/modelErc.' + comp, 'a') as f:
-              f.write('   SOCRATESPATH=/home/damundse/Software/socrates/modele_branch \n')
+              f.write('   SOCRATESPATH=/home/damundse/Software/socrates/modele_branch\n')
 
 # Make sure basedirs exist
        if (userconfig['updatebase'] == 'yes'):
@@ -128,7 +128,7 @@ def writeModelErc(cfg, scratchDir, compiler, makesystem):
    PFUNITMPIDIR=$pn\n\
    OVERWRITE=YES\n\
    OUTPUT_TO_FILES=NO\n\
-   VERBOSE_OUTPUT=YES')
+   VERBOSE_OUTPUT=YES\n')
 
    if compiler == 'gfortran':
       modelErc = s.substitute(cm=compiler,\
