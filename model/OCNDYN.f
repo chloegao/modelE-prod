@@ -6034,13 +6034,21 @@ C**** divide over depth and scale for time step
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+(oTRGMELT(:,I,J)*dxypo(j))*DZ
 #endif
 #endif
-              OIJ(I,J,IJ_EICB)=OIJ(I,J,IJ_EICB)+oEGMELT(I,J)/FOCEAN(I,J)
-              OIJ(I,J,IJ_MICB)=OIJ(I,J,IJ_MICB)+ oGMELT(I,J)/FOCEAN(I,J)
             END IF
           END DO
         END DO
       END DO
 C****
+      ! diagnostics
+      do j=j_0,j_1
+      do i=1,imaxj(j)
+        if(lmm(i,j) >0 .and. ogmelt(i,j) > 0) then
+          OIJ(I,J,IJ_EICB)=OIJ(I,J,IJ_EICB)+(DT/DTsrc)*oEGMELT(I,J) !/FOCEAN(I,J)
+          OIJ(I,J,IJ_MICB)=OIJ(I,J,IJ_MICB)+(DT/DTsrc)* oGMELT(I,J) !/FOCEAN(I,J)
+        endif
+      enddo
+      enddo
+
       RETURN
       END SUBROUTINE GLMELT
 

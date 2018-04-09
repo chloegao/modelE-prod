@@ -15,6 +15,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN               ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define SIMPLE_MESODIFF
 #define OCN_LAYERING L32
@@ -62,7 +63,7 @@ NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files_CMIP6clim"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

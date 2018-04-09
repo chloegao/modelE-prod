@@ -100,6 +100,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE PBLCOM,     only: EGCM !(LM,IM,JM) 3-D turbulent kinetic energy [m^2/s^2]
       USE AERO_SUBS, only: SPCMASSES
 !      USE AERO_SUBS, only:  SIZE_PDFS
+      USE AEROSOL_SOURCES, only: oxid
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
@@ -155,6 +156,8 @@ c conversion trm_col [kg/m2/layer] -> GAS [ug/m^3]
       GAS(GAS_OCP4) = trm_col(l,n_vbsGp4)* 1.d9 / AVOL ! [ug OM/m^3]
       GAS(GAS_OCP5) = trm_col(l,n_vbsGp5)* 1.d9 / AVOL ! [ug OM/m^3]
       GAS(GAS_OCP6) = trm_col(l,n_vbsGp6)* 1.d9 / AVOL ! [ug OM/m^3]
+      call get_oxidants(i,j,l)
+      GAS(GAS_OH)   = oxid%OH
 #endif  /* TRACERS_AMP_M9 */
 !  [kg/s] -> [ug/m3/s]
 
@@ -199,6 +202,9 @@ c     Biomass BC OC is NOT mixed
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
        CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO)
+!=========
+! WARNING: EMIS_MASS is only used to modify number, the mass is already modified in ATURB.
+!=========
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)

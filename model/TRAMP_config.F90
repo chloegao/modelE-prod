@@ -8,7 +8,7 @@
 !
 !-------------------------------------------------------------------------------------------------------------------------
 #ifdef TRACERS_AMP_M9
-      INTEGER, PARAMETER :: NGASES     = 12     ! number of gas-phase species
+      INTEGER, PARAMETER :: NGASES     = 13     ! number of gas-phase species
 #else
       INTEGER, PARAMETER :: NGASES     = 3      ! number of gas-phase species
 #endif  /* TRACERS_AMP_M9 */
@@ -25,6 +25,7 @@
       INTEGER, PARAMETER :: GAS_OCP4 = 10       !-
       INTEGER, PARAMETER :: GAS_OCP5 = 11       !-
       INTEGER, PARAMETER :: GAS_OCP6 = 12       !-
+      INTEGER, PARAMETER :: GAS_OH   = 13       !-indices in the GAS array
 #endif  /* TRACERS_AMP_M9 */
       INTEGER, PARAMETER :: PROD_INDEX_SULF = 1 ! SULF index in PROD_INDEX(:,:)
       INTEGER, PARAMETER :: PROD_INDEX_BCAR = 2 ! BCAR index in PROD_INDEX(:,:)

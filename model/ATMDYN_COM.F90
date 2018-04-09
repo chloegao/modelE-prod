@@ -139,6 +139,7 @@
 ! to avoid floating point exceptions...
       MU(:,:,:) = 0  ;  MV(:,:,:) = 0  ;  CONV(:,:,:) = 0
       PU(:,:,:) = 0  ;  PV(:,:,:) = 0  ;  SD(:,:,:) = 0
+      MW(:,:,:) = 0
       EndSubroutine ALLOC_DYNAMICS
 !!!#endif
 

@@ -21,6 +21,7 @@ Preprocessor Options
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define NEW_BCdalbsn
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
 #define TRACERS_ON               ! include tracers code
@@ -99,7 +100,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files"
+#include "rad_144x90_input_files_CMIP6"
 #include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"

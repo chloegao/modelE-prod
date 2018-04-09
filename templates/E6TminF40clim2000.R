@@ -80,7 +80,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
-#include "rad_144x90_input_files_CMIP6"
+#include "rad_144x90_input_files_CMIP6clim"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
 
