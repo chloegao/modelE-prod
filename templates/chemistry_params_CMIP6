@@ -3,8 +3,8 @@
 ! overwritten with climatology based on NINT ozone input.
 PltOx=0.0
 ! NH and SH polar stratospheric cloud formation temperature offsets:
-Tpsc_offset_N=-5.d0
-Tpsc_offset_S=-5.d0
+Tpsc_offset_N=0.d0
+Tpsc_offset_S=0.d0
 ! -----------------------------------
 ! 40-layer model CMIP6 chemistry tuning parameters: 
 windowN2Ocorr=1.0
