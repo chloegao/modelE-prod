@@ -220,10 +220,10 @@ C     Swap T0M into Nk, Mk, Gc arrays
 Cdmw  Temporary fix to a bug in which TRM(NH3) concentrations
 Cdmw  become tiny negative numbers (-1e-100) before passed to 
 Cdmw  TOMAS. Full fix needed
-               if (TRM(i,j,l,n_NH3) .lt. 0.d0) then
-                  print*, 'TRM NH3 < zero',TRM(i,j,l,n_NH3), i,j,l
+               if (TRM_COL(L,n_NH3) .lt. 0.d0) then
+                  print*, 'TRM NH3 < zero',TRM_COL(L,n_NH3), i,j,L
                   print*,'Warning: setting TRM NH3 to zero'
-                  TRM(i,j,l,n_NH3) = 0.d0
+                  TRM_COL(L,n_NH3) = 0.d0
                endif
 
                INIT_NK(:) = NK(:)
