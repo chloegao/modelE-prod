@@ -222,7 +222,7 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
      *                                 *1.d9 / AVOL)
       EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
      *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nAircraft,n_M_AKK_SU))
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_ACC_SU))
      *                                 *1.d9 / AVOL)
       EMIS_MASS(3) =  EMIS_MASS(3) + ((tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)+
      *                                 tr3Dsource(i,j,l,nAircraft,n_M_BC1_BC))
