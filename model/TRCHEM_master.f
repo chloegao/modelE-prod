@@ -764,7 +764,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       ! Check for PSC's existance. 
       pscX(:)=.false.
       do L=1,topLevelOfChemistry
-        if(pres2(L) <= 250.d0 .and. pres2(L) >= 30.d0)then    ! pres crit for now
+        if(pres2(L) <= 250.d0 .and. pres2(L) >= 3.d0)then    ! pres crit for now
           if(lat2D_dg(I,J)<=PSClatS.or.lat2D_dg(I,J)>=PSClatN)then! lat crit for now
             if(lat2d_dg(I,J)<=PSClatS)then
               Ttemp=ta(L)+Tpsc_offset_S
