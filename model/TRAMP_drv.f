@@ -66,7 +66,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
-     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
+     *  n_NH3, nBiomass,nAircraft, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -216,24 +216,21 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
 #endif
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
-#ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#else
       EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(i,j,l,nVolcanic,n_M_AKK_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_AKK_SU))
+     *                                 *1.d9 / AVOL)
       EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-c     Biomass BC OC is Mixed
-c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
-c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
-c     Biomass BC OC is NOT mixed
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#endif
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_AKK_SU))
+     *                                 *1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + ((tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_BC1_BC))
+     *                               *1.d9 / AVOL)
+      EMIS_MASS(4) =  EMIS_MASS(4) + ((tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_OCC_OC))
+     *                               *1.d9 / AVOL)
+
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
 !=========
