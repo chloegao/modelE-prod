@@ -25,6 +25,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM_dry       ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
@@ -133,6 +134,7 @@ C**** functions
       NACTV(I_0:I_1,J_0:J_1,:,:)      = 0.d0 
       VDDEP_AERO(I_0:I_1,J_0:J_1,:,:) = 0.d0 
       DIAM(I_0:I_1,J_0:J_1,:,:)       = 0.d0
+      DIAM_dry(I_0:I_1,J_0:J_1,:,:)   = 0.d0
       AMP_dens(I_0:I_1,J_0:J_1,:,:)   = 0.d0
       AMP_TR_MM(I_0:I_1,J_0:J_1,:,:)  = 0.d0
 
@@ -289,10 +291,12 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+        taijls(i,j,l,ijlt_AMPm(3,n))=taijls(i,j,l,ijlt_AMPm(3,n)) + DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))
         taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j)/axyp(i,j))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
+        if (itcon_AMPm(3,n) .gt.0) call inc_diagtcb(i,j,(DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(3,n),n) 
         if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL ,itcon_AMPm(2,n),n) 
        end select
 
@@ -421,7 +425,7 @@ c -----------------------------------------------------------------
       USE AERO_PARAM, ONLY: PI6, DENSP, IXXX, IYYY, ILAY
       USE AERO_CONFIG, ONLY: NMODES, NAEROBOX,NBINS
       USE AERO_SETUP, ONLY: SIG0, CONV_DPAM_TO_DGN, NUMB_MAP, MODE_NAME
-      USE AMP_AEROSOL, only: DIAM
+      USE AMP_AEROSOL, only: DIAM, DIAM_dry
       IMPLICIT NONE
 
       ! Arguments.
@@ -525,6 +529,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  DIAM_dry(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
@@ -532,6 +537,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30
+      DIAM_dry= 1.0D-30
       return
       end subroutine alloc_tracer_amp_com
       
