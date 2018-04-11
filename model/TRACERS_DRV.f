@@ -571,7 +571,9 @@ c Processes AMP Budget
           kt_power_inst(n) = 3
 
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('Gas phase change',T,T)
+          itcon_AMPm(1,n)=tr_con_diag('Wet Diameter',T)
           itcon_AMPm(2,n)=tr_con_diag('Mode AktivPart',T)
+          itcon_AMPm(3,n)=tr_con_diag('Dry Diameter',T)
 c     Processes AMP Budget
           itcon_AMP(1,n)=tr_con_diag('P1 Nucleation',T,T)
           itcon_AMP(2,n)=tr_con_diag('P2 Coagulation',T,T)
@@ -4419,6 +4421,13 @@ c- 3D diagnostic per mode
          ijlt_AMPm(1,n)=k
          lname_ijlt(k) = TRIM(trname(n))//' DIAM'
          sname_ijlt(k) = 'DIAM_'//TRIM(trname(n))
+         ijlt_power(k) = -2.
+         units_ijlt(k) = unit_string(ijlt_power(k),'m')
+         scale_ijlt(k) = 10.**(-ijlt_power(k))
+        k = k + 1
+         ijlt_AMPm(3,n)=k
+         lname_ijlt(k) = TRIM(trname(n))//' DIAM_DRY'
+         sname_ijlt(k) = 'DIAM_DRY_'//TRIM(trname(n))
          ijlt_power(k) = -2.
          units_ijlt(k) = unit_string(ijlt_power(k),'m')
          scale_ijlt(k) = 10.**(-ijlt_power(k))
