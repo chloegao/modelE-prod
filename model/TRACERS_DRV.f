@@ -3158,7 +3158,7 @@ c SW forcing from albedo change
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
         select case(trname(n))
-        case('M_AKK_SU','M_ACC_SU')
+        case('M_AKK_SU','M_ACC_SU','Water')
           ijts_3Dsource(nVolcanic,n)=
      *      ijts_diag(trim(trname(n))//'_volcanic_src',
      *                trim(trname(n))//' volcanic source',
@@ -5204,6 +5204,20 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
+      use GEOM, only: lat_to_j
+      use GEOM, only: lon_to_i
+      USE ATM_COM, only: byMA
+      USE GEOM, only: byaxyp
+      use TRACER_COM, only: ex_volc_num
+      use TRACER_COM, only: ex_volc_jday
+      use TRACER_COM, only: ex_volc_year
+      use TRACER_COM, only: ex_volc_lat
+      use TRACER_COM, only: ex_volc_lon
+      use TRACER_COM, only: ex_volc_bot
+      use TRACER_COM, only: ex_volc_top
+      use TRACER_COM, only: ex_volc_SO2
+      use TRACER_COM, only: ex_volc_H2O
+      USE AEROSOL_SOURCES, only: so2_src_3d,iso2exvolc,H2O_src_3d
 #ifdef CUBED_SPHERE
       USE tracer_com, only: AIRCstreams
 #endif
@@ -5259,6 +5273,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      &     :: SO2_volc_emis_expl, Plume_hei_volc_emis_expl !  volc emiss
 #endif
+      integer :: ex
+      real*8 :: dz
       class (Tracer), pointer :: pTracer
 C****
       integer :: year, month, dayOfYear
@@ -5326,6 +5342,45 @@ C****
         enddo
       enddo
 #endif
+
+! explosive volcano injections based on rundeck parameters
+      if (iso2exvolc>0) then
+        so2_src_3d(:,:,:,iso2exvolc)=0.d0
+        H2O_src_3d(:,:,:)=0.d0
+        do ex=1,ex_volc_num
+
+! check data
+          if (ex_volc_jday(ex)/=dayOfYear) cycle
+          if (ex_volc_year(ex)/=year) cycle
+
+! check location
+          j=lat_to_j(ex_volc_lat(ex))
+          if (j<j_0 .or. j>j_1) cycle
+          i=lon_to_i(ex_volc_lon(ex))
+          if (i<i_0 .or. i>i_1) cycle
+
+! find layers range
+          do lmin=2,lm ! start from 2, to avoid mixing layer
+            if (daily_z(i,j,lmin)>=ex_volc_bot(ex)) exit
+          enddo
+          do lmax=lmin,lm
+            if (daily_z(i,j,lmax)>=ex_volc_top(ex)) exit
+          enddo
+
+! set emissions
+          dz=sum(daily_z(i,j,lmin:lmax))
+          do ll=lmin,lmax
+            so2_src_3d(i,j,ll,iso2exvolc)=so2_src_3d(i,j,ll,iso2exvolc)+
+     &        daily_z(i,j,ll)/dz*ex_volc_SO2(ex)/SECONDS_PER_DAY*1.d9*
+     &        byaxyp(i,j)              ! kg m-2 s-1
+            H2O_src_3d(i,j,ll)=H2O_src_3d(i,j,ll)+
+     &        daily_z(i,j,ll)/dz*ex_volc_H2O(ex)/SECONDS_PER_DAY*1.d9*
+     &        byaxyp(i,j)*byMA(ll,i,j) ! kg kg-1 s-1
+          enddo
+
+        enddo ! ex
+      endif
+
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
@@ -6532,12 +6587,19 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) 
       subroutine apply_volcanic_emissions(i,j)
-      use OldTracer_mod, only: trname
+      use OldTracer_mod, only: trname, tr_wd_type
       use TRACER_COM, only: ntm
       use TRACER_COM, only: nVolcanic
+#ifdef TRACERS_WATER
+      use TRACER_COM, only: nWater
+      USE TRACER_COM, only: trm_col
+#endif
       USE FLUXES, only: tr3Dsource
       USE apply3d, only : apply_tracer_3Dsource
-      USE AEROSOL_SOURCES, only: so2_src_3d, nso2src_3d
+      USE AEROSOL_SOURCES, only: so2_src_3d,nso2src_3d,H2O_src_3d
+      USE ATMCOL_COM, only: qv
+      USE ATMCOL_COM, only: update_qv
+      USE MODEL_COM, only: dtsrc
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: nbins
       use TRACER_COM, only: n_ASO4
@@ -6549,7 +6611,7 @@ C****
 
       implicit none
       integer, intent(in) :: i,j
-      integer :: n,k
+      integer :: n,nn,k
 !@var src_fact source factor for the current tracer
       integer :: get_src_index,bb_i,bb_e
       real*8 :: src_fact
@@ -6566,12 +6628,27 @@ C**** All sources are saved as kg s-1
         src_fact=get_src_fact(n)
 
         select case(trname(n))
-        case ('SO2','SO4','M_ACC_SU','M_AKK_SU','ASO4__01')
+        case ('SO2','SO4','M_ACC_SU','M_AKK_SU','ASO4__01','Water')
           select case(trname(n))
           case ('SO2','SO4','M_ACC_SU','M_AKK_SU')
             tr3Dsource(:,nVolcanic,n)=
      &        sum(so2_src_3d(i,j,:,:),2)*src_fact
             call apply_tracer_3Dsource(i,j,nVolcanic,n)
+            select case(trname(n))
+            case ('SO2') ! apply changes to q. do not call update_qvmom,
+                         ! since the concentration always increases.
+              call update_qv(qv(:)+H2O_src_3d(i,j,:)*dtsrc)
+#ifdef TRACERS_WATER
+C**** Add water to relevant tracers as well
+             do nn=1,ntm
+               select case (tr_wd_type(n))
+               case (nWater)       ! water: initialise tracers
+                 trm_col(:,n)=trm_col(:,n)*
+     &             (qv(:)+H2O_src_3d(i,j,:)*dtsrc)/qv(:)
+                end select
+              end do
+#endif
+            end select
 #ifdef TRACERS_TOMAS
           case ('ASO4__01')
             do k=1,nbins

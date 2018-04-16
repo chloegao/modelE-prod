@@ -67,6 +67,26 @@ c
 !@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
       integer :: COUPLED_CHEM = 0
 
+! explosive volcano injections based on rundeck parameters
+!@dbparam ex_volc_num Number of volcanoes
+!@dbparam ex_volc_jday Julian day of eruptions
+!@dbparam ex_volc_year Year of eruptions
+!@dbparam ex_volc_lat Latitude of volcanoes
+!@dbparam ex_volc_lon Longitude of volcanoes
+!@dbparam ex_volc_bot Plume bottom (in km) of volcanoes
+!@dbparam ex_volc_top Plume top (in km) of volcanoes
+!@dbparam ex_volc_SO2 SO2 emissions (in Tg day-1) of volcanoes
+!@dbparam ex_volc_H2O H2O emissions (in Tg day-1) of volcanoes
+      integer                            :: ex_volc_num
+      integer, allocatable, dimension(:) :: ex_volc_jday
+      integer, allocatable, dimension(:) :: ex_volc_year
+      real*8,  allocatable, dimension(:) :: ex_volc_lat
+      real*8,  allocatable, dimension(:) :: ex_volc_lon
+      real*8,  allocatable, dimension(:) :: ex_volc_bot
+      real*8,  allocatable, dimension(:) :: ex_volc_top
+      real*8,  allocatable, dimension(:) :: ex_volc_SO2
+      real*8,  allocatable, dimension(:) :: ex_volc_H2O
+
 !@dbparam nc_emis_use_ppm_interp: 1 means use ppm (non-linear) interpolation
 !@+ in timestream emissions (only) to preserve monthly totals. Else use linear
 !@+ month-to-month (linm2m)

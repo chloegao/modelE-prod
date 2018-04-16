@@ -238,6 +238,15 @@
       subroutine initTracerMetadata()
 !------------------------------------------------------------------------------
       use TRACER_COM, only: COUPLED_CHEM
+      use TRACER_COM, only: ex_volc_num
+      use TRACER_COM, only: ex_volc_jday
+      use TRACER_COM, only: ex_volc_year
+      use TRACER_COM, only: ex_volc_lat
+      use TRACER_COM, only: ex_volc_lon
+      use TRACER_COM, only: ex_volc_bot
+      use TRACER_COM, only: ex_volc_top
+      use TRACER_COM, only: ex_volc_SO2
+      use TRACER_COM, only: ex_volc_H2O
       use Dictionary_mod, only: set_param, sync_param
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_terp
@@ -328,12 +337,56 @@
       class (Tracer), pointer :: pTracer
       external setDefaultSpec
       integer :: i
+      integer :: ex
 
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param( "use_rad_ch4", use_rad_ch4 )
       call sync_param( "GLToffset", GLToffset )
 #endif
+
+! explosive volcano injections based on rundeck parameters
+      call sync_param("ex_volc_num", ex_volc_num)
+      if (ex_volc_num>0) then
+        allocate(ex_volc_jday(ex_volc_num))
+        allocate(ex_volc_year(ex_volc_num))
+        allocate(ex_volc_lat(ex_volc_num))
+        allocate(ex_volc_lon(ex_volc_num))
+        allocate(ex_volc_bot(ex_volc_num))
+        allocate(ex_volc_top(ex_volc_num))
+        allocate(ex_volc_SO2(ex_volc_num))
+        allocate(ex_volc_H2O(ex_volc_num))
+
+! set default emissions to zero
+        ex_volc_SO2(:)=0.d0
+        ex_volc_H2O(:)=0.d0
+
+        call sync_param("ex_volc_jday", ex_volc_jday, ex_volc_num)
+        call sync_param("ex_volc_year", ex_volc_year, ex_volc_num)
+        call sync_param("ex_volc_lat", ex_volc_lat, ex_volc_num)
+        call sync_param("ex_volc_lon", ex_volc_lon, ex_volc_num)
+        call sync_param("ex_volc_bot", ex_volc_bot, ex_volc_num)
+        call sync_param("ex_volc_top", ex_volc_top, ex_volc_num)
+        call sync_param("ex_volc_SO2", ex_volc_SO2, ex_volc_num)
+        call sync_param("ex_volc_H2O", ex_volc_H2O, ex_volc_num)
+
+        do ex=1,ex_volc_num
+          if (ex_volc_jday(ex)<=0 .or. ex_volc_jday(ex)>366)
+     &      call stop_model('ex_volc_jday(ex) out of bounds', 255)
+          if (ex_volc_year(ex)<=0)
+     &      call stop_model('ex_volc_year(ex)<=0', 255)
+          if (ex_volc_lat(ex)<=-90.d0 .or. ex_volc_lat(ex)>90.d0)
+     &      call stop_model('ex_volc_lat(ex) out of bounds', 255)
+          if (ex_volc_lon(ex)<=-180.d0 .or. ex_volc_lon(ex)>180.d0)
+     &      call stop_model('ex_volc_lon(ex) out of bounds', 255)
+          if (ex_volc_bot(ex)>=ex_volc_top(ex))
+     &      call stop_model('ex_volc_bot(ex)>=ex_volc_top(ex)', 255)
+          if (ex_volc_SO2(ex)<0.d0)
+     &      call stop_model('ex_volc_SO2(ex)<0.d0', 255)
+          if (ex_volc_H2O(ex)<0.d0)
+     &      call stop_model('ex_volc_H2O(ex)<0.d0', 255)
+        enddo
+      endif
 
 ! call routine to read/set up sectors for emissions:
       call setup_emis_sectors()
