@@ -472,7 +472,7 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var prnrts logical: print rate of each chemical reaction?
 !@var prnchg logical: print chemical changes?
 !@var prnls logical: print reaction lists by species?
-!@var yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
+!@var pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR?
 !@var mNO2 3D vol mixing ratio of NO2 saved for subdaily diagnostics
 !@var yCl2,yCl2O2 3D arrays to remember some non-tracer species...
 !@var NCFASTJ number of levels in the fastj atmosphere
@@ -561,7 +561,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d18Oacetone
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d13Cacetone
 #endif  /* TRACERS_dCO */
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: yNO3,pHOx,pNOx,pOx,
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,
 #ifdef TRACERS_dCO
      & ydC217O3,ydC218O3,yd13C2O3,
@@ -640,7 +640,7 @@ C**************  Not Latitude-Dependant ****************************
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use resolution, only: im,lm,Plbot
       use tracer_com, only: ntm
-      use TRCHEM_Shindell_COM, only: DU_O3,yNO3,
+      use TRCHEM_Shindell_COM, only: DU_O3,
      & pHOx,pNOx,pOx,yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,
      & COIC,OxIC,CH4ICX,dms_offline,so2_offline,so4_offline,yso2,ydms,
 #ifdef TRACERS_dCO
@@ -751,7 +751,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(        pClx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(      pOClOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(       pBrOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
-      allocate(        yNO3(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(      yCH3O2(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(       yC2O3(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(        yROR(topLevelOfChemistry,I_0:I_1,J_0:J_1) )

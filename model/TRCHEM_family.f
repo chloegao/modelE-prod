@@ -77,7 +77,7 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only            : LTROPO
       USE TRACER_COM, only         : n_NOx,nn_NOx,nn_Alkenes
       use photolysis, only: rj,zj
-      USE TRCHEM_Shindell_COM, only:rr,y,yNO3,nO3,nHO2,nO,nC2O3,nCH3O2,
+      USE TRCHEM_Shindell_COM, only:rr,y,nO3,nHO2,nO,nC2O3,nCH3O2,
      & pNO3,nXO2,nNO,nNO2,pNOx,nNO3,nHONO,which_trop,nClO,nOClO,
      & nBrO,rrbi,rrtri
 
@@ -120,23 +120,22 @@ C       Set NO3: D is loss rxns NO3->NO2 or NO
      &    +zj(L,rj%NO3__NO2_O)
      &    +rr(rrbi%NO3_NO__NO2_NO2,L)*p1*y(nn_NOx,L)
      &    +rr(rrbi%NO2_NO3__NO_NO2,L)*p2*y(nn_NOx,L)
-     &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*yNO3(L,I,J)
+     &    +rr(rrbi%NO3_NO3__NO2_NO2,L)*y(nNO3,L)
      &    +rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*y(nn_Alkenes,L)
 
-        yNO3(L,I,J)=(rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)*p2
+        y(nNO3,L)=(rr(rrbi%NO2_O3__NO3_O2,L)*y(nO3,L)*p2
      &    *y(nn_NOx,L))/D
-        if(yNO3(L,I,J).ge.1.d-1*y(nn_NOx,L))
-     &    yNO3(L,I,J)=1.d-1*y(nn_NOx,L)
-        y(nNO,L)= p1*(y(nn_NOx,L)-yNO3(L,I,J))
-        y(nNO2,L)=p2*(y(nn_NOx,L)-yNO3(L,I,J))
+        if(y(nNO3,L).ge.1.d-1*y(nn_NOx,L))
+     &    y(nNO3,L)=1.d-1*y(nn_NOx,L)
+        y(nNO,L)= p1*(y(nn_NOx,L)-y(nNO3,L))
+        y(nNO2,L)=p2*(y(nn_NOx,L)-y(nNO3,L))
 
 C       Set limits on NO, NO2, NOx:
         if(y(nNO,L)   < 1.)   y(nNO,L) = 1.d0
         if(y(nNO2,L)  < 1.)  y(nNO2,L) = 1.d0
         if(y(nn_NOx,L) < 1.) y(nn_NOx,L) = 1.d0
         pNOx(L,I,J)=y(nNO2,L)/y(nn_NOx,L)
-        pNO3(L,I,J)=yNO3(L,I,J)/y(nn_NOx,L)
-        y(nNO3,L)=yNO3(L,I,J)
+        pNO3(L,I,J)=y(nNO3,L)/y(nn_NOx,L)
         y(nHONO,L)=1.d0
       end do
 
@@ -165,7 +164,7 @@ C**** GLOBAL parameters and variables:
      &                        nO2,nM,nHO2,nOH,nH2,nAldehyde,nXO2,nXO2N,
      &                        nC2O3,nROR,yso2,ydms,which_trop,nO1D
      &         ,OxlossbyH,dt2,nBrO,nClO,nOClO,nBr,nCl,SF3,nO
-     &         ,rrbi,rrtri,yNO3
+     &         ,rrbi,rrtri,nNO3
 
       IMPLICIT NONE
 
@@ -261,7 +260,7 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
      &      *y(nO3,L)*0.58d0
      &    +rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*y(nn_Isoprene,L)
-     &      *yNO3(L,I,J)*0.9d0
+     &      *y(nNO3,L)*0.9d0
 #ifdef TRACERS_TERP
      &    +rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*y(nn_Terpenes,L)
      &      *y(nO3,L)*0.58d0
@@ -352,7 +351,7 @@ C**** GLOBAL parameters and variables:
      &    nn_CH4
       use photolysis, only : sza,rj,zj
       USE TRCHEM_Shindell_COM, only:pClOx,rr,y,nClO,nOClO,nCl,nCl2O2,
-     &    nO3,nHO2,nNO3,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
+     &    nO3,nHO2,nO,nNO,nBr,nOH,nBrO,nCH3O2,nM,nCl2,nH2,
      &    dt2,pClx,pOClOx,nNO2,which_trop,yCl2,yCl2O2,ClOx_old,
      &    rrmono,rrbi,rrtri
 

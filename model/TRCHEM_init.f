@@ -16,7 +16,7 @@ C**** GLOBAL parameters and variables:
       USE TRCHEM_Shindell_COM, only: nc,o3mult,byo3mult
       USE TRCHEM_Shindell_COM, only:
      &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
-     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yNO3,yRXPAR,yXO2N,
+     &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yRXPAR,yXO2N,
 #ifdef TRACERS_dCO
      &    ydC217O3,ydC218O3,yd13C2O3,
      &    yd13CXPAR,
@@ -89,7 +89,6 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yROR(:,I_0:I_1,J_0:J_1)     =0.d0
         yXO2(:,I_0:I_1,J_0:J_1)     =0.d0
         yAldehyde(:,I_0:I_1,J_0:J_1)=0.d0
-        yNO3(:,I_0:I_1,J_0:J_1)     =0.d0
         yXO2N(:,I_0:I_1,J_0:J_1)    =0.d0
         yRXPAR(:,I_0:I_1,J_0:J_1)   =0.d0
         yCl2(:,I_0:I_1,J_0:J_1)     =0.d0

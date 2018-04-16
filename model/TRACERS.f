@@ -1286,7 +1286,7 @@ C**** check whether air mass is conserved
 #endif
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
+      USE TRCHEM_Shindell_COM, only: pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &     yROR,yXO2,yAldehyde,yXO2N,yRXPAR
 #ifdef TRACERS_dCO
      &     ,ydC217O3,ydC218O3,yd13C2O3
@@ -1462,9 +1462,6 @@ c not yet        if(am_i_root()) write(kunit,err=10) header,aijl_glob
 #endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
-       header='TRACERS_SPECIAL_Shindell: yNO3(L,i,j)'
-        call pack_column(grid,yNO3,Alij_chem)
-        if(am_i_root())write(kunit,err=10)header,Alij_chem
        header='TRACERS_SPECIAL_Shindell: pHOx(L,i,j)'
         call pack_column(grid,pHOx,Alij_chem)
         if(am_i_root())write(kunit,err=10)header,Alij_chem
@@ -1688,8 +1685,6 @@ c not yet          call unpack_data(grid,aijl_glob,daily_z)
 #endif  /* BC_ALB */
 
 #ifdef TRACERS_SPECIAL_Shindell
-          if(am_i_root())read(kunit,err=10)header,Alij_chem
-          call unpack_column(grid,Alij_chem,yNO3)
           if(am_i_root())read(kunit,err=10)header,Alij_chem
           call unpack_column(grid,Alij_chem,pHOx)
           if(am_i_root())read(kunit,err=10)header,Alij_chem
@@ -1990,7 +1985,7 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
       USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
 #ifdef TRACERS_SPECIAL_Shindell
-      USE TRCHEM_Shindell_COM, only: yNO3,pHOx,pNOx,pOx,yCH3O2,yC2O3,
+      USE TRCHEM_Shindell_COM, only: pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,pNO3
 #ifdef TRACERS_dCO
      &,ydC217O3,ydC218O3,yd13C2O3
@@ -2072,7 +2067,6 @@ c daily_z is currently only needed for CS
 
       handle = ParallelIo(grid, fid, 'TRACERS_SPECIAL_Shindell')
 
-      call doVar(handle,action,yNO3,'yNO3'//cijdims,jdim=3)
       call doVar(handle,action,pHOx,'pHOx'//cijdims,jdim=3)
       call doVar(handle,action,pNOx,'pNOx'//cijdims,jdim=3)
       call doVar(handle,action,pNO3,'pNO3'//cijdims,jdim=3)
