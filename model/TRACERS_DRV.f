@@ -5208,6 +5208,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use GEOM, only: lon_to_i
       USE ATM_COM, only: byMA
       USE GEOM, only: byaxyp
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      use TRACER_COM, only: aer_int_yr
       use TRACER_COM, only: ex_volc_num
       use TRACER_COM, only: ex_volc_jday
       use TRACER_COM, only: ex_volc_year
@@ -5218,6 +5221,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TRACER_COM, only: ex_volc_SO2
       use TRACER_COM, only: ex_volc_H2O
       USE AEROSOL_SOURCES, only: so2_src_3d,iso2exvolc,H2O_src_3d
+#endif
 #ifdef CUBED_SPHERE
       USE tracer_com, only: AIRCstreams
 #endif
@@ -5343,6 +5347,8 @@ C****
       enddo
 #endif
 
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
 ! explosive volcano injections based on rundeck parameters
       if (iso2exvolc>0) then
         so2_src_3d(:,:,:,iso2exvolc)=0.d0
@@ -5380,6 +5386,7 @@ C****
 
         enddo ! ex
       endif
+#endif
 
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
