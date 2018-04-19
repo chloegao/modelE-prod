@@ -401,12 +401,11 @@ c  Ensure all aerosol types are valid selections:
      &       ' between 1 and ',i2)
 #endif  /* TRACERS_ON */
 
-c       define pressures to be sent to FASTJ (centers):
-        PFASTJ2(1:NLGCM)=PMID(1:NLGCM,I,J)
-        PFASTJ2(NLGCM+1)=PEDN(NLGCM+1,I,J)  ! P at SIGE(NLGCM+1)
+c       define pressures to be sent to FASTJ (edges):
+        PFASTJ2(1:NLGCM+1)=PEDN(1:NLGCM+1,I,J)
         PFASTJ2(NLGCM+2)=PFASTJ2(NLGCM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
         PFASTJ2(NLGCM+3)=PFASTJ2(NLGCM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
-        
+
         call photoj(I,J,surfaceAlbedo) ! CALL THE PHOTOLYSIS SCHEME
       end subroutine fastj2_drv
 
@@ -592,7 +591,14 @@ c  Apportion O3 and T on supplied climatology z* levels onto CTM levels
 c  with mass (pressure) weighting, assuming constant mixing ratio and
 c  temperature half a layer on either side of the point supplied:
 
-      do i = 1,NBFASTJ
+      if(NBFASTJ .ne. NLGCM+1) call stop_model(
+     & 'need to reassess setting of DO32 and TJ2',255)
+      ! if above stop is tripped: The issue is that PFASTJ2 used to be
+      ! defined on mid-layer for L=1,NLGCM. So interpolation below may
+      ! need changes and the loop may need to be over more than just the
+      ! top level. (TJ2 and DO32 get overwritten from 1,NLGCM just 
+      ! below this do loop):
+      do i = NBFASTJ,NBFASTJ ! was: do i = 1,NBFASTJ
         F0 = 0.d0; T0 = 0.d0
         do k = 1,nlevref
           PC = min(PFASTJ2(i),pstd(k))
