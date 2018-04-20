@@ -14,13 +14,13 @@ Tpsc_offset_S=0.d0
 ! -----------------------------------
 ! 40-layer model CMIP6 chemistry tuning parameters: 
 windowN2Ocorr=1.0
-windowO2corr=1.0
+windowO2corr=1.15
 reg1Power_SpherO2andN2Ocorr=2.0
 reg1TopPres_SpherO2andN2Ocorr=50.
 reg2Power_SpherO2andN2Ocorr=2.0
 reg2TopPres_SpherO2andN2Ocorr=10.
-reg3Power_SpherO2andN2Ocorr=1.0
-reg3TopPres_SpherO2andN2Ocorr=5.
+reg3Power_SpherO2andN2Ocorr=0.5
+reg3TopPres_SpherO2andN2Ocorr=1.
 reg4Power_SpherO2andN2Ocorr=0.5
 ! -----------------------------------
 COUPLED_CHEM=1     ! to couple chemistry and aerosols

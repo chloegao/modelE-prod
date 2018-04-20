@@ -756,7 +756,7 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       ! Check for PSC's existance. 
       pscX(:)=.false.
       do L=1,topLevelOfChemistry
-        if(pres2(L) <= 250.d0 .and. pres2(L) >= 30.d0)then    ! pres crit for now
+        if(pres2(L) <= 250.d0 .and. pres2(L) >= 3.d0)then    ! pres crit for now
           if(lat2D_dg(I,J)<=PSClatS.or.lat2D_dg(I,J)>=PSClatN)then! lat crit for now
             if(lat2d_dg(I,J)<=PSClatS)then
               Ttemp=tl(L)+Tpsc_offset_S
@@ -2865,44 +2865,44 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           else
             if(pres(l) <= 150..and.pres(l) > 31.60)then
               if(l < LAXb) then
-                rkext(l)=5.d-2*rad_to_chem(LAXb,i,j)
+                rkext(l)=rad_to_chem(LAXb,i,j)
               else if(l > LAXt) then
                 rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j)
+                rkext(l)=rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 31.6d0.and.pres(l) >= 17.8d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 1',255)
               else if(l > LAXt) then
-                rkext(l)=2.0d0*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j)
+                rkext(l)=rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 17.8d0.and.pres(l) >= 10.0d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 2',255)
               else if(l > LAXt) then
-                rkext(l)=16.d0*8.33333d-2*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=5.d-2*rad_to_chem(l,i,j)
+                rkext(l)=rad_to_chem(l,i,j)
               end if
             end if
             if(pres(l) <= 10.0d0.and.pres(l) >= 4.6d0)then
               if(l < LAXb) then
                 call stop_model('kext problem 3',255)
               else if(l > LAXt) then
-                rkext(l)=0.4d0*6.6667d-1*rkext(l-1)
+                rkext(l)=0.33d0*rkext(l-1)
               else
-                rkext(l)=0.5d-2*rad_to_chem(l,i,j)
+                rkext(l)=rad_to_chem(l,i,j)
               end if
             end if
           end if
 
           ! here for certain pressures in the tropics we used to scale rkext
-           
+
           if(rkext(l) /= 0.)aero(l) = 1
 
           ! NAT PSC surface conc per unit volume (cm^2/cm^3)

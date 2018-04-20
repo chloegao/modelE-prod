@@ -1364,13 +1364,14 @@ C****
 
       subroutine read_pzrh_input  ! option 2 in subr. header comments
       Use DOMAIN_DECOMP_ATM, Only: globalmax
+      use resolution, only : im
       implicit none
       real*8, dimension(:), allocatable :: rh
       real*8, dimension(:,:,:), allocatable :: zin,rh1,rhin
       real*8, dimension(:,:), allocatable :: ptrop,ttrop,zsrf
       INTEGER :: K1,KK,KMZIN,KMTROP,KMRH,KMIN
       real*8, dimension(lm) :: xa,xb
-      REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN
+      REAL*8 HSRF,TM,PR,PL,DTDZ,RHTROP,WTDN,BYIM
       real*8 :: max_loc,max_zsrf,max_zin,max_ptrop,max_psrat
       real*8, parameter :: GBYR  = GRAV/RGAS
 
@@ -1449,7 +1450,6 @@ C****   TTROP = tropopause temperature (K)
 C****
 C**** Perform vertical interpolation of prognostic quantities
 C**** from pressure surfaces to model levels.
-C**** have been horizontally interpolated to the approprate grid.
 C****
 
       DO J=J_0,J_1
@@ -1562,6 +1562,23 @@ c A-grid winds.  No insertion of tropopause values.
 
       ENDDO ! I
       ENDDO ! J
+
+
+      byim = 1d0/real(im,kind=8)
+      if(hasSouthPole(grid)) then
+        psrf(:,j_0) = sum(psrf(:,j_0))*byim
+        do k=1,lm
+          tout(:,j_0,k) = sum(tout(:,j_0,k))*byim
+          qout(:,j_0,k) = sum(qout(:,j_0,k))*byim
+        enddo
+      endif
+      if(hasNorthPole(grid)) then
+        psrf(:,j_1) = sum(psrf(:,j_1))*byim
+        do k=1,lm
+          tout(:,j_1,k) = sum(tout(:,j_1,k))*byim
+          qout(:,j_1,k) = sum(qout(:,j_1,k))*byim
+        enddo
+      endif
 
       max_loc = maxval(ptrop(i_0:i_1,j_0:j_1)/psrf(i_0:i_1,j_0:j_1))
       call globalmax(grid,max_loc,max_psrat)

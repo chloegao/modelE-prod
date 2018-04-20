@@ -1521,7 +1521,7 @@ C*** Unpack read global data into local distributed arrays
 #endif  /* TRACERS_ON */
 
 #ifdef TRACERS_AMP
-      allocate(ijlt_AMPm(2,ntm))
+      allocate(ijlt_AMPm(3,ntm))
       ijlt_AMPm = 0
 #endif 
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
@@ -1579,7 +1579,7 @@ C*** Unpack read global data into local distributed arrays
       itcon_ss = 0
       allocate(itcon_amp(7,ntmxcon))
       itcon_amp = 0
-      allocate(itcon_ampm(2,ntmxcon))
+      allocate(itcon_ampm(3,ntmxcon))
       itcon_ampm = 0
       allocate(itcon_ampe(ntmxcon))
       itcon_ampe = 0
