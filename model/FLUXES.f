@@ -583,8 +583,6 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
         module procedure alloc_iceocn_xchng_vars
       end interface alloc_xchng_vars
 
-      logical :: rad_coupling=.false.
-
       CONTAINS
 
       subroutine set_simple_bounds_type(grd_dum,bds)
@@ -1207,8 +1205,7 @@ c workaround for uninitialized patches%srfstate_exports multiply by zero
       this % CHL = 0.
       this%chl_defined=.false.
 
-      if (rad_coupling)
-     &  allocate(this % DIRVIS  ( I_0H:I_1H , J_0H:J_1H ),
+      allocate(  this % DIRVIS  ( I_0H:I_1H , J_0H:J_1H ),
      &           this % DIFVIS  ( I_0H:I_1H , J_0H:J_1H ),
      &           this % DIRNIR  ( I_0H:I_1H , J_0H:J_1H ),
      &           this % DIFNIR  ( I_0H:I_1H , J_0H:J_1H ),

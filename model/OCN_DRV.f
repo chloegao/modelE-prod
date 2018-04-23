@@ -114,6 +114,15 @@ c set-up for MPI implementation
       IMPLICIT NONE
       integer :: i
 
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      call request_misc_gissocean_tracers()
+#endif
+#ifdef TRACERS_OceanBiology
+#ifdef OBIO_ON_GISSocean
+      call setup_obio()
+#endif
+#endif
+
 #if (defined TRACERS_OCEAN) && !defined(TRACERS_OCEAN_INDEP)
 ! copy atmosphere-declared tracer info to ocean so that the ocean
 ! can "inherit" it without referencing atm. code
