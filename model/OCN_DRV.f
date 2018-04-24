@@ -114,7 +114,7 @@ c set-up for MPI implementation
       IMPLICIT NONE
       integer :: i
 
-#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+#if (defined TRACERS_OCEAN) && (defined TRACERS_WATER)
       call request_misc_gissocean_tracers()
 #endif
 #ifdef TRACERS_OceanBiology
