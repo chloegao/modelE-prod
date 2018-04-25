@@ -126,6 +126,13 @@ foreach $str (@a) {
 		my $year_start, $year_end;
 		($year_start,$year_end) = split /:/, $years;
 		if ( !$year_end ) { $year_end = $year_start; }
+		my $y0=-100000, $y1=100000;
+		# y0 = year_start or the first available before it
+		# y1 = year_end   or the first available after  it
+		foreach $y (@years_in_toc) {
+		    if ( $y<=$year_start && $y>$y0 ) { $y0 = $y; }
+		    if ( $y>=$year_end   && $y<$y1 ) { $y1 = $y; }
+		}
 		##for($y=$year_start; $y<=$year_end; $y++) {
 		foreach $y (@years_in_toc) {
 		    # print "checking: $data_dir/$filename/$y.nc\n"; 
@@ -133,8 +140,8 @@ foreach $str (@a) {
 		    ##	print "Not present on server: $filename/$y.nc - skipping\n";
 		    ##	next;
 		    ##}
-		    next if ( $y<$year_start || $y>$year_end);
-		    if ( ! -f "$data_dir/$filename/$y.nc" ) {
+		    next if ( $y<$y0 || $y>$y1);
+		    if ( ! -z "$data_dir/$filename/$y.nc" ) {
 			print "Downloading:     $filename/$y.nc\n";
 			# hack to prevent incomplete downloads
 			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc -O tmp.nc`;
