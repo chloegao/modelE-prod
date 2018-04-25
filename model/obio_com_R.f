@@ -9,7 +9,7 @@
 !     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
       USE OCEANRES, only : kdm=>lmo
-      use ocean, only : jm
+      use ocean, only : jm,use_qus
 
       implicit none
 
@@ -124,6 +124,9 @@ C endif
       real*8 :: co2flux
       integer kzc
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
+
+      
+      real*8 trmo_unit_factor(kdm,ntrac)
 
 #ifdef restoreIRON
 !this is an AR5 preprocessor option
@@ -536,6 +539,7 @@ c**** Extract domain decomposition info
 
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
+      use exchange_types, only: rad_coupling
       use obio_dim, only: ntrac
       use obio_diag
 
@@ -555,6 +559,7 @@ c**** Extract domain decomposition info
 
       con_idx=[12]
       con_str=['OCN BIOL']
+      rad_coupling=.true.
 
       call add_ocn_tracer('Nitr      ', i_ntrocn=-4, i_ntrocn_delta=-12,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
