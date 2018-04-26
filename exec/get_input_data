@@ -141,11 +141,10 @@ foreach $str (@a) {
 		    ##	next;
 		    ##}
 		    next if ( $y<$y0 || $y>$y1);
-		    if ( ! -z "$data_dir/$filename/$y.nc" ) {
+		    if ( ! -s "$data_dir/$filename/$y.nc" ) {
 			print "Downloading:     $filename/$y.nc\n";
 			# hack to prevent incomplete downloads
-			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc -O tmp.nc`;
-			`cd $data_dir/$filename && mv tmp.nc $y.nc`;
+			`cd $data_dir/$filename && wget $DATA_PORTAL_URL/$filename/$y.nc -O tmp.nc && mv tmp.nc $y.nc`;
 		    } else {
 			print "Already present:     $filename/$y.nc\n";
 		    }
