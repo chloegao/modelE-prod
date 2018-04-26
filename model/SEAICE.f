@@ -850,7 +850,7 @@ C**** COMPRESS THE ICE HORIZONTALLY IF TOO THIN OR LEAD FRAC. TOO SMALL
       ! using exp() form to reduce wintertime open ocean heat loss in the
       ! presence of thick ice, keeping same lead fraction at 1 m thickness
       !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
-      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
+      OPNOCN=MIN(0.0D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0. ! no leads for h>mx
       IF (MSI2.LT.AC2OIM .or. ROICE.GT.1.-OPNOCN) THEN
 
@@ -916,7 +916,7 @@ C**** Clean up ice fraction (if rsi>(1-OPNOCN)-1d-3) => rsi=(1-OPNOCN))
       IF (ROICE.gt.0) THEN
       HAVG = ROICE*(ACE1I+MSI2)/RHOI ! average ice thickness in meters
       !OPNOCN=MIN(0.1d0,FLEAD/HAVG)
-      OPNOCN=MIN(0.1D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
+      OPNOCN=MIN(0.0D0,FLEAD*EXP(-BYHREF*(HAVG-1D0)))
       IF ((ROICE*(ACE1I+MSI2)).gt.FLEADMX*RHOI) OPNOCN=0.  ! no leads for h>mx
       IF (ROICE.gt.(1.-OPNOCN)-1d-3) THEN
         ROICEN = 1.-OPNOCN
