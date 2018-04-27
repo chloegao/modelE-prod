@@ -647,7 +647,7 @@ C****
 #ifdef TRACERS_WATER
      &     TRSIL,TRO,TRI,DTRIMP,
 #endif
-     *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
+     *     DMIMP,DHIMP,DSIMP,FLEAD,QFIXR,debug)
 !@sum  ADDICE adds ice formed in the ocean to ice variables
 !@auth Gary Russell/Gavin Schmidt
       IMPLICIT NONE
@@ -655,7 +655,7 @@ C****
 c     REAL*8, PARAMETER :: Z2OIX = 5.d0-Z1I,     ! max ice thickness l=2
 c    *                     BYZICX=1./(Z1I+Z2OIX)
 !@var QFIXR true if RSI and MSI2 are fixed (ie. for fixed SST run)
-      LOGICAL, INTENT(IN) :: QFIXR
+      LOGICAL, INTENT(IN) :: QFIXR,debug
 !@var FLEAD minimum lead fraction for ice (%)
       REAL*8, INTENT(IN) :: FLEAD
 !@var ACEFO ice mass formed in ocean for open water fraction (kg/m^2)
@@ -701,7 +701,10 @@ c    *                     BYZICX=1./(Z1I+Z2OIX)
 #ifdef TRACERS_WATER
       DTRIMP=0.
 #endif
-
+c      if (debug) print*,"add0",SNOW+ACE1I-SSIL(1)-SSIL(2),TRSIL(1,1)+
+c     *     TRSIL(1,2),
+c     *     ACEFO-SALTO,TRO(1),ACEFI-SALTI,TRI(1),MSI2-SSIL(3)-SSIL(4),
+c     *     TRSIL(1,3)+TRSIL(1,4),DMIMP-DSIMP,DTRIMP(1)
       MSI1=SNOW+ACE1I
       IF (.not. QFIXR) THEN
       IF (ROICE.LE.0. .and. ACEFO.gt.0) THEN
@@ -725,7 +728,7 @@ C**** Create new ice in ice-free ocean
          TRSIL(N,3:4) = (TRO(N)/ACEFO)*XSI(3:4)*MSI2
        END DO
 #endif
-
+       
       ELSEIF (ROICE.gt.0) THEN
 C**** Create new ice in partially ice-covered ocean
       IF (ACEFI.gt.0) THEN
@@ -907,7 +910,6 @@ C**** reconstitute snow and ice layers
      *       TRSNOW,TRICE,TRSIL, 
 #endif 
      *       SNOW,MSI1,MSI2xx,HSIL,SSIL)
-
       END IF
 C****
       END IF
@@ -992,6 +994,7 @@ C**** lower layer adjustmensts
         END IF
       END IF
       END IF
+
       ELSE
 C**** Ensure that MSI2 does not get too small for fixed-SST case.
         IF (ROICE.gt.0. and. MSI2.lt.AC2OIM) then
@@ -1005,7 +1008,7 @@ C**** Ensure that MSI2 does not get too small for fixed-SST case.
           TRSIL(:,3:4)=TRSIL(:,3:4)*AC2OIM/MSI2
 #endif
           MSI2=AC2OIM
-        END IF
+       END IF
       END IF
 C**** Calculate temperatures for diagnostics and radiation
       call tice(hsil,ssil,msi1,msi2,tsil)
@@ -1111,7 +1114,7 @@ C****
 #ifdef TRACERS_WATER
      &     TRSIL,TRFLUX,
 #endif
-     &     MFLUX,HFLUX,SFLUX)
+     &     MFLUX,HFLUX,SFLUX,debug)
 !@sum  SSIDEC decays salinity in sea ice
 !@auth Jiping Liu
       IMPLICIT NONE
@@ -1138,7 +1141,7 @@ C****
       REAL*8, DIMENSION(NTM,LMI) :: DTRSI,TRICE
       INTEGER N
 #endif
-
+      LOGICAL, INTENT(IN) :: debug
       REAL*8 DSSI(LMI),DMSI(LMI),DHSI(LMI)
       REAL*8 FMSI(LMI-1),FSSI(LMI-1),FHSI(LMI-1)
       REAL*8 HSNOW(2),HICE(LMI),SICE(LMI),TSIL(LMI),MICE(LMI),MSI1
@@ -1268,13 +1271,13 @@ C**** Mass/heat moves between layers 3 to 4
        FHSI(3) = FMSI(3)*HSIL(3)/MICE(3)
        FSSI(3) = FMSI(3)*SSIL(3)/MICE(3)
 #ifdef TRACERS_WATER
-        FTRSI(:,3) = FMSI(3)*TRSIL(:,3)/(MICE(3)-SICE(3)) 
+       FTRSI(:,3) = (FMSI(3)-FSSI(3))*TRSIL(:,3)/(MICE(3)-SICE(3)) 
 #endif
       ELSE                      ! upward flux
        FHSI(3) = FMSI(3)*(TSIL(4)*shi-lhm)    ! energy of pure ice only
        FSSI(3) = 0.                           ! no salt up
 #ifdef TRACERS_WATER
-        FTRSI(:,3) = FMSI(3)*TRSIL(:,4)/(MICE(4)-SICE(4))
+       FTRSI(:,3) = FMSI(3)*TRSIL(:,4)/(MICE(4)-SICE(4))
 #endif
       END IF
 
