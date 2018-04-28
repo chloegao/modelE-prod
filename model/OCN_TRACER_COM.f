@@ -214,3 +214,38 @@
       return
       end subroutine alloc_ocn_tracer_com
 #endif
+
+#if (defined TRACERS_OCEAN) || (defined TRACERS_WATER)
+      subroutine request_misc_gissocean_tracers
+#ifdef TRACERS_ZEBRA
+      use ocn_tracer_com, only: add_ocn_tracer
+#endif
+      implicit none
+
+#ifdef TRACERS_ZEBRA
+      call add_ocn_tracer('zebraL06  ')
+      call add_ocn_tracer('zebraL07  ')
+      call add_ocn_tracer('zebraL08  ')
+      call add_ocn_tracer('zebraL09  ')
+      call add_ocn_tracer('zebraL10  ')
+      call add_ocn_tracer('zebraL11  ')
+      call add_ocn_tracer('zebraL12  ')
+      call add_ocn_tracer('zebraL13  ')
+      call add_ocn_tracer('zebraL14  ')
+      call add_ocn_tracer('zebraL15  ')
+      call add_ocn_tracer('zebraL16  ')
+      call add_ocn_tracer('zebraL17  ')
+      call add_ocn_tracer('zebraL18  ')
+      call add_ocn_tracer('zebraL19  ')
+      call add_ocn_tracer('zebraL20  ')
+      call add_ocn_tracer('zebraL21  ')
+      call add_ocn_tracer('zebraL22  ')
+      call add_ocn_tracer('zebraL23  ')
+      call add_ocn_tracer('zebraL24  ')
+      call add_ocn_tracer('zebraL26  ')
+#endif   /* #ifdef TRACERS_ZEBRA */
+!      call add_ocn_tracer('Water     ', i_trw0=1, i_ntrocn=2,
+!     .                                               i_conc=.true.)
+      return
+      end subroutine request_misc_gissocean_tracers
+#endif   /* #if (defined TRACERS_OCEAN) || (defined TRACERS_WATER) */

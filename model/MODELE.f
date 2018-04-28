@@ -233,13 +233,6 @@ C****
       call parse_params(iu_IFILE)
       call closeunit(iu_IFILE)
 
-      call setup_ocean()
-#ifdef TRACERS_OceanBiology
-#ifdef OBIO_ON_GISSocean
-      call setup_obio()
-#endif
-#endif
-
       call initializeModelE()
 
       ! Only the root node pays attention to allotted wall time

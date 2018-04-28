@@ -25,6 +25,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)       :: AQsulfRATE !(i,j,l)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM_dry       ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_dens   !density(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
@@ -66,7 +67,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
-     *  n_NH3, nBiomass, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
+     *  n_NH3, nBiomass,nAircraft, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -133,6 +134,7 @@ C**** functions
       NACTV(I_0:I_1,J_0:J_1,:,:)      = 0.d0 
       VDDEP_AERO(I_0:I_1,J_0:J_1,:,:) = 0.d0 
       DIAM(I_0:I_1,J_0:J_1,:,:)       = 0.d0
+      DIAM_dry(I_0:I_1,J_0:J_1,:,:)   = 0.d0
       AMP_dens(I_0:I_1,J_0:J_1,:,:)   = 0.d0
       AMP_TR_MM(I_0:I_1,J_0:J_1,:,:)  = 0.d0
 
@@ -216,24 +218,21 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
 #endif
         endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
-#ifdef TRACERS_AMP_M4
-      EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#else
       EMIS_MASS(1) =  EMIS_MASS(1) + ((tr3Dsource(i,j,l,nVolcanic,n_M_AKK_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU))*1.d9 / AVOL)
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_AKK_SU)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_AKK_SU))
+     *                                 *1.d9 / AVOL)
       EMIS_MASS(2) =  EMIS_MASS(2) + ((tr3Dsource(i,j,l,nVolcanic,n_M_ACC_SU)+
-     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU))*1.d9 / AVOL)
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-c     Biomass BC OC is Mixed
-c      EMIS_MASS(8) =  EMIS_MASS(8) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_BC)*1.d9 / AVOL)
-c      EMIS_MASS(9) =  EMIS_MASS(9) + (tr3Dsource(i,j,l,nBiomass,n_M_BOC_OC)*1.d9 / AVOL)
-c     Biomass BC OC is NOT mixed
-      EMIS_MASS(3) =  EMIS_MASS(3) + (tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)*1.d9 / AVOL)
-      EMIS_MASS(4) =  EMIS_MASS(4) + (tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)*1.d9 / AVOL)
-#endif
+     *                                 tr3Dsource(i,j,l,nBiomass,n_M_ACC_SU)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_ACC_SU))
+     *                                 *1.d9 / AVOL)
+      EMIS_MASS(3) =  EMIS_MASS(3) + ((tr3Dsource(i,j,l,nBiomass,n_M_BC1_BC)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_BC1_BC))
+     *                               *1.d9 / AVOL)
+      EMIS_MASS(4) =  EMIS_MASS(4) + ((tr3Dsource(i,j,l,nBiomass,n_M_OCC_OC)+
+     *                                 tr3Dsource(i,j,l,nAircraft,n_M_OCC_OC))
+     *                               *1.d9 / AVOL)
+
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
 !=========
@@ -292,10 +291,12 @@ c Diagnostic of Processes - Sources and Sincs - timestep included
      *     'N_BC2_1 ','N_BC3_1 ','N_DBC_1 ','N_BOC_1 ','N_BCS_1 ','N_MXX_1 ','N_OCS_1 ')
 c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
+        taijls(i,j,l,ijlt_AMPm(3,n))=taijls(i,j,l,ijlt_AMPm(3,n)) + DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))
         taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j)/axyp(i,j))
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
+        if (itcon_AMPm(3,n) .gt.0) call inc_diagtcb(i,j,(DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(3,n),n) 
         if (itcon_AMPm(2,n) .gt.0) call inc_diagtcb(i,j,NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL ,itcon_AMPm(2,n),n) 
        end select
 
@@ -424,7 +425,7 @@ c -----------------------------------------------------------------
       USE AERO_PARAM, ONLY: PI6, DENSP, IXXX, IYYY, ILAY
       USE AERO_CONFIG, ONLY: NMODES, NAEROBOX,NBINS
       USE AERO_SETUP, ONLY: SIG0, CONV_DPAM_TO_DGN, NUMB_MAP, MODE_NAME
-      USE AMP_AEROSOL, only: DIAM
+      USE AMP_AEROSOL, only: DIAM, DIAM_dry
       IMPLICIT NONE
 
       ! Arguments.
@@ -528,6 +529,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  DIAM_dry(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
@@ -535,6 +537,7 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
 
       NACTV   = 1.0D-30
       DIAM    = 1.0D-30
+      DIAM_dry= 1.0D-30
       return
       end subroutine alloc_tracer_amp_com
       

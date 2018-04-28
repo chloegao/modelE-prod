@@ -55,9 +55,9 @@
       USE AERO_SUBS  
       USE AERO_COAG,   ONLY: SETUP_KIJ_DIAMETERS, SETUP_KIJ_TABLES, GET_KBARNIJ
       USE AERO_NPF,    ONLY: DNU, NPFRATE, SETUP_NPFMASS, STEADY_STATE_H2SO4   
-      USE AERO_DIAM,   ONLY: DIAM!, DIAM_HISTOGRAM
+!      USE AERO_DIAM,   ONLY: DIAM !, DIAM_HISTOGRAM
       USE AERO_ACTV,   ONLY: GETACTFRAC 
-      USE AMP_AEROSOL, ONLY: NACTV  
+      USE AMP_AEROSOL, ONLY: NACTV , DIAM_DRY, DIAM  
       USE AERO_DEPV,   ONLY: GET_AERO_DEPV, VDDEP_AERO  
       IMPLICIT NONE
 
@@ -500,7 +500,8 @@
           ! IF( DP(I) .GT. DPMAX_GLOBAL ) WRITE(*,'(I4,3D15.5)') I,DP(I),NI(I),TOT_MASS(I)
           DP    (I) = MIN( MAX( DP    (I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
           DP_DRY(I) = MIN( MAX( DP_DRY(I), DPMIN_GLOBAL ), DPMAX_GLOBAL )
-         DIAM(IXXX,IYYY,ILAY,I) = DP(I)   ! [m] - Store for use outside this routine.
+         DIAM(IXXX,IYYY,ILAY,I)     = DP(I)   ! [m] - Store for use outside this routine.
+         DIAM_dry(IXXX,IYYY,ILAY,I) = DP_DRY(I)   ! [m] - Store for use outside this routine.
           !------------------------------------------------------------------------------------------------------------
           ! Update values of KCI_COEF_DP(I) for the current diameter of average mass for each mode.
           ! THETA_POLY(I) prevents excessive condensation due to treating the mode as monodisperse.
