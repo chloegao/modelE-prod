@@ -7273,26 +7273,85 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 #ifdef TRACERS_NITRATE
       subroutine calculate_and_apply_nitrate(i,j)
       use RESOLUTION, only: LM
-!      use OldTracer_mod
-      use TRACER_COM, only: n_HNO3
+      USE CONSTANT,   only: mair,gasc
+      use ATMCOL_COM, only: tl   ! layer temperature (K)
+      use ATMCOL_COM, only: rhl  ! layer relative humidity (0-1)
+      use ATMCOL_COM, only: pl   ! layer pressure (mb)
+      use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
+      USE TRACER_COM, only: trm_col
+      use TRACER_COM, only: n_SO4
+      use TRACER_COM, only: n_HNO3,n_NO3p
       use TRACER_COM, only: n_NH3,n_NH4
-      use TRACER_COM, only: n_NO3p
+      use TRACER_COM, only: n_Clay
+      use TRACER_COM, only: n_seasalt1
       use TRACER_COM, only: nThermo
+      use RunTimeControls_mod, only: tracers_special_shindell
+      use TRACER_COM, only: coupled_chem
+      USE AEROSOL_SOURCES, only: off_HNO3
+      USE MODEL_COM, only : dtsrc
+      use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
+      USE FLUXES, only: tr3Dsource
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry
 #endif
       implicit none
+!@var AVOL Convert kg m-2 to kg m-3
+!@var ASO4 Aerosol sulfate [ug m-3]
+!@var ANO3 Aerosol nitrate [ug m-3]
+!@var ANH4 Aerosol ammonium [ug m-3]
+!@var AH2O Aerosol water [ug m-3]
+!@var ApH Aerosol pH
+!@var GNH3 Gaseous ammonia [ug m-3]
+!@var GHNO3 Gaseous nitric acid [ug m-3]
+      real*8 :: AVOL,ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH
+      real*8 :: GNH3,GHNO3
+
       integer, intent(in) :: i,j
 !
-      integer :: lm_nitrate
+      integer :: l,lm_nitrate
 
 #ifdef TRACERS_SPECIAL_Shindell
       lm_nitrate = topLevelOfChemistry
 #else
       lm_nitrate = LM
 #endif
-      call NITRATE_THERMO_DRV(i,j,lm_nitrate)
+      do l=1,lm_nitrate
+        AVOL=ma(l)/mair*1000.d0*gasc*tl(l)/(pl(l)*100.d0)
+
+        ASO4=trm_col(l,n_SO4)*1.d9/AVOL
+        if (tracers_special_shindell.and.coupled_chem==1) then
+          ANO3=trm_col(l,n_NO3p)*1.d9/AVOL
+        else
+          ANO3=off_HNO3(i,j,l)*1.d9/AVOL
+        endif
+        ANH4=trm_col(l,n_NH4)*1.d9/AVOL
+        GNH3=trm_col(l,n_NH3)*1.d9/AVOL
+        GHNO3=trm_col(l,n_HNO3)*1.d9/AVOL
+        DUST=trm_col(l,n_Clay)*1.d9/AVOL
+        SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
+
+        call NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
+     &                          GNH3,GHNO3,tl(l),rhl(l),pl(l))
+
+! no need to update tr3Dsource for ASO4, since it does not change in eqsam.
+        tr3Dsource(l,nThermo,n_NO3p)=(ANO3*1.d-9*AVOL-
+     &                                trm_col(l,n_NO3p))/dtsrc
+        tr3Dsource(l,nThermo,n_NH4)= (ANH4*1.d-9*AVOL-
+     &                                trm_col(l,n_NH4))/dtsrc
+! no need to update tr3Dsource for DUST, since it does not change in eqsam.
+! no need to update tr3Dsource for SALT, since it does not change in eqsam.
+! water is not affected, the aerosol amount is only a diagnostic in terms of mass
+        tr3Dsource(l,nThermo,n_NH3)= (GNH3*1.d-9*AVOL-
+     &                                trm_col(l,n_NH3))/dtsrc
+        tr3Dsource(l,nThermo,n_HNO3)=(GHNO3*1.d-9*AVOL-
+     &                                trm_col(l,n_HNO3))/dtsrc
+
+! save aerosol water (ug/m3) and aerosol pH (dimensionless)
+        taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
+        taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+ApH
+      enddo
+
 #ifdef TRACERS_SPECIAL_Shindell
       call apply_tracer_3Dsource(i,j,nThermo,n_HNO3) ! HNO3 change
 #endif

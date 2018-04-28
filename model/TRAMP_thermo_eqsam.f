@@ -23,13 +23,12 @@
 !
 !     Also, this version of EQSAM takes as input the mineral cation 
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
-!     of inorganic aerosol constituents in MATRIX, these cations are included.
+!     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
       USE AERO_PARAM, ONLY: WRITE_LOG, TINYNUMER, AUNIT1
       IMPLICIT NONE
 
       ! Arguments.
-    
       REAL(8), INTENT(INOUT) :: ASO4      ! aerosol sulfate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANO3      ! aerosol nitrate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANH4      ! aerosol ammonium      [ug/m^3]
