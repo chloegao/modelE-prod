@@ -18,6 +18,7 @@ module TracerSurfaceSource_mod
   public :: PARSE_MISSING_FIELD
   public :: PARSE_UNEXPECTED_VALUE
   public :: itsMegan
+  public :: itsOcean
   public :: itsCH4MGOL
 
   type, extends(TracerSource) :: TracerSurfaceSource
@@ -47,6 +48,7 @@ module TracerSurfaceSource_mod
   integer, parameter :: PARSE_UNEXPECTED_VALUE = 2
   integer, parameter :: itsMegan=1 ! for skipReason: online MEGAN vegetation source
   integer, parameter :: itsCH4MGOL=2 ! for skipReason: CH4 ocean, lake, misc ground source
+  integer, parameter :: itsOcean=3 ! for skipReason: online ocean source
 
 contains
 
