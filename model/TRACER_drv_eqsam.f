@@ -1,4 +1,3 @@
-#include "rundeck_opts.h"
       SUBROUTINE NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
      &                              GNH3,GHNO3,TEMP,RH,PRESS)
 !@sum
@@ -7,7 +6,6 @@
 !@+
 !@+      A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
 !@auth Susanne Bauer
-
 
 !----------------------------------------------------------------------------------------------------------------------
 !     This routine sets up for and calls the thermodynamic module for aerosol
@@ -81,13 +79,13 @@
       REAL(4), PARAMETER :: MASS_FRAC_CA = 0.024   !   JGR, Vol. 106, p. 5295-5316.
       REAL(4), PARAMETER :: MASS_FRAC_MG = 0.0038  !   on p. 5296
       REAL(4), PARAMETER :: MASS_FRAC_NA = 0.014   !   "water sol. mass frac. in soil dust"
-
       REAL(4), PARAMETER :: FRAC_DUST  = 1.d0                             ! [1] fraction of dust conc. passed to EQSAM         
       REAL(4), PARAMETER :: FRAC_SALT  = 0.001                            ! [1] fraction of salt conc. passed to EQSAM         
       REAL(4), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
       REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
       REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
       REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+
       !------------------------------------------------------------------------------------------------------
       ! Fraction of sea salt (NaCl) mass that is Na, and is Cl.
       !------------------------------------------------------------------------------------------------------

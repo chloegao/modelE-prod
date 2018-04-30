@@ -1,20 +1,12 @@
-#include "rundeck_opts.h"
       SUBROUTINE NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
      &                              GNH3,GHNO3,TEMP,RH,PRESS)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
 !@+
-!@+      A version of ISORROPIA 2 is the current thermodynamic model. 
+!@+     This version of AERO_THERMO is for use with the ISORROPIA thermodynamic module.
 !@auth Susanne Bauer
 
-
-!----------------------------------------------------------------------------------------------------------------------
-!     This routine sets up for and calls the thermodynamic module for aerosol
-!     gas-particle partitioning.
-!
-! 
-!----------------------------------------------------------------------------------------------------------------------
       IMPLICIT NONE
 
       ! Arguments.
@@ -48,7 +40,7 @@
       REAL(8) :: WT(8)        ! [moles/m^3]
       REAL(8) :: GAS(3)       ! [moles/m^3]
       REAL(8) :: AERLIQ(15)   ! [moles/m^3]
-      REAL(8) :: AERSLD(19)    ! [moles/m^3]
+      REAL(8) :: AERSLD(19)   ! [moles/m^3]
       REAL(8) :: OTHER(6)     ! 
       CHARACTER(LEN=15) :: SCASI = '               '
 
@@ -82,7 +74,7 @@
       REAL(8), PARAMETER :: CMW_GHNO3 = 1.0D+06 * MW_GHNO3 ! [ug/mol]
       REAL(8), PARAMETER :: CMW_CL    = 1.0D+06 * MW_CL    ! [ug/mol]
       REAL(8), PARAMETER :: CMW_H2O   = 1.0D+06 * MW_H2O   ! [g/mol]
- 
+
       !------------------------------------------------------------------------------------------------------
       ! Fraction of sea salt (NaCl) mass that is Na, and is Cl.
       !------------------------------------------------------------------------------------------------------
@@ -101,6 +93,7 @@
       REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
       REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
       REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+
       !------------------------------------------------------------------------------------------------------
       ! Other parameters.
       !------------------------------------------------------------------------------------------------------
