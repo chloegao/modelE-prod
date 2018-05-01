@@ -646,9 +646,12 @@ c
 
       DO J=J_0, J_1
       DO I=I_0,si_state%IMAXJ(J)
-c      debug=(i.eq.7.and.j.eq.42).or.(i.eq.30.and.j.eq.45).or.
-c     *        (i.eq.1.and.j.eq.46)
-c      debug=i.eq.40.and.j.eq.41
+c        debug = i.eq.52.and.j.eq.87
+c      if (debug) print*,"gs0",trsi(1,1,i,j)-(snowi(i,j)+ace1i)*xsi(1)+
+c     &             ssi(1,i,j), trsi(1,2,i,j)-(snowi(i,j)+ace1i)
+c     *     *xsi(2)+ssi(2,i,j),trsi(1,3,i,j)-msi(i,j)*xsi(3)+
+c     *     ssi(3,i,j),trsi(1,4,i,j)-msi(i,j)*xsi(4)+ssi(4,i,j)
+
       PWATER=FWATER(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -700,6 +703,7 @@ c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
 c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
 c        if (debug) print*,"si0",i,j,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,
 c     *       EVAP,SROX,SNOW+ACE1I-SSIL(1)-SSIL(2) !, TRSIL(1,1)+TRSIL(1,2)
+
         CALL SEA_ICE(DTSRC,SNOW,ROICE,HSIL,SSIL,MSI2,F0DT,F1DT,EVAP,SROX
 #ifdef TRACERS_WATER
      *       ,TRSIL,TREVAP,FTROC,TRRUN
@@ -711,14 +715,13 @@ c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
 c        if (debug) print*,"si1",i,j,SNOW,HSIL,SSIL,MSI2,FMOC,FHOC,FSOC,
 c     *       RUN,ERUN,SRUN,WETSNOW,MELT12,SNOW
 c     $       +ACE1I-SSIL(1)-SSIL(2) !, TRSIL(1,1)+TRSIL(1,2)
-
 C**** Decay sea ice salinity
         IF(DOMAIN.EQ.'OCEAN') THEN
           CALL SSIDEC(SNOW,MSI2,HSIL,SSIL,DTsrc,MELT12,
 #ifdef TRACERS_WATER
      *         TRSIL,TRFLUX,
 #endif
-     *         MFLUX,HFLUX,SFLUX)
+     *         MFLUX,HFLUX,SFLUX,debug)
         else
           MFLUX=0. ; SFLUX=0. ; HFLUX=0.
 #ifdef TRACERS_WATER
@@ -726,6 +729,10 @@ C**** Decay sea ice salinity
 #endif
         end if
 
+c      if (debug) print*,"gs4",trsil(1,1)-(snow+ace1i)*xsi(1)+
+c     &             ssil(1), trsil(1,2)-(snow+ace1i)
+c     *     *xsi(2)+ssil(2),trsil(1,3)-msi2*xsi(3)+
+c     *     ssil(3),trsil(1,4)-msi2*xsi(4)+ssil(4),TRFLUX(1)-MFLUX+SFLUX
 c        if (debug)  write(6,'(A,2I4,4F11.6)') "si2",i,j,SNOW,1d3*SSIL(1)
 c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
 c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
@@ -744,7 +751,7 @@ C**** Calculate snow-ice possibility
           TRSNWIC = 0.
 #endif
         end if
-c        if (debug)  write(6,'(A,2I4,4F11.6)') "si3",i,j,SNOW,1d3*SSIL(1)
+c     if (debug)  write(6,'(A,2I4,4F11.6)') "si3",i,j,SNOW,1d3*SSIL(1)
 c     $       /(XSI(1)*(ACE1I+SNOW)),1d3*SSIL(2)/(XSI(2)*(ACE1I+SNOW))
 c     $       ,1d3*(SSIL(1)+SSIL(2))/ACE1I
 c        if (debug) print*,"si3",i,j,SNOW,HSIL,SSIL,MSI2, MSNWIC,HSNWIC,
@@ -797,7 +804,7 @@ c        if (debug) write(6,'(A,4I4,4F11.6)') "ponds",i,j,jday,jhour,
 c     *       melt12,pond_melt(i,j),ti(HSIL(1)/(XSI(1)*(SNOW+ACE1I)),
 c     *         1d3*SSIL(1)/(XSI(1)*(SNOW+ACE1I))),
 c     *         1d3*(SSIL(1)+SSIL(2))/ACE1I
-
+        
 C**** Net fluxes to ocean
         RUNOSI(I,J) = FMOC + RUN  + MFLUX + MSNWIC
         ERUNOSI(I,J)= FHOC + ERUN + HFLUX + HSNWIC
@@ -806,7 +813,6 @@ C**** Net fluxes to ocean
 #ifdef TRACERS_WATER
         TRUNOSI(:,I,J) = FTROC(:) + TRRUN(:) + TRFLUX(:) + TRSNWIC(:)
 #endif
-
         SNTOSI(I,J) = POICE*(DSNOW-MSNWIC)
         SITOPMLT(I,J) = POICE*(RUN+MFLUX)
         MSNFLOOD(I,J) = -POICE*MSNWIC
@@ -894,8 +900,8 @@ c
       DO J=J_0, J_1
       DO I=I_0,si_state%IMAXJ(J)
 
-c         debug=i.eq.40.and.j.eq.41
-
+c        debug = i.eq.52.and.j.eq.87
+        
       PWATER=FWATER(I,J)
       ROICE=RSI(I,J)
       POICE=ROICE*PWATER
@@ -939,7 +945,7 @@ c      IF (PWATER.gt.0) THEN
 #ifdef TRACERS_WATER
      *       TRSIL,TRO,TRI,DTRIMP,
 #endif
-     *       DMIMP,DHIMP,DSIMP,FLEAD,QFIXR)
+     *       DMIMP,DHIMP,DSIMP,FLEAD,QFIXR,debug)
 
 C**** RESAVE PROGNOSTIC QUANTITIES
         SNOWI(I,J) = SNOW
@@ -1894,7 +1900,7 @@ C**** Calculate RSI and MSI for current day
           MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))
 C**** Ensure that lead fraction is consistent with kocean=1 case
           IF (RSINEW.gt.0) THEN
-            OPNOCN=MIN(0.1d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
+            OPNOCN=MIN(0.0d0,FLEADOC*RHOI/(RSINEW*(ACE1I+MSINEW)))
             IF (RSINEW.GT.1.-OPNOCN) THEN
               RSINEW = 1.-OPNOCN
               MSINEW=RHOI*(ZIMIN-Z1I+(ZIMAX-ZIMIN)*RSINEW*DM(I,J))

@@ -21,7 +21,7 @@ c
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
-     .                    ,temp1d,saln1d,dp1d,rhs,alk1d
+     .                    ,temp1d,saln1d,dp1d,rhs,alk1d,trmo_unit_factor
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
 #endif
@@ -57,7 +57,7 @@ c
       real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
-      real term
+      real term,sdic_uM,pCO2_abio,dummy
       real bs
       real, save :: atmco2=-1.
 
@@ -268,6 +268,37 @@ c Update DIC for sea-air flux of CO2
 
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
+#ifdef carbontest4
+!uses CMIP6 values
+        k = 1
+        Ts = temp1d(k)
+        scco2 = 2116.8 - 136.25*Ts + 4.7353*Ts**2 - 0.092307*Ts**3 + 0.000755*Ts**4
+        wssq = wind*wind
+        if (scco2.lt.0.) then
+          scco2arg=1.d-10
+          rkwco2=1.d-10
+        else
+          scco2arg = (scco2/660.D0)**(-0.5)      !Schmidt number
+          rkwco2 = awan*wssq*scco2arg           !transfer coeff (units of m/s)
+        endif
+        tk = tf+Ts
+        tk100 = tk*0.01
+        tk1002 = tk100*tk100
+        ff = exp(-160.7333 + 215.4152/tk100  +       !solub in mol/kg/picoatm
+     .         89.8920*log(tk100) - 1.47759*tk1002 +
+     .         saln1d(k) * (0.029941 - 0.027455*tk100 +
+     .         0.0053407*tk1002))
+        xco2 = atmCO2*1013.D0/stdslp
+        sdic_uM=SDIC(n_abioDIC)/trmo_unit_factor(1,14)  !14->DIC
+        call compute_pco2_online(nstep,i,j,atmco2,
+     .            temp1d(1),saln1d(1),sdic_uM,alk1d(1),
+     .            obio_P(1,1),obio_P(1,3),pnoice(1),
+     .            pCO2_abio,dummy,vrbos)
+
+        deltco2 = (xco2-pCO2_abio)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+        flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
+        term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
+#endif
           !trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
           SDIC(n_abioDIC) = SDIC(n_abioDIC) 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C

@@ -9,7 +9,7 @@
 !     USE Constant, only: sday     ! sday=86400.0    !seconds per day
 
       USE OCEANRES, only : kdm=>lmo
-      use ocean, only : jm
+      use ocean, only : jm,use_qus
 
       implicit none
 
@@ -124,6 +124,9 @@ C endif
       real*8 :: co2flux
       integer kzc
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
+
+      
+      real*8 trmo_unit_factor(kdm,ntrac)
 
 #ifdef restoreIRON
 !this is an AR5 preprocessor option

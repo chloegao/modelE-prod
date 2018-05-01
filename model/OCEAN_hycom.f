@@ -5,10 +5,6 @@
 #define USE_ATM_GLOBAL_ARRAYS
 #endif
 
-      subroutine setup_ocean
-      return
-      end subroutine setup_ocean
-
       SUBROUTINE init_OCEAN(iniOCEAN,istart,atmocn,dynsice)
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,broadcast
       USE SEAICE, only : osurf_tilt

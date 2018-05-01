@@ -432,12 +432,6 @@ c**** replicate values at pole
       return
       end subroutine read_sst
 
-
-      subroutine setup_ocean
-      return
-      end subroutine setup_ocean
-
-
       subroutine init_ocean(iniocean,istart,atmocn,dynsice)
 !@sum init_OCEAN initializes ocean variables
 !@auth Original Development Team
