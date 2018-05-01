@@ -38,9 +38,9 @@
       REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
       REAL(8), INTENT(OUT)   :: SSH2O     ! sea salt assoc. H2O   [ug/m^3]
-      REAL(8), INTENT(IN)    :: TEMP      ! absolute temperature  [K]          
+      REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
-      REAL(8), INTENT(IN)    :: PRESS     ! ambient pressure      [Pa]  
+      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
 
@@ -154,11 +154,11 @@
         WRITE(AUNIT1,'(A4,7F14.5)') 'RHD',RHD
       ENDIF 
 
-      !----------------------------------------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------
       ! Get the sea salt-associated water (only).
       !
       ! A simple parameterization provided by E. Lewis is used.
-      !----------------------------------------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------
       IF ( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(A4,3A12  )') '   ','SALT','SSH2O'           
         WRITE(AUNIT1,'(A4,3F12.5)') 'TOP' ,SALT
