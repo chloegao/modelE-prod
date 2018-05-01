@@ -625,9 +625,9 @@ c     &         )*bydyv(j)!/dyvo(j)
 !@param lscale (m) fixed length scale for calculating mesoscale diffusivity
      &        ,lscale=2.5d5
 !@param maxk (m2/s) upper bound for mesoscale diffusivity
-     &        ,maxk=6000d0
+     &        ,maxk=10000d0
 !@param minsinlat minimum for 1/sin(lat) scaling of mesoscale diffusivity
-     &        ,minsinlat=.1d0 ! roughly sin(6 degrees)
+     &        ,minsinlat=.05d0 ! roughly sin(3 degrees)
 !
 !@var mink (m2/s) lower bound for mesoscale diffusivity
       real*8 :: mink=100d0

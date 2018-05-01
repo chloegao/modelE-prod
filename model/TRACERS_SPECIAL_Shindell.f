@@ -904,15 +904,16 @@ C
 
       use oceanEmissions, only: oceanSpecies
       use oceanEmissionsSpecies, only: nOceanSpecies,species,acetone
-      use model_com, only: itime
+      use model_com, only: itime, dtsrc
       use fluxes, only: focean,atmocn
       use constant, only: tf
       use TimeConstants_mod, only: SECONDS_PER_HOUR
       use OldTracer_mod, only: trname,itime_tr0
-      use tracer_com, only: ntm, sfc_src, tracers
+      use tracer_com, only: ntm, sfc_src, tracers, trm
       use tracer_mod, only: Tracer
       use TracerSurfaceSource_mod, only: itsOcean
       use trdiag_com, only: trcSurfByVol
+      use GEOM, only: byaxyp
 
       implicit none
 
@@ -921,11 +922,13 @@ C
       character*80 :: message
       class (Tracer), pointer :: trc
       real*8 :: TC, TK, TK0, DTR, KH0, U10, ka, kw, k600, SC, ra
-      real*8 :: CW, CA, K, CD, ustar, waterToAir, airToWater
+      real*8 :: CW, CA, K, CD, ustar, waterToAir, airToWater, bydtsrc
       real*8, parameter :: ocean_thresh=0.1d0
       real*8, parameter :: SC600=600.d0
       real*8, parameter :: vk=0.40d0 ! von karman constant [dimensionless]
       integer :: source_count
+
+      bydtsrc=1.d0/dtsrc
 
       ! List nOCeanSpecies Ocean species for easier looping:
       species( 1)=acetone
@@ -1019,7 +1022,7 @@ C
               ! which just leaves the molecular weight [g mole-1]:
               CW=species(n)%conc*species(n)%mw
 
-              ! Canclulate water-to-air flux in kg m-s s-1, prorated by
+              ! Canclulate water-to-air flux in kg m-2 s-1, prorated by
               ! ocean fraction:
               !TODO: does this include only non-ice?
               waterToAir=CW*K*FOCEAN(i,j)
@@ -1029,12 +1032,16 @@ C
               ! it's a diagnostic array, so think of any implications of that...
               CA=trcSurfByVol(i,j,nTracer)
 
-              ! Canclulate air-to-water flux in kg m-s s-1, prorated by
+              ! Canclulate air-to-water flux in kg m-2 s-1, prorated by
               ! ocean fraction (this doesn't go anywhere; it's just a
               ! sink from the atmosphere):
               ! TODO: understand the /KH0 bit.
               ! TODO: understand why goes-chem V9.X implements sink as exp decay
               airToWater=FOCEAN(i,j)*CA*K/KH0
+
+              ! For now, don't let the sink pull all of tracer out of L=1:
+              airToWater=MAX(airToWater,
+     &                   -0.8d0*trm(i,j,1,nTracer)*byaxyp(i,j)*bydtsrc)
 
               ! Save net flux density (kg m-2 s-1) to be applied
               ! outside this routine:

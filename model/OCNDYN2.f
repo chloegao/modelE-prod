@@ -67,7 +67,7 @@ c**** Extract domain decomposition info
 C***  Get the data from the atmospheric grid to the ocean grid
       call AG2OG_oceans(atmocn,iceocn)
 #ifdef TRACERS_GASEXCH_ocean_CO2
-C        Call CARBON ('AG2OG_')
+         Call CARBON ('AG2OG_')
          Call NITR ('AG2OG_')
 #endif
 
@@ -86,7 +86,7 @@ C**** Apply surface fluxes to ocean
       CALL GROUND_OC
          CALL CHECKO('GRNDOC')
 #ifdef TRACERS_GASEXCH_ocean_CO2
-C        Call CARBON ('GRNDOC')
+         Call CARBON ('GRNDOC')
          Call NITR ('GRNDOC')
 #endif
 
@@ -100,7 +100,7 @@ C**** Apply ocean vertical mixing
       CALL OCONV
          CALL CHECKO('OCONV ')
 #ifdef TRACERS_GASEXCH_ocean_CO2
-C        Call CARBON ('OCONV ')
+         Call CARBON ('OCONV ')
          Call NITR ('OCONV ')
 #endif
 
@@ -489,7 +489,7 @@ C**** Mesoscale tracer transports
 C****
       call ocnmeso_drv
 #ifdef TRACERS_GASEXCH_ocean_CO2
-C        Call CARBON ('OCNMESO')
+         Call CARBON ('OCNMESO')
          Call NITR ('OCNMESO')
 #endif
       CALL CHECKO ('GMDIFF')

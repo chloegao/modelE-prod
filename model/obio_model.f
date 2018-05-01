@@ -27,11 +27,11 @@
      .                    ,pp2chlo_day,pp2cyan_day,pp2cocc_day
      .                    ,tot_chlo,acdom3d
      .                    ,itest,jtest
-     .                    ,obio_ws
+     .                    ,obio_ws,trmo_unit_factor
      .                    ,cexp,flimit,kzc
      .                    ,rhs_obio,chng_by,Kpar,Kpar_em2d,Edz,Esz,Euz
      .                    ,delta_temp1d,sday
-     .                    ,num_tracers
+     .                    ,num_tracers,use_qus
 #ifdef TOPAZ_params
      .                    ,ca_det_calc1d
 #endif
@@ -85,6 +85,7 @@
       USE OFLUXES,    only : oice=>oRSI,oAPRESS,ocnatm
       USE OCEAN,      only : g0m,s0m,mo,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
+     .                      ,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
       use ocn_tracer_vector_mod, only:
      &                           vector_ocn_tracer_entry=>vector
       USE OCN_TRACER_COM, only :n_abioDIC,add_ocn_tracer,tracerlist
@@ -147,7 +148,6 @@
      &                      ogrid%j_strt_halo:ogrid%j_stop_halo)     
 #endif
 
-      real*8 trmo_unit_factor(kdm,ntrac)
       integer :: idx_co2
       logical vrbos,noon,errcon
       integer :: year, month, dayOfYear, date, hour
@@ -279,6 +279,7 @@ c
        call sync_param( "solFe", solFe)
        if (AM_I_ROOT()) print*, 'solfe=',solFe
 
+       if (AM_I_ROOT()) print*, 'using QUS?=',USE_QUS
 !--------------------------------------------------------
 
        day_of_month=date
@@ -1092,6 +1093,14 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
           txmo(i,j,k,nt)=txmo(i,j,k,nt)*(1.-ftr)
           tymo(i,j,k,nt)=tymo(i,j,k,nt)*(1.-ftr)
           tzmo(i,j,k,nt)=tzmo(i,j,k,nt)*(1.-ftr)       
+          if (use_qus==1) then
+             txxmo(i,j,k,nt)=txxmo(i,j,k,nt)*(1.-ftr)       
+             txymo(i,j,k,nt)=txymo(i,j,k,nt)*(1.-ftr)       
+             tzxmo(i,j,k,nt)=tzxmo(i,j,k,nt)*(1.-ftr)       
+             tyymo(i,j,k,nt)=tyymo(i,j,k,nt)*(1.-ftr)       
+             tyzmo(i,j,k,nt)=tyzmo(i,j,k,nt)*(1.-ftr)       
+             tzzmo(i,j,k,nt)=tzzmo(i,j,k,nt)*(1.-ftr)       
+          endif
         endif
 
         trmo(i,j,k,nt)=trmo(i,j,k,nt)+dtr

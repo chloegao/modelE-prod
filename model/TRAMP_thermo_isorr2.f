@@ -1,5 +1,5 @@
-       SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,TOT_DUST,
-     &                       SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST,
+     &                       SALT,SSH2O,TEMP,RH,PRESS,RHD,RHC)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -7,24 +7,21 @@
 !@+     This version of AERO_THERMO is for use with the ISORROPIA thermodynamic module.
 !@auth Susanne Bauer/Doug Wright
 
-      USE AERO_PARAM, ONLY: WRITE_LOG, AUNIT1
       IMPLICIT NONE
 
-      !------------------------------------------------------------------------------------------------------
       ! Arguments.
-      !------------------------------------------------------------------------------------------------------
-      REAL(8), INTENT(INOUT) :: ASO4      ! aerosol sulfate       [ug/m^3]
+      REAL(8), INTENT(IN)    :: ASO4      ! aerosol sulfate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANO3      ! aerosol nitrate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANH4      ! aerosol ammonium      [ug/m^3]
+      REAL(8), INTENT(IN)    :: DUST      ! total dust(sol+insol) [ug/m^3]
+      REAL(8), INTENT(IN)    :: SALT      ! sea salt (NaCl)       [ug/m^3]
       REAL(8), INTENT(INOUT) :: AH2O      ! aerosol water         [ug/m^3]
       REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
-      REAL(8), INTENT(IN)    :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
-      REAL(8), INTENT(IN)    :: SEAS      ! sea salt (NaCl)       [ug/m^3]
       REAL(8), INTENT(OUT)   :: SSH2O     ! sea salt assoc. H2O   [ug/m^3]
-      REAL(8), INTENT(IN)    :: TK        ! absolute temperature  [K]          
+      REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
-      REAL(8), INTENT(IN)    :: PRES      ! ambient pressure      [Pa]  
+      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
 
@@ -45,7 +42,7 @@
       REAL(8) :: AERSLD(19)   ! [moles/m^3]
       REAL(8) :: OTHER(6)     ! 
       CHARACTER(LEN=15) :: SCASI = '               '
-   
+
       !------------------------------------------------------------------------------------------------------
       ! Parameters. Double-precision molecular weights [g/mol] and their reciprocals.
       !------------------------------------------------------------------------------------------------------
@@ -60,7 +57,7 @@
       REAL(8), PARAMETER :: MW_H2O    = 18.01528D+00  ! [g/mol]
       REAL(4), PARAMETER :: MW_K      = 39.0983       ! [g/mol]
       REAL(4), PARAMETER :: MW_CA     = 40.078        ! [g/mol]
-      REAL(4), PARAMETER :: MW_MG     = 24.3050       ! [g/mol]  
+      REAL(4), PARAMETER :: MW_MG     = 24.3050       ! [g/mol]
       REAL(8), PARAMETER :: RMW_NA    = 1.0D-06 / MW_NA    ! [mol/g]
       REAL(8), PARAMETER :: RMW_ASO4  = 1.0D-06 / MW_ASO4  ! [mol/g]
       REAL(8), PARAMETER :: RMW_ANH4  = 1.0D-06 / MW_ANH4  ! [mol/g]
@@ -114,14 +111,14 @@
       !------------------------------------------------------------------------------------------------------
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
-      WI(1) = RAT_NA*SEAS*RMW_NA*FRAC_SALT             ! sodium from [ug/m^3] to [mol/m^3]
+      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT             ! sodium from [ug/m^3] to [mol/m^3]
       WI(2) =        ASO4*RMW_ASO4                     ! sulfate from [ug/m^3] to [mol/m^3]
       WI(3) =        ANH4*RMW_ANH4 +  GNH3*RMW_GNH3    ! ammonium from [ug/m^3] to [mol/m^3]
       WI(4) =        ANO3*RMW_ANO3 + GHNO3*RMW_GHNO3   ! nitrate from [ug/m^3] to [mol/m^3]
-      WI(5) = RAT_CL*SEAS*RMW_CL*FRAC_SALT             ! chloride from [ug/m^3] to [mol/m^3]
-      WI(6) = TOT_DUST*CONV_CAION*1.0D-06              ! calcium
-      WI(7) = TOT_DUST*CONV_KION *1.0D-06              ! potassium
-      WI(8) = TOT_DUST*CONV_MGION*1.0D-06              ! magnesium
+      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT             ! chloride from [ug/m^3] to [mol/m^3]
+      WI(6) = DUST*CONV_CAION*1.0D-06                  ! calcium
+      WI(7) = DUST*CONV_KION *1.0D-06                  ! potassium
+      WI(8) = DUST*CONV_MGION*1.0D-06                  ! magnesium
 
       CNTRL(1) = 0.0D+00  ! Forward problem: WI contains the gas+aerosol concentrations
       CNTRL(2) = 0.0D+00  ! 0 (solid & liquid phases), 1 (liquid only, metastable)
@@ -131,19 +128,15 @@
       AERLIQ(:) = 0.0D+00
       AERSLD(:) = 0.0D+00
       OTHER(:)  = 0.0D+00
- 
 
-      CALL ISOROPIA ( WI, H, TK, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
+      CALL ISOROPIA ( WI, H, TEMP, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
-
-      GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       GHNO3 = MAX( GAS(2)*CMW_GHNO3, 0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
-      ASO4  = WT(2)*CMW_ASO4                      ! from [mol/m^3] to [ug/m^3]
-      ANH4  = WT(3)*CMW_ANH4 - GNH3               ! from [mol/m^3] to [ug/m^3]
-      ANO3  = WT(4)*CMW_ANO3 - GHNO3              ! from [mol/m^3] to [ug/m^3]
+      GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       AH2O  = AERLIQ(8)*CMW_H2O                   ! from [mol/m^3] to [ug/m^3]
-      ANH4  = MAX( ANH4, 0.0D+00 )                ! [ug/m^3]
-      ANO3  = MAX( ANO3, 0.0D+00 )                ! [ug/m^3]
+      ANH4  = MAX( WT(3)*CMW_ANH4 - GNH3, 0.d0 )  ! from [mol/m^3] to [ug/m^3]
+      ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3, 0.d0 ) ! from [mol/m^3] to [ug/m^3]
+!      ASO4  = WT(2)*CMW_ASO4                      ! from [mol/m^3] to [ug/m^3]
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
@@ -156,12 +149,10 @@
       !-------------------------------------------------------------------------
 
       IF ( H .GT. 0.45D+00 ) THEN     ! ... then we are above the crystallization RH of NaCl
-        SSH2O = SEAS * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
+        SSH2O = SALT * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
       ELSE
         SSH2O = 0.0D+00
       ENDIF
 
-      RETURN
+
       END SUBROUTINE AERO_THERMO
-
-

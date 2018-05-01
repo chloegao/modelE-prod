@@ -1,68 +1,30 @@
-#include "rundeck_opts.h"
-      SUBROUTINE NITRATE_THERMO_DRV(I,J,LTOP)
+      SUBROUTINE NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
+     &                              GNH3,GHNO3,TEMP,RH,PRESS)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
 !@+
-!@+      A version of ISORROPIA 2 is the current thermodynamic model. 
+!@+     This version of AERO_THERMO is for use with the ISORROPIA thermodynamic module.
 !@auth Susanne Bauer
 
-
-!----------------------------------------------------------------------------------------------------------------------
-!     This routine sets up for and calls the thermodynamic module for aerosol
-!     gas-particle partitioning.
-!
-! 
-!----------------------------------------------------------------------------------------------------------------------
-      USE TRACER_COM, only: ntm, trm_col
-      use TRACER_COM, only: n_Clay, n_HNO3, n_NH3, n_NH4, n_NO3p
-#ifdef TRACERS_AEROSOLS_SEASALT
-      use TRACER_COM, only: n_seasalt1, n_seasalt2
-#endif  /* TRACERS_AEROSOLS_SEASALT */
-      use TRACER_COM, only: n_Silt1, n_Silt2, n_Silt3
-      use TRACER_COM, only: n_SO4, n_SO4_d1, n_SO4_d2, n_SO4_d3
-      use RunTimeControls_mod, only: tracers_special_shindell
-      use TRACER_COM, only: coupled_chem
-      USE AEROSOL_SOURCES, only: off_HNO3
-
-      USE RESOLUTION, only : im,jm,lm     ! dimensions
-      use ATMCOL_COM, only: tl   ! layer temperature (K)
-      use ATMCOL_COM, only: rhl  ! layer relative humidity (0-1)
-      use ATMCOL_COM, only: pl   ! layer pressure (mb)
-      use ATMCOL_COM, only: ma   ! layer mass (kg/m2)
-      USE MODEL_COM, only : dtsrc
-      USE CONSTANT,   only: mair,gasc,lhe
-      USE FLUXES, only: tr3Dsource
-      USE TRACER_COM, only: nThermo
-      use TRDIAG_COM, only: taijls=>taijls_loc,ijlt_aH2O,ijlt_apH
-
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: I,J,LTOP
 
-      INTEGER:: l,n
-      ! Call parameters for the EQSAM thermodynamic model. 
-
-      INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
-      INTEGER, PARAMETER :: NCO  = 36    ! fixed number of output variables
-      INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
-!     INTEGER, PARAMETER :: IOPT =  2    ! =2 selects the solid      (dry) state and history
-      INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
-      INTEGER, PARAMETER :: IMAX =  1    ! only a single time step done
-      INTEGER, PARAMETER :: AUNIT1 =  66
-
-      ! Functions
-      REAL*8 :: QSAT, AVOL
+      ! Arguments.
+      REAL(8), INTENT(IN)    :: ASO4      ! aerosol sulfate       [ug/m^3]
+      REAL(8), INTENT(INOUT) :: ANO3      ! aerosol nitrate       [ug/m^3]
+      REAL(8), INTENT(INOUT) :: ANH4      ! aerosol ammonium      [ug/m^3]
+      REAL(8), INTENT(IN)    :: DUST      ! dust                  [ug/m^3]
+      REAL(8), INTENT(IN)    :: SALT      ! sea salt              [ug/m^3]
+      REAL(8), INTENT(OUT)   :: AH2O      ! aerosol water         [ug/m^3]
+      REAL(8), INTENT(OUT)   :: ApH       ! aerosol pH
+      REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3]
+      REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3]
+      REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
+      REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
+      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
 
       ! Variables
     
-      REAL(8) :: ASO4      ! aerosol sulfate       [ug/m^3]
-      REAL(8) :: ANO3      ! aerosol nitrate       [ug/m^3]
-      REAL(8) :: ANH4      ! aerosol ammonium      [ug/m^3]
-      REAL(8) :: AH2O      ! aerosol water         [ug/m^3]
-      REAL(8) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
-      REAL(8) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
-      REAL(8) :: DUST      ! fine dust(sol+insol) [ug/m^3]
-      REAL(8) :: SALT      ! fine salt(sol+insol) [ug/m^3]
       REAL(8) :: RHD       ! RH of deliquescence   [0-1]
       REAL(8) :: RHC       ! RH of crystallization [0-1]
 
@@ -70,8 +32,6 @@
       ! Input to ISOROPIA.
       !------------------------------------------------------------------------------------------------------
       REAL(8) :: WI(8)        ! [moles/m^3]
-      REAL(8) :: RHI          ! [0.0-1.0]
-      REAL(8) :: TEMPI        ! [K]
       REAL(8) :: CNTRL(2)     ! [1] control variables
 
       !------------------------------------------------------------------------------------------------------
@@ -80,7 +40,7 @@
       REAL(8) :: WT(8)        ! [moles/m^3]
       REAL(8) :: GAS(3)       ! [moles/m^3]
       REAL(8) :: AERLIQ(15)   ! [moles/m^3]
-      REAL(8) :: AERSLD(19)    ! [moles/m^3]
+      REAL(8) :: AERSLD(19)   ! [moles/m^3]
       REAL(8) :: OTHER(6)     ! 
       CHARACTER(LEN=15) :: SCASI = '               '
 
@@ -114,7 +74,7 @@
       REAL(8), PARAMETER :: CMW_GHNO3 = 1.0D+06 * MW_GHNO3 ! [ug/mol]
       REAL(8), PARAMETER :: CMW_CL    = 1.0D+06 * MW_CL    ! [ug/mol]
       REAL(8), PARAMETER :: CMW_H2O   = 1.0D+06 * MW_H2O   ! [g/mol]
- 
+
       !------------------------------------------------------------------------------------------------------
       ! Fraction of sea salt (NaCl) mass that is Na, and is Cl.
       !------------------------------------------------------------------------------------------------------
@@ -133,6 +93,7 @@
       REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
       REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
       REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+
       !------------------------------------------------------------------------------------------------------
       ! Other parameters.
       !------------------------------------------------------------------------------------------------------
@@ -148,31 +109,16 @@
 
       WI(:) = 0.d0
 
-      DO L=1,LTOP
-c avol [m3/gb] mass of air pro m3
-      AVOL = MA(l)/mair*1000.d0*gasc*tl(l)/(pl(l)*100.d0)
-! gas and aerosol trm [kg/gb] -> [ug/m^3]
-      GNH3 = trm_col(l,n_NH3)       *1.d9 /AVOL
-      ANH4 = trm_col(l,n_NH4)       *1.d9 /AVOL
-      ASO4 = trm_col(l,n_SO4)       *1.d9 /AVOL
-      if (tracers_special_shindell.and.coupled_chem==1) then
-        ANO3 = trm_col(l,n_NO3p)    *1.d9 /AVOL
-      else
-        ANO3 = off_HNO3(i,j,l)      *1.d9 /AVOL
-      endif
-      GHNO3= trm_col(l,n_HNO3)      *1.d9 /AVOL
-      DUST = trm_col(l,n_Clay)      *1.d9 /AVOL
-      SALT = trm_col(l,n_seasalt1)  *1.d9 /AVOL
+      H = MAX( MIN( RH, RHMAX ), RHMIN )
 
-      H = MAX( MIN( rhl(l), RHMAX ), RHMIN )
 !      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT            ! Na Sodium from [ug/m^3] to [mol/m^3]
       WI(2) =        ASO4*RMW_ASO4                    ! SO4  from [ug/m^3] to [mol/m^3]
       WI(3) =        ANH4*RMW_ANH4 +  GNH3*RMW_GNH3   ! NHx  from [ug/m^3] to [mol/m^3]
       WI(4) =        ANO3*RMW_ANO3 + GHNO3*RMW_GHNO3  ! NOx from [ug/m^3] to [mol/m^3]
 !      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT            ! Cl Chloride from [ug salt/m^3] to [molCl/m^3]
-!     WI(6) = DUST*CONV_CAION*1.0D-06                 ! Ca calcium   from [ug dust/m^3] to [umol Ca+/m^3]
-!     WI(7) = DUST*CONV_KION *1.0D-06                 ! K  potassium from [ug dust/m^3] to [umol K+ /m^3]
-!     WI(8) = DUST*CONV_MGION*1.0D-06                 ! Mg magnesium from [ug dust/m^3] to [umol Mg+/m^3]
+!      WI(6) = DUST*CONV_CAION*1.0D-06                 ! Ca calcium   from [ug dust/m^3] to [umol Ca+/m^3]
+!      WI(7) = DUST*CONV_KION *1.0D-06                 ! K  potassium from [ug dust/m^3] to [umol K+ /m^3]
+!      WI(8) = DUST*CONV_MGION*1.0D-06                 ! Mg magnesium from [ug dust/m^3] to [umol Mg+/m^3]
 
       CNTRL(1) = 0.0D+00  ! Forward problem: WI contains the gas+aerosol concentrations
       CNTRL(2) = 0.0D+00  ! 0 (solid & liquid phases), 1 (liquid only, metastable)
@@ -183,36 +129,19 @@ c avol [m3/gb] mass of air pro m3
       AERSLD(:) = 0.0D+00
       OTHER(:)  = 0.0D+00
 
+      CALL ISOROPIA ( WI, H, TEMP, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
-      CALL ISOROPIA ( WI, H, tl(l), CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
-
-
-      GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       GHNO3 = MAX( GAS(2)*CMW_GHNO3, 0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
-      ASO4  = WT(2)*CMW_ASO4                      ! from [mol/m^3] to [ug/m^3]
-      ANH4  = WT(3)*CMW_ANH4 - GNH3               ! from [mol/m^3] to [ug/m^3]
-      ANO3  = WT(4)*CMW_ANO3 - GHNO3              ! from [mol/m^3] to [ug/m^3]
+      GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       AH2O  = AERLIQ(8)*CMW_H2O                   ! from [mol/m^3] to [ug/m^3]
-      ANH4  = MAX( ANH4, 0.0D+00 )                ! [ug/m^3]
-      ANO3  = MAX( ANO3, 0.0D+00 )                ! [ug/m^3]
+      ApH   = -log10(AERLIQ(1)*1.d-3)             ! mol/m3 to mol/kg assuming density 1.d-3 kg/m3
+      ANH4  = MAX( WT(3)*CMW_ANH4 - GNH3, 0.D0 )  ! from [mol/m^3] to [ug/m^3]
+      ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3,0.D0 )  ! from [mol/m^3] to [ug/m^3]
+! ISORROPIA does not modify ASO4, so the lines below are not needed
+!      ASO4  = WT(2)*CMW_ASO4                      ! from [mol/m^3] to [ug/m^3]
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
 
-! save aerosol water (ug/m3) and aerosol pH (dimensionless)
-      taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
-      taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+(-log10(AERLIQ(1)*1.d-3)) !  mol/m3 to mol/kg assuming density 1.d-3 kg/m3
-
-! Nitrate production   from [ug/m^3] -> trm [kg/gb]
-      tr3Dsource(l,nThermo,n_NO3p)=((ANO3 * 1.d-9 *AVOL) -trm_col(l,n_NO3p))/dtsrc
-! Ammonia residual
-      tr3Dsource(l,nThermo,n_NH3)= ((GNH3 * 1.d-9 *AVOL) -trm_col(l,n_NH3)) /dtsrc
-! Ammonium production
-      tr3Dsource(l,nThermo,n_NH4)= ((ANH4 * 1.d-9 *AVOL) -trm_col(l,n_NH4)) /dtsrc
-! Nitric Acid residual
-      tr3Dsource(l,nThermo,n_HNO3)=((GHNO3 * 1.d-9 *AVOL)-trm_col(l,n_HNO3))/dtsrc
-
-
-      ENDDO
 
       END SUBROUTINE NITRATE_THERMO_DRV

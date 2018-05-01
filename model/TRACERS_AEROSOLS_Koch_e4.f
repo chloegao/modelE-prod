@@ -5,6 +5,7 @@
 !@ subroutines in this file include:
 !@ alloc_aerosol_sources
 !@ read_DMS_sources
+!@ aerosol_gas_chem_prep
 !@ aerosol_gas_chem
 !@ get_oxidants
 !@ GET_SULFATE

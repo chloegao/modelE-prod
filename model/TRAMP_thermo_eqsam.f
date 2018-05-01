@@ -1,5 +1,5 @@
-      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,TOT_DUST,
-     &                       SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST,
+     &                       SALT,SSH2O,TEMP,RH,PRESS,RHD,RHC)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -23,25 +23,24 @@
 !
 !     Also, this version of EQSAM takes as input the mineral cation 
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
-!     of inorganic aerosol constituents in MATRIX, these cations are included.
+!     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
       USE AERO_PARAM, ONLY: WRITE_LOG, TINYNUMER, AUNIT1
       IMPLICIT NONE
 
       ! Arguments.
-    
-      REAL(8), INTENT(INOUT) :: ASO4      ! aerosol sulfate       [ug/m^3]
+      REAL(8), INTENT(IN)    :: ASO4      ! aerosol sulfate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANO3      ! aerosol nitrate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANH4      ! aerosol ammonium      [ug/m^3]
+      REAL(8), INTENT(IN)    :: DUST      ! total dust(sol+insol) [ug/m^3]
+      REAL(8), INTENT(IN)    :: SALT      ! sea salt (NaCl)       [ug/m^3]
       REAL(8), INTENT(INOUT) :: AH2O      ! aerosol water         [ug/m^3]
       REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
       REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
-      REAL(8), INTENT(IN)    :: TOT_DUST  ! total dust(sol+insol) [ug/m^3]
-      REAL(8), INTENT(IN)    :: SEAS      ! sea salt (NaCl)       [ug/m^3]
       REAL(8), INTENT(OUT)   :: SSH2O     ! sea salt assoc. H2O   [ug/m^3]
-      REAL(8), INTENT(IN)    :: TK        ! absolute temperature  [K]          
+      REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
-      REAL(8), INTENT(IN)    :: PRES      ! ambient pressure      [Pa]  
+      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
 
@@ -114,24 +113,24 @@
       ! Call for the bulk non-sea salt inorganic aerosol.
       !----------------------------------------------------------------------------------------------------------------
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(/A,3F12.3/)') 'EQSAM: TK[K], RH[0-1], PRES[Pa] = ', TK, RH, PRES
-        WRITE(AUNIT1,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','TOT_DUST'
-        WRITE(AUNIT1,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,TOT_DUST
+        WRITE(AUNIT1,'(/A,3F12.3/)') 'EQSAM: TEMP[K], RH[0-1], PRESS[Pa] = ', TEMP, RH, PRESS
+        WRITE(AUNIT1,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','DUST'
+        WRITE(AUNIT1,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
       ENDIF
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
 
-      YI(1,1)  = TK                               ! [K]
+      YI(1,1)  = TEMP                             ! [K]
       YI(1,2)  = H                                ! [0-1]
       YI(1,3)  = GNH3*RMW_GNH3   + ANH4*RMW_ANH4  ! from [ug/m^3] to [umol/m^3]
       YI(1,4)  =                   ASO4*RMW_ASO4  ! from [ug/m^3] to [umol/m^3]
       YI(1,5)  = GHNO3*RMW_GHNO3 + ANO3*RMW_ANO3  ! from [ug/m^3] to [umol/m^3]
-      YI(1,6)  = TOT_DUST*CONV_NAION              ! from [ug dust/m^3] to [umol Na+/m^3]
+      YI(1,6)  = DUST*CONV_NAION                  ! from [ug dust/m^3] to [umol Na+/m^3]
       YI(1,7)  = 0.0                              ! (HCl + Cl-)
-      YI(1,8)  = TOT_DUST*CONV_KION               ! from [ug dust/m^3] to [umol K+ /m^3]
-      YI(1,9)  = TOT_DUST*CONV_CAION              ! from [ug dust/m^3] to [umol Ca+/m^3]
-      YI(1,10) = TOT_DUST*CONV_MGION              ! from [ug dust/m^3] to [umol Mg+/m^3]
-      YI(1,11) = PRES*0.01                        ! from [Pa] to [hPa]
+      YI(1,8)  = DUST*CONV_KION                   ! from [ug dust/m^3] to [umol K+ /m^3]
+      YI(1,9)  = DUST*CONV_CAION                  ! from [ug dust/m^3] to [umol Ca+/m^3]
+      YI(1,10) = DUST*CONV_MGION                  ! from [ug dust/m^3] to [umol Mg+/m^3]
+      YI(1,11) = PRESS*0.01                       ! from [Pa] to [hPa]
       YI(1, :) = MAX( YI(1,:), 0.0d-10 )          ! Lower limit was 1.0E-10 before 102406.
       YI(1,4)  = YI(1,4) + SMALL_SO4              ! EQSAM has crashed at low RH and low sulfate conc.
 
@@ -142,38 +141,38 @@
       AH2O  = MAX(YO(1,12)           ,TINYNUMER)  ! already in [ugH2O/m^3]
       ANH4  = MAX(YO(1,19) * MW_ANH4 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
       ANO3  = MAX(YO(1,20) * MW_ANO3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
-      ASO4  = MAX( ASO4, TINYNUMER )              ! 
-!     RHD   = YO(1,36)                            ! [0-1]
+! eqsam does not modify ASO4, so the lines below are not needed
+!      ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
+!      ASO4  = MAX( ASO4, TINYNUMER )              ! 
+
+!      RHD   = YO(1,36)                            ! [0-1]
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
 
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,TOT_DUST
+        WRITE(AUNIT1,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
         WRITE(AUNIT1,'(A4,7F14.5)') 'RHD',RHD
       ENDIF 
 
-      !----------------------------------------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------
       ! Get the sea salt-associated water (only).
       !
       ! A simple parameterization provided by E. Lewis is used.
-      !----------------------------------------------------------------------------------------------------------------
+      !-------------------------------------------------------------------------
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,3A12  )') '   ','SEAS','SSH2O'           
-        WRITE(AUNIT1,'(A4,3F12.5)') 'TOP' ,SEAS
+        WRITE(AUNIT1,'(A4,3A12  )') '   ','SALT','SSH2O'           
+        WRITE(AUNIT1,'(A4,3F12.5)') 'TOP' ,SALT
       ENDIF
 
       IF ( H .GT. 0.45D+00 ) THEN     ! ... then we are above the crystallization RH of NaCl
-        SSH2O = SEAS * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
+        SSH2O = SALT * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
       ELSE
         SSH2O = 0.0D+00
       ENDIF
 
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,3F12.5)') 'END',SEAS,SSH2O
+        WRITE(AUNIT1,'(A4,3F12.5)') 'END',SALT,SSH2O
       ENDIF
 
-      RETURN
+
       END SUBROUTINE AERO_THERMO
-
-
