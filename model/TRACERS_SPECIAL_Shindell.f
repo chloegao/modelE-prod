@@ -906,6 +906,7 @@ C
       use oceanEmissionsSpecies, only: nOceanSpecies,species,acetone
       use model_com, only: itime, dtsrc
       use fluxes, only: focean,atmocn
+      use seaice_com, only : si_atm
       use constant, only: tf
       use TimeConstants_mod, only: SECONDS_PER_HOUR
       use OldTracer_mod, only: trname,itime_tr0
@@ -923,9 +924,12 @@ C
       class (Tracer), pointer :: trc
       real*8 :: TC, TK, TK0, DTR, KH0, U10, ka, kw, k600, SC, ra
       real*8 :: CW, CA, K, CD, ustar, waterToAir, airToWater, bydtsrc
+      real*8 :: openOcean
       real*8, parameter :: ocean_thresh=0.1d0
       real*8, parameter :: SC600=600.d0
       real*8, parameter :: vk=0.40d0 ! von karman constant [dimensionless]
+      real*8, parameter :: TMIN=-5.d0, TMAX=30.d0 ! deg C (initially tried -60 to 100)
+      real*8, parameter :: sinkFraction=0.95d0 ! fraction L=1 removal allowed
       integer :: source_count
 
       bydtsrc=1.d0/dtsrc
@@ -936,9 +940,8 @@ C
       ! Prepare some information from this GCM gridbox:
       ! Get the surface temperature in def C (over ocean only), with
       ! some limits:
-      ! TODO: see if limits need tightening...
       TC = atmocn%GTEMP(i,j)
-      TC = MIN( MAX ( TC, -20.d0 ), 60.d0 )
+      TC = MIN( MAX ( TC, TMIN ), TMAX )
       TK = TC+tf
       TK0 = tf+25.d0 ! i.e. 298.15 K. standard
       ! Get difference of recipricol of TK vs. standard TK0:
@@ -969,9 +972,10 @@ C
 
           ! ... for the same reason, I moved this check here (instead
           ! of a "return" statement new the top of the routine). I.e.
-          ! REMEMBER to put all conditions after the zeroing above...
-          ! Skip for boxes with too little ocean:
-          if(FOCEAN(i,j) < ocean_thresh) cycle sources_loop
+          ! REMEMBER to put all conditionals after the zeroing above...
+          ! Skip for boxes with too little open ocean:
+          openOcean=(1.d0-si_atm%rsi(i,j))*FOCEAN(i,j)
+          if(openOcean < ocean_thresh) cycle sources_loop
 
           ! try to match tracer with defined species, otherwise skip:
           species_loop: do n=1,size(species)
@@ -988,8 +992,9 @@ C
               ! dimensionless gas-over-liquid Henry's Law constant here:
               KH0=12.2d0/(TK*species(n)%KHS*EXP(species(n)%TDS*DTR))
               !TODO: seemed to me that GEOS-CHEM V9.X has the DTR backwards.
-              !Or perhaps do I? They also have a constant for TK in above line.
-              ! I am doing it in the order of K_calcs_Johnson_OS.R program...
+              ! Or perhaps do I? Consistently, they have a constant T where 
+              ! TK is in above line. I am doing it in the order of the
+              ! K_calcs_Johnson_OS.R program though...
 
               ! Calculate the Schmidt number for this species a function
               ! of temperature, following Johnson 2010:
@@ -1024,8 +1029,7 @@ C
 
               ! Canclulate water-to-air flux in kg m-2 s-1, prorated by
               ! ocean fraction:
-              !TODO: does this include only non-ice?
-              waterToAir=CW*K*FOCEAN(i,j)
+              waterToAir=CW*K*openOcean
 
               ! Get the tracer concentrationin kg m-3:
               !TODO: Turns out we already have this in an array, but
@@ -1037,15 +1041,16 @@ C
               ! sink from the atmosphere):
               ! TODO: understand the /KH0 bit.
               ! TODO: understand why goes-chem V9.X implements sink as exp decay
-              airToWater=FOCEAN(i,j)*CA*K/KH0
+              airToWater=openOcean*CA*K/KH0
 
-              ! For now, don't let the sink pull all of tracer out of L=1:
-              airToWater=MAX(airToWater,
-     &                   -0.8d0*trm(i,j,1,nTracer)*byaxyp(i,j)*bydtsrc)
+              ! In effort to avoid negative tracer, don't let the sink
+              ! part pull all of tracer out of L=1:
+              airToWater=MIN(airToWater,
+     &              sinkFraction*trm(i,j,1,nTracer)*byaxyp(i,j)*bydtsrc)
 
               ! Save net flux density (kg m-2 s-1) to be applied
               ! outside this routine:
-              sfc_src(i,j,nTracer,ns)=waterToAir+airToWater
+              sfc_src(i,j,nTracer,ns)=waterToAir-airToWater
 
               cycle sources_loop ! done with this tracer's source
               ! TODO: could that be made cycle tracers_loop?
