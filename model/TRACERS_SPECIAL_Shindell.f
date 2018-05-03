@@ -1077,7 +1077,7 @@ C
 
 
       subroutine getSchmidt(this,TC,SC)
-      !@sub getSchmidt Obtain salinity-independend (for now)
+      !@sub getSchmidt Obtain salinity-independent (for now)
       !@+ dimensionless Schmidt Number for passed-in species.
       !@auth Greg Faluvegi
       use oceanEmissions, only: oceanSpecies
@@ -1092,7 +1092,7 @@ C
       real*8 :: estar ! epsilon star
       real*8 :: Ns ! Eta, dynamic viscocity of the solvent
       ! Hardy 1953 method dynamic viscocity, which is only temperature-
-      ! dependant:
+      ! dependent:
       TK=TC+tf
       Ns=1.787d0*1.052d0/(1.d0+(0.03338d0*TC)+(0.00018325d0*TC*TC))
       ! Johnson et al 2010 Eq 35:
