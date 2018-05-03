@@ -1,5 +1,5 @@
-      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST,
-     &                       SALT,SSH2O,TEMP,RH,PRESS,RHD,RHC)
+      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
+     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -13,15 +13,15 @@
       REAL(8), INTENT(IN)    :: ASO4      ! aerosol sulfate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANO3      ! aerosol nitrate       [ug/m^3]
       REAL(8), INTENT(INOUT) :: ANH4      ! aerosol ammonium      [ug/m^3]
-      REAL(8), INTENT(IN)    :: DUST      ! total dust(sol+insol) [ug/m^3]
-      REAL(8), INTENT(IN)    :: SALT      ! sea salt (NaCl)       [ug/m^3]
-      REAL(8), INTENT(INOUT) :: AH2O      ! aerosol water         [ug/m^3]
-      REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3] as ammonium (MW)
-      REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3] as nitrate  (MW)
+      REAL(8), INTENT(IN)    :: DUST      ! dust                  [ug/m^3]
+      REAL(8), INTENT(IN)    :: SALT      ! sea salt              [ug/m^3]
+      REAL(8), INTENT(OUT)   :: AH2O      ! aerosol water         [ug/m^3]
+      REAL(8), INTENT(OUT)   :: ApH       ! aerosol pH
       REAL(8), INTENT(OUT)   :: SSH2O     ! sea salt assoc. H2O   [ug/m^3]
+      REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3]
+      REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3]
       REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
-      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
 
@@ -29,8 +29,6 @@
       ! Input to ISOROPIA.
       !------------------------------------------------------------------------------------------------------
       REAL(8) :: WI(8)        ! [moles/m^3]
-      REAL(8) :: RHI          ! [0.0-1.0]
-      REAL(8) :: TEMPI        ! [K]
       REAL(8) :: CNTRL(2)     ! [1] control variables
 
       !------------------------------------------------------------------------------------------------------
@@ -107,18 +105,20 @@
       REAL(8)            :: H                    ! local RH, with RHMIN < H < RHMAX
 
       !------------------------------------------------------------------------------------------------------
-      ! Call for the bulk non-sea salt inorganic aerosol.
+      ! Call for the bulk inorganic aerosol.
       !------------------------------------------------------------------------------------------------------
+      WI(:) = 0.d0
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
-      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT             ! sodium from [ug/m^3] to [mol/m^3]
-      WI(2) =        ASO4*RMW_ASO4                     ! sulfate from [ug/m^3] to [mol/m^3]
-      WI(3) =        ANH4*RMW_ANH4 +  GNH3*RMW_GNH3    ! ammonium from [ug/m^3] to [mol/m^3]
-      WI(4) =        ANO3*RMW_ANO3 + GHNO3*RMW_GHNO3   ! nitrate from [ug/m^3] to [mol/m^3]
-      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT             ! chloride from [ug/m^3] to [mol/m^3]
-      WI(6) = DUST*CONV_CAION*1.0D-06                  ! calcium
-      WI(7) = DUST*CONV_KION *1.0D-06                  ! potassium
-      WI(8) = DUST*CONV_MGION*1.0D-06                  ! magnesium
+
+      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT            ! Na Sodium from [ug/m^3] to [mol/m^3]
+      WI(2) =        ASO4*RMW_ASO4                    ! SO4  from [ug/m^3] to [mol/m^3]
+      WI(3) =        ANH4*RMW_ANH4 +  GNH3*RMW_GNH3   ! NH3+NH4  from [ug/m^3] to [mol/m^3]
+      WI(4) =        ANO3*RMW_ANO3 + GHNO3*RMW_GHNO3  ! NO3+HNO3 from [ug/m^3] to [mol/m^3]
+      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT            ! Cl from [ug salt/m^3] to [mol/m^3]
+      WI(6) = DUST*CONV_CAION                         ! Ca from [ug dust/m^3] to [umol Ca+/m^3]
+      WI(7) = DUST*CONV_KION                          ! K  from [ug dust/m^3] to [umol K+ /m^3]
+      WI(8) = DUST*CONV_MGION                         ! Mg from [ug dust/m^3] to [umol Mg+/m^3]
 
       CNTRL(1) = 0.0D+00  ! Forward problem: WI contains the gas+aerosol concentrations
       CNTRL(2) = 0.0D+00  ! 0 (solid & liquid phases), 1 (liquid only, metastable)
@@ -134,8 +134,10 @@
       GHNO3 = MAX( GAS(2)*CMW_GHNO3, 0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       AH2O  = AERLIQ(8)*CMW_H2O                   ! from [mol/m^3] to [ug/m^3]
+      ApH   = -log10(AERLIQ(1)*1.d-3)             ! mol/m3 to mol/kg assuming density 1.d-3 kg/m3
       ANH4  = MAX( WT(3)*CMW_ANH4 - GNH3, 0.d0 )  ! from [mol/m^3] to [ug/m^3]
-      ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3, 0.d0 ) ! from [mol/m^3] to [ug/m^3]
+      ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3,0.d0 )  ! from [mol/m^3] to [ug/m^3]
+! ISORROPIA does not modify ASO4, so the line below is not needed
 !      ASO4  = WT(2)*CMW_ASO4                      ! from [mol/m^3] to [ug/m^3]
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
