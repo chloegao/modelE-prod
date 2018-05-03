@@ -92,6 +92,7 @@
       REAL(8) :: TOT_SULF                  ! total sulfate conc.  [ug/m^3]
       REAL(8) :: TOT_DUST                  ! total dust conc.     [ug/m^3]
       REAL(8) :: TOT_SEAS                  ! total sea salt conc. [ug/m^3]
+      REAL(8) :: ApH                       ! total aerosol pH
       REAL(8) :: SSH2O                     ! total sea salt H2O   [ug/m^3]
       REAL(8) :: SSH2O_PER_SSMASS          ! total sea salt H2O / total sea-salt dry mass
       REAL(8) :: FTMP, VOLTMP, VOLTMP_DRY  ! scratch variables for computing mode mean diameters 
@@ -367,8 +368,8 @@
       ! non-sea salt-associated water. The sea salt-associated water is in SSH2O.
       !----------------------------------------------------------------------------------------------------------------
       AERO_WATER_ACTUAL = AERO(MASS_H2O)       ! actual tracked aerosol water conc.
-      CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),AERO(MASS_H2O),GAS(GAS_NH3),
-     &                 GAS(GAS_HNO3),TOT_DUST,TOT_SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+      CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
+     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC)
       AERO_WATER_WET = AERO(MASS_H2O) + SSH2O  ! total metastable aerosol water conc.
 
       !----------------------------------------------------------------------------------------------------------------
@@ -1093,8 +1094,8 @@
       TOT_SEAS = SUM( AERO(SEAS_MAP(:)) )
       IF( WRITE_LOG ) WRITE(AUNIT1,'(/A,F12.4/)') 'TOT_SULF = ', TOT_SULF
       AERO_WATER_ACTUAL = AERO(MASS_H2O) + SSH2O
-      CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),AERO(MASS_H2O),GAS(GAS_NH3),
-     &                 GAS(GAS_HNO3),TOT_DUST,TOT_SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+      CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
+     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC)
       AERO_WATER_WET = AERO(MASS_H2O) + SSH2O
 
       !----------------------------------------------------------------------------------------------------------------

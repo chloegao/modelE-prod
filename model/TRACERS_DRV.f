@@ -7304,8 +7304,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 !@var ApH Aerosol pH
 !@var GNH3 Gaseous ammonia [ug m-3]
 !@var GHNO3 Gaseous nitric acid [ug m-3]
-      real*8 :: AVOL,ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH
-      real*8 :: GNH3,GHNO3
+      real*8 :: AVOL,ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O
+      real*8 :: GNH3,GHNO3,RHD,RHC
 
       integer, intent(in) :: i,j
 !
@@ -7331,8 +7331,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         DUST=trm_col(l,n_Clay)*1.d9/AVOL
         SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
 
-        call NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
-     &                          GNH3,GHNO3,tl(l),rhl(l),pl(l))
+        call AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
+     &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC)
 
 ! no need to update tr3Dsource for ASO4, since it does not change in eqsam.
         tr3Dsource(l,nThermo,n_NO3p)=(ANO3*1.d-9*AVOL-

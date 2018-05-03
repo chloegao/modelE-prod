@@ -1,11 +1,11 @@
-      SUBROUTINE NITRATE_THERMO_DRV(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,
-     &                              GNH3,GHNO3,TEMP,RH,PRESS)
+      SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
+     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
 !@+
 !@+      A version of EQSAM (eqsam_v03d) is the current thermodynamic model. 
-!@auth Susanne Bauer
+!@auth Susanne Bauer/Doug Wright
 
 !----------------------------------------------------------------------------------------------------------------------
 !     This routine sets up for and calls the thermodynamic module for aerosol
@@ -34,12 +34,15 @@
       REAL(8), INTENT(IN)    :: SALT      ! sea salt              [ug/m^3]
       REAL(8), INTENT(OUT)   :: AH2O      ! aerosol water         [ug/m^3]
       REAL(8), INTENT(OUT)   :: ApH       ! aerosol pH
+      REAL(8), INTENT(OUT)   :: SSH2O     ! sea salt assoc. H2O   [ug/m^3]
       REAL(8), INTENT(INOUT) :: GNH3      ! gas-phase ammonia     [ugNH4/m^3]
       REAL(8), INTENT(INOUT) :: GHNO3     ! gas-phase nitric acid [ugNO3/m^3]
       REAL(8), INTENT(IN)    :: TEMP      ! temperature           [K]
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
-      REAL(8), INTENT(IN)    :: PRESS     ! pressure              [mb]
+      REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
+      REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
 
+      ! Call parameters for the EQSAM thermodynamic model. 
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
       INTEGER, PARAMETER :: NCO  = 37    ! fixed number of output variables
       INTEGER, PARAMETER :: IOPT =  1    ! =1 selects the metastable (wet) state and history
@@ -47,11 +50,6 @@
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
       INTEGER, PARAMETER :: IMAX =  1    ! only a single time step done
       INTEGER, PARAMETER :: AUNIT1 =  66
-
-      ! Variables
-    
-      REAL(8) :: RHD       ! RH of deliquescence   [0-1]
-      REAL(8) :: RHC       ! RH of crystallization [0-1]
 
       !------------------------------------------------------------------------------------------------------
       ! Input/Output to/from EQSAM
@@ -120,8 +118,7 @@
       YI(1,8)  = DUST*CONV_KION                   ! Potassium from [ug dust/m^3] to [umol K+ /m^3]
       YI(1,9)  = DUST*CONV_CAION                  ! Calcium   from [ug dust/m^3] to [umol Ca+/m^3]
       YI(1,10) = DUST*CONV_MGION                  ! Magnesium from [ug dust/m^3] to [umol Mg+/m^3]
-      YI(1,11) = PRESS                            ! [hPa]
-      YI(1, :) = MAX( YI(1,:), 0.0E-10 )          ! Lower limit was 1.0E-10 before 102406.
+      YI(1, :) = MAX( YI(1,:), 0.0d-10 )          ! Lower limit was 1.0E-10 before 102406.
       YI(1,4)  = YI(1,4) + SMALL_SO4              ! EQSAM has crashed at low RH and low sulfate conc.
 
       CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,AUNIT1)
@@ -130,6 +127,7 @@
       GNH3  = MAX(YO(1,10) * MW_GNH3 , 0.d0)  ! from [umol/m^3] to [ug/m^3]
       AH2O  = MAX(YO(1,12)           , 0.d0)  ! already in [ugH2O/m^3]
       ApH   = -log10(YO(1,37)+tiny(1.e0))
+      SSH2O = 0.d0                            ! not calculated for OMA
       ANH4  = MAX(YO(1,19) * MW_ANH4 , 0.d0)  ! from [umol/m^3] to [ug/m^3]
       ANO3  = MAX(YO(1,20) * MW_ANO3 , 0.d0)  ! from [umol/m^3] to [ug/m^3]
 ! eqsam does not modify ASO4, so the lines below are not needed
@@ -140,4 +138,4 @@
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
 
 
-      END SUBROUTINE NITRATE_THERMO_DRV
+      END SUBROUTINE AERO_THERMO
