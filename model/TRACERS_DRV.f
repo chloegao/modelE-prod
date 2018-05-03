@@ -5848,6 +5848,19 @@ C****
         end do
       end do
 #endif /* DO_MEGAN */
+#ifdef TRACERS_ACETONE
+      ! Outside of tracer loop, call routine to fill an ocean source
+      ! for any tracer with skipReason=itsOcean defined in their source
+      ! object and with source short name matching one defined in the
+      ! routine (currently only acetone). Source can be positive or
+      ! negative! Call will fill sfc_src, to be added to trsource below.
+      do j=J_0S,J_1S
+        do i=I_0,imaxj(j)
+          ! Do we have to zero the polar boxes for 2:IM ??
+          call oceanEmissions_drv(i,j)
+        end do
+      end do
+#endif /* TRACERS_ACETONE */
 
 C**** All sources are saved as kg s-1
       iter = tracers%begin()

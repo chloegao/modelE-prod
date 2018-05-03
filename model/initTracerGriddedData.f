@@ -246,7 +246,12 @@ C Read landuse parameters and coefficients for tracer dry deposition:
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
-#endif
+#ifdef TRACERS_ACETONE
+      ! right now, this resides in TRACERS_SPECIAL_Shindell.f
+      ! and only is in use for acetone; thus inside ifdefs.
+      call init_oceanEmissions
+#endif /* TRACERS_ACETONE */
+#endif /* TRACERS_SPECIAL_Shindell */
 #ifdef TRACERS_COSMO
       call init_cosmo
 #endif

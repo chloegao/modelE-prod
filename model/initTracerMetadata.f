@@ -19,7 +19,7 @@
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
-      use TracerSurfaceSource_mod, only: itsMegan, itsCH4MGOL
+      use TracerSurfaceSource_mod, only: itsMegan, itsCH4MGOL, itsOcean
       use SystemTools, only: stLinkStatus
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: use_rad_ch4
@@ -171,6 +171,13 @@
      &  sourceLname='Ocean+Lake+MiscGround source')
       end select
 #endif
+
+      select case (trname(n))
+      case ('Acetone')
+        call addSurfaceSource(this=pTracer, skipReason=itsOcean,
+     &  sourceName='OcnACTO_src',
+     &  sourceLname='Ocean '//trim(trname(n)))
+      end select
 
       if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
         write(6,*)trname(n),'ntsurfsrc+1 > max of ',ntsurfsrcmax

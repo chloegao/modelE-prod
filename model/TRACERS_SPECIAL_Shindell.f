@@ -867,5 +867,264 @@ C
       rotccw = transpose(arr(:,m:1:-1))
       end function rotccw
       end subroutine flatten_cube
-#endif
+#endif /* INTERACTIVE_WETLANDS_CH4 */
 
+
+#ifdef TRACERS_ACETONE
+      module oceanEmissions
+      use constant, only: undef
+      implicit none
+      private
+      public :: oceanSpecies
+      type oceanSpecies
+        character*11 :: itsname='____unknown' ! name of species, which should match tracer sourceName
+        real*8 :: KHS=undef ! Henry's law constant at standard conditions (pg 3. of Sander 1999)
+        real*8 :: TDS=undef ! temperature dependence of soluability (pg 3. of Sander 1999)
+        real*8 :: conc=undef ! sea water constant concentration mole/L
+        real*8 :: Vb=undef ! liquid molar volume at boiling cm3 mol-1
+        real*8 :: mw=undef ! molecular weight g mol-1
+      end type oceanSpecies
+      end module oceanEmissions
+
+
+      module oceanEmissionsSpecies
+      use oceanEmissions, only: oceanSpecies
+      implicit none
+      integer, parameter :: nOceanSpecies=1
+      type(oceanSpecies), dimension(nOceanSpecies) :: species
+      type(oceanSpecies), save :: acetone ! not 100% sure about "save"
+      end module oceanEmissionsSpecies
+
+
+      subroutine oceanEmissions_drv(i,j)
+      !@sum calculate ocean source or sink of atmospheric constituents
+      !@+ using two-film model of Liss and Slater (1974). Fill in
+      !@+ sfc_src array.
+      !@auth Greg Faluvegi (intial modelE implementation)
+
+      use oceanEmissions, only: oceanSpecies
+      use oceanEmissionsSpecies, only: nOceanSpecies,species,acetone
+      use model_com, only: itime, dtsrc
+      use fluxes, only: focean,atmocn
+      use seaice_com, only : si_atm
+      use constant, only: tf
+      use TimeConstants_mod, only: SECONDS_PER_HOUR
+      use OldTracer_mod, only: trname,itime_tr0
+      use tracer_com, only: ntm, sfc_src, tracers, trm
+      use tracer_mod, only: Tracer
+      use TracerSurfaceSource_mod, only: itsOcean
+      use trdiag_com, only: trcSurfByVol
+      use GEOM, only: byaxyp
+
+      implicit none
+
+      integer, intent(IN) :: i,j
+      integer :: n, nTracer, ns
+      character*80 :: message
+      class (Tracer), pointer :: trc
+      real*8 :: TC, TK, TK0, DTR, KH0, U10, ka, kw, k600, SC, ra
+      real*8 :: CW, CA, K, CD, ustar, waterToAir, airToWater, bydtsrc
+      real*8 :: openOcean
+      real*8, parameter :: ocean_thresh=0.1d0
+      real*8, parameter :: SC600=600.d0
+      real*8, parameter :: vk=0.40d0 ! von karman constant [dimensionless]
+      real*8, parameter :: TMIN=-5.d0, TMAX=30.d0 ! deg C (initially tried -60 to 100)
+      real*8, parameter :: sinkFraction=0.95d0 ! fraction L=1 removal allowed
+      integer :: source_count
+
+      bydtsrc=1.d0/dtsrc
+
+      ! List nOCeanSpecies Ocean species for easier looping:
+      species( 1)=acetone
+
+      ! Prepare some information from this GCM gridbox:
+      ! Get the surface temperature in def C (over ocean only), with
+      ! some limits:
+      TC = atmocn%GTEMP(i,j)
+      TC = MIN( MAX ( TC, TMIN ), TMAX )
+      TK = TC+tf
+      TK0 = tf+25.d0 ! i.e. 298.15 K. standard
+      ! Get difference of recipricol of TK vs. standard TK0:
+      DTR=((1.d0/TK)-(1.d0/TK0))
+      ! Get the surface wind-speed over ocean:
+      U10=atmocn%wsavg(i,j)   !TODO: is this 10m relevant wind? or 2m?
+
+      tracers_loop: do nTracer=1,ntm ! loop over tracers
+
+        ! skip if tracer not turned on yet, otherwise point to it:
+        if(itime < itime_tr0(nTracer) ) cycle tracers_loop
+        trc => tracers%getReference(trname(nTracer))
+
+        source_count=0
+
+        sources_loop: do ns=1,trc%ntSurfSrc ! loop over defined sources
+
+          ! skip if not an ocean source:
+          if(trc%surfaceSources(ns)%skipReason /= itsOcean)
+     &      cycle sources_loop
+
+          source_count=source_count+1 ! found an ocean source
+          ! initialize the source so that, e.g. if in the next timestep
+          ! ice encroaches or something else happens such that sfc_src
+          ! is not filled in, the model won't remember the previous
+          ! step's source:
+          sfc_src(i,j,nTracer,ns)=0.d0
+
+          ! ... for the same reason, I moved this check here (instead
+          ! of a "return" statement new the top of the routine). I.e.
+          ! REMEMBER to put all conditionals after the zeroing above...
+          ! Skip for boxes with too little open ocean:
+          openOcean=(1.d0-si_atm%rsi(i,j))*FOCEAN(i,j)
+          if(openOcean < ocean_thresh) cycle sources_loop
+
+          ! try to match tracer with defined species, otherwise skip:
+          species_loop: do n=1,size(species)
+
+            if(trim(trc%surfaceSources(ns)%sourceName) ==
+     &         trim(species(n)%itsname)) then
+
+              ! Begin calculations:
+
+              ! Equation 22 of Johnson, 2010 (doi:10.5194/os-6-913-2010)
+              ! 12.2d0 conversion and the KHS and TDS are explained and
+              ! tabulated in version 3 of Sander 1999,
+              ! (http://www.henrys-law.org/henry-3.0.pdf). KH0 should be
+              ! dimensionless gas-over-liquid Henry's Law constant here:
+              KH0=12.2d0/(TK*species(n)%KHS*EXP(species(n)%TDS*DTR))
+              !TODO: seemed to me that GEOS-CHEM V9.X has the DTR backwards.
+              ! Or perhaps do I? Consistently, they have a constant T where 
+              ! TK is in above line. I am doing it in the order of the
+              ! K_calcs_Johnson_OS.R program though...
+
+              ! Calculate the Schmidt number for this species a function
+              ! of temperature, following Johnson 2010:
+              call getSchmidt(species(n),TC,SC)
+
+              ! Get the water-side transfer velocity based on eq 28 of
+              ! Johnson 2010 but updating the k600 from Nightingale et
+              ! al 2000 (G.R.L., Discussion section):
+              k600=(0.24d0*U10*U10 + 0.061d0*U10)
+              kw=k600*(SC/SC600)**(-0.5)
+              ! convert from cm hr-1 to m s-1:
+              kw=kw/(1.d2*SECONDS_PER_HOUR)
+
+              ! Get the air-side transfer velocity based on Jeffrey et
+              ! al 2010 (TODO: Read). Here I think ka is already m s-1.
+              cd=1.d-3*(0.61d0+0.063d0*U10) ! eq 11 Johnson
+              ustar=U10*SQRT(cd) ! eq 13 Johnson
+              ra=13.3d0*SQRT(SC)+cd**(-0.5)-5.d0+LOG(SC)/(2.d0*vk) ! eq 14 Johnson, demon
+              ka=1.d-3+(ustar/ra) ! See Johnson supplument R code K_calcs_Johnson_OS.R
+
+              ! Get the total transfer velocity from point of view of
+              ! air from Johnson 2010 Eq 3 or Liss & Slater 1974 eq 9:
+              ! TODO: confirm units of KH0 as I am doing m/s here unlike geos-chem:
+              K=1.d0/((1.d0/kw) + (1.d0/(KH0*ka)))
+
+              ! Get the conentration of species in water; converting from
+              ! mole L-1 to kg m-3. In the conversion:
+              ! factors of 1e2*1e2*1e2 in numerator [cm-3 --> m-3] cancel
+              ! factors of 1e3*1e3 in denominator [g L-1 --> kg cm-3]
+              ! which just leaves the molecular weight [g mole-1]:
+              CW=species(n)%conc*species(n)%mw
+
+              ! Canclulate water-to-air flux in kg m-2 s-1, prorated by
+              ! ocean fraction:
+              waterToAir=CW*K*openOcean
+
+              ! Get the tracer concentrationin kg m-3:
+              !TODO: Turns out we already have this in an array, but
+              ! it's a diagnostic array, so think of any implications of that...
+              CA=trcSurfByVol(i,j,nTracer)
+
+              ! Canclulate air-to-water flux in kg m-2 s-1, prorated by
+              ! ocean fraction (this doesn't go anywhere; it's just a
+              ! sink from the atmosphere):
+              ! TODO: understand the /KH0 bit.
+              ! TODO: understand why goes-chem V9.X implements sink as exp decay
+              airToWater=openOcean*CA*K/KH0
+
+              ! In effort to avoid negative tracer, don't let the sink
+              ! part pull all of tracer out of L=1:
+              airToWater=MIN(airToWater,
+     &              sinkFraction*trm(i,j,1,nTracer)*byaxyp(i,j)*bydtsrc)
+
+              ! Save net flux density (kg m-2 s-1) to be applied
+              ! outside this routine:
+              sfc_src(i,j,nTracer,ns)=waterToAir-airToWater
+
+              cycle sources_loop ! done with this tracer's source
+              ! TODO: could that be made cycle tracers_loop?
+
+            end if ! matching species to tracer source name
+
+          end do species_loop
+
+          write(message,*) 'Ocean species '//
+     &    trim(trc%surfaceSources(ns)%sourceName)//' not found.'
+          call stop_model(trim(message),255)
+
+        end do sources_loop
+
+        if(source_count > 1) then
+          write(message,*) 'More than one ocean source found for '//
+     &    trim(trc%surfaceSources(ns)%sourceName)
+          call stop_model(trim(message),255)
+        end if
+
+      end do tracers_loop
+
+      end subroutine oceanEmissions_drv
+
+
+      subroutine getSchmidt(this,TC,SC)
+      !@sub getSchmidt Obtain salinity-independent (for now)
+      !@+ dimensionless Schmidt Number for passed-in species.
+      !@auth Greg Faluvegi
+      use oceanEmissions, only: oceanSpecies
+      use constant, only: tf,rhows ! rhows is avg sfc density in kg m-3
+      implicit none
+      type(oceanSpecies), intent(IN) :: this
+      real*8, intent(OUT) :: SC
+      real*8, intent(IN) :: TC ! in deg C
+      real*8 :: TK
+      real*8 :: Dw ! diffusion coeff of Hayduk & Minhas 1982. See Johnson.
+      real*8 :: vw ! kinematic viscocity of water
+      real*8 :: estar ! epsilon star
+      real*8 :: Ns ! Eta, dynamic viscocity of the solvent
+      ! Hardy 1953 method dynamic viscocity, which is only temperature-
+      ! dependent:
+      TK=TC+tf
+      Ns=1.787d0*1.052d0/(1.d0+(0.03338d0*TC)+(0.00018325d0*TC*TC))
+      ! Johnson et al 2010 Eq 35:
+      estar=(9.58d0/this%Vb)-1.12d0
+      ! Johnson et al 2010 Eq 34:
+      Dw=1.25d-8 * TK**(1.52) * Ns**estar * (this%Vb**(-0.19)-0.292d0)
+      ! I believe Dw above is in cm2 s-1. We want the Schmidt number
+      ! here to be dimensionless, so we want vw below also in cm2 s-1.
+      ! Well, Ns is in centipoises or [0.01 g cm-1 s-1.]
+      ! And rhows is in kg m-3.
+      ! So, rhows*1d3*1.d-2*1.d-2*1.d-2 (or just 1d-3) would get to
+      ! g cm-3. And Ns*1.d-2 would get to g cm-1 s-1. Which would get
+      ! a ratio of cm2 s-1. So, conversion factors work out to
+      ! a 1.d-2 on top and 1.d-3 on bottoms, or just a factor of 10.:
+      vw=10.d0*Ns/rhows ! TODO: can we use non-constant density?
+      SC=vw/Dw ! dimensionless.
+      end subroutine getSchmidt
+
+
+      subroutine init_oceanEmissions
+      !@sum init_oceanEmissions initialize some properties for
+      !@+ oceanEmissions_drv at startup
+      !@auth Greg Faluvegi
+      use oceanEmissionsSpecies, only : acetone
+      use OldTracer_mod, only: tr_mm
+      use tracer_com, only: n_acetone
+      implicit none
+      acetone%itsname='OcnACTO_src'
+      acetone%KHS=2.7d1 ! pg 46 Sanders 1999 (Benkelberg et al 1995)
+      acetone%TDS=5.3d3 ! pg 46 Sanders 1999 (Benkelberg et al 1995)
+      acetone%conc=15.d-9 ! mole/L TODO: add justification
+      acetone%mw=tr_mm(n_acetone)
+      acetone%Vb=77.6d0 ! from compounds.dat of Johnson
+      end subroutine init_oceanEmissions
+#endif /* TRACERS_ACETONE */
