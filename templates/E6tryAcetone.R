@@ -112,16 +112,7 @@ NAMERVR=RD_Fb.names.txt  ! named river outlets
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
-#include "chem_emiss_144x90_input_files_CMIP6clim"
-Acetone_01=emis/E3/CMIP6_IND_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_02=emis/E3/CMIP6_TRA_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_03=emis/E3/CMIP6_WST_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_04=emis/E3/CMIP6_RCO_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_05=emis/E3/CMIP6_SHP_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_06=emis/E3/CMIP6_SLV_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_07=emis/E3/CMIP6_ENE_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_08=emis/E3/CMIP6_AGR_2017-05-18_2.0x2.5_CLIMATOLOGY
-Acetone_09=emis/E3/CMIP6_BBURN_v1.2_2.0x2.5_CLIMATOLOGY
+#include "chem_emiss_144x90_input_files_CMIP6clim_ACETONE"
 #include "aerosol_OMA_input_files_CMIP6clim"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
