@@ -133,9 +133,8 @@
         ! non-sea salt-associated water. The sea salt-associated water is in SSH2O.
         !-------------------------------------------------------------------------------------------------------
         AERO_WATER_ACTUAL = AERO(MASS_H2O)                                ! actual tracked aerosol water conc.
-        CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),
-     &                   AERO(MASS_H2O),GAS(GAS_NH3),GAS(GAS_HNO3),
-     &                   TOT_DUST,TOT_SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+        CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
+     &                   GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC)
         AERO_WATER_WET = AERO(MASS_H2O) + SSH2O                           ! total metastable aerosol water conc.
   
         !-------------------------------------------------------------------------------------------------------
