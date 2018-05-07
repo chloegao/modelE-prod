@@ -24,7 +24,7 @@
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
 !     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
-      USE AERO_PARAM, ONLY: WRITE_LOG, TINYNUMER, AUNIT1
+      USE AERO_PARAM, ONLY: WRITE_LOG, AUNIT1
       IMPLICIT NONE
 
       ! Arguments.
@@ -133,15 +133,15 @@
 
       CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,AUNIT1)
 
-      GHNO3 = MAX(YO(1, 9) * MW_GHNO3,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      GNH3  = MAX(YO(1,10) * MW_GNH3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      AH2O  = MAX(YO(1,12)           ,TINYNUMER)  ! already in [ugH2O/m^3]
+      GHNO3 = MAX(YO(1, 9) * MW_GHNO3, 0.d0 )     ! from [umol/m^3] to [ug/m^3]
+      GNH3  = MAX(YO(1,10) * MW_GNH3 , 0.d0 )     ! from [umol/m^3] to [ug/m^3]
+      AH2O  = MAX(YO(1,12)           , 0.d0 )     ! already in [ugH2O/m^3]
       ApH   = -log10(YO(1,37)+tiny(1.e0))
-      ANH4  = MAX(YO(1,19) * MW_ANH4 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
-      ANO3  = MAX(YO(1,20) * MW_ANO3 ,TINYNUMER)  ! from [umol/m^3] to [ug/m^3]
+      ANH4  = MAX(YO(1,19) * MW_ANH4 , 0.d0 )     ! from [umol/m^3] to [ug/m^3]
+      ANO3  = MAX(YO(1,20) * MW_ANO3 , 0.d0 )     ! from [umol/m^3] to [ug/m^3]
 ! eqsam does not modify ASO4, so the lines below are not needed
 !      ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
-!      ASO4  = MAX( ASO4, TINYNUMER )              ! 
+!      ASO4  = MAX( ASO4,  0.d0 )
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
