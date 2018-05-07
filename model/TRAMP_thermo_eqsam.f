@@ -1,5 +1,6 @@
       SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
-     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC)
+     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC,
+     &                       WRITE_LOG,LOGUNIT)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -24,7 +25,6 @@
 !     concentrations K+, Ca++, Mg++, Na+. Given the 'well-mixed' treatment
 !     of inorganic aerosol constituents, these cations are included.
 !----------------------------------------------------------------------------------------------------------------------
-      USE AERO_PARAM, ONLY: WRITE_LOG, AUNIT1
       IMPLICIT NONE
 
       ! Arguments.
@@ -42,6 +42,8 @@
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
+      logical, intent(in)    :: WRITE_LOG ! when set to .true., diagnostic output is generated
+      integer, intent(in)    :: LOGUNIT   ! Unit to write diagnostic output, when WRITE_LOG=.true.
 
       ! Call parameters for the EQSAM thermodynamic model. 
       INTEGER, PARAMETER :: NCA  = 11    ! fixed number of input variables
@@ -51,11 +53,14 @@
       INTEGER, PARAMETER :: LOOP =  1    ! only a single time step done
       INTEGER, PARAMETER :: IMAX =  1    ! only a single time step done
 
-      REAL :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
-      REAL :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
-
-      ! Parameters.
-
+      !------------------------------------------------------------------------------------------------------
+      ! Input/Output to/from EQSAM
+      !------------------------------------------------------------------------------------------------------
+      REAL(4) :: YI(IMAX,NCA)            ! [umol/m^3] for chemical species - input
+      REAL(4) :: YO(IMAX,NCO)            ! [umol/m^3] for chemical species - output
+      !------------------------------------------------------------------------------------------------------
+      ! Parameters. Double-precision molecular weights [g/mol] and their reciprocals.
+      !------------------------------------------------------------------------------------------------------
       REAL(8), PARAMETER :: MW_ANH4   = 18.03850  ! [g/mol]
       REAL(8), PARAMETER :: MW_GNH3   = MW_ANH4   ! [g/mol] NH3  is passed as equivalent conc. of NH4+
       REAL(8), PARAMETER :: MW_ANO3   = 62.00494  ! [g/mol]
@@ -94,6 +99,9 @@
       REAL(8), PARAMETER :: RMW_ASO4  = 1.0 / MW_ASO4          ! [mol/g]
       REAL(8), PARAMETER :: RMW_NA    = 1.0 / MW_NA            ! [mol/g]
       REAL(8), PARAMETER :: RMW_NACL  = 1.0 / MW_NACL          ! [mol/g]
+      REAL(8), PARAMETER :: RHMAX     = 0.995D+00              ! [0-1]
+      REAL(8), PARAMETER :: RHMIN     = 0.010D+00              ! [0-1]
+      REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05                ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
 
       REAL(8), PARAMETER :: DH2O   = 1.00D+00    ! density of water [g/cm^3]
       REAL(8), PARAMETER :: DNACL  = 2.165D+00   ! density of NaCl  [g/cm^3]
@@ -101,19 +109,19 @@
       REAL(8), PARAMETER :: BSS    = 1.2D+00     ! for sea salt ...              
       REAL(8), PARAMETER :: SSH2OA = (CSS*CSS*CSS*BSS-1.0D+00)*DH2O/DNACL
       REAL(8), PARAMETER :: SSH2OB = (CSS*CSS*CSS            )*DH2O/DNACL
-      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
-      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
-      REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05  ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
 
-      REAL(8) :: H   ! local RH, with RHMIN < H < RHMAX
+      REAL(8)            :: H                    ! local RH, with RHMIN < H < RHMAX
 
-      !----------------------------------------------------------------------------------------------------------------
-      ! Call for the bulk non-sea salt inorganic aerosol.
-      !----------------------------------------------------------------------------------------------------------------
+      YI(1,:) = 0.d0
+      YO(1,:) = 0.d0
+
+      !-------------------------------------------------------------------------
+      ! Call for the bulk inorganic aerosol.
+      !-------------------------------------------------------------------------
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(/A,2F12.3/)') 'EQSAM: TEMP[K], RH[0-1]= ', TEMP, RH
-        WRITE(AUNIT1,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','DUST'
-        WRITE(AUNIT1,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+        WRITE(LOGUNIT,'(/A,2F12.3/)') 'EQSAM: TEMP[K], RH[0-1]= ', TEMP, RH
+        WRITE(LOGUNIT,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','DUST'
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
       ENDIF
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
@@ -131,7 +139,7 @@
       YI(1, :) = MAX( YI(1,:), 0.0d-10 )          ! Lower limit was 1.0E-10 before 102406.
       YI(1,4)  = YI(1,4) + SMALL_SO4              ! EQSAM has crashed at low RH and low sulfate conc.
 
-      CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,AUNIT1)
+      CALL EQSAM_V03D(YI,YO,NCA,NCO,IOPT,LOOP,IMAX,LOGUNIT)
 
       GHNO3 = MAX(YO(1, 9) * MW_GHNO3, 0.d0 )     ! from [umol/m^3] to [ug/m^3]
       GNH3  = MAX(YO(1,10) * MW_GNH3 , 0.d0 )     ! from [umol/m^3] to [ug/m^3]
@@ -141,14 +149,14 @@
       ANO3  = MAX(YO(1,20) * MW_ANO3 , 0.d0 )     ! from [umol/m^3] to [ug/m^3]
 ! eqsam does not modify ASO4, so the lines below are not needed
 !      ASO4  = ( YO(1,21) - SMALL_SO4 ) * MW_ASO4  ! from [umol/m^3] to [ug/m^3]
-!      ASO4  = MAX( ASO4,  0.d0 )
+!      ASO4  = MAX( ASO4, 0.d0 )
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
 
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
-        WRITE(AUNIT1,'(A4,7F14.5)') 'RHD',RHD
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+        WRITE(LOGUNIT,'(A4,7F14.5)') 'RHD',RHD
       ENDIF 
 
       !-------------------------------------------------------------------------
@@ -157,8 +165,8 @@
       ! A simple parameterization provided by E. Lewis is used.
       !-------------------------------------------------------------------------
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,3A12  )') '   ','SALT','SSH2O'           
-        WRITE(AUNIT1,'(A4,3F12.5)') 'TOP' ,SALT
+        WRITE(LOGUNIT,'(A4,3A12  )') '   ','SALT','SSH2O'           
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'TOP' ,SALT
       ENDIF
 
       IF ( H .GT. 0.45D+00 ) THEN     ! ... then we are above the crystallization RH of NaCl
@@ -168,7 +176,7 @@
       ENDIF
 
       IF ( WRITE_LOG ) THEN
-        WRITE(AUNIT1,'(A4,3F12.5)') 'END',SALT,SSH2O
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'END',SALT,SSH2O
       ENDIF
 
 

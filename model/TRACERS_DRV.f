@@ -7345,7 +7345,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
 
         call AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
-     &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC)
+     &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC,
+     &                   .false.,66)
 
 ! no need to update tr3Dsource for ASO4, since it does not change in eqsam.
         tr3Dsource(l,nThermo,n_NO3p)=(ANO3*1.d-9*AVOL-

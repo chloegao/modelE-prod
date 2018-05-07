@@ -1,5 +1,6 @@
       SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
-     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC)
+     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC,
+     &                       WRITE_LOG,LOGUNIT)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -24,6 +25,8 @@
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
+      logical, intent(in)    :: WRITE_LOG ! when set to .true., diagnostic output is generated
+      integer, intent(in)    :: LOGUNIT   ! Unit to write diagnostic output, when WRITE_LOG=.true.
 
       !------------------------------------------------------------------------------------------------------
       ! Input to ISOROPIA.
@@ -94,18 +97,33 @@
       !------------------------------------------------------------------------------------------------------
       ! Other parameters.
       !------------------------------------------------------------------------------------------------------
-      REAL(8), PARAMETER :: DH2O   = 1.000D+00   ! density of water [g/cm^3]
+      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
+      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
+
+      REAL(8), PARAMETER :: DH2O   = 1.00D+00    ! density of water [g/cm^3]
       REAL(8), PARAMETER :: DNACL  = 2.165D+00   ! density of NaCl  [g/cm^3]
       REAL(8), PARAMETER :: CSS    = 1.08D+00    ! for sea salt ...
       REAL(8), PARAMETER :: BSS    = 1.2D+00     ! for sea salt ...              
-      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
-      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
+      REAL(8), PARAMETER :: SSH2OA = (CSS*CSS*CSS*BSS-1.0D+00)*DH2O/DNACL
+      REAL(8), PARAMETER :: SSH2OB = (CSS*CSS*CSS            )*DH2O/DNACL
+
       REAL(8)            :: H                    ! local RH, with RHMIN < H < RHMAX
 
-      !------------------------------------------------------------------------------------------------------
-      ! Call for the bulk inorganic aerosol.
-      !------------------------------------------------------------------------------------------------------
       WI(:) = 0.d0
+      WT(:) = 0.d0
+      GAS(:) = 0.d0
+      AERLIQ(:) = 0.d0
+      AERSLD(:) = 0.d0
+      OTHER(:) = 0.d0
+
+      !-------------------------------------------------------------------------
+      ! Call for the bulk inorganic aerosol.
+      !-------------------------------------------------------------------------
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(/A,2F12.3/)') 'EQSAM: TEMP[K], RH[0-1]= ', TEMP, RH
+        WRITE(LOGUNIT,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','DUST'
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+      ENDIF
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
 
@@ -121,19 +139,12 @@
       CNTRL(1) = 0.0D+00  ! Forward problem: WI contains the gas+aerosol concentrations
       CNTRL(2) = 0.0D+00  ! 0 (solid & liquid phases), 1 (liquid only, metastable)
 
-      WT(:)     = 0.0D+00
-      GAS(:)    = 0.0D+00
-      AERLIQ(:) = 0.0D+00
-      AERSLD(:) = 0.0D+00
-      OTHER(:)  = 0.0D+00
-
       CALL ISOROPIA ( WI, H, TEMP, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
       GHNO3 = MAX( GAS(2)*CMW_GHNO3, 0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       AH2O  = AERLIQ(8)*CMW_H2O                   ! from [mol/m^3] to [ug/m^3]
       ApH   = -log10(AERLIQ(1)*1.d-3)             ! mol/m3 to mol/kg assuming density 1.d-3 kg/m3
-      SSH2O = 0.d0                            ! not calculated for OMA
       ANH4  = MAX( WT(3)*CMW_ANH4 - GNH3, 0.D0 )  ! from [mol/m^3] to [ug/m^3]
       ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3,0.D0 )  ! from [mol/m^3] to [ug/m^3]
 ! ISORROPIA does not modify ASO4, so the line below is not needed
@@ -141,6 +152,31 @@
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
+
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+        WRITE(LOGUNIT,'(A4,7F14.5)') 'RHD',RHD
+      ENDIF 
+
+      !-------------------------------------------------------------------------
+      ! Get the sea salt-associated water (only).
+      !
+      ! A simple parameterization provided by E. Lewis is used.
+      !-------------------------------------------------------------------------
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,3A12  )') '   ','SALT','SSH2O'           
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'TOP' ,SALT
+      ENDIF
+
+      IF ( H .GT. 0.45D+00 ) THEN     ! ... then we are above the crystallization RH of NaCl
+        SSH2O = SALT * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
+      ELSE
+        SSH2O = 0.0D+00
+      ENDIF
+
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'END',SALT,SSH2O
+      ENDIF
 
 
       END SUBROUTINE AERO_THERMO
