@@ -87,6 +87,7 @@
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
+      dic(:,:,:) = 0.d0
 
 !NOT FOR HYCOM: lmm passed to subroutine
       call bio_inicond('nitrates_inicond',tracer(:,:,:,1),
