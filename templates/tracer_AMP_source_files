@@ -20,7 +20,7 @@ TRAMP_setup      | $(EXTENDED_SOURCE) |
 TRAMP_npf        | $(EXTENDED_SOURCE) |  
 TRAMP_rad        | $(EXTENDED_SOURCE) |
 ! When using ISORROPIA Thermodynamics
-!TRAMP_thermo_isorr2 | $(EXTENDED_SOURCE) |
+!TRACER_drv_isorropia | $(EXTENDED_SOURCE) |
 !TRAMP_isocom2
 !TRAMP_isofwd2
 !TRAMP_isorev2
