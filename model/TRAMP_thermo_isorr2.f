@@ -56,9 +56,9 @@
       REAL(8), PARAMETER :: MW_CL     = 35.4527D+00   ! [g/mol]
       REAL(8), PARAMETER :: MW_NACL   = 58.442468D+00 ! [g/mol]
       REAL(8), PARAMETER :: MW_H2O    = 18.01528D+00  ! [g/mol]
-      REAL(4), PARAMETER :: MW_K      = 39.0983       ! [g/mol]
-      REAL(4), PARAMETER :: MW_CA     = 40.078        ! [g/mol]
-      REAL(4), PARAMETER :: MW_MG     = 24.3050       ! [g/mol]
+      REAL(8), PARAMETER :: MW_K      = 39.0983d0     ! [g/mol]
+      REAL(8), PARAMETER :: MW_CA     = 40.078d0      ! [g/mol]
+      REAL(8), PARAMETER :: MW_MG     = 24.3050d0     ! [g/mol]
       REAL(8), PARAMETER :: RMW_NA    = 1.0D-06 / MW_NA    ! [mol/g]
       REAL(8), PARAMETER :: RMW_ASO4  = 1.0D-06 / MW_ASO4  ! [mol/g]
       REAL(8), PARAMETER :: RMW_ANH4  = 1.0D-06 / MW_ANH4  ! [mol/g]
@@ -83,16 +83,16 @@
       !------------------------------------------------------------------------------------------------------
       ! Fraction of dust mass that is K, Mg, Cl-, and Ca
       !------------------------------------------------------------------------------------------------------
-      REAL(4), PARAMETER :: MASS_FRAC_K  = 0.0028  ! From Ghan et al. (2001).
-      REAL(4), PARAMETER :: MASS_FRAC_CA = 0.024   !   JGR, Vol. 106, p. 5295-5316.
-      REAL(4), PARAMETER :: MASS_FRAC_MG = 0.0038  !   on p. 5296
-      REAL(4), PARAMETER :: MASS_FRAC_NA = 0.014   !   "water sol. mass frac. in soil dust"
-      REAL(4), PARAMETER :: FRAC_DUST  = 0.d0      ! [1] fraction of dust conc. passed to Thermodynamics         
-      REAL(4), PARAMETER :: FRAC_SALT  = 0.d0      ! [1] fraction of salt conc. passed to Thermodynamics
-      REAL(4), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
-      REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
-      REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
-      REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028d0! From Ghan et al. (2001).
+      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024d0 !   JGR, Vol. 106, p. 5295-5316.
+      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038d0!   on p. 5296
+      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014d0 !   "water sol. mass frac. in soil dust"
+      REAL(8), PARAMETER :: FRAC_DUST  = 0.d0      ! [1] fraction of dust conc. passed to Thermodynamics         
+      REAL(8), PARAMETER :: FRAC_SALT  = 0.d0      ! [1] fraction of salt conc. passed to Thermodynamics
+      REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
+      REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
+      REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
+      REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
 
       !------------------------------------------------------------------------------------------------------
       ! Other parameters.

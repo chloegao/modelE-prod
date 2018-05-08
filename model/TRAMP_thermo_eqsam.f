@@ -61,44 +61,36 @@
       !------------------------------------------------------------------------------------------------------
       ! Parameters. Double-precision molecular weights [g/mol] and their reciprocals.
       !------------------------------------------------------------------------------------------------------
-      REAL(8), PARAMETER :: MW_ANH4   = 18.03850  ! [g/mol]
-      REAL(8), PARAMETER :: MW_GNH3   = MW_ANH4   ! [g/mol] NH3  is passed as equivalent conc. of NH4+
-      REAL(8), PARAMETER :: MW_ANO3   = 62.00494  ! [g/mol]
-      REAL(8), PARAMETER :: MW_GHNO3  = MW_ANO3   ! [g/mol] HNO3 is passed as equivalent conc. of NO3-
-      REAL(8), PARAMETER :: MW_ASO4   = 96.0636   ! [g/mol]
-      REAL(8), PARAMETER :: MW_K      = 39.0983   ! [g/mol]
-      REAL(8), PARAMETER :: MW_CA     = 40.078    ! [g/mol]
-      REAL(8), PARAMETER :: MW_MG     = 24.3050   ! [g/mol]
-      REAL(8), PARAMETER :: MW_NA     = 22.989768 ! [g/mol]
-      REAL(8), PARAMETER :: MW_NACL   = 58.442468 ! [g/mol]
+      REAL(8), PARAMETER :: MW_ANH4   = 18.03850d0 ! [g/mol]
+      REAL(8), PARAMETER :: MW_GNH3   = MW_ANH4    ! [g/mol] NH3  is passed as equivalent conc. of NH4+
+      REAL(8), PARAMETER :: MW_ANO3   = 62.00494d0 ! [g/mol]
+      REAL(8), PARAMETER :: MW_GHNO3  = MW_ANO3    ! [g/mol] HNO3 is passed as equivalent conc. of NO3-
+      REAL(8), PARAMETER :: MW_ASO4   = 96.0636d0  ! [g/mol]
+      REAL(8), PARAMETER :: MW_NA     = 22.989768d0! [g/mol]
+      REAL(8), PARAMETER :: MW_CL     = 35.4527d0  ! [g/mol]
+      REAL(8), PARAMETER :: MW_NACL   = 58.442468d0! [g/mol]
+      REAL(8), PARAMETER :: MW_K      = 39.0983d0  ! [g/mol]
+      REAL(8), PARAMETER :: MW_CA     = 40.078d0   ! [g/mol]
+      REAL(8), PARAMETER :: MW_MG     = 24.3050d0  ! [g/mol]
 
-      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028  ! From Ghan et al. (2001).
-      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024   !   JGR, Vol. 106, p. 5295-5316.
-      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038  !   on p. 5296
-      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014   !   "water sol. mass frac. in soil dust"
+      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028d0! From Ghan et al. (2001).
+      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024d0 !   JGR, Vol. 106, p. 5295-5316.
+      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038d0!   on p. 5296
+      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014d0 !   "water sol. mass frac. in soil dust"
 
-!----------------------------------------------------------------------------------------------------------------------
-!     These values were used for development and testing.
-!----------------------------------------------------------------------------------------------------------------------
-!     REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0000  
-!     REAL(8), PARAMETER :: MASS_FRAC_CA = 0.0000  
-!     REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0000  
-!     REAL(8), PARAMETER :: MASS_FRAC_NA = 0.0000  
-!----------------------------------------------------------------------------------------------------------------------
-
-      REAL(8), PARAMETER :: FRAC_DUST  = 0.1                              ! [1] fraction of dust conc. passed to EQSAM         
+      REAL(8), PARAMETER :: FRAC_DUST  = 0.1d0                            ! [1] fraction of dust conc. passed to EQSAM         
       REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
       REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
       REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
       REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
 
-      REAL(8), PARAMETER :: RMW_GNH3  = 1.0 / MW_GNH3          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANH4  = 1.0 / MW_ANH4          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_GHNO3 = 1.0 / MW_GHNO3         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANO3  = 1.0 / MW_ANO3          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ASO4  = 1.0 / MW_ASO4          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_NA    = 1.0 / MW_NA            ! [mol/g]
-      REAL(8), PARAMETER :: RMW_NACL  = 1.0 / MW_NACL          ! [mol/g]
+      REAL(8), PARAMETER :: RMW_GNH3  = 1.d0 / MW_GNH3          ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANH4  = 1.d0 / MW_ANH4          ! [mol/g]
+      REAL(8), PARAMETER :: RMW_GHNO3 = 1.d0 / MW_GHNO3         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANO3  = 1.d0 / MW_ANO3          ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ASO4  = 1.d0 / MW_ASO4          ! [mol/g]
+      REAL(8), PARAMETER :: RMW_NA    = 1.d0 / MW_NA            ! [mol/g]
+      REAL(8), PARAMETER :: RMW_NACL  = 1.d0 / MW_NACL          ! [mol/g]
       REAL(8), PARAMETER :: RHMAX     = 0.995D+00              ! [0-1]
       REAL(8), PARAMETER :: RHMIN     = 0.010D+00              ! [0-1]
       REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05                ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
@@ -132,7 +124,7 @@
       YI(1,4)  =                   ASO4*RMW_ASO4  ! from [ug/m^3] to [umol/m^3]
       YI(1,5)  = GHNO3*RMW_GHNO3 + ANO3*RMW_ANO3  ! from [ug/m^3] to [umol/m^3]
       YI(1,6)  = DUST*CONV_NAION                  ! from [ug dust/m^3] to [umol Na+/m^3]
-      YI(1,7)  = 0.0                              ! (HCl + Cl-)
+      YI(1,7)  = 0.d0                             ! (HCl + Cl-)
       YI(1,8)  = DUST*CONV_KION                   ! from [ug dust/m^3] to [umol K+ /m^3]
       YI(1,9)  = DUST*CONV_CAION                  ! from [ug dust/m^3] to [umol Ca+/m^3]
       YI(1,10) = DUST*CONV_MGION                  ! from [ug dust/m^3] to [umol Mg+/m^3]
