@@ -5,7 +5,7 @@ NH3_01=gsin/forTesting8x10/NH3hCON_OCEANflux_Jan10_8x10_h
 NH3_02=gsin/forTesting8x10/NH3_ann_AR5like_1850-2000_8x10_h
 NH3_03=gsin/forTesting8x10/NH3_bburn_AR5like_1900-2000_8x10_h
 ! ------- aerosol -----------
-PSREF=gsin/forTesting8x10/bogus8x10ANN1960.E70F40pi.prsurf ! time avg. surf. pres. on model grid
+PSREF=gsin/forTesting8x10/bogus8x10ANN1960.E70F40pi.prsurf.nc ! time avg. surf. pres. on model grid
 SO2_VOLCANO=gsin/forTesting8x10/SO2_volc_2000_8x10_pres.nc
 ! -------- aerosol --------------
 DMS_SEA=gsin/forTesting8x10/DMS_Kettle_Andreae_8x10
