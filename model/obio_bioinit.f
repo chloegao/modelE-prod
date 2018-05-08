@@ -128,7 +128,7 @@
         do i=ogrid%i_strt,ogrid%i_stop
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
-          if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
+          if (dic(i,j,k).le.0.0) dic(i,j,k)=1837.0
           dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
         enddo
        enddo
