@@ -84,13 +84,19 @@
       REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
       REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
 
-      REAL(8), PARAMETER :: RMW_GNH3  = 1.d0 / MW_GNH3          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANH4  = 1.d0 / MW_ANH4          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_GHNO3 = 1.d0 / MW_GHNO3         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANO3  = 1.d0 / MW_ANO3          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ASO4  = 1.d0 / MW_ASO4          ! [mol/g]
-      REAL(8), PARAMETER :: RMW_NA    = 1.d0 / MW_NA            ! [mol/g]
-      REAL(8), PARAMETER :: RMW_NACL  = 1.d0 / MW_NACL          ! [mol/g]
+      !------------------------------------------------------------------------------------------------------
+      ! Fraction of sea salt (NaCl) mass that is Na, and is Cl.
+      !------------------------------------------------------------------------------------------------------
+      REAL(8), PARAMETER :: RAT_NA = MW_NA / ( MW_NA + MW_CL ) ! [1] 
+      REAL(8), PARAMETER :: RAT_CL = MW_CL / ( MW_NA + MW_CL ) ! [1] 
+      REAL(8), PARAMETER :: RMW_GNH3  = 1.d0 / MW_GNH3         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANH4  = 1.d0 / MW_ANH4         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_GHNO3 = 1.d0 / MW_GHNO3        ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANO3  = 1.d0 / MW_ANO3         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ASO4  = 1.d0 / MW_ASO4         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_NACL  = 1.d0 / MW_NACL         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_NA    = 1.d0 / MW_NA           ! [mol/g]
+      REAL(8), PARAMETER :: RMW_CL    = 1.d0 / MW_CL           ! [mol/g]
       REAL(8), PARAMETER :: RHMAX     = 0.995D+00              ! [0-1]
       REAL(8), PARAMETER :: RHMIN     = 0.010D+00              ! [0-1]
       REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05                ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
