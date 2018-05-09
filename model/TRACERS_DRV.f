@@ -5707,16 +5707,13 @@ C**** at the start of any day
       USE FLUXES, only: trsource
 #endif
       use TRACER_COM, only: tracers
-      use EmissionRegion_mod, only: numRegions,regions
-      use TRACER_COM, only: ef_FACT
       USE RESOLUTION, only : pmtop,psf
       USE GEOM, only: axyp,areag,lat2d_dg,lon2d_dg,imaxj,lat2d
       USE QUSDEF
       USE TRACER_COM, only: sfc_src
-      USE TRACER_COM, only: alter_sources
       use TRACER_COM, only: n_isoprene, n_SO2, no_emis_over_ice
       use TRACER_COM, only: trm, ntsurfsrc, rnsrc
-      use TRACER_COM, only: tracers, ef_FACT
+      use TRACER_COM, only: tracers
       use OldTracer_mod, only: itime_tr0, vol2mass, trname
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_AH2O, n_AECOB
@@ -5753,7 +5750,7 @@ C**** at the start of any day
       USE FILEMANAGER, only: openunit,closeunit
       USE Dictionary_mod, only: sync_param
       implicit none
-      integer :: i,j,ns,ns_isop,l,ky,n,nsect,kreg
+      integer :: i,j,ns,ns_isop,l,ky,n
       REAL*8 :: sarea,steppy,base,steppd,x,airm,anngas,
      *  tmon,bydt,tnew,fice
       REAL*8 :: sarea_prt(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
@@ -6331,44 +6328,8 @@ C****
 #endif /* (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || (defined TRACERS_TOMAS) */
       end select
 
-! please keep at end of tracer loop : 
-! TODO: should be able to uncomment
-!       this and delete the subsequent block when F2003 compilers are ready.
-! Note 1: Whoever implements, please check that the "nn" index in the commented call 
-!         is correct.
-! Note 2: When the diurnal cycle functionality was added the below-commented 
-!         routine was not updated.
-c$$$      do ns = 1, size(sources)      ! loop over source
-c$$$        call emissionScenario%scaleSource(trsource(:,:,ns,n), 
-c$$$     &       sources(ns)%trsect_index(1:sources(nn)%num_tr_sectors))
-c$$$      end do
-
 #ifndef SKIP_TRACER_SRCS
-      ! First regional sector alterations:
-      if(alter_sources)then                     ! if any region/sector altering requested
-        do ns=1,ntsurfsrc(n)                    ! loop over sources
-          do nsect=1,sources(ns)%num_tr_sectors ! and sectors for that source
-            do j=J_0,J_1                        ! and horizonal space   
-              do i=I_0,imaxj(j)          
-                do kreg=1,numRegions            ! loop defined regions
-                  if(
-     &            lat2d_dg(i,j)>=regions(kreg)%southernEdge .and.  ! check if 
-     &            lat2d_dg(i,j)<=regions(kreg)%northernEdge .and.  ! currently
-     &            lon2d_dg(i,j)>=regions(kreg)%westernEdge .and.   ! in region
-     &            lon2d_dg(i,j)< regions(kreg)%easternEdge) then ! change to <= after thinking about it.
-       if(ef_fact(sources(ns)%tr_sect_index(nsect),kreg) > -1.e20)then
-         trsource(i,j,ns,n)=trsource(i,j,ns,n)*
-     &   ef_fact(sources(ns)%tr_sect_index(nsect),kreg)
-       end if
-                  end if ! in-region
-                end do   ! regions
-              end do     ! i
-            end do       ! j
-          end do         ! sector
-        end do           ! sources
-      end if             ! any region/sector altering of sources requested
-
-      ! Then diurnal cycle application:
+      ! The diurnal cycle application:
       do ns=1,ntsurfsrc(n)                    ! loop over sources
         if(sources(ns)%applyDiurnalCycle)then ! does source have a diurnal cycle defined?
           ! this might not work if there aren't an equal number of timesteps each hour:

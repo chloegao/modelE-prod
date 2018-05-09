@@ -12,10 +12,8 @@
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
-      use TRACER_COM, only: sect_name
       use TRACER_COM, only: set_ntsurfsrc, ntsurfsrc
       use Tracer_mod, only: ntsurfsrcmax
-      use TRACER_COM, only: num_sectors
       use Tracer_mod, only: Tracer
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
@@ -35,16 +33,14 @@
 
 !     The following section will check for rundeck file of
 !     the form: trname_01, trname_02... and thereby define
-!     the ntsurfsrc(n). If those files exist it reads an
-!     80 char header to get information including the
+!     the ntsurfsrc(n). If those files exist it reads
+!     metadata to get information including the
 !     source name (ssame-->{sname,lname,etc.}. ntsurfsrc(n)
-!     get set to zero if those files aren't found:
-!     (I can enclose this in an ifdef if it causes problems
-!     for people). findSurfaceSources routine also assigns
-!     sources to sectors, if desired:
+!     get set to zero if those files aren't found.
+!
 !     general case:
 
-      call findSurfaceSources(pTracer,sect_name(1:num_sectors))
+      call findSurfaceSources(pTracer)
 
 !     Next, check whether tracers have 3D aircraft source files/dirs:
       call stLinkStatus(trim(trname(n)//'_AIRC'),linkstatus)
@@ -385,8 +381,6 @@
         enddo
       endif
 
-! call routine to read/set up sectors for emissions:
-      call setup_emis_sectors()
       call initializeOldTracers(tracers, setDefaultSpec)
 
 ! ***  BEGIN TRACER METADATA INITIALIZATION
@@ -703,9 +697,6 @@
       use Model_com, only: itime
       implicit none
       integer :: n,v
-
-! call routine to read/set up regions for emissions:
-      call setup_emis_sectors_regions()
 
 C**** 
 C**** Set some documentary parameters in the database

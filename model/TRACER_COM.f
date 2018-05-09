@@ -52,7 +52,6 @@ C
 #endif
 
       use TracerBundle_mod, only: TracerBundle, newTracerBundle
-      use TracerSource_mod, only: N_MAX_SECT
       use vector_integer_mod, only: vector_integer=>vector
 c     
       IMPLICIT NONE
@@ -598,25 +597,6 @@ C**** arrays that could be general, but are only used by chemistry
 !@dbparam trans_emis_overr_day day for overriding Shindell tracer
 !@+       transient emissions
       integer :: trans_emis_overr_yr=0, trans_emis_overr_day=0
-! ---- section for altering tracers sources by sector/region ----
-!@param n_max_reg  maximum number of regions for emissions altering
-      integer, parameter :: n_max_reg=10
-!@var num_sectors the number of source-altering sectors from rundeck
-      integer :: num_sectors
-!@var alter_sources true if any source altering factors are on
-      logical :: alter_sources
-!@var reg_N the north edge of rectangular regions for emissions altering
-!@var reg_S the south edge of rectangular regions for emissions altering
-!@var reg_E the east  edge of rectangular regions for emissions altering
-!@var reg_W the west  edge of rectangular regions for emissions altering
-      real*8, dimension(n_max_reg) :: reg_N,reg_S,reg_E,reg_W
-!@var sect_name array hold the sector names (all)
-      character*10,dimension(N_MAX_SECT):: sect_name
-!@var ef_fact the actual factors that alter sources by region/sector
-      real*8, dimension(N_MAX_SECT,n_max_reg) :: ef_fact
-! variables for outputting a map of the regions:
-      real*8, allocatable, dimension(:,:) :: ef_REG_IJ
-! --- end of source-altering section ----------------------------
 !@param nChemistry index for tracer net chemistry 3D source (+) or loss (-)
 !@param nOverwrite index for tracer overwrite 3D source (+) or loss (-)
 !@param nOther index for tracer misc. 3D source
@@ -891,7 +871,6 @@ C****
       J_0H=GRID%J_STRT_HALO
       J_1H=GRID%J_STOP_HALO
 
-      ALLOCATE(   ef_REG_IJ(I_0:I_1,J_0:J_1) )
       ALLOCATE(     oh_live(I_0:I_1,J_0:J_1,LM),
      *             no3_live(I_0:I_1,J_0:J_1,LM),
      *              o3_live(I_0:I_1,J_0:J_1,LM),

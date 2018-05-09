@@ -38,9 +38,8 @@ module TracerSurfaceSource_mod
 
 contains
 
-  subroutine initSurfaceSource(this, tracerName, fileName, sectorNames)
+  subroutine initSurfaceSource(this, tracerName, fileName)
     use SystemTools, only : stLinkStatus,stFileList
-    use TracerSource_mod, only: N_MAX_SECT
     use Dictionary_mod, only : sync_param
     USE FILEMANAGER, only: openunit,closeunit
     use pario, only : par_open,par_close,read_attr
@@ -51,10 +50,9 @@ contains
     character(len=*), intent(in) :: tracerName
     character(len=*), intent(in) :: fileName
     character(len=300) :: out_line
-    character*10, intent(in):: sectorNames(:)
     logical :: diurnalFileExists = .false.
 
-    integer :: nsect, nn, i, j, iu, fid
+    integer :: nn, i, j, iu, fid
     integer :: linkstatus, nfiles, ifile, ios, jyr
     integer, parameter :: max_fname_len=128
     character(len=max_fname_len), allocatable :: flist(:)
@@ -63,9 +61,7 @@ contains
     character(len=4) :: c4
     character*32 :: pname
     character*35 :: fname
-    character*124 :: tr_sectors_are
-    integer :: numTrSectors
-    character(len=80) :: name ! sector
+    character(len=80) :: name
     real*8 :: sumDiurnal
     real*8, parameter :: diurnalSumTolerance=1.d-4
     character*80 :: targetVariable
@@ -121,41 +117,6 @@ contains
     ! append ' source' to the long name, and '_src' to the short name
     this%sourceLname = trim(this%sourceName)//' source'
     this%sourceName = trim(this%sourceName)//'_src'
-
-    ! -- begin sector stuff --
-    tr_sectors_are = ' '
-    pname=trim(trim(fileName)//'_sect')
-    call sync_param(pname,tr_sectors_are)
-    numTrSectors = 0
-
-    i=1
-    do while(i < len(tr_sectors_are))
-      j=index(tr_sectors_are(i:len(tr_sectors_are))," ")
-      if (j > 1) then
-        numTrSectors = numTrSectors + 1
-        i=i+j
-      else
-        i=i+1
-      end if
-    enddo
-    if(numTrSectors > n_max_sect)  &
-         &     call stop_model("num_tr_sectors problem",255)
-    this%num_tr_sectors = numTrSectors
-
-    if(numTrSectors > 0) then
-      read(tr_sectors_are,*) this%tr_sect_name(1:numTrSectors)
-
-      do nsect=1, numTrSectors
-        name = trim(this%tr_sect_name(nsect))
-        this%tr_sect_index(nsect) = 0
-        loop_nn: do nn=1, size(sectorNames)
-          if(trim(name) == trim(sectorNames(nn))) then
-            this%tr_sect_index(nsect) = nn
-            exit loop_nn
-          endif
-        enddo loop_nn
-      enddo
-    endif
 
     ! -- begin diurnal stuff -- 
     fname=trim('diurnal_'//trim(fileName))

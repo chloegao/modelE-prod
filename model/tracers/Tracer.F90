@@ -150,12 +150,11 @@ contains
     type (Tracer), intent(inout) :: this
   end subroutine cleanTracer
 
-  subroutine findSurfaceSources(trcer, sect_name)
+  subroutine findSurfaceSources(trcer)
 !@sum reads metadata from emission files to return
 !@+ source names and determine the number of sources
 !@+ from the number of files in the rundeck of the form:
-!@+ trname_##. Then assigns each source to sector(s),
-!@+ based on definitions in the rundeck.
+!@+ trname_##.
 !@auth Greg Faluvegi
 
     use GenericType_mod
@@ -168,7 +167,6 @@ contains
 
 !@var nsrc number of source to define ntsurfsrc(n)
     type (Tracer), intent(inout) :: trcer
-    character*10, intent(in):: sect_name(:)
 
     integer :: n
     character*80 :: fname
@@ -230,7 +228,7 @@ contains
 
       trcer%ntSurfSrc = trcer%ntSurfSrc + 1
       call initSurfaceSource(trcer%surfaceSources(trcer%ntSurfSrc),  &
-           &     getName(trcer), fileName, sect_name)
+           &     getName(trcer), fileName)
     end subroutine addSourceFromFile
 
   end subroutine findSurfaceSources
