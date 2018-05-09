@@ -9,6 +9,7 @@
       use OldTracer_mod, only: trName, do_fire, do_aircraft
       use OldTracer_mod, only: set_do_fire, set_do_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
+      use OldTracer_mod, only: scale_aircraft, set_scale_aircraft
       use OldTracer_mod, only: nBBsources, set_nBBsources
       use DOMAIN_DECOMP_ATM, only: am_i_root
       use TRACER_COM, only: tracers
@@ -49,6 +50,14 @@
         call set_do_aircraft(n, .true.)
         call set_first_aircraft(n, .true.)
       end select
+!     and whether scaling were set up for those aircraft sources:
+      if(do_aircraft(n))then
+        call stLinkStatus(trim(trname(n)//'_AIRC_scale'),linkstatus)
+        select case(linkstatus)
+        case(1,2) ! TODO: no hardcoded integers
+          call set_scale_aircraft(n, .true.)
+        end select
+      end if
 
 #ifdef DYNAMIC_BIOMASS_BURNING
 !-------------------------------------------------------------------------------

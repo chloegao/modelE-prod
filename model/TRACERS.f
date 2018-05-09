@@ -2621,14 +2621,14 @@ C
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 
       subroutine get_aircraft_tracer
-     & (nTracer,fileName,year,xday,phi,need_read,AIRCstream,airtracer)
+     & (nTracer,fileName,year,xday,phi,AIRCstream,AIRSstream,airtracer)
 !@sum  get_aircraft_tracer to define the 3D source of tracers from aircraft
 !@auth Drew Shindell? / Greg Faluvegi / Jean Learner
       use RESOLUTION, only : im,jm,lm
       use model_com, only: itime, master_yr
       use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
-      use OldTracer_mod, only: itime_tr0, trname
+      use OldTracer_mod, only: itime_tr0, trname, scale_aircraft
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
@@ -2656,7 +2656,6 @@ C
       real*8, dimension(GRID%I_STRT:GRID%I_STOP,
      &                  GRID%J_STRT:GRID%J_STOP,LM)
      &     :: airtracer
-      logical, intent(IN) :: need_read
 
       integer :: fileUnit 
       integer L,i,j,k,LL
@@ -2670,6 +2669,10 @@ C
 !@var src holds the tracer source returned from actual reading routine
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
      *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Laircr):: src
+!@var scaling the scaling for this source if it was requested. For NOW
+!+ only two-dimensional
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO
+     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO):: scaling
 !@var zmod approx. geometric height at model layer(m), phi/grav
       real*8, dimension(LM) :: zmod
 !@var zairL heights of CMIP5,CMIP6 aircraft emissions (km)
@@ -2681,7 +2684,8 @@ C
       integer :: copy_master_yr, cyclic_yr
       ! note the AIRCstream is passed before init_stream is called for it
       type(timestream) :: AIRCstream
- 
+      type(timestream) :: AIRSstream
+
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
@@ -2720,49 +2724,60 @@ C
       xyear=year
       if (cyclic_yr > 0) xyear=cyclic_yr
 
-      if (need_read) then
+      ! Monthly sources are interpolated to the current day
+      ! Units are kg m-2 s-1, so no conversion is necessary:
 
-        ! Monthly sources are interpolated to the current day
-        ! Units are kg m-2 s-1, so no conversion is necessary:
-
-        if(first_aircraft(nTracer)) then
-          call set_first_aircraft(nTracer, .false.)
-          call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
-          if (do_ppm==1) then
-            call init_stream(grid,AIRCstream,fileName,
-     &      trim(trname(nTracer)), 0d0, 1d30, 'ppm',
-     &      xyear, xday, cyclic = (cyclic_yr > 0) )
-          else
-            call init_stream(grid,AIRCstream,fileName,
-     &      trim(trname(nTracer)), 0d0, 1d30, 'linm2m',
-     &      xyear, xday, cyclic = (cyclic_yr > 0) )
-          end if
+      if(first_aircraft(nTracer)) then
+        call set_first_aircraft(nTracer, .false.)
+        call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
+        if (do_ppm==1) then
+          call init_stream(grid,AIRCstream,fileName,
+     &    trim(trname(nTracer)), 0d0, 1d30, 'ppm',
+     &    xyear, xday, cyclic = (cyclic_yr > 0) )
+        else
+          call init_stream(grid,AIRCstream,fileName,
+     &    trim(trname(nTracer)), 0d0, 1d30, 'linm2m',
+     &    xyear, xday, cyclic = (cyclic_yr > 0) )
         end if
-        call read_stream(grid,AIRCstream,xyear,xday,src)
+        if(scale_aircraft(nTracer))then
+          call init_stream(grid,AIRSstream,trim(fileName)//'_scale',
+     &    'scale', -1d10, 1d10, 'linm2m',
+     &    xyear, xday, cyclic = (cyclic_yr > 0) )
+        end if
+      end if
 
-        ! Place aircraft sources onto model levels:
+      ! update source:
+      call read_stream(grid,AIRCstream,xyear,xday,src)
 
-        do j=J_0,J_1
-          do i=I_0,I_1
-            zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
-            do LL=1,Laircr
-              if (src(i,j,LL) > 0.) then
-                loop_L: do L=1,LM
-                  if (zairL(LL) <= zmod(L)) then
-                    airtracer(i,j,L)=airtracer(i,j,L)+src(i,j,LL)
-                    exit loop_L
-                  end if
-                  if(L==LM)call stop_model("aircraft lev. problem",255)
-                end do loop_L
-              end if ! is there a source?
-            end do ! LL aircraft levels
-          end do ! I
-        end do ! J
+      ! update and apply potential scaling:
+      if(scale_aircraft(nTracer))then
+        call read_stream(grid,AIRSstream,xyear,xday,scaling)
+        do LL=1,Laircr
+          src(:,:,LL)=src(:,:,LL)*scaling(:,:)
+        end do
+      end if
 
-        airtracer(I_0:I_1,J_0:J_1,:) =
-     &       airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
+      ! Place aircraft sources onto model levels:
 
-      end if ! read was needed
+      do j=J_0,J_1
+        do i=I_0,I_1
+          zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
+          do LL=1,Laircr
+            if (src(i,j,LL) > 0.) then
+              loop_L: do L=1,LM
+                if (zairL(LL) <= zmod(L)) then
+                  airtracer(i,j,L)=airtracer(i,j,L)+src(i,j,LL)
+                  exit loop_L
+                end if
+                if(L==LM)call stop_model("aircraft lev. problem",255)
+              end do loop_L
+            end if ! is there a source?
+          end do ! LL aircraft levels
+        end do ! I
+      end do ! J
+
+      airtracer(I_0:I_1,J_0:J_1,:) =
+     &     airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
 
       return
       end subroutine get_aircraft_tracer

@@ -15,6 +15,8 @@ module TracerSurfaceSource_mod
 !@param itsMegan skip reason is online MEGAN vegetation source
 !@param itsCH4MGOL skip reason is CH4 ocean, lake, misc ground source
 !@param itsOcean skip reason is online ocean source
+!@var SCstream interface for reading and time-interpolating optional scaling factors
+!@var scaleIt logical whether or not to apply gridded scalings to the source
 
   public :: TracerSurfaceSource
   public :: initSurfaceSource
@@ -26,10 +28,10 @@ module TracerSurfaceSource_mod
   type, extends(TracerSource) :: TracerSurfaceSource
     character(len=30) :: sourceName
     character(len=30) :: sourceLname
-    type (timestream) :: EMstream
+    type (timestream) :: EMstream, SCstream
     character(len=10) :: tracerName
     integer :: skipReason = 0
-    logical :: firstTrip = .true.
+    logical :: firstTrip = .true., scaleIt = .false.
   end type TracerSurfaceSource
 
   integer, parameter :: itsMegan=1
@@ -51,6 +53,7 @@ contains
     character(len=*), intent(in) :: fileName
     character(len=300) :: out_line
     logical :: diurnalFileExists = .false.
+    logical :: scalingFileExists = .false.
 
     integer :: nn, i, j, iu, fid
     integer :: linkstatus, nfiles, ifile, ios, jyr
@@ -65,6 +68,8 @@ contains
     real*8 :: sumDiurnal
     real*8, parameter :: diurnalSumTolerance=1.d-4
     character*80 :: targetVariable
+
+    ! -- Obtain metadata on how to label this source in diagnostics:
 
     fileToRead=fileName ! default (e.g. if file is not a directory, or
                         ! the directory search doesn't find a good file)
@@ -118,9 +123,9 @@ contains
     this%sourceLname = trim(this%sourceName)//' source'
     this%sourceName = trim(this%sourceName)//'_src'
 
-    ! -- begin diurnal stuff -- 
+    ! -- Determine if a user-defined diurnal cycle should be applied:
+    !    (governed by file existance)
     fname=trim('diurnal_'//trim(fileName))
-    ! governed by file existance:
     inquire(file=trim(fname), exist=diurnalFileExists)
     if(diurnalFileExists)then
        this%applyDiurnalCycle=.true.
@@ -141,6 +146,14 @@ contains
        call closeunit(iu)
     end if
 
+    ! -- Determine if a grid-based linear scaling should be applied:
+    !    (governed by file existance)
+    fname=trim(trim(fileName)//'_scale')
+    inquire(file=trim(fname), exist=scalingFileExists)
+    if(scalingFileExists)then
+      this%scaleIt=.true.
+    end if
+
   end subroutine initSurfaceSource
 
 
@@ -153,19 +166,14 @@ contains
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
     real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
+    real*8 :: scaling( grid%i_strt_halo:grid%i_stop_halo, &
+    &                  grid%j_strt_halo:grid%j_stop_halo )
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: isChemTracer
 
-    integer :: iu,k,ipos,kx,iposDay,kstep=10
-    character(len=300) :: out_line
-    real*8 :: alpha
-    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
-         &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: &
-         & sfc_a,sfc_b
-
-    INTEGER :: J_1, J_0, I_0, I_1
     integer :: cyclic_yr,master_yr,nc_emis_use_ppm_interp
 
+    ! first time after restarts; set up streams:
     if(this%firstTrip) then
       this%firstTrip = .false.
       call get_param('master_yr',master_yr)
@@ -186,8 +194,22 @@ contains
            trim(this%tracername),0d0,1d30,'linm2m',xyear,xday, &
            cyclic = (cyclic_yr > 0) )
       endif
+      if(this%scaleIt)then
+        call init_stream(grid,this%SCstream,trim(fname)//'_scale', &
+           'scale',-1d10,1d10,'linm2m',xyear,xday, &
+           cyclic = (cyclic_yr > 0) )
+      endif
     endif
+
+    ! update source stream:
     call read_stream(grid,this%EMstream,xyear,xday,sfc_src)
+
+    ! If a scaling file was listed for this source, update that
+    ! scaling timstream as well. Then, scale the source immediately:
+    if(this%scaleIt) then
+      call read_stream(grid,this%SCstream,xyear,xday,scaling)
+      sfc_src=sfc_src*scaling
+    endif
 
   end subroutine readSurfaceSource
 

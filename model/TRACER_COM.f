@@ -24,6 +24,7 @@ C
       use OldTracer_mod, only: HSTAR
       use OldTracer_mod, only: do_fire
       use OldTracer_mod, only: do_aircraft
+      use OldTracer_mod, only: scale_aircraft
       use OldTracer_mod, only: first_aircraft
       use OldTracer_mod, only: pm2p5fact
       use OldTracer_mod, only: pm10fact
@@ -648,6 +649,8 @@ C**** arrays that could be general, but are only used by chemistry
 !@var AIRCstreams organizes nc-reading of tracer 3D aircraft sources
       type(timestream), allocatable, dimension(:) :: AIRCstreams
       real*8, dimension(:,:,:,:), allocatable :: AIRCsrc
+!@var AIRSstreams organizes nc-reading aircraft source scalings
+      type(timestream), allocatable, dimension(:) :: AIRSstreams
 #endif
 
 !@var xyz_count,xyz_list count/list of tracers in category xyz.
@@ -696,6 +699,7 @@ c note: not applying CPP when declaring counts/lists.
       call tracers%addDefaultValue('HSTAR', 0.0d0)
       call tracers%addDefaultValue('do_fire', .false.)
       call tracers%addDefaultValue('do_aircraft', .false.)
+      call tracers%addDefaultValue('scale_aircraft', .false.)
       call tracers%addDefaultValue('first_aircraft', .true.)
       call tracers%addDefaultValue('nBBsources', 0)
 
@@ -891,6 +895,7 @@ C****
 #if (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_AEROSOLS_Koch) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       ALLOCATE( AIRCstreams(NTM) )
+      ALLOCATE( AIRSstreams(NTM) )
       ALLOCATE( AIRCsrc(I_0:I_1,J_0:J_1,LM,NTM) )
 #endif
 

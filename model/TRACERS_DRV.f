@@ -6784,7 +6784,7 @@ C**** 3D biomass source
       use TRACER_COM, only: nAircraft
       use model_com, only: modelEclock
       use ATM_COM, only: phi
-      use TRACER_COM, only: AIRCstreams,AIRCsrc
+      use TRACER_COM, only: AIRCstreams,AIRCsrc,AIRSstreams
       implicit none
       INTEGER n,xday
 !@var src_index source index for the current tracer
@@ -6802,7 +6802,7 @@ C**** Get current model time
           xday=dayOfYear
           call get_aircraft_tracer
      &     (n,trim(trname(src_index))//'_AIRC',year,xday,
-     &      phi,.true.,AIRCstreams(n),AIRCsrc(:,:,:,n))
+     &      phi,AIRCstreams(n),AIRSstreams(n),AIRCsrc(:,:,:,n))
         end if
       end do
       end subroutine aircraft_emissions_prep
