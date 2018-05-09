@@ -29,7 +29,6 @@
       integer, intent(in) :: n
       class (Tracer), pointer :: pTracer
 
-      logical :: checkSourceName
       integer :: val, linkstatus
 
       call pTracer%insert('ntSurfSrc', 0)
@@ -45,16 +44,7 @@
 !     sources to sectors, if desired:
 !     general case:
 
-      if (tracers_amp .or. tracers_tomas .or. tracers_aerosols_vbs) then
-         checkSourceName = .false.
-      else if (trname(n) == 'codirect') then 
-         checkSourceName = .false.
-      else
-         checkSourceName = .true.
-      end if
-
-      call findSurfaceSources(pTracer, checkSourceName, 
-     &     sect_name(1:num_sectors))
+      call findSurfaceSources(pTracer,sect_name(1:num_sectors))
 
 !     Next, check whether tracers have 3D aircraft source files/dirs:
       call stLinkStatus(trim(trname(n)//'_AIRC'),linkstatus)

@@ -5270,7 +5270,6 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use Tracer_mod, only: Tracer, readSurfaceSources
       IMPLICIT NONE
       INTEGER n,last_month,kk,nread,xday,xyear,ns
-      logical :: checkname
       LOGICAL, INTENT(IN) :: end_of_day
       data last_month/-1/
       INTEGER J_0, J_1, I_0, I_1,I,J,ll,lmax,lmin
@@ -5505,17 +5504,11 @@ C**** Next line for fastj photon fluxes to vary with time:
         xyear=year
 #endif
 
-! define nread and checkname per tracer
+        ! define nread per tracer
         nread=ntsurfsrc(n)+nBBsources(n)
-        if (.not.tracers_amp .and. .not.tracers_tomas) then
-          checkname=.false.
-        else
-          checkname=.true.
-        endif
 
         select case (trname(n))
         case ('codirect')
-          checkname=.false.
           isChemTracer=.true.
           if(trans_emis_overr_yr > 0)then
             xyear=trans_emis_overr_yr
@@ -5534,7 +5527,6 @@ C**** Next line for fastj photon fluxes to vary with time:
           nread=0
         case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-          checkname=.false.
         case ('SF6', 'SF6_c')
           nread=0 ! regional sources calculated in the code, not via a file
         end select
@@ -5552,7 +5544,7 @@ C**** Next line for fastj photon fluxes to vary with time:
 !-------------------------------------------------------------------------------
 ! read surface sources of all tracers
 !-------------------------------------------------------------------------------
-        call readSurfaceSources(pTracer,n,nread,xyear,xday,checkname,
+        call readSurfaceSources(pTracer,n,nread,xyear,xday,
      &                          itime,itime_tr0(n),sfc_src,isChemTracer)
 !-------------------------------------------------------------------------------
 

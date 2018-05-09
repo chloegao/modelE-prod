@@ -1065,78 +1065,6 @@ C****
       return
       end function vgs
 
-      SUBROUTINE read_monthly_sources(iu,jdlast,tlca,tlcb,data,
-     *  frac,imon)
-!@sum Read in monthly sources and interpolate to current day
-!@+   Calling routine must have the lines:
-!@+      real*8 tlca(im,jm,nm),tlcb(im,jm,nm)
-!@+      integer imon(nm)   ! nm=number of files that will be read
-!@+      data jdlast /0/
-!@+      save jdlast,tlca,tlcb,imon
-!@+   Input: iu, the fileUnit#; jdlast
-!@+   Output: interpolated data array + two monthly data arrays
-!@auth Jean Lerner and others
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID
-      USE DOMAIN_DECOMP_ATM, only : getDomainBounds, AM_I_ROOT
-      USE DOMAIN_DECOMP_ATM, only : READT_PARALLEL, REWIND_PARALLEL
-      USE RESOLUTION, only: im,jm
-      use model_com, only: modelEclock
-      USE JulianCalendar_mod, only: idofm=>JDmidOfM
-      use TimeConstants_mod, only: INT_DAYS_PER_YEAR, 
-     &  INT_MONTHS_PER_YEAR
-      implicit none
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     tlca,tlcb,data
-      real*8 :: frac
-      integer :: imon
-      integer :: iu,jdlast
-
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
-
-      if (jdlast.EQ.0) then ! NEED TO READ IN FIRST MONTH OF DATA
-        imon=1          ! imon=January
-        if (modelEclock%getDayOfYear().le.16)  then ! JDAY in Jan 1-15, first month is Dec
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,12)
-          CALL REWIND_PARALLEL( iu )
-        else            ! JDAY is in Jan 17 to Dec 16, get first month
-  120     imon=imon+1
-          if (modelEclock%getDayOfYear().gt.idofm(imon) 
-     &        .AND. imon.le.INT_MONTHS_PER_YEAR)
-     &        go to 120
-          CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlca,imon-1)
-          if (imon.eq.13)  CALL REWIND_PARALLEL( iu )
-        end if
-      else              ! Do we need to read in second month?
-        if (modelEclock%getDayOfYear().ne.jdlast+1) then ! Check that data is read in daily
-          if (modelEclock%getDayOfYear().ne.1 .OR. 
-     *      jdlast.ne.INT_DAYS_PER_YEAR) then
-            if (AM_I_ROOT()) write(6,*)
-     *      'Incorrect values in Tracer Source:JDAY,JDLAST=',
-     *      modelEclock%getDayOfYear(),JDLAST
-            call stop_model('stopped in TRACERS.f',255)
-          end if
-          imon=imon-INT_MONTHS_PER_YEAR  ! New year
-          go to 130
-        end if
-        if (modelEclock%getDayOfYear().le.idofm(imon)) go to 130
-        imon=imon+1     ! read in new month of data
-        tlca(I_0:I_1,J_0:J_1) = tlcb(I_0:I_1,J_0:J_1)
-        if (imon.eq.13) CALL REWIND_PARALLEL( iu  )
-      end if
-      CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),tlcb,1)
-  130 continue
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-modelEclock%getDayOfYear())
-     & / (idofm(imon)-idofm(imon-1))
-      data(I_0:I_1,J_0:J_1) = tlca(I_0:I_1,J_0:J_1)*frac + 
-     & tlcb(I_0:I_1,J_0:J_1)*(1.-frac)
-      return
-      end subroutine read_monthly_sources
 #endif  /* TRACERS_ON */
 
       subroutine checktr(subr)
@@ -2812,7 +2740,6 @@ C
       use model_com, only: itime, master_yr
       use domain_decomp_atm, only: GRID,getDomainBounds,write_parallel
       use constant, only: bygrav
-      use filemanager, only: openunit,closeunit,is_fbsa
       use OldTracer_mod, only: itime_tr0, trname
       use OldTracer_mod, only: set_first_aircraft, first_aircraft
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end,nAircraft
@@ -2820,7 +2747,7 @@ C
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
 #endif
-      use Dictionary_mod, only: is_set_param, get_param
+      use Dictionary_mod, only: get_param
       use RAD_COM, only: o3_yr
       use timestream_mod, only : read_stream, timestream, init_stream
 
@@ -2828,9 +2755,6 @@ C
  
 !@param Laircr the number of layers of aircraft data read from file
       INTEGER, PARAMETER :: Laircr=25
-!@param aircraft_Tyr1, aircraft_Tyr2 the starting and ending years
-!@+     for transient tracer aircraft emissions (= means non transient)
-      integer :: aircraft_Tyr1=0,aircraft_Tyr2=0
 !@var fileName the name of the aircraft source file for this tracer
       character(len=*), intent(IN) :: fileName
 !@var nTracer the index of the tracer in current call in ntm arrays
@@ -2866,37 +2790,14 @@ C
      & 5.795, 6.405, 7.015, 7.625, 8.235001, 8.845, 9.455001, 10.065,
      & 10.675, 11.285, 11.895, 12.505, 13.115, 13.725, 14.335, 14.945/)
       integer :: J_1, J_0, I_0, I_1, do_ppm
-      logical :: trans_emis=.false.,isItFbsa=.true.
-      integer :: yr1=0, yr2=0, copy_master_yr, cyclic_yr
+      integer :: copy_master_yr, cyclic_yr
       ! note the AIRCstream is passed before init_stream is called for it
-      ! (and in the case of fbsa files init_stream is never called for it.)
       type(timestream) :: AIRCstream
  
 ! Aircraft tracer source input is monthly, on 25 levels.
 ! Read it in here and interpolated each day.
 
       airtracer = 0.d0
-
-      ! for fortran binary sequential access files, transient emissions/
-      ! start/end years are determined from rundeck parameters:
-      isItFbsa=is_fbsa(fileName)
-      if (isItFbsa) then
-        if (is_set_param("aircraft_Tyr1")) then
-          call get_param("aircraft_Tyr1",aircraft_Tyr1)
-        else
-          call stop_model("Must provide aircraft_Tyr1 via rundeck",255)
-        end if
-        if (is_set_param("aircraft_Tyr2")) then
-          call get_param("aircraft_Tyr2",aircraft_Tyr2)
-        else
-          call stop_model("Must provide aircraft_Tyr2 via rundeck",255)
-        end if
-        if (aircraft_Tyr1==aircraft_Tyr2) then
-          trans_emis=.false.; yr1=0; yr2=0
-        else
-          trans_emis=.true.; yr1=aircraft_Tyr1; yr2=aircraft_Tyr2
-        end if
-      end if
 
       if (nTracer == 0) then
         call stop_model("nTracer undefined in get_aircraft_tracer",255)
@@ -2907,10 +2808,10 @@ C
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
-      ! Determine year of emissions to use and (for nc emissions)
-      ! whether the timestream should be cyclic or not.
-      ! (Actual year 'year' has been passed in. Allow override of this
-      ! if say, {master,o3,aer_int}_yr non-zero):
+      ! Determine year of emissions to use and whether the timestream
+      ! should be cyclic or not.  (Actual year 'year' has been passed
+      ! in. Allow override of this if, say, {master,o3,aer_int}_yr 
+      ! non-zero):
       call get_param('master_yr',copy_master_yr,default=0)
       cyclic_yr=copy_master_yr
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2921,7 +2822,7 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
         call get_param('aer_int_yr',cyclic_yr,default=copy_master_yr)
-#else 
+#else
         continue
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -2931,40 +2832,28 @@ C
       xyear=year
       if (cyclic_yr > 0) xyear=cyclic_yr
 
-      if (isItFbsa) then
-        ! for old giss binary files, skip execessive reading by disallowing
-        ! emissions before year 1900 (if transient emissions requested):
-        if (trans_emis .and. xyear < 1900) return
-      end if
-
       if (need_read) then
 
         ! Monthly sources are interpolated to the current day
         ! Units are kg m-2 s-1, so no conversion is necessary:
 
-        if (isItFbsa) then
-          call openunit(fileName,fileUnit,.true.)
-          call read_monthly_3Dsources(Laircr,fileUnit,
-     &         src,trans_emis,yr1,yr2,xyear,xday)
-          call closeunit(fileUnit)
-        else
-          if(first_aircraft(nTracer)) then
-            call set_first_aircraft(nTracer, .false.)
-            call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
-            if (do_ppm==1) then
-              call init_stream(grid,AIRCstream,fileName,
-     &        trim(trname(nTracer)), 0d0, 1d30, 'ppm',
-     &        xyear, xday, cyclic = (cyclic_yr > 0) )
-            else
-              call init_stream(grid,AIRCstream,fileName,
-     &        trim(trname(nTracer)), 0d0, 1d30, 'linm2m',
-     &        xyear, xday, cyclic = (cyclic_yr > 0) )
-            end if
+        if(first_aircraft(nTracer)) then
+          call set_first_aircraft(nTracer, .false.)
+          call get_param('nc_emis_use_ppm_interp',do_ppm,default=1)
+          if (do_ppm==1) then
+            call init_stream(grid,AIRCstream,fileName,
+     &      trim(trname(nTracer)), 0d0, 1d30, 'ppm',
+     &      xyear, xday, cyclic = (cyclic_yr > 0) )
+          else
+            call init_stream(grid,AIRCstream,fileName,
+     &      trim(trname(nTracer)), 0d0, 1d30, 'linm2m',
+     &      xyear, xday, cyclic = (cyclic_yr > 0) )
           end if
-          call read_stream(grid,AIRCstream,xyear,xday,src)
         end if
+        call read_stream(grid,AIRCstream,xyear,xday,src)
 
-! Place aircraft sources onto model levels:
+        ! Place aircraft sources onto model levels:
+
         do j=J_0,J_1
           do i=I_0,I_1
             zmod(:)=phi(i,j,:)*bygrav*1.d-3 ! km
@@ -2972,8 +2861,7 @@ C
               if (src(i,j,LL) > 0.) then
                 loop_L: do L=1,LM
                   if (zairL(LL) <= zmod(L)) then
-                    airtracer(i,j,L) = airtracer(i,j,L) +
-     &                                 src(i,j,LL)
+                    airtracer(i,j,L)=airtracer(i,j,L)+src(i,j,LL)
                     exit loop_L
                   end if
                   if(L==LM)call stop_model("aircraft lev. problem",255)
@@ -2990,191 +2878,6 @@ C
 
       return
       end subroutine get_aircraft_tracer
- 
-
-      SUBROUTINE read_monthly_3Dsources
-     & (Ldim,iu,data1,trans_emis,yr1,yr2,xyear,xday)
-!@sum Read in monthly sources and interpolate to current day
-!@auth Jean Lerner and others / Greg Faluvegi
-      USE RESOLUTION, only : im,jm
-      USE JulianCalendar_mod, only: idofm=>JDmidOfM
-      USE FILEMANAGER, only : NAMEUNIT
-      USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds,READT_PARALLEL
-     &     ,REWIND_PARALLEL
-     &     ,write_parallel,backspace_parallel,am_i_root
-      implicit none
-!@var Ldim how many vertical levels in the read-in file?
-!@var L dummy vertical loop variable
-      integer :: Ldim,L,imon,iu,ipos,k,nn,k2,kstep=10
-      character(len=300) :: out_line
-      real*8 :: frac, alpha
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::A2D,B2D,dummy
-      real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO
-     *     ,GRID%J_STRT_HALO:GRID%J_STOP_HALO,Ldim) ::tlca,tlcb,data1
-     *     ,sfc_a,sfc_b
-      logical, intent(in):: trans_emis
-      integer, intent(in):: yr1,yr2,xyear,xday
-     
-      integer :: J_0, J_1, I_0, I_1
-
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)     
-      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)     
-
-C No doubt this code can be combined/compressed, but I am going to
-C do the transient and non-transient cases separately for the moment:
-
-! -------------- non-transient emissions ----------------------------!
-      if(.not.trans_emis) then
-C
-      imon=1                ! imon=January
-      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
-        if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo  
-        call rewind_parallel(iu)
-      else              ! DAY is in Jan 16 to Dec 16, get first month
-        do while(xday > idofm(imon) .AND. imon <= 12)
-          imon=imon+1
-        enddo
-        if(imon/=2)then ! avoids advancing records at start of file
-          if(am_i_root())write(6,*) 'Not using this first record:'
-          call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-2))
-        end if
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo   
-        if(imon==13) call rewind_parallel(iu)
-      end if
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
-      enddo 
-c**** Interpolate two months of data to current day
-      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-      data1(I_0:I_1,J_0:J_1,:) =
-     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
-      write(out_line,*) '3D source monthly factor=',frac
-      call write_parallel(trim(out_line))
-
-! --------------- transient emissions -------------------------------!
-      else
-        ! 3D source files as of now have no meta-data so assume
-        ! that transient time slices are decadal:
-        kstep=10
-        ipos=1
-        k2=yr1
-        alpha=0.d0 ! before start year, use start year value
-        if(xyear>yr2.or.(xyear==yr2.and.xday>=183))then
-          alpha=1.d0 ! after end year, use end year value
-          ipos=(yr2-yr1)/kstep
-          k2=yr2-kstep
-        endif
-        do k=yr1,yr2-kstep,kstep
-          if(xyear>k .or. (xyear==k.and.xday>=183)) then
-            if(xyear<k+kstep .or. (xyear==k+kstep.and.xday<183))then
-              ipos=1+(k-yr1)/kstep ! (integer artithmatic)
-              alpha=real(xyear-k)/real(kstep)
-              k2=k
-              exit
-            endif
-          endif
-        enddo
-!
-! read the two necessary months from the first decade:
-!
-      imon=1                ! imon=January
-      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
-        if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo
-        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! DAY is in Jan 16 to Dec 16, get first month
-        do while(xday > idofm(imon) .AND. imon <= 12)
-          imon=imon+1
-        enddo
-        if(imon/=2 .or. ipos/=1)then ! avoids advancing records at start of file
-          if(am_i_root())write(6,*) 'Not using this first record:' 
-          call readt_parallel
-     &    (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
-        end if
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo
-        if(imon==13)then
-          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-        endif
-      end if
-CCCCC write(6,*) 'Not using this first record:'
-CCCCC call readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
-      enddo
-      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-      sfc_a(I_0:I_1,J_0:J_1,:) =
-     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
-      call rewind_parallel( iu )
-
-      ipos=ipos+1
-      imon=1                ! imon=January
-      if (xday <= 16)  then ! DAY in Jan 1-15, first month is Dec
-        if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*11)
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo
-        do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-      else              ! DAY is in Jan 16 to Dec 16, get first month
-        do while(xday > idofm(imon) .AND. imon <= 12)
-          imon=imon+1
-        enddo
-        if(am_i_root())write(6,*) 'Not using this first record:'
-        call readt_parallel
-     &  (grid,iu,nameunit(iu),dummy,(ipos-1)*12*Ldim+Ldim*(imon-2))
-        do L=1,Ldim
-          call readt_parallel(grid,iu,nameunit(iu),A2D,1)
-          tlca(I_0:I_1,J_0:J_1,L)=A2D(I_0:I_1,J_0:J_1)
-        enddo
-        if(imon==13)then
-          do nn=1,12*Ldim; call backspace_parallel(iu); enddo
-        endif
-      end if
-CCCCCCwrite(6,*) 'Not using this first record:'
-CCCCCCcall readt_parallel(grid,iu,nameunit(iu),dummy,Ldim*(imon-1))
-      do L=1,Ldim
-        call readt_parallel(grid,iu,nameunit(iu),B2D,1)
-        tlcb(I_0:I_1,J_0:J_1,L)=B2D(I_0:I_1,J_0:J_1)
-      enddo
-      frac = float(idofm(imon)-xday)/(idofm(imon)-idofm(imon-1))
-      sfc_b(I_0:I_1,J_0:J_1,:) =
-     & tlca(I_0:I_1,J_0:J_1,:)*frac + tlcb(I_0:I_1,J_0:J_1,:)*(1.-frac)
-
-! now interpolate between the two time periods:
-
-      data1(I_0:I_1,J_0:J_1,:) = sfc_a(I_0:I_1,J_0:J_1,:)*(1.d0-alpha) 
-     & + sfc_b(I_0:I_1,J_0:J_1,:)*alpha
-
-      write(out_line,*) '3D source at',
-     &100.d0*alpha,' % of period this day ',k2,' to this day ',k2+kstep,
-     &' and monthly fraction= ',frac 
-      call write_parallel(trim(out_line))
-
-      endif ! transient or not
-
-      return
-      end subroutine read_monthly_3Dsources
 
 #endif /* defined TRACERS_SPECIAL_Shindell or Koch/AMP/TOMAS aerosols */
 

@@ -150,8 +150,8 @@ contains
     type (Tracer), intent(inout) :: this
   end subroutine cleanTracer
 
-  subroutine findSurfaceSources(trcer, checkname, sect_name) 
-!@sum reads headers from emission files to return
+  subroutine findSurfaceSources(trcer, sect_name)
+!@sum reads metadata from emission files to return
 !@+ source names and determine the number of sources
 !@+ from the number of files in the rundeck of the form:
 !@+ trname_##. Then assigns each source to sector(s),
@@ -168,7 +168,6 @@ contains
 
 !@var nsrc number of source to define ntsurfsrc(n)
     type (Tracer), intent(inout) :: trcer
-    logical, intent(in) :: checkName
     character*10, intent(in):: sect_name(:)
 
     integer :: n
@@ -178,9 +177,9 @@ contains
     integer :: nsrc,linkstatus
 
     ! loop through potential number of surface sources, checking if
-    ! those files (or directories) exist. If they do, obtain the source name by reading
-    ! the header. If not, the number of sources for this tracer has 
-    ! been reached.
+    ! those files (or directories) exist. If they do, obtain the source
+    ! name from meta-data. If not, the number of sources for this tracer
+    ! has been reached.
 
     nsrc=0
 
@@ -194,8 +193,6 @@ contains
       case default
         fileOrDirExists=.false.
       end select
-      
-      if (am_i_root()) print*,'name: ', trim(fname), fileOrDirExists
 
       if (fileOrDirExists) then
         nsrc=nsrc+1
@@ -233,7 +230,7 @@ contains
 
       trcer%ntSurfSrc = trcer%ntSurfSrc + 1
       call initSurfaceSource(trcer%surfaceSources(trcer%ntSurfSrc),  &
-           &     getName(trcer), fileName, sect_name, checkname)
+           &     getName(trcer), fileName, sect_name)
     end subroutine addSourceFromFile
 
   end subroutine findSurfaceSources
@@ -271,7 +268,7 @@ contains
     fullName = trim(tracerName) // '_' // suffix
   end function addIntegerSuffix
 
-  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,checkname,itime,itime_tr0,sfc_src,isChemTracer)
+  subroutine readSurfaceSources(trcer, n,nsrc,xyear,xday,itime,itime_tr0,sfc_src,isChemTracer)
 !@sum reads surface (2D generally non-interactive) sources
 !@auth Jean Lerner/Greg Faluvegi
     USE DOMAIN_DECOMP_ATM, only: GRID
@@ -279,7 +276,6 @@ contains
     type (Tracer), target, intent(inout) :: trcer
     integer, intent(in) :: nsrc,n
     integer, intent(in) :: xyear, xday
-    logical, intent(in) :: checkname
     logical, intent(in) :: isChemTracer
     integer, intent(in) :: itime
     integer, intent(in) :: itime_tr0
@@ -294,7 +290,7 @@ contains
     do ns=1,nsrc
       if(trcer%surfaceSources(ns)%skipReason>0)cycle ! skip file reading for this source
       nread=nread+1
-      call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), checkname, sfc_src(:,:,n,ns), &
+      call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)
     enddo
 
