@@ -23,5 +23,6 @@ CH4_07=AR5_emisnc/F/T/CH4_tra_AR5_1850-2000_2x2.5_h.nc
 CH4_08=emisnc/F/NAT/CH4SOILABS_2x2.5_h.nc
 CH4_09=emisnc/F/NAT/CH4TRMITE_2x2.5_h.nc
 CH4_10=emisnc/F/NAT/CH4WETL+TUNDRA_2x2.5_h.nc
+CH4_10_scale=giss2/scales/global0.9_2x2H.nc ! SCALE SOURCE
 ! please set ns_wet parameter accordingly, if using interactive wetlands
 !------------ end CH4 emissions files --------------
