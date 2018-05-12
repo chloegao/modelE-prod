@@ -898,7 +898,7 @@ C****
      *                  trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trdn1(NTM,I_0:I_1,J_0:J_1),
-     *              sfc_src(I_0H:I_1H,J_0H:J_1H,NTM,ntsurfsrcmax))
+     *              sfc_src(I_0:I_1,J_0:J_1,NTM,ntsurfsrcmax))
 
       ALLOCATE(  daily_z(I_0:I_1,J_0:J_1,LM) )
       daily_z = 0.

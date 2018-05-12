@@ -326,8 +326,8 @@ c -----------------------------------------------------------------
       implicit none
       integer :: igrp,ngroups,grpids(subdd_ngroups),k,n,nAMP
       type(subdd_type), pointer :: subdd
-      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
-     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+      real*8, dimension(grid%i_strt:grid%i_stop,
+     &                  grid%j_strt:grid%j_stop,lm) ::
      &     sddarr3d
 
       call find_groups('taijlh',grpids,ngroups)
