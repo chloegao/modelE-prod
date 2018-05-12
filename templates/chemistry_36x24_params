@@ -22,8 +22,6 @@ SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WET (for example)
 SECTORS_ARE='WET'
 !-fit-here--|                                                              |---
 !-----
-aircraft_Tyr1=2000 ! regardless of the type of run, if you have non-transient
-aircraft_Tyr2=2000 ! aircraft emission files, set these two equal or omit them.
 
 ! Colin Price lightning model needs resolution-dependant tuning:
 tune_lt_land=33.227d0 ! =2.2d0*2.17d0 roughX4 * 2 for bugfix, *0.87
