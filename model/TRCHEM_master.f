@@ -48,9 +48,6 @@ C**** Local parameters and variables and arguments:
       CHARACTER*80              :: ghg_file
       character(len=300)        :: out_line
 
-      real*8 :: ghg_out(LM,GRID%I_STRT_HALO:GRID%I_STOP_HALO, ! remains LM
-     &                     GRID%J_STRT_HALO:GRID%J_STOP_HALO)
-
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
