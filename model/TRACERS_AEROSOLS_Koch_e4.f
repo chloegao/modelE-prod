@@ -85,24 +85,26 @@
       use filemanager, only: file_exists
 
       use RESOLUTION, only: lm
+      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       
       IMPLICIT NONE
       type (dist_grid), intent(in) :: grid
-      integer ::  J_1H, J_0H, I_0H, I_1H
-      integer :: IER
+      integer :: I_0, I_1, J_0, J_1
       integer :: v
       logical :: init = .false.
 
       if(init)return
       init=.true.
 
-      call getDomainBounds( grid , J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H = grid%I_STRT_HALO
-      I_1H = grid%I_STOP_HALO
+      call getDomainBounds(grid)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+      J_0 = grid%J_STRT
+      J_1 = grid%J_STOP
 
-      allocate( DMSinput(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( DMSinput(I_0:I_1,J_0:J_1,INT_MONTHS_PER_YEAR) )
 #ifndef TRACERS_AEROSOLS_SOA
-      allocate( OCT_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( OCT_src(I_0:I_1,J_0:J_1,INT_MONTHS_PER_YEAR) )
 #endif  /* TRACERS_AEROSOLS_SOA */
       if (file_exists('SO2_VOLCANO')) then
         nso2src_3d=nso2src_3d+1
@@ -116,22 +118,22 @@
         nso2src_3d=nso2src_3d+1
         iso2exvolc=nso2src_3d
       endif
-      allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
-      allocate( H2O_src_3D(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
+      allocate( SO2_src_3D(I_0:I_1,J_0:J_1,lm,nso2src_3d) )
+      allocate( H2O_src_3D(I_0:I_1,J_0:J_1,lm) )
       if (coupled_chem==0) then
-        allocate(        ohr(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 dho2r(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 perjr(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 tno3r(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 o3_offline(I_0H:I_1H,J_0H:J_1H,lm),
-     *                 off_HNO3(I_0H:I_1H,J_0H:J_1H,lm))
-        allocate(  readCache(I_0H:I_1H,J_0H:J_1H,lm) )
+        allocate(        ohr(I_0:I_1,J_0:J_1,lm),
+     *                 dho2r(I_0:I_1,J_0:J_1,lm),
+     *                 perjr(I_0:I_1,J_0:J_1,lm),
+     *                 tno3r(I_0:I_1,J_0:J_1,lm),
+     *                 o3_offline(I_0:I_1,J_0:J_1,lm),
+     *                 off_HNO3(I_0:I_1,J_0:J_1,lm))
+        allocate(  readCache(I_0:I_1,J_0:J_1,lm) )
       endif
 #ifdef BC_ALB
-      allocate( snosiz(I_0H:I_1H,J_0H:J_1H) ,STAT=IER)
+      allocate( snosiz(I_0:I_1,J_0:J_1) )
 #endif  /* BC_ALB */
 #ifdef TRACERS_RADON
-      allocate( rn_src(I_0H:I_1H,J_0H:J_1H,12) ,STAT=IER)
+      allocate( rn_src(I_0:I_1,J_0:J_1,INT_MONTHS_PER_YEAR) )
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       do v=1,vbs_sets
