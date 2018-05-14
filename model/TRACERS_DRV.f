@@ -4267,7 +4267,6 @@ c find indices of denominators
       integer k
 #endif
       INTEGER J_0, J_1, I_0, I_1
-      INTEGER J_0H, J_1H
       LOGICAL HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       integer :: lat_val
 #endif /* TRACERS_ON */
@@ -4278,7 +4277,6 @@ C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0,       J_STOP=J_1,
-     *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H,
      *               HAVE_SOUTH_POLE=HAVE_SOUTH_POLE,
      *               HAVE_NORTH_POLE=HAVE_NORTH_POLE)
       I_0 = grid%I_STRT
@@ -5103,8 +5101,8 @@ C    Initialize:
       so2_src_3D(:,:,:,iso2volcano)= 0.d0
 c read lat-lon netcdf file and convert lat,lon,pres to i,j,l.
 c NOTE: the input file specifies integrals over its gridboxes.
-      ALLOCATE(  psref(grid%i_strt_halo:grid%i_stop_halo,
-     &                 grid%j_strt_halo:grid%j_stop_halo) )
+      ALLOCATE(  psref(grid%i_strt:grid%i_stop,
+     &                 grid%j_strt:grid%j_stop) )
       iu_ps = par_open(grid,'PSREF','read')
       call read_dist_data(grid,iu_ps,'prsurf',psref)
       call par_close(grid,iu_ps)
@@ -7298,7 +7296,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
 
         call AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
-     &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC)
+     &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC,
+     &                   .false.,66)
 
 ! no need to update tr3Dsource for ASO4, since it does not change in eqsam.
         tr3Dsource(l,nThermo,n_NO3p)=(ANO3*1.d-9*AVOL-

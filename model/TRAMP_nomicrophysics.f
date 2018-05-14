@@ -1,5 +1,5 @@
 #include "rundeck_opts.h"
-      SUBROUTINE AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,VBS_FLUXES)
+      SUBROUTINE AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,AQSO4RATE,VBS_FLUXES)
 !-------------------------------------------------------------------------------------------------------------
 !     DLW, 092106: Routine for the no-microphysics option.
 !
@@ -21,7 +21,6 @@
       REAL(8), INTENT(IN)    :: TSTEP                 ! model physics time step [s]
       REAL(8), INTENT(IN)    :: TK                    ! absolute temperature [K]
       REAL(8), INTENT(IN)    :: RH                    ! relative humidity [0-1]
-      REAL(8), INTENT(IN)    :: PRES                  ! ambient pressure [Pa]  
       REAL(8), INTENT(IN)    :: AQSO4RATE             ! in-cloud SO4 production rate [ug/m^3/s]
 
       ! Local variables.
@@ -32,6 +31,7 @@
       REAL(8) :: TOT_SULF                  ! total sulfate conc.  [ug/m^3]
       REAL(8) :: TOT_DUST                  ! total dust conc.     [ug/m^3]
       REAL(8) :: TOT_SEAS                  ! total sea salt conc. [ug/m^3]
+      REAL(8) :: ApH                       ! total aerosol pH
       REAL(8) :: SSH2O                     ! total sea salt H2O   [ug/m^3]
       REAL(8) :: AERO_WATER_ACTUAL         ! actual aerosol H2O conc. [ug/m^3]
       REAL(8) :: AERO_WATER_WET            ! wet    aerosol H2O conc. [ug/m^3]
@@ -133,9 +133,9 @@
         ! non-sea salt-associated water. The sea salt-associated water is in SSH2O.
         !-------------------------------------------------------------------------------------------------------
         AERO_WATER_ACTUAL = AERO(MASS_H2O)                                ! actual tracked aerosol water conc.
-        CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),
-     &                   AERO(MASS_H2O),GAS(GAS_NH3),GAS(GAS_HNO3),
-     &                   TOT_DUST,TOT_SEAS,SSH2O,TK,RH,PRES,RHD,RHC)
+        CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
+     &                   GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC,
+     &                   WRITE_LOG,AUNIT1)
         AERO_WATER_WET = AERO(MASS_H2O) + SSH2O                           ! total metastable aerosol water conc.
   
         !-------------------------------------------------------------------------------------------------------

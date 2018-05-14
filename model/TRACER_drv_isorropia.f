@@ -1,5 +1,6 @@
       SUBROUTINE AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
-     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC)
+     &                       GNH3,GHNO3,TEMP,RH,RHD,RHC,
+     &                       WRITE_LOG,LOGUNIT)
 !@sum
 !@+     This routine sets up for and calls the thermodynamic module for aerosol
 !@+     gas-particle partitioning.
@@ -24,6 +25,8 @@
       REAL(8), INTENT(IN)    :: RH        ! relative humidity     [0-1]
       REAL(8), INTENT(OUT)   :: RHD       ! RH of deliquescence   [0-1]
       REAL(8), INTENT(OUT)   :: RHC       ! RH of crystallization [0-1]
+      logical, intent(in)    :: WRITE_LOG ! when set to .true., diagnostic output is generated
+      integer, intent(in)    :: LOGUNIT   ! Unit to write diagnostic output, when WRITE_LOG=.true.
 
       !------------------------------------------------------------------------------------------------------
       ! Input to ISOROPIA.
@@ -53,9 +56,9 @@
       REAL(8), PARAMETER :: MW_CL     = 35.4527D+00   ! [g/mol]
       REAL(8), PARAMETER :: MW_NACL   = 58.442468D+00 ! [g/mol]
       REAL(8), PARAMETER :: MW_H2O    = 18.01528D+00  ! [g/mol]
-      REAL(4), PARAMETER :: MW_K      = 39.0983       ! [g/mol]
-      REAL(4), PARAMETER :: MW_CA     = 40.078        ! [g/mol]
-      REAL(4), PARAMETER :: MW_MG     = 24.3050       ! [g/mol]
+      REAL(8), PARAMETER :: MW_K      = 39.0983d0     ! [g/mol]
+      REAL(8), PARAMETER :: MW_CA     = 40.078d0      ! [g/mol]
+      REAL(8), PARAMETER :: MW_MG     = 24.3050d0     ! [g/mol]
       REAL(8), PARAMETER :: RMW_NA    = 1.0D-06 / MW_NA    ! [mol/g]
       REAL(8), PARAMETER :: RMW_ASO4  = 1.0D-06 / MW_ASO4  ! [mol/g]
       REAL(8), PARAMETER :: RMW_ANH4  = 1.0D-06 / MW_ANH4  ! [mol/g]
@@ -80,52 +83,61 @@
       !------------------------------------------------------------------------------------------------------
       ! Fraction of dust mass that is K, Mg, Cl-, and Ca
       !------------------------------------------------------------------------------------------------------
-      REAL(4), PARAMETER :: MASS_FRAC_K  = 0.0028  ! From Ghan et al. (2001).
-      REAL(4), PARAMETER :: MASS_FRAC_CA = 0.024   !   JGR, Vol. 106, p. 5295-5316.
-      REAL(4), PARAMETER :: MASS_FRAC_MG = 0.0038  !   on p. 5296
-      REAL(4), PARAMETER :: MASS_FRAC_NA = 0.014   !   "water sol. mass frac. in soil dust"
-      REAL(4), PARAMETER :: FRAC_DUST  = 0.d0      ! [1] fraction of dust conc. passed to Thermodynamics         
-      REAL(4), PARAMETER :: FRAC_SALT  = 0.d0      ! [1] fraction of salt conc. passed to Thermodynamics
-      REAL(4), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
-      REAL(4), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
-      REAL(4), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
-      REAL(4), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028d0! From Ghan et al. (2001).
+      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024d0 !   JGR, Vol. 106, p. 5295-5316.
+      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038d0!   on p. 5296
+      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014d0 !   "water sol. mass frac. in soil dust"
+      REAL(8), PARAMETER :: FRAC_DUST  = 0.d0      ! [1] fraction of dust conc. passed to Thermodynamics         
+      REAL(8), PARAMETER :: FRAC_SALT  = 0.d0      ! [1] fraction of salt conc. passed to Thermodynamics
+      REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
+      REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
+      REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
+      REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
 
       !------------------------------------------------------------------------------------------------------
       ! Other parameters.
       !------------------------------------------------------------------------------------------------------
-      REAL(8), PARAMETER :: DH2O   = 1.000D+00   ! density of water [g/cm^3]
+      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
+      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
+
+      REAL(8), PARAMETER :: DH2O   = 1.00D+00    ! density of water [g/cm^3]
       REAL(8), PARAMETER :: DNACL  = 2.165D+00   ! density of NaCl  [g/cm^3]
       REAL(8), PARAMETER :: CSS    = 1.08D+00    ! for sea salt ...
       REAL(8), PARAMETER :: BSS    = 1.2D+00     ! for sea salt ...              
-      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
-      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]   
+      REAL(8), PARAMETER :: SSH2OA = (CSS*CSS*CSS*BSS-1.0D+00)*DH2O/DNACL
+      REAL(8), PARAMETER :: SSH2OB = (CSS*CSS*CSS            )*DH2O/DNACL
+
       REAL(8)            :: H                    ! local RH, with RHMIN < H < RHMAX
 
-      !------------------------------------------------------------------------------------------------------
-      ! Call for the bulk inorganic aerosol.
-      !------------------------------------------------------------------------------------------------------
       WI(:) = 0.d0
+      WT(:) = 0.d0
+      GAS(:) = 0.d0
+      AERLIQ(:) = 0.d0
+      AERSLD(:) = 0.d0
+      OTHER(:) = 0.d0
+
+      !-------------------------------------------------------------------------
+      ! Call for the bulk inorganic aerosol.
+      !-------------------------------------------------------------------------
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(/A,2F12.3/)') 'EQSAM: TEMP[K], RH[0-1]= ', TEMP, RH
+        WRITE(LOGUNIT,'(A4,7A14  )') '   ','ASO4','ANO3','ANH4','AH2O', 'GNH3','GHNO3','DUST'
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'TOP',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+      ENDIF
 
       H = MAX( MIN( RH, RHMAX ), RHMIN )
 
-!      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT            ! Na Sodium from [ug/m^3] to [mol/m^3]
+      WI(1) = RAT_NA*SALT*RMW_NA*FRAC_SALT            ! Na Sodium from [ug/m^3] to [mol/m^3]
       WI(2) =        ASO4*RMW_ASO4                    ! SO4  from [ug/m^3] to [mol/m^3]
       WI(3) =        ANH4*RMW_ANH4 +  GNH3*RMW_GNH3   ! NH3+NH4  from [ug/m^3] to [mol/m^3]
       WI(4) =        ANO3*RMW_ANO3 + GHNO3*RMW_GHNO3  ! NO3+HNO3 from [ug/m^3] to [mol/m^3]
-!      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT            ! Cl from [ug salt/m^3] to [mol/m^3]
-!      WI(6) = DUST*CONV_CAION                         ! Ca from [ug dust/m^3] to [umol Ca+/m^3]
-!      WI(7) = DUST*CONV_KION                          ! K  from [ug dust/m^3] to [umol K+ /m^3]
-!      WI(8) = DUST*CONV_MGION                         ! Mg from [ug dust/m^3] to [umol Mg+/m^3]
+      WI(5) = RAT_CL*SALT*RMW_CL*FRAC_SALT            ! Cl from [ug salt/m^3] to [mol/m^3]
+      WI(6) = DUST*CONV_CAION                         ! Ca from [ug dust/m^3] to [umol Ca+/m^3]
+      WI(7) = DUST*CONV_KION                          ! K  from [ug dust/m^3] to [umol K+ /m^3]
+      WI(8) = DUST*CONV_MGION                         ! Mg from [ug dust/m^3] to [umol Mg+/m^3]
 
       CNTRL(1) = 0.0D+00  ! Forward problem: WI contains the gas+aerosol concentrations
       CNTRL(2) = 0.0D+00  ! 0 (solid & liquid phases), 1 (liquid only, metastable)
-
-      WT(:)     = 0.0D+00
-      GAS(:)    = 0.0D+00
-      AERLIQ(:) = 0.0D+00
-      AERSLD(:) = 0.0D+00
-      OTHER(:)  = 0.0D+00
 
       CALL ISOROPIA ( WI, H, TEMP, CNTRL, WT, GAS, AERLIQ, AERSLD, SCASI, OTHER )
 
@@ -133,7 +145,6 @@
       GNH3  = MAX( GAS(1)*CMW_GNH3,  0.0D+00 )    ! from [mol/m^3] to [ug/m^3]
       AH2O  = AERLIQ(8)*CMW_H2O                   ! from [mol/m^3] to [ug/m^3]
       ApH   = -log10(AERLIQ(1)*1.d-3)             ! mol/m3 to mol/kg assuming density 1.d-3 kg/m3
-      SSH2O = 0.d0                            ! not calculated for OMA
       ANH4  = MAX( WT(3)*CMW_ANH4 - GNH3, 0.D0 )  ! from [mol/m^3] to [ug/m^3]
       ANO3  = MAX( WT(4)*CMW_ANO3 - GHNO3,0.D0 )  ! from [mol/m^3] to [ug/m^3]
 ! ISORROPIA does not modify ASO4, so the line below is not needed
@@ -141,6 +152,31 @@
 
       RHD   = 0.80D+00                            ! RHD = 0.80 for ammonium sulfate (Ghan et al., 2001).
       RHC   = 0.35D+00                            ! RHC = 0.35 for ammonium sulfate (Ghan et al., 2001).
+
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,7E14.5)') 'END',ASO4,ANO3,ANH4,AH2O,GNH3,GHNO3,DUST
+        WRITE(LOGUNIT,'(A4,7F14.5)') 'RHD',RHD
+      ENDIF 
+
+      !-------------------------------------------------------------------------
+      ! Get the sea salt-associated water (only).
+      !
+      ! A simple parameterization provided by E. Lewis is used.
+      !-------------------------------------------------------------------------
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,3A12  )') '   ','SALT','SSH2O'           
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'TOP' ,SALT
+      ENDIF
+
+      IF ( H .GT. 0.45D+00 ) THEN     ! ... then we are above the crystallization RH of NaCl
+        SSH2O = SALT * ( SSH2OA + SSH2OB / ( 1.0D+00 - H ) )
+      ELSE
+        SSH2O = 0.0D+00
+      ENDIF
+
+      IF ( WRITE_LOG ) THEN
+        WRITE(LOGUNIT,'(A4,3F12.5)') 'END',SALT,SSH2O
+      ENDIF
 
 
       END SUBROUTINE AERO_THERMO

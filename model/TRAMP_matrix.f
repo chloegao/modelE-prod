@@ -279,7 +279,7 @@
       !---------------------------------------------------------------------------------------------------------------- 
       IF( NO_MICROPHYSICS ) THEN
         EMIS_MASS(:) = 0.0D+00 
-        CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,VBS_FLUXES)
+        CALL AERO_NOMICROPHYSICS(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,AQSO4RATE,VBS_FLUXES)
         RETURN
       ENDIF
 
@@ -369,7 +369,8 @@
       !----------------------------------------------------------------------------------------------------------------
       AERO_WATER_ACTUAL = AERO(MASS_H2O)       ! actual tracked aerosol water conc.
       CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
-     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC)
+     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC,
+     &                 WRITE_LOG,AUNIT1)
       AERO_WATER_WET = AERO(MASS_H2O) + SSH2O  ! total metastable aerosol water conc.
 
       !----------------------------------------------------------------------------------------------------------------
@@ -1095,7 +1096,8 @@
       IF( WRITE_LOG ) WRITE(AUNIT1,'(/A,F12.4/)') 'TOT_SULF = ', TOT_SULF
       AERO_WATER_ACTUAL = AERO(MASS_H2O) + SSH2O
       CALL AERO_THERMO(TOT_SULF,AERO(MASS_NO3),AERO(MASS_NH4),TOT_DUST,TOT_SEAS,AERO(MASS_H2O),ApH,SSH2O,
-     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC)
+     &                 GAS(GAS_NH3),GAS(GAS_HNO3),TK,RH,RHD,RHC,
+     &                 WRITE_LOG,AUNIT1)
       AERO_WATER_WET = AERO(MASS_H2O) + SSH2O
 
       !----------------------------------------------------------------------------------------------------------------
