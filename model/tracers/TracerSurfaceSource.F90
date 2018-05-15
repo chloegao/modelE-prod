@@ -165,9 +165,9 @@ contains
     use dictionary_mod, only : get_param
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
-    real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
-    real*8 :: scaling( grid%i_strt_halo:grid%i_stop_halo, &
-    &                  grid%j_strt_halo:grid%j_stop_halo )
+    real*8, intent(inout) :: sfc_src(grid%i_strt:,grid%j_strt:)
+    real*8 :: scaling( grid%i_strt:grid%i_stop, &
+    &                  grid%j_strt:grid%j_stop )
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: isChemTracer
 

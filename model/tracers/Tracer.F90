@@ -277,7 +277,7 @@ contains
     logical, intent(in) :: isChemTracer
     integer, intent(in) :: itime
     integer, intent(in) :: itime_tr0
-    real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:,:,:)
+    real*8, intent(inout) :: sfc_src(grid%i_strt:,grid%j_strt:,:,:)
 
     integer :: ns, nread
 
