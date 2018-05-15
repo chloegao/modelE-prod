@@ -170,7 +170,6 @@ contains
     &                  grid%j_strt:grid%j_stop )
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: isChemTracer
-
     integer :: cyclic_yr,master_yr,nc_emis_use_ppm_interp
 
     ! first time after restarts; set up streams:
