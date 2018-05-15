@@ -179,7 +179,8 @@ C****
       FUNCTION KIN_EVAP_PREC(ALPH,HEFF,itr)
 !@sum calculate kinetic fractionation when evaporating into 
 !@+   undersaturated environment
-!@auth Gavin Schmidt/Georg Hoffmann
+!@auth Gavin Schmidt/Georg Hoffmann, 
+!@+    Stewart/Rayleigh limit added by Jesse Nusbaumer
       USE CONSTANT, only : tf
       use oldtracer_mod, only : iso_index
       IMPLICIT NONE
@@ -195,12 +196,46 @@ C****       1: Fresh Water 2: o18 3: Deu  4: Tritium 5: o17
      *     (/ 1d0, 1.0164d0, 1.0145d0, 1.0191d0, 1.008479d0 /)
 C**** alternative from Cappa et al (2003)
 c     *     (/ 1d0, 1.0184d0, 1.0095d0, 1.0184d0, 1.009478d0 /)
+!@var raylimit Stewart/Rayleigh fractionation factor at HEFF=0
+      real*8 raylimit
+!
+!
       real*8 kin_evap_prec
 C****
 C**** Calculate kinetic condensation when evaporating below clouds
 C****
       KIN_EVAP_PREC=alph*HEFF/(1.+(HEFF-1.)*alph
      *     *ZDIFRELGAM(iso_index(ITR)))
+      
+!     ------------------------------------------------------------
+!     The equation above produes questioniable and/or non-physical
+!     results at low relative humidities. This may be due to the 
+!     the fact that the equation was originally derived for
+!     vapor depositing onto ice in super-saturated conditions,
+!     not rain evaporatiing into low relative humidity conditions,
+!     and thus some of the assumptions used to derive the equation
+!     may be invalid.  To avoid these "bad" values, it is assumed
+!     that the largest distillation effect possible is with a pure
+!     Rayleigh distillation as derived by Stewart, 1975 for the limit
+!     when the relative humidity is exactly zero.
+!     ------------------------------------------------------------
+
+      !Calculate the Rayleigh limit (e.g. HEFF=0) as derived
+      !by Stewart, 1975
+       raylimit = alph/ZDIFRELGAM(iso_index(itr))
+
+      !If original fractionation value is less than
+      !(i.e. more fractionating than) Rayleigh limit,
+      !set back to Rayleigh limit:
+       if(kin_evap_prec .lt. raylimit) kin_evap_prec = raylimit
+
+      !If original fractionation value is greater than or
+      !equal to one (which implies the droplet became more
+      !depleted during distillation, which is unphysical),
+      !replace it with the Rayleigh limit value:
+       if(kin_evap_prec .ge. 1.d0) kin_evap_prec = raylimit  
+
+!     ------------------------------------------------------------  
 
       return
       end function kin_evap_prec
