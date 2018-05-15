@@ -2690,6 +2690,11 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
             else ! otherwise, tracers evaporate dependent on type of tracer
               !**** estimate effective humidity
               if (below_cloud) then
+                !The "effective humidity" here is the relative humidity of the vapor directly in 
+                !contact with the rain drops during evaporation, as opposed to the grid-box average.  
+                !Thus the grid-scale humidity is inversely weighted by the amount of 
+                !cloud in the grid box, and is assumed to be the average
+                !of the humidity values before and after evaporation.
                 TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
                 HEFF = Min (1d0, (QM(L)+DQSUM*(1/(2*MCLOUD)-1))*byAM(L)  /QSAT(TNX1,LHX,PL(L)))
               else
