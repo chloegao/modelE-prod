@@ -394,8 +394,8 @@ contains
 
     type (TracerSurfaceSource), intent(inout) :: this
     type (DIST_GRID), intent(in) :: grid
-    real*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
-         &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: &
+    real*8, DIMENSION(GRID%I_STRT:GRID%I_STOP, &
+         &                  GRID%J_STRT:GRID%J_STOP) :: &
          &     data
     integer ::  iu
     integer, intent(in) :: xyear, xday
@@ -470,7 +470,6 @@ contains
         call accumulate(this%month2cache, monthB+offset2, alpha)
       end if
 
-      ! note that the cache's are not halo'd
       data(I_0:I_1,J_0:J_1) = &
            &     this%month1cache(:,:)*frac + this%month2cache(:,:)*(1-frac)
 
@@ -491,8 +490,8 @@ contains
       real*8, intent(inout) :: data(:,:)
       integer, intent(in) :: record
       real*8 :: weight
-      real*8 :: tmp(grid%i_strt_halo:grid%i_stop_halo, &
-           &     grid%j_strt_halo:grid%j_stop_halo)
+      real*8 :: tmp(grid%i_strt:grid%i_stop, &
+           &     grid%j_strt:grid%j_stop)
 
       call rewind_parallel(iu)
       call skipHeader(iu)
@@ -627,15 +626,15 @@ contains
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
     logical, intent(in) :: checkname
-    real*8, intent(inout) :: sfc_src(grid%i_strt_halo:,grid%j_strt_halo:)
+    real*8, intent(inout) :: sfc_src(grid%i_strt:,grid%j_strt:)
     integer, intent(in) :: xyear, xday
     logical, intent(in) :: isChemTracer
 
     integer :: iu,k,ipos,kx,iposDay,kstep=10
     character(len=300) :: out_line
     real*8 :: alpha
-    real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO, &
-         &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) :: &
+    real*8, dimension(GRID%I_STRT:GRID%I_STOP, &
+         &                  GRID%J_STRT:GRID%J_STOP) :: &
          & sfc_a,sfc_b
 
     INTEGER :: J_1, J_0, I_0, I_1

@@ -104,7 +104,7 @@ contains
   subroutine scaleSource(this, trSource, sectorIndices)
     use domain_decomp_atm, only: getDomainBounds
     class (EmissionScenario), intent(in) :: this
-    real*8, intent(inout) :: trSource(this%grid%i_strt_halo:,this%grid%j_strt_halo:)
+    real*8, intent(inout) :: trSource(this%grid%i_strt:,this%grid%j_strt:)
     integer, intent(in) :: sectorIndices(:)
 
     integer :: i, j
