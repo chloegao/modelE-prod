@@ -695,6 +695,7 @@ C**** surface tracer concentration
       endif
 
 #ifndef STANDALONE_OCEAN
+#ifdef TRACERS_GASEXCH_ocean
 !partial CO2 pressure in seawater. Units are uatm.
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
@@ -704,7 +705,8 @@ C**** surface tracer concentration
         opgas_loc = 0 ! ensure "unused" values at poles don't pollute results.
         do nt=1, atm%gasex_index%getsize()
           DO J=oJ_0,oJ_1
-            oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
+           !oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
+            oWEIGHT(:,J) = oFOCEAN_loc(:,J)      !pco2 is calculated at ocean surface; not only open-water
             DO I=oI_0,oIMAXJ(J)
               IF (oFOCEAN_loc(I,J).gt.0.) THEN
                 !pco2 is in uatm, convert to kg,CO2/kg,air
@@ -729,6 +731,7 @@ C**** surface tracer concentration
 
         deallocate(opgas_loc)
       endif
+#endif
 #endif
 #endif
 
