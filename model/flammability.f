@@ -207,8 +207,7 @@
      & SECONDS_PER_DAY
       use domain_decomp_atm,only: grid, getDomainBounds
       use constant, only: undef
-      use flammability_com, only: mfcc,flammability,first_prec,
-     & saveFireCount
+      use flammability_com, only: mfcc,flammability,saveFireCount
       use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use lightning, only : CG_DENS 
@@ -246,7 +245,7 @@
 
           ! only do calculation after enough precip averaging done,
           ! and where flammability is defined:
-          if(first_prec(i,j)==0 .and. flammability(i,j)/=undef) then
+          if(flammability(i,j)/=undef) then
 #ifdef ANTHROPOGENIC_FIRE_MODEL
             ! Anthropogenic/lightning fire model ignition/supression, based on Olga's  
             ! document: "Anthropogenic ignitions and supression.docx" Nov 2012.
@@ -319,8 +318,7 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony, Igor A.
 
       use domain_decomp_atm,only: grid, getDomainBounds
-      use flammability_com, only: flammability,first_prec,nVtype,
-     & saveFireCount
+      use flammability_com, only: flammability,nVtype,saveFireCount
       use constant, only: undef
       use tracer_com, only: sfc_src
       use OldTracer_mod, only: emisPerFireByVegType
@@ -351,7 +349,7 @@
 
           ! only do calculation after enough precip averaging done,
           ! and where flammability is defined:
-          if(first_prec(i,j)==0 .and. flammability(i,j)/=undef) then
+          if(flammability(i,j)/=undef) then
             ! Obtain the vegetation types in the box:
             ! For now, the same way RAD_DRV does it, as per Greg F.'s 
             ! e-mails with Igor A. Mar-Apr,2010:
