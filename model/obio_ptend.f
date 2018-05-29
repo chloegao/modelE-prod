@@ -296,6 +296,7 @@ cdiag.   D_tend(k,1),D_tend(k,2),D_tend(k,3)
 
 c Day: Grow
       do k = 1,kmax
+      flimit(k,:,:)=0.0
 
       if (tirrq(k) .gt. 0.0)then
         tirrqice = tirrq(k)*0.01  !reduce light in ice by half

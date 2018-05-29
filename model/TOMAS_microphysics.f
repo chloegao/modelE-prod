@@ -3504,7 +3504,7 @@ c   Cap at 10^6 particles/cm3-s, limit for parameterization
          endif            
          do j=1,icomp-idiag
             if (Mkx(k,j).lt.0.d0)then
-               if (Mkx(k,j).gt.-10.0d0)then  !dmw trying to relax this # a bit
+               if (Mkx(k,j).gt.-25.0d0)then  !dmw trying to relax this # a bit
                   Nkx(k)=Neps
                   do jj=1,icomp
                      if (jj.eq.srtso4)then

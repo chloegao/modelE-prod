@@ -18,7 +18,7 @@
       USE OCN_TRACER_COM, only : water_tracer_ic
 #endif
 
-      USE OCEAN, only : im,jm,lmo,dxypo,mo,lmm,imaxj,oXYP
+      USE OCEAN, only : im,jm,lmo,dxypo,mo,lmm,imaxj,oXYP,use_qus
 #ifdef TRACERS_OCEAN
      *     ,trmo,txmo,tymo,tzmo,mo,s0m,sxmo,symo,szmo,oc_tracer_mean
 #endif
@@ -150,6 +150,10 @@ C**** straits
 
 ! set all gradients to zero initially
            txmo(:,:,:,n) = 0; tymo(:,:,:,n)= 0. ; tzmo(:,:,:,n)=0.
+           if(use_qus==1) then
+             txxmo(:,:,:,n) = 0; txymo(:,:,:,n)= 0. ; tzxmo(:,:,:,n)=0.
+             tyymo(:,:,:,n) = 0; tyzmo(:,:,:,n)= 0. ; tzzmo(:,:,:,n)=0.
+           endif
            if (am_i_root()) then
              txmst(:,:,n)=0. ; tzmst(:,:,n)=0.
           endif
@@ -417,7 +421,7 @@ C****
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_age
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj,
-     *     lmm, lmo
+     *     lmm, lmo,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
@@ -442,6 +446,12 @@ C**** age=1/(INT_DAYS_PER_YEAR*24*3600) in years
               if (L.eq.1) then
                 TRMO(I,J,1,n_age)=0 ; TXMO(I,J,1,n_age)=0 
                 TYMO(I,J,1,n_age)=0 ; TZMO(I,J,1,n_age)=0
+                if(use_qus==1) then
+                   TXXMO(I,J,1,n_age)=0 ; TXYMO(I,J,1,n_age)=0
+                   TZXMO(I,J,1,n_age)=0 ; TYYMO(I,J,1,n_age)=0
+                   TYZMO(I,J,1,n_age)=0 ; TZZMO(I,J,1,n_age)=0
+                endif
+!all nine set to zero
               else
                 TRMO(I,J,L,n_age)= TRMO(I,J,L,n_age) +
      +                age_inc * MO(I,J,L) * oXYP(I,J)
@@ -464,6 +474,7 @@ C****
       USE OCN_TRACER_COM, only : n_ocfc11,n_ocfc12,n_sf6
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
      *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
+     *    ,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
@@ -490,7 +501,7 @@ C****
       real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgs,wind,pnoice,Xkw
      .              ,solub,solub_cfc_sf6,schmidtno_cfc,Sc,kw,cfcair,csat
      .              ,fluxa,flux,flux_tendency,rho_water,dp1d
-     .              ,Pnorth,Psouth,trmopro,fluxb,scsf6
+     .              ,Pnorth,Psouth,trmopro,fluxb,scsf6,dtr,ftr
       real*8 :: ys ! northern boundary of SH constant-value domain (deg N)
       real*8 :: yn ! southern boundary of NH constant-value domain (deg N)
       real*8 :: wt_sh ! weight for SH constant-value domain
@@ -599,20 +610,37 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       flux_tendency= flux /dp1d * 1000.d0*pnoice  !mili-mol/m3/s
 
       trmopro=trmo(i,j,1,trac_ind)   !save for printout
-      trmo(i,j,1,trac_ind) =  trmo(i,j,1,trac_ind)
-     .                  + (flux_tendency * DTS)*1e-6*MW_gas
-     .                                 *mo(i,j,1)*dxypo(j)/rho_water   !kg
+
+      dtr = (flux_tendency * DTS)*1e-6*MW_gas
+     .                            *mo(i,j,1)*dxypo(j)/rho_water
+
+! make sure dtr+trmo should never be negative
+      dtr = max(dtr,-1.d0*trmo(i,j,k,trac_ind))
+
+        if (dtr.lt.0) then
+          ftr = -dtr/trmo(i,j,k,trac_ind)
+          txmo(i,j,k,trac_ind)=txmo(i,j,k,trac_ind)*(1.-ftr)
+          tymo(i,j,k,trac_ind)=tymo(i,j,k,trac_ind)*(1.-ftr)
+          tzmo(i,j,k,trac_ind)=tzmo(i,j,k,trac_ind)*(1.-ftr)
+          if(use_qus==1) then
+            txxmo(i,j,k,trac_ind)=txxmo(i,j,k,trac_ind)*(1.-ftr)
+            txymo(i,j,k,trac_ind)=txymo(i,j,k,trac_ind)*(1.-ftr)
+            tzxmo(i,j,k,trac_ind)=tzxmo(i,j,k,trac_ind)*(1.-ftr)
+            tyymo(i,j,k,trac_ind)=tyymo(i,j,k,trac_ind)*(1.-ftr)
+            tyzmo(i,j,k,trac_ind)=tyzmo(i,j,k,trac_ind)*(1.-ftr)
+            tzzmo(i,j,k,trac_ind)=tzzmo(i,j,k,trac_ind)*(1.-ftr)
+          endif
+        endif
+
+      trmo(i,j,1,trac_ind) =  trmo(i,j,1,trac_ind) +dtr   !kg
+
+
       if (i.eq.50.and.j.eq.90) then
          write(*,'(a,6i5,12e12.4)')'CFC OUTPUT 1:',
      . date,month,year,i,j,icfc,pnoice,cfcair,pres,solub,csat,kw,fluxa,
      . fluxb,flux,dp1d,trmopro,trmo(i,j,1,trac_ind)
       endif
 
-
-!     we do not set the moments for the tracer field here... 
-!     maybe we need to do that for the online gasexchange though...
-!     TXMO(I,J,1,n_ocfc11)=0
-!     TYMO(I,J,1,n_ocfc11)=0 ; TZMO(I,J,1,n_ocfc11)=0
 
        if (ocn_cfc) then
         if (icfc==11) then
@@ -970,7 +998,7 @@ C****
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_vent
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
-     *     lmm, lmo
+     *     lmm, lmo,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
@@ -995,6 +1023,14 @@ C**** at each time step set surface tracer conc=1
                 TXMO(I,J,L,n_vent)= 0.
                 TYMO(I,J,L,n_vent)= 0.
                 TZMO(I,J,L,n_vent)= 0.
+                if(use_qus==1) then
+                   TXXMO(I,J,L,n_vent)= 0.
+                   TXYMO(I,J,L,n_vent)= 0.
+                   TZXMO(I,J,L,n_vent)= 0.
+                   TYYMO(I,J,L,n_vent)= 0.
+                   TYZMO(I,J,L,n_vent)= 0.
+                   TZZMO(I,J,L,n_vent)= 0.
+                endif
               end if
             end if
           ENDDO
@@ -1011,7 +1047,7 @@ C****
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_gasx
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
-     *     lmm, lmo
+     *     lmm, lmo,use_qus,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
       USE OFLUXES, only : oRSI
@@ -1047,6 +1083,14 @@ c**** Extract domain decomposition info
                 TXMO(I,J,L,n_gasx)= 0.
                 TYMO(I,J,L,n_gasx)= 0.
                 TZMO(I,J,L,n_gasx)= 0.
+                if(use_qus==1) then
+                   TXXMO(I,J,L,n_gasx)= 0.
+                   TXYMO(I,J,L,n_gasx)= 0.
+                   TZXMO(I,J,L,n_gasx)= 0.
+                   TYYMO(I,J,L,n_gasx)= 0.
+                   TYZMO(I,J,L,n_gasx)= 0.
+                   TZZMO(I,J,L,n_gasx)= 0.
+                endif
 #endif
               end if
             end if
@@ -1063,7 +1107,8 @@ C****
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_wms1,n_wms2,n_wms3
       USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
-     *     lmm, lmo, oLON_DG,oLAT_DG,ZOE=>ZE
+     *     lmm, lmo, oLON_DG,oLAT_DG,ZOE=>ZE,use_qus
+     *     ,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -1093,6 +1138,14 @@ C**** age=1/(JDperY*24*3600) in years
                 TXMO(I,J,L,n_wms1)= 0.
                 TYMO(I,J,L,n_wms1)= 0.
                 TZMO(I,J,L,n_wms1)= 0.
+                if(use_qus==1) then
+                   TXXMO(I,J,L,n_wms1)= 0.
+                   TXYMO(I,J,L,n_wms1)= 0.
+                   TZXMO(I,J,L,n_wms1)= 0.
+                   TYYMO(I,J,L,n_wms1)= 0.
+                   TYZMO(I,J,L,n_wms1)= 0.
+                   TZZMO(I,J,L,n_wms1)= 0.
+                endif
               end if
             end if
           ENDDO
@@ -1115,6 +1168,14 @@ C**** age=1/(JDperY*24*3600) in years
                 TXMO(I,J,L,n_wms2)= 0.
                 TYMO(I,J,L,n_wms2)= 0.
                 TZMO(I,J,L,n_wms2)= 0.
+                if(use_qus==1) then
+                   TXXMO(I,J,L,n_wms2)= 0.
+                   TXYMO(I,J,L,n_wms2)= 0.
+                   TZXMO(I,J,L,n_wms2)= 0.
+                   TYYMO(I,J,L,n_wms2)= 0.
+                   TYZMO(I,J,L,n_wms2)= 0.
+                   TZZMO(I,J,L,n_wms2)= 0.
+                endif
               end if
             end if
           end if
@@ -1135,6 +1196,14 @@ C**** age=1/(JDperY*24*3600) in years
                 TXMO(I,J,L,n_wms3)= 0.
                 TYMO(I,J,L,n_wms3)= 0.
                 TZMO(I,J,L,n_wms3)= 0.
+                if(use_qus==1) then
+                   TXXMO(I,J,L,n_wms3)= 0.
+                   TXYMO(I,J,L,n_wms3)= 0.
+                   TZXMO(I,J,L,n_wms3)= 0.
+                   TYYMO(I,J,L,n_wms3)= 0.
+                   TYZMO(I,J,L,n_wms3)= 0.
+                   TZZMO(I,J,L,n_wms3)= 0.
+                endif
               end if
             end if
           ENDDO

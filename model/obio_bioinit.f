@@ -87,6 +87,7 @@
 
       tracer(:,:,:,1:ntyp)=0.d0
       Fer(:,:,:) = 0.d0
+      dic(:,:,:) = 0.d0
 
 !NOT FOR HYCOM: lmm passed to subroutine
       call bio_inicond('nitrates_inicond',tracer(:,:,:,1),
@@ -128,7 +129,7 @@
         do i=ogrid%i_strt,ogrid%i_stop
           if(tracer(i,j,k,1).le.0.)tracer(i,j,k,1)=0.085d0
           if(tracer(i,j,k,3).le.0.)tracer(i,j,k,3)=0.297d0
-          if (dic(i,j,k).le.0.) dic(i,j,k)=1837.d0
+          if (dic(i,j,k).le.0.0) dic(i,j,k)=1837.0
           dic(i,j,k)=max(dic(i,j,k),1837.0)   !set minimum =1837
         enddo
        enddo
