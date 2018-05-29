@@ -288,7 +288,12 @@
             aij(i,j,ij_humanign)=aij(i,j,ij_humanign)+humanIgn
             aij(i,j,ij_cgign)=aij(i,j,ij_cgign)+CtoG
             aij(i,j,ij_nsuppress)=aij(i,j,ij_nsuppress)+nonSuppressFrac
-            aij(i,j,ij_human)=aij(i,j,ij_human)+humanIgn/(CtoG+humanIgn)
+            if ((CtoG+humanIgn).ne.0.)then
+              ! Accumulating zeros when that is false is
+              ! problematic, but so is accumulaing NaNs!:
+              aij(i,j,ij_human)=aij(i,j,ij_human)+
+     &                          humanIgn/(CtoG+humanIgn)
+            end if
 
 #else /* ubiquitous only */
 
