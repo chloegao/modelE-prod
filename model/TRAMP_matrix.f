@@ -109,7 +109,7 @@
       REAL(8) :: RHC                       ! crystallization RH [0-1]
       REAL(8) :: DGN(NWEIGHTS)             ! ambient geometric mean diameter of the number distribution for each mode [m]
       REAL(8) :: DGN_DRY(NWEIGHTS)         ! geometric mean dry diameter of the number distribution for each mode [m]
-      REAL(8) :: P_EMIS_NUMB(NMODES)       ! number emission rates [#/m^3/s]       
+      REAL(8) :: P_EMIS_NUMB(NMODES)       ! number emission rates [#/m^3/s]
       REAL(8) :: SPCMASS1(NMASS_SPCS+2)    ! initial total mass conc. of each model species [ug/m^3]
       REAL(8) :: SPCMASS2(NMASS_SPCS+2)    ! final   total mass conc. of each model species [ug/m^3]
       REAL(8) :: FSEASSULF                 ! fraction of sulfate assigned to sea salt in mode SSC (coarse mode)
@@ -117,6 +117,9 @@
       REAL(8) :: Y0,Y,A,B,C,DELTA,R1,R2    ! scratch variables in the number concentration analytic solution
       REAL(8) :: GAMMA,GEXPDT,EXPDT        ! scratch variables in the number concentration analytic solution
       REAL(8), PARAMETER :: PIQ_THRESH = 1.0D-08  ! [1] threshold in number/mass conc. solver
+      REAL(8) :: RATIO_AER(NMODES)         ! ratio of aerosol surface area per population
+      REAL(8) :: SURF(NMODES)              ! surface area per population
+      REAL(8) :: TOTSURF                   ! total surface area of all populations
 
       ! For the condensational sink, condensational growth, and cou. 
 
@@ -969,17 +972,32 @@
       DO I=1,NMODES
         IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
 
+! calculate surface area
+        surf=0.
+        totsurf=0.
+        if (aero(numb_map(i)) .le. 1.d-10) then
+          surf(i)=0.
+        else
+          surf(i)=pi*(DGN(i)*exp((LNSIG0(i))**2))**2 * aero(numb_map(i))
+        endif
+        totsurf=sum(surf(:))
+
+        ratio_aer(:)=0.d0
+        if (totsurf .ne. 0.) then
+          ratio_aer(i)=surf(i)/totsurf
+        endif
+
 ! save VBS-related concentrations
         do v=1,vbs_bins
-          vbs_conc%gas(v)=GAS(GAS_OCM2-1+v)/dble(nmodes) ! FIX THIS by multiplying with surface area fraction instead!!!!!
-          vbs_conc%aer(v)=AERO(PROD_INDEX_OCM2-1+v)
+          vbs_conc%gas(v)=GAS(GAS_OCM2-1+v)*ratio_aer(I)
+          vbs_conc%aer(v)=AERO(MASS_MAP(I,PROD_INDEX_INV(I,PROD_INDEX_OCM2)-1+v))
         enddo
 
 ! save non-VBS concentrations
         nvoa=0.d0 ! sum of non-VBS mass concentrations in the current mode
         do Q=1,NM(I)
-          if (Q>=PROD_INDEX(I,NM(Q))) cycle
-          nvoa=nvoa+AERO(MASS_MAP(I,Q))
+          if (PROD_INDEX(I,Q)>=PROD_INDEX_OCM2) cycle
+          nvoa=nvoa+AERO(MASS_MAP(I,Q)) ! fix this add ammonium and nitrate
         enddo
         vbs_cond%nvoa=nvoa
 
@@ -989,7 +1007,7 @@
 ! send output back to MATRIX
         do v=1,vbs_bins
           GAS(GAS_OCM2-1+v)=vbs_conc%gas(v)
-          VBS_FLUXES(I,PROD_INDEX_OCM2-1+v)=vbs_conc%aer(v)
+          VBS_FLUXES(I,PROD_INDEX_OCM2-1+v)=(vbs_conc%aer(v)-AERO(MASS_MAP(I,PROD_INDEX_INV(I,PROD_INDEX_OCM2)-1+v)))/tstep
         enddo
 
         DO Q=PROD_INDEX_OCM2,PROD_INDEX_OCP6
