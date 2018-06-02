@@ -7212,7 +7212,7 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         case ('M_NO3','M_NH4','M_H2O')
           call apply_tracer_3Dsource(i,j,nThermo,n) ! Aerosol Thermodynamics
         case default
-          call apply_tracer_3Dsource(i,j,nMicrophys,n) ! Aerosol Mirophysics
+          call apply_tracer_3Dsource(i,j,nMicrophys,n) ! Aerosol Microphysics
         end select
       ENDDO
 
