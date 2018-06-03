@@ -6990,6 +6990,8 @@ C**** Source over Australia and New Zealand
 
         endif  ! pTracer==CFCn
 
+#ifdef TRACERS_PASSIVE
+
        case ('nh5','nh50','nh15')
 
         trsource(:,:,:,n)=0
@@ -6997,6 +6999,9 @@ C**** Source over Australia and New Zealand
        case ('e90')
 
         trsource(:,:,:,n)=0
+
+#endif
+
 C****
 C**** Surface Sources for Radon-222
 C****
