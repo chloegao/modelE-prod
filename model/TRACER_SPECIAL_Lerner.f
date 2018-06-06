@@ -363,7 +363,7 @@ C**** Read chemical loss rate dataset (5-day frequency)
         IF (AM_I_ROOT()) THEN
           read(FRQfile) title
           read (title,'(f10.0)') taux
-          tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
+         tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
           IF ((itime*Dtsrc/SECONDS_PER_HOUR)+60.gt.tauy+120.) go to 510
           backspace(FRQfile)
           IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
