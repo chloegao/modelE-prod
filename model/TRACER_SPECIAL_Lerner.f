@@ -363,7 +363,7 @@ C**** Read chemical loss rate dataset (5-day frequency)
         IF (AM_I_ROOT()) THEN
           read(FRQfile) title
           read (title,'(f10.0)') taux
-          tauy = nint(taux)+(jyear-1950)*HOURS_PER_DAY*DAYS_PER_YEAR
+          tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
           IF ((itime*Dtsrc/SECONDS_PER_HOUR)+60.gt.tauy+120.) go to 510
           backspace(FRQfile)
           IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
@@ -381,7 +381,7 @@ C**** FOR END OF YEAR, USE FIRST RECORD
         IF (AM_I_ROOT()) rewind FRQfile
         CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
         taux = 0.d0   ! we know this
-        tauy = nint(taux)+(jyear-1950)*HOURS_PER_DAY*DAYS_PER_YEAR
+        tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
         IF (AM_I_ROOT()) rewind FRQfile  ! start over
   518   continue
 
