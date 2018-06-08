@@ -48,7 +48,7 @@ C****
 C**** ESMF: This array is read in only
       lmtc = lm-nstrtc
       ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
-     *          STAT=IER)  
+     *          STAT=IER)
 
 C---calculate nearest latitude to std lats
       yedge1=-90.
@@ -300,11 +300,9 @@ C---- CTM layers LM down
 !@auth Jean Lerner
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: nday,itime,dtsrc,modelEclock
-      use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY, 
-     *                             DAYS_PER_YEAR
+      use TimeConstants_mod, only: INT_DAYS_PER_YEAR
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT,
-     *  readt8_parallel,haveLatitude,broadcast,
-     *  backspace_parallel
+     *  readt8_parallel,haveLatitude,broadcast
       USE GEOM, only: imaxj,byim
       USE PRATHER_CHEM_COM, only: nstrtc
       USE TRACER_COM
@@ -312,18 +310,18 @@ C---- CTM layers LM down
       USE FLUXES, only: tr3Dsource
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer n,ns,i,j,l,FRQfile,lmtc
-      real*8 tauy,tune
-      real*8, save :: taux=0.
+      integer n,ns,i,j,l,FRQfile,lmtc,it_from_Dec29hr12,nrec,nr
+      real*8 tune
+      real*8, save :: taux=-1. ! hr of latest record read in (0.->8640.)
       parameter (tune = 445./501.)
-      integer, save :: ifirst=1
+      integer, save :: ifirst=1, nrec_cur=-1
       character*80 title
       real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
-      save tauy,FRQfile
+      save FRQfile
       INTEGER :: J_1, J_0, I_0, I_1
       INTEGER :: J_1H, J_0H, I_1H, I_0H
       INTEGER :: IER
-      integer :: jyear, jday
+      integer :: jyear, jhour , jdate , month
       character*16, save :: FRQname='OHCH4_FRQ_interp'
 
 C****
@@ -336,76 +334,66 @@ C****
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
-      jday = modelEclock%getDayOfYear()
-      jyear = modelEclock%getYear()
+      lmtc = lm-nstrtc
+
+      call modelEclock%get(hour=jhour, date=jdate, year=jyear ,
+     &                     month=month)
+
+      it_from_Dec29hr12 = mod(itime+5*NDAY/2,Nday*INT_DAYS_PER_YEAR)
+      nrec = 1 + it_from_Dec29hr12/(5*Nday) ! record for current 5-day period
 
 C**** Check whether chem.loss rate is up-to-date (updated every 5 days)
-      lmtc = lm-nstrtc
-      if((ifirst.eq.0) .and. (mod(jday,5)>0 .or. mod(itime,nday).ne.0))
-     *  go to 550                           !  no need to update frqlos
+      if(nrec == nrec_cur) go to 550
 
-C**** Create interpolated table for this resolution
+C**** Create interpolated table for this resolution, position input file
       if (ifirst==1) then
         IF (AM_I_ROOT()) THEN
-         call get_Trop_chem_CH4_freq(FRQname)
-         ifirst = 0
+          call get_Trop_chem_CH4_freq(FRQname)
+          call openunit(FRQname,FRQfile,.true.,.true.)
+          do nr=1,nrec-1
+            read(FRQfile)
+          end do
+          ifirst = 0
         END IF
         ! the following call is actually serving as MPI_Barrier
         ! do not remove it unless you know what you are doing
         call broadcast(grid, ifirst)
-        IF (AM_I_ROOT()) 
-     *  call openunit(FRQname,FRQfile,.true.,.true.)
       end if
+
+C**** Read chemical loss rate dataset (1 year of data, 5-day frequency)
       ALLOCATE(arr_dummy_3d(I_0H:I_1H,J_0H:J_1H,lmtc), STAT=IER)
-C**** Read chemical loss rate dataset (5-day frequency)
-  510   continue
-        if (taux.eq.8640.) go to 515  ! last record on file
-        IF (AM_I_ROOT()) THEN
-          read(FRQfile) title
-          read (title,'(f10.0)') taux
-         tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
-          IF ((itime*Dtsrc/SECONDS_PER_HOUR)+60.gt.tauy+120.) go to 510
-          backspace(FRQfile)
-          IF ((itime*Dtsrc/SECONDS_PER_HOUR)+180..le.tauy+120.) then
-            write(6,*)'PROBLEM MATCHING itime on FRQ file',
-     &                taux,tauy,jyear
-            call stop_model(
-     &        'PROBLEM MATCHING itime on FRQ file in Trop_chem_CH4',255)
-          end if
-        END IF
-        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
-        IF (AM_I_ROOT()) rewind FRQfile
-        go to 518
-C**** FOR END OF YEAR, USE FIRST RECORD
-  515   continue
-        IF (AM_I_ROOT()) rewind FRQfile
-        CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
-        taux = 0.d0   ! we know this
-        tauy = nint(taux)+(jyear-(jyear+1))*HOURS_PER_DAY*DAYS_PER_YEAR
-        IF (AM_I_ROOT()) rewind FRQfile  ! start over
-  518   continue
+      IF (AM_I_ROOT()) THEN
+        read(FRQfile) title
+        read (title,'(f10.0)') taux
+        backspace(FRQfile)
+      END IF
+      CALL READT8_PARALLEL(grid,FRQfile,FRQname,arr_dummy_3d,0)
+      nrec_cur = nrec
 
-        frqlos = arr_dummy_3d
-        DEALLOCATE (arr_dummy_3d)
+      frqlos = arr_dummy_3d
+      DEALLOCATE (arr_dummy_3d)
 
-        IF (AM_I_ROOT()) THEN
-        WRITE(6,'(2A,2F10.0,2I10)')
-     * ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
-     * ' taux,tauy,itime,jyear=', taux,tauy,itime,jyear
-        END IF
+      IF (AM_I_ROOT()) THEN
+C**** near END OF YEAR, cycle to FIRST RECORD
+        IF (taux==8640.) rewind FRQfile
+        WRITE(6,'(2A,F10.0,I10,I7,a1,I2.2,a1,I2.2,a3,I3)')
+     *    ' *** Chemical Loss Rates in Trop_chem_CH4 read for',
+     *    ' taux,itime,yr/month/day/hour=',
+     *     taux,itime,jyear,'/',month,'/',jdate,' hr',jhour
+      END IF
 C**** AVERAGE POLES
-        if(haveLatitude(grid,J=1)) then
-          do l=1,lmtc
-            frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
-          end do
-        end if
-        if(haveLatitude(grid,J=JM)) then
-          do l=1,lmtc
-            frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
-          end do
-        end if
+      if(haveLatitude(grid,J=1)) then
+        do l=1,lmtc
+          frqlos(1, 1,l) = sum(frqlos(:, 1,l))*byim
+        end do
+      end if
+      if(haveLatitude(grid,J=JM)) then
+        do l=1,lmtc
+          frqlos(1,jm,l) = sum(frqlos(:,jm,l))*byim
+        end do
+      end if
 C**** APPLY AN AD-HOC FACTOR TO BRING INTO BALANCE
-        frqlos(:,:,:) = frqlos(:,:,:)*tune
+      frqlos(:,:,:) = frqlos(:,:,:)*tune
 
 C**** Apply the chemistry
   550 continue
@@ -959,7 +947,7 @@ C**** Monthly sources are interpolated each day
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       use TimeConstants_mod, only: JDPERY
       USE FLUXES, only: focean,fearth0,flake0
-      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, 
+      USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds,
      *  readt_parallel, AM_I_ROOT
       use OldTracer_mod, only: itime_tr0,trname
       USE FILEMANAGER, only: openunit,closeunit
@@ -990,7 +978,7 @@ c GISS-ESMF EXCEPTIONAL CASE - SAVE variable, I/O
       real*8, allocatable :: tlca(:,:,:), tlcb(:,:,:)   ! for monthly sources
       real*8 frac
       integer i,j,nt,iu,k,imon(nmons)
-      logical :: ifirst=.true. 
+      logical :: ifirst=.true.
       integer :: jdlast=0
       integer :: jday
       save ifirst,jdlast,tlca,tlcb,mon_units,imon
@@ -1624,7 +1612,7 @@ C**** Keep step function except at two transition points (+/- 15 deg)
           GASJK(J,29:90) = GASW(3,1:62)
         elseif (lat_dg(j,1).lt.-15-0.5*DLAT_DG) then ! sh
           GASJK(J,29:90) = GASW(1,1:62)
-        elseif (lat_dg(j,1).gt.-15+0.5*DLAT_DG .and. lat_dg(j,1).lt.15 
+        elseif (lat_dg(j,1).gt.-15+0.5*DLAT_DG .and. lat_dg(j,1).lt.15
      *         -0.5*DLAT_DG) then ! tropics
           GASJK(J,29:90) = GASW(2,1:62)
         else                    ! edge points
