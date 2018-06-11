@@ -695,6 +695,7 @@ C**** surface tracer concentration
       endif
 
 #ifndef STANDALONE_OCEAN
+#ifdef TRACERS_GASEXCH_ocean
 !partial CO2 pressure in seawater. Units are uatm.
 !defined only over open ocean cells, because this is what is
 !involved in gas exchage with the atmosphere.
@@ -704,7 +705,8 @@ C**** surface tracer concentration
         opgas_loc = 0 ! ensure "unused" values at poles don't pollute results.
         do nt=1, atm%gasex_index%getsize()
           DO J=oJ_0,oJ_1
-            oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
+           !oWEIGHT(:,J) = oFOCEAN_loc(:,J)*(1.d0-oRSI(:,J))
+            oWEIGHT(:,J) = oFOCEAN_loc(:,J)      !pco2 is calculated at ocean surface; not only open-water
             DO I=oI_0,oIMAXJ(J)
               IF (oFOCEAN_loc(I,J).gt.0.) THEN
                 !pco2 is in uatm, convert to kg,CO2/kg,air
@@ -729,6 +731,7 @@ C**** surface tracer concentration
 
         deallocate(opgas_loc)
       endif
+#endif
 #endif
 #endif
 
@@ -1172,7 +1175,7 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
-
+      use rad_com, only : dirvis,fsrdif,dirnir,difnir
 #if (defined TRACERS_OCEAN)
       USE OCN_TRACER_COM, only: tracerlist
 #endif
@@ -1183,6 +1186,7 @@ c*
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
+     .                          ,rad_coupling
       use runtimecontrols_mod, only: ocn_cfc, tracers_oceanbiology
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atm
@@ -1324,12 +1328,17 @@ c*
      &     atm%gasex_index%getsize())
 #endif
 
-      if (allocated(atm%dirvis)) then
+!     if (allocated(atm%dirvis)) then
+      if (rad_coupling) then
         aWEIGHT(:,:) = atm%FOCEAN(:,:)
-        CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
-        CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
-        CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
-        CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
+!       CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
+!       CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
+!       CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
+!       CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
+        CALL INT_AG2OG(DIRVIS,ocnatm%DIRVIS, aWEIGHT)
+        CALL INT_AG2OG(FSRDIF,ocnatm%DIFVIS, aWEIGHT)
+        CALL INT_AG2OG(DIRNIR,ocnatm%DIRNIR, aWEIGHT)
+        CALL INT_AG2OG(DIFNIR,ocnatm%DIFNIR, aWEIGHT)
       endif
 
       if (tracers_oceanbiology.or.ocn_cfc) then

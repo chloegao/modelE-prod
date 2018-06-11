@@ -732,18 +732,14 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr) -> conve
        enddo
       enddo
 
-cdiag  if(vrbos .and. diagno)then
-cdiag   do k=1,kmax
-cdiag    write(905,'(2i5,11e12.4)')
-cdiag.     nstep,k,temp1d(k),viscfac(k),pnoice,
-cdiag.             (obio_wsh(nt),nt=1,nchl),(obio_ws(k,nt),nt=1,nchl)
-cdiag      write(906,'(2i5,4e12.4)')
-cdiag.       nstep,k,wshc(k),viscfac(k),pnoice,obio_ws(k,4)
-cdiag      write(*,'(a,2i5,8e12.4)')'obio_ptend, wsdet ',
-cdiag.       nstep,k,(wsdeth(nt),nt=1,ndet),viscfac(k),pnoice,
-cdiag.              (wsdet(k,nt),nt=1,ndet)
-cdiag   enddo
-cdiag  endif
+       if(vrbos)then
+        do k=1,kmax
+           write(*,'(a,4i5,7e12.4)')
+     .       'obio_ptend, ws:',
+     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k),
+     .                (obio_ws(k,nt),nt=1,nchl)
+        enddo
+       endif
 
 c Save method for hard boundary condition (no flux)
 c      srate = 0.0 - obio_wsh(n)*tracer(i,k-1,m,n)

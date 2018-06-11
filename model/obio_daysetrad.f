@@ -7,7 +7,7 @@ c
       USE obio_dim
       USE obio_incom, only : ac,bc,nl450,excdom
       use ocalbedo_mod, only: aw
-      USE obio_com, only : npst,npnd,obio_P,avgq1d,ihra_ij
+      USE obio_com, only : npst,npnd,obio_P,avgq1d
      .                    ,acdom
 
       implicit none
@@ -34,13 +34,5 @@ c  Compute acdom
         enddo
       enddo
  
-c  Compute average quanta; Initialize light history arrays
-c    (ihra set to 1 first time thru to preserve restart file values)
-      do k = 1,kdm
-       if (ihra_ij .gt. 0)then
-        avgq1d(k) = avgq1d(k)/float(ihra_ij)
-       endif
-      enddo
-
       return
       end

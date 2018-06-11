@@ -5,8 +5,6 @@
       implicit none
 
 
-      integer, ALLOCATABLE, DIMENSION(:,:) :: ihra            !counter for daylight hours
-
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tirrq3d         !total mean irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: avgq            !mean daily irradiance in quanta
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe           !atm Fe in nM
@@ -54,7 +52,6 @@
       J_1 = ogrid%J_STOP
 
       ALLOCATE(tirrq3d(i_0:i_1,j_0:j_1,kdm))
-      ALLOCATE(   ihra(i_0:i_1,j_0:j_1))
       ALLOCATE(   avgq(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(    alk(i_0:i_1,j_0:j_1,kdm))
       ALLOCATE(atmFe(i_0:i_1,j_0:j_1,12))
