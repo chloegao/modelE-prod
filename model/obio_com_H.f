@@ -90,8 +90,6 @@ c
       real WtoQ(nlt)           !Watts/m2 to quanta/m2/s conversion
 
 ! reduced rank arrays for obio_model calculations
-      integer ihra_ij
-
       real cexp, caexp
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
@@ -524,7 +522,7 @@ c**** Extract domain decomposition info
 !@sum  def_rsf_ocean defines ocean array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com, only : gcmax,nstep0,pp2tot_day, arg2d, arg3d
       USE HYCOM_DIM, only : grid=>ogrid
       use pario, only : defvar
@@ -542,7 +540,6 @@ c**** Extract domain decomposition info
       call defvar(grid,fid,avgq,'avgq('//trim(arg3d)//')')
       call defvar(grid,fid,gcmax,'gcmax('//trim(arg3d)//')')
       call defvar(grid,fid,tirrq3d,'tirrq3d('//trim(arg3d)//')')
-      call defvar(grid,fid,ihra,'ihra('//trim(arg2d)//')')
       call defvar(grid,fid,pp2tot_day,'pp2tot_day('//trim(arg2d)//')')
       call defvar(grid,fid,diag_counter,'obio_diag_counter')
       call defvar(grid,fid,pCO2av,'pCO2av('//trim(arg2d)//')')
@@ -571,7 +568,7 @@ c**** Extract domain decomposition info
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
-      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com, only : gcmax,nstep0
      &     ,pp2tot_day
       USE HYCOM_DIM, only : grid=>ogrid
@@ -593,7 +590,6 @@ c**** Extract domain decomposition info
         call write_dist_data(grid,fid,'avgq',avgq)
         call write_dist_data(grid,fid,'gcmax',gcmax)
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call write_dist_data(grid,fid,'ihra',ihra)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
         call write_data(grid,fid,'obio_diag_counter',diag_counter)
         call write_dist_data(grid,fid,'pCO2av',pCO2av)
@@ -611,7 +607,6 @@ c**** Extract domain decomposition info
         call read_dist_data(grid,fid,'avgq',avgq)
         call read_dist_data(grid,fid,'gcmax',gcmax)
         call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call read_dist_data(grid,fid,'ihra',ihra)
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
         call read_data(grid,fid,'obio_diag_counter',diag_counter)
         call read_dist_data(grid,fid,'pCO2av',pCO2av)
