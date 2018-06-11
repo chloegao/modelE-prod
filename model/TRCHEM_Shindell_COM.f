@@ -120,6 +120,10 @@ c
         integer :: O_OH__O2_H=0
         integer :: O_HO2__OH_O2=0
         integer :: HO2_NO__HNO3_M=0
+#ifdef TRACERS_ACETONE
+        integer :: Acetone_OH__HCHO_H2O=0
+        integer :: Cl_Acetone__HCl_HCHO=0
+#endif /* TRACERS_ACETONE */
 #ifdef TRACERS_TERP
         integer :: Terpenes_OH__HCHO_Alkenes=0
         integer :: Terpenes_O3__HCHO_Alkenes=0
@@ -297,6 +301,11 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 #else
      & n_bi_terp = 0,
 #endif  /* TRACERS_TERP */
+#ifdef TRACERS_ACETONE
+     & n_bi_acet = 2, ! number of Acetone bimolecular reactions
+#else
+     & n_bi_acet = 0,
+#endif /* TRACERS_ACETONE */
      & ntm_shindell_nontransp = 26, ! number of non-transported Shindell tracers
 #ifdef TRACERS_dCO
      & ntm_dCO_nontransp = 13, ! number of non-transported dCO tracers
@@ -309,7 +318,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_tri_dCO = 0,
      & n_rj_dCO = 0,
 #endif  /* TRACERS_dCO */
-     & n_bi  =    96+n_bi_terp+n_bi_dCO,
+     & n_bi  =    96+n_bi_terp+n_bi_acet+n_bi_dCO,
      & n_nst =     3,
      & n_tri =    11+n_tri_dCO,
      & n_het =     5,
@@ -1021,6 +1030,12 @@ C**************  Not Latitude-Dependant ****************************
           rrbi%O_HO2__OH_O2=irr
         case('HO2_NO__HNO3_M')
           rrbi%HO2_NO__HNO3_M=irr
+#ifdef TRACERS_ACETONE
+        case('Acetone_OH__HCHO_H2O')
+          rrbi%Acetone_OH__HCHO_H2O=irr
+        case('Cl_Acetone__HCl_HCHO')
+          rrbi%Cl_Acetone__HCl_HCHO=irr
+#endif /*  TRACERS_ACETONE */
 #ifdef TRACERS_TERP
         case('Terpenes_OH__HCHO_Alkenes')
           rrbi%Terpenes_OH__HCHO_Alkenes=irr

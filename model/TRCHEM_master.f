@@ -2790,11 +2790,15 @@ C**** Local parameters and variables and arguments:
             else if (jj==rrbi%HO2_NO__OH_NO2) then
                 rr(jj,L)=rr(jj,L)*(1.d0-beta)
             end if
+#ifdef TRACERS_ACETONE
+          else if (jj==rrbi%Acetone_OH__HCHO_H2O) then
+            rr(jj,L)=rr(jj,L)+1.33d-13
+#endif  /* TRACERS_ACETONE */
           end if
         end do                ! bimolecular rates end
-                           
+
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
-         
+
         do jj=1,n_tri         ! trimolecular rates start
           rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*bytl)**sn(jj)
           if(r1(jj) .ne. 0.d0)then 
