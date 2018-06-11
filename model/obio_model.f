@@ -9,14 +9,14 @@
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es
-     .                    ,rmud,atmFe,avgq,ihra,sunz
+     .                    ,rmud,atmFe,avgq,sunz
      .                    ,wind
      .                    ,alk
      .                    ,tirrq3d
      .                    ,surfN
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
-     .                    ,ihra_ij,gcmax1d,atmFe_ij,covice_ij
+     .                    ,gcmax1d,atmFe_ij,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
      .                    ,pCO2_ij,p1d,wsdet,pHsfc
      .                    ,rhs,alk1d
@@ -60,7 +60,8 @@
 #endif
 
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,
-     .                            ijl_kpar_em2d,ijl_dtemp
+     .                            ijl_kpar_em2d,ijl_dtemp,ijl_rhs3
+     .                           ,ijl_wss
       use ocalbedo_mod, only: ocalbedo
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,
@@ -331,15 +332,10 @@ c
        dp1d(:) = 0.
        IF(ip(I,J)==0) cycle
 
-cdiag  if (nstep.eq.1)
-cdiag. write(*,'(a,3i5,2e12.4)')'obio_model, step,i,j=',nstep,i,j,
-cdiag.          olon_dg(i,1),olat_dg(j,1)
-
        vrbos=.false.
        if (i.eq.itest.and.j.eq.jtest) vrbos=.true.
 
        !fill in reduced rank arrays
-       ihra_ij=ihra(i,j)
        !!covice_ij=covice(i,j)  !for standalone hycom
        covice_ij=oice(i,j)      !for modelE-hycom
        !!!!pCO2_ij=atm%gtracer(atm%n_co2n,i,j)
@@ -465,7 +461,7 @@ cdiag.          olon_dg(i,1),olat_dg(j,1)
          ca_det_calc1d(k)=tracer(i,j,k,ntyp+ndet+ncar+nt)
 #endif
 #else
-              !NOT for INTERACTIVE alk
+         !NOT for INTERACTIVE alk
          alk1d(k)=alk(i,j,k)
 #endif
 #ifdef TRACERS_Ocean_O2
@@ -608,11 +604,7 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
        !------------------------------------------------------------
        !at the beginning of each day only
-       if ((hour_of_day.le.1).or..not.initialized) then
-
-          if (day_of_month.eq.1)ihra_ij=1
           call obio_daysetrad(vrbos,i,j,kdm)
-          ihra_ij = 0
           call obio_daysetbio(vrbos,i,j,kdm,nstep)
 
              !fill in the 3d arrays to keep in memory for rest of the day
@@ -631,9 +623,6 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
              enddo
              enddo
 
-         if (day_of_month.eq.1)ihra_ij=1
-
-
 cdiag    if (vrbos) then
 cdiag     write (*,103) nstep,i,j,
 cdiag.' aftrsetrad   dpth     dp       nitr    ',
@@ -649,8 +638,6 @@ cdiag.                        obio_P(k,8),obio_P(k,9),k=1,kdm)
 cdiag    endif
  103     format(i9,2i5,a,a/(25x,i3,6(1x,es9.2)))
  104     format(i9,2i5,a,a/(25x,i3,7(1x,es9.2)))
-
-       endif   !end of calculations for the beginning of day
 
 
        do ichan = 1,nlt
@@ -713,11 +700,32 @@ cdiag    enddo
          enddo
 
 #endif
-      if (vrbos) then
-      if (ichan.eq.7)
-     . write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
-     .   nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+
+      if (i.eq.140.and.j.eq.175) then     !Arctic Ocean
+         do ichan=1,nlt
+          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
+     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+         enddo
       endif
+            if (i.eq.114.and.j.eq.130) then    !North Atlantic
+         do ichan=1,nlt
+          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
+     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+         enddo
+      endif
+      if (i.eq.1.and.j.eq.90) then             !Equatorial Pacific
+         do ichan=1,nlt
+          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
+     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+         enddo
+      endif
+      if (i.eq.161.and.j.eq.39) then          !Southern Ocean at Drake P.
+         do ichan=1,nlt
+          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
+     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
+         enddo
+      endif
+
 #ifdef OBIO_ON_GISSocean
        !integrate over all ichan
          do ichan = 1,nlt
@@ -773,15 +781,14 @@ cdiag.'       atmFe       wind'
 !       write(*,'(6e12.4)')
 cdiag   write(*,*)
 cdiag.   Ed(ichan),Es(ichan),solz,sunz,atmFe_ij,wind
-      endif
 
-cdiag    if (vrbos)
 cdiag.     write(*,106)nstep,
 cdiag.    '      channel, dir dwn irr, diff dwn irr,  tot',
 cdiag.                  (ichan,Ed(ichan),Es(ichan),
 cdiag.                  tot,ichan=1,nlt)
  106  format(i9,a/(18x,i3,3(1x,es9.2)))
 
+      endif  !vrbos
 
          !this part decomposes light into gmao bands-- dont need it
          !         m = indext2   !use the indicator of "past"
@@ -812,14 +819,13 @@ cdiag.                  tot,ichan=1,nlt)
        enddo
 #endif
 #endif
-         endif
+         endif  !tot>=0.1
 
 
-        if (AM_I_ROOT()) then
          if (vrbos) then
-cdiag      write(*,107)nstep,
-cdiag.       '           k   avgq    tirrq',
-cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
+           write(*,107)nstep,
+     .       '           k   avgq    tirrq',
+     .                 (k,avgq1d(k),tirrq(k),k=1,kdm)
  107  format(i9,a/(18x,i3,2(1x,es9.2)))
 
          do k=1,kdm
@@ -827,10 +833,6 @@ cdiag.                 (k,avgq1d(k),tirrq(k),k=1,kdm)
      .       nstep,i,j,k,avgq1d(k),tirrq(k)
          enddo
          endif
-         endif
-
-         if (tot .ge. 0.1) ihra_ij = ihra_ij + 1
-
 
        !------------------------------------------------------------
        !compute tendency terms on the m level
@@ -954,7 +956,7 @@ cdiag     endif
       !------------------------------------------------------------
       !integrate rhs vertically 
       do ll= 1, 17
-      do nt= 1, ntrac-1
+      do nt= 1, ntrac
       rhs_obio(i,j,nt,ll) = 0.d0
       do k = 1, kdm
           rhs_obio(i,j,nt,ll) = rhs_obio(i,j,nt,ll) +
@@ -1019,8 +1021,14 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       do ll=1,17
       OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
      .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
+#ifdef obio_rhsdiags
+      do k=1,kdm
+      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+     .                                    + rhs(k,nt,ll)  ! all terms in rhs
       enddo
       enddo
+      enddo
+#endif
 #endif
 
       if (vrbos) then
@@ -1077,6 +1085,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
         OIJL(I,J,k,IJL_avgq)= OIJL(I,J,k,IJL_avgq) + avgq1d(k)
         gcmax(i,j,k)=gcmax1d(k)
         tirrq3d(i,j,k)=tirrq(k)
+        alk(i,j,k)=alk1d(k)
        enddo !k
 
 #ifdef OBIO_ON_GISSocean
@@ -1108,8 +1117,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 #else
        tracer_h(i,j,:,:)=tracer(i,j,:,:)*trmo_unit_factor
 #endif
-
-       ihra(i,j)=ihra_ij
 
        !compute total chlorophyl at surface layer
        tot_chlo(i,j)=0.
@@ -1160,8 +1167,8 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
 #ifdef OBIO_ON_GISSocean
 !diagnostics
-       if (solz.gt.0) then
-       OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0   !number of timesteps daylight   
+       if (tot.gt.0) then
+       OIJ(I,J,IJ_dayl) = OIJ(I,J,IJ_dayl) + 1.d0*dtsrc/3600.d0 !number of hrs daylight   
        endif
        OIJ(I,J,IJ_solz) = OIJ(I,J,IJ_solz) + solz  !cos zenith angle
        OIJ(I,J,IJ_sunz) = OIJ(I,J,IJ_sunz) + sunz  !solar zenith angle in degrees  
@@ -1211,6 +1218,12 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        enddo
 
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
+
+       do nt=1,nchl
+       do k=1,kmax
+       OIJL(I,J,k,IJL_wss) = OIJL(I,J,k,IJL_wss) + obio_ws(k,nt) !  phyt. sinking vel. in m/s
+       enddo
+       enddo
 
        if (tracers_alkalinity) then
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) 
