@@ -905,7 +905,7 @@ C
       use oceanEmissions, only: oceanSpecies
       use oceanEmissionsSpecies, only: nOceanSpecies,species,acetone
       use model_com, only: itime, dtsrc
-      use fluxes, only: focean,atmocn
+      use fluxes, only: focean,atmocn,atmsrf
       use seaice_com, only : si_atm
       use constant, only: tf
       use TimeConstants_mod, only: SECONDS_PER_HOUR
@@ -946,8 +946,9 @@ C
       TK0 = tf+25.d0 ! i.e. 298.15 K. standard
       ! Get difference of recipricol of TK vs. standard TK0:
       DTR=((1.d0/TK)-(1.d0/TK0))
-      ! Get the surface wind-speed over ocean:
-      U10=atmocn%wsavg(i,j)   !TODO: is this 10m relevant wind? or 2m?
+      ! Get the surface wind-speed (seems like atmocn would be better(?)
+      ! but that causes reproducibility issue):
+      U10=atmsrf%wsavg(i,j)   !TODO: is this 10m relevant wind? or 2m?
 
       tracers_loop: do nTracer=1,ntm ! loop over tracers
 

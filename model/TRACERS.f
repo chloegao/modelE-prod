@@ -1822,6 +1822,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE AEROSOL_SOURCES, only : snosiz
 #endif  /* BC_ALB */
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#ifdef TRACERS_ACETONE
+      use trdiag_com, only: trcSurfByVol
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE trdust_mod,ONLY : hbaij,ricntd
@@ -1986,6 +1989,10 @@ c daily_z is currently only needed for CS
      &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
       call doVar(handle,action,trcSurfByVol_acc
      &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
+#ifdef TRACERS_ACETONE
+      call doVar(handle,action,trcSurfByVol
+     &     ,'trcSurfByVol(dist_im,dist_jm,Ntm)')
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       handle = ParallelIo(grid, fid,'TRACERS_SPECIAL_Shindell')
