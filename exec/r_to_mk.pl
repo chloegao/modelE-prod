@@ -26,6 +26,7 @@ if ( /Preprocessor *Options/i ) {
 	chop;
 	s/\#/\\\#/g;
 	s/\!/\#/g;
+        s/\'/\"/g; # single quotation marks are not supported in CPP section
 	print "CPP_OPTIONS += $_\n";
     }
     print "\n";
@@ -54,6 +55,7 @@ if ( /Preprocessor *Options/i ) {
         chop;
         s/\#/\\\#/g;
         s/\!/\#/g;
+        s/\'/\"/g; # single quotation marks are not supported in CPP section
         print "CPP_OPTIONS += $_\n";
     }
     print "\n";
