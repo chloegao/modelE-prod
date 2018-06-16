@@ -67,7 +67,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS,
-     *  n_NH3, nBiomass,nAircraft, nChemistry, ntmAMPe, nVolcanic, trm, ntmAMPi 
+     *  n_NH3, nBiomass,nAircraft, nChemistry, nOther, ntmAMPe, nVolcanic, trm, ntmAMPi 
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -252,7 +252,7 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
           endif   
        ENDDO
 
-      tr3Dsource(i,j,l,nChemistry,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
+      tr3Dsource(i,j,l,nOther,n_H2SO4) =((GAS(GAS_H2SO4)*AVOL *1.d-9)
      *        -trm(i,j,l,n_H2SO4)) /dtsrc 
       tr3Dsource(i,j,l,nChemistry,n_NH3)   =((GAS(GAS_NH3)*AVOL *1.d-9)
      *        -trm(i,j,l,n_NH3)) /dtsrc
@@ -332,7 +332,7 @@ c -----------------------------------------------------------------
       USE OldTracer_mod, only: trpdens
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
+      USE TRACER_COM, only: ntmAMPi, ntm, trm
       USE AMP_AEROSOL, only : AMP_dens, AMP_TR_MM
       USE AERO_CONFIG, ONLY: NMODES
 
@@ -368,7 +368,7 @@ c -----------------------------------------------------------------
       USE OldTracer_mod, only: tr_mm
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
+      USE TRACER_COM, only: ntmAMPi, ntm, trm
       USE AERO_CONFIG, ONLY: NMODES
       USE AMP_AEROSOL, only : AMP_TR_MM
 

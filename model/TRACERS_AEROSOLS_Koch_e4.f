@@ -575,7 +575,7 @@ C**** initialise source arrays
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2O2_s)=0. ! H2O2 chem source
         if(n_H2O2_s>0) tr3Dsource(:,j_0:j_1,:,nChemLoss,n_H2O2_s)=0. ! H2O2 chem sink
 #ifdef TRACERS_AMP
-        tr3Dsource(:,j_0:j_1,:,2,n_H2SO4)=0. ! H2SO4 chem source
+        tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2SO4)=0. ! H2SO4 chem source
 #endif
 #ifdef TRACERS_TOMAS
         tr3Dsource(:,j_0:j_1,:,nChemistry,n_H2SO4)=0. ! H2SO4 chem source
@@ -918,7 +918,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #else
        tr3Dsource(i,j,l,nChemloss,n) = -trm(i,j,l,n)*(1.d0-d4)/dtsrc 
 #ifdef TRACERS_AMP
-       tr3Dsource(i,j,l,2,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc
+       tr3Dsource(i,j,l,nChemistry,n_H2SO4)=trm(i,j,l,n)*(1.d0-d4)/dtsrc
      &      *tr_mm(n_H2SO4)/tr_mm(n)
 #endif  /* TRACERS_AMP */
 #ifdef TRACERS_TOMAS

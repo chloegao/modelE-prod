@@ -8251,7 +8251,7 @@ C       stop
 #endif  /* TRACERS_AEROSOLS_Koch */
 
 #ifdef TRACERS_AMP
-       call apply_tracer_3Dsource(2,n_H2SO4) ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nChemistry,n_H2SO4) ! H2SO4 chem prod
        call apply_tracer_3Dsource(nChemistry,n_DMS)  ! DMS chem sink
        call apply_tracer_3Dsource(nChemistry,n_SO2)  ! SO2 chem source
        call apply_tracer_3Dsource(nChemloss,n_SO2)  ! SO2 chem sink
@@ -8260,7 +8260,7 @@ C       stop
       DO n=ntmAMPi,ntmAMPe
         tr3Dsource(:,J_0:J_1,:,nChemistry,n)  = 0.d0! Aerosol Mirophysics !kt is the index correct?
       ENDDO
-        tr3Dsource(:,J_0:J_1,:,1,n_H2SO4)  = 0.d0! Aerosol Mirophysics
+        tr3Dsource(:,J_0:J_1,:,nOther,n_H2SO4)  = 0.d0! Aerosol Mirophysics
         tr3Dsource(:,J_0:J_1,:,nChemistry,n_NH3)  = 0.d0! Aerosol Mirophysics !kt is the index correct?
 #ifdef  TRACERS_SPECIAL_Shindell
         tr3Dsource(:,J_0:J_1,:,3,n_HNO3)  = 0.d0! Aerosol Mirophysics
@@ -8271,10 +8271,10 @@ C       stop
        call apply_tracer_3Dsource(nChemistry,n) ! Aerosol Mirophysics !kt is the index correct?
       ENDDO
 
-       call apply_tracer_3Dsource(1,n_H2SO4) ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nOther,n_H2SO4) ! H2SO4 chem prod
        call apply_tracer_3Dsource(nChemistry,n_NH3)  ! NH3 !kt is the index correct?
 #ifdef  TRACERS_SPECIAL_Shindell
-       call apply_tracer_3Dsource(3,n_HNO3) ! H2SO4 chem prod
+       call apply_tracer_3Dsource(nOther,n_HNO3) ! HNO3 chem prod
 #endif
 #endif /* TRACERS_AMP */
 
