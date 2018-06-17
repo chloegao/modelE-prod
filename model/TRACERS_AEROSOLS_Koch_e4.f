@@ -924,6 +924,7 @@ c oxidation of SO2 to make SO4: SO2 + OH -> H2SO4
 #ifdef TRACERS_TOMAS
        H2SO4_chem(i,j,l)=trm(i,j,l,n)*(1.d0-d4)/dtsrc 
      &      *tr_mm(n_H2SO4)/tr_mm(n) 
+       tr3Dsource(i,j,l,nChemistry,n_H2SO4)=H2SO4_chem(i,j,l)
 #endif  /* TRACERS_TOMAS */
 #endif  /* TRACERS_HETCHEM */
 c diagnostics to save oxidant fields
