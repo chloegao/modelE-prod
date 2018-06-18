@@ -5565,10 +5565,7 @@ C**** Next line for fastj photon fluxes to vary with time:
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
 #endif
-        case ('M_OCC_OC', 'OCII',
-     &        'M_OCC_OCM2','M_OCC_OCM1','M_OCC_OCM0',
-     &        'M_OCC_OCP1','M_OCC_OCP2','M_OCC_OCP3',
-     &        'M_OCC_OCP4','M_OCC_OCP5','M_OCC_OCP6')
+        case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
             if (ntsurfsrc(n)>1) then
               sfc_src(:,J_0:J_1,n,ntsurfsrc(n):
