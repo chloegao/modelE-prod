@@ -1676,12 +1676,12 @@ c add (calls to) the analogs of ijh_defs et al.
       k = k + 1
       catshapes(k) = 'aijlh'; categories(k) = 'taijlh'
       input_sizes3(k) = lm
-      call tijlh_defs(diaglists(1,k),nmax_possible,diaglens(k))
+      call tijlh_defs(.false.,diaglists(1,k),nmax_possible,diaglens(k))
 
       k = k + 1
       catshapes(k) = 'aijph'; categories(k) = 'taijph'
       input_sizes3(k) = lm
-      call tijph_defs(diaglists(1,k),nmax_possible,diaglens(k))
+      call tijlh_defs(.true.,diaglists(1,k),nmax_possible,diaglens(k))
 #endif
 
 c

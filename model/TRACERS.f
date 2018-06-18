@@ -1822,6 +1822,9 @@ C**** ESMF: Broadcast all non-distributed read arrays.
       USE AEROSOL_SOURCES, only : snosiz
 #endif  /* BC_ALB */
       use trdiag_com, only: trcSurfMixR_acc,trcSurfByVol_acc
+#ifdef TRACERS_ACETONE
+      use trdiag_com, only: trcSurfByVol
+#endif
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS)
       USE fluxes,ONLY : pprec,pevap
       USE trdust_mod,ONLY : hbaij,ricntd
@@ -1986,6 +1989,10 @@ c daily_z is currently only needed for CS
      &     ,'trcSurfMixR_acc(dist_im,dist_jm,Ntm)')
       call doVar(handle,action,trcSurfByVol_acc
      &     ,'trcSurfByVol_acc(dist_im,dist_jm,Ntm)')
+#ifdef TRACERS_ACETONE
+      call doVar(handle,action,trcSurfByVol
+     &     ,'trcSurfByVol(dist_im,dist_jm,Ntm)')
+#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
       handle = ParallelIo(grid, fid,'TRACERS_SPECIAL_Shindell')
@@ -2225,8 +2232,10 @@ C
       end function next
       end subroutine tijh_defs
 
-      subroutine tijlh_defs(arr,nmax,decl_count)
-! 3D tracer outputs (model horizontal grid and layers).
+
+      subroutine tijlh_defs(cp_mode,arr,nmax,decl_count)
+! 3D tracer outputs (model horizontal grid and model layers
+! or constant pressure levels).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
       use subdd_mod, only : info_type, sched_rad
@@ -2252,97 +2261,115 @@ C
      &                               lcoef=(/'extinction','absorption'/)
       character(len=10) :: spcname
       integer :: s,a
+!@var cp_mode whether defs are for a constant-pressure category.
+!@+   Use this flag to skip defs that are not desired/relevant for CP.
+      logical :: cp_mode
+      logical :: layer_mode
+      character(len=2) :: sfx
+
+      layer_mode = .not. cp_mode
+      if(cp_mode) then
+        sfx = 'cp'
+      else
+        sfx = ''
+      end if
 
       decl_count = 0
 
       ! First, diagnostics available for all tracers:
       do n=1,ntm
-
-        ! 3D mixing ratios (SUBDD string is just tracer name):
+        ! 3D mixing ratios (SUBDD string is just tracer name, possibly
+        ! with appendage if constant-pressure):
         if (to_volume_MixRat(n) == 1) then
           unitString='mole species / mole air'
         else
           unitString='kg species / kg air'
         endif
         arr(next()) = info_type_(
-     &    sname = trim(trname(n)),
+     &    sname = trim(trname(n))//trim(sfx),
      &    lname = trim(trname(n))//' mixing ratio',
      &    units = trim(unitString)
      &    )
-
-#ifdef TRACERS_AMP
-! AMP aerosol diameters
-        spcname=trim(trname(n))
-        if ((spcname(1:2) == 'N_') .and. (spcname(6:7) == '_1')) then
-          arr(next()) = info_type_(
-     &      sname = 'd'//trim(trname(n)),
-     &      lname = trim(trname(n))//' mass mean diameter',
-     &      units = 'm'
-     &         )
-        endif
-#endif  /* TRACERS_AMP */
-
       end do ! tracers loop
 
-! 3d AOD
+      ! Some aerosol diags only on model levels (not constant pressures):
+      if(layer_mode) then
 
-      do s=1,size(ssky)
-      if (ssky(s).eq.'dry' .and. save_dry_aod.eq.0) cycle
-      do a=1,size(sabs)
-      do n=1,nraero_aod+1 ! +1 for total
-        if (n<=nraero_aod) then
-          spcname = trim(trname(ntrix_aod(n)))
-        else
-          spcname = ''
-        endif
-        arr(next()) = info_type_(
-     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//'aod3d',
-     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
-     &            trim(labs(a))//' aerosol optical depth',
-     &    units = '-',
-     &    sched = sched_rad
+#ifdef TRACERS_AMP
+        ! AMP aerosol diameters
+        do n=1,ntm
+          spcname=trim(trname(n))
+          if((spcname(1:2) == 'N_') .and. (spcname(6:7) == '_1'))then
+            arr(next()) = info_type_(
+     &       sname = 'd'//trim(trname(n)),
+     &       lname = trim(trname(n))//' mass mean diameter',
+     &       units = 'm'
      &       )
-        arr(next()) = info_type_(
-     &    sname = trim(spcname)//trim(ssky(s))//trim(sabs(a))//
-     &    'bcoef3d',
-     &    lname = trim(spcname)//' '//trim(lsky(s))//' '//
-     &            trim(lcoef(a))//' coefficient',
-     &    units = 'm-1',
-     &    sched = sched_rad
-     &       )
-      enddo ! n
-      enddo ! a
-      enddo ! s
+          end if
+        end do
+#endif  /* TRACERS_AMP */
 
-      ! Other tracer diags on model levels:
+        ! 3d AOD
+        do s=1,size(ssky)
+          if (ssky(s).eq.'dry' .and. save_dry_aod.eq.0) cycle
+          do a=1,size(sabs)
+            do n=1,nraero_aod+1 ! +1 for total
+              if (n<=nraero_aod) then
+                spcname = trim(trname(ntrix_aod(n)))
+              else
+                spcname = ''
+              end if
+              arr(next()) = info_type_(
+     &          sname = trim(spcname)//
+     &                  trim(ssky(s))//trim(sabs(a))//'aod3d',
+     &          lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &                  trim(labs(a))//' aerosol optical depth',
+     &          units = '-',
+     &          sched = sched_rad
+     &          )
+              arr(next()) = info_type_(
+     &          sname = trim(spcname)//
+     &                  trim(ssky(s))//trim(sabs(a))//'bcoef3d',
+     &          lname = trim(spcname)//' '//trim(lsky(s))//' '//
+     &                  trim(lcoef(a))//' coefficient',
+     &          units = 'm-1',
+     &          sched = sched_rad
+     &          )
+            end do ! n
+          end do ! a
+        end do ! s
+
+      end if ! layer_mode
+
+      ! Specialty tracer diags on model or constant pressure levels:
 
 #ifdef TRACERS_SPECIAL_Shindell
       arr(next()) = info_type_(
-     &  sname = 'MRNO2', ! because not a tracer
+     &  sname = 'MRNO2'//trim(sfx), ! because not a tracer
      &  lname = 'NO2 mixing ratio',
      &  units = 'mole species / mole air'
      &  )
 C
       arr(next()) = info_type_(
-     &  sname = 'MRNO', ! because not a tracer
+     &  sname = 'MRNO'//trim(sfx), ! because not a tracer
      &  lname = 'NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
 C
       arr(next()) = info_type_(
-     &  sname = 'MRO3', ! because not a tracer
+     &  sname = 'MRO3'//trim(sfx), ! because not a tracer
      &  lname = 'O3 mixing ratio',
      &  units = 'mole species / mole air'
      &  )
 C
       arr(next()) = info_type_(
-     &  sname = 'OH_conc', ! because not a tracer
+     &  sname = 'OH_conc'//trim(sfx), ! because not a tracer
      &  lname = 'OH concentration',
      &  units = 'molecules cm-3'
      &  )
 C
       arr(next()) = info_type_(
-     &  sname = 'HO2_conc', ! because not a tracer
+     &  sname = 'HO2_conc'//trim(sfx), ! because not a tracer
      &  lname = 'HO2 concentration',
      &  units = 'molecules cm-3'
      &  )
@@ -2355,85 +2382,6 @@ C
       next = decl_count
       end function next
       end subroutine tijlh_defs
-
-
-      subroutine tijph_defs(arr,nmax,decl_count)
-! 3D tracer outputs (model horizontal grid and constant pressure levels)
-! Each tracer output must be declared separately (no bundling).
-      use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type
-! info_type_ is a homemade structure constructor for older compilers
-      use subdd_mod, only : info_type_
-      use tracer_com, only : ntm
-      use OldTracer_mod, only: trname
-      use trdiag_com, only : to_volume_MixRat
-      implicit none
-      integer :: nmax,decl_count
-      integer :: n
-      character*80 :: unitString
-      type(info_type) :: arr(nmax)
-
-      decl_count = 0
-
-      ! First, diagnostics available for all tracers:
-      do n=1,ntm
-
-        ! 3D mixing ratios (SUBDD string is just tracer name with cp
-        ! appended):
-        if (to_volume_MixRat(n) .eq.1) then
-          unitString='mole species / mole air'
-        else
-          unitString='kg species / kg air'
-        endif
-        arr(next()) = info_type_(
-     &    sname = trim(trname(n))//'cp',
-     &    lname = trim(trname(n))//' mixing ratio',
-     &    units = trim(unitString)
-     &    )
-
-      end do ! tracers loop
-
-      ! Other tracer diags on constant pressure levels:
-
-#ifdef TRACERS_SPECIAL_Shindell
-      arr(next()) = info_type_(
-     &  sname = 'MRNO2cp', ! because not a tracer
-     &  lname = 'NO2 mixing ratio',
-     &  units = 'mole species / mole air'
-     &  )
-C
-      arr(next()) = info_type_(
-     &  sname = 'MRNOcp', ! because not a tracer
-     &  lname = 'NO mixing ratio',
-     &  units = 'mole species / mole air'
-     &  )
-C
-      arr(next()) = info_type_(
-     &  sname = 'MRO3cp', ! because not a tracer
-     &  lname = 'O3 mixing ratio',
-     &  units = 'mole species / mole air'
-     &  )
-C
-      arr(next()) = info_type_(
-     &  sname = 'OH_conccp', ! because not a tracer
-     &  lname = 'OH concentration',
-     &  units = 'molecules cm-3'
-     &  )
-C
-      arr(next()) = info_type_(
-     &  sname = 'HO2_conccp', ! because not a tracer
-     &  lname = 'HO2 concentration',
-     &  units = 'molecules cm-3'
-     &  )
-#endif /* TRACERS_SPECIAL_Shindell */
-
-      return
-      contains
-      integer function next()
-      decl_count = decl_count + 1
-      next = decl_count
-      end function next
-      end subroutine tijph_defs
 
 
       subroutine accumCachedTracerSUBDDs
@@ -2449,6 +2397,8 @@ C
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       integer :: L, n, k
+      integer :: layer_or_cp, Ltop
+      character(len=16) :: vname,grpname
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo) :: sddarr2d
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
@@ -2456,53 +2406,44 @@ C
      &                  LM                               ) :: sddarr3d
       real*8 :: convert
 
-      ! Tracer 3D diags on model levels
-      call find_groups('taijlh',grpids,ngroups)
-      do igrp=1,ngroups
-        subdd => subdd_groups(grpids(igrp))
-        do k=1,subdd%ndiags
-          ntm_loop: do n=1,ntm
-            ! tracer 3D mixing ratios (SUBDD names are just tracer name):
-            if(trim(trname(n)).eq.trim(subdd%name(k))) then
-              if (to_volume_MixRat(n) == 1) then
-                convert=mass2vol(n)
-              else
-                convert=1.d0
-              endif
-              do L=1,LmaxSUBDD
-                sddarr3d(:,:,L) = 
-     &          trm(:,:,L,n)*convert*byma(L,:,:)
-              end do
-              call inc_subdd(subdd,k,sddarr3d)
-              exit ntm_loop
+      ! Standard tracer 3D diags on model levels or constant
+      ! pressure levels:
+      do layer_or_cp=1,2 ! model layers and constant-pressure categories
+        if(layer_or_cp==1) then ! model layers
+          grpname = 'taijlh'
+          Ltop=LmaxSUBDD
+        else                    ! CP levels
+          grpname = 'taijph'
+          Ltop=LM
+        end if
+        call find_groups(trim(grpname),grpids,ngroups)
+        do igrp=1,ngroups
+          subdd => subdd_groups(grpids(igrp))
+          do k=1,subdd%ndiags
+            vname=trim(subdd%name(k))
+            if(layer_or_cp==2) then ! remove trailing cp from name
+              vname = vname(1:len_trim(vname)-2)
             end if
-          end do ntm_loop
-        enddo ! k
-      enddo ! igroup
-
-      ! Tracer 3D diags on constant pressure levels
-      call find_groups('taijph',grpids,ngroups)
-      do igrp=1,ngroups
-        subdd => subdd_groups(grpids(igrp))
-        do k=1,subdd%ndiags
-          ntm_loop2: do n=1,ntm
-            ! tracer 3D mixing ratios (SUBDD names are tracer name with cp appended):
-            if(trim(trname(n))//'cp'.eq.trim(subdd%name(k))) then
-              if (to_volume_MixRat(n) == 1) then
-                convert=mass2vol(n)
-              else
-                convert=1.d0
-              endif
-              do L=1,LM ! not LmaxSUBDD in case pressure requested above that
-                sddarr3d(:,:,L) =
-     &          trm(:,:,L,n)*convert*byma(L,:,:)
-              end do
-              call inc_subdd(subdd,k,sddarr3d)
-              exit ntm_loop2
-            end if
-          end do ntm_loop2
-        enddo ! k
-      enddo ! igroup
+            ntm_loop: do n=1,ntm
+              ! tracer 3D mixing ratios (SUBDD names are just tracer
+              ! name or {trname}cp ):
+              if(trim(trname(n)) == trim(vname)) then
+                if (to_volume_MixRat(n) == 1) then
+                  convert=mass2vol(n)
+                else
+                  convert=1.d0
+                end if
+                do L=1,Ltop
+                  sddarr3d(:,:,L) =
+     &            trm(:,:,L,n)*convert*byma(L,:,:)
+                end do
+                call inc_subdd(subdd,k,sddarr3d)
+                exit ntm_loop
+              end if
+            end do ntm_loop
+          end do ! k
+        end do ! igroup
+      end do ! layer_or_cp
 
       ! Tracer 2D I-J diags
       call find_groups('taijh',grpids,ngroups)
@@ -2570,7 +2511,7 @@ C
      &            trm(:,:,1,n)*byma(1,:,:)
           end do
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
-      
+
         ! surface PM2.5 concentration:
         case('PM2p5sc')
           sddarr2d(:,:)=0.d0

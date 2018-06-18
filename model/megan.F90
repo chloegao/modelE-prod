@@ -878,7 +878,7 @@ end subroutine alloc_megan
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
-      case (iowrite)            ! output to restart file«
+      case (iowrite)            ! output to restart file
 
         ! Figure out how to put this in a loop over the running average objects:
         ! Also could maybe make scalars one day...
