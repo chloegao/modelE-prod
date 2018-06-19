@@ -112,8 +112,8 @@ Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_transient_144x90_input_files"
 FLAMPOPDEN=gsin/fire/RCP8.5_PopDens_2000-2100.dat ! for fire model
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
