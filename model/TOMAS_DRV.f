@@ -679,6 +679,9 @@ C     Swap GCM variables into aerosol algorithm variables
          if(mocil.lt.0) mocil=0.
          if(mdust.lt.0) mdust=0.
          if(mh2o.lt.0) mh2o=0.
+         if(mnh4 .lt. 0.d0) mnh4=0.d0   !dmw 
+         if(mso4 .lt. 0.d0) mso4=0.d0
+         if(mno3 .lt. 0.d0) mno3=0.d0
 
          density=aerodens(mso4,mno3,mnh4 !mno3 taken off!
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate   
@@ -2298,15 +2301,15 @@ C     get the wet diameter of particles in each size bin
       do k=1,nbins
          mp=0.1875*mdist2(k,srtso4)
          if (mp .le. 0.0) then 
-            print*, 'Warning: fixing mp for density calc'
-            print*, mp, mdist2(k,srtso4),k
+           ! print*, 'Warning: fixing mp for density calc'
+ !           print*, mp, mdist2(k,srtso4),k
             mp = eps
          endif
          do c=1,icomp
             mp = mp + mdist2(k,c)
             if (mp .le. 0.0) then
-               print*, 'Warning: fixing mp for density calc'
-               print*, mp, mdist2(k,c),k,c
+            !   print*, 'Warning: fixing mp for density calc'
+!               print*, mp, mdist2(k,c),k,c
                mp = eps
             endif
          enddo
@@ -2335,7 +2338,7 @@ C     get the wet diameter of particles in each size bin
      *        ,mnacl,mecil,mecob,mocil,mocob,mdust,mh2o) !assume bisulfate 
          endif
          if (mp .le. 0.0) then
-            print*, 'Warning: fixing mp for density calc'
+         !   print*, 'Warning: fixing mp for density calc'
             mp = eps
          endif
 

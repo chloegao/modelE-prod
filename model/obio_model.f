@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_model(mm,atm)
+      subroutine obio_model(mm)
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
 !@auth Natassa Romanou/Watson Gregg
@@ -73,7 +73,6 @@
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID
       use TimerPackage_mod
       use obio_diag, only: reset_obio_diag
-      use exchange_types, only : atmocn_xchng_vars
       use runtimecontrols_mod, only: constco2
 
 #ifdef OBIO_ON_GISSocean
@@ -113,7 +112,6 @@
 #endif
 
       implicit none
-      type(atmocn_xchng_vars) :: atm
 
       !molecular weights (gr/mole)
       REAL*4, parameter  :: obio_tr_mm(16)= (/ 14.,   !nitrate
@@ -327,7 +325,7 @@ c
 
       call start('  obio main loop')
 
-      atm%chl_defined=.true.
+      ocnatm%chl_defined=.true.
        do j=j_0,j_1
        do i=i_0,i_1
        dp1d(:) = 0.
@@ -579,14 +577,14 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 !        solz=solz2(ihr0)     !because of bi-hourly values
 !        sunz=sunz2(ihr0)     !in degs
-         solz=atm%cosz1(i,j) !osolz(i,j)      !read instead from modelE
+         solz=ocnatm%cosz1(i,j) !osolz(i,j)      !read instead from modelE
          sunz=acos(solz)*rad  !in degs
 
 
 !      wind=wndspd(i,j,l0)*w0+wndspd(i,j,l1)*w1
 !    .     +wndspd(i,j,l2)*w2+wndspd(i,j,l3)*w3
 
-       wind=atm%wsavg(i,j) !owind(i,j)
+       wind=ocnatm%wsavg(i,j) !owind(i,j)
 
 !      atmFe_ij=atmFe_all(i,j,l0)*w0 + atmFe_all(i,j,l1)*w1
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
@@ -605,8 +603,8 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        endif
 #endif
 
-       idx_co2=atm%gasex_index%getindex(atm%n_co2n)
-       if (idx_co2>0) co2flux=atm%trgasex(idx_co2, i, j)
+       idx_co2=ocnatm%gasex_index%getindex(ocnatm%n_co2n)
+       if (idx_co2>0) co2flux=ocnatm%trgasex(idx_co2, i, j)
 
        !------------------------------------------------------------
        !at the beginning of each day only
@@ -694,14 +692,14 @@ cdiag    enddo
         endif
 
 
-       if (allocated(atm%dirvis)) then
+       if (allocated(ocnatm%dirvis)) then
          do ichan = 1,nlt
            if (ichan .le. 18) then     !visible + uv
-             Ed(ichan) = atm%dirvis(i,j) * eda_frac(ichan)
-             Es(ichan) = atm%difvis(i,j) * esa_frac(ichan)
+             Ed(ichan) = ocnatm%dirvis(i,j) * eda_frac(ichan)
+             Es(ichan) = ocnatm%difvis(i,j) * esa_frac(ichan)
            else               !nir
-             Ed(ichan) = atm%dirnir(i,j) * eda_frac(ichan)
-             Es(ichan) = atm%difnir(i,j) * esa_frac(ichan)
+             Ed(ichan) = ocnatm%dirnir(i,j) * eda_frac(ichan)
+             Es(ichan) = ocnatm%difnir(i,j) * esa_frac(ichan)
            endif
            tot = tot + Ed(ichan)+Es(ichan)
           enddo
@@ -1118,7 +1116,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        do nt=1,nchl
           tot_chlo(i,j)=tot_chlo(i,j)+obio_P(1,nnut+nt)
        enddo
-       atm%chl(i,j) = tot_chlo(i,j)
+       ocnatm%chl(i,j) = tot_chlo(i,j)
        if (vrbos) then
           !!!write(*,'(/,a,3i5,e12.4)')
           write(*,*)
@@ -1157,7 +1155,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        endif
 
 #ifndef STANDALONE_OCEAN
-       atm%gtracer(atm%n_co2n, i,j)=pCO2_ij
+       ocnatm%gtracer(ocnatm%n_co2n, i,j)=pCO2_ij
 #endif
 
 #ifdef OBIO_ON_GISSocean
