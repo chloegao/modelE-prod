@@ -65,7 +65,9 @@ C**************  Latitude-Dependant (allocatable) *******************
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS, n_M_SSS_SS,
      *  n_NH3, nBiomass, nAircraft, ntmAMPe, nVolcanic, trm_col,ntmAMPi,
-     *  nMicrophys, nThermo
+     *  nMicrophys, nThermo, n_M_OCC_OCM2, n_M_OCC_OCM1, n_M_OCC_OCM0,
+     *  n_M_OCC_OCP1, n_M_OCC_OCP2, n_M_OCC_OCP3, n_M_OCC_OCP4,
+     *  n_M_OCC_OCP5, n_M_OCC_OCP6
 #ifdef  TRACERS_SPECIAL_Shindell
       USE TRACER_COM, only: n_HNO3
 #endif
@@ -187,6 +189,17 @@ c conversion trm_col [kg/m2/layer] -> AERO [ug/m3]
         if (n_M_SSA_SS>0) EMIS_MASS(6) =MAX(trflux1(i,j,n_M_SSA_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
         if (n_M_SSC_SS>0) EMIS_MASS(7) =MAX(trflux1(i,j,n_M_SSC_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
         if (n_M_DD2_DU>0) EMIS_MASS(10)=MAX(trflux1(i,j,n_M_DD2_DU)*1.d9/ AVOL,0.d0)
+#ifdef TRACERS_AMP_M9
+        if (n_M_OCC_OCM2>0) EMIS_MASS(11) =MAX(trflux1(i,j,n_M_OCC_OCM2)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCM1>0) EMIS_MASS(12) =MAX(trflux1(i,j,n_M_OCC_OCM1)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCM0>0) EMIS_MASS(13) =MAX(trflux1(i,j,n_M_OCC_OCM0)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP1>0) EMIS_MASS(14) =MAX(trflux1(i,j,n_M_OCC_OCP1)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP2>0) EMIS_MASS(15) =MAX(trflux1(i,j,n_M_OCC_OCP2)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP3>0) EMIS_MASS(16) =MAX(trflux1(i,j,n_M_OCC_OCP3)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP4>0) EMIS_MASS(17) =MAX(trflux1(i,j,n_M_OCC_OCP4)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP5>0) EMIS_MASS(18) =MAX(trflux1(i,j,n_M_OCC_OCP5)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP6>0) EMIS_MASS(19) =MAX(trflux1(i,j,n_M_OCC_OCP6)*1.d9/ AVOL,0.d0)
+#endif  /* TRACERS_AMP_M9 */
       endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
       if (n_M_AKK_SU>0)
@@ -207,6 +220,44 @@ c conversion trm_col [kg/m2/layer] -> AERO [ug/m3]
      * EMIS_MASS(4) = EMIS_MASS(4) + ((tr3Dsource(l,nBiomass,n_M_OCC_OC)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OC)
      *                                )*1.d9 / AVOL)
+#ifdef TRACERS_AMP_M9
+      if (n_M_OCC_OCM2>0)
+     * EMIS_MASS(11) = EMIS_MASS(11) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM2)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM2)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCM1>0)
+     * EMIS_MASS(12) = EMIS_MASS(12) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM1)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM1)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCM0>0)
+     * EMIS_MASS(13) = EMIS_MASS(13) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM0)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM0)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP1>0)
+     * EMIS_MASS(14) = EMIS_MASS(14) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP1)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP1)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP2>0)
+     * EMIS_MASS(15) = EMIS_MASS(15) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP2)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP2)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP3>0)
+     * EMIS_MASS(16) = EMIS_MASS(16) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP3)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP3)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP4>0)
+     * EMIS_MASS(17) = EMIS_MASS(17) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP4)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP4)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP5>0)
+     * EMIS_MASS(18) = EMIS_MASS(18) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP5)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP5)
+     *                                )*1.d9 / AVOL)
+      if (n_M_OCC_OCP6>0)
+     * EMIS_MASS(19) = EMIS_MASS(19) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP6)+
+     *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP6)
+     *                                )*1.d9 / AVOL)
+#endif  /* TRACERS_AMP_M9 */
 
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 

@@ -498,7 +498,7 @@
       integer :: J_0S, J_1S, I_0H, I_1H, i, j
       logical :: have_south_pole, have_north_pole     
       real*8 :: qsat ! this is a function in UTILDBL.f
-      real*8 :: tsurf,qsurf
+      real*8 :: tsurf,qsurf,prec2pass
       ! the 7.9 here was from running a year or two under 2005 conditions
       ! and seeing what was the maximum LAI returned by Ent. Therefore,
       ! under other climate conditions, the vegetation density may reach > 1.0. 
@@ -546,44 +546,48 @@
           ! for sub-daily diag purposes, accumulate the running avg:
           raP_acc(i,j)=raP_acc(i,j)+ravg_prec(i,j)
 
-          ! if the first period has elapsed, calculate the flammability
-          if(first_prec(i,j)==0.) then
 !! #ifndef FLAM_USE_OFFLINE_VEG_DENS /* NOT */
 !! I.e. do not define/limit the veg_density here if it is prescribed...
-            if(fearth(i,j)>0.d0) then
-              if(first_lai(i,j)==0.) then
-                veg_density(i,j) = ravg_lai(i,j)*byLaiMax*fearth(i,j)
-              else
-                ! for the first year of a run (since we don't have an annual 
-                ! average yet, use the concurrent LAI):
-                veg_density(i,j) =  lai*byLaiMax*fearth(i,j)
-              end if
-#ifdef LIMIT_BARREN_FLAMMABILITY
-              ! Because of unrealistic LAI (therefore veg density) in deserts
-              ! due to crops+pasture cover, we need to set the veg densitry to zero
-              ! when either a box has 80% or more bare soil (light+dark) or the box 
-              ! had zero non-crops vegetation:
-              call ent_get_exports(entcells(i,j),
-     &           vegetation_fractions=PVT0,
-     &           vegetation_heights=HVT0 )
-              call map_ent2giss(pvt0,hvt0,pvt) !YKIM temp hack:ent pfts->giss
-              fracBare = (pvt(1)+pvt(10))*fearth(i,j) 
-              fracVegNonCrops = sum(pvt(2:8))*fearth(i,j)
-              if((fracBare >= critFracBare).or.(fracVegNonCrops == 0.)) 
-     &        veg_density(i,j) = 0.d0
-#endif /* LIMIT_BARREN_FLAMMABILITY */
+          if(fearth(i,j)>0.d0) then
+            if(first_lai(i,j)==0.) then
+              veg_density(i,j) = ravg_lai(i,j)*byLaiMax*fearth(i,j)
             else
-              veg_density(i,j) = 0.d0
+              ! for the first year of a run (since we don't have an annual 
+              ! average yet, use the concurrent LAI):
+              veg_density(i,j) =  lai*byLaiMax*fearth(i,j)
             end if
+#ifdef LIMIT_BARREN_FLAMMABILITY
+            ! Because of unrealistic LAI (therefore veg density) in deserts
+            ! due to crops+pasture cover, we need to set the veg densitry to zero
+            ! when either a box has 80% or more bare soil (light+dark) or the box 
+            ! had zero non-crops vegetation:
+            call ent_get_exports(entcells(i,j),
+     &         vegetation_fractions=PVT0,
+     &         vegetation_heights=HVT0 )
+            call map_ent2giss(pvt0,hvt0,pvt) !YKIM temp hack:ent pfts->giss
+            fracBare = (pvt(1)+pvt(10))*fearth(i,j) 
+            fracVegNonCrops = sum(pvt(2:8))*fearth(i,j)
+            if((fracBare >= critFracBare).or.(fracVegNonCrops == 0.)) 
+     &      veg_density(i,j) = 0.d0
+#endif /* LIMIT_BARREN_FLAMMABILITY */
+          else
+            veg_density(i,j) = 0.d0
+          end if
 !! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
-            tsurf = atmsrf%tsavg(i,j)
-            qsurf = atmsrf%qsavg(i,j)
-            call calc_flammability(tsurf,SECONDS_PER_DAY
-     &       *ravg_prec(i,j)/dtsrc,min(1.d0,qsurf/
-     &       qsat(tsurf,lhe,pedn(1,i,j))),veg_density(i,j),
-     &       flammability(i,j)) 
+          tsurf = atmsrf%tsavg(i,j)
+          qsurf = atmsrf%qsavg(i,j)
+          if(first_prec(i,j)==0.) then
+            ! if the first period has elapsed, calculate flammability
+            ! using the running average precipitation:
+            prec2pass=SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
+          else
+            ! otherwise...
+            prec2pass=SECONDS_PER_DAY*     prec(i,j)/dtsrc
           end if
+          call calc_flammability( tsurf, prec2pass,
+     &     min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))),
+     &     veg_density(i,j), flammability(i,j) )
           ! update diagnostic
           aij(i,j,ij_flam)=aij(i,j,ij_flam)+flammability(i,j)
           aij(i,j,ij_fvden)=aij(i,j,ij_fvden)+veg_density(i,j)

@@ -2397,7 +2397,7 @@ C Make sure nighttime chemistry changes are not too big:
 #ifdef CACHED_SUBDD
       use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
-     &     ,inc_subdd,find_groups, LmaxSUBDD
+     &     ,inc_subdd,find_groups
 #endif
       USE TRDIAG_COM, only: taijs=>taijs_loc,ijs_O3mass,
      &                      taijls=>taijls_loc,ijlt_O3cmatm
@@ -2406,8 +2406,9 @@ C Make sure nighttime chemistry changes are not too big:
       integer :: i,j
       real*8, dimension(JM)     :: DU_O3_glob
 #ifdef CACHED_SUBDD
-      integer :: k,igrp,ngroups,grpids(subdd_ngroups)
+      integer :: k,igrp,ngroups,grpids(subdd_ngroups),layer_or_cp
       type(subdd_type), pointer :: subdd
+      character(len=16) :: vname,grpname
 #endif
       integer :: J_0, J_1, I_0, I_1
 
@@ -2451,43 +2452,35 @@ C Make sure nighttime chemistry changes are not too big:
 #ifdef CACHED_SUBDD
       ! These are in masterchem_post rather than masterchem until
       ! migration to inc_subdd(...,i,j) interface possible
-      call find_groups('taijlh',grpids,ngroups)
-      do igrp=1,ngroups
-        subdd => subdd_groups(grpids(igrp))
-        do k=1,subdd%ndiags
-          select case (subdd%name(k))
-          case ('MRNO2')
-            call inc_subdd(subdd,k,mrno2)
-          case ('MRNO')
-            call inc_subdd(subdd,k,mrno)
-          case ('MRO3')
-            call inc_subdd(subdd,k,mro3)
-          case ('OH_conc')
-            call inc_subdd(subdd,k,OH_conc)
-          case ('HO2_conc')
-            call inc_subdd(subdd,k,HO2_conc)
-          end select
-        enddo ! k
-      enddo ! igroup
-
-      call find_groups('taijph',grpids,ngroups)
-      do igrp=1,ngroups
-        subdd => subdd_groups(grpids(igrp))
-        do k=1,subdd%ndiags
-          select case (subdd%name(k))
-          case ('MRNO2cp')
-            call inc_subdd(subdd,k,mrno2)
-          case ('MRNOcp')
-            call inc_subdd(subdd,k,mrno)
-          case ('MRO3cp')
-            call inc_subdd(subdd,k,mro3)
-          case ('OH_conccp')
-            call inc_subdd(subdd,k,OH_conc)
-          case ('HO2_conccp')
-            call inc_subdd(subdd,k,HO2_conc)
-          end select
-        enddo ! k
-      enddo ! igroup
+      do layer_or_cp=1,2 ! model layers and constant-pressure (CP) categories
+        if(layer_or_cp==1) then ! model layers
+          grpname = 'taijlh'
+        else                    ! CP levels
+          grpname = 'taijph'
+        end if
+        call find_groups(trim(grpname),grpids,ngroups)
+        do igrp=1,ngroups
+          subdd => subdd_groups(grpids(igrp))
+          do k=1,subdd%ndiags
+            vname=trim(subdd%name(k))
+            if(layer_or_cp==2) then ! remove trailing cp from name
+              vname = vname(1:len_trim(vname)-2)
+            end if
+            select case (vname)
+            case ('MRNO2')
+              call inc_subdd(subdd,k,mrno2)
+            case ('MRNO')
+              call inc_subdd(subdd,k,mrno)
+            case ('MRO3')
+              call inc_subdd(subdd,k,mro3)
+            case ('OH_conc')
+              call inc_subdd(subdd,k,OH_conc)
+            case ('HO2_conc')
+              call inc_subdd(subdd,k,HO2_conc)
+            end select
+          end do ! k
+        end do ! igroup
+      end do ! layer_or_cp
 
       call find_groups('taijh',grpids,ngroups)
       do igrp=1,ngroups
@@ -2797,11 +2790,15 @@ C**** Local parameters and variables and arguments:
             else if (jj==rrbi%HO2_NO__OH_NO2) then
                 rr(jj,L)=rr(jj,L)*(1.d0-beta)
             end if
+#ifdef TRACERS_ACETONE
+          else if (jj==rrbi%Acetone_OH__HCHO_H2O) then
+            rr(jj,L)=rr(jj,L)+1.33d-13
+#endif  /* TRACERS_ACETONE */
           end if
         end do                ! bimolecular rates end
-                           
+
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
-         
+
         do jj=1,n_tri         ! trimolecular rates start
           rr(n_bi+n_nst+jj,L)=y(nM,L)*ro(jj)*(300.d0*bytl)**sn(jj)
           if(r1(jj) .ne. 0.d0)then 
