@@ -373,7 +373,7 @@ ndaa=13
 nda5k=13
 nda4=48          ! to get daily energy history use nda4=24*3600/DTsrc
 
-Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
+Nssw=48           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step
 
 ! parameters that affect CO2 gas exchange
@@ -387,12 +387,9 @@ solFe=0.02            ! default iron solubility
 
 &&END_PARAMETERS
 
- &INPUTZ
- YEARI=1850,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1900,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
- ISTART=8,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=2,HOURE=0,
+&INPUTZ
+YEARI=1850,MONTHI=1,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
+YEARE=1850,MONTHE=1,DATEE=3,HOURE=0,     KDIAG=12*0,9,
+ISTART=8,IRANDI=0, YEARE=1850,MONTHE=1,DATEE=2,HOURE=0,
 /
-!! suggested settings for E6qsF40:
-!! YEARI=1901,MONTHI=1,DATEI=1,HOURI=0,
-!! YEARE=1931,MONTHE=1,DATEE=1,HOURE=0,   KDIAG=12*0,9,
-!! ISTART=8,IRANDI=0, YEARE=1901,MONTHE=1,DATEE=1,HOURE=1,
+
