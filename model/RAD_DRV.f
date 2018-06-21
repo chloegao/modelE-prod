@@ -534,7 +534,6 @@ C****                                         even if the year is fixed
       if(KYEARV.le.-2000) KYEARV=0   ! use current year (before 2000)
 C**** NO time history (yet), except for ann.cycle, for forcings below;
 C****  if KJDAY?=day0 (1->365), data from that day are used all year
-      KYEARD=0       ; KJDAYD=0 ;
       KYEARE=0       ; KJDAYE=0 ;
       KYEARR=0       ; KJDAYR=0           ! surf.reflectance (ann.cycle)
       KCLDEM=1                  ! 0:old 1:new LW cloud scattering scheme
