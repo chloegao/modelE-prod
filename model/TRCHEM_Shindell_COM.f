@@ -318,6 +318,11 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_tri_dCO = 0,
      & n_rj_dCO = 0,
 #endif  /* TRACERS_dCO */
+#ifdef TRACERS_ACETONE
+     & n_rj_acetone = 2,
+#else
+     & n_rj_acetone = 0,
+#endif
      & n_bi  =    96+n_bi_terp+n_bi_acet+n_bi_dCO,
      & n_nst =     3,
      & n_tri =    11+n_tri_dCO,
@@ -328,7 +333,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & ny     = ntm_chem+ntm_chem_nontransp,
      & nc     = ny+ntm_chem_extra,
      & numfam =    4,
-     & n_rj  =    28+n_rj_dCO,
+     & n_rj  =    28+n_rj_dCO+n_rj_acetone,
      & p_1   =     2
 
 #ifdef TRACERS_dCO
@@ -487,7 +492,6 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var NCFASTJ number of levels in the fastj atmosphere
 !@var MIEDX Type of aerosol scattering, currently 6 set up:
 !@+   1=Rayly 2=iso 3=iso-equiv 4=bkgrd-sulf,5=volc-sulf,6=liq water
-!@var PFASTJ pressure sent to FASTJ
 !@var   Rayleigh parameters (effective cross-section) (cm2)
 !@var odtmp Optical depth (temporary array)
 !@var XLTAU    TTAU along the slant path
@@ -535,8 +539,10 @@ C**************  V  A  R  I  A  B  L  E  S *******************
 !@var DU_O3 total column ozone in latitude band
 !@var SF3 is H2O photolysis in Schumann-Runge Bands
 !@var SF2 is NO photolysis in Schumann-Runge Bands
+#ifndef TRACERS_ACETONE /* NOT */
 !@var Jacet photolysis rate for acetone (not done through fastj)
 !@var acetone acetone column mixing ratio for the curren I,J (static for now)
+#endif
 !@var pscX column logical for the existance of polar strat clouds(PSCs)
 !@var save_NO2column instantaneous NO2 column (for SUBDD exporting)
 !@var RGAMMASULF N2O5-->HNO3 conversion on aerosols?
@@ -562,14 +568,17 @@ C**************  V  A  R  I  A  B  L  E  S *******************
       INTEGER, DIMENSION(n_nst)        :: nst
       INTEGER, ALLOCATABLE, DIMENSION(:) :: aero
 
-C**************  Latitude-Dependant (allocatable) *******************
+C**************  Latitude-Dependent (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: DU_O3
+#ifndef TRACERS_ACETONE /* NOT */
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: acetone
 #ifdef TRACERS_dCO
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d17Oacetone
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d18Oacetone
       REAL*8, ALLOCATABLE, DIMENSION(:)       :: d13Cacetone
 #endif  /* TRACERS_dCO */
+      REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
+#endif /* TRACERS_ACETONE not defined */
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)   :: pHOx,pNOx,pOx,
      & yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yXO2N,yRXPAR,OxIC,
 #ifdef TRACERS_dCO
@@ -583,7 +592,6 @@ C**************  Latitude-Dependant (allocatable) *******************
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,readCache
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: save_NO2column
       REAL*8, ALLOCATABLE, DIMENSION(:,:):: mostRecentNonZeroAlbedo
-      REAL*8, ALLOCATABLE, DIMENSION(:,:):: zonalIsop
 
 #ifdef CACHED_SUBDD
       ! declaring the following arrays here until masterchem
@@ -592,7 +600,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      &     mrno,mrno2,mro3,OH_conc,HO2_conc
 #endif
 
-C**************  Not Latitude-Dependant ****************************      
+C**************  Not Latitude-Dependent ****************************      
 !@var avgTT_CH4 Itime avg CH4 # density at LTROPO between 20N and 20S
 !@var avgTT_H2O Itime avg H2O # density at LTROPO between 20N and 20S
 !@var countTT # of points between 20N and 20S on LTROPO plane
@@ -616,7 +624,10 @@ C**************  Not Latitude-Dependant ****************************
      & ,ratioNs,ratioN2,rNO2frac,rNOfrac,rNOdenom
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: y
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: rr
-      REAL*8, ALLOCATABLE, DIMENSION(:)  :: odtmp,Jacet,rh,bythick,thick
+      REAL*8, ALLOCATABLE, DIMENSION(:)  :: odtmp,rh,bythick,thick
+#ifndef TRACERS_ACETONE /* NOT */
+      REAL*8, ALLOCATABLE, DIMENSION(:)  :: Jacet
+#endif
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: chemrate, photrate
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: dest, prod
       REAL*8, ALLOCATABLE, DIMENSION(:)   :: OxlossbyH, ClOx_old
@@ -658,14 +669,19 @@ C**************  Not Latitude-Dependant ****************************
      & yd17OROR,yd18OROR,yd13CROR,
      & yd17Oald,yd18Oald,yd13Cald,
      & ydCH317O2,ydCH318O2,yd13CH3O2,
+#ifndef TRACERS_ACETONE /* NOT */
      & d17Oacetone,d18Oacetone,d13Cacetone,
+#endif
 #endif  /* TRACERS_dCO */
-     & n_rj,LCOalt,acetone,mNO2,
+#ifndef TRACERS_ACETONE /* NOT */
+     & acetone,Jacet,zonalIsop,
+#endif
+     & n_rj,LCOalt,mNO2,
      & save_NO2column,pNO3
      & ,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2,N2OICX,CFCIC,SF3,SF2,
-     & y,rr,odtmp,Jacet,chemrate,photrate,dest,prod,thick,
+     & y,rr,odtmp,chemrate,photrate,dest,prod,thick,
      & OxlossbyH,pscX,nc,n_rx,ny,changeL,rh,bythick,ClOx_old,aero,
-     & zonalIsop,readCache
+     & readCache
 
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry ! define here
       use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
@@ -728,7 +744,6 @@ C**************  Not Latitude-Dependant ****************************
       allocate(    thick(      topLevelOfChemistry) )
       allocate(  bythick(      topLevelOfChemistry) )
       allocate( ClOx_old(      topLevelOfChemistry) )
-      allocate(    Jacet(      topLevelOfChemistry) )
       allocate(     aero(      topLevelOfChemistry) )
       allocate(     pscX(      topLevelOfChemistry) )
       allocate(     yso2(      topLevelOfChemistry) )
@@ -741,16 +756,21 @@ C**************  Not Latitude-Dependant ****************************
       allocate(     prod(ny,   topLevelOfChemistry) )
       allocate(OxlossbyH(      topLevelOfChemistry) )
       allocate(  changeL(      topLevelOfChemistry, ntm) )
+#ifndef TRACERS_ACETONE /* NOT */
+      allocate(    Jacet(      topLevelOfChemistry) )
+#endif
 
       ! Normally allocated things:
       allocate(save_NO2column(I_0H:I_1H,J_0H:J_1H) )
       allocate(         DU_O3(          J_0H:J_1H) )
+#ifndef TRACERS_ACETONE /* NOT */
       allocate(     acetone(topLevelOfChemistry) )
 #ifdef TRACERS_dCO
       allocate( d17Oacetone(topLevelOfChemistry) )
       allocate( d18Oacetone(topLevelOfChemistry) )
       allocate( d13Cacetone(topLevelOfChemistry) )
 #endif  /* TRACERS_dCO */
+#endif  /* TRACERS_ACETONE not defined */
 
       allocate(        pHOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
       allocate(        pNOx(topLevelOfChemistry,I_0:I_1,J_0:J_1) )
@@ -798,7 +818,9 @@ C**************  Not Latitude-Dependant ****************************
       allocate( mostRecentNonZeroAlbedo(I_0:I_1,J_0:J_1))
       mostRecentNonZeroAlbedo=0.d0
 
+#ifndef TRACERS_ACETONE /* NOT */
       allocate(   zonalIsop(I_0H:I_1H,J_0H:J_1H) )
+#endif
 
 #ifdef CACHED_SUBDD
       allocate( MRNO(I_0H:I_1H,J_0H:J_1H,LM) ) 

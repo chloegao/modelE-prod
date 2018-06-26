@@ -35,7 +35,9 @@ c
       USE TRACER_SOURCES, only: n__sw
 #endif
       USE TRCHEM_Shindell_COM
+#ifndef TRACERS_ACETONE /* NOT */
       use zonalmean_mod, only : zonalmean_ij2ij
+#endif
 
       IMPLICIT NONE
 
@@ -50,8 +52,12 @@ C**** Local parameters and variables and arguments:
 
       real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
-     &     avgTT_CH4_part,avgTT_H2O_part,countTT_part,
+     &     avgTT_CH4_part,avgTT_H2O_part,countTT_part
+#ifndef TRACERS_ACETONE /* NOT */
+      real*8, dimension(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
+     &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO) ::
      &     surfIsop
+#endif
 
 !@var ghgCmAtm array of same shape as rad code/ghgmod ulgas for
 !@+ returning gas amounts by layer in cm-atm units from getgas calls
@@ -117,6 +123,7 @@ C running-averages for interactive wetlands CH4:
         end if
       endif ! itime==itimei
 
+#ifndef TRACERS_ACETONE /* NOT */
 ! calculate Isoprene zonal mean, to be used for acetone
       do j=J_0,J_1
         do i=I_0,IMAXJ(j)
@@ -125,6 +132,7 @@ C running-averages for interactive wetlands CH4:
         enddo
       enddo
       call zonalmean_ij2ij(surfIsop,zonalIsop)
+#endif /* TRACERS_ACETONE is not defined */
 
       !(Interpolate BrOx & ClOx altitude-dependence to model resolution.
       ! Note the PRES2 is all LM layers:)
@@ -422,7 +430,8 @@ c This is to work around initial instabilities.
       case default; call stop_model('which_trop problem 4',255)
       end select
 
-! Define acetone in terms of Isoprene:
+#ifndef TRACERS_ACETONE /* NOT */
+! Define acetone in terms of Isoprene if Acetone is not a tracer.
 !kt Terpenes should also be included here in the future
       do L=1,topLevelOfChemistry
         acetone(L)=max(0.d0, ! in molec/cm3
@@ -438,6 +447,8 @@ c This is to work around initial instabilities.
       enddo
 
 #endif  /* TRACERS_dCO */
+#endif  /* TRACERS_ACETONE not defined */
+
       DO L=1,topLevelOfChemistry
 c Initialize the 2D change variable:
        changeL(L,:)=0.d0
@@ -637,7 +648,9 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
 
 ! calculate photolysis rates
         call fastj2_drv(I,J, tl(1:topLevelOfChemistry), rh,albedoToUse)
+#ifndef TRACERS_ACETONE /* NOT */
         call photo_acetone(I,J,sza*radian) ! simpler calculation for acetone
+#endif
 
 ! Apply some alterations to the fastj photolysis rates just calculated: 
 
@@ -2552,6 +2565,7 @@ C Make sure nighttime chemistry changes are not too big:
       end subroutine getMethaneForRadiation
 
 
+#ifndef TRACERS_ACETONE /* NOT */
       subroutine photo_acetone(I,J,sza)
 !@sum calculate photolysis rate for acetone geometrically
 !@+ taken from the UK Harwell Model
@@ -2591,9 +2605,10 @@ C Make sure nighttime chemistry changes are not too big:
       do L=1,min(LS1-1,topLevelOfChemistry)
         Jacet(L)=3.d0*Jacet0/LOG(pl(L))
       enddo
-      
+
       return
       end subroutine photo_acetone
+#endif /* routine only needed for TRACERS_ACETONE not defined */
 
 
       SUBROUTINE Crates(I,J)
