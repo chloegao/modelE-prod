@@ -48,7 +48,9 @@ c
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
 !!    integer, parameter :: itest=32, jtest=20    !southern ocean; Pacific          
-      integer, parameter :: itest=1,  jtest=jm/2     !equator Pacific
+!!    integer, parameter :: itest=1,  jtest=jm/2     !equator Pacific
+      integer, parameter :: itest=272,  jtest=22     !regr test point
+
 
       integer, parameter :: EUZ_DEFINED=1
 
@@ -535,7 +537,6 @@ c**** Extract domain decomposition info
 
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
-      use exchange_types, only: rad_coupling
       use obio_dim, only: ntrac
       use obio_diag
 
@@ -556,7 +557,6 @@ c**** Extract domain decomposition info
 
       con_idx=[12]
       con_str=['OCN BIOL']
-      rad_coupling=.true.
 
       call add_ocn_tracer('Nitr      ', i_ntrocn=-4, i_ntrocn_delta=-12,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
