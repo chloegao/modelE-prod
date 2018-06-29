@@ -922,7 +922,7 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-c      case ('SF6','SF6_c','nh5','nh50','e90','st8025','aoa','aoanh','tape_rec','nh15')
+c      case ('SF6','SF6_c','nh5','nh50','e90','st8025','tape_rec','aoa','aoanh','nh15')
 c        call layer1_init_jls(k,n,trname(n))
 c      case ('CFCn')
 c        call layer1_init_jls(k,n,trname(n))
@@ -1123,6 +1123,46 @@ c        units_jls(k) = unit_string(jls_power(k),'kg s-1')
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+#ifdef TRACERS_PASSIVE
+
+      case ('nh5')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('nh50')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('e90')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('nh15')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+#endif 
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
@@ -2625,7 +2665,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
- 
+
       case ('tape_rec') 
 
       k = k+1
@@ -2636,7 +2676,7 @@ C**** This needs to be 'hand coded' depending on circumstances
         ijts_power(k) = -12
         units_ijts(k) = unit_string(ijts_power(k),'kg m-2 s-1')
         scale_ijts(k) = 10.**(-ijts_power(k))/DTsrc
-
+ 
       case ('aoanh','aoa') 
 
       k = k+1
@@ -5299,9 +5339,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #endif
 
 #ifdef TRACERS_PASSIVE
-       case ('aoa','aoanh')
+         case ('aoa','aoanh')
              trm(:,:,:,n) = 0.d0
-
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -6532,7 +6571,7 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
           checkname=.false.
         case ('SF6', 'SF6_c', 'nh5', 'nh50', 'e90', 
-     &         'st8025', 'aoanh', 'aoa', 'tape_rec', 'nh15')
+     &        'st8025', 'aoa', 'aoanh', 'tape_rec', 'nh15')
           nread=0 ! regional sources calculated in the code, not via a file
         end select
 
@@ -7795,7 +7834,7 @@ C****ST8025: An idealized loss tracer with a stratospheric source (fixed concent
              enddo
            enddo
         else
-            tr3Dsource(i,j,l,:,n) = 0.
+            tr3Dsource(:,:,l,:,n) = 0.
         endif
       enddo
 
