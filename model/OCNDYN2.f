@@ -116,7 +116,7 @@ C**** Add ocean biology
          Call NITR ('OBIO_M')
 #endif
 #ifndef STANDALONE_OCEAN
-      CALL DIAGCO (13,atmocn)
+      IF (ATMOCN%MODD5S == 0) CALL DIAGCO (13,atmocn)
 #endif
 #endif
 
