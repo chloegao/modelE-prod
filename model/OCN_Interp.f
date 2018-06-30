@@ -1175,6 +1175,7 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
+      USE MODEL_COM, only: nstep=>itime
       use rad_com, only : dirvis,fsrdif,dirnir,difnir
 #if (defined TRACERS_OCEAN)
       USE OCN_TRACER_COM, only: tracerlist
@@ -1339,6 +1340,7 @@ c*
         aWEIGHT(:,:) = atm%FOCEAN(:,:)
         CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
         CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
+        ocnatm%WSAVG =ocnatm%WSAVG*(1.d0-ocnice%RSI)
       endif
 
       aWEIGHT(:,:) = 1.d0 - ice%RSI(:,:)      
