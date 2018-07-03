@@ -25,12 +25,19 @@ if ($opt_c ) {
 }
 
 $start_of_file = 1;
+$cpp_protected = 0;
 
 while(<>){
 
     # skip empy lines at the start of file
     if ($start_of_file && /^\s*$/) { next; }
     $start_of_file = 0;
+
+    # check if we need to protect cpp instructions
+    if ( /^\#\#\#cpp_protected/ ) {
+	$cpp_protected = 1;
+	next;
+    }
 
     if(/^Preprocessor Options/) {
 	$inside_cpp_options = 1;
@@ -40,7 +47,7 @@ while(<>){
     }
 
     if( $inside_cpp_options ) {
-	if ( (! $unprotect) && /^\#/ ) {
+	if ( (! $cpp_protected) && (! $unprotect) && /^\#/ ) {
 	    my $s = $_; 
 	    s/^\#/_/;
 	    $s =~ s/^(\#\s*define\s+)/$1_/;
