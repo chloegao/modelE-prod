@@ -268,7 +268,6 @@ c Update DIC for sea-air flux of CO2
 
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
-#ifdef carbontest4
 !uses CMIP6 values
         k = 1
         Ts = temp1d(k)
@@ -298,7 +297,7 @@ c Update DIC for sea-air flux of CO2
         deltco2 = (xco2-pCO2_abio)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
-#endif
+
           !trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
           SDIC(n_abioDIC) = SDIC(n_abioDIC) 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
