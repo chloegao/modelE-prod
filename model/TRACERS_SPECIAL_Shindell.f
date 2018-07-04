@@ -914,7 +914,6 @@ C
       use tracer_mod, only: Tracer
       use TracerSurfaceSource_mod, only: itsOcean
       use trdiag_com, only: trcSurfByVol
-      use GEOM, only: byaxyp
 
       implicit none
 
@@ -1047,7 +1046,7 @@ C
               ! In effort to avoid negative tracer, don't let the sink
               ! part pull all of tracer out of L=1:
               airToWater=MIN(airToWater,
-     &              sinkFraction*trm(i,j,1,nTracer)*byaxyp(i,j)*bydtsrc)
+     &              sinkFraction*trm(i,j,1,nTracer)*bydtsrc)
 
               ! Save net flux density (kg m-2 s-1) to be applied
               ! outside this routine:

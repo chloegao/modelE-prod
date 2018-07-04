@@ -16,9 +16,8 @@
 !@var nwww Number of wavelength bins, from NW1:NW2
 !@var naa Number of categories for scattering phase functions
 !@var nss this is a copy of JPPJ that is read in from a file
-!@var npdep Number of pressure dependencies
 !@var nk Number of wavelengths at which functions are supplied
-      integer :: j_iprn,j_jprn,jppj,nlbatm,nw1,nw2,nwww,naa,nss,npdep,nk
+      integer :: j_iprn,j_jprn,jppj,nlbatm,nw1,nw2,nwww,naa,nss,nk
 !@dbparam rad_FL whether(>0) or not(=0) to have fastj photon flux vary 
       integer :: rad_FL=0
       logical :: j_prnrts
@@ -45,7 +44,11 @@
      &                     ,mfastj=1
      &                     ,mfit=2*M__
      &                     ,nlfastj=4200
+#ifdef TRACERS_ACETONE
+     &                     ,njval=29 !formerly read in from jv_spec00_15.dat
+#else
      &                     ,njval=27 !formerly read in from jv_spec00_15.dat
+#endif
      &                     ,nwfastj=18
      &                     ,np=60
      &                     ,n_bnd3=107
@@ -58,8 +61,6 @@
       integer :: NLGCM
 !@var title0 blank title read in I think
       character(len=78) :: title0
-!@var lpdep Label for pressure dependence
-      character(len=7), dimension(3) :: lpdep
 !@var titlej titles read from O2, O3, and other species X-sections
       character(len=7), dimension(3,njval) :: titlej
 !@var title_aer_pf titles read from aerosol phase function file
@@ -83,8 +84,6 @@
       integer, dimension(nlfastj) :: jaddlv,jadsub
 !@var jaddto Cumulative total of new levels to be added
       integer, dimension(nlfastj+1) :: jaddto
-!@var jpdep Index of cross sections requiring P dependence
-      integer, dimension(njval) :: jpdep  
 !@param masfac Conversion factor, pressure to column density (fastj2)
 !@param odmax Maximum allowed optical depth, above which they're scaled
 !@param dtausub # optic. depths at top of cloud requiring subdivision
@@ -129,16 +128,13 @@
 !@var pomegaj Scattering phase function. the 2nd dimension on pomegaj
 !@+   is level-dependent so make this allocatable.
       real*8, allocatable, dimension(:,:):: pomegaj
-#ifndef AR5_FASTJ_XSECS /* NOT */
-!@var lqq number of xsections for this specie
+!@var lqq number of xsections for this species
       integer, dimension(njval-3)      :: lqq
-#endif
 !@var tqq Temperature for supplied cross sections
-#ifndef AR5_FASTJ_XSECS /* NOT */
       real*8, dimension(maxLQQ,njval)  :: tqq
-#else
-      real*8, dimension(3,njval)       :: tqq
-#endif
+!@var isPressure whether the current Xsec is pressure-dependent
+!@+ instead of temperature-dependent.
+      logical, dimension(maxLQQ,njval)  :: isPressure
 
 !@var waafastj Wavelengths for the NK supplied phase functions
 !@var qaafastj Q for the NK supplied phase functions
@@ -162,15 +158,10 @@
 !@var qo2 O2 cross-sections
 !@var qo3 O3 cross-sections
 !@var q1d O3 => O(1D) quantum yield
-!@var zpdep Pressure dependencies by wavelength bin
-      real*8, dimension(nwfastj,3)     :: qo2,qo3,q1d,zpdep !XXX zpdep XXXXXXXXX
+      real*8, dimension(nwfastj,3)     :: qo2,qo3,q1d
 !@var qqq Supplied cross sections in each wavelength bin (cm2),
 !@+       read in in RD_TJPL
-#ifndef AR5_FASTJ_XSECS /* NOT */
       real*8, dimension(nwfastj,maxLQQ,njval-3):: qqq
-#else
-      real*8, dimension(nwfastj,2,njval-3):: qqq
-#endif
 !@var fff Actinic flux at each level for each wavelength bin and level
       real*8, allocatable, dimension(:,:)  :: fff
 !@var oref2    fastj2 O3 reference profile
@@ -188,6 +179,9 @@
       real*8, allocatable, dimension(:) :: tfastj,odcol
 !@var pfastj2 pressure at level boundaries, sent to FASTJ2
       real*8, allocatable, dimension(:) :: pfastj2
+!@var pmidfj2 pressure at mid-levels, sent to FASTJ2
+!@+ (only used for one purpose)
+      real*8, allocatable, dimension(:) :: pmidfj2
 !@var o3_fastj ozone sent to fastj
       real*8, allocatable, dimension(:) :: o3_fastj
 !@var jlabel Reference label identifying appropriate J-value to use
@@ -233,6 +227,10 @@
         integer :: CFC__Cl_O2=0
         integer :: O2__O_O=0
         integer :: N2O__M_O1D=0
+#ifdef TRACERS_ACETONE
+        integer :: Acetone__HCHO_CO=0
+        integer :: Acetone__CO_HCHO=0
+#endif
 #ifdef TRACERS_dCO
         integer :: dHCH17O__dC17O_H2=0
         integer :: dHCH17O__dC17O_HO2=0
@@ -406,6 +404,11 @@ c       define pressures to be sent to FASTJ (edges):
         PFASTJ2(1:NLGCM+1)=ple(1:NLGCM+1)
         PFASTJ2(NLGCM+2)=PFASTJ2(NLGCM+1)*0.2816 ! 0.00058d0/0.00206d0 ! fudge
         PFASTJ2(NLGCM+3)=PFASTJ2(NLGCM+2)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
+c       define pressures to be sent to FASTJ (mid layer):
+c       (But so far only used for acetone xsec interpolation.)
+        pmidfj2(1:NLGCM)=pl(1:NLGCM)
+        pmidfj2(NLGCM+1)=pmidfj2(NLGCM  )*0.2816 ! 0.00058d0/0.00206d0 ! fudge
+        pmidfj2(NLGCM+2)=pmidfj2(NLGCM+1)*0.4828 ! 0.00028d0/0.00058d0 ! fudge
 
         call photoj(I,J,surfaceAlbedo) ! CALL THE PHOTOLYSIS SCHEME
       end subroutine fastj2_drv
@@ -751,8 +754,9 @@ C**** Local parameters and variables and arguments:
 c     SOLF   Solar distance factor, for scaling; normally given by:
 c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
       integer :: i, j, k, l, nslon, nslat,jgas
+      !@var Xtarg can be temperature or pressure target
       real*8  :: qo2tot, qo3tot, qo31d, qo33p, qqqt,
-     &           solf, tfact
+     &           solf, tfact, Xtarg
       REAL*8, DIMENSION(NJVAL) :: VALJ
     
       if (jpnl > NLGCM)
@@ -772,27 +776,35 @@ c                      1.0-(0.034*cos(real(iday-172)*2.0*pi/365.))
           VALJ(3) = VALJ(3) + QO31D*FFF(K,I)
         ENDDO
 C------ Calculate remaining J-values with T-dep X-sections
-#ifndef AR5_FASTJ_XSECS /* NOT */
-        ! This one allows option for 1 or 3 X-sections (not just 2):
+        ! This allows option for 1 or 3 X-sections:
         do j=4,njval
+          if(isPressure(1,j))then
+            Xtarg=pmidfj2(i) ! tqq's are pressures
+            if(.not.isPressure(2,j))call stop_model('isPressure2',255)
+            if(.not.isPressure(3,j))call stop_model('isPressure3',255)
+          else
+            Xtarg=TFASTJ(i) ! tqq's are temperatures
+            if(isPressure(2,j))call stop_model('isPressure2_b',255)
+            if(isPressure(3,j))call stop_model('isPressure3_b',255)
+          end if
           valj(j) = 0.d0
           select case(lqq(j-3))
           case(1)
             tfact = 0.d0
           case(2)
             tfact = DMAX1(0.d0,DMIN1(1.d0,
-     &              (TFASTJ(i)-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
+     &              (Xtarg-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
           case(3)
-            if(TFASTJ(I) <= tqq(2,j))then
+            if(Xtarg <= tqq(2,j))then
               tfact = DMAX1(0.d0,DMIN1(1.d0,
-     &                (TFASTJ(i)-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
+     &                (Xtarg-tqq(1,j))/(tqq(2,j)-tqq(1,j)) ))
             else
               tfact = DMAX1(0.d0,DMIN1(1.d0,
-     &                (TFASTJ(i)-tqq(2,j))/(tqq(3,j)-tqq(2,j)) ))
+     &                (Xtarg-tqq(2,j))/(tqq(3,j)-tqq(2,j)) ))
             end if
           end select
           do k=nw1,nw2
-            if((lqq(j-3) == 3).and.(TFASTJ(i)>tqq(2,j))) then
+            if((lqq(j-3) == 3).and.(Xtarg>tqq(2,j))) then
               qqqt = qqq(k,2,j-3) + (qqq(k,3,j-3) - qqq(k,2,j-3))*tfact
             else
               qqqt = qqq(k,1,j-3) + (qqq(k,2,j-3) - qqq(k,1,j-3))*tfact
@@ -800,22 +812,10 @@ C------ Calculate remaining J-values with T-dep X-sections
             valj(j) = valj(j) + qqqt*fff(k,i)
           end do
         end do
-#else
-        DO J=4,NJVAL !was NJVAL, add -2 for CFC & O2, ds4
-          VALJ(J) = 0.d0
-          TFACT = 0.d0
-          IF(TQQ(2,J) > TQQ(1,J)) TFACT = DMAX1(0.D0,DMIN1(1.D0,
-     &    (TFASTJ(I)-TQQ(1,J))/(TQQ(2,J)-TQQ(1,J)) ))
-          DO K=NW1,NW2
-            QQQT = QQQ(K,1,J-3) + (QQQ(K,2,J-3) - QQQ(K,1,J-3))*TFACT 
-            VALJ(J) = VALJ(J) + QQQT*FFF(K,I)
-          ENDDO
-        ENDDO
-#endif
 
         zj(i,1:jppj)=VALJ(jind(1:jppj))*jfacta(1:jppj)*solf
-        
-      ENDDO
+
+      END DO
 
       RETURN
       END SUBROUTINE JRATET
@@ -2145,6 +2145,7 @@ C**** Local parameters and variables and arguments:
       INTEGER             :: i,j,k,iw,jj,nqqq,NJVAL2
       character(len=300)  :: out_line
       character*20 :: titlex
+      character*1 :: pcheck
       integer :: lq
 
       TQQ = 0.d0
@@ -2167,10 +2168,6 @@ C Read in spectral data:
         call stop_model('NJVAL problem in RD_TJPL',255)
       END IF
       NQQQ = NJVAL-3
-#ifdef AR5_FASTJ_XSECS /* YES */
-      READ(NJ1,102) (WBIN(IW),IW=1,NWWW)
-      READ(NJ1,102) (WBIN(IW+1),IW=1,NWWW)
-#endif
       READ(NJ1,102) (WL(IW),IW=1,NWWW)
       if(rad_FL == 0)then ! use offline photon flux values
         READ(NJ1,102) (FL(IW),IW=1,NWWW)
@@ -2182,55 +2179,68 @@ C Read in spectral data:
 
 C Read O2 X-sects, O3 X-sects, O3=>O(1D) quant yields(each at 3 temps):
       DO K=1,3
-        READ(NJ1,103) TITLEJ(K,1),TQQ(K,1), (QO2(IW,K),IW=1,NWWW)
+        READ(NJ1,103) TITLEJ(K,1),TQQ(K,1),pcheck,(QO2(IW,K),IW=1,NWWW)
+        isPressure(K,1)=(pcheck=='P')
       ENDDO
       DO K=1,3
-        READ(NJ1,103) TITLEJ(K,2),TQQ(K,2), (QO3(IW,K),IW=1,NWWW)
+        READ(NJ1,103) TITLEJ(K,2),TQQ(K,2),pcheck,(QO3(IW,K),IW=1,NWWW)
+        isPressure(K,2)=(pcheck=='P')
       ENDDO
       DO K=1,3
-        READ(NJ1,103) TITLEJ(K,3),TQQ(K,3), (Q1D(IW,K),IW=1,NWWW)
+        READ(NJ1,103) TITLEJ(K,3),TQQ(K,3),pcheck,(Q1D(IW,K),IW=1,NWWW)
+        isPressure(K,3)=(pcheck=='P')
       ENDDO
       do k=1,3
         write(out_line,200) titlej(1,k),(tqq(i,k),i=1,3)
         call write_parallel(trim(out_line))
+        ! write(out_line,199) (isPressure(k,i),i=1,3)
+        ! call write_parallel(trim(out_line))
+        do i=1,3
+          ! for O2, O3, O1D not allowing pressure-depenant Xsec:
+          if(isPressure(i,k))call stop_model('unexpect. isPressure',255)
+        end do
       enddo
 
-#ifndef AR5_FASTJ_XSECS /* NOT */
-! really the #else section could have been incorporated as a subset
-! of this, but I wanted to keep it strictly separate for the moment...
 ! Be careful if you implement full fastj-X, because looks like TQQ,
 ! QQQ, and LQQ have same J dimension (e.g. not J vs. J-3 as here).
-! Here I made LQQ follow QQQ not TQQ. Also worth noting that no
-! provision is put in yet for pressure-interpolated X-sections. 
+! Here I made LQQ follow QQQ not TQQ. Also worth noting that the
+! only provision made for pressure-interpolated X-sections was to
+! do them in the same form as now T-depedant ones are done, as I
+! it looked like that's how fastjX7.X does them...
 !
 C Read remaining species:  X-sections at 1 2 or 3 T's :
       loop_nqqq: do J=1,NQQQ
         LQQ(J)=1
-        read(NJ1,103) TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),
+        read(NJ1,103) TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),pcheck,
      &                (QQQ(IW,LQQ(J),J),IW=1,NWWW)
+        isPressure(LQQ(J),J+3)=(pcheck=='P')
         loop_lq: do LQ=2,maxLQQ
           read(NJ1,1031) TITLEX ; backspace(NJ1)
           if(TITLEX == TITLEJ(LQQ(J),J+3)) then
             LQQ(J)=LQ
-            read(NJ1,103)TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),
+            read(NJ1,103)TITLEJ(LQQ(J),J+3),TQQ(LQQ(J),J+3),pcheck,
      &                (QQQ(IW,LQQ(J),J),IW=1,NWWW)
+            isPressure(LQQ(J),J+3)=(pcheck=='P')
             cycle loop_lq
-          else ! done with this specie
+          else ! done with this species
             if(LQQ(J) < maxLQQ)then
               ! fill in rest with undefined for a little more safety:
               titlej(LQQ(J)+1:maxLQQ,J+3)='undefined'
               TQQ(LQQ(J)+1:maxLQQ,J+3)=undef
               QQQ(1:NWWW,LQQ(J)+1:maxLQQ,J)=undef
+              isPressure(LQQ(J)+1:maxLQQ,J+3)=.false.
             else if(LQQ(J) > maxLQQ) then
               write(out_line,*)'Unexpected LQQ(',J,') value of ',LQQ(J)
               call write_parallel(trim(out_line),crit=.true.)
               call stop_model('Photolysis: Unexpected LQQ.',255)
             end if
-            exit loop_lq ! specie ready; move on
+            exit loop_lq ! species ready; move on
           end if
         end do loop_lq
         write(out_line,200) titlej(1,J+3),(TQQ(i,J+3),i=1,LQQ(J))
         call write_parallel(trim(out_line))
+        ! write(out_line,199) (isPressure(i,J+3),i=1,LQQ(J))
+        ! call write_parallel(trim(out_line))
         ! check monotonically increasing T's:
         do LQ=2,LQQ(J)
           if(TQQ(LQ-1,J+3) > TQQ(LQ,J+3))then
@@ -2240,31 +2250,15 @@ C Read remaining species:  X-sections at 1 2 or 3 T's :
           end if
         end do
       end do loop_nqqq
-#else /* I.e. below is older coding: */
-C Read remaining species:  X-sections at 2 T's :
-      DO J=1,NQQQ
-        READ(NJ1,103) TITLEJ(1,J+3),TQQ(1,J+3),(QQQ(IW,1,J),IW=1,NWWW)
-        READ(NJ1,103) TITLEJ(2,J+3),TQQ(2,J+3),(QQQ(IW,2,J),IW=1,NWWW)
-        write(out_line,200) titlej(1,j+3),(tqq(i,j+3),i=1,2)
-        call write_parallel(trim(out_line))
-      ENDDO
-#endif
       READ(NJ1,'(A)') TITLE0
-
-C (Don't) read pressure dependencies:
-      npdep=0
 
 c Zero index arrays:
       jind=0
-      jpdep=0
 
 C Set mapping index:
       do j=1,NJVAL
         do k=1,JPPJ
           if(jlabel(k) == titlej(1,j)) jind(k)=j
-        enddo
-        do k=1,npdep
-          if(lpdep(k) == titlej(1,j)) jpdep(j)=k
         enddo
       enddo
       do k=1,JPPJ
@@ -2309,7 +2303,7 @@ C Read aerosol phase functions:
         write(out_line,'(9x,I2,A,9F8.4)') J,'  Qext =',
      &  (QAAFASTJ(K,J),K=1,NK)
         call write_parallel(trim(out_line))
-      ENDDO   
+      ENDDO
 
       if(rad_FL == 0)then
         SF2_fact=FL(5)/bin5_1988
@@ -2318,12 +2312,13 @@ C Read aerosol phase functions:
 
   101 FORMAT(8E10.3)
   102 FORMAT((10X,6E10.3)/(10X,6E10.3)/(10X,6E10.3))
-  103 FORMAT(A7,F3.0,6E10.3/(10X,6E10.3)/(10X,6E10.3))
+  103 FORMAT(A7,F3.0,A1,E9.3,5E10.3/(10X,6E10.3)/(10X,6E10.3))
  1031 FORMAT(A7)
   104 FORMAT(13x,i2)
   105 FORMAT(A7,3x,7E10.3)
   106 FORMAT(f5.0,F8.4,F7.3,F8.4,1x,8F6.3)
   110 format(3x,a5)
+  199 format(3L5)
   200 format(1x,' x-sect:',a10,3(3x,f6.2))
   201 format(1x,' pr.dep:',a10,7(1pE10.3))
   350 format(' Too many phase functions supplied; increase NP to ',i2)
@@ -2745,6 +2740,12 @@ c Extend climatology to 100 km:
           rj%O2__O_O=irr
         case('N2O__M_O(1D)')
           rj%N2O__M_O1D=irr
+#ifdef TRACERS_ACETONE
+        case('Acetone__HCHO_CO')
+          rj%Acetone__HCHO_CO=irr
+        case('Acetone__CO_HCHO')
+          rj%Acetone__CO_HCHO=irr
+#endif /* TRACERS_ACETONE */
 #ifdef TRACERS_dCO
         case('dHCH17O__dC17O_H2')
           rj%dHCH17O__dC17O_H2=irr
