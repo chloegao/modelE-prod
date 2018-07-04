@@ -1,6 +1,7 @@
-E6TlernerF40.R GISS ModelE Lat-Lon Atmosphere Model, 1850 atm./ocean with Lerner tracers
+E6TlernerpassiveF40.R GISS ModelE Lat-Lon Atmosphere Model, 1850 atm./ocean
+with Lerner and Passive tracers
 
-E6TlernerF40: Same as E6F40, with Lerner and SF6 tracers
+E6TlernerpassiveF40: Same as E6F40, with Lerner and Passive tracers
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -27,7 +28,7 @@ Preprocessor Options
 #define TRACERS_WATER            ! wet deposition and water tracer
 !<--- generic tracers code end
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
-#define TRACERS_SF6              ! SF6 tracers
+#define TRACERS_PASSIVE          ! Passive tracers
 #define WATER_MISC_GRND_CH4_SRC  ! Ocean, lake, misc. ground sources for CH4
 End Preprocessor Options
 
@@ -51,7 +52,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "tracer_shared_source_files"
 #include "tracer_lerner_source_files"
-SF6TracersMetadata                  ! SF6 tracers
+PassiveTracersMetadata              ! Passive tracers
 TRDIAG                              ! new i/o
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -65,8 +66,8 @@ OPTS_dd2d = NC_IO=PNETCDF
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_1880_144x90_input_files"
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -121,10 +122,11 @@ Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step
 
 ! Settings copied from a random F40 "Lerner" rundeck in prod_decks.  The hard-coded itime_tr0
 ! are for an October 1 cold start; note the MONTHI=10 in INPUTZ below instead of 12.
-! ---- Lerner/Rind tracers
-  to_volume_MixRat=1,1,1,1,1,1,1,1,1,1   ! for tracer printout
+! ---- Lerner/Rind/Orbe tracers
+  to_volume_MixRat=1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1   ! for tracer printout
 ! itime_tr0=99999999,99999999,99999999,99999999,99999999,99999999,30624,30624,99999999
-  itime_tr0=13104,13104,13104,21840,13824,13104,13104,13104,13104,13104      !Lerner/Rind
+  itime_tr0=13104,13104,13104,21840,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104
+!Lerner/Rind/Orbe
   nstrtc=17                    ! Number of layers for Prather stratosphere chemistry
   clim_interact_chem=1
 ! ---- end Lerner/Rind tracers

@@ -15,10 +15,16 @@ else
 fi
 
 if [ $# -le 0 ] ; then
-    echo "Usage: runE RUNID [-np number_of_cpus] [-cold-restart]"
+    echo "Usage: runE RUNID [-s suffix] [-t time_limit] [-np number_of_cpus] [-cold-restart]"
     echo "Restart the run RUNID"
     echo "-cold-restart will re-initialize the model as specified"
-    echo "by ISTART= line in the rundeck"
+    echo "              by the ISTART= line in the rundeck"
+    echo " "
+    echo "This command requires a configuration file MODELERC, default: ~/.modelErc"
+    echo "containing 1 or more job-submission-strings QSUB_STRING_suffix"
+    echo "Use the -s option to select the appropriate QSUB_STRING"
+    echo "If it contains the place holders %t and %np for time and number-of-cpus," 
+    echo "-t and -np may be used to override the defaults 0:10 (10 minutes) and 1 resp."
     exit 1; fi
 
 ## The first argument is RunID

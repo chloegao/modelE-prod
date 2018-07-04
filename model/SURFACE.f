@@ -1002,11 +1002,18 @@ c     &     atmglas,atmgla, ! gfortran prob. if passed as class() args
       call surface_diag1(dtsurf,moddsf,trhdt_sv2)
 
 #ifdef TRACERS_ON
+
 #ifdef TRACERS_TOMAS
+#ifdef ALT_EMISS_COAG
+! Coag. of fresh prescribed-emission particles occurs BEFORE interactive
+! surface fluxes. See rationale in sum_prescribed_tracer_2Dsources.
+#else
 C**** Apply subgrid coagulation for freshly emitted particles
       call subgridcoag_drv_2D(dtsurf)
 
 #endif
+#endif
+
 C****
 C**** Apply tracer surface sources and sinks
 C****

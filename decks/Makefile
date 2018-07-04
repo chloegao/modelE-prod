@@ -1,5 +1,5 @@
 .SUFFIXES:
-.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars check_RUNSRC
+.PHONY: force rundeck depend gcm setup clean vclean newstart exe cmp .R htmldoc setup_script setup_nocomp tests check_vars check_RUNSRC update_decks_repo
 
 # main definitions
 USER = $(shell whoami)
@@ -219,6 +219,23 @@ endif
 	$(MAKE) -C $(AUX_DIR) $@ $(OPTS_MAIN)
 
 exe: $(RUN)/$(RUN) gcm
+	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \
+	echo \
+	  'directory $(CMRUNDIR)/$(RUN) or input files inside it are missing';\
+	echo 'you should make "setup" first'; \
+	exit 1; fi
+	@mv -f $(BIN_DIR)/$(RUN).exe $(CMRUNDIR)/$(RUN)/ ; \
+	if [ $$? -ne 0 ] ; then \
+	  echo "Hmm. Couldn't write the executable to the run directory." ; \
+	  echo "Maybe you don't have write permissions?" ; \
+	  exit 1 ; fi
+	@echo '--- Successfully updated the executable in the run directory ---'
+	@if [ ! -d $(DECKS_REPOSITORY) ] ; then \
+	  echo '--- $(DECKS_REPOSITORY) does not exist. Rundeck not saved ---'; \
+	else \
+	  $(MAKE) update_decks_repo RUN=$(RUN); fi
+
+update_decks_repo:
 	@if [ -n "`find $(DECKS_REPOSITORY)/$(RUN).R -user $(USER)`" ] ; then \
 	echo 'Rundeck in repository is ok - will add info'; \
 	else \
@@ -237,12 +254,6 @@ exe: $(RUN)/$(RUN) gcm
 	if [ ! -f $(DECKS_REPOSITORY)/$(RUN).R ] ; then \
 	  echo 'no luck...' ; exit 1 ; fi ; \
 	echo 'new $(DECKS_REPOSITORY)/$(RUN).R created'; fi
-	@if [ ! -s $(CMRUNDIR)/$(RUN)/I ] ; then \
-	echo \
-	  'directory $(CMRUNDIR)/$(RUN) or input files inside it are missing';\
-	echo 'you should make "setup" first'; \
-	exit 1; fi
-	mv -f $(BIN_DIR)/$(RUN).exe $(CMRUNDIR)/$(RUN)/
 	@echo 'adding corresponding info to rundeck repository'
 	@perl -e "while(<>){ if(/^### Information/){exit;} print; }" \
 	<$(DECKS_REPOSITORY)/$(RUN).R  >$(DECKS_REPOSITORY)/$(RUN).R.tmp

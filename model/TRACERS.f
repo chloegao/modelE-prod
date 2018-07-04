@@ -682,6 +682,26 @@ C**** trflux1 is total flux into first layer
 #endif
         atmsrf%trflux_prescr(n,:,:) = trflux1(:,:,n)
       end do
+
+#ifdef TRACERS_TOMAS
+#ifdef ALT_EMISS_COAG
+! The subgridcoag_drv_2d call (which adjusts trflux_prescr) has been
+! moved from SURFACE in order to avoid "double-counting" trflux_prescr.
+! trflux_prescr currently affects the interactive surface fluxes, but
+! subgridcoag_drv_2d does not account for this.   Application of the
+! full coagulation increment to trflux_prescr BEFORE the interactive
+! surface fluxes is most consistent with the current model structure.
+! Other possible routes not taken:
+! (1) Inclusion of coagulation tendency terms within the interactive
+!     surface flux calculation (complicated).
+! (2) Modification of subgridcoag_drv_2d to only see the part of
+!     trflux_prescr not consumed by downward interactive fluxes
+!     (may not reflect the original intent).
+C**** Apply subgrid coagulation for freshly emitted particles.
+      call subgridcoag_drv_2D(dtstep)
+#endif
+#endif
+
       RETURN
       END SUBROUTINE sum_prescribed_tracer_2Dsources
 
@@ -2728,7 +2748,7 @@ C
 !=======================================================================
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || \
-    defined(TRACERS_TOMAS)
+    defined(TRACERS_TOMAS) || defined(TRACERS_PASSIVE)
       subroutine calc_and_apply_expo_decay(i,j,time,tri,tre)
 !@sum Calculate and apply the exponetial decay of a tracer, and
 !@+   (optionally) form a product.
@@ -2767,6 +2787,6 @@ C
       endif
 
       end subroutine calc_and_apply_expo_decay
-#endif  /* Koch/AMP/TOMAS aerosols */
+#endif  /* Koch/AMP/TOMAS/PASSIVE aerosols */
 
 !=======================================================================

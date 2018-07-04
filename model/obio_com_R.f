@@ -72,8 +72,6 @@ c
       real WtoQ(nlt)           !Watts/m2 to quanta/m2/s conversion
 
 ! reduced rank arrays for obio_model calculations
-      integer ihra_ij
-
       real cexp, caexp
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
@@ -219,7 +217,8 @@ C endif
 #ifdef TRACERS_Ocean_O2
      &  ,ij_o2
 #endif
-      integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d, ijl_dtemp
+      integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d,ijl_dtemp
+     .                  ,ijl_rhs3(ntrac,17),ijl_wss(ntrac)
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
       type(vector_str80) :: lname_ij, lname_ijl
@@ -481,7 +480,7 @@ c**** Extract domain decomposition info
 !@sum  def_rsf_ocean defines ocean array structure in restart files
 !@auth M. Kelley
 !@ver  beta
-      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com, only : gcmax,nstep0,pp2tot_day, arg2d, arg3d
       USE OCEANR_DIM, only : grid=>ogrid
       use pario, only : defvar
@@ -492,7 +491,6 @@ c**** Extract domain decomposition info
       call defvar(grid,fid,avgq,'avgq('//trim(arg3d)//')')
       call defvar(grid,fid,gcmax,'gcmax('//trim(arg3d)//')')
       call defvar(grid,fid,tirrq3d,'tirrq3d('//trim(arg3d)//')')
-      call defvar(grid,fid,ihra,'ihra('//trim(arg2d)//')')
       call defvar(grid,fid,pp2tot_day,'pp2tot_day('//trim(arg2d)//')')
       return
       end subroutine def_rsf_obio
@@ -504,7 +502,7 @@ c**** Extract domain decomposition info
       use model_com, only : ioread,iowrite
       use pario, only : write_dist_data,read_dist_data,
      &     write_data,read_data
-      USE obio_forc, only : avgq,tirrq3d,ihra
+      USE obio_forc, only : avgq,tirrq3d
       USE obio_com, only : gcmax,nstep0
      &     ,pp2tot_day
       USE OCEANR_DIM, only : grid=>ogrid
@@ -519,7 +517,6 @@ c**** Extract domain decomposition info
         call write_dist_data(grid,fid,'avgq',avgq)
         call write_dist_data(grid,fid,'gcmax',gcmax)
         call write_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call write_dist_data(grid,fid,'ihra',ihra)
         call write_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
       case (ioread)            ! input from restart file
         call read_data(grid,fid,'obio_nstep0',nstep0,
@@ -527,7 +524,6 @@ c**** Extract domain decomposition info
         call read_dist_data(grid,fid,'avgq',avgq)
         call read_dist_data(grid,fid,'gcmax',gcmax)
         call read_dist_data(grid,fid,'tirrq3d',tirrq3d)
-        call read_dist_data(grid,fid,'ihra',ihra)
         call read_dist_data(grid,fid,'pp2tot_day',pp2tot_day)
       end select
       return
@@ -550,6 +546,7 @@ c**** Extract domain decomposition info
       integer :: nt, ilim, ll
       character(len=5) :: str1
       character(len=9) :: str2
+      character(len=10) :: str3
       character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)
 ! diatoms, chloroph, cyanobact, coccoliths
       character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
@@ -603,15 +600,15 @@ c**** Extract domain decomposition info
       call add_diag("ocean surface pH", "oij_pH",
      &              "pH units", .false., IJ_pH)
       call add_diag("Cos Solar Zenith Angle", "oij_solz",
-     &              "xxxx", .false., IJ_solz)
+     &              "NaN", .false., IJ_solz)
       call add_diag("Solar Zenith Angle", "oij_sunz",
      &              "degrees", .false., IJ_sunz)
       call add_diag("Daylight length", "oij_dayl",
      &              "timesteps", .false., IJ_dayl)
        call add_diag("Surface Ocean Direct Sunlight",
-     &              "oij_Ed", "quanta", .false., IJ_Ed)
+     &              "oij_Ed", "Wm-2", .false., IJ_Ed)
       call add_diag("Surface Ocean Diffuse Sunlight",
-     &              "oij_Es", "quanta", .false., IJ_Es)
+     &              "oij_Es", "Wm-2", .false., IJ_Es)
       call add_diag("Surface ocean Nitrates", "oij_nitr",
      &              "uM", .false., IJ_nitr)
       call add_diag("Surface ocean Ammonium", "oij_amm",
@@ -683,13 +680,23 @@ c**** Extract domain decomposition info
       end do
 
       call add_diag("Mean daily irradiance", "avgq",
-     &              "quanta", .true., IJL_avgq)
+     &              "quanta/m2/s", .true., IJL_avgq)
       call add_diag("KPAR", "kpar",
      &              "w/m2", .true., IJL_kpar)
       call add_diag("KPAR_EM2D", "kpar_em2d",
      &              "Einstein/m2 day", .true., IJL_kpar_em2d)
       call add_diag("dtemp due to kpar", "dtemp_par",
      &              "C", .true., IJL_dtemp)
+      do nt=1, ntrac
+      do ll=1, 17
+        write(str3, '(A4,A4,I2.2)') rhs_sym(nt), 'rhs3', ll
+        call add_diag(str3, str3,"mol/m3/s", .true., IJL_rhs3(nt,ll))
+      enddo
+      enddo
+      do nt=1, ntrac
+        write(str2,'(A4,A3)') rhs_sym(nt), 'wss'
+        call add_diag(str2, str2,"m/s", .true., IJL_wss(nt))
+      enddo
 
       return
       end subroutine setup_obio

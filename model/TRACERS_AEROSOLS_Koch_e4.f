@@ -475,6 +475,7 @@ C SO4 production
 #else
           H2SO4_chem(l)=trm_col(l,n_so2)*(1.d0 -d4)/dtsrc
      *         *tr_mm(n)/tr_mm(n_so2)
+          tr3Dsource(l,nChemistry,n_H2SO4)=H2SO4_chem(l)
 #endif
           taijls(i,j,l,ijlt_prodSO4gs)=taijls(i,j,l,ijlt_prodSO4gs)+
      &      tr3Dsource(l,nChemistry,n)

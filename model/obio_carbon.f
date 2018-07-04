@@ -386,8 +386,8 @@ c ---------------------------------------------------------------------------
       implicit none
 
       integer nstep,i,j
-      real, intent(in) :: T, S, dic, nitr, sili, alk, pnoice, atmco2
-      real, intent(inout):: pco2,pH
+      real, intent(in) :: T, S, dic, nitr, sili, pnoice, atmco2
+      real, intent(inout):: pco2,pH,alk
       logical vrbos
 
         call ppco2(T,S,dic,alk,nitr,sili,atmCO2,pCO2,pH)

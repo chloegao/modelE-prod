@@ -218,10 +218,12 @@
         call addSurfaceSource(pTracer, "surface_sink", "Surface Sink")
 #endif  /* TRACERS_SPECIAL_Lerner */
 
-#ifdef TRACERS_SF6
-      case ('SF6', 'SF6_c')
+#ifdef TRACERS_PASSIVE
+      case ('SF6', 'SF6_c', 'nh5', 'nh50', 'aoanh', 'aoa',
+     &     'e90', 'st8025', 'tape_rec', 'nh15')
+
         call addSurfaceSource(pTracer, "surface_src", "Surface Src")
-#endif  /* TRACERS_SF6 */
+#endif  /* TRACERS_PASSIVE */
 
 #ifdef TRACERS_TOMAS
       case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
@@ -260,7 +262,7 @@
       use RunTimeControls_mod, only: tracers_gasexch_ocean_co2
       use RunTimeControls_mod, only: tracers_gasexch_land_co2
       use RunTimeControls_mod, only: tracers_special_lerner
-      use RunTimeControls_mod, only: tracers_sf6
+      use RunTimeControls_mod, only: tracers_passive
       use RunTimeControls_mod, only: tracers_aerosols_koch
       use RunTimeControls_mod, only: tracers_aerosols_vbs
       use RunTimeControls_mod, only: tracers_aerosols_seasalt
@@ -297,8 +299,8 @@
 #ifdef TRACERS_SPECIAL_Lerner
       use LernerTracersMetadata_mod
 #endif
-#ifdef TRACERS_SF6
-      use SF6TracersMetadata_mod
+#ifdef TRACERS_PASSIVE
+      use PassivetracersMetadata_mod
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use ShindellTracersMetadata_mod
@@ -408,9 +410,9 @@
       end if
 #endif
 
-#ifdef TRACERS_SF6
-      if (tracers_sf6) then
-        call SF6_InitMetadata(pTracer)
+#ifdef TRACERS_PASSIVE
+      if (tracers_passive) then
+        call Passive_InitMetadata(pTracer)
       end if
 #endif
 
@@ -576,8 +578,7 @@
      &      then
             call set_to_volume_MixRat(i, 1) !gas output to volume mixing ratio
           end if
-        end if
-        
+       end if
       end do
 
       contains

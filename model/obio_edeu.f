@@ -76,9 +76,10 @@ c  1E6 to get uM or uEin
         Estop(nl) = Es(nl)
         Ebotq = Ebotq + (Edtop(nl)+Estop(nl))*WtoQ(nl)*1.0E6
 
-cdiag    if (nstep.eq.12)
-cdiag.   write(*,'(a,4i7,2e12.4)')'obio_edeu1: ',
-cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
+         if (vrbos)
+     .   write(*,'(a,4i7,6e12.4)')'obio_edeu1: ',
+     .        nstep,i,j,nl,
+     .        WtoQ(nl),Ed(nl),Es(nl),Edtop(nl),Estop(nl),Ebotq
 
        enddo
 
@@ -128,7 +129,7 @@ cdiag.        nstep,i,j,nl,Ed(nl),Es(nl)
           Ebotq = zirrq
           ih = nint(p1d(k+1))
           acdom450 = acdom(k,nl450)
-          ih = min(ih,nh)
+          ih = min(ih,nh)    !nh=200 set in obio_dim
           ih = max(ih,1)
           icd = nint((alog10(acdom450)*100.0+300.0)/10.0) + 1
           icd = max(icd,1)
@@ -157,7 +158,7 @@ cdiag.        nstep,k,ntr,fchl(ntr),ih,ich,ntr,icd,
 cdiag.        facirr(ih,ich,ntr,icd),fac
           enddo
  
-          tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus
+          tirrq(k) = fac*((Etopq+Ebotq)*0.5)*rmus   !units in quanta/m2/s
 
 cdiag        if (vrbos) then
 cdiag        write(*,'(a,4i7,6e12.4)')'obio_edeu2: ',

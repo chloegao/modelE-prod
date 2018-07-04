@@ -455,6 +455,16 @@ c          itcon_surf(1,N)=tr_con_diag('L1 Source',T)
         case ('14CO2')
           itcon_surf(1,N)=tr_con_diag('Bombs and drift',T)
 
+
+        case ('aoa')
+          kt_power_change(n) = -17
+          itcon_3Dsrc(1,n)=tr_con_diag('L1 overwriting',T,T)
+
+        case ('aoanh')
+          kt_power_change(n) = -17
+          itcon_3Dsrc(1,n)=tr_con_diag('L1 overwriting',T,T)
+
+
         case ('CH4')            ! two versions
 #ifdef TRACERS_SPECIAL_Shindell
           kt_power_change(n) = -13
@@ -1000,7 +1010,7 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-c      case ('SF6','SF6_c')
+c      case ('SF6','SF6_c','nh5','nh50','e90','st8025','aoa','aoanh','tape_rec','nh15')
 c        call layer1_init_jls(k,n,trname(n))
 c      case ('CFCn')
 c        call layer1_init_jls(k,n,trname(n))
@@ -2380,7 +2390,42 @@ c        end select
      *                'mol m-2 a-1',
      *                denom='ocnfr',
      *                scalediv=dtsrc)
+
+        case ('SF6','SF6_c')
+          ijts_source(1,n)=
+     *      ijts_diag(trim(trname(n))//'_GRID_SOURCE_LAYER_1',
+     *                trim(trname(n))//' Layer 1 SOURCE',
+     *                'kg m-2 s-1', power=-15,
+     *                scalediv=dtsrc)
         end select
+
+        case ('nh5','nh50','nh15')
+          ijts_source(1,n)=
+     *      ijts_diag(trim(trname(n))//'_NH_Mid_SOURCE_LAYER_1',
+     *                trim(trname(n))//' Layer 1 SOURCE',
+     *                'kg m-2 s-1', power=-12,
+     *                scalediv=dtsrc)
+
+        case ('e90')
+          ijts_source(1,n)=
+     *      ijts_diag(trim(trname(n))//'_SOURCE_LAYER_1',
+     *                trim(trname(n))//' Layer 1 SOURCE',
+     *                'kg m-2 s-1', power=-12,
+     *                scalediv=dtsrc)
+
+        case ('tape_rec')
+          ijts_source(1,n)=
+     *      ijts_diag(trim(trname(n))//'_SOURCE_UTLS',
+     *                trim(trname(n))//' UTLS SOURCE',
+     *                'kg m-2 s-1', power=-12,
+     *                scalediv=dtsrc)
+
+        case ('aoa','aoanh')
+          ijts_3Dsource(nOverwrite,n)=
+     *      ijts_diag(trim(trname(n))//'_overwrite',
+     *                trim(trname(n))//' overw',
+     *                'kg m-2 s-1', power=-15,
+     *                scalediv=dtsrc)
 
 c      case ('Rn222')
 c        ijts_source(1,n)=
@@ -4282,6 +4327,7 @@ C****
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+
 #ifdef TRACERS_SPECIAL_Shindell
       PRES(1:LM)=PMIDL00(1:LM)
 #endif
@@ -4326,8 +4372,13 @@ C**** set some defaults for water tracers
             trm(:,j,l,n) = MA(l,:,j)
           end do; enddo
 
-        case ('SF6','SF6_c')
-          ! defaults ok
+        case ('SF6','SF6_c','nh5','nh50','e90')
+
+         ! defaults ok
+
+        case ('st8025','tape_rec','nh15')
+
+         ! defaults ok
 
         case ('Be7', 'Be10', 'Pb210', 'Rn222')
           ! defaults ok
@@ -4353,6 +4404,13 @@ C**** ESMF: Each processor reads the global array: N2Oic
             trm(:,j,l,n) = MA(l,:,j)*N2Oic(j,l)
           enddo; enddo
 #endif
+
+#ifdef TRACERS_PASSIVE
+       case ('aoa','aoanh')
+             trm(:,:,:,n) = 0.d0
+
+#endif
+
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
            ! N2O initial conditions from input file:
@@ -5525,7 +5583,8 @@ C**** Next line for fastj photon fluxes to vary with time:
           nread=0
         case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-        case ('SF6', 'SF6_c')
+        case ('SF6', 'SF6_c', 'nh5', 'nh50', 'e90', 
+     &         'st8025', 'aoanh', 'aoa', 'tape_rec', 'nh15')
           nread=0 ! regional sources calculated in the code, not via a file
         end select
 
@@ -6001,6 +6060,18 @@ C**** Source over Australia and New Zealand
           trsource_glbavg(n)=trsource_glbavg(n)/sarea
 
         endif  ! pTracer==CFCn
+
+#ifdef TRACERS_PASSIVE
+
+       case ('nh5','nh50','nh15')
+
+        trsource(:,:,:,n)=0
+
+       case ('e90')
+
+        trsource(:,:,:,n)=0
+
+#endif
 
 C****
 C**** Surface Sources for Radon-222
@@ -6490,6 +6561,8 @@ C****CH4
       USE apply3d, only : apply_tracer_3Dsource
       implicit none
       integer, intent(in) :: i,j
+      INTEGER ns,xday   ; real*8 now
+      REAL*8 factor 
 
 C****CH4
       if(itime.ge.itime_tr0(n_CH4)) then
@@ -6517,7 +6590,208 @@ C****CFC11
         call apply_tracer_3Dsource(i,j,nChemistry,n_CFC11,.FALSE.)
       end if
 C****
+
       end subroutine calculate_and_apply_lerner
+#endif
+
+#ifdef TRACERS_PASSIVE
+      subroutine calculate_and_apply_passive(i,j)
+      use OldTracer_mod, only: itime_tr0
+      USE MODEL_COM, only: itime
+      USE RESOLUTION, only : lm
+      use model_com, only: modelEclock
+      USE TRACER_COM, only: n_nh5, n_nh50, n_nh15, n_e90
+      USE TRACER_COM, only: n_aoa, n_aoanh, n_st8025, n_tape_rec
+      use TRACER_COM, only: nChemistry
+      USE FLUXES, only: tr3Dsource
+      USE ATM_COM, only: pmidl00
+      USE TRACER_COM, only: trm_col
+      USE MODEL_COM, only: dtsrc
+      USE apply3d, only : apply_tracer_3Dsource
+      USE ATM_COM, only: LTROPO
+      use atmcol_com, only: ma   ! layer mass (kg/m2)
+      USE GEOM, only: axyp, lat2d_dg 
+      USE CONSTANT, only : pi 
+      implicit none
+      integer, intent(in) :: i,j
+      integer :: l
+      integer :: year, month, dayOfYear
+      INTEGER ns,xday   ; real*8 now
+      REAL*8 factor 
+      real*8 :: bydt 
+
+
+C**** NH5, NH50 and NH15: idealized loss tracers set over NH midlatitudes (30N-50N)
+
+      bydt = 1./dtsrc 
+
+      if(itime.ge.itime_tr0(n_nh5)) then
+
+       do l=1,lm
+         if (l==1) then !enforce concentrations in surface layer
+            if (nint(lat2d_dg(i,j)).gt.30 .and.
+     &         nint(lat2d_dg(i,j)).lt.50) then
+      tr3Dsource(l,:,n_nh5) = (ma(l)*100.0d-9 !ma ~ kg/m2 
+     *        -trm_col(l,n_nh5))*bydt  !tr3Dsource ~ kg/m2/s 
+            endif
+           else
+              tr3Dsource(l,:,n_nh5) = 0.
+         endif
+        call apply_tracer_3Dsource(i,j,nChemistry,n_nh5,.FALSE.)
+        !now apply loss everywhere
+        call calc_and_apply_expo_decay(i,j,5.d0,nChemistry,n_nh5)
+       enddo
+
+      endif
+
+      if(itime.ge.itime_tr0(n_nh15)) then
+
+       do l=1,lm
+         if (l==1) then !enforce concentrations in surface layer
+            if (nint(lat2d_dg(i,j)).gt.30 .and.
+     &         nint(lat2d_dg(i,j)).lt.50) then
+      tr3Dsource(l,:,n_nh15) = (ma(l)*100.0d-9
+     *        -trm_col(l,n_nh15))*bydt
+            endif
+           else
+              tr3Dsource(l,:,n_nh15) = 0.
+         endif
+        call apply_tracer_3Dsource(i,j,nChemistry,n_nh15,.FALSE.)
+        !now apply loss everywhere
+        call calc_and_apply_expo_decay(i,j,15.d0,nChemistry,n_nh15)
+       enddo
+
+      endif
+
+      if(itime.ge.itime_tr0(n_nh50)) then
+
+       do l=1,lm
+         if (l==1) then !enforce concentrations in surface layer
+            if (nint(lat2d_dg(i,j)).gt.30 .and.
+     &         nint(lat2d_dg(i,j)).lt.50) then
+      tr3Dsource(l,:,n_nh50) = (ma(l)*100.0d-9
+     *        -trm_col(l,n_nh50))*bydt
+            endif
+           else
+              tr3Dsource(l,:,n_nh50) = 0.
+         endif
+        call apply_tracer_3Dsource(i,j,nChemistry,n_nh50,.FALSE.)
+        !now apply loss everywhere
+        call calc_and_apply_expo_decay(i,j,50.d0,nChemistry,n_nh50)
+       enddo
+
+      endif
+
+C**** E90: idealized loss tracer set over entire surface layer
+
+      if(itime.ge.itime_tr0(n_e90)) then
+
+       do l=1,lm
+         if (l==1) then 
+            tr3Dsource(l,:,n_e90) = (ma(l)*100.0d-9
+     *        -trm_col(l,n_e90))*bydt
+           else
+              tr3Dsource(l,:,n_e90) = 0.
+           endif
+        call apply_tracer_3Dsource(i,j,nChemistry,n_e90,.FALSE.)
+        !now apply loss everywhere
+        call calc_and_apply_expo_decay(i,j,90.d0,nChemistry,n_e90)
+        enddo
+
+      endif
+
+C****AOANH and AOA: Two mean age tracers are defined, one with respect to the NH midlatitude surface and one with respect to the Earth's surface.  In lieu of the "clock-tracer" implementation (see GLT tracer), here we solve for the mean age as the solution to d(G)dt=1, where G is the mean age and d/dt is the advective derivative. Zero boundary conditions are enforced over the source region (either NH midlatitude surface layer (30N-50N) or the entire Earth's surface). Units are in days.
+
+
+      if(itime.ge.itime_tr0(n_aoanh)) then
+
+      factor = 1/(60.d0*60.d0*24.d0) !ensure units of days
+
+       do l=1,lm
+         tr3Dsource(l,:,n_aoanh) = ma(l)*factor/dtsrc 
+         call apply_tracer_3Dsource(i,j,nChemistry,n_aoanh,.FALSE.)
+       enddo
+ 
+       if (nint(lat2d_dg(i,j)).ge.30 .and.
+     &     nint(lat2d_dg(i,j)).le.50) then
+             trm_col(1,n_aoanh) = 0.d0
+       endif
+     
+      endif
+
+
+      if(itime.ge.itime_tr0(n_aoa)) then
+
+       tr3Dsource(:,:,n_aoa) = 0.
+
+       factor = 1/(60.d0*60.d0*24.d0)
+
+       do l=1,lm
+         tr3Dsource(l,:,n_aoa) = ma(l)*factor/dtsrc
+         call apply_tracer_3Dsource(i,j,nChemistry,n_aoa,.FALSE.)
+       enddo
+
+       trm_col(1,n_aoa) = 0.d0
+
+      endif
+
+C****ST8025: An idealized loss tracer with a stratospheric source (fixed concentration above 80 mb) and idealized exponential decay.  Can be used to evaluate stratosphere-troposphere-exchange.
+
+ 
+      if(itime.ge.itime_tr0(n_st8025)) then
+
+       do l=1,lm
+
+       ! first apply decay
+
+       if (LTROPO(i,j).le.l) then
+           call calc_and_apply_expo_decay(i,j,25.d0,nChemistry,n_st8025)
+       endif
+
+       ! then apply fixed concentrations above 80 mb
+
+        if (nint(pmidl00(l)).le.82.) then
+            tr3Dsource(l,:,n_st8025) = (ma(l)*200.0d-9
+     *        -trm_col(l,n_st8025))*bydt
+        else
+            tr3Dsource(l,:,n_st8025) = 0.
+        endif
+
+       call apply_tracer_3Dsource(i,j,nChemistry,n_st8025,.FALSE.)
+      
+      enddo
+
+      endif
+
+C****TAPE_REC: An idealized oscillating tracer in the tropical lower stratosphere whose period mimics the seasonal cycle of water vapor.  Can be used to evaluate vertical ascent in the lower stratosphere.
+
+      if(itime.ge.itime_tr0(n_tape_rec)) then
+
+C**** Get current model time
+      call modelEclock%get(year=year, dayOfYear=dayOfYear)
+
+       do l=1,lm
+         if (nint(pmidl00(l)).ge.99. .and.
+     &         nint(pmidl00(l)).lt.110.) then
+           if (nint(lat2d_dg(i,j)).gt.-10 .and.
+     &         nint(lat2d_dg(i,j)).lt.10) then
+               xday=dayOfYear
+               factor=(1.d0 + sin(2*(xday*pi/365.d0)-pi))*10.0d-9
+               tr3Dsource(l,:,n_tape_rec) = (ma(l)*factor
+     *        -trm_col(l,n_tape_rec))*bydt
+            else
+              tr3Dsource(l,:,n_tape_rec) = 0.
+            endif
+           else
+              tr3Dsource(l,:,n_tape_rec) = 0.
+         endif
+       call apply_tracer_3Dsource(i,j,nChemistry,n_tape_rec,.FALSE.)
+       enddo
+  
+      endif
+
+      end subroutine calculate_and_apply_passive
+
 #endif
 
 #ifdef TRACERS_COSMO
@@ -6671,6 +6945,7 @@ C*****
       USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
+      USE GEOM, only: lat2d_dg 
 
       implicit none
       integer, intent(in) :: i,j
@@ -6679,6 +6954,8 @@ C*****
 !@var src_fact source factor for the current tracer
       integer :: src_index,get_src_index,bb_i,bb_e
       real*8 :: src_fact
+      real*8 :: bydt 
+
       interface
         real*8 function get_src_fact(n,ibb)
           integer, intent(in) :: n
@@ -6692,6 +6969,8 @@ C*****
       integer :: k
       real*8, dimension(NBINS,LM) :: TOMAS_bio
 #endif
+
+      bydt = 1./DTsrc 
 
 C**** All sources are saved as kg s-1
       do n=1,ntm
@@ -7423,6 +7702,11 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
 c**** Calculate and apply sources for Lerner tracers
         call calculate_and_apply_lerner(i,j)
+#endif
+
+#ifdef TRACERS_PASSIVE
+c**** Calculate and apply sources for Passive tracers
+        call calculate_and_apply_passive(i,j)
 #endif
 
 #ifdef TRACERS_COSMO

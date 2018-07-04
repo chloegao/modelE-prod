@@ -64,7 +64,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      *  AMP_AERO_MAP
       USE TRACER_COM, only: n_H2SO4, n_M_ACC_SU, n_M_AKK_SU, n_M_BC1_BC,
      *  n_M_DD1_DU, n_M_DD2_DU, n_M_OCC_OC, n_M_SSA_SS, n_M_SSC_SS, n_M_SSS_SS,
-     *  n_NH3, nBiomass, nAircraft, ntmAMPe, nVolcanic, trm_col,ntmAMPi,
+     *  n_NH3, nBiomass, nAircraft, ntmAMPe, nVolcanic, trm_col, ntmAMPi,
      *  nMicrophys, nThermo, n_M_OCC_OCM2, n_M_OCC_OCM1, n_M_OCC_OCM0,
      *  n_M_OCC_OCP1, n_M_OCC_OCP2, n_M_OCC_OCP3, n_M_OCC_OCP4,
      *  n_M_OCC_OCP5, n_M_OCC_OCP6
@@ -436,7 +436,7 @@ c -----------------------------------------------------------------
       USE OldTracer_mod, only: trpdens
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm, trm_col
+      USE TRACER_COM, only: ntmAMPi, ntm, trm, trm_col
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
@@ -481,7 +481,7 @@ c -----------------------------------------------------------------
       USE OldTracer_mod, only: tr_mm
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: n_H2SO4, ntmAMPi, ntm, trm
+      USE TRACER_COM, only: ntmAMPi, ntm, trm
       USE AERO_CONFIG, ONLY: NMODES
 
       IMPLICIT NONE
