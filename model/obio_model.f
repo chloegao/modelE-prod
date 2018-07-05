@@ -1026,9 +1026,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
      .                                    + rhs(k,nt,ll)  ! all terms in rhs
       enddo
-      enddo
-      enddo
 #endif
+      enddo
+      enddo
 #endif
 
       if (vrbos) then

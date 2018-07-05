@@ -233,8 +233,10 @@ class newRun(newRundeck):
             return 1
 
         try:
+            # Note: for ENINT2.1otrac rundeck the 1hr label corresponds
+            # to a 24hr run.
             cmd = 'cd ' + self.name + '; cp fort.2.nc ' \
-                + utils.checkpointName(self.name, self.mode, '1hr', npes)
+                  + utils.checkpointName(self.name, self.mode, '1hr', npes)
             self.sysCmd(cmd, 3, stageID)
         except RuntimeError, e:
             return 1
@@ -258,12 +260,16 @@ class newRun(newRundeck):
         checkPt = endTime - 1
         ndisk = checkPt * 2
         if endTime > 24:
-            newTime = ' ' + str(ndisk) + ' 2 1'
+            # Special case: ENINT2.1otrac rundeck
+            if 'ENINT' in self.name:
+                newTime = ' ' + str(ndisk) + ' 3 0'
+            else:
+                newTime = ' ' + str(ndisk) + ' 2 1'
         else:
             newTime = ' ' +  str(ndisk) + ' 1 ' + str(endTime)
 
         try:
-            cmd = self.repository+'/exec/editRundeck.sh '+self.name+newTime 
+            cmd = self.repository+'/exec/editRundeck.sh '+self.name+newTime
             self.sysCmd(cmd, 3, stageID)
         except RuntimeError, e:
             return 1
@@ -280,7 +286,8 @@ class newRun(newRundeck):
                 self.sysCmd('make -j setup', 3, stageID)
             except RuntimeError, e:
                 return 1
-
+    
+        # Run continuous run (up to endtime)
         try:
             rune = self.repository+'/exec/runE '
             cmd = rune+self.name+' -np '+str(npes)+' -cold-restart'  
@@ -288,19 +295,28 @@ class newRun(newRundeck):
         except RuntimeError, e:
             return 1
 
+        # Save fort.* files using appropriate labels used by regCompare
         try:
-            cmd = 'cd ' + self.name + '; cp fort.1.nc ' \
-                +utils.checkpointName(self.name, self.mode, str(endTime)+'hr', npes)
+            if 'ENINT' in self.name:
+                # Safeguard for ENINT2.1otrac rundeck 
+		# In this case the 25hr label corresponds to a 48hr run.
+                cmd = 'cd ' + self.name + '; cp fort.1.nc ' \
+                      +utils.checkpointName(self.name, self.mode, '25hr', npes)
+            else:
+                cmd = 'cd ' + self.name + '; cp fort.1.nc ' \
+                  +utils.checkpointName(self.name, self.mode, str(endTime)+'hr', npes)
             self.sysCmd(cmd, 3, stageID)
         except RuntimeError, e:
             return 1
 
+        # Overwrite fort.1 file to be used in "restart" run
         try:
             cmd = 'cd ' + self.name + '; cp fort.2.nc fort.1.nc; rm -f run_status'
             self.sysCmd(cmd, 3, stageID)
         except RuntimeError, e:
             return 1 
 
+        # Run restart run
         try:
             cmd = 'cd ' + self.name + '; ' + restart \
                 + '; test `head -1 run_status` -eq ' + self.OKrc
@@ -309,8 +325,9 @@ class newRun(newRundeck):
             return 1
 
         try:
+            # No need to use different label for ENINT2.1otrac
             cmd = 'cd ' + self.name + ';cp fort.2.nc ' \
-                + utils.checkpointName(self.name, self.mode, 'restart', npes)
+                  + utils.checkpointName(self.name, self.mode, 'restart', npes)
             self.sysCmd(cmd, 3, stageID)
         except RuntimeError,e:
             return 1

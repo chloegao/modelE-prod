@@ -45,7 +45,11 @@ editRundeck()
   echo "${ndisk_line}"                      >> ${deck}
   tail +${n1} templ | head -$(( n2 - n1 ))  >> ${deck}
   echo "${end_hour_line}"                   >> ${deck}
-  echo " ISTART=2, ${end_hour_line}"         >> ${deck}
+  if [[ ${deck} =~ "ENINT" ]]; then
+     echo " ISTART=8, ${end_hour_line}"         >> ${deck}
+  else
+     echo " ISTART=2, ${end_hour_line}"         >> ${deck}
+  fi
   tail +${n2} templ                         >> ${deck}
 }
 
