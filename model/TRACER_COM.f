@@ -118,18 +118,15 @@ C**** Each tracer has a variable name and a unique index
 #else
       integer, parameter :: ntm_water=0
 #endif  /* TRACERS_WATER */
-!@var ntm_shindell_trop: Number of TRACERS_SPECIAL_Shindell tracers.
-!@var ntm_shindell_strat: Number of Shindell strat chem tracers.
+!@var ntm_shindell: Number of TRACERS_SPECIAL_Shindell tracers.
 #ifdef TRACERS_SPECIAL_Shindell
 #ifdef TRACERS_ACETONE
-      integer, parameter :: ntm_shindell_trop=16
+      integer, parameter :: ntm_shindell=26
 #else
-      integer, parameter :: ntm_shindell_trop=15
+      integer, parameter :: ntm_shindell=25
 #endif  /* TRACERS_ACETONE */
-      integer, parameter :: ntm_shindell_strat=10
 #else
-      integer, parameter :: ntm_shindell_trop=0
-      integer, parameter :: ntm_shindell_strat=0
+      integer, parameter :: ntm_shindell=0
 #endif  /* TRACERS_SPECIAL_Shindell */
 !@var ntm_terp: Number of TRACERS_TERP tracers.
 #ifdef TRACERS_TERP
@@ -290,9 +287,8 @@ C**** Each tracer has a variable name and a unique index
 #endif  /* TRACERS_AIR */
 
 !@param ntm_chem number of drew-only tracers
-      integer, parameter :: ntm_chem=ntm_shindell_trop+
+      integer, parameter :: ntm_chem=ntm_shindell+
      *                               ntm_terp+
-     *                               ntm_shindell_strat+
      *                               ntm_dCO+
      *                               ntm_soa
       ! Set by Shindell
