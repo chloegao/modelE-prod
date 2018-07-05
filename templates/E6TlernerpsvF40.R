@@ -1,7 +1,7 @@
-E6TlernerpassiveF40.R GISS ModelE Lat-Lon Atmosphere Model, 1850 atm./ocean
+E6TlernerpsvF40.R GISS ModelE Lat-Lon Atmosphere Model, 1850 atm./ocean
 with Lerner and Passive tracers
 
-E6TlernerpassiveF40: Same as E6F40, with Lerner and Passive tracers
+E6TlernerpsvF40: Same as E6F40, with Lerner and Passive tracers
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -78,7 +78,7 @@ MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TlernerF40 (prescribed ocean atmospheric tracer model with Lerner tracers)
+E6TlernerpsvF40 (prescribed ocean atmospheric tracer model with Lerner tracers)
 
 &&PARAMETERS
 #include "static_ocn_params"
