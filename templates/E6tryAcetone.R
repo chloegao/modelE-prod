@@ -1,6 +1,6 @@
 E6tryAcetone.R GISS ModelE Lat-Lon Atmosphere Model, climatological ocn/atm OMA tracers
 
-E6tryAcetone = E6TomaF40clim2000 but turn on acetone tracer and megan for testing.
+E6tryAcetone = E6TomaF40clim2000 but turn on Acetone tracer and megan for testing.
 E6TomaF40clim2000: E6TomaF40clim but year 2000 settings
                (e.g. 9-year averages centered around nominal date)
 
@@ -37,9 +37,12 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
-#define TRACERS_ACETONE
+#define TRACERS_ACETONE ! full Acetone tracer in shindell chemistry
+#define ACETONE_OCEAN   ! climate-interactive Acetone tracer ocean flux
 #define DO_MEGAN                    ! include biogenic emissions of species set up for megan
-!  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
+#define ACETONE_MEGAN   ! Acetone source from MEGAN on
+#define ISOPRENE_MEGAN  ! Isoprene source from MEGAN on
+!  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive Isoprene emissions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
 !  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability

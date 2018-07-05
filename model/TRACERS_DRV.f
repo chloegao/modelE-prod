@@ -5734,7 +5734,7 @@ C**** at the start of any day
 !@auth Jean Lerner/Gavin Schmidt
       USE MODEL_COM, only: itime,dtsrc,nday
       use SpecialIO_mod, only: write_parallel
-      use TracerSurfaceSource_mod, only: TracerSurfaceSource
+      use TracerSurfaceSource_mod, only: TracerSurfaceSource,itsMEGAN
       use Attributes_mod
       use AttributeDictionary_mod
       use TracerBundle_mod
@@ -6252,29 +6252,26 @@ C****
         endif
 #endif
 #if !defined(PS_BVOC) && !defined(BIOGENIC_EMISSIONS)
-#ifdef DO_MEGAN
-      ! Let MEGAN fend for itself regarding daylight, etc.:
-      case ('Isoprene')
-        do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1; do i=I_0,I_1
-            trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
-          end do ; end do
-        end do
-#else
       ! Isoprene sources to be emitted only during sunlight, and
-      ! weighted by cos of solar zenith angle:
+      ! weighted by cos of solar zenith angle. Unless it is a
+      ! MEGAN source, where daylight already handled:
       case ('Isoprene')
         do ns=1,ntsurfsrc(n)
-          do j=J_0,J_1; do i=I_0,I_1
-            if(COSZ1(i,j)>0.)then
-              trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
-     &        sfc_src(i,j,n,ns)
-            else
-              trsource(i,j,ns,n)=0.d0
-            endif
-          end do  ; end do
+          if(pTracer%surfaceSources(ns)%skipReason==itsMEGAN) then
+            do j=J_0,J_1; do i=I_0,I_1
+              trsource(i,j,ns,n)=sfc_src(i,j,n,ns)
+            end do ; end do
+          else ! not MEGAN
+            do j=J_0,J_1; do i=I_0,I_1
+              if(COSZ1(i,j)>0.)then
+                trsource(i,j,ns,n)=(COSZ1(i,j)/(COSZ_day(i,j)+teeny))*
+     &          sfc_src(i,j,n,ns)
+              else
+                trsource(i,j,ns,n)=0.d0
+              endif
+            end do  ; end do
+          end if
         end do
-#endif /* DO_MEGAN */
 #endif /* not PS_BVOC and not BIOGENIC_EMISSIONS */
 #endif /* TRACERS_SPECIAL_Shindell */
 

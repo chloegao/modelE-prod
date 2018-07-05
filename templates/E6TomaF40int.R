@@ -44,6 +44,7 @@ Preprocessor Options
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define DO_MEGAN                    ! include biogenic emissions of species set up for megan
+#define ISOPRENE_MEGAN  ! Isoprene source from MEGAN on
 !  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg

@@ -117,15 +117,23 @@
 !-------------------------------------------------------------------------------
       select case (trname(n))
       case ('Isoprene')
+#ifdef ISOPRENE_MEGAN
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &  sourceName='MegISOP_src',
      &  sourceLname='MEGAN '//trim(trname(n)))
+#else
+        continue
+#endif
       case ('Acetone')
+#ifdef ACETONE_MEGAN
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &  sourceName='MegACTO_src',
      &  sourceLname='MEGAN '//trim(trname(n)))
-#ifdef TERPENES_MEGAN
+#else
+        continue
+#endif
       case ('Terpenes')
+#ifdef TERPENES_MEGAN
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &    sourceName='MegMYRC_src', sourceLname='MEGAN Myrcene')
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
@@ -152,6 +160,8 @@
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &    sourceName='MegOSQT_src',
      &    sourceLname='MEGAN Other Sesquiterpenes')
+#else
+        continue
 #endif /* TERPENES_MEGAN */
       end select
 #endif /* DO_MEGAN */
@@ -169,9 +179,13 @@
 
       select case (trname(n))
       case ('Acetone')
+#ifdef ACETONE_OCEAN
         call addSurfaceSource(this=pTracer, skipReason=itsOcean,
      &  sourceName='OcnACTO_src',
      &  sourceLname='Ocean '//trim(trname(n)))
+#else
+        continue
+#endif
       end select
 
       if(do_fire(n) .and.  (ntsurfsrc(n)+1 > ntsurfsrcmax))then
