@@ -6974,7 +6974,6 @@ C*****
       USE TOMAS_AEROSOL, only: sqrt_xk_xk1
       USE TOMAS_EMIS, only : scalesizeSO4_vol,scalesizeSO4_bio
 #endif
-      USE GEOM, only: lat2d_dg 
 
       implicit none
       integer, intent(in) :: i,j
@@ -6983,7 +6982,6 @@ C*****
 !@var src_fact source factor for the current tracer
       integer :: src_index,get_src_index,bb_i,bb_e
       real*8 :: src_fact
-      real*8 :: bydt 
 
       interface
         real*8 function get_src_fact(n,ibb)
@@ -6998,8 +6996,6 @@ C*****
       integer :: k
       real*8, dimension(NBINS,LM) :: TOMAS_bio
 #endif
-
-      bydt = 1./DTsrc 
 
 C**** All sources are saved as kg s-1
       do n=1,ntm
