@@ -20,6 +20,7 @@ C****
 C**** Input: SUBR = 6 character string which labels ouput line
 
       Use MODEL_COM, Only: DTSRC, modeleclock
+      USE MODEL_COM, only: nstep=>itime
       Use GEOM,      Only: AREAG, aXYP
       Use OCEAN,     Only: LMO, oXYP, TRMO,
      *                     oFOCEAN=>FOCEAN
@@ -41,7 +42,7 @@ C**** Local Variables
      *     HERB(LMO),NDET(LMO), DOC(LMO), DIC(LMO),TOTL(LMO),
      *     A(agrid%im_world,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
      *     O(ogrid%im_world,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX
-      integer :: idx_co2
+      integer :: idx_co2,ii,jj
 
       idx_co2=atmocn%gasex_index%getindex(atmocn%n_co2n)
       if (idx_co2<1) return
@@ -139,8 +140,10 @@ C**** Calculate DIC
          If (AM_I_ROOT())
      *      DIC(1) = DIC(1) + aFLUX * DTSRC * 12.*1d-3
          EndIf
-      If (SUBR == 'AG2OG_' .or. SUBR == 'OCONV ')  Then
-         O(:,:) = ocnatm%trgasex(idx_co2,:,:) * oFOCEAN(:,:) * oXYP(:,:)
+      If (SUBR == 'AG2OG_' .or. SUBR == 'GRNDOC' .or. SUBR == 'OCONV ')
+     .  Then
+         O(:,J1O:JNO) = ocnatm%trgasex(idx_co2,:,J1O:JNO) 
+     .                * oFOCEAN(:,J1O:JNO) * oXYP(:,J1O:JNO)
          If (J1O==1)    O(2:ogrid%im_world,1)   = O(1,1)
          If (JNO==ogrid%jm_world)
      &      O(2:ogrid%im_world,ogrid%jm_world) = O(1,ogrid%jm_world)

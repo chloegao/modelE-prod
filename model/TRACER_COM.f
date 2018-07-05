@@ -353,10 +353,8 @@ C**** Each tracer has a variable name and a unique index
       integer :: n_SOAgas=0
 #endif
       integer ::
-     *     n_SF6=0,    n_SF6_c=0, n_nh5=0,                                       
-     *     n_nh50=0,   n_nh50V2=0, n_e90=0,   
-     *     n_st8025=0, n_aoa=0,    n_aoanh=0, 
-     *     n_tape_rec=0,   n_nh15=0, 
+     *     n_SF6=0,    n_SF6_c=0, n_nh5=0,  n_tape_rec=0,  n_st8025=0,                                   
+     *     n_nh50=0,   n_e90=0,   n_aoa=0,      n_aoanh=0,   n_nh15=0,
      *     n_Air=0,    n_Rn222=0, n_CO2=0,      n_N2O=0,
      *     n_CFC11=0,  n_14CO2=0, n_CH4=0,   n_O3=0,       n_water=0,
      *     n_H2O18=0,  n_HDO=0,   n_HTO=0,   n_Ox=0,       n_NOx=0,

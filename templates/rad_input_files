@@ -18,6 +18,6 @@ RADNE=topcld.trscat8
 
 ISCCP=ISCCP.tautables
 GHG=GHG.CMIP6.1-2014.txt  !  GreenHouse Gases for CMIP6 runs up to 2014
-CO2profile=CO2profile.Jul2017.txt ! scaling of CO2 in stratosphere
+CO2profile=CO2profile.Jul16-2017.txt ! scaling of CO2 in stratosphere
 dH2O=dH2O_by_CH4_monthly
 

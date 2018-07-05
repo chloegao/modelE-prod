@@ -1010,7 +1010,7 @@ C**** set defaults for some precip/wet-dep related diags
 !=============================!
       select case (trname(n))
 
-c      case ('SF6','SF6_c','nh5','nh50','e90','st8025','aoa','aoanh','tape_rec','nh15')
+c      case ('SF6','SF6_c','nh5','nh50','e90','st8025','tape_rec','aoa','aoanh','nh15')
 c        call layer1_init_jls(k,n,trname(n))
 c      case ('CFCn')
 c        call layer1_init_jls(k,n,trname(n))
@@ -1087,6 +1087,46 @@ c        call layer1_init_jls(k,n,trname(n))
         jls_ltop(k) = lm
         jls_power(k) = 1
         units_jls(k) = unit_string(jls_power(k),tend_units)
+
+#ifdef TRACERS_PASSIVE
+
+      case ('nh5')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('nh50')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('e90')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+      case ('nh15')
+        k = k + 1
+        jls_decay(n) = k   ! decay loss
+        sname_jls(k) = 'Decay_of_'//trim(trname(n))
+        lname_jls(k) = 'LOSS OF '//trim(trname(n))//' BY DECAY'
+        jls_ltop(k) = LM
+        jls_power(k) = 0
+        units_jls(k) = unit_string(jls_power(k),'kg s-1')
+
+#endif 
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
@@ -2356,16 +2396,7 @@ C**** This needs to be 'hand coded' depending on circumstances
 !=============================!
       select case (trname(n))
 
-      case ('CFCn','CO2n','SF6','SF6_c')
-c        select case (trname(n))
-c        case ('CFCn','SF6','SF6_c')
-c          ijts_source(1,n)=
-c     *      ijts_diag(trim(trname(n))//'_GRID_SOURCE_LAYER_1',
-c     *                trim(trname(n))//' Layer 1 SOURCE',
-c     *                'kg m-2 s-1', power=-15,
-c     *                scalediv=dtsrc)
-c        end select
-        select case (trname(n))
+
         case ('CFCn','CO2n')
           ijts_isrc(1,n)=
      *      ijts_diag(trim(trname(n))//'_ocean_source',
@@ -2397,7 +2428,6 @@ c        end select
      *                trim(trname(n))//' Layer 1 SOURCE',
      *                'kg m-2 s-1', power=-15,
      *                scalediv=dtsrc)
-        end select
 
         case ('nh5','nh50','nh15')
           ijts_source(1,n)=
@@ -4406,9 +4436,8 @@ C**** ESMF: Each processor reads the global array: N2Oic
 #endif
 
 #ifdef TRACERS_PASSIVE
-       case ('aoa','aoanh')
+         case ('aoa','aoanh')
              trm(:,:,:,n) = 0.d0
-
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell
@@ -5584,7 +5613,7 @@ C**** Next line for fastj photon fluxes to vary with time:
         case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
         case ('SF6', 'SF6_c', 'nh5', 'nh50', 'e90', 
-     &         'st8025', 'aoanh', 'aoa', 'tape_rec', 'nh15')
+     &        'st8025', 'aoa', 'aoanh', 'tape_rec', 'nh15')
           nread=0 ! regional sources calculated in the code, not via a file
         end select
 

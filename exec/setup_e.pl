@@ -129,12 +129,26 @@ if ( ! -d $RunDir ) {
 }
 
 ## Check that link is not already correct (added by gavin)
-if ( -e $runID ) {
+if ( -l $runID ) {
     if ( `ls -l $runID` !~ /-> *$RunDir$/ ) {
-	print "./$runID exists and is pointing to something else:\n";
+	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+	print "A link in your local directory \n";
+	print "    ./$runID\n";
+	print "exists and is pointing to something else.\n";
+	print "Will not overwrite it.\n";
 	print "Please check. Aborting setup.\n";
+	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
 	exit 1;
     }
+} elsif ( -e $runID ) {
+	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+	print "An object in your local directory \n";
+	print "    ./$runID\n";
+	print "exists and is not a symbolic link.\n";
+	print "Will not overwrite it.\n";
+	print "Please check. Aborting setup.\n";
+	print "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n";
+	exit 1;
 } else {
     symlink $RunDir, $runID or die "Can't create link $runID in local dir";
 }

@@ -1175,6 +1175,7 @@ c*
 !       on the atmospheric grid, interpolated to the ocean grid, and scattered
 !!      on the ocean grid
 !@auth Larissa Nazarenko
+      USE MODEL_COM, only: nstep=>itime
       use rad_com, only : dirvis,fsrdif,dirnir,difnir
 #if (defined TRACERS_OCEAN)
       USE OCN_TRACER_COM, only: tracerlist
@@ -1186,7 +1187,6 @@ c*
       USE INT_AG2OG_MOD, only : INT_AG2OG
 
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
-     .                          ,rad_coupling
       use runtimecontrols_mod, only: ocn_cfc, tracers_oceanbiology
       IMPLICIT NONE
       type(atmocn_xchng_vars) :: atm
@@ -1328,23 +1328,19 @@ c*
      &     atm%gasex_index%getsize())
 #endif
 
-!     if (allocated(atm%dirvis)) then
-      if (rad_coupling) then
+      if (allocated(atm%dirvis)) then
         aWEIGHT(:,:) = atm%FOCEAN(:,:)
-!       CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
-!       CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
-!       CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
-!       CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
-        CALL INT_AG2OG(DIRVIS,ocnatm%DIRVIS, aWEIGHT)
-        CALL INT_AG2OG(FSRDIF,ocnatm%DIFVIS, aWEIGHT)
-        CALL INT_AG2OG(DIRNIR,ocnatm%DIRNIR, aWEIGHT)
-        CALL INT_AG2OG(DIFNIR,ocnatm%DIFNIR, aWEIGHT)
+        CALL INT_AG2OG(atm%DIRVIS,ocnatm%DIRVIS, aWEIGHT)
+        CALL INT_AG2OG(atm%DIFVIS,ocnatm%DIFVIS, aWEIGHT)
+        CALL INT_AG2OG(atm%DIRNIR,ocnatm%DIRNIR, aWEIGHT)
+        CALL INT_AG2OG(atm%DIFNIR,ocnatm%DIFNIR, aWEIGHT)
       endif
 
       if (tracers_oceanbiology.or.ocn_cfc) then
         aWEIGHT(:,:) = atm%FOCEAN(:,:)
         CALL INT_AG2OG(atm%COSZ1,ocnatm%COSZ1, aWEIGHT)
         CALL INT_AG2OG(atm%WSAVG,ocnatm%WSAVG, aWEIGHT)
+        ocnatm%WSAVG =ocnatm%WSAVG*(1.d0-ocnice%RSI)
       endif
 
       aWEIGHT(:,:) = 1.d0 - ice%RSI(:,:)      
