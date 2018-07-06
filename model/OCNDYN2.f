@@ -1400,7 +1400,7 @@ c        vonp(l) = vnp
       end subroutine polevel
 
       subroutine ocnstate_derived
-!@sum ocnstate_def define intensive-units thermodynamic quantities
+!@sum ocnstate_derived define intensive-units thermodynamic quantities
 !@+   from extensive-units state variables
       use ocean, only : g3d,t3d,s3d,p3d,rho=>r3d,vbar=>v3d
       use constant, only: grav
