@@ -110,6 +110,7 @@ C**** Apply bottom and coastal drags
 
 C**** Add ocean biology
 #ifdef TRACERS_OceanBiology
+      call ocnstate_derived
       call obio_model(0)
 #ifdef TRACERS_GASEXCH_ocean_CO2
          Call CARBON ('OBIO_M')
@@ -472,6 +473,8 @@ c
 c recalculate vbar etc. for ocean physics
 c
       CALL ODHORZ0
+
+      call ocnstate_derived
 
 C**** Apply Wajsowicz horizontal diffusion to UO and VO ocean currents
 C**** every 3 hours
@@ -1395,6 +1398,97 @@ c        vonp(l) = vnp
       endif
       return
       end subroutine polevel
+
+      subroutine ocnstate_derived
+!@sum ocnstate_def define intensive-units thermodynamic quantities
+!@+   from extensive-units state variables
+      use ocean, only : g3d,t3d,s3d,p3d,rho=>r3d,vbar=>v3d
+      use constant, only: grav
+      use ocean, only : G0M,GZM=>GZMO, S0M,SZM=>SZMO, OPRESS, FOCEAN, MO
+      use ocean, only : im,jm,lmo,dxypo
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds,halo_update_column
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
+      implicit none
+
+c
+      Real*8, External :: VOLGSP,temgsp
+
+      integer :: i,j,l,n
+
+      INTEGER :: J_0, J_1
+      LOGICAL :: HAVE_NORTH_POLE,HAVE_SOUTH_POLE
+
+      Real*8, Parameter :: z12eH=.28867513d0  !  z12eH = 1/SQRT(12)
+      Real*8 :: gup,gdn,sup,sdn,pm,vup,vdn,bym
+
+      real*8, dimension(0:lmo) :: pe
+
+c**** Extract domain decomposition info
+
+      call getdomainbounds(grid, j_strt = j_0, j_stop = j_1,
+     &               have_north_pole = have_north_pole,
+     &               have_south_pole = have_south_pole)
+
+
+      do j=j_0,j_1
+      do n=1,nbyzm(j,1)
+      do i=i1yzm(n,j,1),i2yzm(n,j,1)
+        pe(0) = opress(i,j)
+        do l=1,lmm(i,j)
+          bym = 1d0/(mo(i,j,l)*dxypo(j))
+          pe(l) = pe(l-1) + mo(i,j,l)*grav
+          g3d(l,i,j) = g0m(i,j,l)*bym
+          s3d(l,i,j) = s0m(i,j,l)*bym
+          p3d(l,i,j) = .5*(pe(l)+pe(l-1))
+          pm = p3d(l,i,j)
+C**** In-situ temperature
+          t3d(l,i,j) = temgsp(g3d(l,i,j),s3d(l,i,j),pm)
+C**** Specific volume ref to mid-point pressure
+          gup = (g0m(i,j,l)-2*z12eh*gzm(i,j,l))*bym
+          gdn = (g0m(i,j,l)+2*z12eh*gzm(i,j,l))*bym
+          sup = (s0m(i,j,l)-2*z12eh*szm(i,j,l))*bym
+          sdn = (s0m(i,j,l)+2*z12eh*szm(i,j,l))*bym
+          sup = max(0d0,sup)
+          sdn = max(0d0,sdn)
+          vup = volgsp(gup,sup,pm)
+          vdn = volgsp(gdn,sdn,pm)
+          vbar(l,i,j) = (vup + vdn)*.5
+C**** In-situ density = 1/specific volume
+          rho(l,i,j)  = 1d0/vbar(l,i,j)
+        enddo
+      enddo
+      enddo
+      enddo
+
+C**** Copy to all longitudes at poles
+
+      if(have_north_pole) then
+        do l=1,lmm(1,jm)
+          rho(l,2:im,jm) = rho(l,1,jm)
+          vbar(l,2:im,jm) = vbar(l,1,jm)
+          g3d(l,2:im,jm) = g3d(l,1,jm)
+          s3d(l,2:im,jm) = s3d(l,1,jm)
+          p3d(l,2:im,jm) = p3d(l,1,jm)
+        enddo
+      endif
+      if(have_south_pole) then
+        do l=1,lmm(1,1)
+          rho(l,2:im,1) = rho(l,1,1)
+          vbar(l,2:im,1) = vbar(l,1,1)
+          g3d(l,2:im,1) = g3d(l,1,1)
+          s3d(l,2:im,1) = s3d(l,1,1)
+          p3d(l,2:im,1) = p3d(l,1,1)
+        enddo
+      endif
+
+      call halo_update_column(grid,vbar)
+      call halo_update_column(grid,rho)
+      call halo_update_column(grid,g3d)
+      call halo_update_column(grid,s3d)
+      call halo_update_column(grid,p3d)
+
+      end subroutine ocnstate_derived
 
       Subroutine ODHORZ0
 C****

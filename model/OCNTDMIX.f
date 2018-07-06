@@ -811,7 +811,7 @@ c
 !@+   described in the comments at the beginning of this file
       use tdmix_mod
       use ocean, only : mo
-      use ocnmeso_com, only : g3d,s3d,p3d
+      use ocean, only : g3d,s3d,p3d
       use ocean, only : im,jm,lmo
       use ocean, only : dxpo,dyvo,dypo,dxvo,cospo,sinpo,dxypo
       use ocean, only : nbyzm,i1yzm,i2yzm,lmm
