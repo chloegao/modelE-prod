@@ -1,5 +1,7 @@
 #include "rundeck_opts.h"
 
+!#define NO_REDIAG_OCNSTATE
+
       subroutine obio_model(mm)
 
 !@sum  OBIO_MODEL is the main ocean bio-geo-chem routine 
@@ -83,7 +85,14 @@
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : kdm=>lmo,dzo
       USE OFLUXES,    only : oice=>oRSI,oAPRESS,ocnatm
-      USE OCEAN,      only : g0m,s0m,mo,dxypo,ip=>focean,lmm
+#ifdef NO_REDIAG_OCNSTATE
+      ! Deliberately not taking layer thickness information, for reasons
+      ! related to upcoming commits.
+      use ocean, only : t3d,s3d,r3d
+#else
+      USE OCEAN, only : g0m,s0m
+#endif
+      USE OCEAN,      only : mo,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
      .                      ,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
       use ocn_tracer_vector_mod, only:
@@ -133,8 +142,10 @@
       real    tot,dummy(6),dummy1
       real    rod(nlt),ros(nlt)
 #ifdef OBIO_ON_GISSocean
+#ifndef NO_REDIAG_OCNSTATE
       Real*8,External   :: VOLGSP
       real*8 temgs,g,s,temgsp,pres
+#endif
       real*8 time,dtr,ftr,rho_water
 #else
       integer :: n_abioDIC,
@@ -353,8 +364,16 @@ c
      .           pCO2_ij,pHsfc,vrbos)
      
 #ifdef OBIO_ON_GISSocean
+#ifndef NO_REDIAG_OCNSTATE
        pres = oAPRESS(i,j)    !surface atm. pressure
+#endif
        do k=1,lmm(i,j)
+
+#ifdef NO_REDIAG_OCNSTATE /* get derived fields from host rather than recomputing */
+         temp1d(k) = t3d(k,i,j)         ! in-situ temperature
+         saln1d(k) = s3d(k,i,j)*1000.   ! convert to psu (eg. ocean mean salinity=35psu)
+         rho_water = r3d(k,i,j)         ! in-situ density
+#else
          pres=pres+MO(I,J,k)*GRAV*.5
          g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
          s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
@@ -362,6 +381,14 @@ c
          temp1d(k)=TEMGSP(g,s,pres)     !in situ   temperature
           saln1d(k)=s*1000.             !convert to psu (eg. ocean mean salinity=35psu)
           !dp1d(k)=dzo(k)               !thickenss of each layer in meters
+         rho_water = 1d0/VOLGSP(g,s,pres)
+!!!!!!   rho_water = 1035.
+         !add missing part of density to get to the bottom of the layer
+         !now pres is at the bottom of the layer
+         pres=pres+MO(I,J,k)*GRAV*.5
+#endif
+
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! array tracer has units [mole]/m3. convert to/from trmo with units kg as follows:
 ! trmo = tracer * MB*1e-3/rho_water     * mo * dxypo
@@ -372,16 +399,10 @@ c
 ! this should be done at every timestep except when COLD INITIALIZATION
 ! because then trmo=0
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-         rho_water = 1d0/VOLGSP(g,s,pres)
-!!!!!!   rho_water = 1035.
          dp1d(k)=MO(I,J,K)/rho_water   !local thickenss of each layer in meters
          if(vrbos.and.k.eq.1)write(*,'(a,4e12.4)')
      .             'obio_model,t,s,p,rho= '
      .             ,temp1d(k),saln1d(k),dp1d(k),rho_water
-
-         !add missing part of density to get to the bottom of the layer
-         !now pres is at the bottom of the layer
-         pres=pres+MO(I,J,k)*GRAV*.5
 
          do nt=1,ntrac
          

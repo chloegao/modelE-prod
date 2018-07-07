@@ -28,12 +28,6 @@
 !@dbparam kbg (m2/s) minimum mesoscale diffusivity
       real*8 :: kbg=100d0
 
-
-!@var g3d potential enthalpy (J/kg)
-!@var s3d salinity (kg/kg)
-!@var v3d specific volume (ref to mid point pressure)
-!@var r3d density (ref to mid point pressure)
-!@var p3d mid point pressure
 !@var rhox along-layer x-gradient of potential density (ref. to local pres)
 !@var rhoy along-layer y-gradient of potential density (ref. to local pres)
 !@var rhomz minus the z-gradient of potential density (ref. to local pres)
@@ -41,7 +35,6 @@
 !@var dze3d approx distance between layer midpoints
 !@var bydze3d 1/dze3d
       real*8, allocatable, dimension(:,:,:) ::
-     &     g3d,s3d,p3d,r3d,v3d,
      &     rhox,rhoy,rhomz,byrhoz,
      &     dze3d,bydze3d
 
@@ -85,11 +78,6 @@
 
       call getdomainbounds(ogrid, j_strt_halo=j_0h, j_stop_halo=j_1h)
 
-      allocate( g3d (lmo,im,j_0h:j_1h) )
-      allocate( s3d (lmo,im,j_0h:j_1h) )
-      allocate( p3d (lmo,im,j_0h:j_1h) )
-      allocate( r3d (lmo,im,j_0h:j_1h) )
-      allocate( v3d (lmo,im,j_0h:j_1h) )
       allocate( rhox(lmo,im,j_0h:j_1h) )
       allocate( rhoy(lmo,im,j_0h:j_1h) )
 
@@ -409,10 +397,10 @@ C**** Apply GM + Redi tracer fluxes
       subroutine densgrad
 !@sum  densgrad calculates all horizontal and vertical density gradients
       use ocean_dyn, only : bydh
-      use ocnmeso_com, only : g3d,s3d,p3d,rhox,rhoy,rhomz,byrhoz,
-     &     rho=>r3d,vbar=>v3d,bydzv=>bydze3d,dzv=>dze3d
+      use ocean, only : vbar=>v3d,g3d,s3d,p3d
+      use ocnmeso_com, only : rhox,rhoy,rhomz,byrhoz,
+     &     bydzv=>bydze3d,dzv=>dze3d
       use constant, only: grav
-      !use ocean, only : bydyv,bydxp
       use ocean, only : dyvo,dxpo
       use ocean, only : G0M,GZM=>GZMO, S0M,SZM=>SZMO, OPRESS, FOCEAN, MO
       use ocean, only : im,jm,lmo,lmm,lmu,lmv,dxypo
@@ -439,7 +427,6 @@ c
 !@var dVBARdZ specific volume vertical difference (ref to lower point pressure)
       Real*8 :: vup,vdn,vupu,vdnu,bym,dvbardz
 
-      real*8, dimension(0:lmo) :: pe
 
 c**** Extract domain decomposition info
       CALL GETDOMAINBOUNDS(grid, J_STRT = J_0, J_STOP = J_1,
@@ -449,19 +436,14 @@ c**** Extract domain decomposition info
 
 
       RHOMZ = -0.0; BYRHOZ = -0.0;
-      RHO = -0.0; BYDH = -0.0;
+      BYDH = -0.0;
       DZV = -0.0; BYDZV = -0.0;
 
       do j=j_0,j_1
       do n=1,nbyzm(j,1)
       do i=i1yzm(n,j,1),i2yzm(n,j,1)
-        pe(0) = opress(i,j)
         do l=1,lmm(i,j)
           bym = 1d0/(mo(i,j,l)*dxypo(j))
-          pe(l) = pe(l-1) + mo(i,j,l)*grav
-          g3d(l,i,j) = g0m(i,j,l)*bym
-          s3d(l,i,j) = s0m(i,j,l)*bym
-          p3d(l,i,j) = .5*(pe(l)+pe(l-1))
 
           GUP(L)=(G0M(I,J,L)-2*z12eH*GZM(I,J,L))*BYM
           GDN(L)=(G0M(I,J,L)+2*z12eH*GZM(I,J,L))*BYM
@@ -473,7 +455,7 @@ C**** Calculate potential specific volume (ref to mid-point pr)
           PM(L) = P3D(L,I,J)
           VUP = VOLGSP (GUP(L),SUP(L),PM(L))
           VDN = VOLGSP (GDN(L),SDN(L),PM(L))
-          VBAR(L,I,J) = (VUP + VDN)*.5
+
 C**** Vertical gradient calculated using lower box mid-point pr
           IF (L.gt.1) then 
             VUPU = VOLGSP (GUP(L-1),SUP(L-1),PM(L))
@@ -488,8 +470,6 @@ C**** minus vertical gradient
             IF(RHOMZ(I,J,L-1).ne.0.)
      *             BYRHOZ(I,J,L-1)=1./RHOMZ(I,J,L-1)
           end if
-C**** RHO(I,J,L)  Density=1/specific volume
-          RHO(L,I,J)  = 1d0/VBAR(L,I,J)
           BYDH(I,J,L) = 1d0/DH(I,J,L)
 
         enddo
@@ -500,11 +480,6 @@ C**** RHO(I,J,L)  Density=1/specific volume
 C**** Copy to all longitudes at poles
       If(have_north_pole) Then
         Do L=1,LMM(1,JM)
-          RHO(L,2:IM,JM) = RHO(L,1,JM)
-          VBAR(L,2:IM,JM) = VBAR(L,1,JM)
-          G3D(L,2:IM,JM) = G3D(L,1,JM)
-          S3D(L,2:IM,JM) = S3D(L,1,JM)
-          P3D(L,2:IM,JM) = P3D(L,1,JM)
           DZV(2:IM,JM,L) = DZV(1,JM,L)
           BYDZV(2:IM,JM,L) = BYDZV(1,JM,L)
           BYDH(2:IM,JM,L) = BYDH(1,JM,L)
@@ -514,11 +489,6 @@ C**** Copy to all longitudes at poles
       EndIf
       If(have_south_pole) Then
         Do L=1,LMM(1,1)
-          RHO(L,2:IM,1) = RHO(L,1,1)
-          VBAR(L,2:IM,1) = VBAR(L,1,1)
-          G3D(L,2:IM,1) = G3D(L,1,1)
-          S3D(L,2:IM,1) = S3D(L,1,1)
-          P3D(L,2:IM,1) = P3D(L,1,1)
           DZV(2:IM,1,L) = DZV(1,1,L)
           BYDZV(2:IM,1,L) = BYDZV(1,1,L)
           BYDH(2:IM,1,L) = BYDH(1,1,L)
@@ -526,11 +496,6 @@ C**** Copy to all longitudes at poles
           BYRHOZ(2:IM,1,L) = BYRHOZ(1,1,L)
         EndDo
       EndIf
-
-      call halo_update_column(grid,rho)
-      call halo_update_column(grid,g3d)
-      call halo_update_column(grid,s3d)
-      call halo_update_column(grid,p3d)
 
 C**** Calculate density gradients
       rhox = 0.
@@ -578,7 +543,8 @@ c     &         )*bydyv(j)!/dyvo(j)
       use domain_decomp_1d, only : getdomainbounds
       use oceanr_dim, only : grid=>ogrid
       use constant, only : grav
-      use ocnmeso_com, only : rho=>r3d,rhomz,rhox,rhoy
+      use ocean, only : rho=>r3d
+      use ocnmeso_com, only : rhomz,rhox,rhoy
       use ocnmeso_com, only : kvismult,kbg
       use ocean, only : im,jm,lmo,lmm,lmu,lmv,sinpo,ze,dzo
       use ocean, only : sinic,cosic
@@ -977,7 +943,7 @@ c
       use constant, only : omega,radius,grav
       use ocean, only : im,jm,lmo,dzo,ze,sinpo,cospo,dypo,lmm,lmu,lmv
       use ocnmeso_com, only : rhox,rhoy
-      use ocnmeso_com, only : g3d,s3d,p3d,vbar=>v3d,rho=>r3d
+      use ocean, only : g3d,s3d,p3d,vbar=>v3d,rho=>r3d
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : getdomainbounds
       implicit none

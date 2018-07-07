@@ -170,6 +170,16 @@ C**** ocean related parameters
 ! to-do: make this a rundeck parameter
       real*8, parameter :: zmax_glmelt = 202d0 ! taken from 32-layer version
 
+! Various derived quantities for the convenience of routines needing them.
+!@var g3d potential enthalpy (J/kg)
+!@var t3d in-situ temperature (degC, ref to mid point pressure)
+!@var s3d salinity (kg/kg)
+!@var p3d mid point pressure (Pa)
+!@var r3d in-situ density (kg/m3, ref to mid point pressure)
+!@var v3d specific volume (m3/kg, ref to mid point pressure)
+      real*8, allocatable, dimension(:,:,:) ::
+     &     g3d,t3d,s3d,p3d,r3d,v3d
+
       contains
 
 !      subroutine gather_ocean (icase)
@@ -457,7 +467,8 @@ C****
       USE OCEAN, only : OPRESS,OPBOT, OGEOZ,OGEOZ_SV,kpl
       USE OCEAN, only : use_qus,
      *     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
-     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO
+     *     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO,
+     &     g3d,t3d,s3d,p3d,r3d,v3d
 #ifdef OCN_GISS_SM
      *    ,rx,ry,gx,gy,sx,sy
 #endif
@@ -587,6 +598,14 @@ C**** Necessary initiallisation?
       MU=0. ; MV=0. ; MW=0. ; CONV=0. ; MMI=0.
       UO=0. ; VO=0.
       SMU=0.; SMV=0.; SMW=0.; kpl=3
+
+      allocate( g3d (lmo,im,j_0h:j_1h) )
+      allocate( t3d (lmo,im,j_0h:j_1h) )
+      allocate( s3d (lmo,im,j_0h:j_1h) )
+      allocate( p3d (lmo,im,j_0h:j_1h) )
+      allocate( r3d (lmo,im,j_0h:j_1h) )
+      allocate( v3d (lmo,im,j_0h:j_1h) )
+      g3d = 0.; t3d = 0.; s3d = 0.; p3d = 0.; r3d = 0.; v3d = 0.
 
       ALLOCATE(NBYZM(J_0H:J_1H,LMO))
       ALLOCATE(NBYZU(J_0H:J_1H,LMO))
