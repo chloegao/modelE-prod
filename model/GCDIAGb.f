@@ -66,17 +66,13 @@
       use GC_COM
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       use GEOM, only : lat_dg
-#ifdef NEW_IO
       use cdl_mod
       use MDIAG_COM, only : make_timeaxis
-#endif
       use diag_zonal, only : xwon
       implicit none
       integer :: k,kk
       character(len=10) :: ystr,zstr,powstr
-#ifdef NEW_IO
       type(cdl_type) :: cdl_dum
-#endif
       logical :: set_miss
 c
       allocate(force_gc_vmean(kagcx))
@@ -1025,7 +1021,7 @@ c Print out long names of diagnostic fields if QCHECK=.TRUE.
 
       lat_gc(:) = lat_dg(:,1)
       lat_gc2(:) = lat_dg(:,2)
-#ifdef NEW_IO
+
 c
 c Declare the dimensions and metadata of AGC output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -1091,7 +1087,7 @@ c
           endif
         endif
       enddo
-#endif
+
 
 ! exceptions to forced vertical averaging for layer-edge quantities
       force_gc_vmean(jk_rhoedz) = .false. ! this is a denom: want sum instead
@@ -1109,16 +1105,12 @@ c
      &     igridc,igride,jgridc,jgride,kgridc,kgride,ijkgridc
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
       USE GEOM, only : lon_dg,lat_dg
-#ifdef NEW_IO
       use MDIAG_COM, only : make_timeaxis
       use DIAG_COM, only : cdl_ijk,cdl_heights
       use cdl_mod
-#endif
       implicit none
       integer :: k,kk
-#ifdef NEW_IO
       type(cdl_type) :: cdl_dum
-#endif
 c igrid,jgrid,kgrid = 1 for centers, 2 for edges
       integer :: igrid,jgrid,kgrid,ijkg
       character(len=8) :: xstr,ystr,zstr
@@ -1261,7 +1253,6 @@ c
          endif
       end if
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AIJK output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -1311,8 +1302,6 @@ c
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
       enddo
-
-#endif
 
       return
       end subroutine ijk_defs

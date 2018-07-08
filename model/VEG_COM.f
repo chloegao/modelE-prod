@@ -30,57 +30,6 @@
 
       end module veg_com
 
-
-      subroutine io_vegetation(kunit,iaction,ioerr)
-!@sum  io_soils reads and writes soil arrays to file
-!@auth I. Aleinov
-      use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      use resolution, only : im,jm
-      use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : pack_data, unpack_data, am_i_root
-      use veg_com, only : Cint, Qfol, cnc_ij
-      implicit none
-
-      integer kunit   !@var kunit unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
-!@var ioerr 1 (or -1) if there is (or is not) an error in i/o
-      integer, intent(inout) :: ioerr
-!@var header character string label for individual records
-      character*80 :: header, module_header = "vegetation01"
-!@var cint_glob work array for parallel_io
-!@var qfol_glob work array for parallel_io
-!@var cnc_ij_glob work array for parallel_io
-      real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
-
-      write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij'
-
-      select case (iaction)
-      case (:iowrite)            ! output to standard restart file
-        call pack_data(grid, cint, cint_glob)
-        call pack_data(grid, qfol, qfol_glob)
-        call pack_data(grid, cnc_ij, cnc_ij_glob)
-        if (am_i_root())
-     &    write (kunit,err=10) module_header,cint_glob,qfol_glob,
-     &                         cnc_ij_glob
-      case (ioread:)            ! input from restart file
-        if ( AM_I_ROOT() ) then
-          read (kunit,err=10) header, cint_glob, qfol_glob, cnc_ij_glob
-          if (header(1:lhead).ne.module_header(1:lhead)) then
-            print*,"discrepancy in module version ",header,module_header
-            go to 10
-          end if
-        end if
-        call unpack_data(grid, cint_glob,   cint)
-        call unpack_data(grid, qfol_glob,   qfol)
-        call unpack_data(grid, cnc_ij_glob, cnc_ij)
-      end select
-
-      return
- 10   ioerr=1
-      return
-      end subroutine io_vegetation
-
-#ifdef NEW_IO
       subroutine def_rsf_vegetation(fid)
 !@sum  def_rsf_vegetation defines vegetation array structure in restart files
 !@auth M. Kelley
@@ -119,7 +68,6 @@
       end select
       return
       end subroutine new_io_vegetation
-#endif /* NEW_IO */
 
       SUBROUTINE ALLOC_VEG_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at

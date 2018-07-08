@@ -35,10 +35,8 @@
 
       contains
 
-#ifdef NEW_IO
 !/* the pario module needs a regular data layout */
 #define ENT_IO_PLAIN_ARRAY
-#endif
 
 !#define ENT_IO_PLAIN_ARRAY
 !!!#ifdef ENT_IO_PLAIN_ARRAY
@@ -292,95 +290,6 @@
 
       end module ent_com
 
-
-      subroutine io_vegetation(kunit,iaction,ioerr)
-!@sum  io_soils reads and writes soil arrays to file
-!@auth I. Aleinov
-      use model_com, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      use resolution, only : im,jm
-      use domain_decomp_atm, only : grid
-      use domain_decomp_1d, only : am_i_root
-      use domain_decomp_1d, only : pack_data, unpack_data
-      use ent_com, only : Cint, Qfol, cnc_ij,excess_C,
-     &     ent_read_state,ent_write_state,
-     &     ent_read_state_plain,ent_write_state_plain
-      use ent_mod
-      use Dictionary_mod
-      
-      implicit none
-
-      integer kunit   !@var kunit unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
-!@var ioerr 1 (or -1) if there is (or is not) an error in i/o
-      integer, intent(inout) :: ioerr
-!@var header character string label for individual records
-      character*80 :: header, module_header  = "vegetation02   "
-!@var cint_glob work array for parallel_io
-!@var qfol_glob work array for parallel_io
-!@var cnc_ij_glob work array for parallel_io
-      real*8, dimension(im,jm) :: cint_glob, qfol_glob, cnc_ij_glob
-     &     ,excess_C_glob
-      integer :: force_init_ent=0
-!@dbparam ent_io_plain_array controls format of Ent record in rsf file
-!@+   0 - one record per cell, 1 - single plain array with "header"
-      integer :: ent_io_plain_array=1
-      integer :: retcode
-
-!!! hack
-      call sync_param( "init_ent", force_init_ent)
-      call sync_param( "ent_io_plain_array", ent_io_plain_array)
-
-
-      write(module_header(lhead+1:80),'(a)') 'cint,qfol,cnc_ij,excess_C'
-
-      select case (iaction)
-      case (:iowrite)            ! output to standard restart file
-        call pack_data(grid, cint, cint_glob)
-        call pack_data(grid, qfol, qfol_glob)
-        call pack_data(grid, cnc_ij, cnc_ij_glob)
-        call pack_data(grid, excess_C, excess_C_glob)
-        if (am_i_root())
-     &    write (kunit,err=10) module_header,cint_glob,qfol_glob,
-     &                         cnc_ij_glob, excess_C_glob
-        if ( ent_io_plain_array .ne. 0 ) then
-          call ent_write_state_plain( kunit )
-        else
-          call ent_write_state( kunit )
-        endif
-      case (ioread:)            ! input from restart file
-        if ( AM_I_ROOT() ) then
-          read (kunit,err=10) header
-          backspace kunit
-          select case ( trim(header(1:lhead)) )
-          case ( "vegetation01" )
-            read (kunit,err=10) header, cint_glob, qfol_glob
-     &           ,cnc_ij_glob
-            excess_C_glob = 0.d0
-          case ( "vegetation02" )
-            read (kunit,err=10) header, cint_glob, qfol_glob
-     &             ,cnc_ij_glob, excess_C_glob
-          case default
-            print*,"discrepancy in module version ",header,module_header
-            go to 10
-          end select
-        end if
-        call unpack_data(grid, cint_glob,   cint)
-        call unpack_data(grid, qfol_glob,   qfol)
-        call unpack_data(grid, cnc_ij_glob, cnc_ij)
-        call unpack_data(grid, excess_C_glob, excess_C)
-        if ( force_init_ent .ne. 1 ) then
-           call  ent_read_state_plain( kunit, retcode )
-           if ( retcode .ne. 0 ) then
-             call  ent_read_state( kunit )
-           endif
-        endif
-      end select
-
-      return
- 10   ioerr=1
-      return
-      end subroutine io_vegetation
-
       SUBROUTINE ALLOC_ENT_COM(grid)
 !@sum  To allocate arrays whose sizes now need to be determined at
 !@+    run time
@@ -421,7 +330,6 @@ C****
 
       END SUBROUTINE ALLOC_ENT_COM
 
-#ifdef NEW_IO
       subroutine def_rsf_vegetation(fid)
 !@sum  def_rsf_vegetation defines vegetation array structure in restart files
 !@auth M. Kelley
@@ -476,4 +384,3 @@ C****
       end select
       return
       end subroutine new_io_vegetation
-#endif /* NEW_IO */

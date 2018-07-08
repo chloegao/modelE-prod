@@ -1,7 +1,7 @@
 #include "hycom_mpi_hacks.h"
 #include "rundeck_opts.h"
 
-#if defined(CUBED_SPHERE) || defined(NEW_IO)
+#if defined(CUBED_SPHERE)
 #else
 #define USE_ATM_GLOBAL_ARRAYS
 #endif

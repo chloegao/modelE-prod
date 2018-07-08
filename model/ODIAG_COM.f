@@ -6,9 +6,7 @@
       USE OCEAN, only : im,jm,lmo
       USE STRAITS, only : nmst
       USE MDIAG_COM, only : sname_strlen,units_strlen,lname_strlen
-#ifdef NEW_IO
       use cdl_mod
-#endif
       IMPLICIT NONE
       SAVE
       INTEGER, PARAMETER :: KOIJ=71,KOL=6,KOLNST=14,KOIJmm=11
@@ -155,7 +153,6 @@ C****
       INTEGER, ALLOCATABLE :: KN_TOIJL(:,:)
 #endif
 
-#ifdef NEW_IO
 
       type(cdl_type), target :: cdl_olons,cdl_olats,cdl_odepths
 
@@ -183,187 +180,8 @@ c instances of arrays
       CHARACTER(len=sname_strlen), ALLOCATABLE :: SNAME_TOIJL(:)
 #endif
 
-#endif
       END MODULE ODIAG
 
-!      SUBROUTINE io_ocdiag(kunit,it,iaction,ioerr)
-!!@sum  io_ocdiag reads and writes ocean diagnostic arrays to file
-!!@auth Gavin Schmidt
-!      USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
-!     *     ,irsfic,irerun,irsficno,ioread_single,lhead
-!      USE DIAG_COM, only : jm_budg
-!      USE ODIAG
-!      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
-!      USE OCEANR_DIM, only : grid=>ogrid
-!#ifdef TRACERS_OCEAN
-!      USE TRDIAG_COM, only : tconsrv,tconsrv_loc,ntmxcon,ktcon
-!#endif
-!      IMPLICIT NONE
-!
-!      INTEGER kunit   !@var kunit unit number of read/write
-!      INTEGER iaction !@var iaction flag for reading or writing to file
-!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-!      INTEGER, INTENT(INOUT) :: IOERR
-!!@var HEADER Character string label for individual records
-!      CHARACTER*80 :: HEADER, MODULE_HEADER = "OCDIAG01"
-!!@var it input/ouput value of hour
-!      INTEGER, INTENT(INOUT) :: it
-!!@var OIJ4,OIJL4,OLNST4,OL4 dummy arrays for reading diag. files
-!      logical , save :: de_alloc = .true.
-!      REAL*4, DIMENSION(:,:,:), ALLOCATABLE  :: OIJ4
-!      REAL*4, DIMENSION(:,:,:,:), ALLOCATABLE :: OIJL4
-!      REAL*4, DIMENSION(LMO,KOL)   :: OL4
-!      REAL*4, DIMENSION(LMO,NMST,KOLNST):: OLNST4
-!#ifdef TRACERS_OCEAN
-!!@var TOIJL4 work array for read/write operations
-!      REAL*4, DIMENSION(:,:,:,:,:), ALLOCATABLE :: TOIJL4
-!      REAL*4, DIMENSION(LMO,NMST,KOLNST,NTM)  :: TLNST4
-!#ifndef TRACERS_ON
-!C**** NOTE: THE TCONSRV ARRAY USE HERE IS ONLY IF THIS IS
-!C**** NOT ALREADY BEING DONE IN THE ATM TRACER CODE
-!!@var TCONSRV4 work array for read/write operations
-!      REAL*4, DIMENSION(:,:,:), ALLOCATABLE :: TCONSRV4
-!#endif
-!!@var TR_HEADER Character string label for individual tracer records
-!      CHARACTER*80 :: TR_HEADER, TR_MODULE_HEADER = "TROCDIAG01"
-!
-!      write(TR_MODULE_HEADER(lhead+1:80),'(a19,i2,a1,i2,a9,i6,a9,i6,a4)'
-!     $     ) 'R8 Toijl(im,jm,lmo,',ktoijl,',',ntm,'), Tlnst(',
-!     $     LMO*NMST*KOLNST*NTM,
-!#ifndef TRACERS_ON
-!     *     '), Tcons(',JM_BUDG*KTCON*NTMXCON,
-!#endif
-!     *     '),it'
-!#endif
-!      write(MODULE_HEADER(lhead+1:80),'(a13,i2,a13,i2,a1,  i2,a5,i2,
-!     *  a1,i2,a8,i4,a)') 'R8 Oij(im,jm,',koij,'),Oijl(im,jm,',lmo,',',
-!     *  koijl,'),Ol(',lmo,   ',',kol,'),OLNST(',LMO*NMST*KOLNST,'),it'
-!
-!!ny?  if(.not.allocated_odiag_glob) then
-!!ny?    call alloc_odiag_glob
-!!ny?    allocated_odiag_glob = .true.
-!!ny?  end if
-!
-!      SELECT CASE (IACTION)
-!      CASE (IOWRITE)  ! output to standard restart file
-!        call gather_odiags ()
-!        IF (AM_I_ROOT())
-!     *    WRITE (kunit,err=10) MODULE_HEADER,
-!     *      OIJ,OIJL,OL,OLNST,it
-!#ifdef TRACERS_OCEAN
-!        IF (AM_I_ROOT())
-!     *    WRITE (kunit,err=10) TR_MODULE_HEADER,TOIJL,TLNST
-!#ifndef TRACERS_ON
-!     *       ,TCONSRV
-!#endif
-!     *       ,it
-!#endif
-!      CASE (IOWRITE_SINGLE)    ! output to acc file
-!        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-!        call gather_odiags ()
-!        IF (AM_I_ROOT())
-!     *    WRITE (kunit,err=10) MODULE_HEADER,REAL(OIJ,KIND=4),
-!     *      REAL(OIJL,KIND=4),REAL(OL,KIND=4),REAL(OLNST,KIND=4),it
-!#ifdef TRACERS_OCEAN
-!        TR_MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-!        IF (AM_I_ROOT())
-!     *    WRITE (kunit,err=10) TR_MODULE_HEADER,
-!     *      REAL(TOIJL,KIND=4),REAL(TLNST,KIND=4)
-!#ifndef TRACERS_ON
-!     *       ,REAL(TCONSRV,KIND=4)
-!#endif
-!     *       ,it
-!#endif
-!      CASE (IOREAD:)            ! input from acc/restart file
-!        SELECT CASE (IACTION)
-!        CASE (IRSFICNO)         ! initial conditions
-!        CASE (ioread_single)    ! input from acc files (post-processing)
-!         if  (AM_I_ROOT()) then
-!            allocate(OIJ4(IM,JM,KOIJ),OIJL4(IM,JM,LMO,KOIJL))
-!            READ (kunit,err=10) HEADER,OIJ4,OIJL4,OL4,OLNST4,it
-!C**** accumulate diagnostics
-!            if (de_alloc) then   !  1st time only
-!                de_alloc = .false. ; OIJ=0. ; OIJL=0.
-!#ifdef TRACERS_OCEAN
-!                                   TOIJL=0.
-!#ifndef TRACERS_ON
-!                                   TCONSRV=0.
-!#endif
-!#endif
-!            end if
-!            OIJ=OIJ+OIJ4
-!            OIJL=OIJL+OIJL4
-!            OL=OL+OL4
-!            OLNST=OLNST+OLNST4
-!            deallocate(OIJ4,OIJL4)
-!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",HEADER
-!     *           ,MODULE_HEADER
-!              GO TO 10
-!            END IF
-!#ifdef TRACERS_OCEAN
-!            allocate(TOIJL4(IM,JM,LMO,KTOIJL,NTM))
-!#ifndef TRACERS_ON
-!            allocate (TCONSRV4(JM_BUDG,ktcon,ntmxcon))
-!#endif
-!            READ (kunit,err=10) TR_HEADER,TOIJL4,TLNST4
-!#ifndef TRACERS_ON
-!     *       ,TCONSRV4
-!#endif
-!     *       ,it
-!C**** accumulate diagnostics
-!            TOIJL=TOIJL+TOIJL4
-!            TLNST=TLNST+TLNST4
-!            deallocate(TOIJL4)
-!#ifndef TRACERS_ON
-!            TCONSRV=TCONSRV+TCONSRV4
-!            deallocate(TCONSRV4)
-!#endif
-!            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",TR_HEADER
-!     *           ,TR_MODULE_HEADER
-!              GO TO 10
-!            END IF
-!#endif
-!         end if
-!         call scatter_odiags ()
-!        CASE (ioread)    ! restarts
-!          IF (AM_I_ROOT()) then
-!            READ (kunit,err=10) HEADER,OIJ,OIJL,OL,OLNST,it
-!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",HEADER
-!     *           ,MODULE_HEADER
-!              GO TO 10
-!            END IF
-!#ifdef TRACERS_OCEAN
-!            READ (kunit,err=10) TR_HEADER,TOIJL,TLNST
-!#ifndef TRACERS_ON
-!     *           ,TCONSRV
-!#endif
-!     *           ,it
-!            IF (TR_HEADER(1:LHEAD).NE.TR_MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",TR_HEADER
-!     *           ,TR_MODULE_HEADER
-!              GO TO 10
-!            END IF
-!#endif
-!          END IF
-!          call scatter_odiags ()
-!        END SELECT
-!      END SELECT
-!
-!!ny?  if(de_alloc) then
-!!ny?    allocated_odiag_glob = .false.
-!!ny?    call de_alloc_odiag_glob
-!!ny?  end if
-!
-!      RETURN
-! 10   IOERR=1
-!      RETURN
-!C****
-!      END SUBROUTINE io_ocdiag
-
-#ifdef NEW_IO
       subroutine def_rsf_ocdiag(fid,r4_on_disk)
 !@sum  def_rsf_ocdiag defines ocean diag array structure in restart+acc files
 !@auth M. Kelley
@@ -628,9 +446,6 @@ c instances of the arrays containing derived quantities
       return
       end subroutine set_ioptrs_ocnacc_extended
 
-#endif /* NEW_IO */
-
-
       SUBROUTINE DIAGCO (M,atmocn)
 !@sum  DIAGCO Keeps track of the ocean conservation properties
 !@auth Gary Russell/Gavin Schmidt
@@ -758,9 +573,7 @@ C****
       USE MODEL_COM, only : dtsrc
       USE OCEAN, only : ze,dts,ndyno,olat_dg,olon_dg
       USE MDIAG_COM, only : ia_src=>ia_cpl
-#ifdef NEW_IO
       USE MDIAG_COM, only : make_timeaxis
-#endif
       USE ODIAG
       use straits, only : lmst,nmst,name_st
 #ifdef TRACERS_OCEAN
@@ -1698,7 +1511,6 @@ C**** Define ocean depths for diagnostic output
       ZOC1(1:LMO+1) = ZE(0:LMO)
       ZOC(1:LMO) = 0.5*(ZE(1:LMO)+ZE(0:LMO-1))
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -1923,8 +1735,6 @@ c
 
 #endif /* TRACERS_OCEAN */
 
-#endif
-
       call init_ODIAG_zonal
 
       RETURN
@@ -1986,9 +1796,7 @@ c
 #ifdef TRACERS_OCEAN
       ALLOCATE(TOIJL_loc (IM,J_0H:J_1H,LMO,KTOIJL,tracerlist%getsize()),
      &    STAT=IER )
-#ifdef NEW_IO
       ALLOCATE(      TOIJL_out (IM,J_0H:J_1H,LMO,KTOIJLx), STAT=IER )
-#endif
 #endif
 
       ALLOCATE(OLNST(LMO,NMST,KOLNST))

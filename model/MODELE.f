@@ -369,10 +369,8 @@ C****
 C**** PRINT CURRENT DIAGNOSTICS (INCLUDING THE INITIAL CONDITIONS)
       IF (NIPRNT.GT.0) THEN
         acc_period='PARTIAL      '
-#ifdef NEW_IO
         filenm='PARTIAL.acc'//XLABEL(1:LRUNID)
         call io_rsf (filenm,Itime,iowrite_single,ioerr)
-#endif
         call print_diags(1)
         NIPRNT=NIPRNT-1
         call set_param( "NIPRNT", NIPRNT, 'o' )
@@ -770,9 +768,7 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
      *     ,NMONAV,Ndisk,Nssw,KCOPY,KRSF,KOCEAN,IRAND,ItimeI
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT
       USE Dictionary_mod
-#ifdef NEW_IO
       USE MDIAG_COM, only : make_timeaxis
-#endif
       implicit none
       integer :: dummy_int
 
@@ -790,11 +786,9 @@ C**** Rundeck parameters:
       else
         call stop_model('Please define master_yr in the rundeck.',255)
       endif
-#ifdef NEW_IO
       dummy_int = 0
       call sync_param("make_timeaxis",dummy_int)
       make_timeaxis = dummy_int==1
-#endif
       RETURN
 C****
       end subroutine init_Model

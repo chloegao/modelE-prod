@@ -68,10 +68,8 @@ c#endif
       use DIAG_COM
       use DIAG_COM_RAD
       use DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifdef NEW_IO
       use MDIAG_COM, only : make_timeaxis
       use cdl_mod
-#endif
       USE FLUXES, only : atmice
       implicit none
       character(len=30), parameter ::
@@ -1025,7 +1023,6 @@ c not ratios
         iden_j(k)  = J_TYPE
       enddo
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AJ output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -1115,7 +1112,6 @@ c
      &       'float '//trim(sname)//'_hemis(shnhgm) ;')
 #endif
       enddo
-#endif
 
       return
       end subroutine j_defs
@@ -1133,10 +1129,8 @@ c
       use TRACER_COM, only: gasex_index
       use oldtracer_mod, only: trname
 #endif
-#ifdef NEW_IO
       use cdl_mod
       use MDIAG_COM, only : make_timeaxis,sname_strlen,lname_strlen
-#endif
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
       use rad_com, only: nradfrc
@@ -4898,7 +4892,6 @@ c
       end if
 
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AIJ output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -5031,8 +5024,6 @@ c
      &       long_name=trim(lname_ijmm(k)))
       enddo
 
-#endif
-
       deallocate(index1,name3,dim3name,coord3)
       deallocate(dim3info_index,lname3,dim3units)
 
@@ -5053,10 +5044,8 @@ c
       use GCDIAG, only : fim
 #endif
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifdef NEW_IO
       use cdl_mod
       use MDIAG_COM, only : make_timeaxis
-#endif
       implicit none
       integer :: l,k,kk
       character(len=10) :: zstr,powstr
@@ -5838,7 +5827,6 @@ c
         if(lgrid_jl(k).eq.edg_ml) force_jl_vmean(k) = .true.
       enddo
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AJL output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -5901,7 +5889,6 @@ c        call get_zstr(lgrid_jl(k),zstr)
         endif
 #endif
       enddo
-#endif
 
       return
       end subroutine jl_defs
@@ -5975,10 +5962,8 @@ c
       use DIAG_COM
       use DIAG_COM_rad
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifdef NEW_IO
       use cdl_mod
       use MDIAG_COM, only : make_timeaxis
-#endif
       implicit none
       integer :: k,kk
       character(len=16) :: zstr,hstr,tstr
@@ -6482,7 +6467,6 @@ c
       if(AM_I_ROOT())
      &     write (6,*) 'Number of AIJL diagnostics defined: kaijlmax=',k
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of AIJL output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -6521,8 +6505,6 @@ c
      &       make_timeaxis=make_timeaxis)
 #endif
       enddo
-
-#endif
 
       return
       end subroutine ijl_defs
@@ -6665,9 +6647,7 @@ c
       use DIAG_COM_RAD
       use SOCPBL, only : npbl=>n
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT
-#ifdef NEW_IO
       use cdl_mod
-#endif
 #ifdef TRACERS_AMP
       use AERO_CONFIG, ONLY: nmodes
 #endif
@@ -7461,7 +7441,6 @@ c
          endif
       end if
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of ADIURN output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -7500,8 +7479,6 @@ c Declare the dimensions and metadata of HDIURN output fields
 
       call add_coord(cdl_dd,'hour',hr_in_day,
      &     coordvalues=dummy_hrs(1:hr_in_day))
-
-#endif
 
       return
       end subroutine diurn_defs
