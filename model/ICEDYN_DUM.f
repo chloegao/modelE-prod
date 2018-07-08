@@ -20,7 +20,6 @@
       ENTRY io_icdiag
       ENTRY reset_icdiag
       ENTRY diag_ICEDYN
-#ifdef NEW_IO
       entry def_rsf_icedyn
       entry new_io_icedyn
       entry def_rsf_icdiag
@@ -28,7 +27,6 @@
       entry set_ioptrs_iceacc_default
       entry def_meta_icdiag
       entry write_meta_icdiag
-#endif
       RETURN
       END SUBROUTINE ICEDYN_DUM
 

@@ -40,69 +40,6 @@
 
       END SUBROUTINE ALLOC_SMOMTQ
 
-      SUBROUTINE io_somtq(kunit,iaction,ioerr)
-!@sum  io_somtq reads and writes second order moments to file
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,iowrite,lhead
-      USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : PACK_COLUMN, UNPACK_COLUMN, AM_I_ROOT
-      USE SOMTQ_COM
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "QUS01"
-      REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE :: TMOM_GLOB, QMOM_GLOB
-      integer :: img, jmg
-
-      IF(AM_I_ROOT()) then
-         img = IM
-         jmg = JM
-      else
-         img = 1
-         jmg = 1
-      end if
-      ALLOCATE(TMOM_GLOB(NMOM,img,jmg,LM),QMOM_GLOB(NMOM,img,jmg,LM))
-      write (MODULE_HEADER(lhead+1:80),'(a7,i2,a)')
-     * 'R8 dim(',nmom,',im,jm,lm):Tmom,Qmom'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)           ! output to standard restart file
-        CALL PACK_COLUMN(grid, TMOM, TMOM_GLOB)
-        CALL PACK_COLUMN(grid, QMOM, QMOM_GLOB)
-        IF (AM_I_ROOT())
-     &      WRITE (KUNIT,ERR=10) MODULE_HEADER, TMOM_GLOB, QMOM_GLOB
-
-      CASE (IOREAD:)            ! input from restart file
-        if ( AM_I_ROOT() ) then
-          READ (KUNIT,ERR=10) HEADER, TMOM_GLOB, QMOM_GLOB
-          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-            GO TO 10
-          END IF
-        end if
-        CALL UNPACK_COLUMN(grid, TMOM_GLOB, TMOM)
-        CALL UNPACK_COLUMN(grid, QMOM_GLOB, QMOM)
-      END SELECT
-
-      call freespace
-      RETURN
- 10   IOERR=1
-      call freespace
-      RETURN
-
-      contains
-
-      subroutine freespace
-      DEALLOCATE(TMOM_GLOB,QMOM_GLOB)
-      end subroutine freespace
-
-      END SUBROUTINE io_somtq
-
-#ifdef NEW_IO
       subroutine def_rsf_somtq(fid)
 !@sum  def_rsf_somtq defines QUS T/Q array structure in restart files
 !@auth M. Kelley
@@ -138,7 +75,6 @@
       end select
       return
       end subroutine new_io_somtq
-#endif /* NEW_IO */
 
       subroutine tq_zmom_init(t,q,pmid,pedn)
       USE DOMAIN_DECOMP_ATM, ONLY: grid

@@ -322,12 +322,10 @@ C**** Accumulating_period information
 !@+            here for visibility to non-atmospheric components
       integer, parameter :: ia_cpl=1 ! currently has to be == 1
 
-#ifdef NEW_IO
 !@dbparam make_timeaxis whether scaled monthly output files should contain
 !@+       a time axis.  This option has not yet been introduced for all
 !@+       diagnostic categories, and is not meaningful for some.
       logical, public :: make_timeaxis=.false.
-#endif
 
       END MODULE MDIAG_COM
 

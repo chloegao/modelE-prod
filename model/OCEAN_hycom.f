@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-#if defined(CUBED_SPHERE) || defined(NEW_IO)
+#if defined(CUBED_SPHERE)
 #else
 #define USE_ATM_GLOBAL_ARRAYS
 #endif
@@ -243,7 +243,6 @@ c
       end subroutine diagco
 
 
-#ifdef NEW_IO
       subroutine def_rsf_ocean(fid)
 !@sum  def_rsf_ocean defines ocean array structure in restart files
 !@auth M. Kelley
@@ -494,8 +493,6 @@ CTNL  call pack_data( ogrid,  vbavav_loc, vbavav )
       call pack_data( ogrid,  oiceav_loc, oiceav )
       return
       end subroutine gather_checkpointed_hycom_arrays
-
-#endif /* NEW_IO */
 
 c
       SUBROUTINE CHECKO(SUBR)

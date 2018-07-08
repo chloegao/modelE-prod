@@ -57,10 +57,8 @@
 #endif
       use trdiag_com, only: trcsurf, trcSurfByVol, to_conc, set_to_conc
       use trdust_mod
-#ifdef NEW_IO
       use pario, only: par_open, par_close, defvar, read_dist_data,
      &     write_dist_data
-#endif
       use PolynomialInterpolator_mod, only: interpolator3D
       use ghy_com, only: fearth
 
@@ -413,129 +411,6 @@ c**** index of table for GCM surface wind speed from 0.0001 to 30 m/s
 
       end subroutine tracer_ic_soildust
 
-
-#if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
-    (defined TRACERS_AMP)
-c io_trDust
-      subroutine io_trDust(kunit,iaction)
-!@sum  io_trDust I/O of specific dust aerosol diagnostics (not netcdf)
-!@auth Jan Perlwitz
-      use domain_decomp_1d, only: pack_data,unpack_data
-      implicit none
-
-!@var kunit unit number of read/write
-!@var iaction flag for reading or writing to file
-      integer,intent(in) :: iaction,kunit
-
-!@var iostat I/O status
-      integer :: iostat
-!@var header text with information on variables
-      character(len=80) :: header
-
-!@var dustDiagSubdd_glob global structured variable of dust aerosol diagnostics
-      type(dustDiagSubdd) :: dustDiagSubdd_glob
-
-      allocate(dustDiagSubdd_glob%dustEmission(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustEmission2(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustDepoTurb(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustDepoGrav(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustMassInPrec(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustSurfMixR(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustSurfConc(im,jm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustMass(im,jm,lm,Ntm_dust))
-      allocate(dustDiagSubdd_glob%dustConc(im,jm,lm,Ntm_dust))
-
-      select case(iaction)
-
-      case(:iowrite)            ! write to restart file
-        call pack_data(grid,dustDiagSubdd_acc%dustEmission
-     &       ,dustDiagSubdd_glob%dustEmission)
-        call pack_data(grid,dustDiagSubdd_acc%dustEmission2
-     &       ,dustDiagSubdd_glob%dustEmission2)
-        call pack_data(grid,dustDiagSubdd_acc%dustDepoTurb
-     &       ,dustDiagSubdd_glob%dustDepoTurb)
-        call pack_data(grid,dustDiagSubdd_acc%dustDepoGrav
-     &       ,dustDiagSubdd_glob%dustDepoGrav)
-        call pack_data(grid,dustDiagSubdd_acc%dustMassInPrec
-     &       ,dustDiagSubdd_glob%dustMassInPrec)
-        call pack_data(grid,dustDiagSubdd_acc%dustSurfMixR
-     &       ,dustDiagSubdd_glob%dustSurfMixR)
-        call pack_data(grid,dustDiagSubdd_acc%dustSurfConc
-     &       ,dustDiagSubdd_glob%dustSurfConc)
-        call pack_data(grid,dustDiagSubdd_acc%dustMass
-     &       ,dustDiagSubdd_glob%dustMass)
-        call pack_data(grid,dustDiagSubdd_acc%dustConc
-     &       ,dustDiagSubdd_glob%dustConc)
-        header='For subdaily dust tracers diagnostics: dustDiagSubdd'
-        if (am_i_root()) then
-          write(kunit,iostat=iostat) header
-     &         ,dustDiagSubdd_glob%dustEmission
-     &         ,dustDiagSubdd_glob%dustEmission2
-     &         ,dustDiagSubdd_glob%dustDepoTurb
-     &         ,dustDiagSubdd_glob%dustDepoGrav
-     &         ,dustDiagSubdd_glob%dustMassInPrec
-     &         ,dustDiagSubdd_glob%dustSurfMixR
-     &         ,dustDiagSubdd_glob%dustSurfConc
-     &         ,dustDiagSubdd_glob%dustMass
-     &         ,dustDiagSubdd_glob%dustConc
-          if (iostat > 0) call stop_model
-     &         ('In io_trdust_drv: Restart file write error',255)
-        end if
-
-      case(ioread:)
-        select case(iaction)    ! read from restart file
-        case(ioread,irerun,irsfic,irsficno) ! restarts
-          if (am_i_root()) then
-            read(kunit,iostat=iostat) header
-     &         ,dustDiagSubdd_glob%dustEmission
-     &         ,dustDiagSubdd_glob%dustEmission2
-     &         ,dustDiagSubdd_glob%dustDepoTurb
-     &         ,dustDiagSubdd_glob%dustDepoGrav
-     &         ,dustDiagSubdd_glob%dustMassInPrec
-     &         ,dustDiagSubdd_glob%dustSurfMixR
-     &         ,dustDiagSubdd_glob%dustSurfConc
-     &         ,dustDiagSubdd_glob%dustMass
-     &         ,dustDiagSubdd_glob%dustConc
-            if (iostat > 0) call stop_model
-     &           ('In io trdust_drv: Restart file read error',255)
-          end if
-          call unpack_data(grid,dustDiagSubdd_glob%dustEmission
-     &         ,dustDiagSubdd_acc%dustEmission)
-          call unpack_data(grid,dustDiagSubdd_glob%dustEmission2
-     &         ,dustDiagSubdd_acc%dustEmission2)
-          call unpack_data(grid,dustDiagSubdd_glob%dustDepoTurb
-     &         ,dustDiagSubdd_acc%dustDepoTurb)
-          call unpack_data(grid,dustDiagSubdd_glob%dustDepoGrav
-     &         ,dustDiagSubdd_acc%dustDepoGrav)
-          call unpack_data(grid,dustDiagSubdd_glob%dustMassInPrec
-     &         ,dustDiagSubdd_acc%dustMassInPrec)
-          call unpack_data(grid,dustDiagSubdd_glob%dustSurfMixR
-     &         ,dustDiagSubdd_acc%dustSurfMixR)
-          call unpack_data(grid,dustDiagSubdd_glob%dustSurfConc
-     &         ,dustDiagSubdd_acc%dustSurfConc)
-          call unpack_data(grid,dustDiagSubdd_glob%dustMass
-     &         ,dustDiagSubdd_acc%dustMass)
-          call unpack_data(grid,dustDiagSubdd_glob%dustConc
-     &         ,dustDiagSubdd_acc%dustConc)
-        end select
-
-      end select
-
-      deallocate(dustDiagSubdd_glob%dustEmission)
-      deallocate(dustDiagSubdd_glob%dustEmission2)
-      deallocate(dustDiagSubdd_glob%dustDepoTurb)
-      deallocate(dustDiagSubdd_glob%dustDepoGrav)
-      deallocate(dustDiagSubdd_glob%dustMassInPrec)
-      deallocate(dustDiagSubdd_glob%dustSurfMixR)
-      deallocate(dustDiagSubdd_glob%dustSurfConc)
-      deallocate(dustDiagSubdd_glob%dustMass)
-      deallocate(dustDiagSubdd_glob%dustConc)
-
-      return
-      end subroutine io_trDust
-#endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP */
-
-#ifdef NEW_IO
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)
 c def_rsf_trdust
@@ -626,7 +501,6 @@ c new_io_trdust
       return
       end subroutine new_io_trdust
 #endif /* TRACERS_DUST || TRACERS_MINERALS || TRACERS_AMP */
-#endif /*NEW_IO*/
 
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)

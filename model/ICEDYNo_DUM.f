@@ -89,7 +89,6 @@ c      ENTRY alloc_icedyn_com
       ENTRY ADVSI
       ENTRY init_icedyn
       ENTRY diag_ICEDYN
-#ifdef NEW_IO
       entry def_rsf_icedyn
       entry new_io_icedyn
       entry def_rsf_icdiag
@@ -97,7 +96,6 @@ c      ENTRY alloc_icedyn_com
       entry set_ioptrs_iceacc_default
       entry def_meta_icdiag
       entry write_meta_icdiag
-#endif
       RETURN
       END SUBROUTINE ICEDYN_DUM
 

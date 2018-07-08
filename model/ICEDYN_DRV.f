@@ -25,9 +25,7 @@ C****
 #else
       use domain_decomp_1d, only : band_pack_type
 #endif
-#ifdef NEW_IO
       use cdl_mod
-#endif
       USE EXCHANGE_TYPES, only : iceocn_xchng_vars
       IMPLICIT NONE
       SAVE
@@ -85,10 +83,8 @@ C**** Ice dynamics diagnostics
 !@var denom_icij denominators for ICIJ diagnostics
        INTEGER, DIMENSION(KICIJ) :: DENOM_ICIJ
 
-#ifdef NEW_IO
 !@var cdl_icij consolidated metadata for ICIJ output fields in CDL notation
        type(cdl_type) :: cdl_icij
-#endif
 
       END MODULE ICEDYN_COM
 
@@ -183,163 +179,6 @@ C**** Allocate ice advection arrays defined on the atmospheric grid
 
        END SUBROUTINE gather_icdiags
 
-
-!      SUBROUTINE io_icedyn(kunit,iaction,ioerr)
-!!@sum  io_icedyn reads and writes dynamic ice arrays to file
-!!@auth Gavin Schmidt
-!      USE MODEL_COM, only : ioread,iowrite,irsfic,irsficno,irsficnt
-!     *     ,irerun,lhead
-!      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, PACK_DATA, UNPACK_DATA
-!      USE ICEDYN_COM
-!      USE ICEDYN, only : grid_ICDYN,imicdyn,jmicdyn,USI,VSI
-!      IMPLICIT NONE
-!
-!      INTEGER kunit   !@var kunit unit number of read/write
-!      INTEGER iaction !@var iaction flag for reading or writing to file
-!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-!      INTEGER, INTENT(INOUT) :: IOERR
-!!@var HEADER Character string label for individual records
-!      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICEDYN01"
-!      REAL*8, DIMENSION(IMIC, JMIC) :: RSIX_glob,RSIY_glob
-!      REAL*8, DIMENSION(IMICDYN,JMICDYN) :: USI_glob,VSI_glob
-!
-!      write(MODULE_HEADER(lhead+1:80),'(a7,i3,a1,i3,a)')
-!     *     'R8 dim(',imic,',',jmic,'):RSIX,RSIY,USI,VSI'
-!
-!      SELECT CASE (IACTION)
-!      CASE (:IOWRITE)            ! output to standard restart file
-!        CALL PACK_DATA(grid_MIC, RSIX, RSIX_GLOB)
-!        CALL PACK_DATA(grid_MIC, RSIY, RSIY_GLOB)
-!        if(grid_ICDYN%have_domain) then
-!          CALL PACK_DATA(grid_ICDYN,  USI,  USI_GLOB) ! TODO: usi/vsi not on atm grid anymore
-!          CALL PACK_DATA(grid_ICDYN,  VSI,  VSI_GLOB) ! idem
-!        endif
-!        IF (AM_I_ROOT())
-!     &   WRITE (kunit,err=10) MODULE_HEADER,RSIX_glob,RSIY_glob
-!     &                                     , USI_glob, VSI_glob
-!      CASE (IOREAD:)            ! input from restart file
-!        SELECT CASE (IACTION)
-!        CASE (IRSFICNO)           ! initial conditions (no ocean)
-!        CASE (ioread,irerun,irsfic,irsficnt)    ! restarts
-!          if (AM_I_ROOT() ) then
-!            READ (kunit,err=10) HEADER,       RSIX_glob,RSIY_glob
-!     &                                         , USI_glob, VSI_glob
-!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",HEADER,
-!     &             MODULE_HEADER
-!              GO TO 10
-!            END IF
-!          end if
-!          CALL UNPACK_DATA(grid_MIC, RSIX_GLOB, RSIX)
-!          CALL UNPACK_DATA(grid_MIC, RSIY_GLOB, RSIY)
-!          if(grid_ICDYN%have_domain) then
-!            CALL UNPACK_DATA(grid_ICDYN,  USI_GLOB,  USI)
-!            CALL UNPACK_DATA(grid_ICDYN,  VSI_GLOB,  VSI)
-!          endif
-!        END SELECT
-!      END SELECT
-!
-!      RETURN
-! 10   IOERR=1
-!      RETURN
-!C****
-!      END SUBROUTINE io_icedyn
-!
-!      SUBROUTINE io_icdiag(kunit,it,iaction,ioerr)
-!!@sum  io_icdiag reads and writes ice dynamic diagnostic arrays to file
-!!@auth Gavin Schmidt
-!      USE MODEL_COM, only : ioread,iowrite,iowrite_mon,iowrite_single
-!     *     ,irsfic,irsficnt,irerun,ioread_single,lhead
-!      USE DOMAIN_DECOMP_1D, only : GET, AM_I_ROOT
-!      USE DOMAIN_DECOMP_1D, only : PACK_DATA, UNPACK_DATA
-!      USE DOMAIN_DECOMP_1D, only : broadcast
-!      use icedyn, only : grid=>grid_icdyn
-!      USE ICEDYN_COM
-!      IMPLICIT NONE
-!
-!      INTEGER kunit   !@var kunit unit number of read/write
-!      INTEGER iaction !@var iaction flag for reading or writing to file
-!!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-!      INTEGER, INTENT(INOUT) :: IOERR
-!!@var HEADER Character string label for individual records
-!      CHARACTER*80 :: HEADER, MODULE_HEADER = "ICDIAG01"
-!!@var it input/ouput value of hour
-!      INTEGER, INTENT(INOUT) :: it
-!!@var ICIJ4 dummy arrays for reading diag. files
-!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4
-!      REAL*4, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB
-!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ4_GLOB8
-!      REAL*8, DIMENSION(:,:,:), allocatable  :: ICIJ_GLOB
-!      INTEGER :: J_0H_MIC, J_1H_MIC
-!
-!      if(.not. grid%have_domain) return
-!
-!      write(MODULE_HEADER(lhead+1:80),'(a8,i3,a1,i3,a1,i2,a4)')
-!     *     'R8 ICij(',imic,',',jmic,',',kicij,'),it'
-!
-!      call getDomainBounds(grid, J_STRT_HALO=J_0H_MIC, J_STOP_HALO=J_1H_MIC)
-!
-!      if(am_I_root()) then
-!        allocate(ICIJ4_GLOB(IMIC,JMIC,KICIJ),
-!     &    ICIJ4_GLOB8(IMIC,JMIC,KICIJ),ICIJ_GLOB(IMIC,JMIC,KICIJ))
-!      else
-!        allocate(ICIJ4_GLOB(1,1,1),
-!     &    ICIJ4_GLOB8(1,1,1),ICIJ_GLOB(1,1,1))
-!      end if
-!
-!      SELECT CASE (IACTION)
-!      CASE (IOWRITE)  ! output to standard restart file
-!        CALL PACK_DATA(grid, icij, icij_glob)
-!        IF (AM_I_ROOT())
-!     &     WRITE (kunit,err=10) MODULE_HEADER,ICIJ_glob,it
-!      CASE (IOWRITE_SINGLE)    ! output to acc file
-!        MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-!        CALL PACK_DATA(grid, icij, icij_glob)
-!        IF (AM_I_ROOT())
-!     &     WRITE (kunit,err=10) MODULE_HEADER,REAL(ICIJ_GLOB,KIND=4),it
-!      CASE (IOREAD:)            ! input from restart file
-!        SELECT CASE (IACTION)
-!        CASE (ioread_single)    ! accumulate diagnostic files
-!          if ( AM_I_ROOT() ) then
-!            READ (kunit,err=10) HEADER,ICIJ4_GLOB,it
-!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",HEADER
-!     *           ,MODULE_HEADER
-!              GO TO 10
-!            END IF
-!          endif
-!C**** accumulate diagnostics
-!          allocate( ICIJ4(IMIC, J_0H_MIC:J_1H_MIC, KICIJ) )
-!          ICIJ4 = 0.d0 ! should do "halo_update" instead?
-!          ICIJ4_GLOB8 = ICIJ4_GLOB ! convert to real*8
-!          CALL UNPACK_DATA(grid, ICIJ4_GLOB8, ICIJ4)
-!          call broadcast(grid, it)   !MPI_BCAST instead
-!          ICIJ(:,J_0H_MIC:J_1H_MIC,:)=ICIJ(:,J_0H_MIC:J_1H_MIC,:)
-!     &                            +ICIJ4(:,J_0H_MIC:J_1H_MIC,:)
-!          deallocate( ICIJ4 )
-!        CASE (ioread)    ! restarts
-!          if ( AM_I_ROOT() ) then
-!            READ (kunit,err=10) HEADER,ICIJ_GLOB,it
-!            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!              PRINT*,"Discrepancy in module version ",HEADER
-!     *           ,MODULE_HEADER
-!              GO TO 10
-!            END IF
-!          end if
-!          CALL UNPACK_DATA(grid, ICIJ_GLOB, ICIJ)
-!          call broadcast(grid, it)
-!        END SELECT
-!      END SELECT
-!
-!      deallocate (ICIJ4_GLOB,ICIJ4_GLOB8,ICIJ_GLOB)
-!
-!      RETURN
-! 10   IOERR=1
-!      RETURN
-!C****
-!      END SUBROUTINE io_icdiag
-
-#ifdef NEW_IO
       subroutine def_rsf_icedyn(fid)
 !@sum  def_rsf_icedyn defines ice dynam array structure in restart files
 !@auth M. Kelley
@@ -474,9 +313,6 @@ c instances of the arrays used during normal operation.
 c temporarily empty.
       return
       end subroutine set_ioptrs_iceacc_default
-
-#endif /* NEW_IO */
-
 
       SUBROUTINE reset_icdiag
 !@sum reset_icdiag resets ice dynamic diagnostic arrays
@@ -1841,18 +1677,14 @@ c      iA=aA
 !@auth Gavin Schmidt
       USE MODEL_COM, only : dtsrc
       USE MDIAG_COM, only : ia_src=>ia_cpl
-#ifdef NEW_IO
       USE MDIAG_COM, only : make_timeaxis
-#endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds,ICE_HALO=>HALO_UPDATE
      &     ,hasSouthPole,hasNorthPole
       USE ICEDYN_COM, only : igice
      &     ,kicij,ia_icij,denom_icij,igrid_icij,jgrid_icij,lname_icij
      &     ,sname_icij,units_icij,scale_icij,ij_usi,ij_vsi,ij_dmui
      &     ,ij_dmvi,ij_rsi,ij_pice,ij_sispeed
-#ifdef NEW_IO
      &     ,cdl_icij
-#endif
       USE ICEDYN, only : ifocean=>focean,
      &     osurf_tilt,bydts,usi,vsi,uice,vice,lon_dg,lat_dg
       USE ICEDYN, only : NX1,grid_ICDYN,grid_NXY,IMICDYN,JMICDYN,
@@ -1878,9 +1710,7 @@ c      USE FILEMANAGER, only : openunit,closeunit,nameunit
 #endif
 #endif
       use Dictionary_mod
-#ifdef NEW_IO
       use cdl_mod
-#endif
       USE EXCHANGE_TYPES, only : atmice_xchng_vars
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: iniOCEAN
@@ -2131,7 +1961,6 @@ c      denom_icij(k)=IJ_RSIV ! need to add IJ_RSIV
         call stop_model("ICIJ diagnostic error",255)
       end if
 
-#ifdef NEW_IO
 c
 c Declare the dimensions and metadata of output fields using
 c netcdf CDL notation.  The C convention for dimension ordering
@@ -2160,7 +1989,6 @@ c
      &       set_miss=set_miss,
      &       make_timeaxis=make_timeaxis)
       enddo
-#endif
 
       RETURN
       END SUBROUTINE init_icedyn

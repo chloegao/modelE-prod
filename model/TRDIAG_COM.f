@@ -19,9 +19,7 @@
       USE AERO_CONFIG,only: nbins
 #endif
 #endif   /* TRACERS_ON or OCEAN */
-#ifdef NEW_IO
       use cdl_mod
-#endif
       use OldTracer_mod, only: to_conc, set_to_conc
       use OldTracer_mod, only: to_volume_MixRat, set_to_volume_MixRat
       IMPLICIT NONE
@@ -514,7 +512,6 @@ C**** TCONSRV
       real(kind=8),allocatable,dimension(:,:,:) :: trcSurfMixR_acc
      &     ,trcSurfByVol_acc
 
-#ifdef NEW_IO
 #ifdef TRACERS_ON
 ! This section declares arrays used to write tracer
 ! diagnostics accumulations in a format suitable for offline
@@ -586,7 +583,6 @@ C**** TCONSRV
      &     sname_tconsrv_out
       type(cdl_type) :: cdl_tconsrv
 #endif
-#endif  /* NEW IO */
 
       target :: taijn_loc,tconsrv_loc,nofmt
 
@@ -852,153 +848,6 @@ C****
       END SUBROUTINE set_tcono
 #endif /* TRACERS_OCEAN */
 
-
-      SUBROUTINE io_trdiag(kunit,it,iaction,ioerr)
-!@sum  io_trdiag reads and writes tracer diagnostics arrays to file
-!@auth Jean Lerner
-      USE RESOLUTION, only: im,jm,lm
-      USE MODEL_COM, only: ioread,iowrite,iowrite_mon,iowrite_single
-     *     ,irerun,ioread_single,lhead
-      USE DIAG_COM, only : jm_budg
-      USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, broadcast, getDomainBounds
-      USE TRACER_COM, only: NTM
-      USE TRDIAG_COM, only: taijln_loc, taijln, taijls_loc, taijls,
-     *     taijn_loc,  taijn, taijs_loc,  taijs, tajln_loc,  tajln,
-     *     tajls_loc,  tajls, tconsrv_loc, tconsrv, pdsigjl, ktaij,
-     *     ktaijs, ktajlx, ktajls, ktcon, ktaijl, ntmxcon
-
-      IMPLICIT NONE
-
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "TRdiag01"
-!@var it input/ouput value of hour
-      INTEGER, INTENT(INOUT) :: it
-      INTEGER it_check ! =it if all diag. TA..4 were kept up-to-date
-!@param KTACC total number of tracer diagnostic words
-      integer :: ktacc
-!@var TA..4(...) dummy arrays for reading diagnostics files
-      real*4, allocatable, dimension(:,:,:,:) :: taijln4
-      real*4, allocatable, dimension(:,:,:,:) :: taijls4
-      real*4, allocatable, dimension(:,:,:,:) :: taijn4
-      REAL*4, allocatable, DIMENSION(:,:,:)   :: TAIJS4
-      REAL*4, allocatable, DIMENSION(:,:,:,:) :: TAJLN4
-      REAL*4, allocatable, DIMENSION(:,:,:)   :: TAJLS4
-      REAL*4, allocatable, DIMENSION(:,:,:)   :: TCONSRV4
-      INTEGER :: status
-
-      INTEGER :: J_0H, J_1H, I_0H, I_1H
-
-      call getDomainBounds( grid, J_STRT_HALO=J_0H, J_STOP_HALO=J_1H )
-      I_0H=GRID%I_STRT_HALO
-      I_1H=GRID%I_STOP_HALO
-
-      write (MODULE_HEADER(lhead+1:80),'(a,i8,a)')
-     *   'R8 TACC(',ktacc,'),it'
-
-      ktacc=IM*JM*LM*NTM + IM*JM*LM*ktaijl + IM*JM*ktaij*NTM + IM
-     *     *JM*ktaijs +JM_BUDG*LM*ktajlx*NTM + JM_BUDG*LM*ktajls +
-     *     JM_BUDG*ktcon*ntmxcon
-
-      SELECT CASE (IACTION)
-      CASE (IOWRITE,IOWRITE_SINGLE)  
-C***  PACK distributed arrays into global ones in preparation for output
-
-        call gather_trdiag
-
-        SELECT CASE (IACTION)
-          CASE (IOWRITE,IOWRITE_MON) ! output to standard restart file
-          IF (AM_I_ROOT())  WRITE (kunit,err=10) MODULE_HEADER,
-     *                         TAIJLN,TAIJLS,TAIJN,TAIJS,
-     *                         TAJLN ,TAJLS,TCONSRV,it
-          CASE (IOWRITE_SINGLE)    ! output to acc file
-            MODULE_HEADER(LHEAD+1:LHEAD+2) = 'R4'
-            IF (AM_I_ROOT()) WRITE (kunit,err=10) MODULE_HEADER,
-     *       REAL(TAIJLN,KIND=4),REAL(TAIJLS,KIND=4),
-     *       REAL(TAIJN,KIND=4),
-     *       REAL(TAIJS,KIND=4) ,REAL(TAJLN,KIND=4),
-     *       REAL(TAJLS,KIND=4) ,REAL(TCONSRV,KIND=4),it
-        END SELECT
-      CASE (IOREAD:)          ! input from restart file
-        SELECT CASE (IACTION)
-        CASE (ioread_single)    ! accumulate diagnostic files
-          if(am_i_root()) then
-            ALLOCATE (taijln4(IM,JM,LM,ntm), stat=status )
-            ALLOCATE (taijls4(IM,JM,LM,ktaijl), stat=status )
-            ALLOCATE (taijn4(IM,JM,ktaij,ntm), stat=status )
-            ALLOCATE (TAIJS4(IM,JM,ktaijs), stat=status )
-            ALLOCATE (TAJLN4(JM_BUDG,LM,ktajlx,ntm), stat=status )
-            ALLOCATE (TAJLS4(JM_BUDG,LM,ktajls), stat=status )
-            ALLOCATE (TCONSRV4(JM_BUDG,ktcon,ntmxcon), stat=status )
-
-            READ (kunit,err=10) HEADER,
-     *           TAIJLN4,TAIJLS4,TAIJN4,TAIJS4,TAJLN4,TAJLS4,TCONSRV4
-     *           ,it_check
-            if (it.ne.it_check) then
-              PRINT*,"io_trdiag: compare TAIJLN,TAIJLN4, ... dimensions"
-              go to 10  ! or should this be just a warning ??
-            end if
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *             ,MODULE_HEADER
-              GO TO 10
-            END IF
-
-C**** Accumulate diagnostics on global arrays (convert to real*8)
-            TAIJLN = TAIJLN + TAIJLN4
-            TAIJLS = TAIJLS + TAIJLS4
-            TAIJN  = TAIJN  + TAIJN4
-            TAIJS  = TAIJS  + TAIJS4
-            TAJLN  = TAJLN  + TAJLN4
-            TAJLS  = TAJLS  + TAJLS4
-            TCONSRV= TCONSRV+ TCONSRV4
-            
-            DEALLOCATE ( taijln4 )
-            DEALLOCATE ( taijls4 )
-            DEALLOCATE ( taijn4 )
-            DEALLOCATE ( TAIJS4 )
-            DEALLOCATE ( TAJLN4 )
-            DEALLOCATE ( TAJLS4 )
-            DEALLOCATE ( TCONSRV4 )
-
-          end if
-C*** Unpack read global data into (real*8) local distributed arrays
-
-          call scatter_trdiag
-
-
-!         IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-!           PRINT*,"Discrepancy in module version ",HEADER
-!    *           ,MODULE_HEADER
-!           GO TO 10
-!         END IF
-        CASE (ioread)  ! restarts
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) HEADER,
-     *                           TAIJLN,TAIJLS,TAIJN,TAIJS,
-     *                           TAJLN,TAJLS,TCONSRV,it
-            IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",HEADER
-     *             ,MODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-C*** Unpack read global data into local distributed arrays
-
-          call scatter_trdiag
-
-          CALL broadcast( grid, it )
-        END SELECT
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_trdiag
 #endif
 
       subroutine write_src_dist_data(fid, def)
@@ -1064,8 +913,7 @@ C*** Unpack read global data into local distributed arrays
       endif
       end subroutine write_src_dist_data
 
-#ifdef NEW_IO
-#ifdef TRACERS_ON /* only declare NEW_IO routines when needed */
+#ifdef TRACERS_ON
       subroutine def_rsf_trdiag(fid,r4_on_disk)
 !@sum  def_rsf_trdiag defines tracer diag array structure in restart+acc files
 !@auth M. Kelley
@@ -1370,8 +1218,6 @@ C*** Unpack read global data into local distributed arrays
       end subroutine write_meta_tcons
 
 #endif /* TRACERS_ON or TRACERS_OCEAN */
-#endif /* NEW_IO */
-
 
       SUBROUTINE ALLOC_TRDIAG_COM
       USE DIAG_COM, only : jm_budg
@@ -1639,7 +1485,6 @@ C*** Unpack read global data into local distributed arrays
       allocate(units_tajl(ktajl_))
       allocate(scale_tajl(ktajl_))
 
-#ifdef NEW_IO
 ! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
 ! will be reallocated to the proper sizes later.
       ALLOCATE ( TAIJ_out( I_0H:I_1H,J_0H:J_1H,ktaij_),stat=status )
@@ -1647,7 +1492,6 @@ C*** Unpack read global data into local distributed arrays
       if(am_i_root()) then
         ALLOCATE ( TAJL_out(JM_BUDG,LM,ktajl_), stat=status )
       endif
-#endif
 
       RETURN
       END SUBROUTINE ALLOC_TRDIAG_COM

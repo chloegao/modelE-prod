@@ -124,98 +124,6 @@ C23456789012345678901234567890123456789012345678901234567890123456789012
       RETURN
       END SUBROUTINE ALLOC_LAKES_COM
 
-      SUBROUTINE io_lakes(kunit,iaction,ioerr)
-!@sum  io_lakes reads and writes lake arrays to file
-!@auth Gavin Schmidt
-      USE MODEL_COM, only : ioread,iowrite,lhead,irerun,irsfic,irsficno
-      USE DOMAIN_DECOMP_ATM, only : grid
-      USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, PACK_DATA  , PACK_BLOCK
-      USE DOMAIN_DECOMP_1D, only : UNPACK_DATA, UNPACK_BLOCK,
-     *     BACKSPACE_PARALLEL
-      USE LAKES_COM
-      USE RESOLUTION, only : IM, JM
-      IMPLICIT NONE
-      INTEGER kunit   !@var kunit unit number of read/write
-      INTEGER iaction !@var iaction flag for reading or writing to file
-!@var IOERR 1 (or -1) if there is (or is not) an error in i/o
-      INTEGER, INTENT(INOUT) :: IOERR
-!@var HEADER Character string label for individual records
-      CHARACTER*80 :: HEADER, MODULE_HEADER = "LAKE02"
-      REAL*8, DIMENSION(IM,JM):: MLDLK_glob,MWL_glob,TLAKE_glob,GML_glob
-     *     ,FLAKE_glob
-#ifdef TRACERS_WATER
-!@var TRHEADER Character string label for individual records
-      CHARACTER*80 :: TRHEADER, TRMODULE_HEADER = "TRLAK01"
-      REAL*8 :: TRLAKE_GLOB(NTM,2,IM,JM)
-      IF (AM_I_ROOT())
-     *   write (TRMODULE_HEADER(lhead+1:80)
-     *     ,'(a7,i3,a)')'R8 dim(',NTM,',2,im,jm):TRLAKE'
-#endif
-
-      MODULE_HEADER(lhead+1:80) = 'R8 dim(im,jm):MixLD,MWtr,Tlk,Enth,Fl'
-
-      SELECT CASE (IACTION)
-      CASE (:IOWRITE)            ! output to standard restart file
-        CALL PACK_DATA(grid, MLDLK, MLDLK_GLOB)
-        CALL PACK_DATA(grid, MWL  ,   MWL_GLOB)
-        CALL PACK_DATA(grid, TLAKE, TLAKE_GLOB)
-        CALL PACK_DATA(grid, GML  ,   GML_GLOB)
-        CALL PACK_DATA(grid, FLAKE, FLAKE_GLOB)
-#ifdef TRACERS_WATER
-        CALL PACK_BLOCK(grid, TRLAKE, TRLAKE_glob)
-#endif
-        IF (AM_I_ROOT()) THEN
-          WRITE (kunit,err=10) MODULE_HEADER,MLDLK_glob,MWL_glob,
-     &                         TLAKE_glob,GML_glob,FLAKE_glob
-#ifdef TRACERS_WATER
-          WRITE (kunit,err=10) TRMODULE_HEADER,TRLAKE_glob
-#endif
-        END IF
-      CASE (IOREAD:)            ! input from restart file
-        if ( AM_I_ROOT() ) then
-          READ (kunit,err=10) HEADER
-          CALL BACKSPACE_PARALLEL(kunit)
-          if (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-            READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
-     &           GML_glob       ! no FLAKE
-            FLAKE_glob = 0.d0
-          else
-            READ (kunit,err=10) HEADER,MLDLK_glob,MWL_glob,TLAKE_glob,
-     &           GML_glob,FLAKE_glob
-
-c          IF (HEADER(1:LHEAD).NE.MODULE_HEADER(1:LHEAD)) THEN
-c            PRINT*,"Discrepancy in module version ",HEADER,MODULE_HEADER
-c            GO TO 10
-          END IF
-        end if
-        CALL UNPACK_DATA(grid,  MLDLK_GLOB, MLDLK)
-        CALL UNPACK_DATA(grid,    MWL_GLOB, MWL  )
-        CALL UNPACK_DATA(grid,  TLAKE_GLOB, TLAKE)
-        CALL UNPACK_DATA(grid,    GML_GLOB, GML  )
-        CALL UNPACK_DATA(grid,  FLAKE_GLOB, FLAKE)
-
-#ifdef TRACERS_WATER
-        SELECT CASE (IACTION)
-        CASE (IRERUN,IOREAD,IRSFIC,IRSFICNO)    ! reruns/restarts
-          if ( AM_I_ROOT() ) then
-            READ (kunit,err=10) TRHEADER,TRLAKE_glob
-            IF (TRHEADER(1:LHEAD).NE.TRMODULE_HEADER(1:LHEAD)) THEN
-              PRINT*,"Discrepancy in module version ",TRHEADER
-     *             ,TRMODULE_HEADER
-              GO TO 10
-            END IF
-          end if
-          CALL UNPACK_BLOCK(grid, TRLAKE_GLOB, TRLAKE)
-        END SELECT
-#endif
-      END SELECT
-
-      RETURN
- 10   IOERR=1
-      RETURN
-      END SUBROUTINE io_lakes
-
-#ifdef NEW_IO
       subroutine def_rsf_lakes(fid)
 !@sum  def_rsf_lakes defines lake array structure in restart files
 !@auth M. Kelley
@@ -407,5 +315,3 @@ c            GO TO 10
       call write_data(grid,fid,'namervr',namervr(1:nrvr))
       return
       end subroutine write_meta_rvracc
-
-#endif /* NEW_IO */

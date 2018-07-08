@@ -160,7 +160,7 @@
       RETURN
       END SUBROUTINE ALLOC_LANDICE_COM
 ! ----------------------------------------------------------
-#ifdef NEW_IO
+
       subroutine read_landice_ic
 !@sum   read_landice_ic read land ice initial conditions file.
       use model_com, only : ioread
@@ -463,5 +463,3 @@ c        call read_data(grid,fid,'tricbimp',tricbimp,bcast_all=.true.)
 
       return
       end subroutine write_meta_glaacc
-
-#endif /* NEW_IO */
