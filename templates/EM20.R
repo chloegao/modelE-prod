@@ -5,6 +5,7 @@ EM20:  This is a major update to the old E1M20 rundeck to correspond to AR5 defa
 
 Preprocessor Options
 #define NEW_IO
+#define OLD_BCdalbsn
 End Preprocessor Options
 
 Object modules:

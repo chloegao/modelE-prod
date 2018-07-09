@@ -5,6 +5,7 @@ This is for faster testing of code functionality, not scrutinized for "science" 
 
 Preprocessor Options
 #define NEW_IO
+#define OLD_BCdalbsn
 End Preprocessor Options
 
 Object modules:

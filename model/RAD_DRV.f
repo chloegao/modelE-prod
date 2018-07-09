@@ -159,7 +159,7 @@ C****
       USE TOMAS_AEROSOL, only: icomp
 #endif
       use AerParam_mod, only : aermix
-#ifndef NEW_BCdalbsn
+#ifdef OLD_BCdalbsn
       use AerParam_mod, only: depoBC,depoBC_1990
 #endif
 
@@ -1017,7 +1017,7 @@ C****     Read in dH2O: H2O prod.rate in kg/m^2 per day and ppm_CH4
           H2ObyCH4 = 0.
         end if
       end if
-#ifndef NEW_BCdalbsn
+#ifdef OLD_BCdalbsn
       if(dalbsnX.ne.0.) then
         call updBCd(1990) ; depoBC_1990 = depoBC
       endif
@@ -1211,16 +1211,16 @@ C**** Update time dependent radiative parameters each day
 !     (does nothing except at a restart or the beginning of a new year)
       if(dalbsnX.ne.0.) then
         if (albsn_yr.eq.0) then
-#ifdef NEW_BCdalbsn
-          call updBCdalbsn (year    ,dayofyear)
-#else
+#ifdef OLD_BCdalbsn
           call updBCd (year)
+#else
+          call updBCdalbsn (year    ,dayofyear)
 #endif
         else
-#ifdef NEW_BCdalbsn
-          call updBCdalbsn (albsn_yr,dayofyear)
-#else
+#ifdef OLD_BCdalbsn
           call updBCd (albsn_yr)
+#else
+          call updBCdalbsn (albsn_yr,dayofyear)
 #endif
         end if
       endif
@@ -1726,10 +1726,10 @@ C     OUTPUT DATA
 #endif
 #endif /* TRACERS_ON */
       use AerParam_mod, only: dCDNC_est
-#ifdef NEW_BCdalbsn
-      use AerParam_mod, only: BCdalbsn
-#else
+#ifdef OLD_BCdalbsn
       use AerParam_mod, only: depoBC,depoBC_1990
+#else
+      use AerParam_mod, only: BCdalbsn
 #endif
       USE TimerPackage_mod, only: startTimer => start, stopTimer => stop
       USE Dictionary_mod, only : get_param, is_set_param
@@ -1750,7 +1750,7 @@ C
 #endif
 C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8 U0GAS,taulim
-#ifndef NEW_BCdalbsn
+#ifdef OLD_BCdalbsn
       REAL*8 xdalbs,sumda,tauda,fsnow
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -2029,7 +2029,7 @@ C**** Calculate mean cosine of zenith angle for the full radiation step
         S0=S0X*S00WM2*RATLS0/RSDIST
       endif
 
-#ifndef NEW_BCdalbsn
+#ifdef OLD_BCdalbsn
 c**** find scaling factors for surface albedo reduction
       if(dalbsnX.ne.0.) then
       IF (HAVE_SOUTH_POLE) THEN
@@ -2604,10 +2604,10 @@ c      print*,"snowage",i,j,SNOAGE(1,I,J)
 C**** set up parameters for new sea ice and snow albedo
       zsnwoi=atmice%ZSNOWI(I,J)
       if(dalbsnX.ne.0.) then
-#ifdef NEW_BCdalbsn
-        dALBsn = dalbsnX*BCdalbsn(i,j)
-#else
+#ifdef OLD_BCdalbsn
         dALBsn = xdalbs*depobc(i,j)
+#else
+        dALBsn = dalbsnX*BCdalbsn(i,j)
 #endif
       else
         dALBsn = 0.
