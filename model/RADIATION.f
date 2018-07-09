@@ -1,5 +1,9 @@
 #include "rundeck_opts.h"
 
+#ifndef SWFIX_20151201
+#define SWFIX_20151201
+#endif
+
       MODULE RADPAR
 !@sum radiation module based originally on rad00b.radcode1.F
 !@auth A. Lacis/V. Oinas/R. Ruedy
@@ -44,7 +48,7 @@ C--------------------------------------------------
 !@+        if TLGRAD<0 tlt,tlm,tlb are all inputs        (OFFLINE use)
 !@var PTLISO tlt=tlb=tlm above PTLISO mb independent of TLGRAD
       REAL*8 :: TLGRAD=1.             !     control param
-      REAL*8 :: PTLISO=2.5d0          ! GCM control param
+      REAL*8 :: PTLISO=0d0            ! GCM control param
 
 C-------------------------------------------
 C     Grid parameters: Horizontal resolution
@@ -426,7 +430,7 @@ C            RADMAD6_SOLARUV_DECADAL          (user SETSOL)     radfile9
 !@var KSOLAR controls which data are used: <0 Thekaekara, else Lean:
 !@+          1: use monthly data, 2: use annual data, 0: constant data
 !@+          9: use annual data from file but with Thekaekara bins
-      INTEGER :: KSOLAR=1       ! MADLUV=KSOLAR=0 only possible OFF-line
+      INTEGER :: KSOLAR=2       ! MADLUV=KSOLAR=0 only possible OFF-line
 
       INTEGER, PARAMETER :: iy1S0=1882, MS0X=12*(1998-iy1S0+1)
       INTEGER, PARAMETER :: icycs0=11,  icycs0f=12
@@ -711,7 +715,7 @@ C     TROP AEROSOL 1850 BACKGROUND, INDUSTRIAL & BIO-BURNING PARAMETERS
       REAL*8, dimension(8) ::
 C                TROPOSPHERIC AEROSOL COMPOSITIONAL/TYPE PARAMETERS
 C                  SO4    SEA    ANT    OCX    BCI    BCB    DST   VOL
-     *  FS8OPX=(/1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.00/)
+     *  FS8OPX=(/1.000, 1.000, 1.000, 1.000, 1.500, 1.500, 1.000, 1.00/)
 
      * ,FT8OPX=(/1.000, 1.000, 1.000, 1.000, 1.000, 1.000, 1.300, 1.00/)
 
