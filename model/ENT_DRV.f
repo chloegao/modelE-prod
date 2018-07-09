@@ -24,6 +24,7 @@
       integer :: do_soilresp
       integer :: do_phenology_activegrowth,do_structuralgrowth
       integer :: do_frost_hardiness,do_patchdynamics, do_init_geo
+      logical :: do_modis_lai = .false. 
 
       type(timestream), allocatable :: LAIstream(:)
 
@@ -41,6 +42,7 @@
       use MODEL_COM, only: master_yr
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use timestream_mod, only : init_stream
+      use filemanager, only : file_exists
       integer, intent(in) :: Jday, Jyear
       logical, intent(in) :: iniENT_in
       !---
@@ -92,20 +94,25 @@
         year = Jyear
       endif
 
-#ifdef MODIS_LAI
-      allocate( LAIstream(N_PFT) )
-      do pft=1,N_PFT
-!        print *,"initializing stream for ",ent_cover_names(pft)
-        call init_stream(grid,LAIstream(pft)
-     &       ,'LAI'             ! name of file in rundeck
-     &       ,trim(ent_cover_names(pft)) ! netcdf name of the variable to be read
-     &       ,0d0,1d30          ! min/max valid data values (irrelevant for linm2m method)
-     &       ,'linm2m'          ! time interp method.  For monthly data, daily data created
-                          ! by linearly interpolating between month midpoints.
-     &       ,Jyear,Jday)
-!        print *,"done"
-      enddo
-#endif
+      if ( file_exists('LAI') ) then
+        if ( .not. file_exists('LAIMAX') ) then
+          call stop_model("Prescribed LAI requires LAIMAX file",255)
+        endif
+        if ( .not. file_exists('HITEent') ) then
+          call stop_model("Prescribed LAI requires HITEent file",255)
+        endif
+        do_modis_lai = .true.
+        allocate( LAIstream(N_PFT) )
+        do pft=1,N_PFT
+          call init_stream(grid,LAIstream(pft)
+     &         ,'LAI'           ! name of file in rundeck
+     &         ,trim(ent_cover_names(pft)) ! netcdf name of the variable to be read
+     &         ,0d0,1d30        ! min/max valid data values (irrelevant for linm2m method)
+     &         ,'linm2m'        ! time interp method.  For monthly data, daily data created
+                                ! by linearly interpolating between month midpoints.
+     &         ,Jyear,Jday)
+        enddo
+      endif
 
       ! maybe call "ent_initialize" ? , i.e.
       ! call ent_initialize(cond_scheme,vegCO2X_off,crops_yr,nl_soil, etc)
@@ -165,7 +172,7 @@
       subroutine set_vegetation_data( entcells,
      &     im, jm, i0, i1, j0, j1, jday, year, reinitialize, 
      &     prog_veg)
-!@sum read standard GISS vegetation BC's and pass them to Ent for
+!@sum read standard GISS vegetation BC''s and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
 !@+   For prog_veg, added option to calculate vegetation structure given
@@ -233,7 +240,7 @@
 
       real*8 :: laidata_h(N_PFT,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
-      integer :: pft, ddd
+      integer :: pft
       character*80 :: tilelai, ttt
 
       ttt = "testing"
@@ -248,23 +255,12 @@
       call init_canopy_physical(I0, I1, J0, J1,
      &     Ci_ini, CNC_ini, Tcan_ini, Qf_ini)
 
-#ifdef MODIS_LAI
-      do pft=1,N_PFT
-        ddd = jday
-        !do ddd=1,365,30
-!        print *, "reading lai for ", pft, year, ddd
-        call read_stream(grid,LAIstream(pft),year,ddd,
-     &       laidata_h(pft,:,:))
-       ! if (pft==15) then ! i.e. crops
-       !   laidata_h(pft,I0:I1,J0:J1) = .1d0 ! hack to avoid 0s
-       ! endif
-        write(tilelai,*) pft, ddd
-        !write(903) tilelai, real(laidata_h(pft,I0:I1,J0:J1),kind=4)
-!        call WRITET_PARALLEL(grid,903,"fort.903",
-!     &       laidata_h(pft,:,:),tilelai)
-        !enddo
-      enddo
-#endif
+      if ( do_modis_lai ) then
+        do pft=1,N_PFT
+          call read_stream(grid,LAIstream(pft),year,jday,
+     &         laidata_h(pft,:,:))
+        enddo
+      endif
 
       call get_vdata(vdata_H, ent_cover_names)
       if ( year == -1 ) then
@@ -287,16 +283,16 @@
       !* Canopy structure
       if (.not. present(prog_veg) .or. .not.prog_veg) then
          !* Variables that may be from files or prescribed model values.
-#ifdef MODIS_LAI
-        laidata(:,:,:) = 0.d0
-        laidata(1:N_PFT,I0:I1,J0:J1)=laidata_h(:,I0:I1,J0:J1)
-        call read_height(I0,I1,J0,J1, hdata)
-        call read_laimax(I0,I1,J0,J1,laimaxdata)
-#else
-         call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
-         call prescr_get_hdata(I0,I1,J0,J1,hdata) !height
-         call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata)
-#endif
+        if ( do_modis_lai ) then
+          laidata(:,:,:) = 0.d0
+          laidata(1:N_PFT,I0:I1,J0:J1)=laidata_h(:,I0:I1,J0:J1)
+          call read_height(I0,I1,J0,J1, hdata)
+          call read_laimax(I0,I1,J0,J1,laimaxdata)
+        else
+          call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata)
+          call prescr_get_hdata(I0,I1,J0,J1,hdata) !height
+          call prescr_get_laimaxdata(I0,I1,J0,J1,laimaxdata)
+        endif
          !do k=1,N_COVERTYPES
          !  write(922) ttt, real(hdata(k,:,:),kind=4)
          !enddo
@@ -386,7 +382,7 @@ c     &           ,dbhdata,popdata,craddata,cpooldata)
 
       subroutine update_vegetation_data( entcells,
      &     im, jm, i0, i1, j0, j1, jday, jyear )
-!@sum read standard GISS vegetation BC's and pass them to Ent for
+!@sum read standard GISS vegetation BC''s and pass them to Ent for
 !@+   initialization of Ent cells. Halo cells ignored, i.e.
 !@+   entcells should be a slice without halo
       use DOMAIN_DECOMP_ATM, only : GRID
@@ -412,7 +408,7 @@ c     &           ,dbhdata,popdata,craddata,cpooldata)
 
       real*8 :: laidata_h(N_PFT,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO)
-      integer :: pft, ddd
+      integer :: pft
       character*80 :: tilelai
 
 #ifdef CHECK_CARBON_CONSERVATION
@@ -450,42 +446,27 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       end where
 
 
-#ifdef MODIS_LAI
-      laidata_h(:,:,:) = 0.d0
-      do pft=1,N_PFT
-        ddd = jday
-!        print *, "reading lai for ", pft, year, ddd
-        call read_stream(grid,LAIstream(pft),year,ddd,
-     &       laidata_h(pft,:,:))
-       ! if (pft==15) then
-       !   where(lat2d(I0:I1,J0:J1) <= 0.)
-       !     laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,-1 )
-       !   elsewhere
-       !     laidata_h(pft,I0:I1,J0:J1)=prescr_calc_lai(pft,jday,+1 )
-       !   end where
-       ! endif
-        write(tilelai,*) pft, ddd
-        !write(903) tilelai, real(laidata_h(pft,I0:I1,J0:J1),kind=4)
-!         call WRITET_PARALLEL(grid,903,"fort.903",
-!     &       laidata_h(pft,:,:),tilelai)
-      enddo
-
-          call ent_prescribe_vegupdate(entcells,hemi,jday,year,
-     &         do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
-     &         do_giss_albedo= .true.,
-     &         do_giss_lai=.false., !.false.,
-     &         update_crops=.false.,
-     &         laidata=laidata_h(:,I0:I1,J0:J1)
-     &     )
-
-#else
-          call ent_prescribe_vegupdateC(entcells,hemi,jday,year,
-     &         do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
-     &         do_giss_albedo= .true.,
-     &         do_giss_lai=(do_phenology_activegrowth==0), !.false.,
-     &         update_crops=.false. )
-      
-#endif
+      if ( do_modis_lai ) then
+        laidata_h(:,:,:) = 0.d0
+        do pft=1,N_PFT
+          call read_stream(grid,LAIstream(pft),year,jday,
+     &         laidata_h(pft,:,:))
+        enddo
+        
+        call ent_prescribe_vegupdate(entcells,hemi,jday,year,
+     &       do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
+     &       do_giss_albedo= .true.,
+     &       do_giss_lai=.false., !.false.,
+     &       update_crops=.false.,
+     &       laidata=laidata_h(:,I0:I1,J0:J1)
+     &       )
+      else
+        call ent_prescribe_vegupdateC(entcells,hemi,jday,year,
+     &       do_giss_phenology=(do_phenology_activegrowth==0), !.false.,
+     &       do_giss_albedo= .true.,
+     &       do_giss_lai=(do_phenology_activegrowth==0), !.false.,
+     &       update_crops=.false. )
+      endif
       ! hack to avoid descrepancy with ent_standalone setup
       ! but really should do update as below
 
