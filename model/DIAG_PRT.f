@@ -4162,7 +4162,7 @@ C****
 !@+       When radiation is not called every hour this will not average
 !@+       exactly to same numbers as in DIAGDD.
 !@auth J. Lerner
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE MODEL_COM, only :   modelEclock, NDAY, calendar,
      &     idacc,JDATE0,AMON,AMON0,JYEAR0,XLABEL,LRUNID

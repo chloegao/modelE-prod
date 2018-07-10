@@ -22,6 +22,7 @@ Preprocessor Options
 #define CHECK_OCEAN                 ! needed to compile aux/file CMPE002
 #define OCN_LAYERING L13
 #define OLD_BCdalbsn
+#define USE_HDIURN
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)

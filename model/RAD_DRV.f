@@ -1658,7 +1658,7 @@ C     OUTPUT DATA
       USE DIAG_COM, only : ia_rad,jreg,aij=>aij_loc,aijl=>aijl_loc
      &     ,ntype,ftype,itocean,itlake,itearth,itlandi,itoice,itlkice
      *     ,adiurn=>adiurn_loc,ndiuvar,ia_rad_frc,
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      *     hdiurn=>hdiurn_loc,
 #endif
      *     iwrite,jwrite,itwrite,ndiupt
@@ -2440,7 +2440,7 @@ C****          1->(NRAD-1)*DTsrc (ADIURN) or skip them (HDIURN)
                IH=IHM
                IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                ADIURN(IDX(:),KR,IH)=ADIURN(IDX(:),KR,IH)+TMP(IDX(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
                IHM = IHM+(DATE-1)*HR_IN_DAY
                IF(IHM.LE.HR_IN_MONTH) THEN
                  HDIURN(IDX(:),KR,IHM)=HDIURN(IDX(:),KR,IHM)+TMP(IDX(:))
@@ -3519,7 +3519,7 @@ C****
                 IH=IHM
                 IF(IH.GT.HR_IN_DAY) IH = IH - HR_IN_DAY
                 ADIURN(IDXB(:),KR,IH)=ADIURN(IDXB(:),KR,IH)+TMP(IDXB(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
                 IHM = IHM+(DATE-1)*HR_IN_DAY
                 IF(IHM.LE.HR_IN_MONTH) THEN
                   HDIURN(IDXB(:),KR,IHM)=HDIURN(IDXB(:),KR,IHM)+
@@ -4229,7 +4229,7 @@ C**** daily diagnostics
         IF ((J >= J_0) .AND. (J <= J_1) .AND.
      &      (I >= I_0) .AND. (I <= I_1)) THEN
           ADIURN(IDD_ISW,KR,IH)=ADIURN(IDD_ISW,KR,IH)+S0*COSZ1(I,J)
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
           HDIURN(IDD_ISW,KR,IHM)=HDIURN(IDD_ISW,KR,IHM)+S0*COSZ1(I,J)
 #endif
         ENDIF

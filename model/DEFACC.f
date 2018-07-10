@@ -7470,7 +7470,7 @@ c
         dummy_hrs(k) = k
       enddo
 
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
 c Declare the dimensions and metadata of HDIURN output fields
       cdl_hd = cdl_dd
       call add_coord(cdl_hd,'hour',hr_in_month,
