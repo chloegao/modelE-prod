@@ -797,16 +797,6 @@ other_sesquiterpenes%ef=(/ 120.d0,  120.d0,  120.d0,  120.d0,  100.d0, &
   &                        100.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
   &                          2.d0   /)
 
-
-
-! Couple safety checks for Isprene:
-#ifdef PS_BVOC
-call stop_model('DO_MEGAN + PS_BVOC conflict',255)
-#endif
-#ifdef BIOGENIC_EMISSIONS
-call stop_model('DO_MEGAN + BIOGENIC_EMISSIONS conflict',255)
-#endif
-
 end subroutine alloc_megan
 
 

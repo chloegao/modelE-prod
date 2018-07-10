@@ -121,9 +121,16 @@
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
      &  sourceName='MegISOP_src',
      &  sourceLname='MEGAN '//trim(trname(n)))
+        ! Couple safety checks for Isprene:
+#ifdef PS_BVOC
+        call stop_model('DO_MEGAN + PS_BVOC conflict',255)
+#endif /* PS_BVOC */
+#ifdef BIOGENIC_EMISSIONS
+        call stop_model('DO_MEGAN + BIOGENIC_EMISSIONS conflict',255)
+#endif /* BIOGENIC_EMISSIONS */
 #else
         continue
-#endif
+#endif /* ISOPRENE_MEGAN */
       case ('Acetone')
 #ifdef ACETONE_MEGAN
         call addSurfaceSource(this=pTracer, skipReason=itsMegan,
