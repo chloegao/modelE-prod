@@ -27,12 +27,10 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d,flimit,obio_deltat,sday
-
 #ifdef restoreIRON
 !AR5 preprocessor option
      .                    ,Iron_BC
 #endif
-
 
       implicit none
 

@@ -137,6 +137,28 @@ C endif
 
       real*8, dimension(:, :, :), allocatable :: ze
 
+#ifdef OBIO_RUNOFF
+!     real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrmflo_loc      ! riverine nitrate mass flow rate (kg/s)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrconc_loc      ! riverine nitrate concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdicconc_loc       ! riverine dic concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdocconc_loc       ! riverine doc concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rsiliconc_loc      ! riverine silica concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rironconc_loc      ! riverine iron concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rpocconc_loc       ! riverine poc concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: ralkconc_loc       ! riverine alkalinity concentration (mol/kg)
+
+      real rnitrconc_ij
+!   .    , rnitrmflo_ij
+      real rdicconc_ij
+      real rdocconc_ij
+      real rsiliconc_ij
+      real rironconc_ij
+      real rpocconc_ij
+      real ralkconc_ij
+#endif  /* obio_runoff */
+
+
+
       character(len=50) :: arg2d, arg3d
 
       contains
@@ -472,6 +494,15 @@ c**** Extract domain decomposition info
       ALLOCATE(Kpar_em2d(kdm))
       ALLOCATE(delta_temp1d(kdm))
 
+!     ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rdocconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rsiliconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
+
       call init_obio_diag
 
       end subroutine alloc_obio_com
@@ -678,6 +709,26 @@ c**** Extract domain decomposition info
           call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
         end do
       end do
+
+#ifdef OBIO_RUNOFF
+!      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
+!     &               "kg/s", IJ_rnitrmflo)
+      call add_diag("Nitrate conc in runoff", "oij_rnitrconc",
+     &              "kg/kg", .false., IJ_rnitrconc)
+      call add_diag("DIC conc in runoff", "oij_rdicconc",
+     &              "kg/kg", .false., IJ_rdicconc)
+      call add_diag("DOC conc in runoff", "oij_rdocconc",
+     &              "kg/kg", .false., IJ_rdocconc)
+      call add_diag("silica conc in runoff", "oij_rsiliconc",
+     &              "kg/kg", .false., IJ_rsiliconc)
+      call add_diag("iron conc in runoff", "oij_rironconc",
+     &              "kg/kg", .false., IJ_rironconc)
+      call add_diag("poc conc in runoff", "oij_rpocconc",
+     &              "kg/kg", .false., IJ_rpocconc)
+      call add_diag("alkalinity conc in runoff", "oij_ralkconc",
+     &              "mol/kg", .false., IJ_ralkconc)
+#endif
+
 
       call add_diag("Mean daily irradiance", "avgq",
      &              "quanta/m2/s", .true., IJL_avgq)

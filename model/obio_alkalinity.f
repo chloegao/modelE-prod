@@ -49,7 +49,6 @@
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
      .      rhs,alk1d,caexp,kzc
 
-
       implicit none
 
       integer, intent(in) :: nstep

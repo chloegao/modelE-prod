@@ -16,6 +16,9 @@
      .                    ,alk
      .                    ,tirrq3d
      .                    ,surfN
+#ifdef OBIO_RUNOFF
+     .                    ,river_runoff
+#endif
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,gcmax1d,atmFe_ij,covice_ij
@@ -40,6 +43,11 @@
 #ifdef TRACERS_Ocean_O2
      .                    ,o21d
 #endif
+#ifdef OBIO_RUNOFF
+     .                    ,rnitrconc_loc,rdicconc_loc,rdocconc_loc
+     .                    ,rsiliconc_loc,rironconc_loc,rpocconc_loc
+     .                    ,ralkconc_loc
+#endif
       use obio_com, only: caexp
       use obio_com, only: build_ze
 
@@ -59,6 +67,11 @@
      .                 ,ij_rhs,ij_flux,ij_fca
 #ifdef TRACERS_Ocean_O2
      .                 ,ij_o2
+#endif
+#ifdef OBIO_RUNOFF
+     .                 ,ij_rnitrconc !,ij_rnitrmflo
+     .                 ,ij_rdicconc,ij_rdocconc,ij_rsiliconc
+     .                 ,ij_rironconc,ij_rpocconc,ij_ralkconc
 #endif
 
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,
@@ -85,6 +98,10 @@
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : kdm=>lmo,dzo
       USE OFLUXES,    only : oice=>oRSI,oAPRESS,ocnatm
+#ifdef OBIO_RUNOFF
+      USE OFLUXES, only:  oFLOWO
+#endif
+
 #ifdef NO_REDIAG_OCNSTATE
       ! Deliberately not taking layer thickness information, for reasons
       ! related to upcoming commits.
@@ -105,7 +122,8 @@
 #ifdef TRACERS_Alkalinity
      .  ,ij_co3
 #endif
-#else
+
+#else   /* HYCOM */
       USE hycom_dim, only: ogrid,im=>idm,jm=>jdm,kdm,ntrcr
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
@@ -115,7 +133,6 @@
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc,
      .     pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
      .     pp2cocc_dayav_loc,pHav,pHav_loc
-
       USE obio_com, only: diag_counter,phav_loc
       use GEOM, only: dlatm
       use hycom_atm, only : ocnatm
@@ -612,6 +629,10 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
+
+#ifdef OBIO_RUNOFF
+       river_runoff=oFLOWO(i,j)
+#endif
 
 #ifdef Relax2SurfN
        if (vrbos) then
@@ -1258,7 +1279,19 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
          OIJ(I,J,IJ_o2) = OIJ(I,J,IJ_o2) 
      .          + tracer(i,j,1,nnut+nchl+nzoo+ndet+ncar+nalk+no2) ! surf ocean oxygen concentration
 #endif
+
+#ifdef OBIO_RUNOFF
+!      OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+rnitrmflo_loc(i,j)  ! riverine nitr mass flow from dC (kg/s)
+       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+rnitrconc_loc(i,j)  ! riverine nitr conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)+rdicconc_loc(i,j)     ! riverine dic conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)+rdocconc_loc(i,j)     ! riverine doc conc from dC (kg/kg)
+       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+rsiliconc_loc(i,j)  ! riverine silica conc from dC (kg/kg)
+       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+rironconc_loc(i,j)  ! riverine iron conc from dC (kg/kg)
+       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)+rpocconc_loc(i,j)     ! riverine poc conc from dC (kg/kg)
+       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)+ralkconc_loc(i,j)     ! riverine alkalinity conc from A-S (mol/kg)
 #endif
+
+#endif  /*OBIO_ON_GISSocean*/
 
 #ifndef OBIO_ON_GISSocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
       ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + co2flux

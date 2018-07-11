@@ -111,4 +111,9 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
       real, parameter ::  kappa_Ca = 2.    ! (1/0.5years)^-1   !OCMIP
 #endif
 
+#ifdef OBIO_RUNOFF
+      real, parameter ::  estFe = 0.01   ! estuarine retention rate, can vary between 0.2 and 0.01 (daCunha 2007)
+#endif
+
+
       END MODULE obio_incom
