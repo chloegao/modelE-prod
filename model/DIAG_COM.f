@@ -246,7 +246,7 @@ c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
      &     ,ADIURN_loc
 !@param HR_IN_MONTH max hours in month
       INTEGER, public :: HR_IN_MONTH
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
 !@var HDIURN hourly diagnostics (hourly value at selected points)
 !@+     Same quantities as ADIURN but not averaged over the month
       REAL*8, allocatable, public :: HDIURN(:,:,:), HDIURN_loc(:,:,:)
@@ -1043,7 +1043,7 @@ c instances of arrays
 #endif
       use fluxes, only : atmocn
       USE DIAG_COM, only : dxyp_budg,nofm,consrv_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       USE DIAG_COM, only : hdiurn, hdiurn_loc
 #endif
       USE DIAG_COM, only : NDIUVAR, NDIUPT
@@ -1086,7 +1086,7 @@ c instances of arrays
      &        max(hr_in_month, 
      &        INT_HOURS_PER_DAY*cMonth%daysInMonth)
       end do
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       allocate(
      &     HDIURN(NDIUVAR, NDIUPT, hr_in_month),
      &     HDIURN_loc(NDIUVAR, NDIUPT, hr_in_month),
@@ -1456,7 +1456,7 @@ c allocate master copies of budget- and jk-arrays on root
       AREG_loc(:,:)=0.
       CALL SUMXPE(ADIURN_loc, ADIURN, increment=.true.)
       ADIURN_loc=0
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       CALL SUMXPE(HDIURN_loc, HDIURN, increment=.true.)
       HDIURN_loc=0
 #endif
@@ -1767,7 +1767,7 @@ c temporary variant of inc_ajl without any weighting
      &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
      &     adiurn,aisccp
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       use diag_com, only :  hdiurn
 #endif
 #ifndef SCM
@@ -1820,7 +1820,7 @@ c temporary variant of inc_ajl without any weighting
      &     r4_on_disk=r4_on_disk)
       call defvar(grid,fid,adiurn,
      &     'adiurn(ndiuvar,ndiupt,hr_in_day)',r4_on_disk=r4_on_disk)
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       call defvar(grid,fid,hdiurn,
      &     'hdiurn(ndiuvar,ndiupt,hr_in_month)',r4_on_disk=r4_on_disk)
 #endif
@@ -1886,7 +1886,7 @@ c    extended/rescaled instances of arrays when writing acc files
      &     oa,tdiurn,aijmm,                            ! dist
      &     ajl,asjl,consrv,
      &     adiurn,aisccp
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       use diag_com, only :  hdiurn
 #endif
 #ifndef SCM
@@ -1922,7 +1922,7 @@ c    extended/rescaled instances of arrays when writing acc files
         call write_data(grid,fid,'idacc',idacc)
         call write_data(grid,fid,'aisccp',aisccp)
         call write_data(grid,fid,'adiurn',adiurn)
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
         call write_data(grid,fid,'hdiurn',hdiurn)
 #endif
         call write_dist_data(grid,fid,'tdiurn',tdiurn)
@@ -1957,7 +1957,7 @@ c for which scalars is bcast_all=.true. necessary?
         call read_data(grid,fid,'idacc',idacc,bcast_all=.true.)
         call read_data(grid,fid,'aisccp',aisccp,bcast_all=.true.)
         call read_data(grid,fid,'adiurn',adiurn,bcast_all=.true.)
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
         call read_data(grid,fid,'hdiurn',hdiurn,bcast_all=.true.)
 #endif
         call read_dist_data(grid,fid,'tdiurn',tdiurn)
@@ -2281,7 +2281,7 @@ c new_io_subdd
       call defvar(grid,fid,name_dd,'sname_adiurn(sname_strlen,ndiuvar)')
       call defvar_cdl(grid,fid,cdl_dd,
      &     'cdl_adiurn(cdl_strlen,kcdl_adiurn)')
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       call write_attr(grid,fid,'hdiurn','split_dim',1)
       call defvar(grid,fid,int_dummy,'ntime_hdiurn')
       call defvar(grid,fid,denom_dd,'denom_hdiurn(ndiuvar)')
@@ -2452,7 +2452,7 @@ c new_io_subdd
       call write_data(grid,fid,'sname_adiurn',name_dd)
       call write_cdl(grid,fid,'cdl_adiurn',cdl_dd)
 
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       ntime_hd = nday/24
       call write_data(grid,fid,'ntime_hdiurn',ntime_hd)
       call write_data(grid,fid,'scale_hdiurn',scale_dd)

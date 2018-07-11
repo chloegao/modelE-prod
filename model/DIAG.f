@@ -5041,7 +5041,7 @@ c write physical variable
 #endif
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
      &     ,adiurn=>adiurn_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      &     ,hdiurn=>hdiurn_loc
 #endif
 #ifdef TRACERS_DUST
@@ -5128,7 +5128,7 @@ C****
             END DO
 
             ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
 #endif
 
@@ -5249,7 +5249,7 @@ c**** find weighted channel temperatures
       USE DIAG_COM, only : ndasf,nda4,nda5s,nda5k,nda5d,ndaa,modd5k
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
      &     ,consrv_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      &     ,hdiurn_loc
 #endif
       USE diag_com,only : lh_diags
@@ -5709,7 +5709,7 @@ c
       aisccp_loc = 0
       consrv_loc = 0
       adiurn_loc = 0
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       hdiurn_loc = 0
 #endif
 
@@ -5832,7 +5832,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0; ENERGY=0
 #endif
 
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       HDIURN=0; HDIURN_loc=0
 #endif
       ADIURN=0 ; ADIURN_loc=0; AISCCP=0; AISCCP_loc=0

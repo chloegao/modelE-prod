@@ -3,6 +3,10 @@
 #undef TRACERS_WATER
 #endif
 
+#ifndef ODIFF_FIXES_2017
+#define ODIFF_FIXES_2017
+#endif
+
 !      SUBROUTINE OCEANS_old
 !C****
 !!@sum  OCEANS integrates ocean source terms and dynamics

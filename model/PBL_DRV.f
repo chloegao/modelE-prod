@@ -625,7 +625,7 @@ c**** wspdf in PBL.f for the other soil types.
       USE PBLCOM
       USE DIAG_COM, only :
      *      adiurn=>adiurn_loc,ndiupt,ndiuvar,ijdd,adiurn_dust
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
      *     ,idd_wtke,idd_wd,idd_wm,idd_wsgcm,idd_wspdf,idd_wtrsh
@@ -742,7 +742,7 @@ C**** QUANTITIES ACCUMULATED HOURLY FOR DIAGDD
 #endif
             ADIURN(idxd(:),kr,pbl_args%ih)=
      &      ADIURN(idxd(:),kr,pbl_args%ih)  +tmp(idxd(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(idxd(:),kr,pbl_args%ihm)=
      &      HDIURN(idxd(:),kr,pbl_args%ihm) +tmp(idxd(:))
 #endif

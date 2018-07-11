@@ -15,7 +15,6 @@ Preprocessor Options
 #define CACHED_SUBDD
 #define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define SIMPLE_MESODIFF
