@@ -18,6 +18,10 @@ C
      &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
      &     ,ijlt_OxpRO2
      &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+#ifdef TRACERS_ACETONE
+      USE TRDIAG_COM, only : jls_AcetP, jls_AcetD
+      USE TRACER_COM, only : n_Acetone
+#endif
       use OldTracer_mod, only: vol2mass, mass2vol
 #ifdef TRACERS_dCO
       use tracers_dCO, only: d17O2_to_O2, d18O2_to_O2
@@ -1804,6 +1808,13 @@ c Conserve ClOx with respect to HOCl:
      &        prod(igas,1:maxL)*c2ml(1:maxL))
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_COd,
      &        dest(igas,1:maxL)*c2ml(1:maxL))
+#ifdef TRACERS_ACETONE
+       else if(idx == n_Acetone)then
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_AcetP,
+     &        prod(igas,1:maxL)*c2ml(1:maxL))
+         call inc_tajls2_column(i,j,1,maxL,maxL,jls_AcetD,
+     &        dest(igas,1:maxL)*c2ml(1:maxL))
+#endif /* TRACERS_ACETONE */
        else if(idx == n_Ox)then
          call inc_tajls2_column(i,j,1,maxL,maxL,jls_Oxp ,
      &        prod(igas,1:maxL)*c2ml(1:maxL))

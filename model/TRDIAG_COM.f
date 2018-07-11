@@ -358,6 +358,9 @@ C**** TAJLS  <<<< KTAJLS and JLS_xx are Tracer-Dependent >>>>
      *     ,jls_phot,jls_OHcon,jls_H2Omr
      *     ,jls_N2O5sulf,jls_day,jls_COd,jls_COp,jls_Oxd,jls_Oxp
      *     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem,jls_OxdT,jls_OxpT
+#ifdef TRACERS_ACETONE
+      integer :: jls_AcetD, jls_AcetP
+#endif
       integer, allocatable :: jls_incloud(:,:)
 !@var TAJLS  JL special tracer diagnostics for sources, sinks, etc
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: TAJLS

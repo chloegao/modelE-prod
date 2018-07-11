@@ -2009,6 +2009,24 @@ C**** (not necessary associated with a particular tracer)
         jls_power(k) = 1
         scale_jls(k) = 1.d0/DTsrc
         units_jls(k) = unit_string(jls_power(k),tend_units)
+#ifdef TRACERS_ACETONE
+        k = k + 1
+        jls_AcetP=k
+        sname_jls(k) = 'Acetone_chem_prod'
+        lname_jls(k) = 'Acetone production due to chemistry'
+        jls_ltop(k)  = LM
+        jls_power(k) = 1
+        scale_jls(k) = 1.d0/DTsrc
+        units_jls(k) = unit_string(jls_power(k),tend_units)
+        k = k + 1
+        jls_AcetD=k
+        sname_jls(k) = 'Acetone_chem_dest'
+        lname_jls(k) = 'Acetone destruction due to chemistry'
+        jls_ltop(k)  = LM
+        jls_power(k) = 1
+        scale_jls(k) = 1.d0/DTsrc
+        units_jls(k) = unit_string(jls_power(k),tend_units)
+#endif
         k = k + 1
         jls_OHcon=k
         sname_jls(k) = 'OH_conc'
