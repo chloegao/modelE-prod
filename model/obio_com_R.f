@@ -137,6 +137,28 @@ C endif
 
       real*8, dimension(:, :, :), allocatable :: ze
 
+#ifdef OBIO_RUNOFF
+!     real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrmflo_loc      ! riverine nitrate mass flow rate (kg/s)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rnitrconc_loc      ! riverine nitrate concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdicconc_loc       ! riverine dic concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rdocconc_loc       ! riverine doc concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rsiliconc_loc      ! riverine silica concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rironconc_loc      ! riverine iron concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: rpocconc_loc       ! riverine poc concentration (kg/kg)
+      real, ALLOCATABLE, DIMENSION(:,:)    :: ralkconc_loc       ! riverine alkalinity concentration (mol/kg)
+
+      real rnitrconc_ij
+!   .    , rnitrmflo_ij
+      real rdicconc_ij
+      real rdocconc_ij
+      real rsiliconc_ij
+      real rironconc_ij
+      real rpocconc_ij
+      real ralkconc_ij
+#endif  /* obio_runoff */
+
+
+
       character(len=50) :: arg2d, arg3d
 
       contains
@@ -197,7 +219,7 @@ C endif
       use vector_integer_mod, only: vector_integer=>vector
       use vector_real8_mod, only: vector_real8=>vector
       use cdl_mod, only: cdl_type
-      use obio_dim, only: ntrac
+      use obio_dim, only: ntrac,nchl,ndet
       implicit none
       private
 
@@ -220,7 +242,14 @@ C endif
      &  ,ij_o2
 #endif
       integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d,ijl_dtemp
-     .                  ,ijl_rhs3(ntrac,17),ijl_wss(ntrac)
+     .                  ,ijl_wss(nchl),ijl_wsdet(ndet)
+     .                  ,ijl_pp(nchl)
+     .                  ,ijl_lim1(nchl)
+     .                  ,ijl_lim2(nchl)
+     .                  ,ijl_lim3(nchl)
+     .                  ,ijl_lim4(nchl)
+     .                  ,ijl_lim5(nchl)
+     .                  ,ijl_rhs3(ntrac,17)
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
       type(vector_str80) :: lname_ij, lname_ijl
@@ -472,6 +501,15 @@ c**** Extract domain decomposition info
       ALLOCATE(Kpar_em2d(kdm))
       ALLOCATE(delta_temp1d(kdm))
 
+!     ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rdocconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rsiliconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
+      ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
+
       call init_obio_diag
 
       end subroutine alloc_obio_com
@@ -537,7 +575,7 @@ c**** Extract domain decomposition info
 
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
-      use obio_dim, only: ntrac
+      use obio_dim, only: ntrac,nchl,ndet,nnut,ntyp
       use obio_diag
 
        implicit none
@@ -545,9 +583,7 @@ c**** Extract domain decomposition info
       integer, dimension(1) :: con_idx
       character(len=10), dimension(1) :: con_str
       integer :: nt, ilim, ll
-      character(len=5) :: str1
-      character(len=9) :: str2
-      character(len=10) :: str3
+      character :: str1*5,str2*9,str3*10,str4*6,str5*7,str6*9
       character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)
 ! diatoms, chloroph, cyanobact, coccoliths
       character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
@@ -679,24 +715,76 @@ c**** Extract domain decomposition info
         end do
       end do
 
+#ifdef OBIO_RUNOFF
+!      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
+!     &               "kg/s", IJ_rnitrmflo)
+      call add_diag("Nitrate conc in runoff", "oij_rnitrconc",
+     &              "kg/kg", .false., IJ_rnitrconc)
+      call add_diag("DIC conc in runoff", "oij_rdicconc",
+     &              "kg/kg", .false., IJ_rdicconc)
+      call add_diag("DOC conc in runoff", "oij_rdocconc",
+     &              "kg/kg", .false., IJ_rdocconc)
+      call add_diag("silica conc in runoff", "oij_rsiliconc",
+     &              "kg/kg", .false., IJ_rsiliconc)
+      call add_diag("iron conc in runoff", "oij_rironconc",
+     &              "kg/kg", .false., IJ_rironconc)
+      call add_diag("poc conc in runoff", "oij_rpocconc",
+     &              "kg/kg", .false., IJ_rpocconc)
+      call add_diag("alkalinity conc in runoff", "oij_ralkconc",
+     &              "mol/kg", .false., IJ_ralkconc)
+#endif
+
+
       call add_diag("Mean daily irradiance", "avgq",
      &              "quanta/m2/s", .true., IJL_avgq)
+
+#ifdef KPAR_2_OCEAN
       call add_diag("KPAR", "kpar",
      &              "w/m2", .true., IJL_kpar)
       call add_diag("KPAR_EM2D", "kpar_em2d",
      &              "Einstein/m2 day", .true., IJL_kpar_em2d)
       call add_diag("dtemp due to kpar", "dtemp_par",
      &              "C", .true., IJL_dtemp)
+#endif
+
+      do nt=1, nchl
+        write(str5,'(A4,A3)') rhs_sym(nnut+nt), 'wss'    !chl records 5:8
+        call add_diag(str5, str5,"m/s", .true., IJL_wss(nt))
+      enddo
+      do nt=1, ndet
+        write(str2,'(A4,A5)') rhs_sym(ntyp+nt), 'wsdet'    !detr records 10:12
+        call add_diag(str2, str2,"m/s", .true., IJL_wsdet(nt))
+      enddo
+      do nt=1, nchl
+        write(str4,'(A4,A2)') rhs_sym(nnut+nt), 'pp'
+        call add_diag(str4, str4,"mg,C/m2/day", .true., IJL_pp(nt))
+      enddo
+
+      do nt=1,nchl
+        write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim1'
+        call add_diag(str6,str6,"?",.true.,IJL_lim1(nt))
+
+        write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim2'
+        call add_diag(str6,str6,"?",.true.,IJL_lim2(nt))
+
+        write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim3'
+        call add_diag(str6,str6,"?",.true.,IJL_lim3(nt))
+
+        write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim4'
+        call add_diag(str6,str6,"?",.true.,IJL_lim4(nt))
+
+        write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim5'
+        call add_diag(str6,str6,"?",.true.,IJL_lim5(nt))
+      enddo
+
+#ifdef obio_rhsdiags
       do nt=1, ntrac
       do ll=1, 17
         write(str3, '(A4,A4,I2.2)') rhs_sym(nt), 'rhs3', ll
         call add_diag(str3, str3,"mol/m3/s", .true., IJL_rhs3(nt,ll))
       enddo
       enddo
-      do nt=1, ntrac
-        write(str2,'(A4,A3)') rhs_sym(nt), 'wss'
-        call add_diag(str2, str2,"m/s", .true., IJL_wss(nt))
-      enddo
+#endif
 
       return
       end subroutine setup_obio
