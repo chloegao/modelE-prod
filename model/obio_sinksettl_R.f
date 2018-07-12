@@ -3,7 +3,7 @@
      &                    kdm,nstep,dtsrc,ddxypo)
 
       USE obio_dim
-      USE obio_incom,only: wsdeth,mgchltouMC
+      USE obio_incom,only: wsdeth,mgchltouMC,cchlratio
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
@@ -18,7 +18,7 @@
       real, intent(in) :: dtsrc,ddxypo
 
       integer :: i,j,k,nt,kmax
-      real    :: trnd
+      real    :: trnd,sumD,sumD1,sumDdiff
       logical :: vrbos,errcon
 
 
@@ -62,6 +62,8 @@
       !term1: sinking phytoplankton
 
       !detritus settling
+      sumD1=sum(D_tend(1:kmax,1)*dp1d(1:kmax))
+
       do nt = 1,ndet
         do k=1,kmax
         rhs(k,nnut+nchl+nzoo+nt,16) = 0.
@@ -83,21 +85,34 @@
 !        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
 !        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
       enddo ! nt
+ 
+      sumD=sum(D_tend(1:kmax,1)*dp1d(1:kmax))
+      sumDdiff=sumD-sumD1
+      if (vrbos)
+     .write(*,'(a,3i5,3e12.4)')'obio_sinksettl, sumD:'
+     .        ,nstep,i,j,sumD1,sumD,sumDdiff
       
 !diagnostic for carbon export at compensation depth
       cexp = 0.
-      do  k=1,kzc    
+!     do  k=1,kzc    
+      k=kzc
         do nt=nnut+1,nnut+nchl
            cexp = cexp
      .        + obio_P(k,nt)*obio_ws(k,nt-nnut)   
-     .        * mgchltouMC              
-     .        * 12.d0              
+     .        * cchlratio                       
      .        * SECONDS_PER_HOUR    !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR         
-     .        * 1.d-15            !mgm3 -> PgC/yr              
-     &        * ddxypo
+     .        * 1.d-15 *1.d-3            
+     &        * ddxypo              !mgm3 -> PgC/yr              
  
         enddo
+        if (vrbos) write(*,'(a,4i5,5e12.4)')'cexp comp0:',
+     .             nstep,i,j,k,
+     .             mgchltouMC,SECONDS_PER_HOUR,HOURS_PER_DAY,
+     .             DAYS_PER_YEAR,ddxypo
+        if (vrbos) write(*,'(a,4i5,8e12.4)')'cexp comp1:',
+     .             nstep,i,j,k,(obio_P(k,nt),nt=nnut+1,nnut+nchl),
+     .             (obio_ws(k,nt-nnut),nt=nnut+1,nnut+nchl)
 
       !term2: settling C detritus contribution
       !dont set cexp = 0 here, because adds to before
@@ -106,10 +121,12 @@
      .        + det(k,nt)*wsdet(k,nt)
      .        * SECONDS_PER_HOUR     !July 2016
      .        * HOURS_PER_DAY * DAYS_PER_YEAR
-     .        * 1.d-15                 !ugC/l -> PgC/yr
-     &        * ddxypo
+     .        * 1.d-15 *1.d-3                 
+     &        * ddxypo               !ugC/l -> PgC/yr
    
-      enddo
+        if (vrbos) write(*,'(a,4i5,2e12.4)')'cexp comp2:',
+     .             nstep,i,j,k,det(k,1),wsdet(k,1)
+!     enddo
 
 
       end subroutine obio_sinksettl

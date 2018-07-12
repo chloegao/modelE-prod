@@ -91,6 +91,13 @@ c     parameter(bn=0.5,bs=0.5)        !N/chl and Si/chl ratios
 
       real excdom(nlt),bbw,Dmax,rd,ru,rmus,rmuu
 
+#ifdef exp_wsdiat
+      real :: adiat_exp, bdiat_exp
+#endif
+#ifdef exp_wsdet
+      real :: adet_exp(3), bdet_exp(3)
+#endif
+
 !define compensation depth
       real, parameter ::  zc = 75. ! in meters (from OCMIP)
 

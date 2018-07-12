@@ -260,11 +260,25 @@ c  Diatoms
 !change: March 15, 2010
 !     rmumax(nt) = 1.50       !u max in /day at 20C
       rmumax(nt) = 2.00       !u max in /day at 20C
+#ifdef newpp_May10_2018
+      rmumax(nt) = 2.50       !u max in /day at 20C
+#endif
+#ifdef newpp_May10_2018a
+      rmumax(nt) = 2.75       !u max in /day at 20C
+#endif
+#ifdef newpp_May10_2018b
+      rmumax(nt) = 3.00       !u max in /day at 20C
+#endif
+#ifdef newpp_May10_2018c
+      rmumax(nt) = 3.00       !u max in /day at 20C
+#endif
+
 #ifdef OBIO_ON_GISSocean
       obio_wsd(nt)    = 0.75  !sinking rate in m/day
 #else
       obio_wsd(nt)    = 0.50  !sinking rate in m/day   !!change Oct27,2008
 #endif
+
       rik(1,nt)  = 90.0       !low light-adapted Ik (<50 uE/m2/s)
       rik(2,nt)  = 93.0       !medium light-adapted Ik (50-200 uE/m2/s)
       rik(3,nt)  = 184.0      !high light adapted Ik (>200 uE/m2/s)
@@ -369,10 +383,35 @@ c  Detrital remineralization rates /s
 !     remin(1) = 0.1/24.0            !nitrogen
       remin(1) = 0.1/sday            !nitrogen
 #endif
+#ifdef newpp_May10_2018
+      remin(1) = 0.025/sday            !nitrogen
+#endif
+#ifdef newpp_May10_2018a
+      remin(1) = 0.0275/sday            !nitrogen
+#endif
+#ifdef newpp_May10_2018b
+      remin(1) = 0.03/sday            !nitrogen
+#endif
+#ifdef newpp_May10_2018c
+      remin(1) = 0.1/sday            !nitrogen
+#endif
 #ifdef increaseNremin3
 !     remin(1) = 0.3/24.0            !nitrogen
       remin(1) = 0.3/sday            !nitrogen
 #endif
+#ifdef increaseNremin4
+!     remin(1) = 0.5/24.0            !nitrogen
+      remin(1) = 0.5/sday            !nitrogen
+#endif
+#ifdef increaseNremin5
+!     remin(1) = 0.5/24.0            !nitrogen
+      remin(1) = 0.9/sday            !nitrogen
+#endif
+#ifdef increaseNremin6
+      remin(1) = 1.5/sday            !nitrogen
+#endif
+
+
 !     remin(2) = 0.0001/24.0           !silica
       remin(2) = 0.0001/sday           !silica
 #ifdef increaseSremin
@@ -389,6 +428,9 @@ c  Detrital remineralization rates /s
 !AR5 preprocessor option
 !     remin(3) = 0.70/24.0            !iron
       remin(3) = 0.70/sday            !iron
+#endif
+#ifdef decreaseIremin
+      remin(3) = 0.20/sday            !iron
 #endif
 
 !     fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/s
@@ -511,6 +553,22 @@ c  Read in factors to compute average irradiance
        do nt=1,ndet
         wsdet(kdm+1,nt) = 0.0
        enddo
+
+#ifdef exp_wsdiat
+! exponential profile coefficients for diatoms 
+         adiat_exp = 0.01   !diatoms  a coef
+         bdiat_exp = 5.0    !diatoms  b coef
+#endif
+
+#ifdef exp_wsdet
+! exponential profile coefficients for detritus
+         adet_exp(1) = 2.0    !nitrogen a coef
+         bdet_exp(1) = 3.0    !nitrogen b coef
+         adet_exp(2) = 3.0    !silica a coef
+         bdet_exp(2) = 6.0    !silica b coef
+         adet_exp(3) = 1.0    !iron a coef
+         bdet_exp(3) = 2.0    !iron b coef
+#endif
  
 !read in atmospheric iron deposition (this will also be changed later...)
       if (AM_I_ROOT()) then
@@ -592,6 +650,7 @@ c  Read in factors to compute average irradiance
       write(*,*)'           INITIALIZATION                         '
 
       write(*,'(a,i5)') 'OBIO - NUMBER OF TRACERS=',ntrac
+      write(*,'(a,f10.2)') 'OBIO - dtsrc=',dtsrc
 
       write(*,*)'ALK_CLIM = ', ALK_CLIM
       if (ALK_CLIM.eq.0) write(*,*) 'ALKALINITY, from SALINITY'

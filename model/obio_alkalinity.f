@@ -47,7 +47,7 @@
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
      .      npratio,uMtomgm3,cnratio,bn,zc,mgchltouMC
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,alk1d,caexp,kzc
+     .      rhs,alk1d,caexp,kzc,sday
 
       implicit none
 
@@ -85,9 +85,8 @@
 !    .         +(rhs(k,2,5)+rhs(k,2,6)
 !    .         + rhs(k,2,7)+rhs(k,2,8))/bn)/cnratio
 
-      J_PO4(k) =  rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8)
-     .          +(rhs(k,5,13)+rhs(k,6,13)+rhs(k,7,13)+rhs(k,8,13))*bn
-     .          + rhs(k,2,5)+rhs(k,2,6)+rhs(k,2,7)+rhs(k,2,8)
+      J_PO4(k) =  rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8)+rhs(k,1,9)
+     .          + rhs(k,1,10)+rhs(k,1,11)+rhs(k,1,14)+rhs(k,1,15)
 
       term = -1.d0* J_PO4(k)            !uM,N/hr= mili-mol,N/m3/hr: mili-mol,N/m3/s  July 2016
       rhs(k,15,1) = term
