@@ -501,6 +501,7 @@ c**** Extract domain decomposition info
       ALLOCATE(Kpar_em2d(kdm))
       ALLOCATE(delta_temp1d(kdm))
 
+#ifdef OBIO_RUNOFF
 !     ALLOCATE(rnitrmflo_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(rnitrconc_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(rdicconc_loc(i_0:i_1,j_0:j_1))
@@ -509,6 +510,7 @@ c**** Extract domain decomposition info
       ALLOCATE(rironconc_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(rpocconc_loc(i_0:i_1,j_0:j_1))
       ALLOCATE(ralkconc_loc(i_0:i_1,j_0:j_1))
+#endif
 
       call init_obio_diag
 
