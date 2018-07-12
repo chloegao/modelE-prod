@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE io_rsf(fname,it,iaction,ioerr)
+      SUBROUTINE io_rsf(fname,it,iaction_in,ioerr)
 !@sum  io_rsf manages the reading/writing of restart and acc files
 !@auth M. Kelley
 !@ver  beta.
@@ -8,7 +8,7 @@
       use iso_c_binding, only: C_CHAR, C_NULL_CHAR
 C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
       USE DOMAIN_DECOMP_ATM, only : grid,am_i_root
-      USE MODEL_COM, only : ioread_single,iowrite_single,irerun,
+      USE MODEL_COM, only : ioread_acc,iowrite_single,irerun,
      *                      ioread,iowrite,iowrite_mon
      &     ,itimei,rsf_file_name,kcopy
       use pario, only : par_open,par_close,par_enddef
@@ -31,15 +31,17 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 
 !@var fname name of file to be read or written
       character(len=*) :: fname
-!@var iaction flag for reading or writing rsf file
-      INTEGER, INTENT(IN) :: iaction
+!@var iaction_in flag for reading or writing rsf file
+      INTEGER, INTENT(IN) :: iaction_in
 !@var it hour of model run
       INTEGER, INTENT(INOUT) :: it
 !@var IOERR (1,0,-1) if there (is, is maybe, is not) an error in i/o
       INTEGER, INTENT(INOUT) :: IOERR
-      integer :: fid,iorw
+      integer :: fid,iorw,iaction
       logical :: do_io_prog,do_io_acc,do_io_longacc,r4
       character(len=200) :: tmpname
+
+      iaction = iaction_in
 
       call set_ioptrs_acc_default
 
@@ -50,17 +52,19 @@ C**** For all iaction < 0  ==> WRITE, For all iaction > 0  ==> READ
 
       do_io_prog = .true.
       if(iaction.eq.iowrite_single) do_io_prog = .false.
-      if(iaction.eq.ioread_single)  do_io_prog = .false.
+      if(iaction.eq.ioread_acc)     do_io_prog = .false.
 
       do_io_acc = .false.
 c this logic would be much simpler if there were fewer
 c iaction possibilities related to reruns.  reading
 c arrays by name will eliminate a number of the
 c rerun cases.
+#ifndef DEFER_ACC_READ
       if(iaction.eq.ioread)         do_io_acc = .true.
+#endif
       if(iaction.eq.iowrite)        do_io_acc = .true.
       if(iaction.eq.iowrite_single) do_io_acc = .true.
-      if(iaction.eq.ioread_single)  do_io_acc = .true.
+      if(iaction.eq.ioread_acc)     do_io_acc = .true.
 
       do_io_longacc = do_io_acc
       if(iaction.eq.iowrite_mon)    do_io_longacc = .true.
@@ -72,6 +76,7 @@ c for routines designed to accept only iowrite or ioread:
       else
         iorw = ioread
       endif
+      if(iaction.eq.ioread_acc) iaction = ioread
 
       ioerr=-1
 
@@ -343,7 +348,7 @@ c parameter database in their attributes.
           call read_data(grid,fid,'itimee',itimee,bcast_all=.true.)
           call read_data(grid,fid,'itime0',itime0,bcast_all=.true.)
           call read_data(grid,fid,'itimei',itimei,bcast_all=.true.)
-          if(iyear1.lt.0) ! this check not present for ioread_single!!!
+          if(iyear1.lt.0) ! this check not present for ioread_acc!!!
      &    call read_data(grid,fid,'iyear1',iyear1,bcast_all=.true.)
           call read_data(grid,fid,'ntimeacc',ntimeacc,
      &         bcast_all=.true.)

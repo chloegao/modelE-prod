@@ -106,7 +106,7 @@ C**** (Simplified) Calendar Related Terms
 !@param IRSFICNT Flag used for reading restart (w/o tracers) for NEW run
 !@param IRSFICNO Flag used for reading restart (w/o ocean) for NEW run
 !@param IRERUN Flag used for reading in restart part to extend OLD run
-      INTEGER, PARAMETER :: ioread=1,ioread_single=2,
+      INTEGER, PARAMETER :: ioread=1,ioread_acc=2,
      *     irerun=3,irsfic=4,irsficnt=5,ioreadnt=6,irsficno=7,
      *     ioread_nodiag=8,
      *     iowrite=-1,iowrite_single=-2,iowrite_mon=-3
