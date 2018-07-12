@@ -5218,7 +5218,7 @@ c**** find weighted channel temperatures
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : Itime,ItimeI,Itime0
      *     ,amon,jhour0,jdate0,jmon0,amon0,jyear0,idacc
-     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
+     *     ,iyear1,nday,dtsrc
      *     ,nmonav,ItimeE,lrunid,modelEclock
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
