@@ -1055,9 +1055,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       enddo
       enddo
 #endif
-#ifdef obio_rhsdiags
-      call save_rhs3_diags(nstep,I,J,kdm)
-#endif
+!#ifdef obio_rhsdiags
+!      call save_rhs3_diags(nstep,I,J,kdm)
+!#endif
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-17, 1,7'
@@ -1364,26 +1364,26 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
       end subroutine check_sumcarbon
 
-#ifdef obio_rhsdiags
-      subroutine save_rhs3_diags(nstep,I,J,kdm)
-
-      USE obio_dim
-      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
-      USE obio_com,  only: rhs
-
-      implicit none
-      integer, intent(in) :: nstep,i,j,kdm
-      integer :: k,nt,ll
-
-      do nt=1,ntrac
-      do ll=1,17
-      do k=1,kdm
-      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
-     .                            + rhs(k,nt,ll)  ! all terms in rhs
-      enddo
-      enddo
-      enddo
-
-      end subroutine save_rhs3_diags
-#endif
+!#ifdef obio_rhsdiags
+!      subroutine save_rhs3_diags(nstep,I,J,kdm)
+!
+!      USE obio_dim
+!      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
+!      USE obio_com,  only: rhs
+!
+!      implicit none
+!      integer, intent(in) :: nstep,i,j,kdm
+!      integer :: k,nt,ll
+!
+!      do nt=1,ntrac
+!      do ll=1,17
+!      do k=1,kdm
+!      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+!     .                            + rhs(k,nt,ll)  ! all terms in rhs
+!      enddo
+!      enddo
+!      enddo
+!
+!      end subroutine save_rhs3_diags
+!#endif
 
