@@ -1631,3 +1631,22 @@ c
       enddo
 
       end subroutine relax_qusmoms
+
+! The following routines are stubs for routines which are being
+! withheld until sufficient verifications of long-timestep
+! transport have been performed.
+      subroutine def_rsf_tdmix(fid)
+      implicit none
+      integer :: fid
+      end subroutine def_rsf_tdmix
+
+      subroutine new_io_tdmix(fid,iaction)
+      implicit none
+      integer :: fid,iaction
+      end subroutine new_io_tdmix
+
+      subroutine tdmix_longstep_prep
+      end subroutine tdmix_longstep_prep
+
+      subroutine tdmix_longstep_finish
+      end subroutine tdmix_longstep_finish

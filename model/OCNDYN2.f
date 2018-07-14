@@ -7,9 +7,9 @@ c Will add more documentation if this version becomes the modelE default.
       SUBROUTINE OCEANS(atmocn,iceocn,dynsice)
 C****
       USE CONSTANT, only : rhows,grav
-      USE MODEL_COM, only : msurf,itime,DTSRC
+      USE MODEL_COM, only : msurf,itime,itimei,DTSRC
       USE OCEAN, only : im,jm,lmo,ndyno,nocean,mo,g0m,s0m,
-     *    dts,dtofs,dto,dtolf,mdyno,msgso,
+     *    dts,dtofs,dto,dtolf,mdyno,msgso,dxypo,
      *    ogeoz,ogeoz_sv,opbot,ze,lmm,imaxj, UO,VO,VONP,IVNP, ! VOSP,IVSP,
      *    OBottom_drag,OCoastal_drag,OTIDE,uod,vod,lmu,lmv
       USE OCEAN, only : use_qus,
@@ -34,6 +34,7 @@ C****
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
      *               toijl_conc,toijl_tflx,toijl_gmfl
+      use ocean, only : ntrtrans,asmu,asmv,asmw,motr,mosv0
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -54,6 +55,7 @@ c
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
 #ifdef TRACERS_OCEAN
+      logical :: do_tracer_trans
       type(ocn_tracer_entry), pointer :: entry
 #endif
 
@@ -88,6 +90,31 @@ C**** Apply surface fluxes to ocean
 #ifdef TRACERS_GASEXCH_ocean_CO2
          Call CARBON ('GRNDOC')
          Call NITR ('GRNDOC')
+#endif
+
+#ifdef TRACERS_OCEAN
+      ! set or increment the seawater mass array corresponding to tracer state
+      if(ntrtrans.eq.1) then
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = mo(i,j,l)
+        enddo
+        enddo
+        enddo
+        enddo
+      else !if(ntrtrans.gt.1) then
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = motr(i,j,l) + (mo(i,j,l)-mosv0(i,j,l))
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
 #endif
 
 C**** Apply ice/ocean and air/ocean stress to ocean
@@ -302,40 +329,19 @@ c
       dtdum = DTOLF
       Call CONSERV_OCE (G0INIT)
       if(use_qus==1) then
-        CALL OADVT3 (G0M,
+        CALL OADVT3 (MO1,G0M,
      &     GXMO,GYMO,GZMO, GXXMO,GYYMO,GZZMO, GXYMO,GYZMO,GZXMO,
      &     DTDUM,.FALSE.,OIJL(1,J_0H,1,IJL_GFLX))
-        CALL OADVT3 (S0M,
+        CALL OADVT3 (MO1,S0M,
      &     SXMO,SYMO,SZMO, SXXMO,SYYMO,SZZMO, SXYMO,SYZMO,SZXMO,
      &     DTDUM,.TRUE.,OIJL(1,J_0H,1,IJL_SFLX))
       else
-        CALL OADVT2 (G0M,GXMO,GYMO,GZMO,DTDUM,.FALSE.
+        CALL OADVT2 (MO1,G0M,GXMO,GYMO,GZMO,DTDUM,.FALSE.
      *        ,OIJL(1,J_0H,1,IJL_GFLX))
-        CALL OADVT2 (S0M,SXMO,SYMO,SZMO,DTDUM,.TRUE.
+        CALL OADVT2 (MO1,S0M,SXMO,SYMO,SZMO,DTDUM,.TRUE.
      *        ,OIJL(1,J_0H,1,IJL_SFLX))
       endif
       Call CONSERV_OCE (G0FINAL)
-
-#ifdef TRACERS_OCEAN
-      if(use_qus==1) then
-        DO N=1,tracerlist%getsize()
-          entry=>tracerlist%at(n)
-          CALL OADVT3(TRMO(1,J_0H,1,N),
-     &       TXMO (1,J_0H,1,N),TYMO (1,J_0H,1,N),TZMO (1,J_0H,1,N),
-     &       TXXMO(1,J_0H,1,N),TYYMO(1,J_0H,1,N),TZZMO(1,J_0H,1,N),
-     &       TXYMO(1,J_0H,1,N),TYZMO(1,J_0H,1,N),TZXMO(1,J_0H,1,N),
-     &       dtdum,entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
-        ENDDO
-      else
-        DO N=1,tracerlist%getsize()
-          entry=>tracerlist%at(n)
-          CALL OADVT2(TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
-     *       ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),dtdum,entry%t_qlimit
-     *       ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
-        ENDDO
-      endif
-#endif
-        CALL CHECKO ('OADVT ')
 
 c
 c diagnostics
@@ -382,7 +388,74 @@ c
         enddo
       enddo
 
+
 #ifdef TRACERS_OCEAN
+      if(ntrtrans.gt.1) then
+        ! accumulate mass fluxes
+        asmu = asmu + smu
+        asmv = asmv + smv
+        asmw = asmw + smw
+        do_tracer_trans = 
+     &       mod(1+itime-itimei,ntrtrans).eq.0 .and. no.eq.nocean
+        if(do_tracer_trans) then
+          ! copy accumulated mass fluxes into arrays used by OADVT
+          smu = asmu
+          smv = asmv
+          smw = asmw
+          call halo_update(grid,smv,from=south)
+          do l=1,lmo
+          do j=j_0,j_1
+            do n=1,nbyzm(j,l)
+              do i=i1yzm(n,j,l),i2yzm(n,j,l)
+                mmi(i,j,l) = motr(i,j,l)*dxypo(j)
+              enddo
+            enddo
+          enddo
+          enddo
+          ! and reset accumulators
+          asmu = 0.
+          asmv = 0.
+          asmw = 0.
+        endif
+      else
+        do_tracer_trans = .true.
+      endif
+      if(do_tracer_trans) then
+        if(use_qus==1) then
+          DO N=1,tracerlist%getsize()
+            entry=>tracerlist%at(n)
+            CALL OADVT3(MO1,TRMO(1,J_0H,1,N),
+     &       TXMO (1,J_0H,1,N),TYMO (1,J_0H,1,N),TZMO (1,J_0H,1,N),
+     &       TXXMO(1,J_0H,1,N),TYYMO(1,J_0H,1,N),TZZMO(1,J_0H,1,N),
+     &       TXYMO(1,J_0H,1,N),TYZMO(1,J_0H,1,N),TZXMO(1,J_0H,1,N),
+     &       dtdum,entry%t_qlimit,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
+          ENDDO
+        else
+          DO N=1,tracerlist%getsize()
+            entry=>tracerlist%at(n)
+            CALL OADVT2(MO1,TRMO(1,J_0H,1,N),TXMO(1,J_0H,1,N)
+     *           ,TYMO(1,J_0H,1,N),TZMO(1,J_0H,1,N),dtdum,entry%t_qlimit
+     *           ,TOIJL(1,J_0H,1,TOIJL_TFLX,N))
+          ENDDO
+        endif
+
+        ! save post-advection seawater mass corresponding to tracer state
+        if(ntrtrans.gt.1) then
+          do l=1,lmo
+          do j=j_0,j_1
+          do n=1,nbyzm(j,l)
+          do i=i1yzm(n,j,l),i2yzm(n,j,l)
+            motr(i,j,l) = mo1(i,j,l)/dxypo(j)
+          enddo
+          enddo
+          enddo
+          enddo
+        endif
+      endif
+
+c
+c tracer diagnostics
+c
         DO N=1,tracerlist%getsize()
           DO L=1,LMO
             TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)
@@ -390,6 +463,8 @@ c
           END DO
         END DO
 #endif
+
+        CALL CHECKO ('OADVT ')
 
       if(use_qus==1) then
         ! Save seawater mass pre-straits to adjust second-order
@@ -462,6 +537,21 @@ C****
         enddo
       endif
 
+#ifdef TRACERS_OCEAN
+      if(ntrtrans.gt.1) then
+        ! increment the seawater mass array corresponding to tracer state
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = motr(i,j,l) + (mo(i,j,l)-mo1(i,j,l))
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
+#endif
+
         CALL CHECKO ('STADV ')
 
       ENDDO  !  End of Do-loop NO=1,NOCEAN
@@ -491,6 +581,24 @@ C****
 C**** Mesoscale tracer transports
 C****
       call ocnmeso_drv
+
+#ifdef TRACERS_OCEAN
+      if(ntrtrans.gt.1 .and. do_tracer_trans) then
+        ! This was a tracer transport timestep.  To prevent buildup
+        ! of roundoff, reset the seawater mass array corresponding
+        ! to tracer state.
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = mo(i,j,l)
+        enddo
+        enddo
+        enddo
+        enddo
+      endif
+#endif
+
 #ifdef TRACERS_GASEXCH_ocean_CO2
          Call CARBON ('OCNMESO')
          Call NITR ('OCNMESO')
@@ -1591,7 +1699,7 @@ c initialize polar velocities
       Return
       End Subroutine ODHORZ0
 
-      SUBROUTINE OADVT2 (RM,RX,RY,RZ,DT,QLIMIT, OIJL)
+      SUBROUTINE OADVT2 (MA,RM,RX,RY,RZ,DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the linear upstream scheme.
 C****
 C**** Input:  MB (kg) = mass before advection
@@ -1613,11 +1721,9 @@ C****
 
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),     DIMENSION
-     *     (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: RM,RX,RY,RZ
+     *     (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MA,RM,RX,RY,RZ
       REAL*8, INTENT(INOUT),
      *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,3) :: OIJL
-      REAL*8,
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MA
       INTEGER I,J,L, J_0H
       LOGICAL, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT

@@ -180,6 +180,11 @@ C**** ocean related parameters
       real*8, allocatable, dimension(:,:,:) ::
      &     g3d,t3d,s3d,p3d,r3d,v3d
 
+#ifdef TRACERS_OCEAN
+      integer :: ntrtrans=1
+      real*8, allocatable, dimension(:,:,:) :: asmu,asmv,asmw,motr,mosv0
+#endif
+
       contains
 
       subroutine alloc_odiff(grid)
@@ -320,6 +325,11 @@ C****
       USE OCEAN_DYN, only : DH,BYDH,VBAR, dZGdP, GUP,GDN, SUP,SDN
       USE OCEAN_DYN, only : MMI,SMU,SMV,SMW,CONV,MU,MV,MW
       use Dictionary_mod, only : sync_param
+
+#ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans,asmu,asmv,asmw,motr,mosv0
+#endif
+
       IMPLICIT NONE
 
       INTEGER :: IER
@@ -477,6 +487,19 @@ c      call ALLOC_KPP_COM(ogrid) ! alloc deferred until lsrpd known
 
       call read_ocean_topo
       if(ogrid%have_domain) CALL GEOMO
+
+#ifdef TRACERS_OCEAN
+      allocate( motr(im,j_0h:j_1h,lmo), stat = ier)
+      motr = 0.
+      call sync_param('ocean_ntrtrans',ntrtrans)
+      if(ntrtrans.gt.1) then
+        allocate( mosv0(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmu(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmv(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmw(im,j_0h:j_1h,lmo), stat = ier)
+        mosv0 = 0.; asmu = 0.; asmv = 0.; asmw = 0.
+      endif
+#endif
 
       return
       end subroutine alloc_ocean

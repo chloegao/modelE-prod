@@ -316,6 +316,7 @@
       USE OCEAN, only : oDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans,motr
       Use OCEAN, Only: oc_tracer_mean
       Use OCN_TRACER_COM, Only: tracerlist, ocn_tracer_entry
 #endif
@@ -746,6 +747,10 @@ C**** restart file with different topography)
           END DO
         END DO
       end if
+
+#ifdef TRACERS_OCEAN
+      if(iniOCEAN .and. ntrtrans.gt.1) motr(:,:,:) = mo(:,:,:)
+#endif
 
 !      if(istart.eq.2 .and. use_qus.eq.1) then
 !        allocate(zero3d(im,j_0h:j_1h,lmo))
@@ -1532,6 +1537,8 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
+      use ocnmeso_com, only : use_tdmix
+      use ocean, only : ntrtrans,motr,asmu,asmv,asmw
 #endif
       use pario, only : defvar
       use domain_decomp_1d, only : getDomainBounds
@@ -1590,6 +1597,14 @@ c straits arrays
       call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
       endif
 #ifdef TRACERS_OCEAN
+
+      if(ntrtrans.gt.1) then
+      call defvar(grid,fid,motr,'motr(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,asmu,'asmu(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,asmv,'asmv(dist_imo,dist_jmo,lmo)')
+      call defvar(grid,fid,asmw,'asmw(dist_imo,dist_jmo,lmo)')
+      endif
+
 c tracer arrays
       do n=1,tracerlist%getsize()
         entry=>tracerlist%at(n)
@@ -1630,6 +1645,9 @@ c tracer arrays in straits
 #endif
 #endif
 
+#ifdef TRACERS_OCEAN
+      if(use_tdmix==1) call def_rsf_tdmix(fid)
+#endif
       call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &               j_strt_halo=j_0h,j_stop_halo=j_1h)
       allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
@@ -1661,6 +1679,8 @@ c tracer arrays in straits
      &     write_data,read_data
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
+      use ocnmeso_com, only : use_tdmix
+      use ocean, only : ntrtrans,motr,asmu,asmv,asmw
 #endif
       use domain_decomp_1d, only : getDomainBounds
       implicit none
@@ -1721,6 +1741,14 @@ c straits arrays
         call write_data(grid,fid,'ssist',ssist)
         endif
 #ifdef TRACERS_OCEAN
+
+        if(ntrtrans.gt.1) then
+          call write_dist_data(grid,fid,'motr',motr)
+          call write_dist_data(grid,fid,'asmu',asmu)
+          call write_dist_data(grid,fid,'asmv',asmv)
+          call write_dist_data(grid,fid,'asmw',asmw)
+        endif
+
 c tracer arrays
         do n=1,tracerlist%getsize()
           entry=>tracerlist%at(n)
@@ -1816,6 +1844,14 @@ c straits arrays
         call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
         endif
 #ifdef TRACERS_OCEAN
+
+        if(ntrtrans.gt.1) then
+          call read_dist_data(grid,fid,'motr',motr)
+          call read_dist_data(grid,fid,'asmu',asmu)
+          call read_dist_data(grid,fid,'asmv',asmv)
+          call read_dist_data(grid,fid,'asmw',asmw)
+        endif
+
 c tracer arrays
         do n=1,tracerlist%getsize()
           entry=>tracerlist%at(n)
@@ -1853,6 +1889,10 @@ c tracer arrays in straits
         endif
 #endif
       end select
+
+#ifdef TRACERS_OCEAN
+      if(use_tdmix==1) call new_io_tdmix(fid,iaction)
+#endif
 
 #ifdef TRACERS_OceanBiology
       call new_io_obio(fid,iaction)
@@ -4962,7 +5002,7 @@ C****
       USE OCEAN, only : imo=>im,jmo=>jm
      *     , mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
-     *     , trmo
+     *     , trmo,mosv0
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -4995,6 +5035,12 @@ C**** Convert fluxes on atmospheric grid to oceanic grid
       CALL AG2OG_precip(atmocn,iceocn)
 C****
       ocean_processors_only: if(ogrid%have_domain) then
+
+#ifdef TRACERS_OCEAN
+      ! save 3D mass before all source/sink terms
+      if(allocated(mosv0)) mosv0 = mo
+#endif
+
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. oPREC(I,J).gt.0.)  THEN
@@ -5645,8 +5691,9 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
       USE ODIAG, only : oij=>oij_loc, ij_eicb, ij_micb
-#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans,motr
+#ifdef TRACERS_WATER
       Use OCEAN,   Only: TRMO
       Use OFLUXES, Only: oTRGMELT
 #endif
@@ -5676,8 +5723,12 @@ C**** divide over depth and scale for time step
               MO(I,J,L) =MO(I,J,L)+(oGMELT(I,J)*dxypo(j))*DZ/
      &             (DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+(oEGMELT(I,J)*dxypo(j))*DZ
-#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
+              if(ntrtrans.gt.1) then
+                ! add mo increment to motr as well
+                motr(i,j,l) = motr(i,j,l) + ogmelt(i,j)*dz
+              endif
+#ifdef TRACERS_WATER
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+(oTRGMELT(:,I,J)*dxypo(j))*DZ
 #endif
 #endif

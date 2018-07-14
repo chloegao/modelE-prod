@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE OADVT3 (RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX,
+      SUBROUTINE OADVT3 (MA,RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX,
      &     DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the quadratic upstream scheme.
 C****
@@ -24,11 +24,9 @@ C****
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),     DIMENSION
      &     (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
-     &     RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
+     &     MA,RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
       REAL*8, INTENT(INOUT),
      *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,3) :: OIJL
-      REAL*8,
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MA
       INTEGER I,J,L, J_0H
       LOGICAL, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
