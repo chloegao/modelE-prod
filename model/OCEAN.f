@@ -152,9 +152,10 @@ c         may specify ocean temperature for SCM
 
       end module sstmod
 
-#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
 
       module owiso_mod
+
+#if defined(TRACERS_SPECIAL_O18) && !defined(TRACERS_OCEAN)
 
 !@sum  Module owiso_mod contains the arrays/subroutines needed to prescribe
 !@+    ocean surface water isotope ratios from input files.
@@ -359,9 +360,10 @@ c
       return
       end subroutine set_gtracer_owiso
 
+#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
+
       end module owiso_mod
 
-#endif /* TRACERS_SPECIAL_O18 and not TRACERS_OCEAN */
 
 
       subroutine read_sst(end_of_day,atmocn)
