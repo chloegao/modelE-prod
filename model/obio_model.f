@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-!#define NO_REDIAG_OCNSTATE
+#define NO_REDIAG_OCNSTATE
 
       subroutine obio_model(mm)
 
