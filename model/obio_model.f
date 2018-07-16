@@ -112,7 +112,7 @@
 #else
       USE OCEAN, only : g0m,s0m
 #endif
-      USE OCEAN,      only : mo,dxypo,ip=>focean,lmm
+      USE OCEAN,      only : mo=>motr,dxypo,ip=>focean,lmm
      .                      ,trmo,txmo,tymo,tzmo
      .                      ,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
       use ocn_tracer_vector_mod, only:
