@@ -761,7 +761,6 @@ c constant-pressure diagnostics
 c
       pecp(2:lm+1) = ple(1:lm)
       pecp(1) = 1d30 ! ensure that all column mass is included
-      qlh=lhe
       do j=j_0,j_1
       do i=i_0,imaxj(j)
         pedge(:) = pedn(:,i,j)
@@ -775,6 +774,8 @@ c
           wmdp(l) = 0d0
           wmliqdp(l) = 0d0
           wmfrzdp(l) = 0d0
+          If (TX(I,J,L) >= TF)  Then  ;  QLH = LHE
+                                Else  ;  QLH = LHS  ;  EndIf
           rh(l) = q(i,j,l)/min(1d0,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
         enddo
         do l=1,lmx

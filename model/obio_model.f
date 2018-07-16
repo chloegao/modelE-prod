@@ -222,8 +222,10 @@ c
       !nstep0>0 : warm initialization, is the timestep of current restart run
       !nstep    : current timestep   
 
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) print*, 'nstep,nstep0 =',
      .         nstep,nstep0
+#endif
 
       call build_ze
       if (nstep0==0) then
@@ -296,6 +298,7 @@ c
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
 
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) then
 #ifdef OBIO_ON_GISSocean
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
@@ -305,11 +308,13 @@ c
      .      latij_glob(itest,jtest,3),lonij_glob(itest,jtest,3)
 #endif
        endif
-
+#endif /* not OBIO_QUIET_MODE */
        call sync_param( "solFe", solFe)
+#ifndef OBIO_QUIET_MODE
        if (AM_I_ROOT()) print*, 'solfe=',solFe
 
        if (AM_I_ROOT()) print*, 'using QUS?=',USE_QUS
+#endif /* not OBIO_QUIET_MODE */
 !--------------------------------------------------------
 
        day_of_month=date
@@ -326,13 +331,14 @@ c
        !else
        !  hour_of_day=hour_of_day+1
        !endif
- 
+
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) then
        write(*,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,dayOfYear=',
      .    nstep,time,day_of_month,hour_of_day,dayOfYear
       endif
-
+#endif /* not OBIO_QUIET_MODE */
         !ihr0 = int(hour_of_day/2)
          ihr0 = nint((hour_of_day+1)/2.)
 
@@ -340,12 +346,13 @@ c
       if (diagno_bio) then
       endif  !diagno_bio
 
+#ifndef OBIO_QUIET_MODE
 #ifdef OBIO_ON_GISSocean
       if (AM_I_ROOT())
      .   write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
 #endif
-
+#endif /* not OBIO_QUIET_MODE */
       !print out tracer integrals just before main loop
 
 #ifndef OBIO_ON_GISSocean     /* HYCOM only */
@@ -1055,9 +1062,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       enddo
       enddo
 #endif
-#ifdef obio_rhsdiags
-      call save_rhs3_diags(nstep,I,J,kdm)
-#endif
+!#ifdef obio_rhsdiags
+!      call save_rhs3_diags(nstep,I,J,kdm)
+!#endif
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-17, 1,7'
@@ -1364,26 +1371,26 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
       end subroutine check_sumcarbon
 
-#ifdef obio_rhsdiags
-      subroutine save_rhs3_diags(nstep,I,J,kdm)
-
-      USE obio_dim
-      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
-      USE obio_com,  only: rhs
-
-      implicit none
-      integer, intent(in) :: nstep,i,j,kdm
-      integer :: k,nt,ll
-
-      do nt=1,ntrac
-      do ll=1,17
-      do k=1,kdm
-      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
-     .                            + rhs(k,nt,ll)  ! all terms in rhs
-      enddo
-      enddo
-      enddo
-
-      end subroutine save_rhs3_diags
-#endif
+!#ifdef obio_rhsdiags
+!      subroutine save_rhs3_diags(nstep,I,J,kdm)
+!
+!      USE obio_dim
+!      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
+!      USE obio_com,  only: rhs
+!
+!      implicit none
+!      integer, intent(in) :: nstep,i,j,kdm
+!      integer :: k,nt,ll
+!
+!      do nt=1,ntrac
+!      do ll=1,17
+!      do k=1,kdm
+!      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+!     .                            + rhs(k,nt,ll)  ! all terms in rhs
+!      enddo
+!      enddo
+!      enddo
+!
+!      end subroutine save_rhs3_diags
+!#endif
 
