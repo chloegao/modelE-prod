@@ -749,7 +749,7 @@ C**** restart file with different topography)
       end if
 
 #ifdef TRACERS_OCEAN
-      if(iniOCEAN .and. ntrtrans.gt.1) motr(:,:,:) = mo(:,:,:)
+      if(istart.lt.9 .and. ntrtrans.gt.1) motr(:,:,:) = mo(:,:,:)
 #endif
 
 !      if(istart.eq.2 .and. use_qus.eq.1) then
