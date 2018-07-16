@@ -1348,8 +1348,10 @@ c*
      &     ocnatm%DMUA,ocnatm%DMVA,
      &     aWEIGHT,atm%FOCEAN,atm%SINI,atm%COSI)
       ! ocean model still wants ice-masked wind stress
-      ocnatm%DMUA = ocnatm%DMUA*(1.d0-ocnice%RSI)
-      ocnatm%DMVA = ocnatm%DMVA*(1.d0-ocnice%RSI)
+      do j=oj_0,oj_1
+        ocnatm%DMUA(:,j) = ocnatm%DMUA(:,j)*(1.d0-ocnice%RSI(:,j))
+        ocnatm%DMVA(:,j) = ocnatm%DMVA(:,j)*(1.d0-ocnice%RSI(:,j))
+      enddo
 
       deallocate(aweight,atmp,aFact)
 
