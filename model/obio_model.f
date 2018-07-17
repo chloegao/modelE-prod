@@ -92,8 +92,10 @@
       USE FILEMANAGER, only: openunit,closeunit,file_exists
       USE obio_com, only : co2flux
       use obio_com, only: ze
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID,GLOBALSUM
+     .                           ,broadcast
       use TimerPackage_mod
+      use OCEAN, only: oxyp
       use obio_diag, only: reset_obio_diag
       use runtimecontrols_mod, only: constco2
 
@@ -170,6 +172,11 @@
       real*8 temgs,g,s,temgsp,pres
 #endif
       real*8 time,dtr,ftr,rho_water
+#ifdef OBIO_RUNOFF
+      REAL*8, DIMENSION(IM,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO)::
+     .        oflow_river
+      REAL*8 :: totalriverflow
+#endif
 #else
       integer :: n_abioDIC,
      &           lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)
@@ -364,6 +371,17 @@ c
 
       if ((dayofyear==1+jdendofm(month-1)).and.
      &       modeleclock%isbeginningofday()) call reset_obio_diag
+
+#ifdef OBIO_RUNOFF
+!compute riverflow globalsum
+      !kg/m2 -> kg
+      oflow_river = oFLOWO(:,:)*oXYP(:,:)
+      call GLOBALSUM(ogrid, oflow_river, totalriverflow, ALL=.true.)
+      if (AM_I_ROOT()) then
+        write(6,*) "Total River Flow into Ocean: ",totalriverflow
+      end if
+      call broadcast(ogrid, totalriverflow)
+#endif
 
       call start('  obio main loop')
 
