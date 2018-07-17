@@ -64,10 +64,10 @@
       USE obio_diag, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp,ij_dayl
-     .                 ,ij_cexp,ij_lim,ij_sink,ij_setl,ij_ndet,ij_xchl
+     .                 ,ij_cexp,ij_sink,ij_setl,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .                 ,ij_rhs,ij_flux,ij_fca
+     .                 ,ij_flux,ij_fca
 #ifdef TRACERS_Ocean_O2
      .                 ,ij_o2
 #endif
@@ -1066,14 +1066,6 @@ c     endif
 
 c     call obio_chkbalances(vrbos,nstep,i,j)
 
-#ifdef OBIO_ON_GISSocean
-      do nt=1,ntrac
-      do ll=1,17
-      OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
-     .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
-      enddo
-      enddo
-#endif
 #ifdef obio_rhsdiags
       call save_rhs3_diags(nstep,I,J,kdm)
 #endif
@@ -1237,15 +1229,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        else
          oij(i,j,ij_xchl)=0
        endif
-
-       !limitation diags surface only (for now)
-       k = 1
-       do nt=1,nchl
-       do ilim=1,5
-       OIJ(I,J,IJ_lim(nt,ilim)) = OIJ(I,J,IJ_lim(nt,ilim)) 
-     .                          + flimit(k,nt,ilim) 
-       enddo
-       enddo
 
        !3d pp diags
        do nt=1,nchl

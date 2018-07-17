@@ -241,8 +241,8 @@ C endif
      &   ij_cexp, ij_ndet, ij_setl, ij_sink, ij_xchl, ij_fca, 
      &   ij_rnitrmflo,
      &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
-     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
-     &   ij_rhs(ntrac, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp,
+     &   ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
      &   ij_ph
 #ifdef TRACERS_Ocean_O2
      &  ,ij_o2
@@ -785,19 +785,6 @@ c**** Extract domain decomposition info
      &              "mg,C/m2/day", .false., IJ_pp3)
       call add_diag("PP-cocc", "oij_pp4",
      &              "mg,C/m2/day", .false., IJ_pp4)
-      do nt=1, 4
-        do ilim=1, 5
-          write(str1, '(A1,A3,I1)') lim_sym(nt), 'lim', ilim
-          call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
-        end do
-      end do
-      do nt=1, ntrac
-        do ll=1, 17
-          write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
-          call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
-        end do
-      end do
-
 #ifdef OBIO_RUNOFF
 !      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
 !     &               "kg/s", IJ_rnitrmflo)
