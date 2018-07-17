@@ -667,8 +667,8 @@ c  Read in factors to compute average irradiance
       write(*,'(a,3e12.4)')'obio_init, settl rates for detr (per s): ',
      .      wsdeth(1),  wsdeth(2),  wsdeth(3)
 
-       write(*,'(a,3(f8.6,1x))'), 'OBIO remin rates (per s)=',
-     . remin(1),remin(2),remin(3)
+       write(*,'(a,3(f8.6,1x))'), 'OBIO remin rates (per day)=',
+     . remin(1)*3600.*24.,remin(2)*3600.*24.,remin(3)*3600.*24.
 
 #ifdef OBIO_RUNOFF
        write(*,*) 'obio-river turned on'

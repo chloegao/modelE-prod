@@ -47,6 +47,9 @@
      .                    ,rnitrconc_loc,rdicconc_loc,rdocconc_loc
      .                    ,rsiliconc_loc,rironconc_loc,rpocconc_loc
      .                    ,ralkconc_loc
+     .                    ,rnitrconc,rdicconc,rdocconc
+     .                    ,rsiliconc,rironconc,rpocconc
+     .                    ,ralkconc
 #endif
       use obio_com, only: caexp
       use obio_com, only: build_ze
@@ -642,6 +645,15 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 
 #ifdef OBIO_RUNOFF
        river_runoff=oFLOWO(i,j)
+       rnitrconc = rnitrconc_loc(i,j)
+       rsiliconc = rsiliconc_loc(i,j)
+       rironconc = rironconc_loc(i,j)
+       rpocconc  = rpocconc_loc(i,j)
+       rdocconc  = rdocconc_loc(i,j)
+       rdicconc  = rdicconc_loc(i,j)
+#ifdef TRACERS_Alkalinity
+       ralkconc  = ralkconc_loc(i,j)
+#endif
 #endif
 
 #ifdef Relax2SurfN
@@ -1062,9 +1074,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       enddo
       enddo
 #endif
-!#ifdef obio_rhsdiags
-!      call save_rhs3_diags(nstep,I,J,kdm)
-!#endif
+#ifdef obio_rhsdiags
+      call save_rhs3_diags(nstep,I,J,kdm)
+#endif
 
       if (vrbos) then
        print*, 'OBIO TENDENCIES, 1-17, 1,7'
@@ -1287,14 +1299,14 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 #endif
 
 #ifdef OBIO_RUNOFF
-!      OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+rnitrmflo_loc(i,j)  ! riverine nitr mass flow from dC (kg/s)
-       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+rnitrconc_loc(i,j)  ! riverine nitr conc from dC (kg/kg)
-       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)+rdicconc_loc(i,j)     ! riverine dic conc from dC (kg/kg)
-       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)+rdocconc_loc(i,j)     ! riverine doc conc from dC (kg/kg)
-       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+rsiliconc_loc(i,j)  ! riverine silica conc from dC (kg/kg)
-       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+rironconc_loc(i,j)  ! riverine iron conc from dC (kg/kg)
-       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)+rpocconc_loc(i,j)     ! riverine poc conc from dC (kg/kg)
-       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)+ralkconc_loc(i,j)     ! riverine alkalinity conc from A-S (mol/kg)
+!      OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+ rnitrmflo    ! riverine nitr mass flow from dC (kg/s)
+       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+ rnitrconc    ! riverine nitr conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)  + rdicconc     ! riverine dic conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)  + rdocconc     ! riverine doc conc from dC (kg/kg)
+       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+ rsiliconc    ! riverine silica conc from dC (kg/kg)
+       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+ rironconc    ! riverine iron conc from dC (kg/kg)
+       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)  + rpocconc     ! riverine poc conc from dC (kg/kg)
+       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)  + ralkconc     ! riverine alkalinity conc from A-S (mol/kg)
 #endif
 
 #endif  /*OBIO_ON_GISSocean*/
@@ -1371,26 +1383,26 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
       end subroutine check_sumcarbon
 
-!#ifdef obio_rhsdiags
-!      subroutine save_rhs3_diags(nstep,I,J,kdm)
-!
-!      USE obio_dim
-!      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
-!      USE obio_com,  only: rhs
-!
-!      implicit none
-!      integer, intent(in) :: nstep,i,j,kdm
-!      integer :: k,nt,ll
-!
-!      do nt=1,ntrac
-!      do ll=1,17
-!      do k=1,kdm
-!      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
-!     .                            + rhs(k,nt,ll)  ! all terms in rhs
-!      enddo
-!      enddo
-!      enddo
-!
-!      end subroutine save_rhs3_diags
-!#endif
+#ifdef obio_rhsdiags
+      subroutine save_rhs3_diags(nstep,I,J,kdm)
+
+      USE obio_dim
+      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
+      USE obio_com,  only: rhs
+
+      implicit none
+      integer, intent(in) :: nstep,i,j,kdm
+      integer :: k,nt,ll
+
+      do nt=1,ntrac
+      do ll=1,17
+      do k=1,kdm
+      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+     .                            + rhs(k,nt,ll)  ! all terms in rhs
+      enddo
+      enddo
+      enddo
+
+      end subroutine save_rhs3_diags
+#endif
 
