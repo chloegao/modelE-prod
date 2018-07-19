@@ -44,6 +44,10 @@ C**** Local Variables
      *     O(ogrid%im_world,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX
       integer :: idx_co2,ii,jj
 
+#ifdef OBIO_QUIET_MODE
+      return
+#endif
+
       idx_co2=atmocn%gasex_index%getindex(atmocn%n_co2n)
       if (idx_co2<1) return
 C**** Extract domain decomposition band parameters
@@ -233,6 +237,10 @@ C**** Local Variables
      *     A(agrid%im_world,aGRID%J_STRT_HALO:aGRID%J_STOP_HALO), aFLUX,
      *     O(ogrid%im_world,oGRID%J_STRT_HALO:oGRID%J_STOP_HALO), oFLUX,
      *     AMMO(LMO)
+
+#ifdef OBIO_QUIET_MODE
+      return
+#endif
 
 C**** Extract domain decomposition band parameters
       J1A = aGRID%J_STRT

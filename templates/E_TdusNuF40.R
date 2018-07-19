@@ -15,7 +15,6 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define NUDGE_ON                 ! nudged winds on
 ! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files

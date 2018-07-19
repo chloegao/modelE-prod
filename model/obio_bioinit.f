@@ -112,7 +112,7 @@
 
 #ifdef TRACERS_Alkalinity
 !check the value of ntrac
-     call init_alk(tracer(:,:,:,ntrac),kdm,ogrid)
+     call init_alk(tracer(:,:,:,ntrac),kdm,ogrid,im,ip,lmm)
 #endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc

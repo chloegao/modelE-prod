@@ -68,17 +68,17 @@ C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
 !@+   See usage notes in timestream_mod
       type(timestream), dimension(6) :: A6streams
 
-#ifdef NEW_BCdalbsn
-!@var BCdalbsnstream interface for reading and time-interpolating BC_dalbsn file
-      type(timestream), public :: BCdalbsnstream
-!@var BCdalbsn prescribed delta-albedo of snow (units = 1) on land/seaice from BC effects
-      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: BCdalbsn
-#else
+#ifdef OLD_BCdalbsn
 !@var BCdepstream interface for reading and time-interpolating BC_dep file
       type(timestream), public :: BCdepstream
 !@var depoBC,depoBC_1990 prescribed black carbon deposition (curr,1990)
 !@+   for parameterization of the BC effect on snow albedo
       REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: depoBC,depoBC_1990
+#else
+!@var BCdalbsnstream interface for reading and time-interpolating BC_dalbsn file
+      type(timestream), public :: BCdalbsnstream
+!@var BCdalbsn prescribed delta-albedo of snow (units = 1) on land/seaice from BC effects
+      REAL*8, ALLOCATABLE, DIMENSION(:,:), public :: BCdalbsn
 #endif
 
       contains
@@ -364,36 +364,7 @@ C     ------------------------------------------------------------------
 
       end module AerParam_mod
 
-#ifdef NEW_BCdalbsn
-      subroutine updBCdalbsn(year,day)
-!@sum updBCdalbsn reads timeseries file for black carbon delta-snow-albedo
-!@+   and interpolates to the requested day/year.
-!@auth R. Ruedy, M. Kelley
-      use domain_decomp_atm, only : grid,getDomainBounds
-      use timestream_mod, only : init_stream,read_stream
-      use AerParam_mod, only: BCdalbsnstream,BCdalbsn
-      implicit none
-      integer, intent(in) :: year,day
-c
-      logical, save :: init = .false.
-      integer :: i_0h,i_1h,j_0h,j_1h
-
-      if (.not. init) then
-        init = .true.
-
-        call getDomainBounds(grid, i_strt_halo=i_0h, i_stop_halo=i_1h,
-     &                             j_strt_halo=j_0h, j_stop_halo=j_1h)
-        allocate(BCdalbsn(i_0h:i_1h, j_0h:j_1h))
-        BCdalbsn = 0.
-        call init_stream(grid,BCdalbsnstream,'BCdalbsn','BCdalbsn',
-     &       -1d30,1d30,'linm2m',year,day)
-      endif
-
-      call read_stream(grid,BCdalbsnstream,year,day,BCdalbsn)
-      BCdalbsn = BCdalbsn / 100d0 ! units conversion from % to 1
-
-      end subroutine updBCdalbsn
-#else
+#ifdef OLD_BCdalbsn
       subroutine updBCd(year)
 !@sum updBCd reads timeseries file for black carbon deposition
 !@+   and interpolates depoBC to requested year.
@@ -425,6 +396,35 @@ c
       call read_stream(grid,BCdepstream,year,day,depoBC)
 
       end subroutine updBCd
+#else
+      subroutine updBCdalbsn(year,day)
+!@sum updBCdalbsn reads timeseries file for black carbon delta-snow-albedo
+!@+   and interpolates to the requested day/year.
+!@auth R. Ruedy, M. Kelley
+      use domain_decomp_atm, only : grid,getDomainBounds
+      use timestream_mod, only : init_stream,read_stream
+      use AerParam_mod, only: BCdalbsnstream,BCdalbsn
+      implicit none
+      integer, intent(in) :: year,day
+c
+      logical, save :: init = .false.
+      integer :: i_0h,i_1h,j_0h,j_1h
+
+      if (.not. init) then
+        init = .true.
+
+        call getDomainBounds(grid, i_strt_halo=i_0h, i_stop_halo=i_1h,
+     &                             j_strt_halo=j_0h, j_stop_halo=j_1h)
+        allocate(BCdalbsn(i_0h:i_1h, j_0h:j_1h))
+        BCdalbsn = 0.
+        call init_stream(grid,BCdalbsnstream,'BCdalbsn','BCdalbsn',
+     &       -1d30,1d30,'linm2m',year,day)
+      endif
+
+      call read_stream(grid,BCdalbsnstream,year,day,BCdalbsn)
+      BCdalbsn = BCdalbsn / 100d0 ! units conversion from % to 1
+
+      end subroutine updBCdalbsn
 #endif
 
       module DustParam_mod

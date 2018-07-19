@@ -26,7 +26,6 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start

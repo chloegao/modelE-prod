@@ -71,12 +71,14 @@
       trcnst = Kw_gas * alpha_gas * trconstflx * byrho     
      .                * 1.0d6 / vol2mass(idx)    
 
+#ifndef OBIO_QUIET_MODE
         if (ilong.eq.1. .and. jlat.eq.45) then
        write(*,'(a,2i7,11e12.4)')'PBL, TRACER_GASEXCH_CO2 ws:',
 !       write(*,'(a,2i7,11e12.4)')'44444444444444444444444',  
      .   ilong,jlat,tg1,(Sc_gas/660.d0)**(-0.5d0),ws*ws,
      .   Kw_gas,alpha_gas,beta_gas,trsf,trcnst,trconstflx,byrho,rhows
         endif
+#endif /* not OBIO_QUIET_MODE */
 
       RETURN
       END SUBROUTINE TRACERS_GASEXCH_ocean_CO2_PBL

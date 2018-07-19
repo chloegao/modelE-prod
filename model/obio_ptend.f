@@ -19,6 +19,12 @@ c  P(9) = herbivores (mg chl m-3)
       USE obio_incom,only: cnratio,cfratio,remin,obio_wss,bf,cchlratio
      .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,bs,solFe
      .                    ,mgchltouMC,uMtomgm3
+#ifdef exp_wsdiat
+     .                    ,adiat_exp,bdiat_exp
+#endif
+#ifdef exp_wsdet
+     .                    ,adet_exp,bdet_exp
+#endif
       USE obio_forc, only: tirrq
       USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
      .                    ,gro,rlamz,dratez1,dratez2
@@ -27,12 +33,10 @@ c  P(9) = herbivores (mg chl m-3)
      .                    ,gcmax1d,covice_ij,atmFe_ij
      .                    ,temp1d,wsdet,tzoo,p1d
      .                    ,rhs,pp2_1d,flimit,obio_deltat,sday
-
 #ifdef restoreIRON
 !AR5 preprocessor option
      .                    ,Iron_BC
 #endif
-
 
       implicit none
 
@@ -94,6 +98,11 @@ c  P(9) = herbivores (mg chl m-3)
 
 c  Start Model Space Loop
 !      m = indext2     !index of "past" (t-1)
+
+! River runoff applied
+#ifdef OBIO_RUNOFF
+      call obio_rivers(vrbos)
+#endif
 
 !Iron + atm iron: disperse in layer and convert to nM
 !we do not need to multiply this by pnoice, because iron
@@ -295,8 +304,8 @@ cdiag.   D_tend(k,1),D_tend(k,2),D_tend(k,3)
        enddo !kmax
 
 c Day: Grow
+      flimit(:,:,:)=0.0
       do k = 1,kmax
-      flimit(k,:,:)=0.0
 
       if (tirrq(k) .gt. 0.0)then
         tirrqice = tirrq(k)*0.01  !reduce light in ice by half
@@ -331,7 +340,7 @@ c Light-regulated growth
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml*pnoice(k)
-        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,2) = rmmlice*(1.0-pnoice(k))
         flimit(k,nt,3) = rmmn*pnoice(k)  
         flimit(k,nt,4) = rmms*pnoice(k)  
         flimit(k,nt,5) = rmmf*pnoice(k)  
@@ -385,7 +394,7 @@ c Light-regulated growth
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,2) = rmmlice*(1.0-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
@@ -435,7 +444,7 @@ c Light-regulated growth
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,2) = rmmlice*(1.0-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
@@ -497,7 +506,7 @@ c        rfix = min(rfix,0.2)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,2) = rmmlice*(1.0-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
@@ -548,7 +557,7 @@ c        rfix = min(rfix,0.2)
 
         !compute limiting factor array
         flimit(k,nt,1) = rmml
-        flimit(k,nt,2) = rmmlice*(1-pnoice(k))
+        flimit(k,nt,2) = rmmlice*(1.0-pnoice(k))
         flimit(k,nt,3) = rmmn   
         flimit(k,nt,4) = rmms   
         flimit(k,nt,5) = rmmf
@@ -719,6 +728,16 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr) -> conve
          obio_ws(k,nt) = obio_wss(nt)*viscfac(k)*pnoice(k)    !July 2016
        enddo
       enddo
+#ifdef exp_wsdiat
+! exponential profile coefficients for diatoms
+      nt = 1  !diatoms ONLY
+      do k = 1,kmax
+        obio_ws(k,nt) = viscfac(k)*pnoice(k)
+     .                * adiat_exp *exp(obio_P(k,nnut+nt)*bdiat_exp)   !m/s
+     .                / sday
+      obio_ws(k,nt) = min(obio_ws(k,nt), 20./3600./24.)    !max ws for diat 20m/day
+      enddo
+#endif
       nt = 4
       do k = 1,kmax
         obio_ws(k,nt) = wshc(k)*viscfac(k)*pnoice(k)
@@ -729,17 +748,30 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr) -> conve
       do nt = 1,ndet
        do k = 1,kmax
          wsdet(k,nt) = wsdeth(nt)*viscfac(k)*pnoice(k)
+#ifdef exp_wsdet
+! exponential profile coefficients for detritus
+         wsdet(k,nt) = viscfac(k)*pnoice(k)
+     .               * adet_exp(nt)* exp(det(k,nt)*bdet_exp(nt))   !m/s
+     .               / sday
+      wsdet(k,nt) = min(wsdet(k,nt), 50./3600./24.)   !max wsdet 50 m/day
+#endif
        enddo
       enddo
 
-       if(vrbos)then
+      if(vrbos)then
         do k=1,kmax
-           write(*,'(a,4i5,7e12.4)')
+           write(*,'(a,4i5,8e12.4)')
      .       'obio_ptend, ws:',
-     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k),
-     .                (obio_ws(k,nt),nt=1,nchl)
+     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
+     .       ,obio_P(k,nnut+nt),(obio_ws(k,nt),nt=1,nchl)
         enddo
-       endif
+        do k=1,kmax
+           write(*,'(a,4i5,9e12.4)')
+     .       'obio_ptend, wsdet:',
+     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
+     .       ,(det(k,nt),nt=1,ndet),(wsdet(k,nt),nt=1,ndet)
+        enddo
+      endif  !vrbos
 
 c Save method for hard boundary condition (no flux)
 c      srate = 0.0 - obio_wsh(n)*tracer(i,k-1,m,n)

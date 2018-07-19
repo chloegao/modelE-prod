@@ -3913,7 +3913,10 @@ FILE: ./cmake/scripts/rundeck_to_cmake.py
 import os
 srcdir = os.path.dirname(os.path.abspath(__file__))
 import sys
-sys.path.append(os.path.join(srcdir, '..', '..', 'python', 'lib'))
+libdir = os.path.join(srcdir, '..', '..', 'python', 'lib')
+libdir = os.path.normpath(libdir)
+sys.path = [libdir] + sys.path   # Somehwow append does not work
+import modele.rundir
 import modele.rundeck
 import re
 import tempfile
@@ -4399,7 +4402,7 @@ message("-- CMAKE_INSTALL_RPATH " ${CMAKE_INSTALL_RPATH})
 __EOF__
 ======================== FILE ./exec/cmake/modele
 FILE: ./exec/cmake/modele
-#!/usr/bin/env python
+#!/usr/bin/env python2
 #
 # Main command to control ModelE
 from __future__ import print_function
@@ -4493,7 +4496,7 @@ set(RUNDECK_OPTS ${CMAKE_CURRENT_BINARY_DIR}/include/rundeck_opts.h)
 # Export rundeck file settings into CMake
 execute_process(
    COMMAND
-   python ${PROJECT_SOURCE_DIR}/cmake/scripts/rundeck_to_cmake.py
+   python2 ${PROJECT_SOURCE_DIR}/cmake/scripts/rundeck_to_cmake.py
    ${PROJECT_SOURCE_DIR} ${PROJECT_BINARY_DIR} ${RUN} ${BUILD_CPP_OPTIONS}
 )
 
@@ -6956,7 +6959,7 @@ foreach(file ${pfiles})
    get_filename_component(basename ${file} NAME_WE)
    add_custom_command (
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
-      COMMAND python
+      COMMAND python2
       ARGS $ENV{PFUNIT}/bin/pFUnitParser.py ${file} 
       ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
       DEPENDS ${file}
@@ -7004,7 +7007,7 @@ foreach(file ${pfiles})
    get_filename_component(basename ${file} NAME_WE)
    add_custom_command (
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
-      COMMAND python
+      COMMAND python2
       ARGS $ENV{PFUNIT}/bin/pFUnitParser.py ${file} 
       ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
       DEPENDS ${file}
@@ -7059,7 +7062,7 @@ foreach(file ${pfiles})
    get_filename_component(basename ${file} NAME_WE)
    add_custom_command (
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
-      COMMAND python
+      COMMAND python2
       ARGS $ENV{PFUNIT}/bin/pFUnitParser.py ${file}  
       ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
       DEPENDS ${file}
@@ -7154,7 +7157,7 @@ foreach(file ${pfiles})
    get_filename_component(basename ${file} NAME_WE)
    add_custom_command (
       OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
-      COMMAND python
+      COMMAND python2
       ARGS $ENV{PFUNIT}/bin/pFUnitParser.py ${file} 
       ${CMAKE_CURRENT_BINARY_DIR}/${basename}.F90
       DEPENDS ${file}
