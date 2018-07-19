@@ -359,7 +359,7 @@ C**** Apply GM + Redi tracer fluxes
         enddo
 
         if(ntrtrans.gt.1) then
-        ! for consistency checking: transport motr
+        ! transport motr
         do l=1,lmo
         do j=j_0,j_1
         do n=1,nbyzm(j,l)
