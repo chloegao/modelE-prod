@@ -181,8 +181,58 @@ C**** ocean related parameters
      &     g3d,t3d,s3d,p3d,r3d,v3d
 
 #ifdef TRACERS_OCEAN
+!@dbparam ntrtrans number of physics timesteps per tracer transport
+!@+   timestep.   Here, "tracer transport timestep" refers only to
+!@+   advective and mesoscale transport.   Other transport proceses,
+!@+   such as sedimentation and turbulent vertical mixing, are applied
+!@+   to tracers (the trmo array et al.) every physics timestep regardless
+!@+   of ntrtrans, as are "source terms" such as surface fluxes and ice
+!@+   formation. See remarks below on the motr variable.
+!@+   Current restrictions on this speedup method:
+!@+     - mod(nday,ntrtrans) = mod(nssw,ntrtrans) = 0 for convenience.
+!@+     - In E2.1, ntrtrans*dt > 3 hours occasionally crashes, but
+!@+       there is currently no speedup benefit going past 3 hours.
+!@+     - It should not be used for water tracers if those tracers
+!@+       must remain exactly consistent with salinity, since salt
+!@+       is still transported on physics timesteps.   Moreover,
+!@+       some work remains to be done on isotope fractionation terms
+!@+       in ground_oc.
       integer :: ntrtrans=1
+!@var do_tracer_trans whether the current physics timestep is a
+!@+   tracer transport timestep, ie whether mod(step,ntrtrans)=0
       logical :: do_tracer_trans
+!
+!@var asm[uvw] advective mass fluxes accumulated over the ntrtrans
+!@+   physics timesteps in a tracer transport timestep.
+!
+!@var motr (kg/m2/layer) the current seawater mass corresponding to tracer
+!@+   state.
+!@+   motr is equal to mo immediately after tracer transports are
+!@+   performed every ntrtrans physics timesteps, but motr will then
+!@+   differ from mo until the next transport timestep, since source
+!@+   terms are the only tendencies applied to motr during the interim,
+!@+   while mo evolves via all tendencies each physics timestep
+!@+   (including advective mass fluxes and bolus terms).
+!@+   Schematic of the cycle:
+!@+     (1) for each of ntrtrans physics timesteps
+!@+         (a) mo,G,S = mo,G,S + all increments for this step
+!@+         (b) motr,trmo = motr,trmo + all increments for this step
+!@+                    excluding mesoscales and advection
+!@+         (c) accumulate mass fluxes to be applied in (2)
+!@+     (2) perform long-step transport using 1c. motr differs from
+!@+         mo before this operation and is exactly equal to mo afterward.
+!@+     (3) back to (1) for next cycle
+!@+   To diagnose the mixing ratio q of a tracer during the steps (1),
+!@+   motr rather than mo must be used as the denominator in
+!@+   q = (tracer mass)/(seawater mass), ie q = trmo/motr.
+!@+   With ntrtrans not more than a few hours, instantaneous differences
+!@+   between mo and motr during (1) are assumed to be small enough that
+!@+   quantities defined w.r.t. mo, such as temperature, salinity, and
+!@+   turbulent vertical diffusivity, can be applied to the slightly
+!@+   different volumes occupied by motr.
+!
+!@var mosv0 (kg/m2/layer) a book-keeping array to facilitate adding source
+!@+   terms to motr
       real*8, allocatable, dimension(:,:,:) :: asmu,asmv,asmw,motr,mosv0
 #endif
 
