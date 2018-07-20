@@ -182,6 +182,7 @@ C**** ocean related parameters
 
 #ifdef TRACERS_OCEAN
       integer :: ntrtrans=1
+      logical :: do_tracer_trans
       real*8, allocatable, dimension(:,:,:) :: asmu,asmv,asmw,motr,mosv0
 #endif
 
