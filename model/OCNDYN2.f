@@ -418,6 +418,8 @@ c
 c
 c tracer diagnostics
 c
+c todo for ntrtrans>1 case: sample toijl right after long-step transport
+c rather than here?   Or scale here by mo/motr.
         DO N=1,tracerlist%getsize()
           DO L=1,LMO
             TOIJL(:,:,L,TOIJL_CONC,N)=TOIJL(:,:,L,TOIJL_CONC,N)

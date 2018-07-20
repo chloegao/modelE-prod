@@ -230,6 +230,8 @@ C**** ocean related parameters
 !@+   quantities defined w.r.t. mo, such as temperature, salinity, and
 !@+   turbulent vertical diffusivity, can be applied to the slightly
 !@+   different volumes occupied by motr.
+!@+   TODO: make some decisions about how to treat mo versus motr in the
+!@+   monthly output diagnostics (e.g. mo->motr in parts of denom_toijl).
 !
 !@var mosv0 (kg/m2/layer) a book-keeping array to facilitate adding source
 !@+   terms to motr
