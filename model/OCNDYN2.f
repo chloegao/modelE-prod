@@ -552,10 +552,22 @@ C****
 
 #ifdef TRACERS_OCEAN
 
+      ! set motr for source-term routines below that refer to it
+      if(ntrtrans.eq.1) then
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = mo(i,j,l)
+        enddo
+        enddo
+        enddo
+        enddo
+
 C****
 C**** Resolved-flow tracer transports
 C****
-      if(ntrtrans.gt.1 .and. do_tracer_trans) then
+      elseif(do_tracer_trans) then
         ! This is a tracer transport timestep.  Note that in contrast
         ! to the ntrtrans==1 case, the resolved advection is
         ! performed after the mesoscale transport.
