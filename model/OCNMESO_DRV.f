@@ -152,8 +152,7 @@
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,toijl_gmfl
-      use model_com, only : itime,itimei
-      use ocean, only : ntrtrans,motr
+      use ocean, only : do_tracer_trans,ntrtrans,motr
 #endif
       use ocnmeso_com, only : kbg,use_tdmix,use_gmscz,
      &     enhance_shallow_kmeso
@@ -327,7 +326,7 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 
 #ifdef TRACERS_OCEAN
-        if(mod(1+itime-itimei,ntrtrans).eq.0) then
+        if(do_tracer_trans) then
 
         call tdmix_longstep_prep
 

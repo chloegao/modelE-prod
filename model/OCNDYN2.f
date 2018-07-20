@@ -34,7 +34,8 @@ C****
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,
      *               toijl_conc,toijl_tflx,toijl_gmfl
-      use ocean, only : ntrtrans,asmu,asmv,asmw,motr,mosv0
+      use ocean, only : do_tracer_trans,ntrtrans,
+     &     asmu,asmv,asmw,motr,mosv0
 #endif
       USE EXCHANGE_TYPES, only : atmocn_xchng_vars,iceocn_xchng_vars
       IMPLICIT NONE
@@ -55,7 +56,6 @@ c
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1, J_0H,J_1H, J_0S,J_1S
 #ifdef TRACERS_OCEAN
-      logical :: do_tracer_trans
       type(ocn_tracer_entry), pointer :: entry
 #endif
 
