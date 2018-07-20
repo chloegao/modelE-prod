@@ -519,6 +519,19 @@ C**** Necessary initiallisation?
       ALLOCATE(I1YZC(NBYZMAX,J_0H:J_1H,LMO))
       ALLOCATE(I2YZC(NBYZMAX,J_0H:J_1H,LMO))
 
+#ifdef TRACERS_OCEAN
+      allocate( motr(im,j_0h:j_1h,lmo), stat = ier)
+      motr = 0.
+      call sync_param('ocean_ntrtrans',ntrtrans)
+      if(ntrtrans.gt.1) then
+        allocate( mosv0(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmu(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmv(im,j_0h:j_1h,lmo), stat = ier)
+        allocate( asmw(im,j_0h:j_1h,lmo), stat = ier)
+        mosv0 = 0.; asmu = 0.; asmv = 0.; asmw = 0.
+      endif
+#endif
+
 c??   call ALLOC_GM_COM(agrid)
 c      call ALLOC_KPP_COM(ogrid) ! alloc deferred until lsrpd known
 #ifdef OCN_GISS_TURB
@@ -540,19 +553,6 @@ c      call ALLOC_KPP_COM(ogrid) ! alloc deferred until lsrpd known
 
       call read_ocean_topo
       if(ogrid%have_domain) CALL GEOMO
-
-#ifdef TRACERS_OCEAN
-      allocate( motr(im,j_0h:j_1h,lmo), stat = ier)
-      motr = 0.
-      call sync_param('ocean_ntrtrans',ntrtrans)
-      if(ntrtrans.gt.1) then
-        allocate( mosv0(im,j_0h:j_1h,lmo), stat = ier)
-        allocate( asmu(im,j_0h:j_1h,lmo), stat = ier)
-        allocate( asmv(im,j_0h:j_1h,lmo), stat = ier)
-        allocate( asmw(im,j_0h:j_1h,lmo), stat = ier)
-        mosv0 = 0.; asmu = 0.; asmv = 0.; asmw = 0.
-      endif
-#endif
 
       return
       end subroutine alloc_ocean
