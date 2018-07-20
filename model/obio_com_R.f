@@ -150,14 +150,14 @@ C endif
       real, ALLOCATABLE, DIMENSION(:,:)    :: rpocconc_loc       ! riverine poc concentration (kg/kg)
       real, ALLOCATABLE, DIMENSION(:,:)    :: ralkconc_loc       ! riverine alkalinity concentration (mol/kg)
 
-      real rnitrconc_ij
-!   .    , rnitrmflo_ij
-      real rdicconc_ij
-      real rdocconc_ij
-      real rsiliconc_ij
-      real rironconc_ij
-      real rpocconc_ij
-      real ralkconc_ij
+      real rnitrconc
+!   .    , rnitrmflo
+      real rdicconc
+      real rdocconc
+      real rsiliconc
+      real rironconc
+      real rpocconc
+      real ralkconc
 #endif  /* obio_runoff */
 
 
@@ -232,14 +232,17 @@ C endif
 
       real*8, dimension(:, :, :), allocatable, public :: obio_ij
       real*8, dimension(:, :, :, :), allocatable, public :: obio_ijl
+#ifdef obio_rhsdiags
+      real*8, dimension(:, :, :, :), allocatable, public :: rhs_ijl
+#endif
       integer, public :: ij_solz, ij_sunz, ij_dayl, ij_ed, ij_es,
      &   ij_nitr, ij_amm, ij_sil, ij_iron, ij_diat, ij_chlo, ij_cyan,
      &   ij_cocc, ij_herb, ij_doc, ij_dic, ij_pco2, ij_alk, ij_flux,
      &   ij_cexp, ij_ndet, ij_setl, ij_sink, ij_xchl, ij_fca, 
      &   ij_rnitrmflo,
      &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
-     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4, 5),
-     &   ij_rhs(ntrac, 17), ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp,
+     &   ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
      &   ij_ph
 #ifdef TRACERS_Ocean_O2
      &  ,ij_o2
@@ -259,6 +262,13 @@ C endif
       type(vector_integer) :: ia_ij, ia_ijl
       type(vector_real8) :: scale_ij, scale_ijl
       type(cdl_type) :: cdl_ij, cdl_ijl
+#ifdef obio_rhsdiags
+      type(vector_str30) :: sname_rhs_ijl, units_rhs_ijl
+      type(vector_str80) :: lname_rhs_ijl
+      type(vector_integer) :: ia_rhs_ijl
+      type(vector_real8) :: scale_rhs_ijl
+      type(cdl_type) :: cdl_rhs_ijl
+#endif
       type(cdl_type), pointer :: cdl_lons, cdl_lats, cdl_depths
       
       contains
@@ -279,12 +289,25 @@ C endif
       sname1=sname
       units1=units
       if (dim3) then
+#ifdef obio_rhsdiags
+      if (sname1(5:7).eq.'rhs') then
+        call lname_rhs_ijl%push_back(lname1)
+        call sname_rhs_ijl%push_back(sname1)
+        call units_rhs_ijl%push_back(units1)
+        call scale_rhs_ijl%push_back(1.d0)
+        call ia_rhs_ijl%push_back(ia_cpl)
+        idx=lname_rhs_ijl%getsize()
+      else
+#endif
         call lname_ijl%push_back(lname1)
         call sname_ijl%push_back(sname1)
         call units_ijl%push_back(units1)
         call scale_ijl%push_back(1.d0)
         call ia_ijl%push_back(ia_cpl)
         idx=lname_ijl%getsize()
+#ifdef obio_rhsdiags
+      endif
+#endif
       else
         call lname_ij%push_back(lname1)
         call sname_ij%push_back(sname1)
@@ -314,6 +337,10 @@ C endif
      &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
       allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))
+#ifdef obio_rhsdiags
+      allocate(rhs_ijl(ogrid%i_strt:ogrid%i_stop,
+     &         ogrid%j_strt:ogrid%j_stop, kdm, lname_rhs_ijl%getsize()))
+#endif
 
       end subroutine init_obio_diag
 
@@ -333,6 +360,10 @@ C endif
      &   'obio_ij('//trim(arg2d)//',kobio_ij)', r4_on_disk=r4_on_disk)
       call defvar(ogrid, fid, obio_ijl,
      &   'obio_ijl('//trim(arg3d)//',kobio_ijl)', r4_on_disk=r4_on_disk)
+#ifdef obio_rhsdiags
+      call defvar(ogrid, fid, rhs_ijl,
+     &   'rhs_ijl('//trim(arg3d)//',krhs_ijl)', r4_on_disk=r4_on_disk)
+#endif
 
       end subroutine def_rsf_obio_diag
 
@@ -351,9 +382,15 @@ C endif
       if (iaction.eq.ioread) then
         call read_dist_data(ogrid, fid, 'obio_ij', obio_ij)
         call read_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+#ifdef obio_rhsdiags
+        call read_dist_data(ogrid, fid, 'rhs_ijl', rhs_ijl)
+#endif
       else
         call write_dist_data(ogrid, fid, 'obio_ij', obio_ij)
         call write_dist_data(ogrid, fid, 'obio_ijl', obio_ijl)
+#ifdef obio_rhsdiags
+        call write_dist_data(ogrid, fid, 'rhs_ijl', rhs_ijl)
+#endif
       end if
 
       end subroutine new_io_obio_diag
@@ -375,6 +412,9 @@ C endif
         if (am_i_root()) then
           call merge_cdl(cdl_lons, cdl_lats, cdl_ij)
           call merge_cdl(cdl_ij, cdl_depths, cdl_ijl)
+#ifdef obio_rhsdiags
+          call merge_cdl(cdl_ij, cdl_depths, cdl_rhs_ijl)
+#endif
           
         do k=1, sname_ij%getsize()
             call add_var(cdl_ij,
@@ -389,11 +429,24 @@ C endif
      &         units=trim(units_ijl%at(k)),
      &         set_miss=.true.)
           enddo
+#ifdef obio_rhsdiags
+          do k=1, sname_rhs_ijl%getsize()
+            call add_var(cdl_rhs_ijl,
+     &         'float '//trim(sname_rhs_ijl%at(k))//'(zoc,lato,lono) ;',
+     &         long_name=trim(lname_rhs_ijl%at(k)),
+     &         units=trim(units_rhs_ijl%at(k)),
+     &         set_miss=.true.)
+          enddo
+#endif
         endif
         call defvar_cdl(ogrid, fid, cdl_ij,
      &                  'cdl_obio_ij(cdl_strlen,kcdl_obio_ij)')
         call defvar_cdl(ogrid, fid, cdl_ijl,
      &       'cdl_obio_ijl(cdl_strlen,kcdl_obio_ijl)')
+#ifdef obio_rhsdiags
+        call defvar_cdl(ogrid, fid, cdl_rhs_ijl,
+     &       'cdl_rhs_ijl(cdl_strlen,kcdl_rhs_ijl)')
+#endif
       endif
 
       call write_attr(ogrid, fid, 'obio_ij', 'reduction', 'sum')
@@ -413,6 +466,17 @@ C endif
      &            'scale_obio_ijl(kobio_ijl)')
       call defvar(ogrid, fid, sname_ijl%getdata(),
      &            'sname_obio_ijl(sname_strlen,kobio_ijl)')
+
+#ifdef obio_rhsdiags
+      call write_attr(ogrid, fid, 'rhs_ijl', 'reduction', 'sum')
+      call write_attr(ogrid, fid, 'rhs_ijl', 'split_dim', 4)
+      call defvar(ogrid, fid, ia_rhs_ijl%getdata(),
+     &            'ia_rhs_ijl(krhs_ijl)')
+      call defvar(ogrid, fid, scale_rhs_ijl%getdata(),
+     &            'scale_rhs_ijl(krhs_ijl)')
+      call defvar(ogrid, fid, sname_rhs_ijl%getdata(),
+     &            'sname_rhs_ijl(sname_strlen,krhs_ijl)')
+#endif
 
       end subroutine def_meta_obio_diag
 
@@ -437,6 +501,17 @@ C endif
       if (associated(cdl_lons))
      &      call write_cdl(ogrid, fid, 'cdl_obio_ijl', cdl_ijl)
 
+#ifdef obio_rhsdiags
+      call write_data(ogrid, fid,
+     .                       'ia_rhs_ijl', ia_rhs_ijl%getdata())
+      call write_data(ogrid, fid,
+     .                       'scale_rhs_ijl', scale_rhs_ijl%getdata())
+      call write_data(ogrid, fid,
+     .                       'sname_rhs_ijl', sname_rhs_ijl%getdata())
+      if (associated(cdl_lons))
+     &      call write_cdl(ogrid, fid, 'cdl_rhs_ijl', cdl_rhs_ijl)
+#endif
+
       end subroutine write_meta_obio_diag
 
 
@@ -445,6 +520,9 @@ C endif
 
       obio_ij=0.
       obio_ijl=0.
+#ifdef obio_rhsdiags
+      rhs_ijl=0.
+#endif
 
       end subroutine reset_obio_diag
 
@@ -707,19 +785,6 @@ c**** Extract domain decomposition info
      &              "mg,C/m2/day", .false., IJ_pp3)
       call add_diag("PP-cocc", "oij_pp4",
      &              "mg,C/m2/day", .false., IJ_pp4)
-      do nt=1, 4
-        do ilim=1, 5
-          write(str1, '(A1,A3,I1)') lim_sym(nt), 'lim', ilim
-          call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
-        end do
-      end do
-      do nt=1, ntrac
-        do ll=1, 17
-          write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
-          call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
-        end do
-      end do
-
 #ifdef OBIO_RUNOFF
 !      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
 !     &               "kg/s", IJ_rnitrmflo)

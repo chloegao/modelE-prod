@@ -99,6 +99,11 @@ c  P(9) = herbivores (mg chl m-3)
 c  Start Model Space Loop
 !      m = indext2     !index of "past" (t-1)
 
+! River runoff applied
+#ifdef OBIO_RUNOFF
+      call obio_rivers(vrbos)
+#endif
+
 !Iron + atm iron: disperse in layer and convert to nM
 !we do not need to multiply this by pnoice, because iron
 !is deposited over ice and presumably when ice melts will enter
