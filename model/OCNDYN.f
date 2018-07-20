@@ -316,6 +316,7 @@
       USE OCEAN, only : oDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
+      use model_com, only : nday,nssw
       use ocean, only : ntrtrans,motr
       Use OCEAN, Only: oc_tracer_mean
       Use OCN_TRACER_COM, Only: tracerlist, ocn_tracer_entry
@@ -806,6 +807,18 @@ c-------------------------------------------------------------------
 c End ocean-processors-only code region
       endif ocean_processors_only
 c-------------------------------------------------------------------
+
+#ifdef TRACERS_OCEAN
+      ! Sanity checks on tracer transport timestep.
+      if(mod(nday,ntrtrans).ne.0) then
+        call stop_model('mod(nday,ntrtrans).ne.0',255)
+      endif
+      ! The following requirement avoids the need to save
+      ! partial mass flux accumulations in the restart file.
+      if(mod(nssw,ntrtrans).ne.0) then
+        call stop_model('mod(nssw,ntrtrans).ne.0',255)
+      endif
+#endif
 
 #ifdef CUBED_SPHERE
       call read_xgrid_file(xA2O_root,
@@ -1537,8 +1550,6 @@ C****
       USE OCEANR_DIM, only : grid=>ogrid
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
-      use ocnmeso_com, only : use_tdmix
-      use ocean, only : ntrtrans,motr,asmu,asmv,asmw
 #endif
       use pario, only : defvar
       use domain_decomp_1d, only : getDomainBounds
@@ -1597,14 +1608,6 @@ c straits arrays
       call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
       endif
 #ifdef TRACERS_OCEAN
-
-      if(ntrtrans.gt.1) then
-      call defvar(grid,fid,motr,'motr(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,asmu,'asmu(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,asmv,'asmv(dist_imo,dist_jmo,lmo)')
-      call defvar(grid,fid,asmw,'asmw(dist_imo,dist_jmo,lmo)')
-      endif
-
 c tracer arrays
       do n=1,tracerlist%getsize()
         entry=>tracerlist%at(n)
@@ -1645,9 +1648,6 @@ c tracer arrays in straits
 #endif
 #endif
 
-#ifdef TRACERS_OCEAN
-      if(use_tdmix==1) call def_rsf_tdmix(fid)
-#endif
       call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
      &               j_strt_halo=j_0h,j_stop_halo=j_1h)
       allocate(arrdum(i_0h:i_1h,j_0h:j_1h))
@@ -1679,8 +1679,6 @@ c tracer arrays in straits
      &     write_data,read_data
 #ifdef TRACERS_OCEAN
       Use OCN_TRACER_COM, Only : tracerlist, ocn_tracer_entry
-      use ocnmeso_com, only : use_tdmix
-      use ocean, only : ntrtrans,motr,asmu,asmv,asmw
 #endif
       use domain_decomp_1d, only : getDomainBounds
       implicit none
@@ -1741,14 +1739,6 @@ c straits arrays
         call write_data(grid,fid,'ssist',ssist)
         endif
 #ifdef TRACERS_OCEAN
-
-        if(ntrtrans.gt.1) then
-          call write_dist_data(grid,fid,'motr',motr)
-          call write_dist_data(grid,fid,'asmu',asmu)
-          call write_dist_data(grid,fid,'asmv',asmv)
-          call write_dist_data(grid,fid,'asmw',asmw)
-        endif
-
 c tracer arrays
         do n=1,tracerlist%getsize()
           entry=>tracerlist%at(n)
@@ -1844,14 +1834,6 @@ c straits arrays
         call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
         endif
 #ifdef TRACERS_OCEAN
-
-        if(ntrtrans.gt.1) then
-          call read_dist_data(grid,fid,'motr',motr)
-          call read_dist_data(grid,fid,'asmu',asmu)
-          call read_dist_data(grid,fid,'asmv',asmv)
-          call read_dist_data(grid,fid,'asmw',asmw)
-        endif
-
 c tracer arrays
         do n=1,tracerlist%getsize()
           entry=>tracerlist%at(n)
@@ -1889,10 +1871,6 @@ c tracer arrays in straits
         endif
 #endif
       end select
-
-#ifdef TRACERS_OCEAN
-      if(use_tdmix==1) call new_io_tdmix(fid,iaction)
-#endif
 
 #ifdef TRACERS_OceanBiology
       call new_io_obio(fid,iaction)
