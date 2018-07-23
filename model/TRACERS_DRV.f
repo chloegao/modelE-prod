@@ -3673,6 +3673,7 @@ c find indices of denominators
       use OldTracer_mod, only: trname,max_len_name
       USE TRACER_COM, only: ntm
       use rad_com, only: nraero_aod,ntrix_aod
+      use ghgmod, only: save_dQ_for_NINT
 #ifdef TRACERS_ON
       USE TRDIAG_COM
 #endif /* TRACERS_ON */
@@ -3965,6 +3966,28 @@ C**** 3D tracer-related arrays but not attached to any one tracer
      &    ijlt_diag(sname='NO2_vmr',
      &              lname='NO2 mixing ratio',
      &              units='V/V air', power=-10) ! to match NOx
+      if(save_dQ_for_NINT==1) then
+        ijlt_dQ=
+     &    ijlt_diag(sname='dQ',
+     &              lname='total chem water change',
+     &              units='kg/kg air')
+        ijlt_dQoh=
+     &    ijlt_diag(sname='dQoh',
+     &              lname='CH4+OH chem water change',
+     &              units='kg/kg air')
+        ijlt_dQo1d=
+     &    ijlt_diag(sname='dQo1d',
+     &              lname='CH4+O1D chem water change',
+     &              units='kg/kg air')
+        ijlt_dQcl=
+     &    ijlt_diag(sname='dQcl',
+     &              lname='CH4+Cl chem water change',
+     &              units='kg/kg air')
+        ijlt_dQsf3=
+     &    ijlt_diag(sname='dQsf3',
+     &              lname='photolysis related chem water change',
+     &              units='kg/kg air')
+      end if
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \

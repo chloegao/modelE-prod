@@ -16,8 +16,10 @@ C
      &     ,jls_OxpT,jls_OxdT,jls_Oxp,jls_Oxd,jls_COp,jls_COd
      &     ,ijlt_OHvmr,ijlt_OHconc
      &     ,ijlt_HO2,ijlt_COp,ijlt_COd,ijlt_Oxd,ijlt_Oxp,ijlt_CH4d
-     &     ,ijlt_OxpRO2
-     &     ,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+     &     ,ijlt_OxpRO2,jls_ClOcon,jls_H2Ocon,jls_H2Ochem
+      use GHGMOD, only: save_dQ_for_NINT
+      use trdiag_com, only : ijlt_dQ,ijlt_dQoh,ijlt_dQo1d,ijlt_dQcl,
+     &                       ijlt_dQsf3
 #ifdef TRACERS_ACETONE
       USE TRDIAG_COM, only : jls_AcetP, jls_AcetD
       USE TRACER_COM, only : n_Acetone
@@ -142,6 +144,7 @@ C**** Local parameters and variables and arguments:
       real*8, allocatable, dimension(:) :: rMAbyM,sv_changeN2O,
      & changeH2O,dQ,dQM,fraQ2,c2ml,conOH,conClO,conH2O,NprodOx_pos,
      & NprodOx_neg ! Oxcorr,
+      real*8, allocatable, dimension(:) :: dQo1d,dQoh,dQcl,dQsf3
       real*8, dimension(LM) :: PRES ! for consistency with elsewhere, I keep this LM
 !      real*8, parameter :: rCOplusO1D=1.d-9
       real*8, parameter :: chemtiny=1.d-12
@@ -157,13 +160,19 @@ C**** Local parameters and variables and arguments:
       integer :: idx
 
       call getDomainBounds(grid, J_STRT    =J_0,  J_STOP    =J_1)
-      
+
       jay = (J >= J_0 .and. J <= J_1) 
-     
+
       allocate( rMAbyM(maxL) )
       allocate( sv_changeN2O(maxL) )
       allocate( changeH2O(maxL) )
       allocate( dQ(maxL) )
+      if (save_dQ_for_NINT==1) then
+        allocate( dQo1d(maxL) )
+        allocate( dQoh(maxL) )
+        allocate( dQcl(maxL) )
+        allocate( dQsf3(maxL) )
+      end if
       allocate( dQM(maxL) )
       allocate( fraQ2(maxL) )
       allocate( c2ml(maxL) )
@@ -1082,7 +1091,7 @@ C       --- Q --- :
         dQ(L) = changeH2O(L)/(y(nM,L)*MWabyMWw)
         dQM(L) = dQ(L)*ma(L)
         if(clim_interact_chem > 0)then
-          fraQ2(l)=(qv(L)+changeH2O(L)/(y(nM,L)*MWabyMWw))/qv(L)
+          fraQ2(l)=(qv(L)+dQ(L))/qv(L)
           call update_qv(l,qv(L)+dQ(L))
 C       -- Qmom --:
           if(changeH2O(L) < 0.)then
@@ -1104,6 +1113,24 @@ C     -- diags --:
         do it=1,ntype
           call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
         end do
+        if (save_dQ_for_NINT==1) then
+          dQo1d(L)=(2.d0*y(nn_CH4,L)*
+     &       rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
+     &       )*dt2/(y(nM,L)*MWabyMWw)
+          dQoh(L)=(2.d0*y(nn_CH4,L)*
+     &       rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
+     &       )*dt2/(y(nM,L)*MWabyMWw)
+          dQcl(L)=(2.d0*y(nn_CH4,L)*
+     &       rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nCl,L)
+     &       )*dt2/(y(nM,L)*MWabyMWw)
+          dQsf3(L)=(-SF3(L)*y(nH2O,L)
+     &       )*dt2/(y(nM,L)*MWabyMWw)
+          taijls(i,j,L,ijlt_dQ)=taijls(i,j,L,ijlt_dQ)+dQ(L)
+          taijls(i,j,L,ijlt_dQo1d)=taijls(i,j,L,ijlt_dQo1d)+dQo1d(L)
+          taijls(i,j,L,ijlt_dQoh)=taijls(i,j,L,ijlt_dQoh)+dQoh(L)
+          taijls(i,j,L,ijlt_dQcl)=taijls(i,j,L,ijlt_dQcl)+dQcl(L)
+          taijls(i,j,L,ijlt_dQsf3)=taijls(i,j,L,ijlt_dQsf3)+dQsf3(L)
+        end if
 #ifdef TRACERS_WATER
 C     -- water tracers --:
         do n=1,ntm
@@ -2299,6 +2326,12 @@ C**** special diags not associated with a particular tracer
       deallocate( changeH2O )
       deallocate( dQ )
       deallocate( dQM )
+      if (save_dQ_for_NINT==1) then
+        deallocate( dQo1d )
+        deallocate( dQoh )
+        deallocate( dQcl )
+        deallocate( dQsf3 )
+      end if
       deallocate( fraQ2 )
       deallocate( c2ml )
       deallocate( conOH )

@@ -242,6 +242,12 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs,ijlt_O3ppbv
      & ,ijlt_O3cmatm
      & ,ijlt_clrsky2d=0
+!@var ijlt_dQ water change, shindell chem
+!@var ijlt_dQoh water change, shindell chem from OH+CH4
+!@var ijlt_dQo1d water change, shindell chem from O1D+CH4
+!@var ijlt_dQcl water change, shindell chem from Cl+CH4
+!@var ijlt_dQsf3 water change, shindell chem, photolysis-related
+      integer :: ijlt_dQ,ijlt_dQoh,ijlt_dQo1d,ijlt_dQcl,ijlt_dQsf3
 !@var ijlt_aH2O aerosol H2O from thermodynamics (ug/m3)
 !@var ijlt_apH aerosol pH from thermodynamics (dimensionless)
       integer :: ijlt_aH2O,ijlt_apH

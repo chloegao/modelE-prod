@@ -423,6 +423,15 @@
       use resolution, only : lm_gcm=>lm
       implicit none
 
+!@dbparam save_dQ_for_NINT saves 3D humidity change from chemistry and
+!@+ its components, if set to 1
+      integer :: save_dQ_for_NINT = 1
+!@dbparam apply_offline_dQ_to_NINT if gt 0 read offline delta humidity
+!@+ and applied to Q: Alternative to H2ObyCH4. 0 = don't do, 1: Q=Q+dQ
+!@+ where dQ is Q units, 2: Q=Q+dQ*CH4, where dQ is Q units per unit CH4
+!@+ from the rad code, 3: Q=Q+parameterization of dQ from separate
+!@+ chemistry reactions.
+      integer :: apply_offline_dQ_to_NINT = 0
 !@var ppmv_to_cm_at_stp Conversion factor for conversion from PPMV to cm at
 !                       STP. Also needs an additional factor dP for the
 !                       conversion.
@@ -789,6 +798,35 @@ C****
       END SUBROUTINE GETGAS
 
       end module ghgmod
+
+
+      subroutine apply_dQ
+      use ghgmod, only: apply_offline_dQ_to_NINT
+      use rad_com, only: H2ObyCH4, clim_interact_chem
+
+      implicit none
+
+      ! can't these param syncs just be done once?
+      call sync_param(
+     &  "apply_offline_dQ_to_NINT",apply_offline_dQ_to_NINT)
+      call sync_param("H2ObyCH4",H2ObyCH4)
+      call sync_param("clim_interact_chem",clim_interact_chem)
+
+      if(apply_offline_dQ_to_NINT.ne.0)then ! otherwise skip rest of routine
+
+        if(H2ObyCH4 > 0)then
+          call stop_model(
+     &    "H2ObyCH4 and apply_offline_dQ_to_NINT both nonzero.",255)
+        end if
+        if(clim_interact_chem > 0)then
+          call stop_model(
+     &    "clim_interact_chem & apply_offline_dQ_to_NINT nonzero.",255)
+        end if
+
+      end if
+      return
+      end subroutine apply_dQ
+
 
       SUBROUTINE GTREND(XNOW,TNOW)
 C
