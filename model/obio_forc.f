@@ -19,6 +19,9 @@
       real, parameter ::  tirrq_critical=10. !in quanta threshold at compensation depth
       real rmud               !downwelling irradiance average cosine
       real rhosrf             !surface air density which comes from PBL.f
+#ifdef OBIO_RUNOFF
+      real river_runoff       
+#endif
 
 #ifdef STANDALONE_OCEAN
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda_glob,Esa_glob       !direct,diffuse downwelling irradiance

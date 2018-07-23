@@ -90,15 +90,15 @@ C**** Latitude-longitude by layer concentration
         end do
 !$OMP END PARALLEL DO
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
-!$OMP PARALLEL DO PRIVATE (L)                                                                                                            
-      if (ijlt_3Dmass(n).gt.0) then ! Ron: 3D mass distribution 
+!$OMP PARALLEL DO PRIVATE (L)
+      if (ijlt_3Dmass(n).gt.0) then ! Ron: 3D mass distribution
          do l=1,lm
             taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) =
      *      taijls(:,J_0:J_1,l,ijlt_3Dmass(n)) +
      *      trm   (:,J_0:J_1,l,            n )
            end do
         endif
-!$OMP END PARALLEL DO                                                                                                            
+!$OMP END PARALLEL DO
 # endif /* accumulate aerosol 3Dmass (Ron) */
       end if
 C**** Average concentration; surface concentration; total mass
@@ -188,7 +188,7 @@ c**** Accumulate difference from last time in TCONSRV(NM)
         if (m.gt.1) then
           tconsrv(J_0b:J_1b,nm,nt) =
      &         tconsrv(J_0b:J_1b,nm,nt)+(totalj(J_0b:J_1b)
-     *         -tconsrv(J_0b:J_1b,ni,nt)) 
+     *         -tconsrv(J_0b:J_1b,ni,nt))
         end if
 C**** Save current value in TCONSRV(NI)
         tconsrv(J_0b:J_1b,ni,nt)=totalj(J_0b:J_1b)
@@ -468,13 +468,13 @@ C**** No need to save current value
       USE MODEL_COM, only:
      &     idacc,jhour0,jdate0,amon,amon0,
      &     jyear0,nday,itime,itime0,xlabel,lrunid
-      USE CONSTANT, only: areag 
+      USE CONSTANT, only: areag
       use OldTracer_mod, only: itime_tr0
       USE TRACER_COM, only: NTM
       USE TRDIAG_COM, only:
      &     TCONSRV,ktcon,scale_tcon,title_tcon,nsum_tcon,ia_tcon,nofmt,
      &     lname_tconsrv,name_tconsrv,units_tconsrv,
-     &     natmtrcons,nocntrcons 
+     &     natmtrcons,nocntrcons
       USE DIAG_COM, only: inc=>incj,kdiag,qdiag
      &     ,jm=>jm_budg,dxyp_budg,lat_budg
       USE GC_COM, only : jeq
@@ -519,7 +519,7 @@ C****
 C**** Outer loop over tracers
 C****
       ktcon_max=0
-      DO 900 N=1,natmtrcons+nocntrcons 
+      DO 900 N=1,natmtrcons+nocntrcons
 C**** CALCULATE SUM OF CHANGES
 C**** LOOP BACKWARDS SO THAT INITIALIZATION IS DONE BEFORE SUMMATION!
       DO J=1,JM
@@ -1363,8 +1363,8 @@ C****
       USE DIAG_COM_RAD, only : ij_cldcv
       USE TRDIAG_COM, only : taijn, taijs, sname_tij, lname_tij,
      *     units_tij, scale_tij, tij_mass, lname_ijts,  sname_ijts,
-     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs, 
-     *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec, 
+     *     units_ijts,  scale_ijts,  ia_ijts, ktaij, ktaijs,
+     *     tij_drydep, tij_gsdep, tij_surf, tij_grnd, tij_prec,
      *     tij_uflx, tij_vflx, denom_ijts, ijts_clrsky,
      *     ijts_pocean, denom_tij, dname_tij
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
@@ -1548,7 +1548,7 @@ C**** Be7/Pb210
         irange(k) = ir_0_180
         iacc(k) = ia_srf
         iord(k) = 2
-        scale(k) = 1.d0 
+        scale(k) = 1.d0
         aij1(:,:,k) = taijn(:,:,tij_surf,n_Be7) !numerator
 C*** scale by (Be7decay/mm_Be7)/(Pb210decay/mm_Pb210) to convert to mBq
         aij1(:,:,k)=aij1(:,:,k)*trdecay(n_Be7)*tr_mm(n_Pb210)
@@ -1852,7 +1852,7 @@ C**** Fill in maplet indices for tracer concentrations
         end do
       end do
 
-C**** Fill in maplet indices for 3D tracer specials 
+C**** Fill in maplet indices for 3D tracer specials
       do kx=1,ktaijl
         if (index(lname_ijlt(kx),'unused').gt.0) cycle
         k = k+1
@@ -1925,7 +1925,7 @@ C**** water vapour
                 aijl2(i,j,l,k)=0.
               end if
             end do
-          end do             
+          end do
         end do
       end if
 #endif
@@ -1959,7 +1959,7 @@ c**** Find, then display the appropriate array
      *         ,smapj,gm,jgrid,scale(nn),iacc(nn),irange(nn),name(nn)
      *         ,lname(nn),units(nn))
           titlel(l)=trim(lname(nn))//' Level '//clev(l)//' ('/
-     *         /trim(units(nn))//')' 
+     *         /trim(units(nn))//')'
           call maptxt(smap,smapj,gm,irange(nn),titlel(l),line,kcolmn
      *         ,nlines)
         end if
@@ -1981,10 +1981,10 @@ C**** for every diag, output all levels at once
       end do
 
       if(qdiag) call close_ijl
-      
+
       deallocate(aijl1,aijl2)
       RETURN
-C**** 
+C****
   902 FORMAT ('0',15X,'From:',I6,A6,I2,',  Hr',I3,
      *  6X,'To:',I6,A6,I2,', Hr',I3,'  Model-Time:',I9,5X,
      *  'Dif:',F7.2,' Days')

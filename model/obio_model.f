@@ -16,6 +16,9 @@
      .                    ,alk
      .                    ,tirrq3d
      .                    ,surfN
+#ifdef OBIO_RUNOFF
+     .                    ,river_runoff
+#endif
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
      .                    ,gcmax1d,atmFe_ij,covice_ij
@@ -40,6 +43,14 @@
 #ifdef TRACERS_Ocean_O2
      .                    ,o21d
 #endif
+#ifdef OBIO_RUNOFF
+     .                    ,rnitrconc_loc,rdicconc_loc,rdocconc_loc
+     .                    ,rsiliconc_loc,rironconc_loc,rpocconc_loc
+     .                    ,ralkconc_loc
+     .                    ,rnitrconc,rdicconc,rdocconc
+     .                    ,rsiliconc,rironconc,rpocconc
+     .                    ,ralkconc
+#endif
       use obio_com, only: caexp
       use obio_com, only: build_ze
 
@@ -53,17 +64,25 @@
       USE obio_diag, only : ij_pCO2,ij_dic,ij_nitr,ij_diat
      .                 ,ij_amm,ij_sil,ij_chlo,ij_cyan,ij_cocc,ij_herb
      .                 ,ij_doc,ij_iron,ij_alk,ij_Ed,ij_Es,ij_pp,ij_dayl
-     .                 ,ij_cexp,ij_lim,ij_sink,ij_setl,ij_ndet,ij_xchl
+     .                 ,ij_cexp,ij_sink,ij_setl,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .                 ,ij_rhs,ij_flux,ij_fca
+     .                 ,ij_flux,ij_fca
 #ifdef TRACERS_Ocean_O2
      .                 ,ij_o2
+#endif
+#ifdef OBIO_RUNOFF
+     .                 ,ij_rnitrconc !,ij_rnitrmflo
+     .                 ,ij_rdicconc,ij_rdocconc,ij_rsiliconc
+     .                 ,ij_rironconc,ij_rpocconc,ij_ralkconc
 #endif
 
       USE obio_diag, only : oijl=>obio_ijl,ijl_avgq,ijl_kpar,
      .                            ijl_kpar_em2d,ijl_dtemp,ijl_rhs3
-     .                           ,ijl_wss
+     .                           ,ijl_wss,ijl_wsdet
+     .                           ,ijl_pp
+     .                           ,ijl_lim1,ijl_lim2,ijl_lim3
+     .                           ,ijl_lim4,ijl_lim5
       use ocalbedo_mod, only: ocalbedo
       USE MODEL_COM, only: modelEclock
      . ,itime,iyear1,aMON,
@@ -73,8 +92,10 @@
       USE FILEMANAGER, only: openunit,closeunit,file_exists
       USE obio_com, only : co2flux
       use obio_com, only: ze
-      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID
+      USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID,GLOBALSUM
+     .                           ,broadcast
       use TimerPackage_mod
+      use OCEAN, only: oxyp
       use obio_diag, only: reset_obio_diag
       use runtimecontrols_mod, only: constco2
 
@@ -85,6 +106,10 @@
       USE OCEANR_DIM, only : ogrid
       USE OCEANRES,   only : kdm=>lmo,dzo
       USE OFLUXES,    only : oice=>oRSI,oAPRESS,ocnatm
+#ifdef OBIO_RUNOFF
+      USE OFLUXES, only:  oFLOWO
+#endif
+
 #ifdef NO_REDIAG_OCNSTATE
       ! Deliberately not taking layer thickness information, for reasons
       ! related to upcoming commits.
@@ -105,7 +130,8 @@
 #ifdef TRACERS_Alkalinity
      .  ,ij_co3
 #endif
-#else
+
+#else   /* HYCOM */
       USE hycom_dim, only: ogrid,im=>idm,jm=>jdm,kdm,ntrcr
       USE hycom_arrays, only: tracer_h=>tracer,dpinit,temp,saln,oice
      .                            ,p,dpmixl,latij,lonij,scp2
@@ -115,7 +141,6 @@
      .     pCO2av_loc,pp2tot_dayav_loc,cexpav_loc,caexpav_loc,
      .     pp2diat_dayav_loc,pp2chlo_dayav_loc,pp2cyan_dayav_loc,
      .     pp2cocc_dayav_loc,pHav,pHav_loc
-
       USE obio_com, only: diag_counter,phav_loc
       use GEOM, only: dlatm
       use hycom_atm, only : ocnatm
@@ -147,6 +172,11 @@
       real*8 temgs,g,s,temgsp,pres
 #endif
       real*8 time,dtr,ftr,rho_water
+#ifdef OBIO_RUNOFF
+      REAL*8, DIMENSION(IM,ogrid%J_STRT_HALO:ogrid%J_STOP_HALO)::
+     .        oflow_river
+      REAL*8 :: totalriverflow
+#endif
 #else
       integer :: n_abioDIC,
      &           lmm(im,ogrid%j_strt_halo:ogrid%j_stop_halo)
@@ -202,8 +232,10 @@ c
       !nstep0>0 : warm initialization, is the timestep of current restart run
       !nstep    : current timestep   
 
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) print*, 'nstep,nstep0 =',
      .         nstep,nstep0
+#endif
 
       call build_ze
       if (nstep0==0) then
@@ -276,6 +308,7 @@ c
       j_0=ogrid%J_STRT
       j_1=ogrid%J_STOP
 
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) then
 #ifdef OBIO_ON_GISSocean
       write(*,'(a,2i5,2e12.4)')'TEST POINT at: ',itest,jtest,
@@ -285,11 +318,13 @@ c
      .      latij_glob(itest,jtest,3),lonij_glob(itest,jtest,3)
 #endif
        endif
-
+#endif /* not OBIO_QUIET_MODE */
        call sync_param( "solFe", solFe)
+#ifndef OBIO_QUIET_MODE
        if (AM_I_ROOT()) print*, 'solfe=',solFe
 
        if (AM_I_ROOT()) print*, 'using QUS?=',USE_QUS
+#endif /* not OBIO_QUIET_MODE */
 !--------------------------------------------------------
 
        day_of_month=date
@@ -306,13 +341,14 @@ c
        !else
        !  hour_of_day=hour_of_day+1
        !endif
- 
+
+#ifndef OBIO_QUIET_MODE
       if (AM_I_ROOT()) then
        write(*,'(a,i15,1x,f9.3,2x,3i5)')
      .    'BIO: nstep,time,day_of_month,hour_of_day,dayOfYear=',
      .    nstep,time,day_of_month,hour_of_day,dayOfYear
       endif
-
+#endif /* not OBIO_QUIET_MODE */
         !ihr0 = int(hour_of_day/2)
          ihr0 = nint((hour_of_day+1)/2.)
 
@@ -320,12 +356,13 @@ c
       if (diagno_bio) then
       endif  !diagno_bio
 
+#ifndef OBIO_QUIET_MODE
 #ifdef OBIO_ON_GISSocean
       if (AM_I_ROOT())
      .   write(*,'(/,a,2i5,2e12.4)')'obio_model, test point=',
      .      itest,jtest,oLON_DG(itest,1),oLAT_DG(jtest,1)
 #endif
-
+#endif /* not OBIO_QUIET_MODE */
       !print out tracer integrals just before main loop
 
 #ifndef OBIO_ON_GISSocean     /* HYCOM only */
@@ -334,6 +371,17 @@ c
 
       if ((dayofyear==1+jdendofm(month-1)).and.
      &       modeleclock%isbeginningofday()) call reset_obio_diag
+
+#ifdef OBIO_RUNOFF
+!compute riverflow globalsum
+      !kg/m2 -> kg
+      oflow_river = oFLOWO(:,:)*oXYP(:,:)
+      call GLOBALSUM(ogrid, oflow_river, totalriverflow, ALL=.true.)
+      if (AM_I_ROOT()) then
+        write(6,*) "Total River Flow into Ocean: ",totalriverflow
+      end if
+      call broadcast(ogrid, totalriverflow)
+#endif
 
       call start('  obio main loop')
 
@@ -613,6 +661,19 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
      .   nstep,i,j,solz,sunz,wind,atmFe_ij
        endif
 
+#ifdef OBIO_RUNOFF
+       river_runoff=oFLOWO(i,j)
+       rnitrconc = rnitrconc_loc(i,j)
+       rsiliconc = rsiliconc_loc(i,j)
+       rironconc = rironconc_loc(i,j)
+       rpocconc  = rpocconc_loc(i,j)
+       rdocconc  = rdocconc_loc(i,j)
+       rdicconc  = rdicconc_loc(i,j)
+#ifdef TRACERS_Alkalinity
+       ralkconc  = ralkconc_loc(i,j)
+#endif
+#endif
+
 #ifdef Relax2SurfN
        if (vrbos) then
          write(*,'(/,a,3i5,e12.4)')'obio_model, surfN: ',
@@ -722,25 +783,7 @@ cdiag    enddo
 
 #endif
 
-      if (i.eq.140.and.j.eq.175) then     !Arctic Ocean
-         do ichan=1,nlt
-          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
-     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
-         enddo
-      endif
-            if (i.eq.114.and.j.eq.130) then    !North Atlantic
-         do ichan=1,nlt
-          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
-     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
-         enddo
-      endif
-      if (i.eq.1.and.j.eq.90) then             !Equatorial Pacific
-         do ichan=1,nlt
-          write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
-     .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
-         enddo
-      endif
-      if (i.eq.161.and.j.eq.39) then          !Southern Ocean at Drake P.
+      if (vrbos) then          
          do ichan=1,nlt
           write(*,'(a,5i5,3e12.4)')'obio_model, Eds:',
      .      nstep,i,j,ichan,ihr0,Ed(ichan),Es(ichan),tot
@@ -893,12 +936,15 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
         oij_pH=pHav_loc(i,j)
 #endif
        
+!       call check_sumcarbon(nstep,i,j,kmax,'check1')
+
         call obio_ptend(vrbos,kmax,i,j,kdm,nstep,n_co2n,
      &                 DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC,oij_pH
 #ifdef TRACERS_Alkalinity
      &                ,oij_co3
 #endif
      &                 )
+!       call check_sumcarbon(nstep,i,j,kmax,'check2')
 #ifdef OBIO_ON_GISSocean
 #ifdef TOPAZ_params
 #ifdef TRACERS_Alkalinity
@@ -933,6 +979,7 @@ cdiag  endif
        ddxypo=dxypo(j)
        call obio_sinksettl(vrbos,kmax,errcon,i,j,
      &                kdm,nstep,dtsrc,ddxypo)
+!      call check_sumcarbon(nstep,i,j,kmax,'check3')
        call obio_update(vrbos,kmax,i,j)
 #else
        !update biology from m to n level
@@ -1037,19 +1084,8 @@ c     endif
 
 c     call obio_chkbalances(vrbos,nstep,i,j)
 
-#ifdef OBIO_ON_GISSocean
-      do nt=1,ntrac
-      do ll=1,17
-      OIJ(I,J,IJ_rhs(nt,ll)) = OIJ(I,J,IJ_rhs(nt,ll))
-     .                                    + rhs_obio(i,j,nt,ll)  ! all terms in rhs
 #ifdef obio_rhsdiags
-      do k=1,kdm
-      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
-     .                                    + rhs(k,nt,ll)  ! all terms in rhs
-      enddo
-#endif
-      enddo
-      enddo
+      call save_rhs3_diags(nstep,I,J,kdm)
 #endif
 
       if (vrbos) then
@@ -1061,23 +1097,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        enddo
       endif
 
-
-!      if (i.eq.169 .and. j.eq.59) then  ! test loc at nile mouth
-!        write(*,'(a,17(e12.4,1x))') 'dic rhs = ',(rhs(1,14,ll),ll=1,17)
-!        write(*,'(a,17(e12.4,1x))') 'dic rhs_obio='
-!     .                   ,(rhs_obio(i,j,14,ll),ll=1,17)
-!        write(*,*) 'OIJ(I,J,IJ_rhs(14,17))=',OIJ(I,J,IJ_rhs(14,17))
-!      endif
-
-
-
-!      write(*,'(a,3i5,16(e12.4,1x))')'obio_model, ironrhs:',
-!     .  nstep,i,j,(rhs_obio(i,j,4,ll),ll=1,16)
-
-       !------------------------------------------------------------
-      !!if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc2:',
-!      if(vrbos) write(*,*)'obio_model, strac conc2:',
-!     .    obio_P(1,:),det(1,:),car(1,:)
 
        !update 3d tracer array
        do k=1,kmax
@@ -1204,7 +1223,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        OIJ(I,J,IJ_cyan) = OIJ(I,J,IJ_cyan) + tracer(i,j,1,7) ! surf ocean cyanobacteria
        OIJ(I,J,IJ_cocc) = OIJ(I,J,IJ_cocc) + tracer(i,j,1,8) ! surf ocean coccolithophores
        OIJ(I,J,IJ_herb) = OIJ(I,J,IJ_herb) + tracer(i,j,1,9) ! surf ocean herbivores
-       OIJ(I,J,IJ_pp) = OIJ(I,J,IJ_pp) + pp2tot_day(i,j)     ! surf ocean pp
+       OIJ(I,J,IJ_pp) = OIJ(I,J,IJ_pp) + pp2tot_day(i,j)     ! depth integrated pp
 
        OIJ(I,J,IJ_pp1) = OIJ(I,J,IJ_pp1) + pp2diat_day(i,j)  ! ocean pp from diatoms
        OIJ(I,J,IJ_pp2) = OIJ(I,J,IJ_pp2) + pp2chlo_day(i,j)  ! ocean pp from chlorophytes
@@ -1216,33 +1235,54 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        OIJ(I,J,IJ_pCO2)= OIJ(I,J,IJ_pCO2)+ pCO2_ij*(1.-oice(i,j)) ! surf ocean pco2
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
-       OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,4,10) ! ndet at 74m
-       OIJ(I,J,IJ_setl)= OIJ(I,J,IJ_setl)+ wsdet(4,1)          ! settl vel. n/cdet at 74m
-       OIJ(I,J,IJ_sink)= OIJ(I,J,IJ_sink)+ obio_ws(4,1)        ! sink. vel. phytoplankton
-       if (4<=kmax) then
+       OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,kzc,10) ! ndet at zc
+       OIJ(I,J,IJ_setl)= OIJ(I,J,IJ_setl)+ wsdet(kzc,1)          ! settl vel. n/cdet at kzc
+       OIJ(I,J,IJ_sink)= OIJ(I,J,IJ_sink)+ obio_ws(kzc,1)        ! sink. vel. phytoplankton
+       if (kzc<=kmax) then
          OIJ(I,J,IJ_xchl) = OIJ(I,J,IJ_xchl)
-     .              + tracer(i,j,4,5)*trmo_unit_factor(4,5)*obio_ws(4,1)
-     .              + tracer(i,j,4,6)*trmo_unit_factor(4,6)*obio_ws(4,1)
-     .              + tracer(i,j,4,7)*trmo_unit_factor(4,7)*obio_ws(4,1)
-     .              + tracer(i,j,4,8)*trmo_unit_factor(4,8)*obio_ws(4,1) !total phyto cexp at 74m
+     .       + tracer(i,j,kzc,5)*trmo_unit_factor(kzc,5)*obio_ws(kzc,1)
+     .       + tracer(i,j,kzc,6)*trmo_unit_factor(kzc,6)*obio_ws(kzc,1)
+     .       + tracer(i,j,kzc,7)*trmo_unit_factor(kzc,7)*obio_ws(kzc,1)
+     .       + tracer(i,j,kzc,8)*trmo_unit_factor(kzc,8)*obio_ws(kzc,1) !total phyto cexp at kzc
        else
          oij(i,j,ij_xchl)=0
        endif
 
-       !limitation diags surface only (for now)
-       k = 1
+       !3d pp diags
        do nt=1,nchl
-       do ilim=1,5
-       OIJ(I,J,IJ_lim(nt,ilim)) = OIJ(I,J,IJ_lim(nt,ilim)) 
-     .                          + flimit(k,nt,ilim) 
+       do k=1,kdm
+          OIJL(I,J,k,IJL_pp(nt)) = OIJL(I,J,k,IJL_pp(nt))
+     .                           + pp2_1d(k,nt)     !mg,C/m2/day 
        enddo
        enddo
 
-       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
+       !3d limitation diags
+       do nt=1,nchl
+       do k=1,kdm
+        OIJL(I,J,k,IJL_lim1(nt))=OIJL(I,J,k,IJL_lim1(nt))+flimit(k,nt,1)
+        OIJL(I,J,k,IJL_lim2(nt))=OIJL(I,J,k,IJL_lim2(nt))+flimit(k,nt,2)
+        OIJL(I,J,k,IJL_lim3(nt))=OIJL(I,J,k,IJL_lim3(nt))+flimit(k,nt,3)
+        OIJL(I,J,k,IJL_lim4(nt))=OIJL(I,J,k,IJL_lim4(nt))+flimit(k,nt,4)
+        OIJL(I,J,k,IJL_lim5(nt))=OIJL(I,J,k,IJL_lim5(nt))+flimit(k,nt,5)
+       enddo
+       enddo
 
+
+       !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
+       OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux      
+
+       !phyt. sinking speed in m/s
        do nt=1,nchl
        do k=1,kmax
-       OIJL(I,J,k,IJL_wss) = OIJL(I,J,k,IJL_wss) + obio_ws(k,nt) !  phyt. sinking vel. in m/s
+       OIJL(I,J,k,IJL_wss(nt)) = OIJL(I,J,k,IJL_wss(nt)) + obio_ws(k,nt)
+       enddo
+       enddo
+
+       !detr. sinking speed in m/s
+       do nt=1,ndet
+       do k=1,kmax
+       OIJL(I,J,k,IJL_wsdet(nt)) = OIJL(I,J,k,IJL_wsdet(nt))
+     .                           + wsdet(k,nt)
        enddo
        enddo
 
@@ -1258,7 +1298,19 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
          OIJ(I,J,IJ_o2) = OIJ(I,J,IJ_o2) 
      .          + tracer(i,j,1,nnut+nchl+nzoo+ndet+ncar+nalk+no2) ! surf ocean oxygen concentration
 #endif
+
+#ifdef OBIO_RUNOFF
+!      OIJ(I,J,IJ_rnitrmflo) = OIJ(I,J,IJ_rnitrmflo)+ rnitrmflo    ! riverine nitr mass flow from dC (kg/s)
+       OIJ(I,J,IJ_rnitrconc) = OIJ(I,J,IJ_rnitrconc)+ rnitrconc    ! riverine nitr conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdicconc) = OIJ(I,J,IJ_rdicconc)  + rdicconc     ! riverine dic conc from dC (kg/kg)
+       OIJ(I,J,IJ_rdocconc) = OIJ(I,J,IJ_rdocconc)  + rdocconc     ! riverine doc conc from dC (kg/kg)
+       OIJ(I,J,IJ_rsiliconc) = OIJ(I,J,IJ_rsiliconc)+ rsiliconc    ! riverine silica conc from dC (kg/kg)
+       OIJ(I,J,IJ_rironconc) = OIJ(I,J,IJ_rironconc)+ rironconc    ! riverine iron conc from dC (kg/kg)
+       OIJ(I,J,IJ_rpocconc) = OIJ(I,J,IJ_rpocconc)  + rpocconc     ! riverine poc conc from dC (kg/kg)
+       OIJ(I,J,IJ_ralkconc) = OIJ(I,J,IJ_ralkconc)  + ralkconc     ! riverine alkalinity conc from A-S (mol/kg)
 #endif
+
+#endif  /*OBIO_ON_GISSocean*/
 
 #ifndef OBIO_ON_GISSocean    /* HYCOM ACCUMULATED DIAGNOSTICS */
       ao_co2fluxav_loc(i,j)=ao_co2fluxav_loc(i,j) + co2flux
@@ -1289,3 +1341,69 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       return
 
       end subroutine obio_model
+
+
+
+      subroutine check_sumcarbon(nstep,i,j,kmax,chkpt)
+
+      USE obio_com,  only: obio_P,det,car,trmo_unit_factor
+
+      implicit none
+      integer, intent(in) :: nstep,i,j,kmax
+      character*6,intent(in) :: chkpt
+      real*8,save :: last = 0
+      real*8, dimension(kmax) :: diat,chlo,cyan,cocc,herb
+     .                          ,ndet,doc,dic,sumcarbon
+
+      !all units ->kg
+      !phyto
+      diat = obio_P(:,5) * trmo_unit_factor(:,5)
+      chlo = obio_P(:,6) * trmo_unit_factor(:,6)
+      cyan = obio_P(:,7) * trmo_unit_factor(:,7)
+      cocc = obio_P(:,8) * trmo_unit_factor(:,8)
+      !herb
+      herb = obio_P(:,9) * trmo_unit_factor(:,9)
+      !ndet
+      ndet = det(:,1) * trmo_unit_factor(:,10)
+      !doc
+      doc  = car(:,1) * trmo_unit_factor(:,13)
+      !dcc
+      dic  = car(:,2) * trmo_unit_factor(:,14)
+
+      sumcarbon  = (diat+chlo+cyan+cocc+herb)
+     .           + ndet
+     .           + (doc+dic)
+
+      write(*,'(2a,3i5,10e12.4)') 'sumcarbon (in kg) at ',chkpt,
+     .     nstep,i,j,
+     .     sum(diat),sum(chlo),sum(cyan),sum(cocc),sum(herb),
+     .     sum(ndet),sum(doc),sum(dic),
+     .     sum(sumcarbon),sum(sumcarbon)-last
+
+      last=sum(sumcarbon)
+
+      end subroutine check_sumcarbon
+
+#ifdef obio_rhsdiags
+      subroutine save_rhs3_diags(nstep,I,J,kdm)
+
+      USE obio_dim
+      USE obio_diag, only : oijl=>rhs_ijl,ijl_rhs3
+      USE obio_com,  only: rhs
+
+      implicit none
+      integer, intent(in) :: nstep,i,j,kdm
+      integer :: k,nt,ll
+
+      do nt=1,ntrac
+      do ll=1,17
+      do k=1,kdm
+      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+     .                            + rhs(k,nt,ll)  ! all terms in rhs
+      enddo
+      enddo
+      enddo
+
+      end subroutine save_rhs3_diags
+#endif
+

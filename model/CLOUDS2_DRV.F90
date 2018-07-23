@@ -66,7 +66,7 @@ subroutine CONDSE
        ij_mccvtp,ij_mccvbs,ij_precoo,ij_precsi,ij_precli,ij_precgr, &
        saveHCLDI,saveMCLDI,saveLCLDI,saveCTPI,saveTAUI,saveSCLDI, &
        saveTCLDI,saveMCCLDTP
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
   use DIAG_COM, only : hdiurn=>hdiurn_loc
 #endif
   use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi &
@@ -221,7 +221,7 @@ subroutine CONDSE
 
 #ifdef TRACERS_AMP
   use AMP_AEROSOL, only : AQsulfRATE
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
        use AMP_AEROSOL, only : DIURN_LWP, DIURN_LWC
 #endif
 #endif
@@ -925,7 +925,7 @@ subroutine CONDSE
               tmp(IDD_DMC) =+CLDDEPIJ
               tmp(IDD_SMC) =+CLDSLWIJ
               ADIURN(IDX1(:),KR,IH)=ADIURN(IDX1(:),KR,IH)+TMP(IDX1(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
               HDIURN(IDX1(:),KR,IHM)=HDIURN(IDX1(:),KR,IHM)+TMP(IDX1(:))
 #endif
             end if
@@ -1277,7 +1277,7 @@ subroutine CONDSE
             tmp(IDD_ECND)=+HCNDSS
             tmp(IDD_SSP) =+PRCPSS
             ADIURN(IDX2(:),KR,IH)=ADIURN(IDX2(:),KR,IH)+TMP(IDX2(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(IDX2(:),KR,IHM)=HDIURN(IDX2(:),KR,IHM)+TMP(IDX2(:))
 #endif
           end if
@@ -1378,7 +1378,7 @@ subroutine CONDSE
         AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
         AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
 #ifdef TRACERS_AMP
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
         DIURN_LWC(I,J,:) = (QCLX(:)+QCIX(:)) * AIRM(:)
         DIURN_LWP(I,J)   = WMSUM
 #endif
@@ -1811,7 +1811,7 @@ subroutine CONDSE
                     tmp(idd_wet)=+trprec(n,i,j)/Dtsrc
                     ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                          TMP(IDXD(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
                     HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+ &
                          TMP(IDXD(:))
 #endif
@@ -1870,7 +1870,7 @@ subroutine CONDSE
                   tmp(idd_wet)=+trprec_dust(n,i,j)/Dtsrc
                   ADIURN(IDXD(:),KR,IH)=ADIURN(IDXD(:),KR,IH)+ &
                        TMP(IDXD(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
                   HDIURN(IDXD(:),KR,IHM)=HDIURN(IDXD(:),KR,IHM)+ &
                        TMP(IDXD(:))
 #endif

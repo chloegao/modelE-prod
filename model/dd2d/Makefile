@@ -4,7 +4,7 @@
 SUPPORTED_OPTIONS = ESMF NC_IO
 
 FSRCS = cdl_mod.f timestream_mod.f
-F90SRCS = ParallelIo.F90
+F90SRCS = io_splitter.F90 ParallelIo.F90
 
 ifeq ($(NC_IO),PNETCDF)
 ifeq ($(MPI),YES)

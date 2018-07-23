@@ -22,7 +22,6 @@ Preprocessor Options
 !  OFF #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_DRYDEP           ! default dry deposition
 #define TRDIAG_WETDEPO           ! additional wet deposition diags for tracers
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 !  OFF #define TRACERS_SPECIAL_Shindell    ! includes drew's chemical tracers
 !  OFF #define AUXILIARY_OX_RADF ! radf diags for climatology or tracer Ozone
 !  OFF #define TRACERS_TERP                ! include terpenes in gas-phase chemistry

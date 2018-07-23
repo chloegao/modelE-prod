@@ -1422,7 +1422,7 @@ C**** Accumulate 3D subdaily quantities
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DIAG_COM, ONLY : idd_spr,idd_pt5,idd_q5
      &     ,ndiuvar,ndiupt,ijdd,adiurn=>adiurn_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
       implicit none
@@ -1458,7 +1458,7 @@ C**** For distributed implementation - ensure point is on local process.
               tmp(IDD_Q5+ii-1) =Q(I,J,ii)
             end do 
             ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
 #endif
           END IF
@@ -1966,7 +1966,7 @@ C****
       USE DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       USE DIAG_COM, ONLY :
      &      ndiuvar,ndiupt,ijdd,adiurn=>adiurn_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      *     ,hdiurn=>hdiurn_loc
 #endif
      *     ,idd_ts,idd_qs,idd_us,idd_vs,idd_ws,idd_dbl,idd_cm,idd_ch
@@ -2063,7 +2063,7 @@ C**** For distributed implementation - ensure point is on local process.
               tmp(idd_ldc)=DCLEV(I,J)
             endif
             ADIURN(idx6(:),kr,ih)=ADIURN(idx6(:),kr,ih)+tmp(idx6(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(idx6(:),kr,ihm)=HDIURN(idx6(:),kr,ihm)+tmp(idx6(:))
 #endif
           END IF

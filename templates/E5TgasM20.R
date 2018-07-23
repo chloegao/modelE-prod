@@ -11,7 +11,6 @@ sea level pressure filter applied every hour, UV-filter used
 Note: Some of these choices may be changed using the PARAMETERs below.
  
 Preprocessor Options
-#define NO_HDIURN                   ! no hdiurn diagnostics
 #define TRACERS_ON                  ! include tracers code
 #define TRACERS_WATER               ! include water tracers code
 ! #define TRACERS_DRYDEP              ! include tracer dry deposition

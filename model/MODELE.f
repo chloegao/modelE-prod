@@ -809,7 +809,7 @@ C****
      *     ,iyear1,itime,itimei,itimee
      *     ,idacc,modelEclock, modelEclockI
      *     ,aMONTH,aMON0
-     *     ,ioread,irerun,irsfic
+     *     ,ioread,ioread_acc,irerun,irsfic
      *     ,melse,Itime0,Jdate0
      *     ,Jhour0,rsf_file_name
      *     ,HOURI,DATEI,MONTHI,YEARI ,HOURE,DATEE,MONTHE,YEARE
@@ -1225,6 +1225,15 @@ C**** MUST be before other init routines
          call print_param( 6 )
          WRITE (6,'(A7,12I6)') "IDACC=",(IDACC(I),I=1,12)
       end if
+
+#ifdef DEFER_ACC_READ
+      if(istart.ge.10) then
+        ! Reading of diagnostic accmulation arrays deferred until
+        ! full metadata is known.
+        ! Todo: defer reading of most other arrays as well.
+        call io_rsf(rsf_file_name(kdisk_restart),itime,ioread_acc,ioerr)
+      endif
+#endif
 
 #ifdef CACHED_SUBDD
       ! Initialize subdaily diagnostics

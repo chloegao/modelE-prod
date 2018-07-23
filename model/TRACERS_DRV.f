@@ -292,7 +292,7 @@
       integer, pointer :: index=> null()
       class (AbstractAttribute), pointer :: pa
       class (Tracer), pointer :: pTracer,pTracerSrc
-      type (TracerSurfaceSource), pointer :: sources(:) 
+      type (TracerSurfaceSource), pointer :: sources(:)
 #endif
       type (TracerIterator) :: iter
       interface
@@ -690,7 +690,7 @@ c     Processes AMP Budget
 #ifdef TRACERS_TOMAS
 
         case ('SOAgas')
-!TOMAS - here needs lots of work~! 
+!TOMAS - here needs lots of work~!
           itcon_3Dsrc(1,n)=tr_con_diag('Microphysics change',T,T)
 
        case('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
@@ -728,15 +728,15 @@ c     Processes TOMAS Budget
           itcon_TOMAS(6,n)=tr_con_diag('Mk_Nk Fix',T)
           itcon_TOMAS(7,n)=tr_con_diag('Aeroupdate',T)
           itcon_subcoag(n)=tr_con_diag('subgrid coag',T)
-            
+
        select case (trim(pTracer%getName()))
 
          case ('ASO4__01','ASO4__02','ASO4__03','ASO4__04','ASO4__05',
      *        'ASO4__06','ASO4__07','ASO4__08','ASO4__09','ASO4__10',
      *        'ASO4__11','ASO4__12','ASO4__13','ASO4__14','ASO4__15')
-         
+
          itcon_3Dsrc(nVolcanic,n)=tr_con_diag('Volcanic src',T,T)
-         
+
          case ('AECOB_01','AECOB_02','AECOB_03','AECOB_04','AECOB_05',
      *        'AECOB_06','AECOB_07','AECOB_08','AECOB_09','AECOB_10',
      *        'AECOB_11','AECOB_12','AECOB_13','AECOB_14','AECOB_15',
@@ -745,7 +745,7 @@ c     Processes TOMAS Budget
      *        'AECIL_11','AECIL_12','AECIL_13','AECIL_14','AECIL_15')
 
           itcon_3Dsrc(nChemistry,n)=tr_con_diag('ECOB Aging',T,T)
-         
+
          case ('AOCOB_01','AOCOB_02','AOCOB_03','AOCOB_04','AOCOB_05',
      *        'AOCOB_06','AOCOB_07','AOCOB_08','AOCOB_09','AOCOB_10',
      *        'AOCOB_11','AOCOB_12','AOCOB_13','AOCOB_14','AOCOB_15',
@@ -759,13 +759,13 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
          case('ANACL_01','ANACL_02','ANACL_03','ANACL_04','ANACL_05',
      *        'ANACL_06','ANACL_07','ANACL_08','ANACL_09','ANACL_10',
      *        'ANACL_11','ANACL_12','ANACL_13','ANACL_14','ANACL_15')
-         
+
           itcon_surf(1,n)=tr_con_diag('2D src',T)
-         
+
          case('ANUM__01','ANUM__02','ANUM__03','ANUM__04','ANUM__05',
      *        'ANUM__06','ANUM__07','ANUM__08','ANUM__09','ANUM__10',
      *        'ANUM__11','ANUM__12','ANUM__13','ANUM__14','ANUM__15')
-         
+
           itcon_3Dsrc(nSO4anum,n)=tr_con_diag('SO4 3D src',T,T)
           itcon_3Dsrc(nECanum,n)=tr_con_diag('EC 3D src',T,T)
           itcon_3Dsrc(nOCanum,n)=tr_con_diag('OC 3D src',T,T)
@@ -774,7 +774,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
           itcon_surf(3,n)=tr_con_diag('2D src by OC',T)
           itcon_surf(4,n)=tr_con_diag('2D src by SS',T)
           itcon_surf(5,n)=tr_con_diag('2D src by DU',T)
-         
+
          case('ADUST_01','ADUST_02','ADUST_03','ADUST_04','ADUST_05',
      *        'ADUST_06','ADUST_07','ADUST_08','ADUST_09','ADUST_10',
      *        'ADUST_11','ADUST_12','ADUST_13','ADUST_14','ADUST_15')
@@ -857,7 +857,7 @@ c     - Species including TOMAS  emissions - 2D sources and 3D sources
       integer k,n,kk,ltop,n_src
       character*50 :: unit_string
       class (Tracer), pointer :: pTracer
-      type (TracerSurfaceSource), pointer :: sources(:) 
+      type (TracerSurfaceSource), pointer :: sources(:)
       type (TracerSurfaceSource), pointer :: SO2sources(:)
       type (TracerSurfaceSource), pointer :: AECOB01sources(:)
       type (TracerSurfaceSource), pointer :: AOCOB01sources(:)
@@ -896,7 +896,7 @@ C**** set defaults for some precip/wet-dep related diags
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       pTracer => tracers%getReference('SO2')
-      SO2sources => pTracer%surfaceSources     
+      SO2sources => pTracer%surfaceSources
 #endif
 #ifdef TRACERS_TOMAS
       pTracer => tracers%getReference('AECOB_01')
@@ -1126,7 +1126,7 @@ c        call layer1_init_jls(k,n,trname(n))
         jls_power(k) = 0
         units_jls(k) = unit_string(jls_power(k),'kg s-1')
 
-#endif 
+#endif
 
 #ifdef TRACERS_WATER
 C**** generic ones for many water tracers
@@ -2264,7 +2264,7 @@ c Oxidants
       character*50 :: unit_string
       CHARACTER*17 :: cform
       class (Tracer), pointer :: pTracer
-      type (TracerSurfaceSource), pointer :: sources(:) 
+      type (TracerSurfaceSource), pointer :: sources(:)
 
       interface
         integer function ijts_diag(sname,lname,units,ia,power,denom,
@@ -2295,7 +2295,7 @@ C**** Defaults for ijts (sources, sinks, etc.)
 #endif
 #ifdef TRACERS_TOMAS
       ijts_TOMAS(:,:)=0
-      ijts_subcoag(:)=0 
+      ijts_subcoag(:)=0
 #endif
 C**** This needs to be 'hand coded' depending on circumstances
       do n=1,NTM
@@ -2413,7 +2413,6 @@ C**** This needs to be 'hand coded' depending on circumstances
 ! Tracer-specific diagnostics !
 !=============================!
       select case (trname(n))
-
 
         case ('CFCn','CO2n')
           ijts_isrc(1,n)=
@@ -2980,7 +2979,7 @@ c put in production of SO4 from gas phase
      *                'kg m-2 s-1', power=-12,
      *                scalediv=dtsrc)
         end select
-        
+
         select case(trname(n))
         case('ASO4__01','ANACL_01','AECOB_01','AECIL_01',
      &       'AOCOB_01','AOCIL_01','ADUST_01')
@@ -2994,8 +2993,8 @@ c put in production of SO4 from gas phase
               call set_diag_rf(n)
           end select
         endif
-        
-      end select      
+
+      end select
 
 #endif
       case ('H2O2_s')
@@ -4149,7 +4148,7 @@ C**** 3D tracer-related arrays but not attached to any one tracer
       enddo
 #endif  /* SOA_DIAGS */
 
-#ifdef TRACERS_TOMAS 
+#ifdef TRACERS_TOMAS
 
         ijlt_ccn_01=
      &    ijlt_diag(sname='CCN_01_SS',
@@ -4303,9 +4302,9 @@ c find indices of denominators
 #endif
       use OldTracer_mod, only: trli0
 #ifdef TRACERS_AMP
-      use TRACER_COM, only:n_M_OCC_OC  
+      use TRACER_COM, only:n_M_OCC_OC
 #else
-      use TRACER_COM, only:n_OCII 
+      use TRACER_COM, only:n_OCII
 #endif
 #endif /* TRACERS_ON */
       use oldtracer_mod, only: src_dist_base, src_dist_index
@@ -5416,7 +5415,7 @@ C****
       character(len=MAX_LEN_NAME) :: tmpString
       logical :: isChemTracer
 
-      call modelEclock%get(year=year, month=month, 
+      call modelEclock%get(year=year, month=month,
      *     dayOfYear=dayOfYear)
 CC****
 C**** Extract useful local domain parameters from "grid"
@@ -5437,8 +5436,8 @@ C****
         ! initialize the file handle
 
         call init_stream(grid,SO2_volc_stream,'SO2_VOLCANO_EXPL','SO2'
-     &       ,0d0,1d30,'linm2m',year,dayofyear) 
-      
+     &       ,0d0,1d30,'linm2m',year,dayofyear)
+
         call init_stream(grid,SO2_vphe_stream,'SO2_VOLCANO_EXPL',
      &       'Plume_height',0d0,1d30,'linm2m',year,dayofyear)
       endif
@@ -5450,8 +5449,8 @@ C****
 
       so2_src_3d(:,:,:,iso2volcanoexpl) = 0.d0
 
-      DO J=J_0,J_1                          
-      DO I=I_0,I_1  
+      DO J=J_0,J_1
+      DO I=I_0,I_1
 
         so2_volc_emis_expl(i,j) = so2_volc_emis_expl(i,j)*byaxyp(i,j) ! kg -> kg/m2
         if(so2_volc_emis_expl(i,j) <= 0.d0) cycle
@@ -5470,7 +5469,7 @@ C****
           else
             so2_src_3d(i,j,ll,iso2volcanoexpl)=
      &        so2_src_3d(i,j,ll,iso2volcanoexpl)
-     &                + (1./(float(lmax-lmin)+1)) 
+     &                + (1./(float(lmax-lmin)+1))
      &                * so2_volc_emis_expl(i,j)/SECONDS_PER_DAY*1.d6
           endif
           enddo
@@ -5653,7 +5652,7 @@ C**** Next line for fastj photon fluxes to vary with time:
           nread=0
         case ('vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-        case ('SF6', 'SF6_c', 'nh5', 'nh50', 'e90', 
+        case ('SF6', 'SF6_c', 'nh5', 'nh50', 'e90',
      &        'st8025', 'aoa', 'aoanh', 'tape_rec', 'nh15')
           nread=0 ! regional sources calculated in the code, not via a file
         end select
@@ -5823,7 +5822,7 @@ C**** at the start of any day
       use OldTracer_mod, only: tr_mm
       use OldTracer_mod, only: itime_tr0
       use OldTracer_mod, only: do_fire
-      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR, 
+      use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR,
      &           SECONDS_PER_HOUR, HOURS_PER_DAY, INT_MONTHS_PER_YEAR
       USE ATM_COM, only: MA  ! Air mass of each box (kg m-2)
       USE TRACER_COM, only: ntm
@@ -5915,7 +5914,7 @@ c      real*8 :: nlight, max_COSZ1, fact0
       INTEGER I_0, I_1, J_0, J_1, J_1S, J_0S
       class (Tracer), pointer :: pTracer
       integer :: index
-      type (TracerSurfaceSource), pointer :: sources(:) 
+      type (TracerSurfaceSource), pointer :: sources(:)
 #ifdef TRACERS_TOMAS
       integer :: k, kn
       real*8 :: tot_emis(GRID%I_STRT:GRID%I_STOP,
@@ -5926,13 +5925,13 @@ c      real*8 :: nlight, max_COSZ1, fact0
       type (TracerIterator) :: iter
       class (AbstractAttribute), pointer :: pa
 
-      call modelEclock%get(year=year, month=month, 
+      call modelEclock%get(year=year, month=month,
      *     dayOfYear=dayOfYear, hour=hour)
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
-     &     I_STRT=I_0, I_STOP=I_1, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
+     &     I_STRT=I_0, I_STOP=I_1)
 
       bydt = 1./DTsrc
 #ifdef TRACERS_TOMAS
@@ -5984,12 +5983,12 @@ C**** All sources are saved as kg s-1
         n = index
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
-      
+
         if (itime.lt.itime_tr0(n)) then
           call iter%next()
           cycle
         end if
-      
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       src_index=get_src_index(n)
@@ -6013,7 +6012,7 @@ C**** CFCn source increases each year so that the glbavg is from obs
 C**** CFC source is the same each year
 C**** Distribute source over ice-free land
         steppy = 1./(SECONDS_PER_DAY*INT_DAYS_PER_YEAR)
-        if (trim(pTracer%getName()).eq.'SF6' .or. 
+        if (trim(pTracer%getName()).eq.'SF6' .or.
      *      trim(pTracer%getName()).eq.'CFCn' .or.
      *      trim(pTracer%getName()).eq.'SF6_c') then
 C         Make sure index KY=1 in year that tracer turns on
@@ -6093,7 +6092,7 @@ C**** Source over Australia and New Zealand
 !         endif
 !         i_ocmip=(itime-itime_tr0(n))/INT_DAYS_PER_YEAR/
 !    &            int(SECONDS_PER_DAY/dtsrc)+1
-!         if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc)) 
+!         if (mod(itime,INT_DAYS_PER_YEAR*int(SECONDS_PER_DAY/dtsrc))
 !    &        .eq. 0.) then
 !           write(6,'(a,2i5)'),'TRACERS_DRV, new year: itime, i_ocmip=',
 !    &                         itime,i_ocmip
@@ -6101,7 +6100,7 @@ C**** Source over Australia and New Zealand
 !#ifndef SKIP_TRACER_SRCS
 !          do j=J_0,J_1 ! TNL
 !            do i=1,72
-!               trsource(i,j,1,n) = trsource(i,j,1,n)* 
+!               trsource(i,j,1,n) = trsource(i,j,1,n)*
 !     &           (ocmip_cfc(i_ocmip)/(INT_DAYS_PER_YEAR*
 !     &           SECONDS_PER_DAY/dtsrc)) / trsource_glbavg(n)
 !            enddo
@@ -6362,7 +6361,7 @@ C****
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU',
-     &      'BCII', 'BCB', 'OCII', 'OCB', 
+     &      'BCII', 'BCB', 'OCII', 'OCB',
      &      'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
      &      'M_BC1_BC', 'M_OCC_OC', 'M_BOC_BC', 'M_BOC_OC',
@@ -6372,7 +6371,7 @@ C****
      &      'ASO4__01','AOCOB_01','AECOB_01')
 
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
 #endif
 
 #ifndef TRACERS_AEROSOLS_SOA
@@ -6393,15 +6392,15 @@ C****
 
 !     ns=1 : SO4 number
 !     ns=2 : EC number
-!     ns=3 : OC number 
+!     ns=3 : OC number
         tot_emis(:,J_0:J_1)=0.0
-          if(n.eq.n_ASO4(1))then 
+          if(n.eq.n_ASO4(1))then
              tot_emis(:,J_0:J_1)= trsource(:,J_0:J_1,ns,n_ASO4(1))
-             
+
              do k=1,nbins
                 trsource(:,J_0:J_1,ns,n_ASO4(k))=
      &              tot_emis(:,J_0:J_1)*scalesizeSO4(k)
-               
+
                 trsource(:,J_0:J_1,1,n_ANUM(k))=
      &           trsource(:,J_0:J_1,1,n_ANUM(k)) +
      &               trsource(:,J_0:J_1,ns,n_ASO4(k))
@@ -6444,14 +6443,14 @@ C****
      &            /sqrt_xk_xk1(k)  
              enddo
           endif
-        
+
 #endif
         enddo ! ns
 #if (defined TRACERS_NITRATE) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       case ('NH3')
 #ifdef DYNAMIC_BIOMASS_BURNING
-        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1) 
+        if(do_fire(n))call dynamic_biomass_burning(n,ntsurfsrc(n)+1)
 #endif
         do ns=1,ntsurfsrc(n)
           trsource(:,J_0:J_1,ns,n)=sfc_src(:,J_0:J_1,n,ns)
@@ -7907,7 +7906,7 @@ C**** GLOBAL parameters and variables:
       use OldTracer_mod, only: tr_RKD, tr_DHD, tr_wd_type
       use OldTracer_mod, only: nWater, ngas,nPART
       use OldTracer_mod, only: trname, t_qlimit, fq_aer, trpdens
-      USE TRACER_COM, only: 
+      USE TRACER_COM, only:
      *     NTM,n_SO2,n_H2O2,n_H2O2_s
 #ifdef TRACERS_SPECIAL_O18
       USE TRACER_COM, only: supsatfac
@@ -7988,7 +7987,7 @@ c     cldinc=max(0.,cldsavt-fcloud)
 c limit gas dissolution to incremental cloud change after cloud forms
 c   only apply to non-aqueous sulfur species since this is already
 c   done in GET_SULFATE
-c but H2O2 should be limited if not coupled with sulfate, have not done this 
+c but H2O2 should be limited if not coupled with sulfate, have not done this
 c           if (n.ne.n_h2O2.and.n.ne.n_so2.and.n.ne.n_h2O2_s) then
 c           if (FCLOUD.ne.0.) tr_lef(n)=cldinc
 c           endif
@@ -8112,17 +8111,17 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
 #endif
 
 #endif
-#ifdef TRACERS_TOMAS 
+#ifdef TRACERS_TOMAS
 
       if(tr_conv)then
-         
+
          CALL getfraction (.true.,TM,FRACTION) !1% supersaturation assumption
-         
+
       else                      ! large-scale clouds
          CALL getfraction (.false.,TM,FRACTION) !0.2% supersaturation assumption
-         
+
       endif
-      
+
       do k=1,nbins
 
         call set_fq_aer(ntix(n_ANUM(k)),fraction(k))
@@ -8137,9 +8136,9 @@ c     if (FCLOUD.lt.1.D-16 .or. fq0.eq.0.) then
 
          if (fraction(k).gt.1.or.fraction(k).lt.0) then
             print*,'fraction>1 or fraction<0'
-            call stop_model('wrong fraction',255)  
+            call stop_model('wrong fraction',255)
          endif
-         
+
       enddo
 #endif
 
@@ -8224,7 +8223,7 @@ c
 C**** GLOBAL parameters and variables:
       use OldTracer_mod, only: nWATER, ngas, nPART, tr_wd_type
       use OldTracer_mod, only: tr_RKD, tr_DHD, rc_washt, trname
-      USE TRACER_COM, only: 
+      USE TRACER_COM, only:
      * NTM
 #ifdef TRACERS_AEROSOLS_SEASALT
 c     * n_seasalt1,n_seasalt2
@@ -8235,7 +8234,7 @@ c     USE PBLCOM, only: wsavg
      &     aero_count,water_count,hlaw_count,
 ! NB: these lists are often used for implicit loops
      &     aero_list,water_list,hlaw_list
-#ifdef TRACERS_TOMAS 
+#ifdef TRACERS_TOMAS
       USE TRACER_COM, only :
      &     NBS,NBINS,n_ANUM,n_ASO4,n_ANACL
      &    ,n_AOCOB,n_AECIL,n_AECOB,n_AOCIL,n_ADUST,n_AH2O
@@ -8266,10 +8265,10 @@ C
 #ifdef TRACERS_TOMAS
       integer k,i,j,l
 !@var scavr/stratsav : below-cloud scavenging coefficient (per mm rain)
-      real*8 scavr                
+      real*8 scavr
       real stratscav
 !@var dpaero : aerosol diameter [m]
-      real*8 dpaero,mtot  
+      real*8 dpaero,mtot
       real*8,dimension(nbins) ::  getdp,density
 #endif
 c      thlaw(:)=0.
@@ -8281,7 +8280,7 @@ c      fq(hlaw_list) = 0.D0
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_SPECIAL_Shindell) ||\
     (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       if(      LHX.EQ.LHE ! if not frozen
-     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN 
+     &   .AND. FCLOUD.GE.1D-16 .AND. WMXTR.GT.0. AND . BELOW_CLOUD) THEN
         bb_tmp = max(b_beta_DT,0.d0) ! necessary check?
         Ppas = PL*1.D2          ! pressure to pascals
         tfac = (1.D0/TEMP - BY298K)*BYGASC
@@ -8297,12 +8296,12 @@ c      fq(hlaw_list) = 0.D0
         thlaw(hlaw_list) = 0.
       endif
 #endif
-#ifdef TRACERS_TOMAS  
+#ifdef TRACERS_TOMAS
 
-      if(FCLOUD.GE.1.D-16 .and. prec.gt.0.) then 
+      if(FCLOUD.GE.1.D-16 .and. prec.gt.0.) then
 
          call dep_getdp(i,j,l,getdp,density) !1 for tempk, dummy=vs
-         do k=1,nbins               
+         do k=1,nbins
             dpaero=getdp(k)
             scavr=stratscav(dpaero)  
             call set_rc_washt(ntix(n_ASO4(k)), scavr)
@@ -8315,7 +8314,7 @@ c      fq(hlaw_list) = 0.D0
             call set_rc_washt(ntix(n_AH2O(k)), scavr)
             call set_rc_washt(ntix(n_ANUM(k)),scavr)
          enddo
-         
+
       endif
 
 #endif
@@ -8475,7 +8474,7 @@ c DMM is number density of air in molecules cm-3
 #ifdef TRACERS_TOMAS
 
 !    **************************************************
-!@sum  initbounds                                    
+!@sum  initbounds
 !    **************************************************
 !@+    This subroutine initializes the array, xk, which describes the
 !@+    boundaries between the aerosol size bins.  xk is in terms of dry
@@ -8499,7 +8498,7 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
 
       integer k
 !@var Mo : lower mass bound for first size bin (kg)
-      real*8 Mo     
+      real*8 Mo
 
 C-----ADJUSTABLE PARAMETERS---------------------------------------------
 
@@ -8513,7 +8512,7 @@ C-----ADJUSTABLE PARAMETERS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 
       do k=1,nbins+1
-!YUNHA LEE - working on adding more version of TOMAS (Aug, 2012) 
+!YUNHA LEE - working on adding more version of TOMAS (Aug, 2012)
 #if (defined TOMAS_12_10NM) || (defined TOMAS_12_3NM)
          if(k.lt.nbins)then
             xk(k)=Mo*4.d0**(k-1)
@@ -8533,7 +8532,7 @@ C-----CODE--------------------------------------------------------------
 
 
 !    **************************************************
-!@sum   momentfix                                     
+!@sum   momentfix
 !    **************************************************
 !@+    This routine changes the first and second order moments of a
 !@+    given tracer's distribution such that they match the shape of
@@ -8545,7 +8544,7 @@ C-----CODE--------------------------------------------------------------
 C-----INPUTS------------------------------------------------------------
 
 !@var     pn - the number of the tracer that will serve as the pattern
-!@var     fn - the number of the tracer whose moments will be fixed 
+!@var     fn - the number of the tracer whose moments will be fixed
 
 C-----OUTPUTS-----------------------------------------------------------
 
@@ -8570,8 +8569,8 @@ C-----VARIABLE DECLARATIONS---------------------------------------------
 C-----CODE--------------------------------------------------------------
 C****
 C**** Extract useful local domain parameters from "grid"
-C**** 
-      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1, 
+C****
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      $     I_STRT=I_0, I_STOP=I_1)
 
       do l=1,lm; do j=J_0,J_1; do i=I_0,imaxj(j)
@@ -8581,23 +8580,23 @@ C****
                trmom(n,i,j,l,fn)=ratio*trmom(n,i,j,l,pn)
             enddo
          else
-            
+
             do n=1,nmom
                trmom(n,i,j,l,fn)=0.0
                trmom(n,i,j,l,pn)=0.0
             enddo
          endif
       end do; end do; end do
-         
+
       RETURN
       END
-      
+
 
 
 !    **************************************************
-!@sum  stratscav                                     
+!@sum  stratscav
 !@    **************************************************
-!@+    This function is basically a lookup table to get the below-cloud 
+!@+    This function is basically a lookup table to get the below-cloud
 !@+    scavenging rate (per mm of rainfall) as a function of particle
 !@+    diameter.  The data are taken from Dana, M. T., and
 !@+    J. M. Hales, Statistical Aspects of the Washout of Polydisperse
@@ -8615,17 +8614,17 @@ C****
 
 C-----ARGUMENT DECLARATIONS------------------------------------------
 !@var dp : particle diameter [m]
-      real*8 dp  
+      real*8 dp
 
 C-----VARIABLE DECLARATIONS------------------------------------------
 !@param numpts : number of points in lookup table
 !@var dpdat : particle diameter in lookup table [m]
 !@var scdat : scavenging rate in lookup table [mm-1]
 !@var n1/n2 : indices of nearest data points
-      integer numpts  
-      real dpdat      
-      real scdat      
-      integer n1, n2 
+      integer numpts
+      real dpdat
+      real scdat
+      integer n1, n2
 
 C-----VARIABLE COMMENTS----------------------------------------------
 
@@ -8649,7 +8648,7 @@ C-----ADJUSTABLE PARAMETERS------------------------------------------
      &            1.11E-03, 1.21E-03, 1.33E-03, 1.45E-03, 3.09E-03,
      &            4.86E-03, 7.24E-03, 1.02E-02, 1.36E-02, 1.76E-02,
      &            2.21E-02, 2.70E-02, 3.24E-02, 4.86E-01, 8.36E-01,
-     &            1.14E+00, 1.39E+00, 1.59E+00, 1.75E+00, 1.85E+00, 
+     &            1.14E+00, 1.39E+00, 1.59E+00, 1.75E+00, 1.85E+00,
      &            1.91E+00, 1.91E+00/
 
 C-----CODE-----------------------------------------------------------
@@ -8667,8 +8666,8 @@ C If particle diameter is in bounds, interpolate to find value
       endif
 
 C If particle diameter is out of bounds, return reasonable value
-!YUNHA - (TOMAS bug) I changed the condition that gt ==> ge.  lt ==> le 
-!YUNHA - Because stratscav has no value when dp=dpdat(numpts) and dpdat(1). 
+!YUNHA - (TOMAS bug) I changed the condition that gt ==> ge.  lt ==> le
+!YUNHA - Because stratscav has no value when dp=dpdat(numpts) and dpdat(1).
 
       if (dp .ge. dpdat(numpts)) stratscav=2.0
       if (dp .le. dpdat(1))      stratscav=7.0e-2

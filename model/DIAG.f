@@ -761,7 +761,6 @@ c constant-pressure diagnostics
 c
       pecp(2:lm+1) = ple(1:lm)
       pecp(1) = 1d30 ! ensure that all column mass is included
-      qlh=lhe
       do j=j_0,j_1
       do i=i_0,imaxj(j)
         pedge(:) = pedn(:,i,j)
@@ -775,6 +774,8 @@ c
           wmdp(l) = 0d0
           wmliqdp(l) = 0d0
           wmfrzdp(l) = 0d0
+          If (TX(I,J,L) >= TF)  Then  ;  QLH = LHE
+                                Else  ;  QLH = LHS  ;  EndIf
           rh(l) = q(i,j,l)/min(1d0,QSAT(TX(I,J,L),QLH,pmid(l,i,j)))
         enddo
         do l=1,lmx
@@ -5041,7 +5042,7 @@ c write physical variable
 #endif
       USE diag_com,ONLY : adiurn_dust,ndiupt,ndiuvar,lmax_dd2,ijdd
      &     ,adiurn=>adiurn_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      &     ,hdiurn=>hdiurn_loc
 #endif
 #ifdef TRACERS_DUST
@@ -5128,7 +5129,7 @@ C****
             END DO
 
             ADIURN(idxd(:),kr,ih)=ADIURN(idxd(:),kr,ih)+tmp(idxd(:))
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
             HDIURN(idxd(:),kr,ihm)=HDIURN(idxd(:),kr,ihm)+tmp(idxd(:))
 #endif
 
@@ -5218,7 +5219,7 @@ c**** find weighted channel temperatures
       USE MODEL_COM, only : modelEclock
       USE MODEL_COM, only : Itime,ItimeI,Itime0
      *     ,amon,jhour0,jdate0,jmon0,amon0,jyear0,idacc
-     *     ,ioread_single,xlabel,iowrite_single,iyear1,nday,dtsrc
+     *     ,iyear1,nday,dtsrc
      *     ,nmonav,ItimeE,lrunid,modelEclock
      &     ,iwrite_sv,jwrite_sv,itwrite_sv,kdiag_sv
       USE ATM_COM, only : lm_req
@@ -5249,7 +5250,7 @@ c**** find weighted channel temperatures
       USE DIAG_COM, only : ndasf,nda4,nda5s,nda5k,nda5d,ndaa,modd5k
       USE diag_com,ONLY : adiurn_dust,adiurn_loc,areg_loc,aisccp_loc
      &     ,consrv_loc
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
      &     ,hdiurn_loc
 #endif
       USE diag_com,only : lh_diags
@@ -5709,7 +5710,7 @@ c
       aisccp_loc = 0
       consrv_loc = 0
       adiurn_loc = 0
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       hdiurn_loc = 0
 #endif
 
@@ -5832,7 +5833,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       SPECA=0 ; ATPE=0 ; WAVE=0 ; AGC_loc=0; ENERGY=0
 #endif
 
-#ifndef NO_HDIURN
+#ifdef USE_HDIURN
       HDIURN=0; HDIURN_loc=0
 #endif
       ADIURN=0 ; ADIURN_loc=0; AISCCP=0; AISCCP_loc=0

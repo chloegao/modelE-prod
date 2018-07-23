@@ -9,6 +9,7 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
+#define OLD_BCdalbsn
 ! OFF  #define MODIS_LAI
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
