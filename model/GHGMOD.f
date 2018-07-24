@@ -800,32 +800,233 @@ C****
       end module ghgmod
 
 
-      subroutine apply_dQ
+      subroutine alternate_daily_ch4ox(end_of_day)
+!@sum alternate_daily_ch4ox alternative routine to the rad code's
+!@+ DAILY_ch4ox; applies change of humidity on GCM levels due to
+!@+ methane oxidation. The delta Q is read from a the dH2Oalt file,
+!@+ generally created from tracer code output.
+!@+auth Greg Faluvegi
+! There are options, controlled by dbparam apply_offline_dQ_to_NINT:
+! (0) skip (current default; also if > 3)
+! (1) Q = Q + dQ(file)
+! (2) Q = Q + dQ(file)*[CH4(rad code) / CH4(file)]
+! (3) Q = Q + linear combination of dQ's for {OH,O1D,Cl,photolysis}
+!     components [e.g. a placeholder for tunable or more complex scheme]
+      use resolution, only : lm
+      use constant, only : teeny
+      use model_com, only: modelEclock, itime
       use ghgmod, only: apply_offline_dQ_to_NINT
-      use rad_com, only: H2ObyCH4, clim_interact_chem
-
+      use rad_com, only: H2ObyCH4, clim_interact_chem, ghg_yr, plb0
+      use timestream_mod, only : timestream,init_stream,read_stream
+      use domain_decomp_atm, only: grid,getdomainbounds
+      use somtq_com, only : qmom
+      use atm_com, only : q, pedn, lm_req, MA
+      use qusdef, only : nmom
+      use geom, only : imaxj,lat2d,lon2d
+      use diag_com, only : ntype,ftype,aij=>aij_loc
+      use diag_com_rad, only : j_h2och4, ij_h2och4
+#ifdef TRACERS_WATER
+      use OldTracer_mod, only: tr_wd_type,nWATER,tr_H2ObyCH4,itime_tr0
+      use tracer_com, only: trm,ntm
+#endif
       implicit none
+      logical, intent(IN) :: end_of_day
+      type(timestream) :: SdQ,SCH4,SdQoh,SdQcl,SdQsf3,SdQo1d
+      logical, save :: init = .false.
+      character(len=6) :: method
+      real*8 :: oldQ, ch4rad
+      real*8, parameter :: a=1.d0,b=1.d0,c=1.d0,d=1.d0
+      real*8, dimension(:,:,:), allocatable :: dQ,dQoh,dQo1d,dQcl,dQsf3
+      real*8, dimension(lxghg,13) :: ghgCmAtm
+      real*8, dimension(lxghg+1) :: ghgplb
+      integer :: i_0,i_1,j_0,j_1,i,j,L,year,yearx,dayOfYear,dayx
+      integer :: jlat46,ilon72,it,n
 
-      ! can't these param syncs just be done once?
+      call getdomainbounds(grid, j_strt=j_0,j_stop=j_1,
+     &                           i_strt=i_0,i_stop=i_1)
+
       call sync_param(
      &  "apply_offline_dQ_to_NINT",apply_offline_dQ_to_NINT)
-      call sync_param("H2ObyCH4",H2ObyCH4)
-      call sync_param("clim_interact_chem",clim_interact_chem)
 
-      if(apply_offline_dQ_to_NINT.ne.0)then ! otherwise skip rest of routine
+      if(apply_offline_dQ_to_NINT.le.0 .or.
+     &   apply_offline_dQ_to_NINT.gt.3)then
+        ! skip rest of routine if parameter out of range or off (0)
+        RETURN
+      else
 
-        if(H2ObyCH4 > 0)then
-          call stop_model(
-     &    "H2ObyCH4 and apply_offline_dQ_to_NINT both nonzero.",255)
+        ! Valid choice, so proceed...
+        call modelEclock%get(year=year,dayOfYear=dayOfYear)
+        if(ghg_yr > 0) then
+          yearx=ghg_yr
+          cyclic=.true.
+        else
+          yearx=year
+          cyclic=.false.
         end if
-        if(clim_interact_chem > 0)then
-          call stop_model(
-     &    "clim_interact_chem & apply_offline_dQ_to_NINT nonzero.",255)
-        end if
+        dayx=dayOfYear
+        method='ppm' ! I guess... or should we use linm2m?
 
-      end if
+        if (.not. init) then ! streams not initialized yet; do that:
+
+          ! First, stop the model for nonsensical settings:
+          call sync_param("H2ObyCH4",H2ObyCH4)
+          call sync_param("clim_interact_chem",clim_interact_chem)
+          if(H2ObyCH4 > 0.d0)then
+            call stop_model(
+     &      "H2ObyCH4 and apply_offline_dQ_to_NINT both nonzero.",255)
+          end if
+          if(clim_interact_chem > 0)then
+            call stop_model(
+     &      "clim_interact_chem, apply_offline_dQ_to_NINT nonzero.",255)
+          end if
+          if(.not.file_exists("dH2Oalt")) call stop_model(
+     &     "missing dH2Oalt file.",255)
+
+          allocate(dQ,(i_0:i_1,j_0:j_1,LM))
+                   dQ (i_0:i_1,j_0:j_1,:)=0.d0
+
+          if(apply_offline_dQ_to_NINT .lt. 3)then
+            ! only cases 1 and 2 need bulk dQ read:
+            call init_stream(grid,SdQ,'dH2Oalt','dQ',
+     &      -1.d29,1.d30,trim(method),yearx,dayx,cyclic=cyclic)
+          end if
+
+          if(apply_offline_dQ_to_NINT==2)then
+            ! Case 2 also needs CH4 from tracer read in; the non-zero
+            ! minimum allowed should prevent a divide by 0 later:
+            call init_stream(grid,SCH4,'dH2Oalt','CH4',
+     &       teeny,1d30,trim(method),yearx,dayx,cyclic=cyclic)
+             allocate(CH4,(i_0:i_1,j_0:j_1,LM) )
+                      CH4 (i_0:i_1,j_0:j_1,:)=0.d0
+
+          else if(apply_offline_dQ_to_NINT==3)then
+            ! User wants to parameterize dQ based on individual terms:
+            call init_stream(grid,SdQoh,'dH2Oalt','dQoh',
+     &       0.d0,1d30,trim(method),yearx,dayx,cyclic=cyclic)
+            call init_stream(grid,SdQo1d,'dH2Oalt','dQo1d',
+     &       0.d0,1d30,trim(method),yearx,dayx,cyclic=cyclic)
+            call init_stream(grid,SdQcl,'dH2Oalt','dQcl',
+     &       0.d0,1d30,trim(method),yearx,dayx,cyclic=cyclic)
+            call init_stream(grid,SdQsf3,'dH2Oalt','dQsf3',
+     &       -1.d30,0.d0,trim(method),yearx,dayx,cyclic=cyclic)
+            allocate(dQoh,(i_0:i_1,j_0:j_1,LM) )
+                     dQoh (i_0:i_1,j_0:j_1,:)=0.d0
+            allocate(dQo1d,(i_0:i_1,j_0:j_1,LM) )
+                     dQo1d (i_0:i_1,j_0:j_1,:)=0.d0
+            allocate(dQcl,(i_0:i_1,j_0:j_1,LM) )
+                     dQcl (i_0:i_1,j_0:j_1,:)=0.d0
+            allocate(dQsf3,(i_0:i_1,j_0:j_1,LM) )
+                     dQsf3 (i_0:i_1,j_0:j_1,:)=0.d0
+          end if
+
+          init=.true.
+        end if ! init
+
+        ! Now that things have had the chance to initialize, do
+        ! no more unless this is an end-of-day call:
+        if (.not.end_of_day) RETURN
+
+        ! Daily, update streams, and define dQ as per each option:
+        select case(apply_offline_dQ_to_NINT)
+        case(1)  ! simple Q=Q+dQ
+          call read_stream(grid,SdQ,yearx,dayx,dQ)
+
+        case(2)  ! Q = Q + (dQ/CH4)*radCode_CH4
+                 ! note CH4 input expected in ppmv
+          call read_stream(grid,SdQ,yearx,dayx,dQ)
+          call read_stream(grid,SCH4,yearx,dayx,CH4)
+          do j=j_0,j_1
+            do i=i_0,imaxj(j)
+              ! obtain "rad code" CH4:
+              ghgplb(1:LM+1)=pedn(1:LM+1,i,j)
+              ghgplb(LM+1+1:LM+1+lm_req)=plb0(1:lm_req)
+              call get_72x46ij(lon2d(i,j),lat2d(i,j),ilon72,jlat46)
+              call getgas(i,j,jlat46,ghgplb,ghgCmAtm)
+              ! Fill in dQ ; only LM layers are needed:
+              do L=1,LM
+                ! Convert rad code CH4 from cm at stp to
+                ! ppmv, and that is the same unit as the
+                ! CH4( ) array, so no further conversion needed:
+                ch4rad=ghgCmAtm(L,7)/( ppmv_to_cm_at_stp
+     &                 *(ghgplb(L)-ghgplb(L+1)) )
+                dQ(i,j,L)=(dQ(i,j,L)/CH4(i,j,L))*ch4rad
+              end do
+            end do
+          end do
+
+        case(3) ! dQ built from components (Placeholder):
+          call read_stream(grid,SdQoh,yearx,dayx,dQoh)
+          call read_stream(grid,SdQo1d,yearx,dayx,dQo1d)
+          call read_stream(grid,SdQcl,yearx,dayx,dQcl)
+          call read_stream(grid,SdQsf3,yearx,dayx,dQsf3)
+          ! Placeholder for a parameterization based on component
+          ! dQ changes from OH, O1D, Cl, and photolysis ("sf3").
+          ! Right now programmed as a linear combination with all
+          ! coefficients set to 1, so should give very similar answer
+          ! to case (1), but user might replace these coefficients (for
+          ! example by tuning factor if certain dQ components are found
+          ! difficient or by functions of read-in OH, O1D, etc.,
+          ! or by some more complicated form.):
+          dQ = a*dQoh + b*dQo1d + c*dQcl + d*dQsf3
+        end select
+
+        ! apply dQ to Q; change qmom and Water tracers accordingly:
+        do l=1,LM
+          do j=j_0,j_1
+            do i=i_0,imaxj(j)
+              oldQ = q(i,j,L)
+              q(i,j,L) = oldQ + dQ(i,j,L)
+              if(dQ(i,j,L) < 0.d0) then
+                qmom(1:nmom,i,j,L)=qmom(1:nmom,i,j,L)*q(i,j,L)/oldQ
+              end if
+#ifdef TRACERS_WATER
+              ! and Water tracers:
+              do n=1,ntm
+                if(itime_tr0(n).le.itime) then
+                  select case (tr_wd_type(n))
+                  case (nWater)
+                    trm(i,j,L,n) = trm(i,j,L,n) +
+     &              tr_H2ObyCH4(n)*dQ(i,j,L)*MA(L,i,j)
+                  end select
+                end if
+              end do
+#endif
+              ! Since H2ObyCH4 is off if we're in this section of code,
+              ! co-opt rad code diags here. They expect daily
+              ! accumulation:
+              do it=1,ntype
+                call inc_aj(
+     &          i,j,it,j_h2och4,dQ(i,j,L)*MA(L,i,j)*ftype(it,i,j))
+              end do
+              aij(i,j,ij_h2och4)= aij(i,j,ij_h2och4) +
+     &                         dQ(i,j,L)*MA(L,i,j)
+            end do ! i
+          end do ! j
+
+          ! Fill in Poles:
+          if(HAVE_NORTH_POLE) q(2:im,jm,L)=q(1,jm,L)
+          if(HAVE_SOUTH_POLE) q(2:im, 1,L)=q(1, 1,L)
+#ifdef TRACERS_WATER
+          if(HAVE_NORTH_POLE .or. HAVE_SOUTH_POLE) then
+            do n=1,ntm
+              if(itime_tr0(n).le.itime) then
+                select case (tr_wd_type(n))
+                case (nWater)
+                  if(HAVE_SOUTH_POLE)
+     &             trm(2:im, 1,L,n)=trm(1, 1,L,n)
+                  if(HAVE_NORTH_POLE)
+     &             trm(2:im,jm,L,n)=trm(1,jm,L,n)
+                end select
+              end if
+            end do
+          end if
+#endif
+        end do ! L
+
+      end if ! apply_offline_dQ_to_NINT
+
       return
-      end subroutine apply_dQ
+      end subroutine alternate_daily_ch4ox
 
 
       SUBROUTINE GTREND(XNOW,TNOW)

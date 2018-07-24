@@ -544,6 +544,7 @@ C****
       USE MODEL_COM, only :
      *      irand,idacc ,nday,dtsrc ,iyear1,itime,itimei,itimee
      *     ,mdyn,mcnds,mrad,msurf,mdiag, calendar
+      USE GHGMOD, only : apply_offline_dQ_to_NINT
 #ifndef SCM
       USE DIAG_ZONAL, only : imlon
 #endif
@@ -690,7 +691,14 @@ C****
       CALL init_CLD(istart)
       CALL init_RAD(istart)
       CALL daily_orbit(.false.)             ! not end_of_day
-      CALL daily_ch4ox(.false.)             ! not end_of_day
+      call sync_param(
+     &  "apply_offline_dQ_to_NINT",apply_offline_dQ_to_NINT)
+      if(apply_offline_dQ_to_NINT > 0 .and.
+     &   apply_offline_dQ_to_NINT <= 3) then
+        CALL alternate_daily_ch4ox(.false.)   ! not end_of_day
+      else
+        CALL daily_ch4ox(.false.)             ! not end_of_day
+      end if
       CALL daily_RAD(.false.)
       if(istart.eq.2) call read_rad_ic
 
@@ -1003,6 +1011,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       use MODEL_COM, only: nday,itime
       use DYNAMICS, only : nidyn
       USE SOIL_DRV, only: daily_earth
+      USE GHGMOD, only : apply_offline_dQ_to_NINT
       use diag_com, only : kvflxo,iu_vflxo,oa,koa
       use domain_decomp_atm, only: grid,writei8_parallel
       implicit none
@@ -1014,7 +1023,14 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
       call DIAGCA (1)
       CALL daily_atmdyn(.true.)  ! end_of_day
       CALL daily_orbit(.true.)   ! end_of_day
-      CALL daily_ch4ox(.true.)   ! end_of_day
+      call sync_param(
+     &  "apply_offline_dQ_to_NINT",apply_offline_dQ_to_NINT)
+      if(apply_offline_dQ_to_NINT > 0 .and.
+     &   apply_offline_dQ_to_NINT <= 3) then
+        CALL alternate_daily_ch4ox(.true.)   ! end_of_day
+      else
+        CALL daily_ch4ox(.true.)   ! end_of_day
+      end if
       call daily_RAD(.true.)
 
       call daily_LAKE
