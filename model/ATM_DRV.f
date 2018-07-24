@@ -1008,6 +1008,7 @@ c for now, CREATE_CAP is only relevant to the cubed sphere grid
 
       subroutine daily_atm(end_of_day)
       use filemanager
+      use Dictionary_mod, only: sync_param
       use MODEL_COM, only: nday,itime
       use DYNAMICS, only : nidyn
       USE SOIL_DRV, only: daily_earth
