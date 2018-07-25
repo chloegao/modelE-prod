@@ -1114,22 +1114,24 @@ C     -- diags --:
           call inc_aj(i,j,it,j_h2och4,dQMsum*ftype(it,i,j))
         end do
         if (save_dQ_for_NINT==1) then
-          dQo1d(L)=(2.d0*y(nn_CH4,L)*
+          do L=1,maxL
+            dQo1d(L)=(2.d0*y(nn_CH4,L)*
      &       rr(rrbi%O1D_CH4__OH_CH3O2,L)*y(nO1D,L)
      &       )*dt2/(y(nM,L)*MWabyMWw)
-          dQoh(L)=(2.d0*y(nn_CH4,L)*
+            dQoh(L)=(2.d0*y(nn_CH4,L)*
      &       rr(rrbi%CH4_OH__H2O_CH3O2,L)*y(nOH,L)
      &       )*dt2/(y(nM,L)*MWabyMWw)
-          dQcl(L)=(2.d0*y(nn_CH4,L)*
+            dQcl(L)=(2.d0*y(nn_CH4,L)*
      &       rr(rrbi%Cl_CH4__HCl_CH3O2,L)*y(nCl,L)
      &       )*dt2/(y(nM,L)*MWabyMWw)
-          dQsf3(L)=(-SF3(L)*y(nH2O,L)
+            dQsf3(L)=(-SF3(L)*y(nH2O,L)
      &       )*dt2/(y(nM,L)*MWabyMWw)
-          taijls(i,j,L,ijlt_dQ)=taijls(i,j,L,ijlt_dQ)+dQ(L)
-          taijls(i,j,L,ijlt_dQo1d)=taijls(i,j,L,ijlt_dQo1d)+dQo1d(L)
-          taijls(i,j,L,ijlt_dQoh)=taijls(i,j,L,ijlt_dQoh)+dQoh(L)
-          taijls(i,j,L,ijlt_dQcl)=taijls(i,j,L,ijlt_dQcl)+dQcl(L)
-          taijls(i,j,L,ijlt_dQsf3)=taijls(i,j,L,ijlt_dQsf3)+dQsf3(L)
+            taijls(i,j,L,ijlt_dQ)=taijls(i,j,L,ijlt_dQ)+dQ(L)
+            taijls(i,j,L,ijlt_dQo1d)=taijls(i,j,L,ijlt_dQo1d)+dQo1d(L)
+            taijls(i,j,L,ijlt_dQoh)=taijls(i,j,L,ijlt_dQoh)+dQoh(L)
+            taijls(i,j,L,ijlt_dQcl)=taijls(i,j,L,ijlt_dQcl)+dQcl(L)
+            taijls(i,j,L,ijlt_dQsf3)=taijls(i,j,L,ijlt_dQsf3)+dQsf3(L)
+          end do
         end if
 #ifdef TRACERS_WATER
 C     -- water tracers --:
