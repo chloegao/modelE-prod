@@ -425,7 +425,7 @@
 
 !@dbparam save_dQ_for_NINT saves 3D humidity change from chemistry and
 !@+ its components, if set to 1
-      integer :: save_dQ_for_NINT = 1
+      integer :: save_dQ_for_NINT = 0
 !@dbparam apply_offline_dQ_to_NINT if gt 0 read offline delta humidity
 !@+ and applied to Q: Alternative to H2ObyCH4. 0 = don't do, 1: Q=Q+dQ
 !@+ where dQ is Q units, 2: Q=Q+dQ*CH4, where dQ is Q units per unit CH4
