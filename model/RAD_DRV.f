@@ -1592,7 +1592,7 @@ C**** Add water to relevant tracers as well
 #endif
       implicit none
       logical, intent(IN) :: end_of_day
-      type(timestream) :: SdQ,SCH4,SdQoh,SdQcl,SdQsf3,SdQo1d
+      type(timestream), save :: SdQ,SCH4,SdQoh,SdQcl,SdQsf3,SdQo1d
       logical, save :: init = .false.
       logical :: cyclic, HAVE_SOUTH_POLE, HAVE_NORTH_POLE
       character(len=6) :: method
@@ -1646,9 +1646,6 @@ C**** Add water to relevant tracers as well
           if(.not.file_exists("dH2Oalt")) call stop_model(
      &     "missing dH2Oalt file.",255)
 
-          allocate(dQ(i_0:i_1,j_0:j_1,LM))
-                   dQ(i_0:i_1,j_0:j_1,:)=0.d0
-
           if(apply_offline_dQ_to_NINT .lt. 3)then
             ! only cases 1 and 2 need bulk dQ read:
             call init_stream(grid,SdQ,'dH2Oalt','dQ',
@@ -1660,8 +1657,6 @@ C**** Add water to relevant tracers as well
             ! minimum allowed should prevent a divide by 0 later:
             call init_stream(grid,SCH4,'dH2Oalt','CH4',
      &       teeny,1d30,trim(method),yearx,dayx,cyclic=cyclic)
-             allocate(CH4(i_0:i_1,j_0:j_1,LM) )
-                      CH4(i_0:i_1,j_0:j_1,:)=0.d0
 
           else if(apply_offline_dQ_to_NINT==3)then
             ! User wants to parameterize dQ based on individual terms:
@@ -1673,14 +1668,6 @@ C**** Add water to relevant tracers as well
      &       0.d0,1d30,trim(method),yearx,dayx,cyclic=cyclic)
             call init_stream(grid,SdQsf3,'dH2Oalt','dQsf3',
      &       -1.d30,0.d0,trim(method),yearx,dayx,cyclic=cyclic)
-            allocate(dQoh(i_0:i_1,j_0:j_1,LM) )
-                     dQoh(i_0:i_1,j_0:j_1,:)=0.d0
-            allocate(dQo1d(i_0:i_1,j_0:j_1,LM) )
-                     dQo1d(i_0:i_1,j_0:j_1,:)=0.d0
-            allocate(dQcl(i_0:i_1,j_0:j_1,LM) )
-                     dQcl(i_0:i_1,j_0:j_1,:)=0.d0
-            allocate(dQsf3(i_0:i_1,j_0:j_1,LM) )
-                     dQsf3(i_0:i_1,j_0:j_1,:)=0.d0
           end if
 
           init=.true.
@@ -1691,12 +1678,16 @@ C**** Add water to relevant tracers as well
         if (.not.end_of_day) RETURN
 
         ! Daily, update streams, and define dQ as per each option:
+        allocate(dQ(i_0:i_1,j_0:j_1,LM))
+                 dQ(i_0:i_1,j_0:j_1,:)=0.d0
         select case(apply_offline_dQ_to_NINT)
         case(1)  ! simple Q=Q+dQ
           call read_stream(grid,SdQ,yearx,dayx,dQ)
 
         case(2)  ! Q = Q + (dQ/CH4)*radCode_CH4
                  ! note CH4 input expected in ppmv
+          allocate(CH4(i_0:i_1,j_0:j_1,LM) )
+                   CH4(i_0:i_1,j_0:j_1,:)=0.d0
           call read_stream(grid,SdQ,yearx,dayx,dQ)
           call read_stream(grid,SCH4,yearx,dayx,CH4)
           do j=j_0,j_1
@@ -1719,6 +1710,14 @@ C**** Add water to relevant tracers as well
           end do
 
         case(3) ! dQ built from components (Placeholder):
+          allocate(dQoh(i_0:i_1,j_0:j_1,LM) )
+                   dQoh(i_0:i_1,j_0:j_1,:)=0.d0
+          allocate(dQo1d(i_0:i_1,j_0:j_1,LM) )
+                   dQo1d(i_0:i_1,j_0:j_1,:)=0.d0
+          allocate(dQcl(i_0:i_1,j_0:j_1,LM) )
+                   dQcl(i_0:i_1,j_0:j_1,:)=0.d0
+          allocate(dQsf3(i_0:i_1,j_0:j_1,LM) )
+                   dQsf3(i_0:i_1,j_0:j_1,:)=0.d0
           call read_stream(grid,SdQoh,yearx,dayx,dQoh)
           call read_stream(grid,SdQo1d,yearx,dayx,dQo1d)
           call read_stream(grid,SdQcl,yearx,dayx,dQcl)
@@ -1788,6 +1787,13 @@ C**** Add water to relevant tracers as well
         end do ! L
 
       end if ! apply_offline_dQ_to_NINT
+
+      deallocate( dQ )
+      if(apply_offline_dQ_to_NINT==2) then
+        deallocate( CH4 )
+      else if(apply_offline_dQ_to_NINT==3)then
+        deallocate( dQoh,dQo1d,dQcl,dQsf3 )
+      end if
 
       return
       end subroutine alternate_daily_ch4ox
