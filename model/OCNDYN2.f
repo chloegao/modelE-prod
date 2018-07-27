@@ -502,9 +502,11 @@ C****
       if (n_age.gt.0) CALL OCN_TR_AGE(DTS)
       if (n_vent.gt.0) CALL OCN_TR_VENT(DTS)
       if (n_gasx.gt.0) CALL OCN_TR_GASX(DTS)
-      if (n_wms1.gt.0) CALL OCN_TR_WaterMass(DTS)
-      if (n_wms2.gt.0) CALL OCN_TR_WaterMass(DTS)
-      if (n_wms3.gt.0) CALL OCN_TR_WaterMass(DTS)
+      if ( n_wms1+n_wms2+n_wms3 .gt. 0)
+           ! if-test here is not really needed, since
+           ! tests of individual n_wms>0 are within the routine
+     &     CALL OCN_TR_WaterMass(DTS)
+
       if (n_ocfc11.gt.0) CALL OCN_TR_CFC(DTS,11)   
       if (n_ocfc12.gt.0) CALL OCN_TR_CFC(DTS,12)   
       if (n_sf6.gt.0) CALL OCN_TR_CFC(DTS,6)   
