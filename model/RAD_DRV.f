@@ -1559,9 +1559,9 @@ C**** Add water to relevant tracers as well
 
       subroutine alternate_daily_ch4ox(end_of_day)
 !@sum alternate_daily_ch4ox alternative routine to the rad code's
-!@+ DAILY_ch4ox; applies change of humidity on GCM levels due to
-!@+ methane oxidation. The delta Q is read from a the dH2Oalt file,
-!@+ generally created from tracer code output.
+!@+ DAILY_ch4ox; applies change of humidity on _ALL_ GCM levels due to
+!@+ methane & H2O chemistry. The delta Q is read from the dH2Oalt file,
+!@+ generally (but not necessarily) created from tracer code output.
 !@+auth Greg Faluvegi
 ! There are options, controlled by dbparam apply_offline_dQ_to_NINT:
 ! (0) skip (current default; also if > 3)
