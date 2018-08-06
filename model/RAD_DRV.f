@@ -1545,9 +1545,15 @@ C**** Add water to relevant tracers as well
         If (HAVE_NORTH_POLE) q(2:im,jm,l)=q(1,jm,l)
         If (HAVE_SOUTH_POLE) q(2:im, 1,l)=q(1, 1,l)
 #ifdef TRACERS_WATER
+C**** Re-set pole values for relevant tracers
         do n=1,ntm
-          If (HAVE_SOUTH_POLE) trm(2:im, 1,l,n)=trm(1, 1,l,n)
-          If (HAVE_NORTH_POLE) trm(2:im,jm,l,n)=trm(1,jm,l,n)
+          if (itime_tr0(n).le.itime) then
+            select case (tr_wd_type(n))
+            case (nWater) !only adjust water tracers at poles
+              if (HAVE_SOUTH_POLE) trm(2:im, 1,l,n)=trm(1, 1,l,n)
+              if (HAVE_NORTH_POLE) trm(2:im,jm,l,n)=trm(1,jm,l,n)
+            end select
+          end if
         end do
 #endif
         end do
