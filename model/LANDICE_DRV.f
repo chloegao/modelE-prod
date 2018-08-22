@@ -755,7 +755,7 @@ C**** ACCUMULATE DIAGNOSTICS
 
         ! Put height-classified diagnostics here.
         ! Put PBL-related diagnostics in SURFACE_LANDICE.f
-
+        ! This accumulation is run once per Model Timestep (dtsrc=3600s)
         ijhc(i,j,ihc,IJHC_SHDTLI)=ijhc(i,j,ihc,IJHC_SHDTLI) +
      &       atmgla%SENSHT(I,J)
         ijhc(i,j,ihc,IJHC_EVHDT)=ijhc(i,j,ihc,IJHC_EVHDT) +
@@ -775,10 +775,10 @@ C**** ACCUMULATE DIAGNOSTICS
      &       atmgla%IMPLH(I,J)
 
         ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
-     &        atmgla%RUNO(i,j)
+     &        atmgla%RUNO(i,j)    ! [kg m-2]
 
         ijhc(i,j,ihc,IJHC_SRFP)=ijhc(i,j,ihc,IJHC_SRFP) +
-     &        atmgla%SRFP(i,j)
+     &        atmgla%SRFP(i,j) * dtsrc   ! [hPa s]
 
       END IF
 
