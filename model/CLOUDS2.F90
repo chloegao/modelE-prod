@@ -1559,12 +1559,12 @@ CLOUD_TOP:  do L=LMIN+1,LM
             !NOTE:  Uses the updraft velocity from the level below, as 
             !the updraft from the current level is calculated later in
             !the loop, and thus is not usable here.
-            !NOTE:  DWCU = 1/2*dz/dt, so dz = DWCU*2*dt
+            !NOTE:  GZL is layer thickness in kilometers
             !------------------------------------------
             if(WCU(L-1) .gt. teeny) then
-              dt_get_sulf = (DWCU*2.d0*dtsrc)/WCU(L-1)
+              dt_get_sulf = 1000.d0*GZL(L)/WCU(L-1)
             else
-              dt_get_sulf = dtsrc  !updraft near zero, so just set to model time setp
+              dt_get_sulf = dtsrc  !updraft near zero, so just set to model time step
             end if
 
             !If time step is longer than model time step, then just set to model time step:
@@ -2792,7 +2792,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               !Since this particular sulfate chemistry process only applies
               !to liquid water, it will be assumed that a Marshall-Palmer
               !distribution can be used.
-              !NOTE:  DWCU = 1/2*dz/dt, so dz = DWCU*2*dt
+              !NOTE:  GZL is layer thickness in kilometers
               !----------------------------------------
               !Calculate air density from ideal gas law:
               RHO = 100.d0*PL(L)/(RGAS*TL(L))
@@ -2810,9 +2810,9 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
 
               !Calculate sulfate chemistry time step:
               if(VT > teeny) then
-                dt_get_sulf = (DWCU*2.d0*dtsrc)/VT
+                dt_get_sulf = 1000.d0*GZL(L)/VT
               else
-                dt_get_sulf = dtsrc !Set to model time step 
+                dt_get_sulf = dtsrc !fall velocity near zero, so just set to model time step 
               end if
 
               !If time step is longer than model time step, then just set to model time step:
