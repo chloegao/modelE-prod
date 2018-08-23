@@ -8859,7 +8859,7 @@ c overwrite fq for water isotopes
         if (lhx.eq.lhe) then
           alph=fracvl(tdegc,ntix(n))
 C**** kinetic effects with evap into unsaturated air
-          if (heff.lt.1)
+          if (heff.lt.1.)
      &         alph=kin_evap_prec(alph,heff,ntix(n))
         else
 C**** no fractionation for ice evap
