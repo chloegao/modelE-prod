@@ -28,8 +28,8 @@
 !@fhc fraction of landice area in each height class (static for testing purposes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc
 #ifdef GLINT2
-!@fhp fraction of landice area in each height point (approximate)
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhp_approx
+!@fhc fraction of landice area in each height point (approximate)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: fhc_approx
 #endif
 
 !@var ELEVHP: surface elevation, per height class (m)
@@ -58,7 +58,7 @@
 #endif
 
 !@param kijhc number of ijhc accumulations
-      integer, parameter :: kijhc=15
+      integer, parameter :: kijhc=16
 !@var ijhc accumulations for glacial ice height-classified diagnostics
       real*8, dimension(:,:,:,:), allocatable :: ijhc
 !@var scale_ijhc scale factor for ijhc diagnostics
@@ -74,7 +74,7 @@
       type(cdl_type) :: cdl_ijhc,cdl_ijhc_latlon
 !@var ijhc_xxx indices for accumulations
       integer ::
-     &     ijhc_frac,ijhc_tsurf,
+     &     ijhc_frac,ijhc_fhc,ijhc_tsurf,
      &     IJHC_SRFP,
      &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
      &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT,IJHC_IMPMLI,IJHC_IMPHLI
@@ -90,7 +90,7 @@
       use  domain_decomp_atm, only : glint2
       use glint2_modele
       use hp2hc
-      use landice_com, only : fhp_approx, usedhp
+      use landice_com, only : fhc_approx, usedhp
 #endif
       USE RESOLUTION, ONLY : IM,JM,LM
       Use LANDICE_COM, Only: NHC,FHC,
@@ -139,9 +139,9 @@
 #ifdef GLINT2
       ALLOCATE(
      *          USEDHP(I_0H:I_1H,J_0H:J_1H,NHC),
-     *          FHP_APPROX(I_0H:I_1H,J_0H:J_1H,NHC))
+     *          FHC_APPROX(I_0H:I_1H,J_0H:J_1H,NHC))
       usedhp(:,:,:) = 0
-      fhp_approx(:,:,:) = 1d0/nhc
+      fhc_approx(:,:,:) = 1d0/nhc
 #endif
       elevhp(:,:,:) = 0
 #ifdef TRACERS_WATER
@@ -170,7 +170,7 @@
       use glint2_modele
       use domain_decomp_atm, only : glint2
       use hp2hc, only : hp_to_hc
-      use landice_com, only : elevhp, fhp_approx, usedhp, fhc
+      use landice_com, only : elevhp, fhc_approx, usedhp, fhc
       use landice_com, only : snowli, tlandi, nhc
       use pario, only : read_dist_data
       use fluxes, only : flice, flice_glint2
@@ -215,7 +215,7 @@
       ! Fix up fhc, based on glint2 API
       call glint2_modele_init_landice_com(glint2,
      &     zatmo, BYGRAV, flice_glint2, flice,
-     &     usedhp, fhc, elevhp, hp_to_hc, fhp_approx,
+     &     usedhp, fhc, elevhp, hp_to_hc, fhc_approx,
      &     grid%i_strt_halo, grid%j_strt_halo)
 #endif
 
@@ -235,7 +235,7 @@
       call defvar(grid,fid,fhc,'fhc(dist_im,dist_jm,nhc)')
 #ifdef GLINT2
       call defvar(grid,fid,usedhp,'usedhp(dist_im,dist_jm,nhc)')
-      call defvar(grid,fid,fhp_approx,'fhp_approx(dist_im,dist_jm,nhc)')
+      call defvar(grid,fid,fhc_approx,'fhc_approx(dist_im,dist_jm,nhc)')
 #endif
       call defvar(grid,fid,elevhp,'elevhp(dist_im,dist_jm,nhc)')
       call defvar(grid,fid,snowli,'snowli(dist_im,dist_jm,nhc)')
@@ -287,7 +287,7 @@ c      call defvar(grid,fid,tricbimp,'tricbimp(ntm,two)')
         call write_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
         call write_dist_data(grid,fid,'usedhp',usedhp)
-        call write_dist_data(grid,fid,'fhp_approx',fhp_approx)
+        call write_dist_data(grid,fid,'fhc_approx',fhc_approx)
 #endif
         call write_dist_data(grid,fid,'elevhp',elevhp)
         call write_dist_data(grid,fid,'snowli',snowli)
@@ -318,7 +318,7 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
         call read_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
         call read_dist_data(grid,fid,'usedhp',usedhp)
-        call read_dist_data(grid,fid,'fhp_approx',fhp_approx)
+        call read_dist_data(grid,fid,'fhc_approx',fhc_approx)
 #endif
         call read_dist_data(grid,fid,'elevhp',elevhp)
         call read_dist_data(grid,fid,'snowli',snowli)

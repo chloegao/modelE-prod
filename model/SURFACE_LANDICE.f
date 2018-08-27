@@ -346,7 +346,7 @@ c      pbl_args%trhr0 = igla%flong(I,J)
 ! PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
 ! NOTE: PTYPE is used here only to sum into diagnostics
-! We atmgla%fhc with atmgla_hp%fhp (which is approximate)
+! We atmgla%fhc with atmgla_hp%fhc (which is approximate)
 !      print *,'surface_landice: call pbl',i,j,ihc
 !      print *,'uab',igla%uabl(1,i,j)
       CALL PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,igla)
