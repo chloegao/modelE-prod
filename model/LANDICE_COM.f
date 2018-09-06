@@ -74,7 +74,7 @@
       type(cdl_type) :: cdl_ijhc,cdl_ijhc_latlon
 !@var ijhc_xxx indices for accumulations
       integer ::
-     &     ijhc_frac,ijhc_fhc,ijhc_tsurf,
+     &     ijhc_frac,ijhc_fhc,ijhc_one,
      &     IJHC_SRFP,
      &     IJHC_PRECLI,IJHC_RUNLI,IJHC_EVAPLI,IJHC_F0LI,IJHC_TSLI,
      &     IJHC_SHDTLI,IJHC_EVHDT,IJHC_TRHDT,IJHC_IMPMLI,IJHC_IMPHLI
@@ -315,6 +315,7 @@ c        call write_data(grid,fid,'tricbimp',tricbimp)
         call dump_conserv_diags( grid, fid, 'wiceb', conserv_MICB )
         call dump_conserv_diags( grid, fid, 'eiceb', conserv_HICB )
       case (ioread)            ! input from restart file
+
         call read_dist_data(grid,fid,'fhc',fhc)
 #ifdef GLINT2
         call read_dist_data(grid,fid,'usedhp',usedhp)

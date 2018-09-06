@@ -43,7 +43,7 @@ C****
 #endif
 #endif
 
-      USE LANDICE_COM, only : ijhc,ijhc_tsurf,ijhc_tsli
+      USE LANDICE_COM, only : ijhc,ijhc_one,ijhc_tsli
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
       USE EXCHANGE_TYPES
       USE Timer_mod, only: Timer_type
@@ -541,8 +541,9 @@ C**** final fluxes
 
 
       ! demo diagnostic: a PBL output
-      ijhc(i,j,ihc,ijhc_tsurf) = ijhc(i,j,ihc,ijhc_tsurf)
-     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
+      ! This accumulation is run once per Surface Timestep (dtsurf=1800s)
+      ijhc(i,j,ihc,ijhc_one) = ijhc(i,j,ihc,ijhc_one)
+     &     +1d0*dtsurf  ! scale factor = dtsurf/dtsrc
       ijhc(i,j,ihc,ijhc_tsli) = ijhc(i,j,ihc,ijhc_tsli)
      &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
 

@@ -78,6 +78,9 @@
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+      ! Make sure fhc is set, even when running with EC's
+      atmglas(1)%fhc(:,:) = fhc(:,:,1)
+
       ! temporary
       do ihc=1+lbound(atmglas,1),ubound(atmglas,1)
         do j=j_0,j_1
@@ -303,7 +306,7 @@ C****
      &     ,units_ijhc,denom_ijhc,scale_ijhc,cdl_ijhc
       use LANDICE_COM, only : nhc
       use LANDICE_COM, only :
-     &     ijhc_frac,ijhc_fhc,ijhc_tsurf,
+     &     ijhc_frac,ijhc_fhc,ijhc_one,
      %     IJHC_SRFP,
      &     IJHC_PRECLI,  ! done
      &     IJHC_RUNLI,   ! done
@@ -357,9 +360,9 @@ c
       denom_ijhc(k) = 0  ! not ijhc_frac
 c
       k=k+1				! ijhc
-      ijhc_tsurf = k
-      sname_ijhc(k) = 'tsurf'
-      lname_ijhc(k) = 'surface air temperature'
+      ijhc_one = k
+      sname_ijhc(k) = 'one'
+      lname_ijhc(k) = 'test diagnostic, should == 1'
       units_ijhc(k) = 'K'
       scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
       denom_ijhc(k) = ijhc_fhc
@@ -386,7 +389,7 @@ c
       units_ijhc(k) = 'mm day-1'
       sname_ijhc(k) = 'runoff_lndice'
       scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
-      denom_ijhc(k) = ijhc_fnc
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
       IJHC_EVAPLI = k ! EVAP OVER LAND ICE  [kg m-2]          1 GD
@@ -575,6 +578,9 @@ C**** Get useful grid parameters
       IF (atmgla%ftype(i,j).gt.0 .and. PRCP.gt.0) THEN
 #endif
         ENRGP=atmgla%eprec(I,J)      ! energy of precipitation
+      if (i==53.and.j==83.and.ihc==1)
+     &       print *,'AZZ PRECLI in',PRCP,ENRGP/PRCP
+
         SNOW=SNOWLI(I,J,IHC)
         TG1=TLANDI(1,I,J,IHC)
         TG2=TLANDI(2,I,J,IHC)
@@ -589,6 +595,9 @@ C**** Get useful grid parameters
      *       TRSNOW,TRLI,TRPRCP,TRDIFS,TRUN0,
 #endif
      *       EDIFS,DIFS,ERUN2,RUN0)
+
+      if (i==53.and.j==83.and.ihc==1)
+     &       print *,'AZZ PRECLI out',RUN0,ERUN2/RUN0
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J,IHC)=SNOW
