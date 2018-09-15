@@ -57,7 +57,7 @@ cddd     &     /)
         call par_close(grid,fid)
       else
         vdata(:,:,:) = 0.
-        vdata(:,:,1) = COVER_SAND ! all bare soil if no input data available
+        vdata(:,:,COVER_SAND) = 1.d0 ! all bare soil if no input data available
       endif
 
 c**** zero-out vdata(11) until it is properly read in
