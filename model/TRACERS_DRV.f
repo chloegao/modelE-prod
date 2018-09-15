@@ -5184,7 +5184,10 @@ c find indices of denominators
 #ifdef TRACERS_ON
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     *                                CO2ic,ic14CO2
+     *                                CO2ic
+      REAL*8, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,lm) ::
+     *                                ic14CO2
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
