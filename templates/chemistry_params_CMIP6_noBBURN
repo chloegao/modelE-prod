@@ -43,6 +43,6 @@ NOx_nBBsources=0
 Paraffin_nBBsources=0
 ! -----------------------------------
 ! Lightning NOx yield per flash
-FLASH_YIELD_MIDLAT=160.0d0 ! NOx yield per flash (moles N/flash), applied poleward of 23deg N/S
-FLASH_YIELD_TROPIC=160.0d0 ! NOx yield per flash (moles N/flash), applied equatorward of 23deg N/S
+FLASH_YIELD_MIDLAT=290.0d0 ! NOx yield per flash (moles N/flash), applied poleward of 23deg N/S
+FLASH_YIELD_TROPIC=290.0d0 ! NOx yield per flash (moles N/flash), applied equatorward of 23deg N/S
 

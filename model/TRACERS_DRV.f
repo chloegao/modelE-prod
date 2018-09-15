@@ -8346,7 +8346,7 @@ c
       END SUBROUTINE GET_WASH_FACTOR
 
       SUBROUTINE GET_EVAP_FACTOR(
-     &     NTX,TEMP,LHX,QBELOW,HEFF,FQ0,fq,ntix)
+     &     NTX,TEMP,LHX,HEFF,FQ0,fq,ntix)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -8366,8 +8366,6 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: NTX,ntix(NTM)
       REAL*8,  INTENT(OUT):: FQ(NTM)
       REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
-!@var QBELOW true if evap is occuring below cloud
-      LOGICAL, INTENT(IN) :: QBELOW
 !@var HEFF effective relative humidity for evap occuring below cloud
       REAL*8, INTENT(IN) :: HEFF
 #ifdef TRACERS_SPECIAL_O18
@@ -8392,8 +8390,8 @@ c overwrite fq for water isotopes
         n = water_list(iwat)
         if (lhx.eq.lhe) then
           alph=fracvl(tdegc,ntix(n))
-C**** below clouds kinetic effects with evap into unsaturated air
-          if (QBELOW.and.heff.lt.1.)
+C**** kinetic effects with evap into unsaturated air
+          if (heff.lt.1.)
      &         alph=kin_evap_prec(alph,heff,ntix(n))
         else
 C**** no fractionation for ice evap

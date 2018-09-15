@@ -43,7 +43,7 @@ C****
 #endif
 #endif
 
-      USE LANDICE_COM, only : ijhc,ijhc_tsurf,ijhc_tsli
+      USE LANDICE_COM, only : ijhc,ijhc_one,ijhc_tsli
       USE SEAICE, only : xsi,ace1i,alami0,rhoi,byrls,alami
       USE EXCHANGE_TYPES
       USE Timer_mod, only: Timer_type
@@ -346,7 +346,7 @@ c      pbl_args%trhr0 = igla%flong(I,J)
 ! PBL = "Planetary Boundary Layer"
 C**** Call pbl to calculate near surface profile
 ! NOTE: PTYPE is used here only to sum into diagnostics
-! We atmgla%fhc with atmgla_hp%fhp (which is approximate)
+! We atmgla%fhc with atmgla_hp%fhc (which is approximate)
 !      print *,'surface_landice: call pbl',i,j,ihc
 !      print *,'uab',igla%uabl(1,i,j)
       CALL PBL(I,J,IHC,ITYPE,PTYPE,pbl_args,igla)
@@ -541,8 +541,9 @@ C**** final fluxes
 
 
       ! demo diagnostic: a PBL output
-      ijhc(i,j,ihc,ijhc_tsurf) = ijhc(i,j,ihc,ijhc_tsurf)
-     &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
+      ! This accumulation is run once per Surface Timestep (dtsurf=1800s)
+      ijhc(i,j,ihc,ijhc_one) = ijhc(i,j,ihc,ijhc_one)
+     &     +1d0*dtsurf  ! scale factor = dtsurf/dtsrc
       ijhc(i,j,ihc,ijhc_tsli) = ijhc(i,j,ihc,ijhc_tsli)
      &     +ts*dtsurf  ! scale factor = dtsurf/dtsrc
 

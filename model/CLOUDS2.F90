@@ -2064,7 +2064,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
               TMDN(1:NTX)     = TMDN(1:NTX) + TRCOND(1:NTX,L)
               TRCOND(1:NTX,L) = 0.d0
             else            ! otherwise, tracers evaporate dependent on type of tracer
-              call GET_EVAP_FACTOR(NTX,TNX1,LHX,.false.,1d0,FQEVP,FQEVPT,ntix)
+              call GET_EVAP_FACTOR(NTX,TNX1,LHX,1d0,FQEVP,FQEVPT,ntix)
               dtr(1:ntx) = fqevpt(1:ntx)*trcond(1:ntx,l)
 
 #ifdef TRDIAG_WETDEPO
@@ -2718,18 +2718,15 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               end do
             else ! otherwise, tracers evaporate dependent on type of tracer
               !**** estimate effective humidity
-              if (below_cloud) then
-                !The "effective humidity" here is the relative humidity of the vapor directly in 
-                !contact with the rain drops during evaporation, as opposed to the grid-box average.  
-                !Thus the grid-scale humidity is inversely weighted by the amount of 
-                !cloud in the grid box, and is assumed to be the average
-                !of the humidity values before and after evaporation.
-                TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
-                HEFF = Min (1d0, (QM(L)+DQSUM*(1/(2*MCLOUD)-1))*byAM(L)  /QSAT(TNX1,LHX,PL(L)))
-              else
-                heff=1.
-              end if
-              Call GET_EVAP_FACTOR(NTX,TOLD,LHX,BELOW_CLOUD,HEFF,FPRCP,FPRCPT,ntix)
+              !The "effective humidity" here is the relative humidity of the vapor directly in 
+              !contact with the rain drops during evaporation, as opposed to the grid-box average.  
+              !Thus the grid-scale humidity is inversely weighted by the amount of 
+              !cloud in the grid box, and is assumed to be the average
+              !of the humidity values before and after evaporation.
+              TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
+              HEFF = Min (1d0, (QM(L)+DQSUM*(1/(2*MCLOUD)-1))*byAM(L)  /QSAT(TNX1,LHX,PL(L)))
+
+              Call GET_EVAP_FACTOR(NTX,TOLD,LHX,HEFF,FPRCP,FPRCPT,ntix)
               dtr(1:ntx) = fprcpt(1:ntx)*trprcp(1:ntx)
 
 #ifdef TRDIAG_WETDEPO
@@ -4134,7 +4131,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       DTPRT(1:NTX) = FPRT  *TRWML(1:NTX,L)
 
       if(fer.ne.0.) then
-        call GET_EVAP_FACTOR(NTX,TL(L),LHP(L),.false.,1d0,FER,FERT,ntix)
+        call GET_EVAP_FACTOR(NTX,TL(L),LHP(L),1d0,FER,FERT,ntix)
         DTERT(1:NTX) = FERT(1:NTX)  *TRPRBAR(1:NTX,L+1)
       else
         FERT(1:NTX) = 0.
@@ -4142,7 +4139,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       endif
 
       if(fwtoq.ne.0.) then
-        call GET_EVAP_FACTOR(NTX,TL(L),LHX,.false.,1d0,FWTOQ,FWTOQT,ntix)
+        call GET_EVAP_FACTOR(NTX,TL(L),LHX,1d0,FWTOQ,FWTOQT,ntix)
         FPRT=FPR
         do N=1,NTX
           DTQWT(N) = -FWTOQT(N)*TRWML(N,L)*(1.-FPRT)
