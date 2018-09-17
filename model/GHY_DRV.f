@@ -722,7 +722,6 @@ c***********************************************************************
 !@dbparam snow_cover_coef coefficient for topography variance in
 !@+       snow cover parameterisation for albedo
       real*8 :: snow_cover_coef = .15d0
-      integer :: vegCO2X_off = 0
 !@dbparam land_CO2_bc_flag type of CO2 BC to be used by Land Surface
 !@+   0 - fixed, 1 - transient (from radiation), 2 - interactive
       integer :: land_CO2_bc_flag = 1
@@ -750,7 +749,7 @@ c****
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
       use geom, only : imaxj,lat2d
       use rad_com, only :
-     &      FSRDIR, SRVISSURF,CO2X, CO2ppm
+     &      FSRDIR, SRVISSURF, CO2ppm
       !use surf_albedo, only: albvnh   ! added 5/23/03 from RADIATION.f
       !albvnh(9,6,2)=albvnh(sand+8veg,6bands,2hemi) - only need 1st band
       use sle001, only : advnc,evap_limits,
@@ -1137,7 +1136,6 @@ ccc stuff needed for dynamic vegetation
 #endif
       case(1)
         Ca = CO2ppm  !*(1.0D-06)*ps*100.0/gasc/ts
-        if (vegCO2X_off==0) Ca = Ca * CO2X
       case(0)
         Ca = land_CO2_bc !*(1.0D-06)*ps*100.0/gasc/ts
       end select
@@ -1953,7 +1951,6 @@ c**** read rundeck parameters
       call sync_param( "ghy_default_data", ghy_default_data )
       !call  get_param( "variable_lk", variable_lk )
       !call  get_param( "init_flake", init_flake )
-      call sync_param( "vegCO2X_off", vegCO2X_off)
       call sync_param( "land_CO2_bc_flag", land_CO2_bc_flag )
       call sync_param( "land_CO2_bc", land_CO2_bc )
 
