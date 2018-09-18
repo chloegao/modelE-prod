@@ -30,7 +30,7 @@ C**** These variables are used by both ozone and strat chem routines
       real*8 yedge1,yedgen,xlatmd
       integer j,jxxx,l,lr
 
-      INTEGER :: J_1,  J_0
+      INTEGER :: J_1,  J_0,  I_1,  I_0
       INTEGER :: J_1H, J_0H, I_1H, I_0H
       INTEGER :: IER, lmtc
 
@@ -39,12 +39,13 @@ C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT     =J_0,  J_STOP     =J_1,
      *               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
-      call getDomainBounds(grid, I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
+      call getDomainBounds(grid, I_STRT     =I_0,  I_STOP     =I_1,
+     *               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       call sync_param("NSTRTC",NSTRTC)
 C**** ESMF: This array is read in only
       lmtc = lm-nstrtc
-      ALLOCATE(   frqlos(I_0H:I_1H,J_0H:J_1H,lmtc),
+      ALLOCATE(   frqlos(I_0:I_1,J_0:J_1,lmtc),
      *          STAT=IER)
 
 C---calculate nearest latitude to std lats
@@ -342,7 +343,7 @@ C**** Create interpolated table for this resolution, position input file
       end if
 
 C**** Read chemical loss rate dataset (1 year of data, 5-day frequency)
-      ALLOCATE(arr_dummy_3d(I_0H:I_1H,J_0H:J_1H,lmtc), STAT=IER)
+      ALLOCATE(arr_dummy_3d(I_0:I_1,J_0:J_1,lmtc), STAT=IER)
       IF (AM_I_ROOT()) THEN
         read(FRQfile) title
         read (title,'(f10.0)') taux
@@ -939,8 +940,8 @@ C****
       REAL*4 CO2W(37,0:30)
       real*8 p(0:60)
       real*8 CO2JK(GRID%J_STRT_HALO:GRID%J_STOP_HALO,0:kmwco2)
-      real*8 CO2IJL(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
-     &              GRID%J_STRT_HALO:GRID%J_STOP_HALO,LM)
+      real*8 CO2IJL(GRID%I_STRT:GRID%I_STOP,
+     &              GRID%J_STRT:GRID%J_STOP,LM)
       CHARACTER*80 TITLE
       integer i,j,jw,k,l,n,iu_in,iu_out
       Real*8 :: pup,cup,pdn,cdn,psum,csum,w,zk !,stratm

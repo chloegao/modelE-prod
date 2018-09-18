@@ -578,8 +578,8 @@ C**** Get useful grid parameters
       IF (atmgla%ftype(i,j).gt.0 .and. PRCP.gt.0) THEN
 #endif
         ENRGP=atmgla%eprec(I,J)      ! energy of precipitation
-      if (i==53.and.j==83.and.ihc==1)
-     &       print *,'AZZ PRECLI in',PRCP,ENRGP/PRCP
+!      if (i==53.and.j==83.and.ihc==1)
+!     &       print *,'AZZ PRECLI in',PRCP,ENRGP/PRCP
 
         SNOW=SNOWLI(I,J,IHC)
         TG1=TLANDI(1,I,J,IHC)
@@ -596,8 +596,8 @@ C**** Get useful grid parameters
 #endif
      *       EDIFS,DIFS,ERUN2,RUN0)
 
-      if (i==53.and.j==83.and.ihc==1)
-     &       print *,'AZZ PRECLI out',RUN0,ERUN2/RUN0
+!      if (i==53.and.j==83.and.ihc==1)
+!     &       print *,'AZZ PRECLI out',RUN0,ERUN2/RUN0
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J,IHC)=SNOW
