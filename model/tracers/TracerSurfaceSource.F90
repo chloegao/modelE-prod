@@ -41,12 +41,11 @@ module TracerSurfaceSource_mod
 contains
 
   subroutine initSurfaceSource(this, tracerName, fileName)
-    use SystemTools, only : stLinkStatus,stFileList
-    use Dictionary_mod, only : sync_param
     USE FILEMANAGER, only: openunit,closeunit
     use pario, only : par_open,par_close,read_attr
     USE DOMAIN_DECOMP_ATM, only: GRID
     use TimeConstants_mod, only: HOURS_PER_DAY
+    use timestream_mod, only: getname_firstfile_nonstream
     use SpecialIO_mod, only: write_parallel,read_parallel
     type (TracerSurfaceSource), intent(inout) :: this
     character(len=*), intent(in) :: tracerName
@@ -56,43 +55,19 @@ contains
     logical :: scalingFileExists = .false.
 
     integer :: nn, i, j, iu, fid
-    integer :: linkstatus, nfiles, ifile, ios, jyr
-    integer, parameter :: max_fname_len=128
-    character(len=max_fname_len), allocatable :: flist(:)
-    character(len=max_fname_len) :: thisline
-    character(len=max_fname_len+8) :: fileToRead
-    character(len=4) :: c4
-    character*32 :: pname
+    character*32 :: pname,fileToRead
     character*35 :: fname
     character(len=80) :: name
     real*8 :: sumDiurnal
     real*8, parameter :: diurnalSumTolerance=1.d-4
     character*80 :: targetVariable
+    integer :: nfileyrs
+    integer, dimension(:), allocatable :: fileyrs
 
     ! -- Obtain metadata on how to label this source in diagnostics:
 
-    fileToRead=fileName ! default (e.g. if file is not a directory, or
-                        ! the directory search doesn't find a good file)
-    call stLinkStatus(trim(fileName), linkstatus)
-    if(linkstatus==2) then  ! this is a directory. todo: no hard-coded retcodes
-      ! The file is a directory. Do something similar to subroutine check_metadata
-      ! in timestream_mod to determine any useable YYYY.nc file in the directory.
-      allocate(flist(1000)) ! 1000 files maximum
-      call stFileList(trim(fileName),flist,nfiles)
-      do ifile=1,nfiles
-        thisline = adjustl(flist(ifile))
-        if(len_trim(thisline).ne.7) cycle
-        if(thisline(5:7).ne.'.nc') cycle
-        c4 = thisline(1:4)
-        read(c4,*,iostat=ios) jyr
-        if(ios.ne.0) cycle
-        if(jyr.lt.0) cycle
-        ! acceptable file. define it and exit:
-        fileToRead=trim(fileName)//'/'//trim(thisline)
-        exit
-      end do
-      deallocate(flist)
-    end if ! directory search
+    call getname_firstfile_nonstream &
+      & (grid,trim(fileName),fileToRead,nfileyrs,fileyrs)
 
     ! continue reading netCDF file:
     this%tracerName = tracerName
@@ -129,7 +104,7 @@ contains
     inquire(file=trim(fname), exist=diurnalFileExists)
     if(diurnalFileExists)then
        this%applyDiurnalCycle=.true.
-       write(out_line,*)'Applying diurnal cycle to file '//fileName
+       write(out_line,*)'Applying diurnal cycle to file '//trim(fileName)
        call write_parallel(trim(out_line))
        call openunit(fname,iu,.false.,.true.)
        call read_parallel(this%diurnalCycle,iu)

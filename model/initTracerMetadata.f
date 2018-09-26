@@ -19,7 +19,7 @@
       use Tracer_mod, only: findSurfaceSources
       use Tracer_mod, only: addSurfaceSource
       use TracerSurfaceSource_mod, only: itsMegan, itsCH4MGOL, itsOcean
-      use SystemTools, only: stLinkStatus
+      use filemanager, only : file_exists
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: use_rad_ch4
 #endif
@@ -28,7 +28,7 @@
       integer, intent(in) :: n
       class (Tracer), pointer :: pTracer
 
-      integer :: val, linkstatus
+      integer :: val
 
       call pTracer%insert('ntSurfSrc', 0)
 
@@ -44,19 +44,15 @@
       call findSurfaceSources(pTracer)
 
 !     Next, check whether tracers have 3D aircraft source files/dirs:
-      call stLinkStatus(trim(trname(n)//'_AIRC'),linkstatus)
-      select case(linkstatus)
-      case(1,2) ! TODO: no hardcoded integers
+      if(file_exists(trim(trname(n)//'_AIRC'))) then
         call set_do_aircraft(n, .true.)
         call set_first_aircraft(n, .true.)
-      end select
-!     and whether scaling were set up for those aircraft sources:
+      end if
+!     and whether scalings were set up for those aircraft sources:
       if(do_aircraft(n))then
-        call stLinkStatus(trim(trname(n)//'_AIRC_scale'),linkstatus)
-        select case(linkstatus)
-        case(1,2) ! TODO: no hardcoded integers
+        if(file_exists(trim(trname(n)//'_AIRC_scale'))) then
           call set_scale_aircraft(n, .true.)
-        end select
+        end if
       end if
 
 #ifdef DYNAMIC_BIOMASS_BURNING

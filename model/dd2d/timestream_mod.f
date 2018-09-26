@@ -227,6 +227,7 @@
       public :: init_stream,read_stream,get_by_index
      &     ,reset_stream_properties,getname_firstfile
      &     ,read_stream_ijless,get_by_index_ijless
+     &     ,getname_firstfile_nonstream
 
       interface read_stream
         module procedure read_stream_2d
@@ -684,10 +685,6 @@ c
      &     ,read_data, read_attr
      &     ,get_record_dimlen,get_dimlens,get_record_dimname
      &     ,variable_exists
-!!       use param, only : sync_param
-!#ifdef IN_MODELE
-      use SystemTools, only : stLinkStatus,stFileList
-!#endif
       implicit none
       type(dist_grid) :: grid
       type(timestream) :: tstream
@@ -707,14 +704,7 @@ c
       integer :: ndims,dlens(7)
 c
       integer :: indx,yr0,mn0,pn0,dy0,tm0,yrx,rdimlen1
-      integer :: linkstatus
       character(len=32) :: dname,tunits,tunits_off
-      integer, parameter :: max_fname_len=128
-      character(len=max_fname_len), allocatable :: flist(:)
-      character(len=max_fname_len) :: thisline
-      character(len=4) :: c4
-      integer :: lsiter,nfiles,ifile,ios
-
 c
       cyclic = tstream%cyclic
 
@@ -734,47 +724,8 @@ c
 
       nfileyrs = 0
 
-!#ifdef IN_MODELE
-      call stLinkStatus(tstream%fbase, linkstatus)
-      if(linkstatus==2) then  ! this is a directory. todo: no hard-coded retcodes
-        allocate(flist(1000)) ! 1000 files maximum
-        call stFileList(tstream%fbase,flist,nfiles)
-
-        ! determine available years from YYYY.nc file presence
-        do lsiter=1,2
-        if(lsiter.eq.2) allocate(fileyrs(nfileyrs))
-        nfileyrs = 0
-        do ifile=1,nfiles
-          thisline = adjustl(flist(ifile))
-          if(len_trim(thisline).ne.7) cycle
-          if(thisline(5:7).ne.'.nc') cycle
-          c4 = thisline(1:4)
-          read(c4,*,iostat=ios) jyr
-          if(ios.ne.0) cycle
-          if(jyr.lt.0) cycle
-          nfileyrs = nfileyrs + 1
-          if(lsiter.eq.2) fileyrs(nfileyrs) = jyr
-        enddo
-        enddo
-
-        if(nfileyrs.eq.0) then
-          if(grid%am_i_globalroot) write(6,*)
-     &         'read_stream: empty directory '//trim(tstream%fbase)
-          call stop_model(
-     &         'read_stream: empty input directory',255)
-        endif
-
-        ! Apparently there is no guarantee that stFileList will report
-        ! YYYY.nc files in ascending year order, so sort post-hoc
-        if(nfileyrs.gt.1) then
-          call mergesort(nfileyrs,fileyrs)
-        endif
-        write(c4,'(i4)') fileyrs(1)
-        tstream%firstfile = trim(tstream%fbase)//'/'//c4//'.nc'
-      else
-        tstream%firstfile = tstream%fbase
-      endif ! fbase is directory or not
-!#endif IN_MODELE
+      call getname_firstfile_nonstream
+     & (grid, tstream%fbase, tstream%firstfile, nfileyrs, fileyrs)
 
       multiple_yrs = nfileyrs.gt.0
       multiple_files = multiple_yrs
@@ -2033,6 +1984,66 @@ c
 
       return
       end subroutine do_read_stream_3d
+
+      subroutine getname_firstfile_nonstream(grid,fbase0,fname0,nf0,fy0)
+      ! See notes in routine getname_firstfile. This routine doesn't
+      ! get passed a timestream object.
+      ! fbase0 = the name of the directory or file to search,
+      ! fname0 = name of the first file, nf0 = number of files,
+      ! fy0 = years of the nf0 files.
+      use SystemTools, only : stLinkStatus,stFileList
+      use dd2d_utils, only : dist_grid
+      integer, parameter :: max_fname_len=128
+      character(len=max_fname_len), allocatable :: flist(:)
+      character(len=max_fname_len) :: thisline
+      character(len=4) :: c4
+      integer :: lsiter,nfiles,ifile,ios,linkstatus,jyr0,nf0
+      type(dist_grid) :: grid
+      integer, dimension(:), allocatable :: fy0
+      character(len=32) :: fname0
+      character(len=*) :: fbase0
+
+      call stLinkStatus(fbase0, linkstatus)
+      if(linkstatus==2) then  ! this is a directory. todo: no hard-coded retcodes
+        allocate(flist(1000)) ! 1000 files maximum
+        call stFileList(fbase0,flist,nfiles)
+
+        ! determine available years from YYYY.nc file presence
+        do lsiter=1,2
+        if(lsiter.eq.2) allocate(fy0(nf0))
+        nf0 = 0
+        do ifile=1,nfiles
+          thisline = adjustl(flist(ifile))
+          if(len_trim(thisline).ne.7) cycle
+          if(thisline(5:7).ne.'.nc') cycle
+          c4 = thisline(1:4)
+          read(c4,*,iostat=ios) jyr0
+          if(ios.ne.0) cycle
+          if(jyr0.lt.0) cycle
+          nf0 = nf0 + 1
+          if(lsiter.eq.2) fy0(nf0) = jyr0
+        enddo
+        enddo
+
+        if(nf0.eq.0) then
+          if(grid%am_i_globalroot) write(6,*)
+     &         'getname_firstfile_nonstream: empty directory '//
+     &         trim(fbase0)
+          call stop_model(
+     &         'getname_firstfile_nonstream: empty input directory',255)
+        endif
+
+        ! Apparently there is no guarantee that stFileList will report
+        ! YYYY.nc files in ascending year order, so sort post-hoc
+        if(nf0.gt.1) then
+          call mergesort(nf0,fy0)
+        endif
+        write(c4,'(i4)') fy0(1)
+        fname0 = trim(trim(fbase0)//'/'//c4//'.nc')
+      else
+        fname0 = fbase0
+      endif ! fbase0 is directory or not
+      end subroutine getname_firstfile_nonstream
 
       end module timestream_mod
 

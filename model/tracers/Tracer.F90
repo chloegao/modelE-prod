@@ -161,7 +161,7 @@ contains
 
     USE SpecialIO_mod, only: write_parallel
     use MpiSupport_mod, only: am_i_root
-    use SystemTools, only : stLinkStatus
+    use filemanager, only : file_exists
 
     implicit none
 
@@ -171,8 +171,7 @@ contains
     integer :: n
     character*80 :: fname
     character(len=300) :: out_line
-    logical :: fileOrDirExists
-    integer :: nsrc,linkstatus
+    integer :: nsrc
 
     ! loop through potential number of surface sources, checking if
     ! those files (or directories) exist. If they do, obtain the source
@@ -182,17 +181,8 @@ contains
     nsrc=0
 
     loop_n: do n = 1, ntsurfsrcmax
-
       fname = addIntegerSuffix(getName(trcer), n)
-      call stLinkStatus(trim(fname), linkstatus)
-      select case(linkstatus)
-      case(1,2) ! TODO: no hardcoded integers
-        fileOrDirExists=.true.
-      case default
-        fileOrDirExists=.false.
-      end select
-
-      if (fileOrDirExists) then
+      if (file_exists(trim(fname))) then ! includes directories
         nsrc=nsrc+1
         call addSourceFromFile(trcer, fname)
       else
@@ -204,15 +194,7 @@ contains
 
     n=n+1
     fname = addIntegerSuffix(getName(trcer), n)
-    call stLinkStatus(trim(fname), linkstatus)
-    select case(linkstatus)
-    case(1,2) ! TODO: no hardcoded integers
-      fileOrDirExists=.true.
-    case default
-      fileOrDirExists=.false.
-    end select
-
-    if (fileOrDirExists) then
+    if (file_exists(trim(fname))) then ! includes directories
       write(out_line,*)'problem in findSurfaceSources.', &
            &        ' Possibly missing source? n=',n-1
       call write_parallel(trim(out_line))
