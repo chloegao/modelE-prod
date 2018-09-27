@@ -45,7 +45,7 @@ contains
     use pario, only : par_open,par_close,read_attr
     USE DOMAIN_DECOMP_ATM, only: GRID
     use TimeConstants_mod, only: HOURS_PER_DAY
-    use timestream_mod, only: getname_firstfile_nonstream
+    use timestream_mod, only: getFirstFileByYear
     use SpecialIO_mod, only: write_parallel,read_parallel
     type (TracerSurfaceSource), intent(inout) :: this
     character(len=*), intent(in) :: tracerName
@@ -66,8 +66,8 @@ contains
 
     ! -- Obtain metadata on how to label this source in diagnostics:
 
-    call getname_firstfile_nonstream &
-      & (grid,trim(fileName),fileToRead,nfileyrs,fileyrs)
+    call getFirstFileByYear &
+     & (grid,trim(fileName),fileToRead,nfileyrs,fileyrs)
 
     ! continue reading netCDF file:
     this%tracerName = tracerName

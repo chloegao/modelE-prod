@@ -227,7 +227,7 @@
       public :: init_stream,read_stream,get_by_index
      &     ,reset_stream_properties,getname_firstfile
      &     ,read_stream_ijless,get_by_index_ijless
-     &     ,getname_firstfile_nonstream
+     &     ,getFirstFileByYear
 
       interface read_stream
         module procedure read_stream_2d
@@ -724,7 +724,7 @@ c
 
       nfileyrs = 0
 
-      call getname_firstfile_nonstream
+      call getFirstFileByYear
      & (grid, tstream%fbase, tstream%firstfile, nfileyrs, fileyrs)
 
       multiple_yrs = nfileyrs.gt.0
@@ -1985,22 +1985,25 @@ c
       return
       end subroutine do_read_stream_3d
 
-      subroutine getname_firstfile_nonstream(grid,fbase0,fname0,nf0,fy0)
-      ! See notes in routine getname_firstfile. This routine doesn't
-      ! get passed a timestream object.
-      ! fbase0 = the name of the directory or file to search,
-      ! fname0 = name of the first file, nf0 = number of files,
-      ! fy0 = years of the nf0 files.
+      subroutine getFirstFileByYear(grid,fbase0,fname0,nf0,fy0)
+      !@sum getFirstFileByYear find first dir/YYYY.nc file. See
+      !@+ explanation in notes of subroutine getname_firstfile.
+      !@+ This routine doesn't get passed a timestream object.
       use SystemTools, only : stLinkStatus,stFileList
       use dd2d_utils, only : dist_grid
       integer, parameter :: max_fname_len=128
       character(len=max_fname_len), allocatable :: flist(:)
       character(len=max_fname_len) :: thisline
       character(len=4) :: c4
+      !@var nf0 return number of files found
       integer :: lsiter,nfiles,ifile,ios,linkstatus,jyr0,nf0
       type(dist_grid) :: grid
+      !@var fy0 return year names of the nf0 files
       integer, dimension(:), allocatable :: fy0
+      !@var fname0 returned name of the first dir/YYYY.nc file
+      !@+ or the file name if fbase0 is a file.
       character(len=32) :: fname0
+      !@var fbase0 passed in name of file or dir to search
       character(len=*) :: fbase0
 
       call stLinkStatus(fbase0, linkstatus)
@@ -2027,10 +2030,9 @@ c
 
         if(nf0.eq.0) then
           if(grid%am_i_globalroot) write(6,*)
-     &         'getname_firstfile_nonstream: empty directory '//
-     &         trim(fbase0)
+     &         'getFirstFileByYear: empty directory '//trim(fbase0)
           call stop_model(
-     &         'getname_firstfile_nonstream: empty input directory',255)
+     &         'getFirstFileByYear: empty input directory',255)
         endif
 
         ! Apparently there is no guarantee that stFileList will report
@@ -2043,7 +2045,7 @@ c
       else
         fname0 = fbase0
       endif ! fbase0 is directory or not
-      end subroutine getname_firstfile_nonstream
+      end subroutine getFirstFileByYear
 
       end module timestream_mod
 
