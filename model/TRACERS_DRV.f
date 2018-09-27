@@ -7591,6 +7591,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       use TRACER_COM, only: n_seasalt1
       use TRACER_COM, only: nThermo
       use RunTimeControls_mod, only: tracers_special_shindell
+      use RunTimeControls_mod, only: tracers_dust
+      use RunTimeControls_mod, only: tracers_aerosols_seasalt
       use TRACER_COM, only: coupled_chem
       USE AEROSOL_SOURCES, only: off_HNO3
       USE MODEL_COM, only : dtsrc
@@ -7599,6 +7601,8 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       USE apply3d, only : apply_tracer_3Dsource
 #ifdef TRACERS_SPECIAL_Shindell
       use TRCHEM_Shindell_COM, only: topLevelOfChemistry
+#else
+      use AEROSOL_SOURCES, only: off_HNO3
 #endif
       implicit none
 !@var AVOL Convert kg m-2 to kg m-3
@@ -7625,16 +7629,24 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         AVOL=ma(l)/mair*1000.d0*gasc*tl(l)/(pl(l)*100.d0)
 
         ASO4=trm_col(l,n_SO4)*1.d9/AVOL
-        if (tracers_special_shindell.and.coupled_chem==1) then
-          ANO3=trm_col(l,n_NO3p)*1.d9/AVOL
-        else
-          ANO3=off_HNO3(i,j,l)*1.d9/AVOL
-        endif
+        ANO3=trm_col(l,n_NO3p)*1.d9/AVOL
         ANH4=trm_col(l,n_NH4)*1.d9/AVOL
         GNH3=trm_col(l,n_NH3)*1.d9/AVOL
-        GHNO3=trm_col(l,n_HNO3)*1.d9/AVOL
-        DUST=trm_col(l,n_Clay)*1.d9/AVOL
-        SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
+        if (tracers_special_shindell.and.coupled_chem==1) then
+          GHNO3=trm_col(l,n_HNO3)*1.d9/AVOL
+        else
+          GHNO3=off_HNO3(i,j,l)*1.d9/AVOL
+        endif
+        if (tracers_dust) then
+          DUST=trm_col(l,n_Clay)*1.d9/AVOL
+        else
+          DUST=0.d0
+        endif
+        if (tracers_aerosols_seasalt) then
+          SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
+        else
+          SALT=0.d0
+        endif
 
         call AERO_THERMO(ASO4,ANO3,ANH4,DUST,SALT,AH2O,ApH,SSH2O,
      &                   GNH3,GHNO3,tl(l),rhl(l),RHD,RHC,
