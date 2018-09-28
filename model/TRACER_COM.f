@@ -553,11 +553,6 @@ C**** Diagnostic indices and meta-data
 C**** EVERYTHING BELOW HERE IS TRACER SPECIFIC. PLEASE THINK 
 C**** ABOUT MOVING IT ELSEWHERE
 
-!@var 3D on-line radical array for interactive aerosol and gas
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: oh_live
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: no3_live
-      REAL*8, ALLOCATABLE, DIMENSION(:,:,:) :: o3_live
-
 #ifdef TRACERS_SPECIAL_O18
 C**** Water isotope specific parameters
 
@@ -872,10 +867,7 @@ C****
       J_0H=GRID%J_STRT_HALO
       J_1H=GRID%J_STOP_HALO
 
-      ALLOCATE(     oh_live(I_0:I_1,J_0:J_1,LM),
-     *             no3_live(I_0:I_1,J_0:J_1,LM),
-     *              o3_live(I_0:I_1,J_0:J_1,LM),
-     *                  trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
+      ALLOCATE(              trm(I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trmom(NMOM,I_0H:I_1H,J_0H:J_1H,LM,NTM),
      *                trdn1(NTM,I_0:I_1,J_0:J_1),
      *              sfc_src(I_0:I_1,J_0:J_1,NTM,ntsurfsrcmax))

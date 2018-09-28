@@ -198,10 +198,10 @@ c
      &                        H2ObyCH4,SRDN,clim_interact_chem
       USE GEOM, only        : LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
-      use OldTracer_mod, only: tr_wd_type, nWater
-      USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end
-      USE TRACER_COM, only  : oh_live,no3_live,o3_live
-      USE TRACER_COM, only  : n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
+      use OldTracer_mod, only : tr_wd_type, nWater
+      USE AEROSOL_SOURCES, only : oh_live,no3_live,o3_live
+      USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end,
+     &                      n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,
      &                      n_Isoprene,n_AlkylNit,n_Alkenes,
      &                      n_Terpenes,n_SO4,n_H2O2_s,
@@ -854,9 +854,9 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
 C Save 3D radical arrays to pass to aerosol code:
       if(coupled_chem == 1) then
         do L=1,topLevelOfChemistry
-          oh_live(i,j,L)=y(nOH,L)
-          no3_live(i,j,L)=y(nNO3,L)
-          o3_live(i,j,L)=y(nO3,L)
+          oh_live(L)=y(nOH,L)
+          no3_live(L)=y(nNO3,L)
+          o3_live(L)=y(nO3,L)
         end do
       end if
 
@@ -1620,9 +1620,9 @@ c -- AlkylNit -- (AlkylNit from gas phase rxns)
 C Save 3D radical arrays to pass to aerosol code:
 C Make sure we get the nightime values; Set OH to zero for now:
         if(coupled_chem == 1) then
-          oh_live(i,j,L)=0.d0
-          no3_live(i,j,L)=y(nNO3,L)
-          o3_live(i,j,L)=y(nO3,L)
+          oh_live(L)=0.d0
+          no3_live(L)=y(nNO3,L)
+          o3_live(L)=y(nO3,L)
         end if
 
 c --  Ox --   ( Ox from gas phase rxns)
@@ -1719,9 +1719,9 @@ CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
       ! aerosol code uses radicals up to LM, so fill in above chemistry
       if(coupled_chem == 1) then
         do L=topLevelOfChemistry+1,LM
-          oh_live(i,j,L)=0.d0
-          no3_live(i,j,L)=0.d0
-          o3_live(i,j,L)=0.d0
+          oh_live(L)=0.d0
+          no3_live(L)=0.d0
+          o3_live(L)=0.d0
         end do
       end if
 

@@ -12,6 +12,7 @@
 !@ GET_BC_DALBEDO
 !@ GRAINS
 !@ read_seawifs_chla
+      use resolution, only : LM
       use timestream_mod, only : timestream
 #ifdef TRACERS_AEROSOLS_VBS
       use TRACERS_VBS, only: vbs_tracers
@@ -56,6 +57,11 @@
       integer, parameter :: nAeroStream=6
       type(timestream), dimension(nAeroStream) :: AeroStream
       logical :: AeroFirst=.true.
+
+!@var oh_live for on-line radical exporting from chemistry
+!@var no3_live for on-line radical exporting from chemistry
+!@var o3_live for on-line radical exporting from chemistry
+      real*8, dimension(LM) :: oh_live, no3_live, o3_live
 
       END MODULE AEROSOL_SOURCES
 
@@ -538,8 +544,9 @@ c H2O2 losses:5 and 6
 
       use constant, only : pi
       use ATMCOL_COM, only: pl,tl,byma
-      use TRACER_COM, only: coupled_chem, oh_live, no3_live, o3_live
-      use AEROSOL_SOURCES, only: oxid,ohr,dho2r,perjr,tno3r,o3_offline
+      use TRACER_COM, only: coupled_chem
+      use AEROSOL_SOURCES, only: oxid,ohr,dho2r,perjr,tno3r,o3_offline,
+     &    oh_live, no3_live, o3_live
       USE DOMAIN_DECOMP_ATM, only:GRID, getDomainBounds
       use RAD_COM, only: cosz1,cosz_day,sunset
       implicit none
@@ -550,9 +557,9 @@ c H2O2 losses:5 and 6
 
       if (coupled_chem.eq.1) then
 ! coupled mode: use online radical concentrations
-        oxid%OH=oh_live(i,j,l)
-        oxid%NO3=no3_live(i,j,l)
-        oxid%O3=o3_live(i,j,l)
+        oxid%OH=oh_live(l)
+        oxid%NO3=no3_live(l)
+        oxid%O3=o3_live(l)
         oxid%HO2=0.d0
         oxid%H2O2=0.d0
       else

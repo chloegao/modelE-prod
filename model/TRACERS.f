@@ -1224,8 +1224,8 @@ C**** check whether air mass is conserved
       use pario, only : read_data,defvar,write_data
       use domain_decomp_atm, only : grid
       USE Dictionary_mod
-      USE TRACER_COM, only: ntm, TRmom, TRM, coupled_chem
-      USE TRACER_COM, only: ntm, nmom, no3_live, oh_live, o3_live
+      USE TRACER_COM, only: ntm, TRmom, TRM
+      USE TRACER_COM, only: ntm, nmom
 #ifdef TRACERS_SPECIAL_Shindell
       USE TRCHEM_Shindell_COM, only: pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,pNO3
@@ -1345,16 +1345,6 @@ c daily_z is currently only needed for CS
 #ifdef TRACERS_dCO
       call doVar(handle,action,yd13CXPAR,'yd13CXPAR'//ijcdims)
 #endif  /* TRACERS_dCO */
-      if(trim(action) == 'read_dist') then
-           ! read_dist is a badly chosen synonym for read
-        if(is_set_param("coupled_chem"))
-     &       call get_param( "coupled_chem", coupled_chem )
-      endif
-      if(coupled_chem == 1) then
-        call doVar(handle,action,oh_live,'oh_live'//ijldims)   ! stays ijldims
-        call doVar(handle,action,no3_live,'no3_live'//ijldims) ! stays ijldims
-        call doVar(handle,action,o3_live,'o3_live'//ijldims) ! stays ijldims
-      endif
       call doVar(handle,action,pClOx,'pClOx'//cijdims,jdim=3)
       call doVar(handle,action,pClx,'pClx'//cijdims,jdim=3)
       call doVar(handle,action,pOClOx,'pOClOx'//cijdims,jdim=3)
