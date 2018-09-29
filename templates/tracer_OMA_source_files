@@ -9,9 +9,9 @@ TRACER_HETCHEM                             ! Nitrate and Sulfate production on d
 TRACER_drv_eqsam | $(EXTENDED_SOURCE) |    ! Nitrate aerosol
 TRAMP_eqsam_v03d                           ! EQSAM module for inorganic aerosol thermodynamic equilibrium
 ! ISORROPIA 2 Thermodynamics
-!TRACER_drv_isorropia | $(EXTENDED_SOURCE) | 
-!TRAMP_isocom2              
-!TRAMP_isofwd2          
+!TRACER_drv_isorropia | $(EXTENDED_SOURCE) |
+!TRAMP_isocom2
+!TRAMP_isofwd2
 !TRAMP_isorev2
 ! ----------------------------------
 SeasaltTracersMetadata
