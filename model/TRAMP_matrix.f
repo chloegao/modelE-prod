@@ -121,6 +121,10 @@
       REAL(8) :: SURF(NMODES)              ! surface area per population
       REAL(8) :: TOTSURF                   ! total surface area of all populations
 
+#ifdef TRACERS_AMP_M9
+      REAL(8) :: gas_other(vbs_bins)
+#endif  /* TRACERS_AMP_M9 */
+
       ! For the condensational sink, condensational growth, and cou. 
 
       REAL(8) :: KC                         ! total condensational sink with arbitrary mass accommodation coef. [1/s]
@@ -968,27 +972,35 @@
       vbs_cond%OH=GAS(GAS_OH)
       vbs_cond%temp=TK
 
-! calculate VBS
-      DO I=1,NMODES
-        IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE  ! determine if vbs species exist in this mode
-
 ! calculate surface area
-        surf=0.
-        totsurf=0.
+      surf=0.d0
+      totsurf=0.d0
+
+      do i=1,nmodes
+        if (prod_index_inv(i,prod_index_ocm2)==0) cycle
         if (aero(numb_map(i)) .le. 1.d-10) then
-          surf(i)=0.
+          surf(i)=0.d0
         else
           surf(i)=pi*(DGN(i)*exp((LNSIG0(i))**2))**2 * aero(numb_map(i))
         endif
-        totsurf=sum(surf(:))
+      enddo
+      totsurf=sum(surf(:))
 
-        ratio_aer(:)=0.d0
-        if (totsurf .ne. 0.) then
+      ratio_aer(:)=0.d0
+      if (totsurf .ne. 0.d0) then
+        do i=1,nmodes
+          if (prod_index_inv(i,prod_index_ocm2)==0) cycle
           ratio_aer(i)=surf(i)/totsurf
-        endif
+        enddo
+      endif
+
+! calculate VBS
+      DO I=1,NMODES
+        IF (PROD_INDEX_INV(I,PROD_INDEX_OCM2)==0) CYCLE
 
 ! save VBS-related concentrations
         do v=1,vbs_bins
+          gas_other(v)=gas(gas_ocm2-1+v)*(1.d0-ratio_aer(i))
           vbs_conc%gas(v)=GAS(GAS_OCM2-1+v)*ratio_aer(I)
           vbs_conc%aer(v)=AERO(MASS_MAP(I,PROD_INDEX_INV(I,PROD_INDEX_OCM2)-1+v))
         enddo
@@ -1006,7 +1018,7 @@
 
 ! send output back to MATRIX
         do v=1,vbs_bins
-          GAS(GAS_OCM2-1+v)=vbs_conc%gas(v)
+          GAS(GAS_OCM2-1+v)=vbs_conc%gas(v)+gas_other(v)
           VBS_FLUXES(I,PROD_INDEX_OCM2-1+v)=(vbs_conc%aer(v)-AERO(MASS_MAP(I,PROD_INDEX_INV(I,PROD_INDEX_OCM2)-1+v)))/tstep
         enddo
 
@@ -1430,7 +1442,9 @@
       !----------------------------------------------------------------------------------------------------------------
       ! Limit low mass or number concentrations.
       !----------------------------------------------------------------------------------------------------------------
-      AERO(:) = MAX( AERO(:), MINCONC )
+
+       AERO(:) = MAX( AERO(:), TINYNUMER )
+       AERO( NUMB_MAP(:) ) = MAX ( AERO(NUMB_MAP(:)), MINCONC )
 
       !----------------------------------------------------------------------------------------------------------------
       ! Budget diagnostics.

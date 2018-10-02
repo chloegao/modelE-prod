@@ -65,14 +65,14 @@ c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,  
      +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
      +                 0.100D+00, 0.100D+00, 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/    
 #elif defined TRACERS_AMP_M9
-c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  BC3  BOC  BCS  MXX
+c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  OCS  BOC  BCS  MXX
 c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15
-      DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   5,   4,   5,   6/
+      DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   4,   4,   5,   6/
       DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
 c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,   0,   1,   1,   2/
       DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
      +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
-     +                 0.100D+00, 0.100D+00, 0.100D+00, 0.070D+00, 0.100D+00/    
+     +                 0.100D+00, 0.075D+00, 0.100D+00, 0.070D+00, 0.100D+00/
 #endif
   
 c                   NA1= SO4  NA2=SS  NA3=NO3 NA4=OC NA5=BC NA6=DU
@@ -190,7 +190,7 @@ c Shortwave: -------------------------------------------------------------------
 
        select case (MODE_NAME(n))
 c---- INTERNAL MIXTURE ---------------------------------------------        
-       case ('AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','DBC','MXX')
+       case ('AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','OCS','DBC','MXX')
    
             do MA = 1,15
             if ( real    (RindexAMP(l,n,w)) .le. Mie_RE(MA)) goto 600
@@ -243,7 +243,7 @@ c---- INTERNAL MIXTURE ---------------------------------------------
 
        select case (MODE_NAME(n))
 
-       case ('AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','DBC','MXX')
+       case ('AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','OCS','DBC','MXX')
    
          do MA = 1,15
             if ( real    (RindexAMP(l,n,w)) .le. Mie_RE(MA)) goto 801
@@ -417,7 +417,7 @@ cBond + Berstroem, all wavelength
                case ('BC')
                   VMass(AMP_MODES_MAP(nAMP),2) =trm(i,j,l,n)/DENS_BCAR
                case ('OC')
-                  VMass(AMP_MODES_MAP(nAMP),3) =trm(i,j,l,n)/DENS_OCAR
+                  VMass(AMP_MODES_MAP(nAMP),3) =VMass(AMP_MODES_MAP(nAMP),3)+ trm(i,j,l,n)/DENS_OCAR
                case ('DU')
                   VMass(AMP_MODES_MAP(nAMP),4) =trm(i,j,l,n)/DENS_DUST
                case ('SS')
