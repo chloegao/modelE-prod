@@ -100,7 +100,7 @@ module AmpTracersMetadata_mod
     tracers_amp_m3, tracers_amp_m4,         &
     tracers_amp_m5, tracers_amp_m6,         &
     tracers_amp_m7, tracers_amp_m8,         &
-    tracers_amp_m9,                         &
+    tracers_amp_m9, tracers_amp_m10,        &
     tracers_special_shindell
   use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem, coupled_chem
   use OldTracer_mod, only: set_needtrs
@@ -184,7 +184,8 @@ contains
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_AKK_SU = AMP_SetSpec('AKK', 'SU')
       n_N_AKK_1  = AMP_SetSpec('AKK', '1' )
     end if
@@ -237,7 +238,8 @@ contains
         tracers_amp_m2 .or. &
         tracers_amp_m3 .or. &
         tracers_amp_m4 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_DD2_SU = AMP_SetSpec('DD2','SU')
       n_M_DD2_DU = AMP_SetSpec('DD2','DU')
       if (tracers_amp_m9) then
@@ -275,7 +277,8 @@ contains
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_SSA_SU = AMP_SetSpec('SSA','SU')
       n_M_SSA_SS = AMP_SetSpec('SSA','SS')
       if (tracers_amp_m9) then
@@ -366,7 +369,8 @@ contains
 
     if (tracers_amp_m2 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_OCS_SU = AMP_SetSpec('OCS','SU')
       n_M_OCS_OC = AMP_SetSpec('OCS','OC')
       if (tracers_amp_m9) then
@@ -397,7 +401,8 @@ contains
         tracers_amp_m3 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_BOC_SU = AMP_SetSpec('BOC','SU')
       n_M_BOC_BC = AMP_SetSpec('BOC','BC')
       n_M_BOC_OC = AMP_SetSpec('BOC','OC')
@@ -419,7 +424,8 @@ contains
         tracers_amp_m2 .or. &
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_BCS_SU = AMP_SetSpec('BCS','SU')
       n_M_BCS_BC = AMP_SetSpec('BCS','BC')
       if (tracers_amp_m9) then
@@ -550,6 +556,13 @@ contains
       151,152,153,154,155,156,157,158,159,160, &
       161,162,163,164,165,166,167,168,169,170, &
       171,172,173,174,175,176                /)
+#elif defined TRACERS_AMP_M10
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,16,17,18,19,20, &
+      21,22,   24,25,26,27,28,29,30, & ! skip M_SSC_SU
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48,49,50 /)
 #else
     call stop_model('AMP_AERO_MAP needs to be defined.', 255)
 #endif

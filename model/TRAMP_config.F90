@@ -143,6 +143,12 @@
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14/)
+#elif defined TRACERS_AMP_M10
+      INTEGER, PARAMETER :: MECH=10,NAEROVARS=47,NEXTRA=3,NMODES=15,NMASS_SPCS=5 ! Mechanism 10
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: &
+        IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
+      INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
+        ISPCS=(/ 1, 2, 3, 4, 5/)
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     1. Set the number of quadrature points per mode (1-2); must use NPOINTS=1 for the present.
@@ -171,6 +177,8 @@
       INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1/)                  ! Mechanism 8
 #elif defined TRACERS_AMP_M9
       INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 9
+#elif defined TRACERS_AMP_M10
+      INTEGER, PARAMETER, DIMENSION(NMODES) :: ICOND=(/1,1,1,1,1,1,1,1,1,1,1,1,1,1,1/)    ! Mechanism 10
 #endif
 !-------------------------------------------------------------------------------------------------------------------------
 !     These require no editing.
@@ -384,6 +392,29 @@
       DATA CITABLE(1:NMODES,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/ ! BCS
       DATA CITABLE(1:NMODES,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/ ! MXX
 !-------------------------------------------------------------------------------------------------------------------------
+#elif defined TRACERS_AMP_M10
+!     Mechanism 10.
+!
+!     FIRST MODE               AKK   ACC   DD1   DS1   DD2   DS2   SSA   SSC   OCC   BC1   BC2   OCS    BOC   BCS   MXX    SECOND
+!                                                                                                                           MODE
+!-------------------------------------------------------------------------------------------------------------------------------------
+      CHARACTER(LEN=3) :: CITABLE(NMODES,NMODES)
+      DATA CITABLE(1:NMODES, 1)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','OCS','BOC','BCS','MXX'/! AKK
+      DATA CITABLE(1:NMODES, 2)/'ACC','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCS','BCS','BCS','OCS','BOC','BCS','MXX'/! ACC
+      DATA CITABLE(1:NMODES, 3)/'DD1','DD1','DD1','DD1','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! DD1
+      DATA CITABLE(1:NMODES, 4)/'DS1','DS1','DD1','DS1','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! DS1
+      DATA CITABLE(1:NMODES, 5)/'DD2','DD2','DD2','DD2','DD2','DD2','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! DD2
+      DATA CITABLE(1:NMODES, 6)/'DS2','DS2','DD2','DS2','DD2','DS2','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! DS2
+      DATA CITABLE(1:NMODES, 7)/'SSA','SSA','MXX','MXX','MXX','MXX','SSA','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! SSA
+      DATA CITABLE(1:NMODES, 8)/'SSC','SSC','MXX','MXX','MXX','MXX','SSC','SSC','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! SSC
+      DATA CITABLE(1:NMODES, 9)/'OCC','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCC','BOC','BOC','OCS','BOC','BOC','MXX'/! OCC
+      DATA CITABLE(1:NMODES,10)/'BC1','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC1','BOC','BOC','BCS','MXX'/! BC1
+      DATA CITABLE(1:NMODES,11)/'BC2','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BC1','BC2','BOC','BOC','BCS','MXX'/! BC2
+      DATA CITABLE(1:NMODES,12)/'OCS','OCS','MXX','MXX','MXX','MXX','MXX','MXX','OCS','BOC','BOC','OCS','BOC','BOC','MXX'/! OCS
+      DATA CITABLE(1:NMODES,13)/'BOC','BOC','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BOC','BOC','BOC','BOC','BOC','MXX'/! BOC
+      DATA CITABLE(1:NMODES,14)/'BCS','BCS','MXX','MXX','MXX','MXX','MXX','MXX','BOC','BCS','BCS','BOC','BOC','BCS','MXX'/! BCS
+      DATA CITABLE(1:NMODES,15)/'MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX','MXX'/! MXX
+!-------------------------------------------------------------------------------------------------------------------------------------
 #endif
       END MODULE AERO_CONFIG
 !
@@ -921,65 +952,62 @@
 !   BC2      7
 !   MXX      8
 !-------------------------------------------------------------------------------------------------------------------------
-!MECHANISM 9
+!MECHANISM 10
 !-------------------------------------------------------------------------------------------------------------------------
+!     0         NO3            0            ANO3                  1      MASS_NO3                     1
+!     0         NH4            0            ANH4                  2      MASS_NH4                     2
+!     0         H2O            0            AH2O                  3      MASS_H2O                     3
+!     1         AKK            1            SULF                  4      MASS_AKK_SULF                4
+!     1         AKK            1            NUMB                  5      NUMB_AKK_1                   5
+!     2         ACC            1            SULF                  6      MASS_ACC_SULF                6
+!     2         ACC            1            NUMB                  7      NUMB_ACC_1                   7
+!     3         DD1            1            SULF                  8      MASS_DD1_SULF                8
+!     3         DD1            4            DUST                  9      MASS_DD1_DUST                9
+!     3         DD1            1            NUMB                 10      NUMB_DD1_1                  10
+!     4         DS1            1            SULF                 11      MASS_DS1_SULF               11
+!     4         DS1            4            DUST                 12      MASS_DS1_DUST               12
+!     4         DS1            1            NUMB                 13      NUMB_DS1_1                  13
+!     5         DD2            1            SULF                 14      MASS_DD2_SULF               14
+!     5         DD2            4            DUST                 15      MASS_DD2_DUST               15
+!     5         DD2            1            NUMB                 16      NUMB_DD2_1                  16
+!     6         DS2            1            SULF                 17      MASS_DS2_SULF               17
+!     6         DS2            4            DUST                 18      MASS_DS2_DUST               18
+!     6         DS2            1            NUMB                 19      NUMB_DS2_1                  19
+!     7         SSA            1            SULF                 20      MASS_SSA_SULF               20
+!     7         SSA            5            SEAS                 21      MASS_SSA_SEAS               21
+!     7         SSA            1            NUMB                 22      NUMB_SSA_1                  22
+!     8         SSC            1            SULF                 23      MASS_SSC_SULF
+!     8         SSC            5            SEAS                 24      MASS_SSC_SEAS               23
+!     8         SSC            1            NUMB                 25      NUMB_SSC_1                  24
+!     9         OCC            1            SULF                 26      MASS_OCC_SULF               25
+!     9         OCC            3            OCAR                 27      MASS_OCC_OCAR               26
+!     9         OCC            1            NUMB                 28      NUMB_OCC_1                  27
+!    10         BC1            1            SULF                 29      MASS_BC1_SULF               28
+!    10         BC1            2            BCAR                 30      MASS_BC1_BCAR               29
+!    10         BC1            1            NUMB                 31      NUMB_BC1_1                  30
+!    11         BC2            1            SULF                 32      MASS_BC2_SULF               31
+!    11         BC2            2            BCAR                 33      MASS_BC2_BCAR               32
+!    11         BC2            1            NUMB                 34      NUMB_BC2_1                  33
+!    12         OCS            1            SULF                 35      MASS_OCS_SULF               34
+!    12         OCS            3            OCAR                 36      MASS_OCS_OCAR               35
+!    12         OCS            1            NUMB                 37      NUMB_OCS_1                  36
+!    13         BOC            1            SULF                 38      MASS_BOC_SULF               37
+!    13         BOC            2            BCAR                 39      MASS_BOC_BCAR               38
+!    13         BOC            3            OCAR                 40      MASS_BOC_OCAR               39
+!    13         BOC            1            NUMB                 41      NUMB_BOC_1                  40
+!    14         BCS            1            SULF                 42      MASS_BCS_SULF               41
+!    14         BCS            2            BCAR                 43      MASS_BCS_BCAR               42
+!    14         BCS            1            NUMB                 44      NUMB_BCS_1                  43
+!    15         MXX            1            SULF                 45      MASS_MXX_SULF               44
+!    15         MXX            2            BCAR                 46      MASS_MXX_BCAR               45
+!    15         MXX            3            OCAR                 47      MASS_MXX_OCAR               46
+!    15         MXX            4            DUST                 48      MASS_MXX_DUST               47
+!    15         MXX            5            SEAS                 49      MASS_MXX_SEAS               48
+!    15         MXX            1            NUMB                 50      NUMB_MXX_1                  49
 !
 !MODE #   MODE_NAME   CHEM_SPC #   CHEM_SPC_NAME   location in AERO         AERO_SPCS    TRACER NUMBER
 !
-!     0         NO3            0            ANO3                  1     MASS_NO3                     1
-!     0         NH4            0            ANH4                  2     MASS_NH4                     2
-!     0         H2O            0            AH2O                  3     MASS_H2O                     3
-!     1         AKK            1            SULF                  4     MASS_AKK_SULF                4
-!     1         AKK            1            NUMB                  5     NUMB_AKK_1                   5
-!     2         ACC            1            SULF                  6     MASS_ACC_SULF                6
-!     2         ACC            3            OCAR                  7     MASS_ACC_OCAR                6
-!     2         ACC            1            NUMB                  8     NUMB_ACC_1                   7
-!     3         DD1            1            SULF                  9     MASS_DD1_SULF                8
-!     3         DD1            4            DUST                 10     MASS_DD1_DUST                9
-!     3         DD1            1            NUMB                 11     NUMB_DD1_1                  10
-!     4         DS1            1            SULF                 12     MASS_DS1_SULF               11
-!     4         DS1            4            DUST                 13     MASS_DS1_DUST               12
-!     4         DS1            1            NUMB                 14     NUMB_DS1_1                  13 
-!     5         DD2            1            SULF                 15     MASS_DD2_SULF               14
-!     5         DD2            4            DUST                 16     MASS_DD2_DUST               15
-!     5         DD2            1            NUMB                 17     NUMB_DD2_1                  16
-!     6         DS2            1            SULF                 18     MASS_DS2_SULF               17
-!     6         DS2            4            DUST                 19     MASS_DS2_DUST               18
-!     6         DS2            1            NUMB                 20     NUMB_DS2_1                  19
-!     7         SSA            1            SULF                 21     MASS_SSA_SULF               20
-!     7         SSA            5            SEAS                 22     MASS_SSA_SEAS               21
-!     7         SSA            1            NUMB                 23     NUMB_SSA_1                    
-!     8         SSC            1            SULF                 24     MASS_SSC_SULF                         
-!     8         SSC            5            SEAS                 25     MASS_SSC_SEAS               22 
-!     8         SSC            1            NUMB                 26     NUMB_SSC_1                    
-!     9         OCC            1            SULF                 27     MASS_OCC_SULF               23
-!     9         OCC            3            OCAR                 28     MASS_OCC_OCAR               24
-!     9         OCC            1            NUMB                 29     NUMB_OCC_1                  25  
-!    10         BC1            1            SULF                 30     MASS_BC1_SULF               26
-!    10         BC1            2            BCAR                 31     MASS_BC1_BCAR               27
-!    10         BC1            3            OCAR                 32     MASS_BC1_OCAR               27
-!    10         BC1            1            NUMB                 33     NUMB_BC1_1                  28
-!    11         BC2            1            SULF                 34     MASS_BC2_SULF               29
-!    11         BC2            2            BCAR                 35     MASS_BC2_BCAR               30
-!    11         BC2            3            OCAR                 36     MASS_BC2_OCAR               30
-!    11         BC2            1            NUMB                 37     NUMB_BC2_1                  31
-!    12         OCS            1            SULF                 38     MASS_OCS_SULF               32 
-!    12         OCS            3            OCAR                 39     MASS_OCS_OCAR               33
-!    12         OCS            1            NUMB                 40     NUMB_OCS_1                  34
-!    13         BOC            1            SULF                 41     MASS_BOC_SULF               39
-!    13         BOC            2            BCAR                 42     MASS_BOC_BCAR               40
-!    13         BOC            3            OCAR                 43     MASS_BOC_OCAR               41
-!    13         BOC            1            NUMB                 44     NUMB_BOC_1                  42
-!    14         BCS            1            SULF                 45     MASS_BCS_SULF               43
-!    14         BCS            2            BCAR                 46     MASS_BCS_BCAR               44
-!    14         BCS            3            OCAR                 47     MASS_BCS_OCAR               44
-!    14         BCS            1            NUMB                 48     NUMB_BCS_1                  45
-!    15         MXX            1            SULF                 49     MASS_MXX_SULF               46
-!    15         MXX            2            BCAR                 50     MASS_MXX_BCAR               47
-!    15         MXX            3            OCAR                 51     MASS_MXX_OCAR               48
-!    15         MXX            4            DUST                 52     MASS_MXX_DUST               49
-!    15         MXX            5            SEAS                 53     MASS_MXX_SEAS               50
-!    15         MXX            1            NUMB                 54     NUMB_MXX_1                  51
+
 !
 !MODE_NAME  MODE NUMBER
 !

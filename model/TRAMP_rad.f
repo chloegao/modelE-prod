@@ -73,6 +73,14 @@ c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,  
       DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
      +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
      +                 0.100D+00, 0.075D+00, 0.100D+00, 0.070D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M10
+c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  OCS  BOC  BCS  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15
+      DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   4,   4,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
+     +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,
+     +                 0.100D+00, 0.075D+00, 0.100D+00, 0.070D+00, 0.100D+00/
 #endif
   
 c                   NA1= SO4  NA2=SS  NA3=NO3 NA4=OC NA5=BC NA6=DU
