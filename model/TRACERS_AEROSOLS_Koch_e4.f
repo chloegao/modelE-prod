@@ -285,22 +285,15 @@ c
 
       do k = 1,nAeroStream
         call read_stream(grid,AeroStream(k),xyear,xday,readCache)
-        ! Need to scale inputs (10^5 mol/cm3).
-        ! (we should check these scalings and likely move them to within
-        ! the input files when possible):
         select case(k)
-        case (1) ; ohr = readCache*1.d5
-        case (2) ; dho2r = readCache*1.d7
-        case (3) ; perjr = readCache*1.d2
-        case (4) ; tno3r = readCache*1.d5
-        case (5) ; o3_offline = readCache
-        ! In the case of HNO3, convert from normal taijl model output
-        ! units of mole HNO3 per 1E10 mole of air to trm_col units
-        ! (kg m-2 layer-1):
-        case (6)
-          do L=1,LM
+        case (1) ; ohr = readCache    ! OH [molecules cm-3]
+        case (2) ; dho2r = readCache ! HO2 [molecules cm-3]
+        case (3) ; perjr = readCache ! H2O photolysis rate [s-1]
+        case (4) ; tno3r = readCache ! NO3 [molecules cm-3]
+        case (5) ; o3_offline = readCache  ! mole O3 / mole air (converted later)
+        case (6) ! mole HNO3 / mole air.
+          do L=1,LM ! Convert here to kg HNO3 m-2 layer-1, like trm_col
             off_HNO3(:,:,L)=readCache(:,:,L)*ma(L,:,:)*vol2mass(n_HNO3)
-     &      *1.d-10
           end do
         end select
       end do
@@ -584,7 +577,7 @@ c Get NO3 only if dark, weighted by number of dark hours
         endif
         ppres=pl(l)*9.869d-4 ! [atm]
         dmm=ppres/(.082d0*tl(l))*6.02d20! number density of air [molecules/cm3]
-        oxid%O3=o3_offline(i,j,l)*1.d-9*dmm
+        oxid%O3=o3_offline(i,j,l)*dmm ! mole O3 / mole air --> molecules O3 cm-3
       endif
 
       END SUBROUTINE get_oxidants
