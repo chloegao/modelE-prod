@@ -578,8 +578,12 @@ C****      names, indices, units, idacc-numbers, etc.
      *     ,ij_ssprec,ij_mcprec,IJ_WMCLWP,IJ_WMCTWP
      &     ,ij_wdry,ij_wtke,ij_wmoist,ij_wsgcm,ij_wspdf
      &     ,ij_flam,ij_CtoG,ij_flash
-     *     ,ij_fvden,ij_human,ij_fireC
+     *     ,ij_fvden,ij_fireC
+     *     ,ij_flam_rh,ij_flam_prec,ij_flam_tsurf
      *     ,ij_nsuppress,ij_cgign,ij_humanign
+     *     ,ij_barh1,ij_bawsurf
+     *     ,ij_a_tree,ij_a_shrub,ij_a_grass
+     *     ,ij_ba_tree,ij_ba_shrub,ij_ba_grass
      *     ,ij_swaerabs,ij_lwaerabs
      *     ,ij_swaerabsnt
      *     ,ij_lwaerabsnt,ij_evapsn,ij_irrW,ij_irrE,ij_irrW_tot
