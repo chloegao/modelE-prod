@@ -230,9 +230,6 @@ c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
 !@dbparam adiurn_dust  flag to switch on/off intra daily diagnostics for dust
 !@+                    default=0 (off)
       INTEGER, public :: adiurn_dust=0
-!@dbparam save3dAOD flag to calculate ttasv_save in rad code even when
-!@+ adiurn_dust is off.
-      INTEGER, public :: save3dAOD=0
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
 !@+       defaults set in DIAG_RES (depends on resolution)
       INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
