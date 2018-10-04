@@ -1,7 +1,7 @@
 !-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
-!OFFLINE_CHEM=giss2/sample_for_coupled_chem_zero_144x90x40.nc
+!OFFLINE_CHEM=giss2/uncoupledChem_E14TomaOCNf10_4av_decadal_F40
 !-----------------------------------------------
 !       AMP Radiation Input
 AMP_MIE_TABLES=AMP_MIE_Q_G_A_S.nc
