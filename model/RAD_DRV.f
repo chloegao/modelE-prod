@@ -103,7 +103,6 @@ C****
       USE CLOUDS_COM, only : llow
       USE DIAG_COM, only : iwrite,jwrite,itwrite
 #ifdef TRACERS_ON
-      USE DIAG_COM, only : save3dAOD
       USE TRACER_COM, only: ntm
       USE TRACER_COM, only: n_BCIA, n_BCB, n_NO3p
       USE TRACER_COM, only: n_Clay, n_Silt1, n_Silt2, n_Silt3, n_Silt4,
@@ -318,9 +317,6 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
-#ifdef TRACERS_ON
-      call sync_param( "save3dAOD", save3dAOD)
-#endif
       REFdry = REFdry*ref_mult
 
       if(is_set_param('planck_tmin')) then
@@ -1907,7 +1903,7 @@ C     OUTPUT DATA
      *     ,AFLX_ST, hr_in_day,hr_in_month
       USE DIAG_COM_RAD
 #ifdef TRACERS_ON
-      USE DIAG_COM, only : adiurn_dust,save3dAOD
+      USE DIAG_COM, only : adiurn_dust
       use RAD_COM, only: diag_fc
 #endif
       USE ATM_COM, only : pk,pedn,pmid,pdsig,ltropo,MA,byMA
