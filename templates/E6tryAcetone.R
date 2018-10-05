@@ -20,7 +20,6 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start
@@ -105,8 +104,8 @@ OPTS_dd2d = NC_IO=PNETCDF
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_2000_144x90_input_files"
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
