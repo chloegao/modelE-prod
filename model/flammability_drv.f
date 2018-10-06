@@ -762,22 +762,8 @@
             !@var saveFireCount fire count rate (fire/m2/s)
             aij(i,j,ij_barh1)=aij(i,j,ij_barh1)+RH1
             aij(i,j,ij_bawsurf)=aij(i,j,ij_bawsurf)+wsurf
-            !if(j>=J_0S.AND.j<=J_1S.AND.saveFireCount(i,j)>0) then
-            !  print *,'1benny i, j, burnt_area(:,i,j)', i,j,
-            !     burnt_area(:,i,j)
-            !  print *,'2benny i, j, RH1',i,j,RH1
-            !  print *,'3benny i, j, wsurf', i,j,wsurf
-            !  print *,'4benny i, j, saveFireCount(i,j)', i,j,
-            !     saveFireCount(i,j)
-            !  print *,'5benny i, j, pvt', i,j,pvt
-            !  print *,'6benny i, j, fearth_axyp', i,j,fearth_axyp
-            !end if
             call step_ba(burnt_area(:,i,j),RH1,wsurf,
      &                   saveFireCount(i,j),pvt,fearth_axyp,i,j)
-            !if(j>=J_0S.AND.j<=J_1S .AND.saveFireCount(i,j)>0) then
-            !  print *,'7benny i, j, burnt_area(:,i,j)', i,j,
-            !    burnt_area(:,i,j)
-            !end if
 #endif /* LIMIT_BARREN_FLAMMABILITY */
           else
             veg_density(i,j) = 0.d0
