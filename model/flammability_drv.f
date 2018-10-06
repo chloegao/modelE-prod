@@ -5,9 +5,6 @@
 !@+   vegetation. Optionally also altering tracer biomass sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony including
 !@+ her document Flammability.doc
-!@param nVtype number of vegetation types. In GCM this is hardcoded
-!@+ at 12. So as long as this references VDATA, you can't change it.
-!@+ EPFCByVegType is similarly dimensioned with 12 in TRACER_COM
 !@var ij_flamV indicies for aij output 
       use ent_const, only : N_COVERTYPES
 
@@ -734,9 +731,6 @@
             end do
 
             if (fracBare + fracVegNonCrops > fearth(i,j)+0.00001) then
-              print *,'1keren (i,j)', i,j
-              print *,'2keren i,j,fearth(i,j)', i,j,fearth(i,j)
-              print *,'3keren i,j,fracBare + fracVegNonCrops', i,j,
      &          fracBare + fracVegNonCrops
               call stop_model('cover types sum greater than'// 
      &                         'fearth',255) 
@@ -791,13 +785,8 @@
 !! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
           !if(j>=J_0S.AND.j<=J_1S) then
-          !  print *,'1keren (i,j)', i,j
-          !  print *,'2keren tsurf', tsurf
-          !  print *,'3keren SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc', 
      &    !    SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
-          !  print *,'4keren min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))'
      &    !    ,min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))
-          !  print *,'5keren veg_density(i,j)', veg_density(i,j)
           !end if
           !RH=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))) [fraction]
           !SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc [mm/day??]
