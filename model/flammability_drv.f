@@ -731,7 +731,6 @@
             end do
 
             if (fracBare + fracVegNonCrops > fearth(i,j)+0.00001) then
-     &          fracBare + fracVegNonCrops
               call stop_model('cover types sum greater than'// 
      &                         'fearth',255) 
             endif
