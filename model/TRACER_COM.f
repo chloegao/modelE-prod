@@ -180,7 +180,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_dCO=14
 #else
       integer, parameter :: ntm_dCO=0
-#endif  /* TRACERS_AEROSOLS_OCEAN */
+#endif  /* TRACERS_dCO */
 
 !@param ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
