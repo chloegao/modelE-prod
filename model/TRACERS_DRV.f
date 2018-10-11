@@ -496,7 +496,6 @@ c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
           select case (trim(pTracer%getName()))
             case ('N2O5','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','CFC'
 #ifdef TRACERS_dCO
-     *           ,'d13CPAR'
      *           ,'d17OPAN', 'd18OPAN', 'd13CPAN'
      *           ,'dMe17OOH', 'dMe18OOH', 'd13MeOOH'
      *           ,'dHCH17O', 'dHCH18O', 'dH13CHO'
@@ -506,7 +505,7 @@ c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
               kt_power_change(n) = -14
             case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin'
 #ifdef TRACERS_dCO
-     *           ,'d13Calke'
+     *           ,'d13Calke','d13CPAR'
      *           ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
      *           ,'Terpenes','Acetone')
