@@ -951,8 +951,7 @@ c       Check for equilibrium:
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0
-     &    +rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*yROR(L,I,J)*0.02d0
-        RORdest=rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)
+        RORdest=0.98d0*rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)
      &    +rr(rrbi%ROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
           y(nROR,L)=(RORprod/RORdest)
@@ -966,8 +965,7 @@ c       Set value for ROR:
 c       Set value for d17OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0*d17O2_to_O2
-     &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*yd17OROR(I,J,L)*0.02d0
-        RORdest=rr(rrbi%d17OROR_M__d17Oald_HO2,L)
+        RORdest=0.98d0*rr(rrbi%d17OROR_M__d17Oald_HO2,L)
      &    +rr(rrbi%d17OROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
           y(nd17OROR,L)=(RORprod/RORdest)
@@ -979,8 +977,7 @@ c       Set value for d17OROR:
 c       Set value for d18OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0*d18O2_to_O2
-     &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*yd18OROR(I,J,L)*0.02d0
-        RORdest=rr(rrbi%d18OROR_M__d18Oald_HO2,L)
+        RORdest=0.98d0*rr(rrbi%d18OROR_M__d18Oald_HO2,L)
      &    +rr(rrbi%d18OROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
           y(nd18OROR,L)=(RORprod/RORdest)
@@ -992,8 +989,7 @@ c       Set value for d18OROR:
 c       Set value for d13CROR:
         RORprod=rr(rrbi%d13CPAR_OH__HO2_M,L)*y(nn_d13CPAR,L)
      &      *y(nOH,L)*0.76d0
-     &    +rr(rrbi%d13CROR_M__d13Cald_HO2,L)*yd13CROR(I,J,L)*0.02d0
-        RORdest=rr(rrbi%d13CROR_M__d13Cald_HO2,L)
+        RORdest=0.98d0*rr(rrbi%d13CROR_M__d13Cald_HO2,L)
      &    +rr(rrbi%d13CROR_M__HO2_M,L)
         if(RORdest > 0.d0)then
           y(nd13CROR,L)=(RORprod/RORdest)
