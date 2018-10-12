@@ -1,6 +1,7 @@
 #include "rundeck_opts.h"
 
-      subroutine calc_flammability(t,p,r,v,flam)
+      subroutine calc_flammability(t,p,r,v,flam,burnt_area,
+     &                             fearth_axyp)
 !@sum calculated the flammability of vegetation based on model
 !@+ variables for temperature, precipitation, relative humidity,
 !@+ and an index of vegetation density.
@@ -23,9 +24,9 @@
 
       real*8, parameter :: a=-7.90298d0,d=11.344d0,c=-1.3816d-7,
      & b=5.02808,f=8.1328d-3,h=-3.49149d0,ts=tf+100.d0,cr=-2.d0
-      real*8, intent(in) :: t,p,r,v
+      real*8, intent(in) :: t,p,r,v,fearth_axyp,burnt_area
       real*8, intent(out) :: flam
-      real*8 :: z,tsbyt
+      real*8 :: z,tsbyt,ba_frac
 
       tsbyt=ts/t
 
@@ -33,7 +34,16 @@
      &   c*(10.d0**(d*(1.d0-tsbyt))-1.d0) +
      &   f*(10.d0**(h*(tsbyt-1.d0))-1.d0)
 
-      flam=min( (10.d0**z*(1.d0-r)) * exp(cr*p) * v , 1.d0)
+      if (fearth_axyp <= 0.d0) then
+        ba_frac = 0.d0
+      else
+        ba_frac = burnt_area/fearth_axyp
+      endif
+      if (ba_frac > 1) then
+        ba_frac=1.d0
+      endif
+      flam=min( (10.d0**z*(1.d0-r)) * exp(cr*p) * v *
+     &           (1.d0-ba_frac) , 1.d0)
 
       return
       end subroutine calc_flammability
@@ -59,8 +69,8 @@
 !@var iH see iHfl(i,j) (hour in day index)
 !@var iD see iDfl(i,j) (day in period index)
 !@var first see first_prec(i,j) whether in first period
-!@var HRA see HRAfl(i,j,time) (hourly average)
-!@var DRA see DRAfl(i,j,time) (daily average)
+!@var HRA see HRAfl(time,i,j) (hourly average)
+!@var DRA see DRAfl(time,i,j) (daily average)
 !@var PRS see PRSfl(i,j) (period running sum)
 !@var avg see ravg_prec(i,j) the running average prec returned
       real*8, intent(IN) :: p
@@ -114,6 +124,162 @@
 
       end subroutine prec_running_average
 
+      subroutine step_ba(burnt_area,RH1,wsurf,saveFireCount,
+     &                    pvt,fearth_axyp,i,j)
+!@sum step_ba calculates the burnt area of the model at every time step
+!@+ burnt area variable for use in the flammability model.
+!@auth Keren Mezuman 
+      use ent_const, only : N_COVERTYPES
+      use ent_pfts, only: ent_cover_names
+      use MathematicalConstants_mod, only: PI
+      use TimeConstants_mod, only: SECONDS_PER_DAY,SECONDS_PER_YEAR
+      use model_com, only : DTsrc
+      use diag_com, only: ij_a_tree,ij_a_shrub,ij_a_grass,aij=>aij_loc
+ 
+      implicit none
+      
+      real*8 :: inst_FC, recovered_ba
+      real*8 :: RHlow,RHup,CRH,Cm,Cb,Lb,Hb,gW,g0,nv,up,a,tau,N_steps
+      real*8 :: new_burnt_area,previous_BA,pvt_area
+      real*8, Dimension(N_COVERTYPES), intent(INOUT) :: burnt_area 
+      real*8, intent(IN) :: RH1,wsurf,saveFireCount,fearth_axyp
+      real*8, Dimension(N_COVERTYPES), intent(IN) :: pvt 
+      real*8 :: umax,T
+      integer, intent(in) :: i,j
+      !if there are no fires to create new BA and no old BA to recover
+      if ((saveFireCount <= 0.d0) .AND. (sum(burnt_area) <= 0.d0)) 
+     &  return
+      !@var RHlow lower bound of RH for fire spread (fraction)
+      !@var RHup upper bound of RH for fire spread (fraction)
+      !@var CRH response of fuel combustibility to real-time 
+      !+climate conditions (unitless)
+      !@var Cb root zone soil wetness (unitless)
+      !@var g0 dependance of fire spread perpendicular to wind 
+      !@var tau average fire duration (seconds/fire)
+      !+direction (unitless)
+      RHlow=0.3d0
+      RHup=0.7d0
+      Cb=0.5d0
+      g0=0.05d0
+      tau=SECONDS_PER_DAY
+      N_steps=SECONDS_PER_DAY/DTsrc
+
+      !@var saveFireCount fire count rate (fire/m2/s)
+      !@var DTSRC source time step (s) 
+      !@var inst_FC number of fires in a time step in 
+      !+ a square meter (#fires/m^2)
+      inst_FC = saveFireCount*DTsrc
+      if(RH1 <= RHlow) then
+        CRH=1.d0
+      else if ((RH1 > RHlow) .AND. (RH1 < RHup)) then
+        CRH = (RHup - RH1) / (RHup - RHlow)
+      else
+        CRH = 0.d0
+      end if
+      !@var Cm dependence of downwind on fuel wetness (Li et al. 2018)
+      Cm=Cb*CRH
+      !@var Lb length-to-breadth ratio (unitless)
+      !@var wsurf surface wind velocity (m/s)
+      Lb=1. + 10. * (1. - (EXP(-0.06 * wsurf)))
+      !@var Hb head-to- back ratio (unitless)
+      Hb= (Lb + (Lb**2 - 1.)**0.5) / (Lb - (Lb**2 - 1.)**0.5)
+      !@var the dependence of fire spread on wind speed
+      gW=2*Lb/(1.+1./Hb)*g0
+      do nv=1,N_COVERTYPES
+        !if there are no fires to create new BA and no old BA to recover
+        if ((saveFireCount <= 0.d0) .AND. (burnt_area(nv) <= 0.d0)) 
+     &    cycle
+        !assign values to umax and T
+        !umax: average maximum fire spread rate [m/s]
+        !T: recovery time per PFT [yr]
+      select case(ent_cover_names(nv))
+        case('arid_shrub')
+          umax=0.17d0!(m/s)
+          T=5.5d0!(yr)
+        case('c3_grass_ann')
+          umax=0.2d0!(m/s)
+          T=1.d0!(yr)
+        case('c3_grass_arct')
+          umax=0.2d0!(m/s)
+          T=1.d0!(yr)
+        case('c3_grass_per')
+          umax=0.2d0!(m/s)
+          T=1.d0!(yr)
+        case('c4_grass')
+          umax=0.2d0!(m/s)
+          T=1.d0!(yr)
+        case('cold_br_late')
+          umax=0.11d0!(m/s)
+          T=58.d0!(yr)
+        case('cold_shrub')
+          umax=0.17d0!(m/s)
+          T=5.5d0!(yr)
+        case('decid_nd')
+          umax=0.15d0!(m/s)
+          T=27.d0!(yr)
+        case('drought_br')
+          umax=0.11d0!(m/s)
+          T=25.d0!(yr)
+        case('ever_br_late')
+          umax=0.11d0!(m/s)
+          T=41.d0!(yr)
+        case('ever_nd_late')
+          umax=0.15d0!(m/s)
+          T=42.d0!(yr)
+        case default
+          umax=0.d0!(m/s)
+          T=0.d0!(yr)
+      end select
+        !??testing with a factor of 10 faster recovery
+        T=SECONDS_PER_YEAR*T!(s)
+        !@var up fire spread rate in the downwind direction (m/s)
+        up=umax*Cm*gW
+        if (Lb == 0.d0) then
+          a=0.d0!(m)
+        else
+          !@var a average fire spread area (m^2)
+          a = PI * up**2 * tau**2 / (4*Lb) * (1+1/Hb)**2 / N_steps
+        endif
+        !@var recovered_ba following ent turnover time (m)
+        !recovered_ba = 0.d0
+        !if (T > 0.d0) then
+        !  recovered_ba = burnt_area(nv) * DTsrc/(3 * T)
+        !endif
+        !previous_BA = max(0.d0 , burnt_area(nv) - recovered_ba)
+        ![#fires/m^2] * [m^2]*[m^2]
+        pvt_area = pvt(nv) * fearth_axyp
+        new_burnt_area = inst_FC * a * pvt_area * 250.d0
+        !new_burnt_area = new_burnt_area + previous_BA
+        burnt_area(nv) =  min(new_burnt_area , pvt_area) 
+      select case(ent_cover_names(nv))
+        case('arid_shrub')
+          aij(i,j,ij_a_shrub) = aij(i,j,ij_a_shrub) + a 
+        case('c3_grass_ann')
+          aij(i,j,ij_a_grass) = aij(i,j,ij_a_grass) + a 
+        case('c3_grass_arct')
+          aij(i,j,ij_a_grass) = aij(i,j,ij_a_grass) + a 
+        case('c3_grass_per')
+          aij(i,j,ij_a_grass) = aij(i,j,ij_a_grass) + a 
+        case('c4_grass')
+          aij(i,j,ij_a_grass) = aij(i,j,ij_a_grass) + a 
+        case('cold_br_late')
+          aij(i,j,ij_a_tree) = aij(i,j,ij_a_tree) + a 
+        case('cold_shrub')
+          aij(i,j,ij_a_shrub) = aij(i,j,ij_a_shrub) + a 
+        case('decid_nd')
+          aij(i,j,ij_a_tree) = aij(i,j,ij_a_tree) + a 
+        case('drought_br')
+          aij(i,j,ij_a_tree) = aij(i,j,ij_a_tree) + a 
+        case('ever_br_late')
+          aij(i,j,ij_a_tree) = aij(i,j,ij_a_tree) + a 
+        case('ever_nd_late')
+          aij(i,j,ij_a_tree) = aij(i,j,ij_a_tree) + a 
+        case default
+      end select
+      end do
+
+      end subroutine step_ba 
+
       !! Could certainly be combined with prec_running_average above,
       !! but repeating now for neatness...
       subroutine lai_running_average(lai,avg,iH,iD,i0,first,HRA,DRA,PRS)
@@ -137,8 +303,8 @@
 !@var iH see iHlai(i,j) (hour in day index)
 !@var iD see iDlai(i,j) (day in period index)
 !@var first see first_lai(i,j) whether in first period
-!@var HRA see HRAlai(i,j,time) (hourly average)
-!@var DRA see DRAlai(i,j,time) (daily average)
+!@var HRA see HRAlai(time,i,j) (hourly average)
+!@var DRA see DRAlai(time,i,j) (daily average)
 !@var PRS see PRSlai(i,j) (period running sum)
 !@var avg see ravg_lai(i,j) the running average prec returned
       real*8, intent(IN) :: lai
@@ -203,6 +369,7 @@
 !@sum calculate_fire_count calculated the #fires rate for the
 !@+ dynamic biomass burning sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony
+      use model_com, only : DTsrc
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,DAYS_PER_YEAR,
      & SECONDS_PER_DAY
       use domain_decomp_atm,only: grid, getDomainBounds
@@ -211,13 +378,13 @@
       use diag_com, only: ij_fireC,aij=>aij_loc
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use lightning, only : CG_DENS 
-      use flammability_com, only: populationDensity
-      use diag_com, only: ij_nsuppress,ij_cgign,ij_humanign,ij_human
+      use flammability_com, only: populationDensity, nonSuppressFrac
+      use diag_com, only: ij_cgign,ij_humanign
 #endif
       implicit none
 
       integer :: J_0S, J_1S, I_0H, I_1H, i, j
-      real*8 :: CtoG, humanIgn, nonSuppressFrac, tuneToMODIS, conv,
+      real*8 :: CtoG, humanIgn, tuneToMODIS, conv,
      & monthPerSecond,yearsPerSecond
 !@var CtoG local copy of cloud-to-ground lightning strikes
 !@var humanIgn the human-induced fire ignition rate (before 
@@ -253,19 +420,16 @@
             ! cloud-to-ground lightning flashes per m2 per second, so that the
             ! fire count will also be in units of #fire. Starting with 
             ! CG_DENS in flashes/m2/s:
-            CtoG=CG_DENS(i,j) ! #/m2/s
+            ! a factor of 0.1 is necessary to reduce overestimation compared to WWLLN data
+            CtoG=CG_DENS(i,j)*0.1d0 ! #/m2/s
 
             ! Human ingition portion: The population density units are humans/km2, 
             ! and the formula then puts the human ingition rate in #/km2/month. Thus
             ! we need a conversion factor (conv) to go to #/m2/s:
-            ! 3.80518d-13 = 1km/1000m * 1km/1000m * 1mon/30.417day
-            !                    * 1day/24hr * 1hr/60min * 1min/60sec
-            conv=1.d-6*monthPerSecond 
+            ! 1.d-6 = 1km/1000m * 1km/1000m 
+            conv=1.d-6*monthPerSecond !(km^2 * M)/(m^2 * s)
             humanIgn=conv*0.2d0*populationDensity(i,j)**(0.4) ! #/m2/s
 
-            ! Fraction not supressed by humans (unitless):
-            nonSuppressFrac=
-     &       0.05d0+0.9d0*exp(-0.05*populationDensity(i,j))
 
             ! Olga says: "While theoretically, this is supposed to give the absolute number
             ! of fire counts, this is not actually so, since (A) We don't know the real 
@@ -276,31 +440,25 @@
             ! And since we want to use the EPFCs derived relying on the MODIS fire counts, we'll
             ! still need to calibrate the modeled fire counts to be comparable with the MODIS
             ! absolute values." The following is that tuning parameter:
-            tuneToMODIS=7.7d0
+            tuneToMODIS=30.d0
 
             ! Putting that all together to get the fire count rate (fire/m2/s):
             saveFireCount(i,j)=tuneToMODIS*
-     &       flammability(i,j)*(CtoG+humanIgn)*nonSuppressFrac
+     &       flammability(i,j)*(CtoG+humanIgn)*nonSuppressFrac(i,j)
 
             ! Save a daignostic for the portion that is human-caused. (1.0-this) is the
             ! portion that is lightning-caused, so no reason to save that. Also save the
             ! fire count:
             aij(i,j,ij_humanign)=aij(i,j,ij_humanign)+humanIgn
             aij(i,j,ij_cgign)=aij(i,j,ij_cgign)+CtoG
-            aij(i,j,ij_nsuppress)=aij(i,j,ij_nsuppress)+nonSuppressFrac
-            if ((CtoG+humanIgn).ne.0.)then
-              ! Accumulating zeros when that is false is
-              ! problematic, but so is accumulaing NaNs!:
-              aij(i,j,ij_human)=aij(i,j,ij_human)+
-     &                          humanIgn/(CtoG+humanIgn)
-            end if
 
 #else /* ubiquitous only */
 
             ! Ubiquitous fire model. Note on units:
-            ! flammability*mfcc = [#fire/m2/yr]
+            ! flammability*mfcc*yearsPerSecond = [#fire/m2]
+            ! mfcc*yearsPerSecond includes DTsrc in it
             ! yearsPerSecond = [yr/s]
-            ! saveFireCount = [#fire/m2/s]
+            ! saveFireCount = [#fire/m2]
             saveFireCount(i,j)=
      &      flammability(i,j)*mfcc*yearsPerSecond
 #endif /* anthro vs ubiquitous */
@@ -322,16 +480,16 @@
 !@+ onto the traditional VDATA( ) types, even if Ent is on.
 !@auth Greg Faluvegi based on direction from Olga Pechony, Igor A.
 
+      use ent_const, only : N_COVERTYPES
       use domain_decomp_atm,only: grid, getDomainBounds
-      use flammability_com, only: flammability,nVtype,saveFireCount
+      use flammability_com, only: flammability,first_prec,
+     & saveFireCount,EPFCByVegType
       use constant, only: undef
       use tracer_com, only: sfc_src
-      use OldTracer_mod, only: emisPerFireByVegType
       use ghy_com, only: fearth
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
-      use ent_drv, only: map_ent2giss  !YKIM-temp hack
 
       implicit none
    
@@ -339,49 +497,42 @@
       integer, intent(in) :: n,ns
 !@var emisPerFire emission per fire count, generally kg/m2/fire
       real*8 :: emisPerFire
-!@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
-!@var EPFBVT emisPerFireByVegType for current tracer
-      real*8, dimension(nVtype):: PVT, EPFBVT
-      real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
+!@var pvt fraction vegetation type for N_COVERTYPES (fraction)
+!@var N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER = 16 + 2 + 0
+      real*8, dimension(N_COVERTYPES):: pvt, EPFBVT
 
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &              I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
-      EPFBVT=emisPerFireByVegType(n)
+!@var EPFCByVegType emission factor (kg/#fire)
+      EPFBVT=EPFCByVegType(:,n)
 
       do j=J_0S,J_1S
         do i=I_0H,I_1H
 
+          sfc_src(i,j,n,ns)=0.d0
+          if(fearth(i,j)==0.d0) cycle
           ! only do calculation after enough precip averaging done,
           ! and where flammability is defined:
           if(flammability(i,j)/=undef) then
             ! Obtain the vegetation types in the box:
             ! For now, the same way RAD_DRV does it, as per Greg F.'s 
             ! e-mails with Igor A. Mar-Apr,2010:
-            if(fearth(i,j)>0.d0) then
               call ent_get_exports(entcells(i,j),
-     &                             vegetation_fractions=PVT0,
-     &                             vegetation_heights=HVT0 )
-              call map_ent2giss(pvt0,hvt0,pvt) !YKIM temp hack:ent pfts->giss
-            else
-              pvt(:) = 0.d0 
-            end if
+     &                             vegetation_fractions=pvt)
             ! Notes on units:
-            ! sfc_src = [kg/m2/s]
-            ! emisPerFire = [kg/m2/#fire]
-            ! EPFBVT = [kg/m2/#fire/wholebox_vegtype_frac]
-            ! saveFireCount = [#fire/m2/sec]
+            ! sfc_src = [kg/m2/s] gridbox
+            ! emisPerFire = [kg/#fire]
+            ! EPFBVT = [kg/#fire]
+            ! saveFireCount = [#fire/m2/sec] gridbox
     
-            ! construct emisPerFire from emisPerFireByVegType:
+            ! construct emisPerFire from EPFCByVegType:
             emisPerFire = 0.d0
-            do nv=1,nVtype
-              emisPerFire = emisPerFire + pvt(nv)*EPFBVT(nv)*fearth(i,j)
+            do nv=1,N_COVERTYPES
+              emisPerFire = emisPerFire + pvt(nv)*fearth(i,j)*EPFBVT(nv)
             end do
-
             sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)
-
-          else
-            sfc_src(i,j,n,ns)=0.d0
+            !print *,'1keren sfc_src(i,j,n,ns)',sfc_src(i,j,n,ns)
           end if
         end do ! i
       end do   ! j
@@ -394,8 +545,9 @@
 !@+ by vegetation types diagnostic for the fire model.
 !@auth Greg Faluvegi
 
+      use ent_const, only : N_COVERTYPES
       use domain_decomp_atm,only: grid, getDomainBounds
-      use flammability_com, only: nVtype,ij_flamV
+      use flammability_com, only: ij_flamV
       use ghy_com, only: fearth
 
       use diag_com, only: ij_flam,aij=>aij_loc
@@ -403,14 +555,13 @@
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
      &                   ,n_covertypes !YKIM-temp hack
-      use ent_drv, only: map_ent2giss  !YKIM-temp hack
+      use ent_pfts, only: ent_cover_names
 
       implicit none
 
       integer :: J_0S, J_1S, I_0H, I_1H, i, j, nv
 !@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
-      real*8, dimension(nVtype):: PVT
-      real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
+      real*8, dimension(N_COVERTYPES):: pvt
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S,
      &                           I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
 
@@ -421,15 +572,46 @@
           ! e-mails with Igor A. Mar-Apr,2010:
           if(fearth(i,j)>0.d0) then
             call ent_get_exports(entcells(i,j), 
-     &           vegetation_fractions=PVT0,
-     &           vegetation_heights=HVT0 )
-            call map_ent2giss(pvt0,hvt0,pvt) !YKIM temp hack:ent pfts->giss
+     &           vegetation_fractions=pvt)
           else
             pvt(:) = 0.d0
           end if
-          do nv=1,nVtype
-            aij(i,j,ij_flamV(nv))=aij(i,j,ij_flamV(nv))+
-     &      fearth(i,j)*pvt(nv)
+          do nv=1,N_COVERTYPES
+          select case(ent_cover_names(nv))
+            case('arid_shrub')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('cold_shrub')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('c3_grass_ann')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('c3_grass_arct')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('c3_grass_per')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('c4_grass')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('cold_br_late')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('decid_nd')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('drought_br')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('ever_br_late')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+            case('ever_nd_late')
+              aij(i,j,ij_flamV)=aij(i,j,ij_flamV)+
+     &        fearth(i,j)*pvt(nv)
+          end select
           end do
         end do ! i
       end do   ! j
@@ -448,11 +630,20 @@
       use timestream_mod, only : init_stream,read_stream
       use flammability_com, only: populationDensity,popDensStream,
      &                            firstPopDensStream
-
+      use geom, only : lon_to_i,lat_to_j
+      use domain_decomp_atm, only: getDomainBounds
+      use flammability_com, only: nonSuppressFrac
+      use diag_com, only: ij_nsuppress,aij=>aij_loc
+ 
       implicit none
 
       integer, intent(IN) :: xyear, xday
       logical :: cyclic
+
+      integer :: J_1, J_0, J_0H, J_1H, I_0, I_1, j, i
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      call getDomainBounds(grid, I_STRT=I_0, I_STOP=I_1)
 
       if(firstPopDensStream) then
         firstPopDensStream=.false.
@@ -461,6 +652,41 @@
      &   cyclic=cyclic)
       end if
       call read_stream(grid,popDensStream,xyear,xday,populationDensity)
+!calculate default fns 
+!loop over i,j 
+!in the loop if in the regions overwrite 
+            ! Fraction not supressed by humans (unitless):
+      do j=J_0,J_1
+        do i=I_0,I_1
+          !Temperate North America (USA) 
+          if ((j>lat_to_j(29.d0)) .AND. (j<lat_to_j(49.d0)) .AND.
+     &      (i>lon_to_i(-128.75d0)) .AND. (i<lon_to_i(-66.25d0))) then
+            nonSuppressFrac(i,j)=0.2d0*exp(-0.05*populationDensity(i,j))
+          !Middle East 
+          else if ((j>lat_to_j(21.d0)) .AND. (j<lat_to_j(37.d0)) .AND.
+     &      (i>lon_to_i(-18.75d0)) .AND. (i<lon_to_i(28.75d0))) then
+            nonSuppressFrac(i,j)=0.2d0*exp(-0.05*populationDensity(i,j))
+          else if ((j>lat_to_j(15.d0)) .AND. (j<lat_to_j(43.d0)) .AND.
+     &      (i>lon_to_i(26.25d0)) .AND. (i<lon_to_i(71.25d0))) then
+            nonSuppressFrac(i,j)=0.2d0*exp(-0.05*populationDensity(i,j))
+          !Northern Hemisphere Africa 
+          else if ((j>lat_to_j(-1.d0)) .AND. (j<lat_to_j(23.d0)) .AND.
+     &      (i>lon_to_i(-21.25d0)) .AND. (i<lon_to_i(51.25d0))) then
+            nonSuppressFrac(i,j)=1.d0
+          !Southern Hemisphere Africa 
+          else if ((j>lat_to_j(-37.d0)) .AND. (j<lat_to_j(1.d0)) .AND.
+     &      (i>lon_to_i(0.d0)) .AND. (i<lon_to_i(53.75d0))) then
+            nonSuppressFrac(i,j)=1.d0
+          else
+            nonSuppressFrac(i,j)=
+     &       0.05d0+0.9d0*exp(-0.05*populationDensity(i,j))
+          end if
+          aij(i,j,ij_nsuppress)=nonSuppressFrac(i,j)
+        enddo
+      enddo
+
+!     endif ! fbsa format or not
+
       return
       end subroutine readFlamPopDens
 

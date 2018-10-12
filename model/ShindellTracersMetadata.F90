@@ -23,7 +23,7 @@ module ShindellTracersMetadata_mod
   use sharedTracersMetadata_mod, only: CH4_setspec, &
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
-  use TRACER_COM, only: ntm_chem_beg, ntm_chem_end, whichEPFCs
+  use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
 #ifdef TRACERS_dCO
   use OldTracer_mod, only: set_is_dCO_tracer
   use TRACER_COM, only: n_d13Calke, n_d13CPAR
@@ -63,7 +63,6 @@ module ShindellTracersMetadata_mod
   use OldTracer_mod, only: F0
   use OldTracer_mod, only: HSTAR
   use OldTracer_mod, only: ngas, nPART
-  use OldTracer_mod, only: set_emisPerFireByVegType
   use OldTracer_mod, only: set_pm2p5fact
   use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: set_has_chemistry
@@ -339,29 +338,6 @@ contains
         call set_F0(n,  1.d-1)
         call set_HSTAR(n,  1.d-2)
       end if
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(n, [0.d0,1.28d-8,1.16d-7,6.61d-8, &
-          & 1.68d-7,1.62d-7,8.84d-8,7.17d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(n, [0.d0,1.68d-7,1.44d-7,5.23d-8, &
-          & 8.45d-8,9.43d-8,1.72d-7,1.24d-7,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(n, [0.d0,1.43d-7,9.33d-8,1.15d-7, &
-          & 1.07d-7,1.13d-7,1.33d-7,1.09d-7,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(n, [0.d0,1.48d-8,2.00d-7,6.58d-8, &
-          & 1.68d-7,1.96d-7,8.03d-8,5.04d-8,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
       call set_has_chemistry(n, .true.)
       call set_has_overwrite(n, .true.)
     end subroutine NOx_setSpec
@@ -506,29 +482,6 @@ contains
       ntm_chem_end = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 28.01d0)
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(n, [0.d0,4.98d-6,8.28d-6,4.48d-6, &
-          & 1.22d-5,1.16d-5,7.74d-6,1.04d-5,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(n, [0.d0,1.54d-5,4.62d-6,4.12d-6, &
-          & 7.08d-6,5.33d-6,7.96d-6,1.35d-5,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(n, [0.d0,9.45d-6,5.16d-6,3.55d-6, &
-          & 6.72d-6,6.88d-6,8.94d-6,1.29d-5,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(n, [0.d0,5.82d-6,1.50d-5,3.81d-6, &
-          & 8.13d-6,1.39d-5,6.04d-6,4.66d-6,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
       call set_has_chemistry(n, .true.)
     end subroutine CO_setSpec
 
@@ -603,29 +556,6 @@ contains
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(n, [0.d0,7.02d-9,7.16d-9,2.99d-9, &
-          & 8.65d-9,8.05d-9,6.11d-9,9.14d-9,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(n, [0.d0,8.15d-9,4.30d-9,3.32d-9, &
-          & 2.90d-9,3.57d-9,6.43d-9,1.12d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(n, [0.d0,6.85d-9,3.80d-9,2.31d-9, &
-          & 4.59d-9,4.66d-9,7.16d-9,1.13d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(n, [0.d0,1.91d-9,5.96d-9,8.21d-10,&
-          & 9.07d-9,6.02d-9,2.29d-9,3.81d-9,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
       call set_has_chemistry(n, .true.)
     end subroutine Alkenes_setSpec
 
@@ -648,29 +578,6 @@ contains
       call set_ntm_power(n, -10)
       call set_tr_mm(n, 1.0d0)  ! So, careful: source files now in Kmole/m2/s or
       ! equivalently, kg/m2/s for species with tr_mm=1
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(n, [0.d0,1.77d-9,8.28d-9,1.52d-9, &
-          & 5.24d-9,4.86d-9,4.18d-9,5.24d-9,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(n, [0.d0,5.00d-9,1.42d-9,1.83d-9, &
-          & 1.94d-9,1.98d-9,2.98d-9,7.85d-9,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(n, [0.d0,2.46d-9,2.01d-9,9.88d-10,&
-          & 2.60d-9,2.81d-9,4.59d-9,8.73d-9,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(n, [0.d0,1.94d-9,5.99d-9,9.05d-10,&
-          & 3.34d-9,6.18d-9,2.20d-9,2.57d-9,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
       call set_has_chemistry(n, .true.)
     end subroutine Paraffin_setSpec
 
