@@ -532,7 +532,6 @@
               emisPerFire = emisPerFire + pvt(nv)*fearth(i,j)*EPFBVT(nv)
             end do
             sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)
-            !print *,'1keren sfc_src(i,j,n,ns)',sfc_src(i,j,n,ns)
           end if
         end do ! i
       end do   ! j

@@ -733,10 +733,6 @@
             end do
 
             if (fracBare + fracVegNonCrops > fearth(i,j)+0.00001) then
-              print *,'1keren (i,j)', i,j
-              print *,'2keren i,j,fearth(i,j)', i,j,fearth(i,j)
-              print *,'3keren i,j,fracBare + fracVegNonCrops', i,j,
-     &          fracBare + fracVegNonCrops
               call stop_model('cover types sum greater than'// 
      &                         'fearth',255) 
             endif
@@ -767,22 +763,8 @@
             !@var saveFireCount fire count rate (fire/m2/s)
             aij(i,j,ij_barh1)=aij(i,j,ij_barh1)+RH1
             aij(i,j,ij_bawsurf)=aij(i,j,ij_bawsurf)+wsurf
-            !if(j>=J_0S.AND.j<=J_1S.AND.saveFireCount(i,j)>0) then
-            !  print *,'1benny i, j, burnt_area(:,i,j)', i,j,
-            !     burnt_area(:,i,j)
-            !  print *,'2benny i, j, RH1',i,j,RH1
-            !  print *,'3benny i, j, wsurf', i,j,wsurf
-            !  print *,'4benny i, j, saveFireCount(i,j)', i,j,
-            !     saveFireCount(i,j)
-            !  print *,'5benny i, j, pvt', i,j,pvt
-            !  print *,'6benny i, j, fearth_axyp', i,j,fearth_axyp
-            !end if
             call step_ba(burnt_area(:,i,j),RH1,wsurf,
      &                   saveFireCount(i,j),pvt,fearth_axyp,i,j)
-            !if(j>=J_0S.AND.j<=J_1S .AND.saveFireCount(i,j)>0) then
-            !  print *,'7benny i, j, burnt_area(:,i,j)', i,j,
-            !    burnt_area(:,i,j)
-            !end if
 #endif /* LIMIT_BARREN_FLAMMABILITY */
           else
             veg_density(i,j) = 0.d0
@@ -790,13 +772,8 @@
 !! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
           !if(j>=J_0S.AND.j<=J_1S) then
-          !  print *,'1keren (i,j)', i,j
-          !  print *,'2keren tsurf', tsurf
-          !  print *,'3keren SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc', 
      &    !    SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
-          !  print *,'4keren min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))'
      &    !    ,min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))
-          !  print *,'5keren veg_density(i,j)', veg_density(i,j)
           !end if
           !RH=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))) [fraction]
           !SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc [mm/day??]
