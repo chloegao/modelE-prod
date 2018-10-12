@@ -538,8 +538,10 @@
       use pario, only : write_dist_data,read_dist_data
       use flammability_com
       implicit none
-      integer fid   !@var fid unit number of read/write
-      integer iaction !@var iaction flag for reading or writing to file
+!@var fid unit number of read/write
+      integer fid   
+!@var iaction flag for reading or writing to file
+      integer iaction 
       select case (iaction)
       case (iowrite)            ! output to restart file
         call write_dist_data(grid, fid, 'drafl', drafl, jdim=3 )
@@ -590,6 +592,7 @@
 !@sum driver routine for flammability potential of surface
 !@+   vegetation calculation.
 !@auth Greg Faluvegi based on direction from Olga Pechony
+!@+ Later modified by Keren Mezuman
 !@ver  1.0 
       use geom, only: axyp
       use model_com, only: dtsrc
@@ -743,64 +746,38 @@
             endif
             if((fracBare >= critFracBare).or.(fracVegNonCrops == 0.)) 
      &        veg_density(i,j) = 0.d0
-            !@var atmsrf contains atm-surf interaction
-            !@+ quantities averaged over all surface types
-            !@var WSAVG SURFACE WIND MAGNITUDE (M/S)
-            !@var wsurf surface wind velocity (m/s)
+!@var atmsrf contains atm-surf interaction
+!@+ quantities averaged over all surface types
+!@var WSAVG SURFACE WIND MAGNITUDE (M/S)
+!@var wsurf surface wind velocity (m/s)
             wsurf=atmsrf%wsavg(i,j)
-            !SECONDS_PER_DAY ?
-            !@var DTSRC source time step (s) 
-            ! TK ?
-            ! lhe ?
-            !@var  PMID Pressure at mid point of box (mb)
-            !@var QSAT saturation specific humidity (?)
-            !@var Q specific humidity (kg water vapor/kg air)
-            !@var RH1 relative humidity in layer 1 (fraction)
-            !@var RH1 relative humidity at surface (fraction)
+!@var SECONDS_PER_DAY (s/day)
+!@var DTSRC source time step (s) 
+!@var TK ?
+!@var lhe ?
+!@var  PMID Pressure at mid point of box (mb)
+!@var QSAT saturation specific humidity (?)
+!@var Q specific humidity (kg water vapor/kg air)
+!@var RH1 relative humidity in layer 1 (fraction)
+!@var RH1 relative humidity at surface (fraction)
             TK = pk(1,i,j)*t(i,j,1)           !should be in [K]
-            !RH1 = MIN(1.d0,q(i,j,1)/QSAT(TK,lhe,pmid(1,i,j)))![fraction]
             RH1=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))![fraction]
-            !@var fearth soil covered land fraction (fraction)
-            !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
+!@var fearth soil covered land fraction (fraction)
+!@var  axyp,byaxyp area of grid box (+inverse) (m^2)
             fearth_axyp=fearth(i,j)*axyp(i,j)
             ! update the burnt area  average:
-            !@var burnt_area (m^2)
-            !@var saveFireCount fire count rate (fire/m2/s)
+!@var burnt_area (m^2)
+!@var saveFireCount fire count rate (fire/m2/s)
             aij(i,j,ij_barh1)=aij(i,j,ij_barh1)+RH1
             aij(i,j,ij_bawsurf)=aij(i,j,ij_bawsurf)+wsurf
-            !if(j>=J_0S.AND.j<=J_1S.AND.saveFireCount(i,j)>0) then
-            !  print *,'1benny i, j, burnt_area(:,i,j)', i,j,
-            !     burnt_area(:,i,j)
-            !  print *,'2benny i, j, RH1',i,j,RH1
-            !  print *,'3benny i, j, wsurf', i,j,wsurf
-            !  print *,'4benny i, j, saveFireCount(i,j)', i,j,
-            !     saveFireCount(i,j)
-            !  print *,'5benny i, j, pvt', i,j,pvt
-            !  print *,'6benny i, j, fearth_axyp', i,j,fearth_axyp
-            !end if
             call step_ba(burnt_area(:,i,j),RH1,wsurf,
      &                   saveFireCount(i,j),pvt,fearth_axyp,i,j)
-            !if(j>=J_0S.AND.j<=J_1S .AND.saveFireCount(i,j)>0) then
-            !  print *,'7benny i, j, burnt_area(:,i,j)', i,j,
-            !    burnt_area(:,i,j)
-            !end if
 #endif /* LIMIT_BARREN_FLAMMABILITY */
           else
             veg_density(i,j) = 0.d0
           end if
 !! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
-          !if(j>=J_0S.AND.j<=J_1S) then
-          !  print *,'1keren (i,j)', i,j
-          !  print *,'2keren tsurf', tsurf
-          !  print *,'3keren SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc', 
-     &    !    SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
-          !  print *,'4keren min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))'
-     &    !    ,min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))
-          !  print *,'5keren veg_density(i,j)', veg_density(i,j)
-          !end if
-          !RH=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))) [fraction]
-          !SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc [mm/day??]
           call calc_flammability(tsurf,SECONDS_PER_DAY
      &     *ravg_prec(i,j)/dtsrc,min(1.d0,qsurf/
      &     qsat(tsurf,lhe,pedn(1,i,j))),veg_density(i,j),

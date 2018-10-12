@@ -7,7 +7,7 @@
 !@+ and an index of vegetation density.
 !
 !@auth Greg Faluvegi based on information from Olga Pechony
-!
+!@+    Later modified by Keren Mezuman
 !@var T the surface air temperature passed in Kelvin for current I,J
 !@var P the precipitation rate passed in mm/day for current I,J
 !@var R the relative humidity passed as fraction for current I,J
@@ -149,13 +149,13 @@
       !if there are no fires to create new BA and no old BA to recover
       if ((saveFireCount <= 0.d0) .AND. (sum(burnt_area) <= 0.d0)) 
      &  return
-      !@var RHlow lower bound of RH for fire spread (fraction)
-      !@var RHup upper bound of RH for fire spread (fraction)
-      !@var CRH response of fuel combustibility to real-time 
-      !+climate conditions (unitless)
-      !@var Cb root zone soil wetness (unitless)
-      !@var g0 dependance of fire spread perpendicular to wind 
-      !@var tau average fire duration (seconds/fire)
+!@var RHlow lower bound of RH for fire spread (fraction)
+!@var RHup upper bound of RH for fire spread (fraction)
+!@var CRH response of fuel combustibility to real-time 
+!@+   climate conditions (unitless)
+!@var Cb root zone soil wetness (unitless)
+!@var g0 dependance of fire spread perpendicular to wind 
+!@var tau average fire duration (seconds/fire)
       !+direction (unitless)
       RHlow=0.3d0
       RHup=0.7d0
@@ -164,9 +164,9 @@
       tau=SECONDS_PER_DAY
       N_steps=SECONDS_PER_DAY/DTsrc
 
-      !@var saveFireCount fire count rate (fire/m2/s)
-      !@var DTSRC source time step (s) 
-      !@var inst_FC number of fires in a time step in 
+!@var saveFireCount fire count rate (fire/m2/s)
+!@var DTSRC source time step (s) 
+!@var inst_FC number of fires in a time step in 
       !+ a square meter (#fires/m^2)
       inst_FC = saveFireCount*DTsrc
       if(RH1 <= RHlow) then
@@ -176,14 +176,14 @@
       else
         CRH = 0.d0
       end if
-      !@var Cm dependence of downwind on fuel wetness (Li et al. 2018)
+!@var Cm dependence of downwind on fuel wetness (Li et al. 2018)
       Cm=Cb*CRH
-      !@var Lb length-to-breadth ratio (unitless)
-      !@var wsurf surface wind velocity (m/s)
+!@var Lb length-to-breadth ratio (unitless)
+!@var wsurf surface wind velocity (m/s)
       Lb=1. + 10. * (1. - (EXP(-0.06 * wsurf)))
-      !@var Hb head-to- back ratio (unitless)
+!@var Hb head-to- back ratio (unitless)
       Hb= (Lb + (Lb**2 - 1.)**0.5) / (Lb - (Lb**2 - 1.)**0.5)
-      !@var the dependence of fire spread on wind speed
+!@var the dependence of fire spread on wind speed
       gW=2*Lb/(1.+1./Hb)*g0
       do nv=1,N_COVERTYPES
         !if there are no fires to create new BA and no old BA to recover
@@ -232,15 +232,15 @@
       end select
         !??testing with a factor of 10 faster recovery
         T=SECONDS_PER_YEAR*T!(s)
-        !@var up fire spread rate in the downwind direction (m/s)
+!@var up fire spread rate in the downwind direction (m/s)
         up=umax*Cm*gW
         if (Lb == 0.d0) then
           a=0.d0!(m)
         else
-          !@var a average fire spread area (m^2)
+!@var a average fire spread area (m^2)
           a = PI * up**2 * tau**2 / (4*Lb) * (1+1/Hb)**2 / N_steps
         endif
-        !@var recovered_ba following ent turnover time (m)
+!@var recovered_ba following ent turnover time (m)
         !recovered_ba = 0.d0
         !if (T > 0.d0) then
         !  recovered_ba = burnt_area(nv) * DTsrc/(3 * T)
@@ -369,6 +369,7 @@
 !@sum calculate_fire_count calculated the #fires rate for the
 !@+ dynamic biomass burning sources.
 !@auth Greg Faluvegi based on direction from Olga Pechony
+!@+ later modified by Keren Mezuman
       use model_com, only : DTsrc
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR,DAYS_PER_YEAR,
      & SECONDS_PER_DAY
@@ -534,7 +535,6 @@
               emisPerFire = emisPerFire + pvt(nv)*fearth(i,j)*EPFBVT(nv)
             end do
             sfc_src(i,j,n,ns) = emisPerFire*saveFireCount(i,j)
-            !print *,'1keren sfc_src(i,j,n,ns)',sfc_src(i,j,n,ns)
           end if
         end do ! i
       end do   ! j
@@ -628,6 +628,7 @@
       subroutine readFlamPopDens(xyear,xday)
 !@sum reads 2D human population density for flammability purposes
 !@auth Greg Faluvegi
+!@+ Later modified by Keren Mezuman 
       use geom, only : lon_to_i,lat_to_j
       use domain_decomp_atm, only: GRID,getDomainBounds,readt_parallel, 
      & write_parallel,rewind_parallel
