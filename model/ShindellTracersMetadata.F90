@@ -8,9 +8,11 @@ module ShindellTracersMetadata_mod
   use TimeConstants_mod, only: SECONDS_PER_DAY
 #ifdef TRACERS_dCO
   use TRCHEM_Shindell_COM, only: &
-    ndC217O3, ndC218O3, nd13C2O3, nd13CXPAR, nd17OROR, &
-    nd18OROR, nd13CROR, nd17Oald, nd18Oald, nd13Cald, &
-    ndCH317O2, ndCH318O2, nd13CH3O2
+    ndCH317O2, ndCH318O2, nd13CH3O2, &
+    ndC217O3, ndC218O3, nd13C2O3, &
+    nd17OROR, nd18OROR, nd13CROR, &
+    nd17Oald, nd18Oald, nd13Cald, &
+    nd13CXPAR
 #endif  /* TRACERS_dCO */
   use TRCHEM_Shindell_COM, only: &
     nC2O3, nXO2, nXO2N, nRXPAR, nROR, nAldehyde, nH2O, &
@@ -170,19 +172,19 @@ contains
     enddo
 
 #ifdef TRACERS_dCO
+    call  CH3O2_setSpec('dCH317O2')
+    call  CH3O2_setSpec('dCH318O2')
+    call  CH3O2_setSpec('d13CH3O2')
     call  C2O3_setSpec('dC217O3')
     call  C2O3_setSpec('dC218O3')
     call  C2O3_setSpec('d13C2O3')
-    call  RXPAR_setSpec('d13CXPAR')
     call  ROR_setSpec('d17OROR')
     call  ROR_setSpec('d18OROR')
     call  ROR_setSpec('d13CROR')
     call  Aldehyde_setSpec('d17Oald')
     call  Aldehyde_setSpec('d18Oald')
     call  Aldehyde_setSpec('d13Cald')
-    call  CH3O2_setSpec('dCH317O2')
-    call  CH3O2_setSpec('dCH318O2')
-    call  CH3O2_setSpec('d13CH3O2')
+    call  RXPAR_setSpec('d13CXPAR')
 #endif  /* TRACERS_dCO */
 
     call  C2O3_setSpec('C2O3')

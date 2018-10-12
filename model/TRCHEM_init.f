@@ -19,11 +19,11 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yRXPAR,yXO2N,
 #ifdef TRACERS_dCO
+     &    ydCH317O2,ydCH318O2,yd13CH3O2,
      &    ydC217O3,ydC218O3,yd13C2O3,
-     &    yd13CXPAR,
      &    yd17OROR,yd18OROR,yd13CROR,
      &    yd17Oald,yd18Oald,yd13Cald,
-     &    ydCH317O2,ydCH318O2,yd13CH3O2,
+     &    yd13CXPAR,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo

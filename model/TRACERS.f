@@ -1230,11 +1230,11 @@ C**** check whether air mass is conserved
       USE TRCHEM_Shindell_COM, only: pHOx,pNOx,pOx,yCH3O2,yC2O3,
      &yROR,yXO2,yAldehyde,yXO2N,yRXPAR,pNO3
 #ifdef TRACERS_dCO
+     &,ydCH317O2,ydCH318O2,yd13CH3O2
      &,ydC217O3,ydC218O3,yd13C2O3
-     &,yd13CXPAR
      &,yd17OROR,yd18OROR,yd13CROR
      &,yd17Oald,yd18Oald,yd13Cald
-     &,ydCH317O2,ydCH318O2,yd13CH3O2
+     &,yd13CXPAR
 #endif  /* TRACERS_dCO */
      &,pClOx,pClx,pOClOx,pBrOx,yCl2,yCl2O2
      &,mostRecentNonZeroAlbedo

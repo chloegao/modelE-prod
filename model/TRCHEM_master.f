@@ -710,7 +710,7 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
      &             ) then
               ! the yield is one third, since one isotopically labeled atom
               ! is assumed to exist in each aldehyde, not two
-              zj(L,inss)=zj(L,inss)/2.d0
+              zj(L,inss)=zj(L,inss)/3.d0
 #endif  /* not TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO */
             end if
