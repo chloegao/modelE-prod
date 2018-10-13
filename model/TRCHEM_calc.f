@@ -51,16 +51,16 @@ C
      &                   yROR,nCH3O2,nC2O3,nXO2,nXO2N,nRXPAR,
      &                   nAldehyde,nROR,nn,dt2,dest,prod,
 #ifdef TRACERS_dCO
+     &                   ydCH317O2,ydCH318O2,yd13CH3O2,
+     &                   ndCH317O2,ndCH318O2,nd13CH3O2,
      &                   ydC217O3,ydC218O3,yd13C2O3,
      &                   ndC217O3,ndC218O3,nd13C2O3,
-     &                   yd13CXPAR,
-     &                   nd13CXPAR,
      &                   yd17OROR,yd18OROR,yd13CROR,
      &                   nd17OROR,nd18OROR,nd13CROR,
      &                   yd17Oald,yd18Oald,yd13Cald,
      &                   nd17Oald,nd18Oald,nd13Cald,
-     &                   ydCH317O2,ydCH318O2,yd13CH3O2,
-     &                   ndCH317O2,ndCH318O2,nd13CH3O2,
+     &                   yd13CXPAR,
+     &                   nd13CXPAR,
 #ifndef TRACERS_ACETONE /* NOT */
      &                   d17Oacetone,d18Oacetone,d13Cacetone,
 #endif

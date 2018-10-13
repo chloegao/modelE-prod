@@ -1356,7 +1356,8 @@ m4_loop(`
      &     soil_matric_pot,
      &     soil_ice_fraction
      &     ) ! need to pass Ci, Qf ??
-      type(entcelltype_public),intent(inout):: entcell`'m4_brkts(m4_ext)`'
+      type(entcelltype_public),intent(inout)::
+     &     entcell`'m4_brkts(m4_ext)`'
       ! forcings probably should not be optional ...
       real*8 `'m4_arr_only(`, dimension(m4_ext)'), intent(in)  ::
      &     air_temperature, !KIM - for phenology
@@ -1461,6 +1462,7 @@ C NADINE
      &     soilresp,
      &     soilcpools,
      &     leaf_area_index,
+     &     leaf_area_index_pft,
      &     C_total,
      &     C_entcell
      &     )
@@ -1489,7 +1491,8 @@ C NADINE
      &     beta_soil_layers,
      &     albedo,
      &     vegetation_fractions,
-     &     vegetation_heights
+     &     vegetation_heights,
+     &     leaf_area_index_pft
       real*8, dimension(:,:,:m4_comma`'m4_ext`'), optional, intent(out) ::
      &     soilcpools
       !----------
@@ -1620,6 +1623,11 @@ C NADINE
       if ( present(leaf_area_index) )
      &     leaf_area_index`'m4_brkts(m4_ind)`' = 
      &     entcell`'m4_brkts(m4_ind)`'%entcell%LAI
+
+      if ( present(leaf_area_index_pft) )
+     &     leaf_area_index_pft(:`'m4_comma`'m4_ind) = 
+     &     entcell`'m4_brkts(m4_ind)`'%entcell%LAIpft(:)
+
 
       if ( present(C_total) )
      &     C_total`'m4_brkts(m4_ind)`' = 
