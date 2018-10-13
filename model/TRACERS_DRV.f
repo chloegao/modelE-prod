@@ -7662,17 +7662,19 @@ c calculation of heterogeneous reaction rates: SO2 on dust
 ! water is not affected, the aerosol amount is only a diagnostic in terms of mass
         tr3Dsource(l,nThermo,n_NH3)= (GNH3*1.d-9*AVOL-
      &                                trm_col(l,n_NH3))/dtsrc
-        tr3Dsource(l,nThermo,n_HNO3)=(GHNO3*1.d-9*AVOL-
-     &                                trm_col(l,n_HNO3))/dtsrc
+        if (tracers_special_shindell.and.coupled_chem==1) then
+          tr3Dsource(l,nThermo,n_HNO3)=(GHNO3*1.d-9*AVOL-
+     &                                  trm_col(l,n_HNO3))/dtsrc
+        endif
 
 ! save aerosol water (ug/m3) and aerosol pH (dimensionless)
         taijls(I,J,L,ijlt_aH2O)=taijls(I,J,L,ijlt_aH2O)+AH2O
         taijls(I,J,L,ijlt_apH)=taijls(I,J,L,ijlt_apH)+ApH
       enddo
 
-#ifdef TRACERS_SPECIAL_Shindell
-      call apply_tracer_3Dsource(i,j,nThermo,n_HNO3) ! HNO3 change
-#endif
+      if (tracers_special_shindell.and.coupled_chem==1) then
+        call apply_tracer_3Dsource(i,j,nThermo,n_HNO3) ! HNO3 change
+      endif
       call apply_tracer_3Dsource(i,j,nThermo,n_NO3p) ! NO3p change
       call apply_tracer_3Dsource(i,j,nThermo,n_NH4)  ! NH4 change
       call apply_tracer_3Dsource(i,j,nThermo,n_NH3)  ! NH3 change
