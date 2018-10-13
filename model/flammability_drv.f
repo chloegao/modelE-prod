@@ -6,6 +6,11 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony including
 !@+ her document Flammability.doc
       use timestream_mod, only : timestream
+!@param nVtype number of vegetation types. In GCM this is hardcoded
+!@+ at 12. So as long as this references VDATA, you can't change it.
+!@+ EPFCByVegType is similarly dimensioned with 12 in TRACER_COM
+!@var ij_flamV indicies for aij output 
+      use ent_const, only : N_COVERTYPES
 
       implicit none
       save
@@ -17,12 +22,8 @@
 !@param mfcc MODIS fire count calibration (goes with EPFC by veg type
 !@+ params.) Units=fires/m2/yr when multiplied by the unitless flammability
       real*8, parameter :: mfcc=2.2d-5
-!@param nVtype number of vegetation types. In GCM this is hardcoded
-!@+ at 12. So as long as this references VDATA, you can't change it.
-!@+ emisPerFireByVegType is similarly dimensioned with 12 in TRACER_COM
-      integer, parameter :: nVtype=12
-!@var ij_flamV indicies for aij output 
-      integer, dimension(nVtype) :: ij_flamV 
+      real*8, allocatable, dimension(:,:) :: EPFCByVegType 
+      integer :: ij_flamV 
 ! rest is for the running average:
 !@dbparam allowFlammabilityReinit (default 1=YES) allows the
 !@+ flammability to initialize to undef when Itime=ItimeI and
@@ -46,7 +47,7 @@
       integer :: allowFlammabilityReinit = 1
       real*8, allocatable, dimension(:,:):: raP_acc
 
-      real*8, allocatable, dimension(:,:,:):: DRAfl
+      real*8, allocatable, dimension(:,:,:):: DRAfl,burnt_area
       real*8, allocatable, dimension(:,:)  :: ravg_prec,PRSfl,iHfl,iDfl,
      &                                        i0fl,first_prec
       real*8, allocatable, dimension(:,:,:):: HRAfl
@@ -60,6 +61,7 @@
       type(timestream):: popDensStream
       logical :: firstPopDensStream=.true.
       real*8, allocatable, dimension(:,:) :: populationDensity
+      real*8, allocatable, dimension(:,:) :: nonSuppressFrac
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
       real*8, allocatable, dimension(:,:) :: saveFireCount
@@ -72,18 +74,21 @@
 !@SUM  alllocates arrays whose sizes need to be determined
 !@+    at run-time
 !@auth Greg Faluvegi
+      use TRACER_COM, only: ntm
+      use ent_const, only : N_COVERTYPES
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use dictionary_mod, only : get_param, is_set_param
       use model_com, only: dtsrc
       use TimeConstants_mod, only: SECONDS_PER_HOUR, HOURS_PER_DAY
       use flammability_com, only: flammability,veg_density,
      & first_prec,iHfl,iDfl,i0fl,DRAfl,ravg_prec,PRSfl,HRAfl,
-     & nday_prec,maxHR_prec,raP_acc
+     & nday_prec,maxHR_prec,raP_acc,burnt_area,EPFCByVegType
       use flammability_com, only: 
      & first_lai,iHlai,iDlai,i0lai,DRAlai,ravg_lai,PRSlai,HRAlai,
      & nday_lai,maxHR_lai
 #ifdef ANTHROPOGENIC_FIRE_MODEL
       use flammability_com, only: populationDensity
+      use flammability_com, only: nonSuppressFrac
 #endif
 #ifdef DYNAMIC_BIOMASS_BURNING
       use flammability_com, only: saveFireCount
@@ -117,20 +122,23 @@
       allocate( iHfl        (I_0H:I_1H,J_0H:J_1H) )
       allocate( iDfl        (I_0H:I_1H,J_0H:J_1H) )
       allocate( i0fl        (I_0H:I_1H,J_0H:J_1H) )
-      allocate( DRAfl       (I_0H:I_1H,J_0H:J_1H,nday_prec) )
+      allocate( DRAfl       (nday_prec,I_0H:I_1H,J_0H:J_1H) )
       allocate( ravg_prec   (I_0H:I_1H,J_0H:J_1H) )
+      allocate( EPFCByVegType  (N_COVERTYPES,ntm) )
+      allocate( burnt_area  (N_COVERTYPES,I_0H:I_1H,J_0H:J_1H) )
       allocate( PRSfl       (I_0H:I_1H,J_0H:J_1H) )
       allocate( raP_acc     (I_0H:I_1H,J_0H:J_1H) )
-      allocate( HRAfl       (I_0H:I_1H,J_0H:J_1H,maxHR_prec) )
+      allocate( HRAfl       (maxHR_prec,I_0H:I_1H,J_0H:J_1H) )
       allocate( first_lai   (I_0H:I_1H,J_0H:J_1H) )
       allocate( iHlai       (I_0H:I_1H,J_0H:J_1H) )
       allocate( iDlai       (I_0H:I_1H,J_0H:J_1H) )
       allocate( i0lai       (I_0H:I_1H,J_0H:J_1H) )
-      allocate( DRAlai      (I_0H:I_1H,J_0H:J_1H,nday_lai) )
+      allocate( DRAlai      (nday_lai,I_0H:I_1H,J_0H:J_1H) )
       allocate( ravg_lai    (I_0H:I_1H,J_0H:J_1H) )
       allocate( PRSlai      (I_0H:I_1H,J_0H:J_1H) )
-      allocate( HRAlai      (I_0H:I_1H,J_0H:J_1H,maxHR_lai) )
+      allocate( HRAlai      (maxHR_lai,I_0H:I_1H,J_0H:J_1H) )
 #ifdef ANTHROPOGENIC_FIRE_MODEL
+      allocate( nonSuppressFrac(I_0H:I_1H,J_0H:J_1H) )
       allocate( populationDensity(I_0H:I_1H,J_0H:J_1H) )
 #endif /* ANTHROPOGENIC_FIRE_MODEL */
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -146,10 +154,14 @@
 !@auth Greg Faluvegi based on direction from Olga Pechony
       use model_com, only: Itime,ItimeI
       use constant, only: undef
+      use OldTracer_mod, only: trname
+      use TRACER_COM, only: whichEPFCs,ntm
+      use ent_const, only: N_COVERTYPES
+      use ent_pfts, only: ent_cover_names
       use dictionary_mod, only: sync_param
       use flammability_com, only: flammability, veg_density, first_prec
      & ,allowFlammabilityReinit,DRAfl,hrafl,prsfl,i0fl,iDfl,iHfl
-     & ,ravg_prec
+     & ,ravg_prec,burnt_area,EPFCByVegType
       use flammability_com, only: first_lai,DRAlai,HRAlai,PRSlai,i0lai
      & ,iDlai,iHlai,ravg_lai
       use domain_decomp_atm,only: grid, getDomainBounds, 
@@ -159,7 +171,9 @@
       implicit none
       character*80 :: title,fname
 
-      integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n
+      integer :: I_1H, I_0H, J_1H, J_0H, iu_data, n, v, tracerIndex
+!!    EPFCByVegType tracer emissions per fire count as a
+!!    function of ENT vegetation types
 
       call getDomainBounds(grid,J_STRT_HALO=J_0H,J_STOP_HALO=J_1H)
       call getDomainBounds(grid,I_STRT_HALO=I_0H,I_STOP_HALO=I_1H)
@@ -180,6 +194,7 @@
      &  allowFlammabilityReinit == -1 )then
         flammability(:,:)=undef
         first_prec(:,:)=1.d0
+        burnt_area(:,:,:)=0.d0
         DRAfl=0.d0
         hrafl=0.d0
         prsfl=0.d0
@@ -196,9 +211,286 @@
         iHlai=0.d0
         ravg_lai=0.d0
       end if
+      !loop over tracers and have a select case for every tracer
+      ! have multiple tracers at once e.g. BCB, M_BC1_BC, tomas one..
+      ! make sure all the variables below are well defined at the
+      ! beginning of the subroutine
+      call sync_param("whichEPFCs",whichEPFCs)
+      EPFCByVegType= 0.d0
+      select case(whichEPFCs)!kgC/#fire/(vegfrac in gridbox)
+        case(1) ! AR6 2001-2009
+          do n=1,ntm
+          select case(trname(n))
+            case('M_BC1_BC','BCB')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=238.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=173.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=1159.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=257.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=726.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=767.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=357.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=1844.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=1382.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=1434.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=821.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('M_OCC_OC','OCB')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=1479.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=728.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=15551.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=1504.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=4339.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=3437.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=6562.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=36753.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=10667.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=10941.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=6537.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('NOx') 
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=1009.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=690.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=1094.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=908.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=3152.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=1529.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=241.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=1559.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=4835.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=4905.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=1197.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('CO')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=39268.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=26761.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=251702.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=41043.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=117577.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=113392.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=105936.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=481485.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=230829.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=249906.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=146622.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('Alkenes')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=36.6d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=25.1d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=489.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=38.8d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=110.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=106.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=104.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=422.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=214.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=220.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=137.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('Paraffin')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=18.5d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=13.9d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=226.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=20.7d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=57.0d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=69.8d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=72.1d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=373.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=108.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=102.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=89.1d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('SO2')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=262.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=147.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=2315.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=270.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=795.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=555.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=878.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=4168.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=1687.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=1438.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=972.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('NH3')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=378.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=313.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=5065.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=438.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=1196.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=2101.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=2006.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=10722.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=2340.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=2847.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=2277.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+            case('CH4')
+              do v=1,N_COVERTYPES
+              select case(ent_cover_names(v))
+                case('arid_shrub')
+                  EPFCByVegType(v,n)=1351.d0
+                case('c3_grass_ann')
+                  EPFCByVegType(v,n)=1013.d0
+                case('c3_grass_arct')
+                  EPFCByVegType(v,n)=11574.d0
+                case('c3_grass_per')
+                  EPFCByVegType(v,n)=1494.d0
+                case('c4_grass')
+                  EPFCByVegType(v,n)=4113.d0
+                case('cold_br_late')
+                  EPFCByVegType(v,n)=5915.d0
+                case('cold_shrub')
+                  EPFCByVegType(v,n)=4505.d0
+                case('decid_nd')
+                  EPFCByVegType(v,n)=22977.d0
+                case('drought_br')
+                  EPFCByVegType(v,n)=8461.d0
+                case('ever_br_late')
+                  EPFCByVegType(v,n)=10477.d0
+                case('ever_nd_late')
+                  EPFCByVegType(v,n)=6863.d0
+                case default
+                  EPFCByVegType(v,n)=0.d0
+              end select
+              end do
+          end select
+          end do
+        case default
+          call stop_model('whichEPFCs unknown',255)
+      end select
 
       return
       end subroutine init_flammability
+
 
       subroutine def_rsf_flammability(fid)
 !@sum  def_rsf_flammability defines flammability array structure in 
@@ -211,18 +503,20 @@
       implicit none
       integer fid   !@var fid file id
 
-      call defvar(grid,fid,drafl,'drafl(dist_im,dist_jm,nday_prec)')
-      call defvar(grid,fid,hrafl,'hrafl(dist_im,dist_jm,maxHR_prec)')
+      call defvar(grid,fid,drafl,'drafl(nday_prec,dist_im,dist_jm)')
+      call defvar(grid,fid,hrafl,'hrafl(maxHR_prec,dist_im,dist_jm)')
       call defvar(grid,fid,prsfl,'prsfl(dist_im,dist_jm)')
       call defvar(grid,fid,i0fl,'i0fl(dist_im,dist_jm)') ! real
       call defvar(grid,fid,iDfl,'iDfl(dist_im,dist_jm)') ! real
       call defvar(grid,fid,iHfl,'iHfl(dist_im,dist_jm)') ! real
       call defvar(grid,fid,first_prec,'first_prec(dist_im,dist_jm)')
       call defvar(grid,fid,ravg_prec,'ravg_prec(dist_im,dist_jm)')
+      call defvar(grid,fid,burnt_area,'burnt_area(N_COVERTYPES,dist_im,
+     &     dist_jm)')
       call defvar(grid,fid,flammability,'flammability(dist_im,dist_jm)')
       call defvar(grid,fid,raP_acc,'raP_acc(dist_im,dist_jm)')
-      call defvar(grid,fid,dralai,'dralai(dist_im,dist_jm,nday_lai)')
-      call defvar(grid,fid,hralai,'hralai(dist_im,dist_jm,maxHR_lai)')
+      call defvar(grid,fid,dralai,'dralai(nday_lai,dist_im,dist_jm)')
+      call defvar(grid,fid,hralai,'hralai(maxHR_lai,dist_im,dist_jm)')
       call defvar(grid,fid,prslai,'prslai(dist_im,dist_jm)')
       call defvar(grid,fid,i0lai,'i0lai(dist_im,dist_jm)') ! real
       call defvar(grid,fid,iDlai,'iDlai(dist_im,dist_jm)') ! real
@@ -246,18 +540,19 @@
       integer iaction !@var iaction flag for reading or writing to file
       select case (iaction)
       case (iowrite)            ! output to restart file
-        call write_dist_data(grid, fid, 'drafl', drafl )
-        call write_dist_data(grid, fid, 'hrafl', hrafl )
+        call write_dist_data(grid, fid, 'drafl', drafl, jdim=3 )
+        call write_dist_data(grid, fid, 'hrafl', hrafl, jdim=3 )
         call write_dist_data(grid, fid, 'prsfl', prsfl )
         call write_dist_data(grid, fid, 'i0fl', i0fl )
         call write_dist_data(grid, fid, 'iDfl', iDfl )
         call write_dist_data(grid, fid, 'iHfl', iHfl )
         call write_dist_data(grid, fid, 'first_prec', first_prec )
         call write_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+        call write_dist_data(grid, fid, 'burnt_area',burnt_area,jdim=3 )
         call write_dist_data(grid, fid, 'flammability', flammability )
         call write_dist_data(grid, fid, 'raP_acc', raP_acc )
-        call write_dist_data(grid, fid, 'dralai', dralai )
-        call write_dist_data(grid, fid, 'hralai', hralai )
+        call write_dist_data(grid, fid, 'dralai', dralai, jdim=3 )
+        call write_dist_data(grid, fid, 'hralai', hralai, jdim=3 )
         call write_dist_data(grid, fid, 'prslai', prslai )
         call write_dist_data(grid, fid, 'i0lai', i0lai )
         call write_dist_data(grid, fid, 'iDlai', iDlai )
@@ -266,18 +561,19 @@
         call write_dist_data(grid, fid, 'ravg_lai', ravg_lai )
 
       case (ioread)            ! input from restart file
-        call read_dist_data(grid, fid, 'drafl', drafl )
-        call read_dist_data(grid, fid, 'hrafl', hrafl )
+        call read_dist_data(grid, fid, 'drafl', drafl, jdim=3 )
+        call read_dist_data(grid, fid, 'hrafl', hrafl, jdim=3 )
         call read_dist_data(grid, fid, 'prsfl', prsfl )
         call read_dist_data(grid, fid, 'i0fl', i0fl )
         call read_dist_data(grid, fid, 'iDfl', iDfl )
         call read_dist_data(grid, fid, 'iHfl', iHfl )
         call read_dist_data(grid, fid, 'first_prec', first_prec )
         call read_dist_data(grid, fid, 'ravg_prec', ravg_prec )
+        call read_dist_data(grid, fid, 'burnt_area',burnt_area,jdim=3 )
         call read_dist_data(grid, fid, 'flammability', flammability )
         call read_dist_data(grid, fid, 'raP_acc', raP_acc )
-        call read_dist_data(grid, fid, 'dralai', dralai )
-        call read_dist_data(grid, fid, 'hralai', hralai )
+        call read_dist_data(grid, fid, 'dralai', dralai, jdim=3 )
+        call read_dist_data(grid, fid, 'hralai', hralai, jdim=3 )
         call read_dist_data(grid, fid, 'prslai', prslai )
         call read_dist_data(grid, fid, 'i0lai', i0lai )
         call read_dist_data(grid, fid, 'iDlai', iDlai )
@@ -293,32 +589,36 @@
 !@+   vegetation calculation.
 !@auth Greg Faluvegi based on direction from Olga Pechony
 !@ver  1.0 
+      use geom, only: axyp
       use model_com, only: dtsrc
       use resolution, only : jm
-      use atm_com, only : pedn
+      use atm_com, only : pedn,Q,PMID,pk,t
       use domain_decomp_atm,only: grid, getDomainBounds
       use flammability_com, only: flammability,veg_density,ravg_prec,
-     & ravg_prec,iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,raP_acc
+     & iHfl,iDfl,i0fl,first_prec,HRAfl,DRAfl,PRSfl,raP_acc,
+     & saveFireCount,burnt_area
 
       use fluxes, only: prec,atmsrf
       use constant, only: lhe, undef
       use TimeConstants_mod, only: SECONDS_PER_DAY
-      use diag_com, only: ij_flam,aij=>aij_loc
-      use flammability_com, only: nVtype,ravg_lai,iHlai,iDlai,i0lai,
+      use diag_com, only: ij_flam,ij_flam_rh,ij_flam_prec,ij_flam_tsurf,
+     &  ij_barh1,ij_bawsurf,aij=>aij_loc
+      use flammability_com, only: ravg_lai,iHlai,iDlai,i0lai,
      & first_lai,HRAlai,DRAlai,PRSlai
+      use ent_const, only : N_COVERTYPES
+      use ent_pfts, only: ent_cover_names
       use ghy_com, only: fearth
-      use diag_com, only: ij_fvden
+      use diag_com, only: ij_fvden,ij_ba_tree,ij_ba_shrub,ij_ba_grass
       use ent_com, only: entcells
       use ent_mod, only: ent_get_exports
-     &                   ,n_covertypes !YKIM-temp hack
-      use ent_drv, only: map_ent2giss  !YKIM-temp hack
 
       implicit none
 
-      integer :: J_0S, J_1S, I_0H, I_1H, i, j
+      integer :: J_0S, J_1S, I_0H, I_1H, i, j, v
       logical :: have_south_pole, have_north_pole     
       real*8 :: qsat ! this is a function in UTILDBL.f
-      real*8 :: tsurf,qsurf,prec2pass
+      real*8 :: tsurf,qsurf
+      real*8 :: RH1,wsurf,fearth_axyp,TK
       ! the 7.9 here was from running a year or two under 2005 conditions
       ! and seeing what was the maximum LAI returned by Ent. Therefore,
       ! under other climate conditions, the vegetation density may reach > 1.0. 
@@ -330,9 +630,9 @@
       ! file: 
       real*8, parameter :: byLaiMax=1.d0/10.0d0 !! 7.9d0
       real*8 :: lai
-!@var pvt percent vegetation type for 12 VDATA types (per ice-free land)
-      real*8, dimension(nVtype):: PVT
-      real*8 :: pvt0(n_covertypes),hvt0(n_covertypes)
+!@var pvt fraction vegetation type for N_COVERTYPES (fraction)
+!@var N_COVERTYPES = N_PFT + N_SOILCOV + N_OTHER = 16 + 2 + 0
+      real*8, dimension(N_COVERTYPES):: pvt
       real*8 :: fracVegNonCrops, fracBare
       real*8, parameter :: critFracBare = 0.8d0 ! 80% of box is bare soils
 
@@ -349,8 +649,13 @@
 
           ! update the precipitation running average:
           call prec_running_average(prec(i,j),ravg_prec(i,j), 
-     &    iHfl(i,j),iDfl(i,j),i0fl(i,j),first_prec(i,j),HRAfl(i,j,:),
-     &    DRAfl(i,j,:),PRSfl(i,j))
+     &    iHfl(i,j),iDfl(i,j),i0fl(i,j),first_prec(i,j),HRAfl(:,i,j),
+     &    DRAfl(:,i,j),PRSfl(i,j))
+          ! for sub-daily diag purposes, accumulate the running avg:
+          raP_acc(i,j)=raP_acc(i,j)+ravg_prec(i,j)
+          ! if the first period has elapsed, calculate the flammability
+          if(first_prec(i,j)/=0.) cycle
+
           ! and the LAI running average from Ent:
           if(fearth(i,j)>0.d0) then
             call ent_get_exports( entcells(i,j),leaf_area_index=lai)
@@ -360,14 +665,14 @@
             lai=0.d0
           end if
           call lai_running_average(lai,ravg_lai(i,j), 
-     &    iHlai(i,j),iDlai(i,j),i0lai(i,j),first_lai(i,j),HRAlai(i,j,:),
-     &    DRAlai(i,j,:),PRSlai(i,j))
+     &    iHlai(i,j),iDlai(i,j),i0lai(i,j),first_lai(i,j),HRAlai(:,i,j),
+     &    DRAlai(:,i,j),PRSlai(i,j))
 
-          ! for sub-daily diag purposes, accumulate the running avg:
-          raP_acc(i,j)=raP_acc(i,j)+ravg_prec(i,j)
 
 !! #ifndef FLAM_USE_OFFLINE_VEG_DENS /* NOT */
 !! I.e. do not define/limit the veg_density here if it is prescribed...
+          tsurf = atmsrf%tsavg(i,j)![K]
+          qsurf = atmsrf%qsavg(i,j)
           if(fearth(i,j)>0.d0) then
             if(first_lai(i,j)==0.) then
               veg_density(i,j) = ravg_lai(i,j)*byLaiMax*fearth(i,j)
@@ -381,36 +686,146 @@
             ! due to crops+pasture cover, we need to set the veg densitry to zero
             ! when either a box has 80% or more bare soil (light+dark) or the box 
             ! had zero non-crops vegetation:
+            fracVegNonCrops=0.d0
+            fracBare=0.d0
             call ent_get_exports(entcells(i,j),
-     &         vegetation_fractions=PVT0,
-     &         vegetation_heights=HVT0 )
-            call map_ent2giss(pvt0,hvt0,pvt) !YKIM temp hack:ent pfts->giss
-            fracBare = (pvt(1)+pvt(10))*fearth(i,j) 
-            fracVegNonCrops = sum(pvt(2:8))*fearth(i,j)
+     &         vegetation_fractions=pvt)
+            do v=1,N_COVERTYPES
+            select case(ent_cover_names(v))
+              case('bare_bright')
+                fracBare = fracBare + pvt(v) * fearth(i,j) 
+              case('bare_dark')
+                fracBare = fracBare + pvt(v) * fearth(i,j) 
+              case('c3_grass_ann')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('c3_grass_arct')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('c3_grass_per')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('c4_grass')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('arid_shrub')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('cold_shrub')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('cold_br_late')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('decid_nd')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('drought_br')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('ever_br_late')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+              case('ever_nd_late')
+                fracVegNonCrops = fracVegNonCrops + pvt(v) *
+     &          fearth(i,j)
+            end select
+            end do
+
+            if (fracBare + fracVegNonCrops > fearth(i,j)+0.00001) then
+              call stop_model('cover types sum greater than'// 
+     &                         'fearth',255) 
+            endif
             if((fracBare >= critFracBare).or.(fracVegNonCrops == 0.)) 
-     &      veg_density(i,j) = 0.d0
+     &        veg_density(i,j) = 0.d0
+            !@var atmsrf contains atm-surf interaction
+            !@+ quantities averaged over all surface types
+            !@var WSAVG SURFACE WIND MAGNITUDE (M/S)
+            !@var wsurf surface wind velocity (m/s)
+            wsurf=atmsrf%wsavg(i,j)
+            !SECONDS_PER_DAY ?
+            !@var DTSRC source time step (s) 
+            ! TK ?
+            ! lhe ?
+            !@var  PMID Pressure at mid point of box (mb)
+            !@var QSAT saturation specific humidity (?)
+            !@var Q specific humidity (kg water vapor/kg air)
+            !@var RH1 relative humidity in layer 1 (fraction)
+            !@var RH1 relative humidity at surface (fraction)
+            TK = pk(1,i,j)*t(i,j,1)           !should be in [K]
+            !RH1 = MIN(1.d0,q(i,j,1)/QSAT(TK,lhe,pmid(1,i,j)))![fraction]
+            RH1=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))![fraction]
+            !@var fearth soil covered land fraction (fraction)
+            !@var  axyp,byaxyp area of grid box (+inverse) (m^2)
+            fearth_axyp=fearth(i,j)*axyp(i,j)
+            ! update the burnt area  average:
+            !@var burnt_area (m^2)
+            !@var saveFireCount fire count rate (fire/m2/s)
+            aij(i,j,ij_barh1)=aij(i,j,ij_barh1)+RH1
+            aij(i,j,ij_bawsurf)=aij(i,j,ij_bawsurf)+wsurf
+            call step_ba(burnt_area(:,i,j),RH1,wsurf,
+     &                   saveFireCount(i,j),pvt,fearth_axyp,i,j)
 #endif /* LIMIT_BARREN_FLAMMABILITY */
           else
             veg_density(i,j) = 0.d0
           end if
 !! #endif /* FLAM_USE_OFFLINE_VEG_DENS NOT DEFINED */
 
-          tsurf = atmsrf%tsavg(i,j)
-          qsurf = atmsrf%qsavg(i,j)
-          if(first_prec(i,j)==0.) then
-            ! if the first period has elapsed, calculate flammability
-            ! using the running average precipitation:
-            prec2pass=SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
-          else
-            ! otherwise...
-            prec2pass=SECONDS_PER_DAY*     prec(i,j)/dtsrc
-          end if
-          call calc_flammability( tsurf, prec2pass,
-     &     min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))),
-     &     veg_density(i,j), flammability(i,j) )
+          !if(j>=J_0S.AND.j<=J_1S) then
+     &    !    SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
+     &    !    ,min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))
+          !end if
+          !RH=min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j))) [fraction]
+          !SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc [mm/day??]
+          call calc_flammability(tsurf,SECONDS_PER_DAY
+     &     *ravg_prec(i,j)/dtsrc,min(1.d0,qsurf/
+     &     qsat(tsurf,lhe,pedn(1,i,j))),veg_density(i,j),
+     &     flammability(i,j),sum(burnt_area(:,i,j)),fearth_axyp)
           ! update diagnostic
           aij(i,j,ij_flam)=aij(i,j,ij_flam)+flammability(i,j)
+          aij(i,j,ij_flam_tsurf)=aij(i,j,ij_flam_tsurf)+tsurf
+          aij(i,j,ij_flam_prec)=aij(i,j,ij_flam_prec)+
+     &      SECONDS_PER_DAY*ravg_prec(i,j)/dtsrc
+          aij(i,j,ij_flam_rh)=aij(i,j,ij_flam_rh)+
+     &      min(1.d0,qsurf/qsat(tsurf,lhe,pedn(1,i,j)))
           aij(i,j,ij_fvden)=aij(i,j,ij_fvden)+veg_density(i,j)
+          do v=1,N_COVERTYPES
+          select case(ent_cover_names(v))
+            case('arid_shrub')
+              aij(i,j,ij_ba_shrub) = aij(i,j,ij_ba_shrub) +
+     &        burnt_area(v,i,j)
+            case('c3_grass_ann')
+              aij(i,j,ij_ba_grass) = aij(i,j,ij_ba_grass) +
+     &        burnt_area(v,i,j)
+            case('c3_grass_arct')
+              aij(i,j,ij_ba_grass) = aij(i,j,ij_ba_grass) +
+     &        burnt_area(v,i,j)
+            case('c3_grass_per')
+              aij(i,j,ij_ba_grass) = aij(i,j,ij_ba_grass) +
+     &        burnt_area(v,i,j)
+            case('c4_grass')
+              aij(i,j,ij_ba_grass) = aij(i,j,ij_ba_grass) +
+     &        burnt_area(v,i,j)
+            case('cold_br_late')
+              aij(i,j,ij_ba_tree) =  aij(i,j,ij_ba_tree) +
+     &        burnt_area(v,i,j)
+            case('cold_shrub')
+              aij(i,j,ij_ba_shrub) = aij(i,j,ij_ba_shrub) + 
+     &        burnt_area(v,i,j)
+            case('decid_nd')
+              aij(i,j,ij_ba_tree) = aij(i,j,ij_ba_tree) + 
+     &        burnt_area(v,i,j)
+            case('drought_br')
+              aij(i,j,ij_ba_tree) = aij(i,j,ij_ba_tree) + 
+     &        burnt_area(v,i,j)
+            case('ever_br_late')
+              aij(i,j,ij_ba_tree) = aij(i,j,ij_ba_tree) + 
+     &        burnt_area(v,i,j)
+            case('ever_nd_late')
+              aij(i,j,ij_ba_tree) = aij(i,j,ij_ba_tree) + 
+     &        burnt_area(v,i,j)
+          end select
+          end do
 
         end do
       end do
