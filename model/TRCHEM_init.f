@@ -95,19 +95,19 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yCl2(:,I_0:I_1,J_0:J_1)     =0.d0
         yCl2O2(:,I_0:I_1,J_0:J_1)   =0.d0
 #ifdef TRACERS_dCO
-        ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
-        ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
-        yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
-        ydC217O3(I_0:I_1,J_0:J_1,:) =0.d0
-        ydC218O3(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13C2O3(I_0:I_1,J_0:J_1,:) =0.d0
-        yd17OROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd18OROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13CROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd18Oald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13Cald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13CXPAR(I_0:I_1,J_0:J_1,:)=0.d0
+        ydCH317O2(:,I_0:I_1,J_0:J_1)=1.d0
+        ydCH318O2(:,I_0:I_1,J_0:J_1)=1.d0
+        yd13CH3O2(:,I_0:I_1,J_0:J_1)=1.d0
+        ydC217O3(:,I_0:I_1,J_0:J_1) =0.d0
+        ydC218O3(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13C2O3(:,I_0:I_1,J_0:J_1) =0.d0
+        yd17OROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd18OROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13CROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd17Oald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd18Oald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13Cald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13CXPAR(:,I_0:I_1,J_0:J_1)=0.d0
 #endif  /* TRACERS_dCO */
         oh_live(:)  =0.d0
         no3_live(:) =0.d0

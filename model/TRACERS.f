@@ -1278,14 +1278,12 @@ C**** check whether air mass is conserved
       type (ParallelIo) :: handle
       character(len=:), allocatable :: ijldims
 #ifdef TRACERS_SPECIAL_Shindell
-      character(len=:), allocatable :: ijcdims
       character(len=:), allocatable :: cijdims
 #endif
       integer :: n
 
       ijldims='(dist_im,dist_jm,lm)' 
 #ifdef TRACERS_SPECIAL_Shindell
-      ijcdims='(dist_im,dist_jm,topLevelOfChemistry)'
       cijdims='(topLevelOfChemistry,dist_im,dist_jm)'
 #endif
       handle = ParallelIo(grid, fid)
@@ -1317,33 +1315,33 @@ c daily_z is currently only needed for CS
       call doVar(handle,action,pOx ,'pOx'//cijdims,jdim=3)
       call doVar(handle,action,yCH3O2,'yCH3O2'//cijdims,jdim=3)
 #ifdef TRACERS_dCO
-      call doVar(handle,action,ydCH317O2,'ydCH317O2'//ijcdims)
-      call doVar(handle,action,ydCH318O2,'ydCH318O2'//ijcdims)
-      call doVar(handle,action,yd13CH3O2,'yd13CH3O2'//ijcdims)
+      call doVar(handle,action,ydCH317O2,'ydCH317O2'//cijdims,jdim=3)
+      call doVar(handle,action,ydCH318O2,'ydCH318O2'//cijdims,jdim=3)
+      call doVar(handle,action,yd13CH3O2,'yd13CH3O2'//cijdims,jdim=3)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yC2O3,'yC2O3'//cijdims,jdim=3)
 #ifdef TRACERS_dCO
-      call doVar(handle,action,ydC217O3,'ydC217O3'//ijcdims)
-      call doVar(handle,action,ydC218O3,'ydC218O3'//ijcdims)
-      call doVar(handle,action,yd13C2O3,'yd13C2O3'//ijcdims)
+      call doVar(handle,action,ydC217O3,'ydC217O3'//cijdims,jdim=3)
+      call doVar(handle,action,ydC218O3,'ydC218O3'//cijdims,jdim=3)
+      call doVar(handle,action,yd13C2O3,'yd13C2O3'//cijdims,jdim=3)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yROR,'yROR'//cijdims,jdim=3)
 #ifdef TRACERS_dCO
-      call doVar(handle,action,yd17OROR,'yd17OROR'//ijcdims)
-      call doVar(handle,action,yd18OROR,'yd18OROR'//ijcdims)
-      call doVar(handle,action,yd13CROR,'yd13CROR'//ijcdims)
+      call doVar(handle,action,yd17OROR,'yd17OROR'//cijdims,jdim=3)
+      call doVar(handle,action,yd18OROR,'yd18OROR'//cijdims,jdim=3)
+      call doVar(handle,action,yd13CROR,'yd13CROR'//cijdims,jdim=3)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yXO2,'yXO2'//cijdims,jdim=3)
       call doVar(handle,action,yXO2N,'yXO2N'//cijdims,jdim=3)
       call doVar(handle,action,yAldehyde,'yAldehyde'//cijdims,jdim=3)
 #ifdef TRACERS_dCO
-      call doVar(handle,action,yd17Oald,'yd17Oald'//ijcdims)
-      call doVar(handle,action,yd18Oald,'yd18Oald'//ijcdims)
-      call doVar(handle,action,yd13Cald,'yd13Cald'//ijcdims)
+      call doVar(handle,action,yd17Oald,'yd17Oald'//cijdims,jdim=3)
+      call doVar(handle,action,yd18Oald,'yd18Oald'//cijdims,jdim=3)
+      call doVar(handle,action,yd13Cald,'yd13Cald'//cijdims,jdim=3)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,yRXPAR,'yRXPAR'//cijdims,jdim=3)
 #ifdef TRACERS_dCO
-      call doVar(handle,action,yd13CXPAR,'yd13CXPAR'//ijcdims)
+      call doVar(handle,action,yd13CXPAR,'yd13CXPAR'//cijdims,jdim=3)
 #endif  /* TRACERS_dCO */
       call doVar(handle,action,pClOx,'pClOx'//cijdims,jdim=3)
       call doVar(handle,action,pClx,'pClx'//cijdims,jdim=3)
