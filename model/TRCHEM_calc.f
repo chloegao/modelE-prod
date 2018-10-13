@@ -951,8 +951,8 @@ c       Check for equilibrium:
 c       Set value for ROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
      &      *y(nOH,L)*0.76d0
-        RORdest=0.98d0*rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)
-     &    +rr(rrbi%ROR_M__HO2_M,L)
+        RORdest=(0.98d0*rr(rrbi%ROR_M__Aldehyde_HO2,L)
+     &    +rr(rrbi%ROR_M__HO2_M,L))*y(nM,L)
         if(RORdest > 0.d0)then
           y(nROR,L)=(RORprod/RORdest)
         else

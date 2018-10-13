@@ -2787,10 +2787,7 @@ C**** Local parameters and variables and arguments:
 #endif  /* TRACERS_dCO */
      &            ) then
 !           ROR+M really ROR
-! WARNING:
-! This reaction, together with the other ROR+M one, might have issues.
-! Kostas asked Greg who will ask Drew, and together will fix it, if required.
-            rr(jj,L)=rr(jj,L)!/y(nM,L)
+            rr(jj,L)=rr(jj,L)/y(nM,L)
           else if (jj==rrbi%HO2_NO__OH_NO2
      &        .or. jj==rrbi%HO2_NO__HNO3_M) then
 !           calculate branching ratio here Butkovskaya et al J.Phys.Chem 2007

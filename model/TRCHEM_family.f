@@ -253,8 +253,8 @@ c all: in terms of HO2 (so *pHOx when OH is reactant)
      &    +zj(L,rj%Aldehyde__HCHO_CO)*y(nAldehyde,L)*2.d0
      &    +(rr(rrbi%C2O3_NO__HCHO_NO2,L)*y(nNO,L)
      &    +rr(rrbi%C2O3_C2O3__HCHO_HCHO,L)*y(nC2O3,L)*2.d0)*y(nC2O3,L)
-     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*y(nM,L)*0.94d0
-     &      +rr(rrbi%ROR_M__HO2_M,L))*y(nROR,L)
+     &    +(rr(rrbi%ROR_M__Aldehyde_HO2,L)*0.94d0
+     &      +rr(rrbi%ROR_M__HO2_M,L))*y(nM,L)*y(nROR,L)
      &    +rr(rrbi%Alkenes_O3__HCHO_CO,L)*y(nn_Alkenes,L)*y(nO3,L)
      &      *0.65d0
      &    +rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*y(nn_Isoprene,L)
