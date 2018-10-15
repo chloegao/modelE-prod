@@ -43,8 +43,6 @@ Preprocessor Options
 #define ISOPRENE_MEGAN  ! Isoprene source from MEGAN on
 !  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive Isoprene emissions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
-!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
-!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !<--- chemistry end
 !---> OMA start
@@ -90,7 +88,6 @@ TRDIAG                              ! new i/o
 SUBDD
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
-! flammability_drv flammability       ! Olga's fire model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */

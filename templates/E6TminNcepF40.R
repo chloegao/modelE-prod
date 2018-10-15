@@ -59,7 +59,6 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_minerals_source_files"
 TRDIAG                              ! new i/o
 SUBDD
-! flammability_drv flammability       ! Olga's fire model
 NUDGE
 
 Components:
