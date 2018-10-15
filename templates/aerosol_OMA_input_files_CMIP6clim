@@ -2,7 +2,6 @@
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
 !OFFLINE_CHEM=giss2/uncoupledChem_E14TomaOCNf10_4av_decadal_F40
-!OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
 ! ------- aerosol -----------
 PSREF=ANN1960.E70F40pi.prsurf.nc  ! time avg. surf. pres. on model grid
 SO2_VOLCANO=SO2_volc_2000_1x1_pres.nc
