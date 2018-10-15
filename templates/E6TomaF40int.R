@@ -97,6 +97,7 @@ TRACERS_AEROSOLS_VBS                ! Volatility-basis set
 megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
 SUBDD
+! NUDGE
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
 flammability_drv flammability       ! Olga''s fire model

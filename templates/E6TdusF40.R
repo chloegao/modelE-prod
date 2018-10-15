@@ -58,6 +58,7 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_dust_source_files"
 TRDIAG                              ! new i/o
 SUBDD
+! NUDGE
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
