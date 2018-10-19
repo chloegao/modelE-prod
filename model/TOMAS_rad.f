@@ -155,11 +155,7 @@ C*********************************************************************
      &             (vol_spec(c)+vol_h2o(c)) !average density
           else
             reffwet=5.0e-10        ! Dp=1nm 
-<<<<<<< HEAD
-            density = 0.d0
-=======
             density=0.d0
->>>>>>> d8d1cbd5a451bf3c1f943593eda602b85d155c92
           endif
 
 !dmw: skip calculation if density is tiny, 0, or negative

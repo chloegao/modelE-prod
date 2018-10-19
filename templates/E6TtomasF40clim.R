@@ -44,8 +44,8 @@ Preprocessor Options
 !<--- chemistry end
 !---> TOMAS start
 #define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
-!#define TOMAS_12_3NM     
-#define TOMAS_12_10NM    ! 12 bin and 10nm size cutoff is new default
+!#define TOMAS_12_3NM    ! 15 bin and 3nm size
+#define TOMAS_12_10NM    ! 12 bin and 10nm size is new default
 #define One_percent_sulfate
 #define Old_DMS_emis
 #define TOMAS_COARSER_EMISSION     ! larger emission size
