@@ -134,7 +134,7 @@ C*********************************************************************
         
 !Negligible number and mass ==> zero AOD
         if(trm(i,j,l,n_anum(1)-1+k).lt.1.d-5
-     &       .or.mtot.le.0.) goto 500
+     &       .or.mtot.le.0.) cycle !skip this bin
 
         mp=mtot/trm(i,j,l,n_anum(1)-1+k) ! dry particle diameter [kg/a particle]
         
@@ -159,7 +159,7 @@ C*********************************************************************
           endif
 
 !dmw: skip calculation if density is tiny, 0, or negative
-          if (density(c) .le. 1.d-10) goto 500
+          if (density(c) .le. 1.d-10) cycle
 
           
 C     BHMIE RADIATIVE PROPERTIES LOOKUP TABLE
@@ -245,7 +245,6 @@ C     Determine size parameter
           enddo                 !w:wavelength   
         enddo                   !c: chem components
 
- 500        continue   
       enddo                     !K=1,NBINS
 
 !     endif !for timeI
