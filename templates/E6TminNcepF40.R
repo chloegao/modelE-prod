@@ -119,7 +119,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_OMA_params_CMIP6"
-#include "mineral_params"
+#include "mineral_params_ncep"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
 #include "ch4_params_CMIP6"
