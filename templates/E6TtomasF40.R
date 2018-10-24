@@ -37,13 +37,12 @@ Preprocessor Options
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
-!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
-!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !<--- chemistry end
 !---> TOMAS start
 #define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
-#define TOMAS_12_3NM    ! 15 BIN and 3nm size cutoff 
+!#define TOMAS_12_3NM    ! 15 bin and 3nm size
+#define TOMAS_12_10NM    ! 12 bin and 10nm size is new default
 #define One_percent_sulfate
 #define Old_DMS_emis
 #define TOMAS_COARSER_EMISSION     ! larger emission size
@@ -78,9 +77,9 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 #include "tracer_TOMAS_source_files"
 TRDIAG                              ! new i/o
 SUBDD
+! NUDGE
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
-! flammability_drv flammability       ! Olga's fire model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -158,7 +157,6 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 NIsurf=2         ! surface interaction computed NIsurf times per source time step
 NRAD=5           ! radiation computed NRAD times per source time step
 #include "diag_params"
-! save3dAOD=1      ! needed if 3D AOD (itAOD or ictAOD) SUBDDs are on and adiurn_dust=0
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step

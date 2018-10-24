@@ -90,8 +90,9 @@ C**** initiallise all netcdf parameters etc.
 
       step_rea = INT( (((modelEclock%getDayOfYear() - 1) * 24) + 
      &  modelEclock%getHour())/6) + 1
-      print*,'READING REANALYSIS INIT ',modelEclock%getHour(), 
-     &  modelEclock%getDayOfYear(), step_rea
+      if (am_i_root())
+     &  print*,'READING REANALYSIS INIT ',modelEclock%getHour(), 
+     &    modelEclock%getDayOfYear(), step_rea
 
 C**** always need to open at least one file
 
@@ -101,7 +102,7 @@ C**** broadcast pressure levels just once (since they don't change)
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
 
 C**** read first set of nudged winds
-      print*,"nudge init0",step_rea
+      if (am_i_root()) print*,"nudge init0",step_rea
       call read_nudge_file(un1,vn1,step_rea)
 
 C**** read in second set of nudged winds
@@ -115,7 +116,7 @@ C**** if near end of year, may need to open another file
           call  open_nudge_file(nstr2)
         endif
       end if
-      print*,"nudge init1",step_rea
+      if (am_i_root()) print*,"nudge init1",step_rea
       call read_nudge_file(un2,vn2,step_rea)
 
       return
@@ -310,12 +311,14 @@ c******************************************************************
       subroutine open_nudge_file(nstr)
 !@sum open a new nudging file (should only be called by root)
       USE NUDGE_COM
+      USE DOMAIN_DECOMP_1D, only: am_i_root
       implicit none
       include 'netcdf.inc'
       character(len=4) :: nstr
       integer status
       
-      print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
+      if (am_i_root())
+     &  print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
       status=NF_OPEN('u'//trim(nstr)//'.nc',NCNOWRIT,ncidu)
       if(status /= nf_noerr)call nudgeStop('opening U file',status)
       status=NF_OPEN('v'//trim(nstr)//'.nc',NCNOWRIT,ncidv)
@@ -397,12 +400,14 @@ c -----------------------------------------------------------------
 
       subroutine nudgeStop(activityString,status)
 !@sum error handling for the netCDF/Fortran interface calls  
+      USE DOMAIN_DECOMP_1D, only : am_i_root
       implicit none
       include 'netcdf.inc'
       character(len=*) :: activityString
       integer status
 
-      print*, 'WIND NUDGING: while model was '//trim(activityString)
+      if (am_i_root())
+     & print*, 'WIND NUDGING: while model was '//trim(activityString)
      &//', encountered the NF error: ',trim(trim(nf_strerror(status)))
 
       call stop_model('Nudging error: see PRT for detailed message.',13)

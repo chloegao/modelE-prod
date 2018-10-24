@@ -100,7 +100,7 @@ module AmpTracersMetadata_mod
     tracers_amp_m3, tracers_amp_m4,         &
     tracers_amp_m5, tracers_amp_m6,         &
     tracers_amp_m7, tracers_amp_m8,         &
-    tracers_amp_m9,                         &
+    tracers_amp_m9, tracers_amp_m10,        &
     tracers_special_shindell
   use Tracer_com, only: ntmAMPi, ntmAMPe, ntmAMP, ntm_chem, coupled_chem
   use OldTracer_mod, only: set_needtrs
@@ -184,7 +184,8 @@ contains
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_AKK_SU = AMP_SetSpec('AKK', 'SU')
       n_N_AKK_1  = AMP_SetSpec('AKK', '1' )
     end if
@@ -237,7 +238,8 @@ contains
         tracers_amp_m2 .or. &
         tracers_amp_m3 .or. &
         tracers_amp_m4 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_DD2_SU = AMP_SetSpec('DD2','SU')
       n_M_DD2_DU = AMP_SetSpec('DD2','DU')
       if (tracers_amp_m9) then
@@ -275,7 +277,8 @@ contains
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_SSA_SU = AMP_SetSpec('SSA','SU')
       n_M_SSA_SS = AMP_SetSpec('SSA','SS')
       if (tracers_amp_m9) then
@@ -366,7 +369,8 @@ contains
 
     if (tracers_amp_m2 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_OCS_SU = AMP_SetSpec('OCS','SU')
       n_M_OCS_OC = AMP_SetSpec('OCS','OC')
       if (tracers_amp_m9) then
@@ -397,7 +401,8 @@ contains
         tracers_amp_m3 .or. &
         tracers_amp_m6 .or. &
         tracers_amp_m7 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_BOC_SU = AMP_SetSpec('BOC','SU')
       n_M_BOC_BC = AMP_SetSpec('BOC','BC')
       n_M_BOC_OC = AMP_SetSpec('BOC','OC')
@@ -419,7 +424,8 @@ contains
         tracers_amp_m2 .or. &
         tracers_amp_m5 .or. &
         tracers_amp_m6 .or. &
-        tracers_amp_m9) then
+        tracers_amp_m9 .or. &
+        tracers_amp_m10) then
       n_M_BCS_SU = AMP_SetSpec('BCS','SU')
       n_M_BCS_BC = AMP_SetSpec('BCS','BC')
       if (tracers_amp_m9) then
@@ -550,6 +556,13 @@ contains
       151,152,153,154,155,156,157,158,159,160, &
       161,162,163,164,165,166,167,168,169,170, &
       171,172,173,174,175,176                /)
+#elif defined TRACERS_AMP_M10
+    AMP_AERO_MAP=(/ &
+      1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10, &
+      11,12,13,14,15,16,17,18,19,20, &
+      21,22,   24,25,26,27,28,29,30, & ! skip M_SSC_SU
+      31,32,33,34,35,36,37,38,39,40, &
+      41,42,43,44,45,46,47,48,49,50 /)
 #else
     call stop_model('AMP_AERO_MAP needs to be defined.', 255)
 #endif
@@ -659,8 +672,6 @@ contains
       use OldTracer_mod, only: om2oc, set_om2oc
       use Dictionary_mod, only: sync_param
       use RunTimeControls_mod, only: dynamic_biomass_burning
-      use OldTracer_mod, only: set_emisPerFireByVegType
-      use TRACER_COM, only: whichEPFCs
       implicit none
       character(len=*), intent(in) :: mode
       character(len=*), intent(in) :: component
@@ -692,57 +703,6 @@ contains
         ntmAMP = ntmAMPe-ntmAMPi+1
       end if
 
-      if (trim(tracerName) == 'M_BC1_BC') then
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,4.80d-9,8.33d-8,4.13d-8, &
-          & 1.16d-7,1.08d-7,5.84d-8,6.10d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,1.64d-7,6.21d-8,3.04d-8, &
-          & 3.01d-8,4.20d-8,6.87d-8,7.21d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,6.07d-8,3.98d-8,4.53d-8, &
-          & 4.80d-8,4.78d-8,5.19d-8,7.95d-8,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,2.77d-8,1.12d-7,2.58d-8, &
-          & 8.94d-8,7.49d-8,5.88d-9,2.50d-8,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
-      end if
-
-      if (trim(tracerName) == 'M_OCC_OC') then
-#ifdef DYNAMIC_BIOMASS_BURNING
-      if (dynamic_biomass_burning) then
-        ! 12 below are the 12 VDATA veg types or Ent remapped to them,
-        ! from Olga Pechony's EPFC.xlsx e-mailed to Greg 1/13/2013
-        call sync_param("whichEPFCs",whichEPFCs)
-        select case(whichEPFCs)
-        case(1) ! AR5
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,5.71d-7,7.11d-7,4.02d-7, &
-          & 1.18d-6,1.25d-6,9.51d-7,9.80d-7,0.d0,0.d0,0.d0,0.d0] )
-        case(2) ! GFED3
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,3.37d-6,9.98d-7,1.40d-7, &
-          & 2.51d-7,6.44d-7,1.34d-6,6.92d-7,0.d0,0.d0,0.d0,0.d0] )
-        case(3) ! GFED2
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,8.74d-7,3.15d-7,4.02d-7, &
-          & 4.70d-7,5.40d-7,9.81d-7,9.18d-7,0.d0,0.d0,0.d0,0.d0] )
-        case(4) ! MOPITT
-          call set_emisPerFireByVegType(tracerIndex, [0.d0,3.51d-7,1.13d-6,2.37d-7, &
-          & 7.18d-7,1.05d-6,1.18d-7,2.86d-7,0.d0,0.d0,0.d0,0.d0] )
-        case default
-          call stop_model('whichEPFCs unknown',255)
-        end select
-      end if
-#endif
-      end if
 
       lc=min(2,len(component)) ! this is to convert OCM2,OCM1 etc. to OC for M9
       if (trim(component) == 'SU') then

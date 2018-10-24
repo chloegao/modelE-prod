@@ -20,7 +20,6 @@ Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
 #define SWFIX_20151201
-#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start
@@ -44,8 +43,6 @@ Preprocessor Options
 #define ISOPRENE_MEGAN  ! Isoprene source from MEGAN on
 !  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive Isoprene emissions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
-!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
-!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 !<--- chemistry end
 !---> OMA start
@@ -89,9 +86,9 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
 SUBDD
+! NUDGE
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
-! flammability_drv flammability       ! Olga's fire model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -105,8 +102,8 @@ OPTS_dd2d = NC_IO=PNETCDF
 Data input files:
 #include "IC_144x90_input_files"
 #include "static_ocn_2000_144x90_input_files"
-RVR=RD_Fb.nc             ! river direction file
-NAMERVR=RD_Fb.names.txt  ! named river outlets
+RVR=RD_Fd.nc             ! river direction file
+NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "rad_input_files"
@@ -170,7 +167,6 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 NIsurf=2         ! surface interaction computed NIsurf times per source time step
 NRAD=5           ! radiation computed NRAD times per source time step
 #include "diag_params"
-! save3dAOD=1      ! needed if 3D AOD (itAOD or ictAOD) SUBDDs are on and adiurn_dust=0
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step

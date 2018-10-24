@@ -1,8 +1,7 @@
 !-------Aerosol inputs--------------
 !----oxidants needed if not coupled to chem ----
 !---these are place-holders, right now must run coupled ----
-!OFFLINE_CHEM=giss2/sample_for_coupled_chem_zero_144x90x40.nc
-!OFFLINE_SEAS.nc=SEASALT_EK1su_GISS4x5.nc
+!OFFLINE_CHEM=giss2/uncoupledChem_E14TomaOCNf10_4av_decadal_F40
 !------nitrate inputs--------------
 NH3_01=NH3hCON_OCEANflux_Jan10_2x2.5_h
 NH3_02=NH3_agr_AR5_1850-2020_2x2.5_h

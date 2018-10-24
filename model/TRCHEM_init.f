@@ -19,11 +19,11 @@ C**** GLOBAL parameters and variables:
      &    prnls,prnrts,prnchg,ijlprn,pHOx,pOx,pNOx,
      &    yCH3O2,yC2O3,yROR,yXO2,yAldehyde,yRXPAR,yXO2N,
 #ifdef TRACERS_dCO
+     &    ydCH317O2,ydCH318O2,yd13CH3O2,
      &    ydC217O3,ydC218O3,yd13C2O3,
-     &    yd13CXPAR,
      &    yd17OROR,yd18OROR,yd13CROR,
      &    yd17Oald,yd18Oald,yd13Cald,
-     &    ydCH317O2,ydCH318O2,yd13CH3O2,
+     &    yd13CXPAR,
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
@@ -95,19 +95,19 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yCl2(:,I_0:I_1,J_0:J_1)     =0.d0
         yCl2O2(:,I_0:I_1,J_0:J_1)   =0.d0
 #ifdef TRACERS_dCO
-        ydCH317O2(I_0:I_1,J_0:J_1,:)=1.d0
-        ydCH318O2(I_0:I_1,J_0:J_1,:)=1.d0
-        yd13CH3O2(I_0:I_1,J_0:J_1,:)=1.d0
-        ydC217O3(I_0:I_1,J_0:J_1,:) =0.d0
-        ydC218O3(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13C2O3(I_0:I_1,J_0:J_1,:) =0.d0
-        yd17OROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd18OROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13CROR(I_0:I_1,J_0:J_1,:) =0.d0
-        yd17Oald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd18Oald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13Cald(I_0:I_1,J_0:J_1,:) =0.d0
-        yd13CXPAR(I_0:I_1,J_0:J_1,:)=0.d0
+        ydCH317O2(:,I_0:I_1,J_0:J_1)=1.d0
+        ydCH318O2(:,I_0:I_1,J_0:J_1)=1.d0
+        yd13CH3O2(:,I_0:I_1,J_0:J_1)=1.d0
+        ydC217O3(:,I_0:I_1,J_0:J_1) =0.d0
+        ydC218O3(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13C2O3(:,I_0:I_1,J_0:J_1) =0.d0
+        yd17OROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd18OROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13CROR(:,I_0:I_1,J_0:J_1) =0.d0
+        yd17Oald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd18Oald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13Cald(:,I_0:I_1,J_0:J_1) =0.d0
+        yd13CXPAR(:,I_0:I_1,J_0:J_1)=0.d0
 #endif  /* TRACERS_dCO */
         oh_live(:)  =0.d0
         no3_live(:) =0.d0

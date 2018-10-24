@@ -29,7 +29,6 @@ C
       use OldTracer_mod, only: pm2p5fact
       use OldTracer_mod, only: pm10fact
       use OldTracer_mod, only: nBBsources
-      use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
       use OldTracer_mod, only: trradius
       use OldTracer_mod, only: tr_wd_TYPE
@@ -92,7 +91,7 @@ c
 !@+ month-to-month (linm2m)
       integer :: nc_emis_use_ppm_interp=1
 
-!@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
+!@dbparam whichEPFCs choses EPFCByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
       integer :: whichEPFCs = 1 
 
 C**** Each tracer has a variable name and a unique index
@@ -180,7 +179,7 @@ C**** Each tracer has a variable name and a unique index
       integer, parameter :: ntm_dCO=14
 #else
       integer, parameter :: ntm_dCO=0
-#endif  /* TRACERS_AEROSOLS_OCEAN */
+#endif  /* TRACERS_dCO */
 
 !@param ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\

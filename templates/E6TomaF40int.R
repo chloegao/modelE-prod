@@ -97,6 +97,7 @@ TRACERS_AEROSOLS_VBS                ! Volatility-basis set
 megan                               ! MEGAN biogenic emissions scheme
 TRDIAG                              ! new i/o
 SUBDD
+! NUDGE
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
 flammability_drv flammability       ! Olga''s fire model
@@ -198,7 +199,6 @@ DT_YUfilter=0.   ! Shapiro filter on U in N-S direction
 NIsurf=2         ! surface interaction computed NIsurf times per source time step
 NRAD=5           ! radiation computed NRAD times per source time step
 #include "diag_params"
-! save3dAOD=1      ! needed if 3D AOD (itAOD or ictAOD) SUBDDs are on and adiurn_dust=0
 
 Nssw=2           ! until diurnal diags are fixed, Nssw has to be even
 Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step

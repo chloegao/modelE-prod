@@ -222,7 +222,7 @@
 !@var flash lightning flashes per minute
 !@var th,th2,th3,th4 thickness of cold sector, squared, cubed, etc.
 !@var cg fraction of lightning that is cloud-to-ground
-!@var zlt ?
+!@var zlt is a ratio of IC/CG see Price and Rind (1993) for more
       integer, intent(in) :: lmax,lfrz,i,j
       real*8,  intent(in) :: mflux, precon
       integer:: LTOP, L
