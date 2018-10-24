@@ -7586,8 +7586,9 @@ c calculation of heterogeneous reaction rates: SO2 on dust
       use TRACER_COM, only: n_SO4
       use TRACER_COM, only: n_HNO3,n_NO3p
       use TRACER_COM, only: n_NH3,n_NH4
-      use TRACER_COM, only: n_Clay
-      use TRACER_COM, only: n_seasalt1
+      use TRACER_COM, only: n_Clay,n_Silt1,n_Silt2,n_Silt3,
+     &                      n_Silt4,n_Silt5
+      use TRACER_COM, only: n_seasalt1,n_seasalt2
       use TRACER_COM, only: nThermo
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_dust
@@ -7638,11 +7639,21 @@ c calculation of heterogeneous reaction rates: SO2 on dust
         endif
         if (tracers_dust) then
           DUST=trm_col(l,n_Clay)*1.d9/AVOL
+     &        +trm_col(l,n_Silt1)*1.d9/AVOL
+     &        +trm_col(l,n_Silt2)*1.d9/AVOL
+     &        +trm_col(l,n_Silt3)*1.d9/AVOL
+#ifdef TRACERS_DUST_Silt4
+     &        +trm_col(l,n_Silt4)*1.d9/AVOL
+#endif
+#ifdef TRACERS_DUST_Silt5
+     &        +trm_col(l,n_Silt5)*1.d9/AVOL
+#endif
         else
           DUST=0.d0
         endif
         if (tracers_aerosols_seasalt) then
           SALT=trm_col(l,n_seasalt1)*1.d9/AVOL
+     &        +trm_col(l,n_seasalt2)*1.d9/AVOL
         else
           SALT=0.d0
         endif

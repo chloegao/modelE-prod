@@ -73,34 +73,44 @@
       REAL(8), PARAMETER :: MW_CA     = 40.078d0   ! [g/mol]
       REAL(8), PARAMETER :: MW_MG     = 24.3050d0  ! [g/mol]
 
-      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028d0! From Ghan et al. (2001).
-      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024d0 !   JGR, Vol. 106, p. 5295-5316.
-      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038d0!   on p. 5296
-      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014d0 !   "water sol. mass frac. in soil dust"
-
-      REAL(8), PARAMETER :: FRAC_DUST  = 1.d0                             ! [1] fraction of dust conc. passed to EQSAM         
-      REAL(8), PARAMETER :: FRAC_SALT  = 0.001d0                          ! [1] fraction of salt conc. passed to EQSAM         
-      REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
-      REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
-      REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
-      REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ASO4  = 1.d0 / MW_ASO4         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANH4  = 1.d0 / MW_ANH4         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_GNH3  = 1.d0 / MW_GNH3         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_ANO3  = 1.d0 / MW_ANO3         ! [mol/g]
+      REAL(8), PARAMETER :: RMW_GHNO3 = 1.d0 / MW_GHNO3        ! [mol/g]
 
       !------------------------------------------------------------------------------------------------------
       ! Fraction of sea salt (NaCl) mass that is Na, and is Cl.
       !------------------------------------------------------------------------------------------------------
       REAL(8), PARAMETER :: RAT_NA = MW_NA / ( MW_NA + MW_CL ) ! [1] 
       REAL(8), PARAMETER :: RAT_CL = MW_CL / ( MW_NA + MW_CL ) ! [1] 
-      REAL(8), PARAMETER :: RMW_GNH3  = 1.d0 / MW_GNH3         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANH4  = 1.d0 / MW_ANH4         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_GHNO3 = 1.d0 / MW_GHNO3        ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ANO3  = 1.d0 / MW_ANO3         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_ASO4  = 1.d0 / MW_ASO4         ! [mol/g]
-      REAL(8), PARAMETER :: RMW_NACL  = 1.d0 / MW_NACL         ! [mol/g]
       REAL(8), PARAMETER :: RMW_NA    = 1.d0 / MW_NA           ! [mol/g]
       REAL(8), PARAMETER :: RMW_CL    = 1.d0 / MW_CL           ! [mol/g]
-      REAL(8), PARAMETER :: RHMAX     = 0.995D+00              ! [0-1]
-      REAL(8), PARAMETER :: RHMIN     = 0.010D+00              ! [0-1]
-      REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05                ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
+      !------------------------------------------------------------------------------------------------------
+      ! Fraction of dust mass that is K, Mg, Cl-, and Ca
+      !------------------------------------------------------------------------------------------------------
+      REAL(8), PARAMETER :: MASS_FRAC_K  = 0.0028d0! From Ghan et al. (2001).
+      REAL(8), PARAMETER :: MASS_FRAC_CA = 0.024d0 !   JGR, Vol. 106, p. 5295-5316.
+      REAL(8), PARAMETER :: MASS_FRAC_MG = 0.0038d0!   on p. 5296
+      REAL(8), PARAMETER :: MASS_FRAC_NA = 0.014d0 !   "water sol. mass frac. in soil dust"
+
+      !------------------------------------------------------------------------------------------------------
+      ! Fraction of dust and sea salt to be used in calculations
+      !------------------------------------------------------------------------------------------------------
+      REAL(8), PARAMETER :: FRAC_DUST  = 0.1d0     ! [1] fraction of dust conc. passed to thermodynamics
+      REAL(8), PARAMETER :: FRAC_SALT  = 0.1d0     ! [1] fraction of salt conc. passed to thermodynamics
+
+      REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
+      REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
+      REAL(8), PARAMETER :: CONV_MGION = FRAC_DUST * MASS_FRAC_MG / MW_MG ! [mol/g]
+      REAL(8), PARAMETER :: CONV_NAION = FRAC_DUST * MASS_FRAC_NA / MW_NA ! [mol/g]
+
+      !------------------------------------------------------------------------------------------------------
+      ! Other parameters.
+      !------------------------------------------------------------------------------------------------------
+      REAL(8), PARAMETER :: RHMAX  = 0.995D+00   ! [0-1]
+      REAL(8), PARAMETER :: RHMIN  = 0.010D+00   ! [0-1]
+      REAL(8), PARAMETER :: SMALL_SO4 = 1.0D-05  ! [umol SO4/m^3] EQSAM has crashed at low RH and low sulfate conc.
 
       REAL(8), PARAMETER :: DH2O   = 1.00D+00    ! density of water [g/cm^3]
       REAL(8), PARAMETER :: DNACL  = 2.165D+00   ! density of NaCl  [g/cm^3]
@@ -130,7 +140,8 @@
       YI(1,3)  = GNH3*RMW_GNH3   + ANH4*RMW_ANH4  ! from [ug/m^3] to [umol/m^3]
       YI(1,4)  =                   ASO4*RMW_ASO4  ! from [ug/m^3] to [umol/m^3]
       YI(1,5)  = GHNO3*RMW_GHNO3 + ANO3*RMW_ANO3  ! from [ug/m^3] to [umol/m^3]
-      YI(1,6)  = RAT_NA*SALT*RMW_NA * FRAC_SALT   ! from [ug dust/m^3] to [umol Na+/m^3]
+      YI(1,6)  = RAT_NA*SALT*RMW_NA * FRAC_SALT   ! from [ug sea salt/m^3] to [umol Na+/m^3]
+     &         + DUST * CONV_NAION                ! from [ug dust/m^3] to [umol Na+/m^3]
       YI(1,7)  = RAT_CL*SALT*RMW_CL * FRAC_SALT   ! (HCl + Cl-)
       YI(1,8)  = DUST*CONV_KION                   ! from [ug dust/m^3] to [umol K+ /m^3]
       YI(1,9)  = DUST*CONV_CAION                  ! from [ug dust/m^3] to [umol Ca+/m^3]
