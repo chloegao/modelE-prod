@@ -141,7 +141,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_TOMAS_params_CMIP6"
-#include "dust_params_vmp_matrix" /* THIS MUST BE REPLACED WITH A TOMAS ONE */
+#include "dust_params_vmp_tomas"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
 #include "ch4_params_CMIP6_2000"
