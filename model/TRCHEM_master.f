@@ -199,7 +199,9 @@ c
       USE GEOM, only        : LAT2D_DG, IMAXJ, LAT2D,LON2D
       USE FLUXES, only      : tr3Dsource
       use OldTracer_mod, only : tr_wd_type, nWater
+#ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only : oh_live,no3_live,o3_live
+#endif  /* TRACERS_AEROSOLS_Koch */
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end,
      &                      n_Ox,n_NOx,n_N2O5,n_HNO3,n_H2O2,
      &                      n_HCHO,n_HO2NO2,n_CO,n_CH4,
@@ -852,6 +854,7 @@ CCCCCCCCCCCCCCCCC NON-FAMILY CHEMISTRY CCCCCCCCCCCCCCCCCCCCCCCC
       call chemstep(topLevelOfChemistry,I,J)
 
 C Save 3D radical arrays to pass to aerosol code:
+#ifdef TRACERS_AEROSOLS_Koch
       if(coupled_chem == 1) then
         do L=1,topLevelOfChemistry
           oh_live(L)=y(nOH,L)
@@ -859,6 +862,7 @@ C Save 3D radical arrays to pass to aerosol code:
           o3_live(L)=y(nO3,L)
         end do
       end if
+#endif  /* TRACERS_AEROSOLS_Koch */
 
       call ClOxfam(topLevelOfChemistry,I,J) ! needed something from chemstep.
 
@@ -1619,11 +1623,13 @@ c -- AlkylNit -- (AlkylNit from gas phase rxns)
 
 C Save 3D radical arrays to pass to aerosol code:
 C Make sure we get the nightime values; Set OH to zero for now:
+#ifdef TRACERS_AEROSOLS_Koch
         if(coupled_chem == 1) then
           oh_live(L)=0.d0
           no3_live(L)=y(nNO3,L)
           o3_live(L)=y(nO3,L)
         end if
+#endif  /* TRACERS_AEROSOLS_Koch */
 
 c --  Ox --   ( Ox from gas phase rxns)
         changeOx=-1.d0*rr(rrbi%NO2_O3__NO3_O2,L)*y(nNO2,L)*y(nn_Ox,L)
@@ -1716,6 +1722,7 @@ CCCCCCCCCCCCCCCC END NIGHTTIME CCCCCCCCCCCCCCCCCCCC
       end if
 CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
+#ifdef TRACERS_AEROSOLS_Koch
       ! aerosol code uses radicals up to LM, so fill in above chemistry
       if(coupled_chem == 1) then
         do L=topLevelOfChemistry+1,LM
@@ -1724,6 +1731,7 @@ CCCCCCCCCCCCCCCCCCCC END DARKNESS CCCCCCCCCCCCCCCCCCCCCCCCCCCCC
           o3_live(L)=0.d0
         end do
       end if
+#endif  /* TRACERS_AEROSOLS_Koch */
 
       save_NO2column(i,j)=0.d0 ! initialize sum outside L loop.
 
