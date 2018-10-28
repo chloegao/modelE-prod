@@ -58,7 +58,6 @@
       LOGICAL, PARAMETER :: MASS_ADJ    = .TRUE.   ! enforce precise mass conservation: default setting is .TRUE.
       LOGICAL, PARAMETER :: CPU_STATS   = .FALSE.  ! timer for sections of the MATRIX code
       LOGICAL, PARAMETER :: UPDATE_DP   = .TRUE.   ! update particle diameters at each time step: default is .TRUE.
-      LOGICAL, PARAMETER :: UPDATE_DIAM = .TRUE.   ! update particle diameters at each time step in global DIAM array
       LOGICAL, PARAMETER :: UPDATE_VDEP = .FALSE.  ! update particle diameters at each time step in global array
       LOGICAL, PARAMETER :: SET_INTERMODAL_TRANSFER  = .TRUE.  ! do AKK -> ACC transfer if mode AKK is defined
       LOGICAL, PARAMETER :: NO_MICROPHYSICS          = .FALSE. ! no-microphysics option
