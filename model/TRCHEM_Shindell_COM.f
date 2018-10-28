@@ -226,7 +226,22 @@ c
         integer :: Terpenes_OH__dH13CHO_d13Calke=0
         integer :: Terpenes_O3__dH13CHO_d13Calke=0
         integer :: Terpenes_NO3__HO2_d13Calke=0
-#endif  /* TRACERS_dCO */
+#elif defined(TRACERS_dCOlite)
+        integer :: dC17O_OH__HO2_O2=0
+        integer :: HCHO_OH__HO2_dC17O=0
+        integer :: NO3_HCHO__HNO3_dC17O=0
+        integer :: Alkenes_O3__HCHO_dC17O=0
+
+        integer :: dC18O_OH__HO2_O2=0
+        integer :: HCHO_OH__HO2_dC18O=0
+        integer :: NO3_HCHO__HNO3_dC18O=0
+        integer :: Alkenes_O3__HCHO_dC18O=0
+
+        integer :: d13CO_OH__HO2_O2=0
+        integer :: HCHO_OH__HO2_d13CO=0
+        integer :: NO3_HCHO__HNO3_d13CO=0
+        integer :: Alkenes_O3__HCHO_d13CO=0
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       end type rrbi_index
 
       type rrtri_index
@@ -319,12 +334,17 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_bi_dCO = 93, ! number of dCO bimolecular reactions
      & n_tri_dCO = 3, ! number of dCO trimolecular reactions
      & n_rj_dCO = 21, ! number of dCO photochemical reactions
+#elif defined(TRACERS_dCOlite)
+     & ntm_dCO_nontransp = 0, ! number of non-transported dCO tracers
+     & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+     & n_tri_dCO = 0, ! number of dCO trimolecular reactions
+     & n_rj_dCO =  9, ! number of dCO photochemical reactions
 #else
      & ntm_dCO_nontransp = 0,
      & n_bi_dCO = 0,
      & n_tri_dCO = 0,
      & n_rj_dCO = 0,
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 #ifdef TRACERS_ACETONE
      & n_rj_acetone = 2,
 #else
@@ -1266,7 +1286,34 @@ C**************  Not Latitude-Dependent ****************************
           rrbi%Terpenes_O3__dH13CHO_d13Calke=irr
         case('Terpenes_NO3__HO2_d13Calke')
           rrbi%Terpenes_NO3__HO2_d13Calke=irr
-#endif  /* TRACERS_dCO */
+#elif defined(TRACERS_dCOlite)
+        case('dC17O_OH__HO2_O2')
+          rrbi%dC17O_OH__HO2_O2=irr
+        case('HCHO_OH__HO2_dC17O')
+          rrbi%HCHO_OH__HO2_dC17O=irr
+        case('NO3_HCHO__HNO3_dC17O')
+          rrbi%NO3_HCHO__HNO3_dC17O=irr
+        case('Alkenes_O3__HCHO_dC17O')
+          rrbi%Alkenes_O3__HCHO_dC17O=irr
+
+        case('dC18O_OH__HO2_O2')
+          rrbi%dC18O_OH__HO2_O2=irr
+        case('HCHO_OH__HO2_dC18O')
+          rrbi%HCHO_OH__HO2_dC18O=irr
+        case('NO3_HCHO__HNO3_dC18O')
+          rrbi%NO3_HCHO__HNO3_dC18O=irr
+        case('Alkenes_O3__HCHO_dC18O')
+          rrbi%Alkenes_O3__HCHO_dC18O=irr
+
+        case('d13CO_OH__HO2_O2')
+          rrbi%d13CO_OH__HO2_O2=irr
+        case('HCHO_OH__HO2_d13CO')
+          rrbi%HCHO_OH__HO2_d13CO=irr
+        case('NO3_HCHO__HNO3_d13CO')
+          rrbi%NO3_HCHO__HNO3_d13CO=irr
+        case('Alkenes_O3__HCHO_d13CO')
+          rrbi%Alkenes_O3__HCHO_d13CO=irr
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 ! trimolecular reactions
         case('O_O2__O3_M')

@@ -64,10 +64,12 @@
 #ifdef TRACERS_AMP
      &       'M_BC1_BC','M_OCC_OC','M_ACC_SU','M_AKK_SU',
 #endif
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      &       'd13Calke', 'd13CPAR',
-     &       'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     &       'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &       'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &       'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6'
 #ifdef TRACERS_TOMAS

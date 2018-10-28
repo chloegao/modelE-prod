@@ -94,13 +94,15 @@ C
      &      nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      &      nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      &      nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      &     ,nn_d13Calke,nn_d13CPAR
      &     ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      &     ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      &     ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
-     &     ,nn_dC17O,nn_dC18O,nn_d13CO
 #endif  /* TRACERS_dCO */
+     &     ,nn_dC17O,nn_dC18O,nn_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 #ifdef TRACERS_ACETONE
      &     ,nn_Acetone
 #endif
@@ -257,7 +259,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
         prod(nn_CO,L)=prod(nn_CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
         prod(nn_dC17O,L)=prod(nn_dC17O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
@@ -265,9 +267,13 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
         prod(nn_d13CO,L)=prod(nn_d13CO,L)
+#ifdef TRACERS_dCO
      &    -0.63d0*chemrate(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
+#elif defined(TRACERS_dCOlite)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
      &    -0.36d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
@@ -2425,15 +2431,9 @@ c Initialize change arrays:
 C**** GLOBAL parameters and variables:
 
       USE TRCHEM_Shindell_COM, only:  p_1, nc, ny, numfam,nfam
-#ifdef TRACERS_dCO_bin_reprod
-! When (if) CH3OOH is not produced from XO2{,N}+HO2,
-! this ifdef block will not be needed
-      USE TRCHEM_Shindell_COM, only: rrbi, trchemname
-      use TRACER_COM, only: nn_CH3OOH
-#endif  /* TRACERS_dCO_bin_reprod */
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
       use OldTracer_mod, only: is_dCO_tracer
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
       IMPLICIT NONE
 
@@ -2462,9 +2462,9 @@ C**** Local parameters and variables and arguments:
       INTEGER, DIMENSION(p_1*n_rr)   :: npdnrs
       REAL*8,  DIMENSION(n_rr,maxL)  :: rrate ! automatic array
       REAL*8,  DIMENSION(ny,maxL)    :: proddest ! automatic array
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
       logical :: is_dCO_reaction
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
       ireac=0
       
@@ -2475,11 +2475,11 @@ c Reactive families:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
             if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
               if (.not.is_dCO_tracer(igas)) cycle ! do not affect chemistry
             endif
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
             do nl=1,numeL
               if(nn(nl,npdnrs(ireac)) >= nfam(igas) .and. 
      &           nn(nl,npdnrs(ireac)) < nfam(igas+1))then
@@ -2503,11 +2503,11 @@ c Individual Species:
         if(dk >= 1) then
           do i=1,dk
             ireac=ireac+1
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
             if (is_dCO_reaction(ireac,n_rr,npdnrs)) then
               if (.not.is_dCO_tracer(igas)) cycle ! do not affect chemistry
             endif
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
             proddest(igas,1:maxL)=
      &        proddest(igas,1:maxL)+
      &        multip*rrate(npdnrs(ireac),1:maxL)
@@ -2639,7 +2639,7 @@ c       skip same reaction if written twice:
       return
       end SUBROUTINE chem1prn
 
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
       logical function is_dCO_reaction(ireac,n_rr,npdnrs)
 !@sum is_dCO_reaction Returns .true. if reaction ireac involves dCO tracers,
 !@+                   false otherwise
@@ -2659,20 +2659,35 @@ c       skip same reaction if written twice:
       integer :: dCOrrbi_i,dCOrrbi_e,dCOrrtri_i,dCOrrtri_e,
      &           dCOrji,dCOrje
 
+#ifdef TRACERS_dCO
       dCOrrbi_i=rrbi%O1D_CH4__OH_dCH317O2
       dCOrrbi_e=rrbi%Terpenes_NO3__HO2_d13Calke
+#elif defined(TRACERS_dCOlite)
+      dCOrrbi_i=rrbi%dC17O_OH__HO2_O2
+      dCOrrbi_e=rrbi%Alkenes_O3__HCHO_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       if (dCOrrbi_e-dCOrrbi_i+1 /= n_bi_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'bimolecular reactions', 255)
 
+#ifdef TRACERS_dCO
       dCOrrtri_i=rrtri%dC217O3_NO2__d17OPAN_M
       dCOrrtri_e=rrtri%d13C2O3_NO2__d13CPAN_M
       if (dCOrrtri_e-dCOrrtri_i+1 /= n_tri_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'trimolecular reactions', 255)
+#elif defined(TRACERS_dCOlite)
+      dCOrrtri_i=0
+      dCOrrtri_e=0
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
+#ifdef TRACERS_dCO
       dCOrji=rj%dHCH17O__dC17O_H2
       dCOrje=rj%d13Cald__HCHO_CO
+#elif defined(TRACERS_dCOlite)
+      dCOrji=rj%HCHO__dC17O_H2
+      dCOrje=rj%Aldehyde__HCHO_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       if (dCOrje-dCOrji+1 /= n_rj_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'photolysis reactions', 255)
@@ -2695,4 +2710,4 @@ c       skip same reaction if written twice:
       endif
 
       end function is_dCO_reaction
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */

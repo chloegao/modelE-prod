@@ -155,9 +155,9 @@ C          check on GHG files 1995 value for CFCs:
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CO'
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
      *     ,'dC17O','dC18O','d13CO'
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *     )
 #ifdef TRACERS_SPECIAL_Shindell
           call getIC('CO_IC',COIC)

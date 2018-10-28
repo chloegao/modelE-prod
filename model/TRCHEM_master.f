@@ -214,12 +214,16 @@ c
      &                      rsulf3,
      &                      n_HBr,n_HOCl,n_HCl,n_ClONO2,n_ClOx,
      &                      n_BrOx,n_BrONO2,n_CFC,n_N2O,n_HOBR
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      &                     ,n_d13Calke
      &                     ,n_dHCH17O,n_dHCH18O,n_dH13CHO
+#endif  /* TRACERS_dCO */
      &                     ,n_dC17O,n_dC18O,n_d13CO
+#ifdef TRACERS_dCO
       use tracers_dCO, only: dacetone_fact, dalke_IC_fact
 #endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 #ifdef TRACERS_AMP
       USE TRACER_COM, only  : n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,
      &                        n_M_DS1_SU,n_M_DD2_SU,n_M_DS2_SU,
@@ -327,12 +331,14 @@ C**** Local parameters and variables and arguments:
      &  changeTerpenes,rTerpplusNO3,changeisopp1g,changeisopp2g,
      &  changeapinp1g,changeapinp2g,changeOx,fraQ,
      &  changeCO,changeN_d1,changeN_d2,changeN_d3,changeNO3p,
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      &  rdHCH17OplusNO3,rdHCH18OplusNO3,rdH13CHOplusNO3,
      &  changed13Calke,
      &  changedHCH17O,changedHCH18O,changedH13CHO,
-     &  changedC17O,changedC18O,changed13CO,
 #endif  /* TRACERS_dCO */
+     &  changedC17O,changedC18O,changed13CO,
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &  BRTOT,CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
      &  changeHOCl,changeHCl,changehetClONO2,chgHT3,albedoToUse,
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,
@@ -1473,29 +1479,41 @@ C -- CO --
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
      *         *cpd/DTsrc
         end if
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 C -- dC17O --
+#ifdef TRACERS_dCO
         changeL(L,n_dC17O)=rdHCH17OplusNO3*pfactor*vol2mass(n_dC17O)
+#elif defined(TRACERS_dCOlite)
+        changeL(L,n_dC17O)=rHCHOplusNO3*pfactor*vol2mass(n_dC17O)
+#endif
         changedC17O=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
         if((trm_col(l,n_dC17O)+changeL(l,n_dC17O)) < minKG)then
           changeL(l,n_dC17O) = minKG - trm_col(l,n_dC17O)
           changedC17O=changeL(L,n_dC17O)*mass2vol(n_dC17O)*bypfactor
         endif
 C -- dC18O --
+#ifdef TRACERS_dCO
         changeL(L,n_dC18O)=rdHCH18OplusNO3*pfactor*vol2mass(n_dC18O)
+#elif defined(TRACERS_dCOlite)
+        changeL(L,n_dC18O)=rHCHOplusNO3*pfactor*vol2mass(n_dC18O)
+#endif
         changedC18O=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
         if((trm_col(l,n_dC18O)+changeL(l,n_dC18O)) < minKG)then
           changeL(l,n_dC18O) = minKG - trm_col(l,n_dC18O)
           changedC18O=changeL(L,n_dC18O)*mass2vol(n_dC18O)*bypfactor
         endif
 C -- d13CO --
+#ifdef TRACERS_dCO
         changeL(L,n_d13CO)=rdH13CHOplusNO3*pfactor*vol2mass(n_d13CO)
+#elif defined(TRACERS_dCOlite)
+        changeL(L,n_d13CO)=rHCHOplusNO3*pfactor*vol2mass(n_d13CO)
+#endif
         changed13CO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
         if((trm_col(l,n_d13CO)+changeL(l,n_d13CO)) < minKG)then
           changeL(l,n_d13CO) = minKG - trm_col(l,n_d13CO)
           changed13CO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
         endif
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
         IF((trm_col(L,n_HNO3)+changeL(L,n_HNO3)) < minKG) THEN
@@ -2736,11 +2754,11 @@ C**** Local parameters and variables and arguments:
 !           based on three-parameters from JPL2011
             rr(jj,L)=rr(jj,L)*(tl(L)**0.667)
           else if (jj==rrbi%CO_OH__HO2_O2
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
      &        .or. jj==rrbi%dC17O_OH__HO2_O2
      &        .or. jj==rrbi%dC18O_OH__HO2_O2
      &        .or. jj==rrbi%d13CO_OH__HO2_O2
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &           ) then
 !           based on termolecular reaction from JPL2011
 !           (see pages 185-188 and note D1)

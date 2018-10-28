@@ -177,9 +177,11 @@ C**** Each tracer has a variable name and a unique index
 !@var ntm_dCO: Number of TRACERS_dCO tracers.
 #ifdef TRACERS_dCO
       integer, parameter :: ntm_dCO=14
+#elif defined(TRACERS_dCOlite)
+      integer, parameter :: ntm_dCO=3
 #else
       integer, parameter :: ntm_dCO=0
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 !@param ntm_dust: Number of dust aerosol tracers.
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
@@ -366,13 +368,15 @@ C**** Each tracer has a variable name and a unique index
      *     n_DMS=0,    n_MSA=0,   n_SO2=0,   n_SO4=0,    n_H2O2_s=0,
      *     n_ClOx=0,   n_BrOx=0,  n_HCl=0,   n_HOCl=0,   n_ClONO2=0,
      *     n_HBr=0,    n_HOBr=0,  n_BrONO2=0,n_CFC=0,    n_GLT=0,
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *     n_d13Calke=0, n_d13CPAR=0,
      *     n_d17OPAN=0, n_d18OPAN=0, n_d13CPAN=0,
      *     n_dMe17OOH=0, n_dMe18OOH=0, n_d13MeOOH=0,
      *     n_dHCH17O=0, n_dHCH18O=0, n_dH13CHO=0,
-     *     n_dC17O=0, n_dC18O=0, n_d13CO=0,
 #endif  /* TRACERS_dCO */
+     *     n_dC17O=0, n_dC18O=0, n_d13CO=0,
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *     n_Pb210 = 0,n_Be7=0,   n_Be10=0,
      .     n_CFCn=0,   n_CO2n=0,  n_Age=0,
      *     n_seasalt1=0,  n_seasalt2=0, n_SO4_d1=0,  n_SO4_d2=0,
@@ -480,13 +484,15 @@ C**** Each tracer has a variable name and a unique index
      *     nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         
      *     nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  
      *     nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *    ,nn_d13Calke,nn_d13CPAR
      *    ,nn_d17OPAN,nn_d18OPAN,nn_d13CPAN
      *    ,nn_dMe17OOH,nn_dMe18OOH,nn_d13MeOOH
      *    ,nn_dHCH17O,nn_dHCH18O,nn_dH13CHO
-     *    ,nn_dC17O, nn_dC18O, nn_d13CO
 #endif  /* TRACERS_dCO */
+     *    ,nn_dC17O, nn_dC18O, nn_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 !@var n_soilDust index of first soil dust aerosol tracer
       integer :: n_soilDust = 0

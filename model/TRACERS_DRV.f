@@ -484,13 +484,15 @@ c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
 
         case ('Ox','N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN'
      *       ,'AlkylNit','ClOx','BrOx','HCl','HOCl','ClONO2','HBr'
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *       ,'d13Calke','d13CPAR'
      *       ,'d17OPAN', 'd18OPAN', 'd13CPAN'
      *       ,'dMe17OOH', 'dMe18OOH', 'd13MeOOH'
      *       ,'dHCH17O', 'dHCH18O', 'dH13CHO'
-     *       ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
+     *       ,'dC17O', 'dC18O', 'd13CO'
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *       ,'HOBr','BrONO2','CFC','NOx','CO','Isoprene','Alkenes'
      *       ,'Paraffin','Terpenes','Acetone') ! N2O done above
           select case (trim(pTracer%getName()))
@@ -504,10 +506,12 @@ c          itcon_surf(1,N)=tr_con_diag('Deposition',T)
      *           ,'BrONO2','NOx')
               kt_power_change(n) = -14
             case ('HNO3','H2O2','CO','Isoprene','Alkenes','Paraffin'
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+#if TRACERS_dCO
      *           ,'d13Calke','d13CPAR'
-     *           ,'dC17O', 'dC18O', 'd13CO'
 #endif  /* TRACERS_dCO */
+     *           ,'dC17O', 'dC18O', 'd13CO'
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *           ,'Terpenes','Acetone')
               kt_power_change(n) = -13
             case default
@@ -1200,13 +1204,15 @@ C**** special one unique to HTO
 
       case ('HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','CFC',
      &      'BrOx','ClOx','Alkenes','Paraffin','Isoprene','CO',
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+#if TRACERS_dCO
      *      'd13Calke','d13CPAR',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',
-     *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &      'N2O5','HNO3','H2O2','CH3OOH','HCHO','HO2NO2','PAN',
      &      'AlkylNit','Ox','NOx','Terpenes','Acetone')
         k = k + 1
@@ -1223,13 +1229,15 @@ C**** special one unique to HTO
         units_jls(k) = unit_string(jls_power(k),tend_units)
         select case(trname(n))
         case ('Alkenes','Paraffin','Isoprene','CO','N2O5','HNO3',
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+#if TRACERS_dCO
      *      'd13Calke','d13CPAR',
      *      'd17OPAN', 'd18OPAN', 'd13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',
-     *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &  'H2O2','CH3OOH','HCHO','HO2NO2','PAN','AlkylNit','Ox',
      &  'Terpenes','Acetone','NOx','BrOx','ClOx')
           k = k + 1
@@ -2504,26 +2512,30 @@ c#endif
      *              scalediv=dtsrc)
 
       case ('NOx','CO','Isoprene','Alkenes','Paraffin',
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *'d13Calke','d13CPAR',
      *'d17OPAN', 'd18OPAN', 'd13CPAN',
      *'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *'dHCH17O', 'dHCH18O', 'dH13CHO',
-     *'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &'ClOx','BrOx','HCl','HOCl','ClONO2','HBr','HOBr','BrONO2',
      &'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO','Terpenes',
      &'HO2NO2','PAN','AlkylNit','Acetone')
 
         select case(trname(n))
         case('NOx','CO','Isoprene','Alkenes','Paraffin',
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *  'd13Calke','d13CPAR',
      *  'd17OPAN', 'd18OPAN', 'd13CPAN',
      *  'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *  'dHCH17O', 'dHCH18O', 'dH13CHO',
-     *  'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *  'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &  'CFC','H2O2','CH3OOH','Ox','N2O5','HNO3','HCHO',
      &  'Terpenes','HO2NO2','PAN','AlkylNit','Acetone')
         select case(trname(n))
@@ -4261,14 +4273,16 @@ c find indices of denominators
       use ghgmod
       use constant, only : byavog
       use tracer_com, only: n_N2O, n_CH4, n_CFC
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
       use tracers_dCO, only: dalke_IC_fact
       use tracers_dCO, only: dPAR_IC_fact
       use tracers_dCO, only: dPAN_IC_fact
       use tracers_dCO, only: dMeOOH_IC_fact
       use tracers_dCO, only: dHCHO_IC_fact
-      use tracers_dCO, only: dCO_IC_fact
 #endif  /* TRACERS_dCO */
+      use tracers_dCO, only: dCO_IC_fact
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       USE TRCHEM_Shindell_COM,only: ch4icx,
      &  OxIC,COIC,byO3MULT,fix_CH4_chemistry,
      &  ICfact_N,ICfact_COt,ICfact_COs,ICfact_Oth
@@ -4862,15 +4876,15 @@ c**** earth
           end do; end do; end do
 
         case ('CO'
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
      *       ,'dC17O','dC18O','d13CO'
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *       )
           select case (trname(n))
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
             case ('dC17O','dC18O','d13CO')
               dICfactor=dCO_IC_fact
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
             case default
               dICfactor=1.d0
           end select
@@ -6253,13 +6267,15 @@ C****
 #ifdef TRACERS_ACETONE
      &      'Acetone',
 #endif
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *      'd13Calke','d13CPAR',
      *      'd17OPAN','d18OPAN','d13CPAN',
      *      'dMe17OOH', 'dMe18OOH', 'd13MeOOH',
      *      'dHCH17O', 'dHCH18O', 'dH13CHO',
-     *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &      'HCl','HOCl','ClONO2','HBr','HOBr','BrONO2','N2O','CFC',
      &      'codirect')
 #ifdef DYNAMIC_BIOMASS_BURNING
@@ -7046,10 +7062,12 @@ C**** All sources are saved as kg s-1
 #ifdef TRACERS_ACETONE
      &      'Acetone',
 #endif
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      *      'd13Calke','d13CPAR',
-     *      'dC17O', 'dC18O', 'd13CO',
 #endif  /* TRACERS_dCO */
+     *      'dC17O', 'dC18O', 'd13CO',
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &      'NH3', 'SO2', 'SO4', 'BCII', 'BCB', 'OCII', 'OCB',
      &      'vbsAm2', 'vbsAm1', 'vbsAz',  'vbsAp1', 'vbsAp2',
      &      'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6',
