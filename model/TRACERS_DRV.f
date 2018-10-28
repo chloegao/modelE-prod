@@ -4296,9 +4296,6 @@ c find indices of denominators
       USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: tracer_ic_soildust
 #endif
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL
-#endif
       use OldTracer_mod, only: trli0
 #ifdef TRACERS_AMP
       use TRACER_COM, only:n_M_OCC_OC
