@@ -39,7 +39,9 @@
 #endif  /* TRACERS_AEROSOLS_VBS */
 #if (defined TRACERS_AMP)
       USE AERO_COAG, only : SETUP_KIJ
-      USE AERO_SETUP
+      USE AERO_SETUP, only: SETUP_CONFIG,SETUP_SPECIES_MAPS,SETUP_DP0,
+     &                      SETUP_AERO_MASS_MAP,SETUP_COAG_TENSORS,
+     &                      SETUP_EMIS,SETUP_KCI
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM
 #endif
