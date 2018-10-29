@@ -44,6 +44,7 @@
 #endif  /* not TRACERS_AMP */
 #endif  /* TRACERS_AEROSOLS_VBS */
 #if (defined TRACERS_AMP)
+      use AERO_CONFIG, only: nmodes
       USE AERO_COAG, only : SETUP_KIJ
       USE AERO_SETUP, only: SETUP_CONFIG,SETUP_SPECIES_MAPS,SETUP_DP0,
      &                      SETUP_AERO_MASS_MAP,SETUP_COAG_TENSORS,
