@@ -221,9 +221,6 @@ subroutine CONDSE
 
 #ifdef TRACERS_AMP
   use AMP_AEROSOL, only : AQsulfRATE
-#ifdef USE_HDIURN
-       use AMP_AEROSOL, only : DIURN_LWP, DIURN_LWC
-#endif
 #endif
 #ifdef TRACERS_TOMAS
       USE TOMAS_AEROSOL, only : AQSO4oxid_mc,AQSO4oxid_ls
@@ -1377,12 +1374,6 @@ subroutine CONDSE
         end do
         AIJ(I,J,IJ_CLDW)=AIJ(I,J,IJ_CLDW)+WM1*100.*BYGRAV   ! all condensate
         AIJ(I,J,IJ_CLDI)=AIJ(I,J,IJ_CLDI)+WMI*100.*BYGRAV   ! ice only
-#ifdef TRACERS_AMP
-#ifdef USE_HDIURN
-        DIURN_LWC(I,J,:) = (QCLX(:)+QCIX(:)) * AIRM(:)
-        DIURN_LWP(I,J)   = WMSUM
-#endif
-#endif
         !**** Calculate ISCCP cloud diagnostics if required
         if (isccp_diags.eq.1) then
           fq_isccp = 0.d0
