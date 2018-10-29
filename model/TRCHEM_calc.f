@@ -443,7 +443,7 @@ c Set CH3O2 values (concentration = production/specific loss):
      &    +rr(rrbi%CH3OOH_OH__CH3O2_H2O,L)*y(nn_CH3OOH,L)*y(nOH,L)
      &    +rr(rrbi%Cl_CH4__HCl_CH3O2,l)*y(nCl,L)
 #ifdef TRACERS_ACETONE
-        tempAcet=2.d0*( zj(L,rj%Acetone__HCHO_CO) +
+        tempAcet=( zj(L,rj%Acetone__HCHO_CO) +
      &  zj(L,rj%Acetone__CO_HCHO) )*y(nn_Acetone,L)
 #else
         tempAcet=2.d0*Jacet(L)*acetone(L)
@@ -495,7 +495,7 @@ c Set dCH317O2 values (concentration = production/specific loss):
      &      *y(nOH,L)
      &    +rr(rrbi%Cl_CH4__HCl_dCH317O2,l)*y(nCl,L)
 #ifdef TRACERS_ACETONE
-        tempAcet=2.d0*( zj(L,rj%Acetone__HCHO_CO) +
+        tempAcet=( zj(L,rj%Acetone__HCHO_CO) +
      &  zj(L,rj%Acetone__CO_HCHO) )*y(nn_Acetone,L)*dacetone_fact
 #else
         tempAcet=2.d0*Jacet(L)*d17Oacetone(L)
@@ -547,7 +547,7 @@ c Set dCH318O2 values (concentration = production/specific loss):
      &      *y(nOH,L)
      &    +rr(rrbi%Cl_CH4__HCl_dCH318O2,l)*y(nCl,L)
 #ifdef TRACERS_ACETONE
-        tempAcet=2.d0*( zj(L,rj%Acetone__HCHO_CO) +
+        tempAcet=( zj(L,rj%Acetone__HCHO_CO) +
      &  zj(L,rj%Acetone__CO_HCHO) )*y(nn_Acetone,L)*dacetone_fact
 #else
         tempAcet=2.d0*Jacet(L)*d18Oacetone(L)
@@ -599,7 +599,7 @@ c Set d13CH3O2 values (concentration = production/specific loss):
      &      *y(nOH,L)
      &    +rr(rrbi%Cl_CH4__HCl_d13CH3O2,l)*y(nCl,L)
 #ifdef TRACERS_ACETONE
-        tempAcet=2.d0*( zj(L,rj%Acetone__HCHO_CO) +
+        tempAcet=( zj(L,rj%Acetone__HCHO_CO) +
      &  zj(L,rj%Acetone__CO_HCHO) )*y(nn_Acetone,L)*dacetone_fact
 #else
         tempAcet=2.d0*Jacet(L)*d13Cacetone(L)
