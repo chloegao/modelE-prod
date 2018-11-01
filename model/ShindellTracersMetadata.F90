@@ -26,14 +26,16 @@ module ShindellTracersMetadata_mod
     N2O_setspec, H2O2_setspec
   use sharedTracersMetadata_mod, only: convert_HSTAR
   use TRACER_COM, only: ntm_chem_beg, ntm_chem_end
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
   use OldTracer_mod, only: set_is_dCO_tracer
+#ifdef TRACERS_dCO
   use TRACER_COM, only: n_d13Calke, n_d13CPAR
   use TRACER_COM, only: n_d17OPAN, n_d18OPAN, n_d13CPAN
   use TRACER_COM, only: n_dMe17OOH, n_dMe18OOH, n_d13MeOOH
   use TRACER_COM, only: n_dHCH17O, n_dHCH18O, n_dH13CHO
-  use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
 #endif  /* TRACERS_dCO */
+  use TRACER_COM, only: n_dC17O, n_dC18O, n_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
   use TRACER_COM, only: n_CH4,  n_N2O, n_Ox,   n_NOx, & 
     n_N2O5,   n_HNO3,  n_H2O2,  n_CH3OOH,   n_HCHO,  &
     n_HO2NO2, n_CO,    n_PAN,   n_H2O17,             &
@@ -145,6 +147,7 @@ contains
     call  N2O_setSpec('N2O')
     call  CFC_setSpec('CFC')
 
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
     call  Alkenes_setSpec('d13Calke')
     call  Paraffin_setSpec('d13CPAR')
@@ -157,10 +160,11 @@ contains
     call  HCHO_setSpec('dHCH17O')
     call  HCHO_setSpec('dHCH18O')
     call  HCHO_setSpec('dH13CHO')
+#endif  /* TRACERS_dCO */
     call  CO_setSpec('dC17O')
     call  CO_setSpec('dC18O')
     call  CO_setSpec('d13CO')
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
     ! diagnostic tracers:
     call  codirect_setSpec('codirect')
@@ -237,13 +241,15 @@ contains
            nn_apinp1g,nn_apinp1a,nn_apinp2g,nn_apinp2a,         &
            nn_ClOx,   nn_BrOx,  nn_HCl,   nn_HOCl,   nn_ClONO2,  &
            nn_HBr,    nn_HOBr,  nn_BrONO2,nn_CFC,    nn_GLT
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
       use TRACER_COM, only: nn_d13Calke, nn_d13CPAR
       use TRACER_COM, only: nn_d17OPAN, nn_d18OPAN, nn_d13CPAN
       use TRACER_COM, only: nn_dMe17OOH, nn_dMe18OOH, nn_d13MeOOH
       use TRACER_COM, only: nn_dHCH17O, nn_dHCH18O, nn_dH13CHO
-      use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
 #endif  /* TRACERS_dCO */
+      use TRACER_COM, only: nn_dC17O, nn_dC18O, nn_d13CO
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       use TRACER_COM, only: ntm_chem_beg
       integer :: offset
 
@@ -293,6 +299,7 @@ contains
      nn_CFC = n_CFC - offset
      nn_GLT = n_GLT - offset
 
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
 #ifdef TRACERS_dCO
      nn_d13Calke = n_d13Calke - offset
      nn_d13CPAR = n_d13CPAR - offset
@@ -305,10 +312,11 @@ contains
      nn_dHCH17O = n_dHCH17O - offset
      nn_dHCH18O = n_dHCH18O - offset
      nn_dH13CHO = n_dH13CHO - offset
+#endif  /* TRACERS_dCO */
      nn_dC17O = n_dC17O - offset
      nn_dC18O = n_dC18O - offset
      nn_d13CO = n_d13CO - offset
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
     end subroutine calculateIndexOffsets
 
@@ -466,7 +474,7 @@ contains
       select case (name)
         case ('CO')
           n_CO = n
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
         case ('dC17O')
           n_dC17O = n
           call set_is_dCO_tracer(n, .true.)
@@ -476,7 +484,7 @@ contains
         case ('d13CO')
           n_d13CO = n
           call set_is_dCO_tracer(n, .true.)
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
         case default
           call stop_model('CO-like tracer '//trim(name)//' unknown',255)
       end select

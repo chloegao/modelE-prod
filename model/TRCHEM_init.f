@@ -12,7 +12,9 @@ C**** GLOBAL parameters and variables:
       USE MODEL_COM, only: Itime, ItimeI
       USE DOMAIN_DECOMP_ATM, only: getDomainBounds,grid,readt_parallel
       USE TRACER_COM, only: n_Ox
+#ifdef TRACERS_AEROSOLS_Koch
       USE AEROSOL_SOURCES, only: oh_live,no3_live,o3_live
+#endif  /* TRACERS_AEROSOLS_Koch */
       use OldTracer_mod, only: tr_mm
       USE TRCHEM_Shindell_COM, only:
      &    nc,o3mult,byo3mult,
@@ -109,9 +111,11 @@ C Initialize a few (IM,JM,topLevelOfChemistry) arrays, first hour only:
         yd13Cald(:,I_0:I_1,J_0:J_1) =0.d0
         yd13CXPAR(:,I_0:I_1,J_0:J_1)=0.d0
 #endif  /* TRACERS_dCO */
+#ifdef TRACERS_AEROSOLS_Koch
         oh_live(:)  =0.d0
         no3_live(:) =0.d0
         o3_live(:)  =0.d0
+#endif  /* TRACERS_AEROSOLS_Koch */
       END IF
 
       if(Itime == ItimeI)then

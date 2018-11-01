@@ -44,8 +44,11 @@
 #endif  /* not TRACERS_AMP */
 #endif  /* TRACERS_AEROSOLS_VBS */
 #if (defined TRACERS_AMP)
+      use AERO_CONFIG, only: nmodes
       USE AERO_COAG, only : SETUP_KIJ
-      USE AERO_SETUP
+      USE AERO_SETUP, only: SETUP_CONFIG,SETUP_SPECIES_MAPS,SETUP_DP0,
+     &                      SETUP_AERO_MASS_MAP,SETUP_COAG_TENSORS,
+     &                      SETUP_EMIS,SETUP_KCI
       USE AERO_NPF, only: SETUP_NPFMASS
       USE AERO_DIAM, only: SETUP_DIAM,DP
       USE AMP_AEROSOL, only: DIAM
@@ -153,9 +156,9 @@ C          check on GHG files 1995 value for CFCs:
 #endif /* TRACERS_SPECIAL_Shindell */
 
       case ('CO'
-#ifdef TRACERS_dCO
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
      *     ,'dC17O','dC18O','d13CO'
-#endif  /* TRACERS_dCO */
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      *     )
 #ifdef TRACERS_SPECIAL_Shindell
           call getIC('CO_IC',COIC)

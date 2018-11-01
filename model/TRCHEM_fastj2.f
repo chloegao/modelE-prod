@@ -255,7 +255,19 @@
         integer :: d13Cald__dH13CHO_CO=0
         integer :: d13Cald__HCHO_d13CO=0
         integer :: d13Cald__HCHO_CO=0
-#endif  /* TRACERS_dCO */
+#elif defined(TRACERS_dCOlite)
+        integer :: HCHO__dC17O_H2=0
+        integer :: HCHO__dC17O_HO2=0
+        integer :: Aldehyde__HCHO_dC17O=0
+
+        integer :: HCHO__dC18O_H2=0
+        integer :: HCHO__dC18O_HO2=0
+        integer :: Aldehyde__HCHO_dC18O=0
+
+        integer :: HCHO__d13CO_H2=0
+        integer :: HCHO__d13CO_HO2=0
+        integer :: Aldehyde__HCHO_d13CO=0
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       end type rj_index
 
       type(rj_index) :: rj
@@ -2791,7 +2803,28 @@ c Extend climatology to 100 km:
           rj%d13Cald__HCHO_d13CO=irr
         case('d13Cald__HCHO_CO')
           rj%d13Cald__HCHO_CO=irr
-#endif  /* TRACERS_dCO */
+#elif defined(TRACERS_dCOlite)
+        case('HCHO__dC17O_H2')
+          rj%HCHO__dC17O_H2=irr
+        case('HCHO__dC17O_HO2')
+          rj%HCHO__dC17O_HO2=irr
+        case('Aldehyde__HCHO_dC17O')
+          rj%Aldehyde__HCHO_dC17O=irr
+
+        case('HCHO__dC18O_H2')
+          rj%HCHO__dC18O_H2=irr
+        case('HCHO__dC18O_HO2')
+          rj%HCHO__dC18O_HO2=irr
+        case('Aldehyde__HCHO_dC18O')
+          rj%Aldehyde__HCHO_dC18O=irr
+
+        case('HCHO__d13CO_H2')
+          rj%HCHO__d13CO_H2=irr
+        case('HCHO__d13CO_HO2')
+          rj%HCHO__d13CO_HO2=irr
+        case('Aldehyde__HCHO_d13CO')
+          rj%Aldehyde__HCHO_d13CO=irr
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
         case default
           call stop_model('Index for '//trim(reaction)//' missing',255)
       end select
