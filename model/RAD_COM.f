@@ -95,6 +95,10 @@ C**** does not produce exactly the same as the default values.
       REAL*8,ALLOCATABLE,DIMENSION(:,:,:) :: srnflb_save,trnflb_save
 !@var TAUSUMW,TAUSUMI column-sum water,ice cloud opt. depths (for diags)
       REAL*8, DIMENSION(:,:), ALLOCATABLE :: TAUSUMW,TAUSUMI
+#ifdef AIE_DIAG_FIX_MET
+!@var fmOs column-sum cloud opt. depths (for fixed-met diags)
+      real*8, dimension(:,:,:), allocatable :: fmOs
+#endif
 #ifdef mjo_subdd
 !@var OLR_acc, OLR_cnt --  Net thermal radiation at TOA (W/m^2) for SUBDD
       REAL*8,ALLOCATABLE,DIMENSION(:,:) :: OLR_acc
@@ -370,6 +374,9 @@ C**** Local variables initialised in init_RAD
      *     ,KLIQ, COSZ1, COSZ_day, SUNSET, dH2O, ALB, SALB, SNOAGE
      *     ,srnflb_save, trnflb_save
      *     ,FSRDIF,DIRNIR,DIFNIR,TAUSUMW,TAUSUMI,DIRVIS
+#ifdef AIE_DIAG_FIX_MET
+     &     ,fmOs
+#endif
 #ifdef mjo_subdd
      *     ,SWHR_cnt,LWHR_cnt,SWHR,LWHR,OLR_acc,OLR_cnt
      *     ,swu_avg,swu_cnt
@@ -425,7 +432,8 @@ C**** Local variables initialised in init_RAD
      *     LWHR(I_0H:I_1H,J_0H:J_1H,Lm),
      *     swu_avg(I_0H:I_1H,J_0H:J_1H),
 #endif
-#ifdef TRACERS_SPECIAL_Shindell
+#ifdef AIE_DIAG_FIX_MET
+     &     fmOs(2, I_0H:I_1H, J_0H:J_1H),
 #endif
      *     STAT=IER)
 

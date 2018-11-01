@@ -39,14 +39,14 @@ module CLOUDS_COM
 !@var Total, shallow, deep and large-scale latent heating for subdaily output
   real*8, allocatable, dimension(:,:,:) :: TLH3D,SLH3D,DLH3D,LLH3D
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 !@var NCL old CDNC,NCI old ice crystal
   real*8, allocatable, dimension(:,:,:) :: NCL,NCI
 !@var N, Re, LWP for 3 hrly diag save
   real*8, allocatable, dimension(:,:,:) :: CDN3D,CRE3D
   real*8, allocatable, dimension(:,:)   :: CLWP
 #endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
 !@var LWC,Cld depth, cld tem for 3 hrly diag save
   real*8, allocatable, dimension(:,:,:) :: CL3D,CI3D,CD3D,CTEM
 #endif
@@ -68,6 +68,12 @@ module CLOUDS_COM
   real*8, allocatable, dimension(:,:,:) :: QLss,QIss
 !@var QLmc,QImc convective liquid, ice water available to radiation (kg/kg)
   real*8, allocatable, dimension(:,:,:) :: QLmc,QImc
+#ifdef AIE_DIAG_FIX_MET
+!@var fmEXP for exporting 3D optical depths and droplet radius to rad code.
+!@+ Extra dimensions choose OD or radius (first dim) and MC or LS clouds
+!@+ (2nd dim) based on TAUSS, TAUMC, CSIZMC, CSIZSS.
+  real*8, allocatable, dimension(:,:,:,:,:) :: fmEXP
+#endif
 
   !**** variables saved for surface wind spectrum calculations
 !@var DDM1 downdraft mass flux / rho at lowest level (m/s)
@@ -199,10 +205,10 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #endif
 #endif
   use CLOUDS_COM, only : TTOLD,QTOLD,SVLHX,SVLAT,RHSAV,CLDSAV,CLDSAV1,FSS
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
   use CLOUDS_COM, only : CL3D,CI3D,CD3D,CTEM
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   use CLOUDS_COM, only :  NCL,NCI, CDN3D,CRE3D,CLWP
 #endif
   use CLOUDS_COM, only : TAUSS,TAUMC, CLDSS,CLDMC,CSIZMC,CSIZSS, &
@@ -222,6 +228,9 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #ifdef TRACERS_AMP
   use CLOUDS_COM, only : NACTC,NAERC
 #endif
+#endif
+#ifdef AIE_DIAG_FIX_MET
+  use CLOUDS_COM, only : fmEXP
 #endif
 
   implicit none
@@ -245,7 +254,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
        CLDSAV1(LM,I_0H:I_1H,J_0H:J_1H), &
        FSS(LM,I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
   allocate( &
        CTEM(LM,I_0H:I_1H,J_0H:J_1H), &
        CD3D(LM,I_0H:I_1H,J_0H:J_1H), &
@@ -253,7 +262,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
        CI3D(LM,I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   allocate( &
        NCL(LM,I_0H:I_1H,J_0H:J_1H), &
        NCI(LM,I_0H:I_1H,J_0H:J_1H), &
@@ -276,6 +285,9 @@ subroutine ALLOC_CLOUDS_COM(grid)
        QLmc(LM,I_0H:I_1H,J_0H:J_1H), &
        QImc(LM,I_0H:I_1H,J_0H:J_1H), &
        STAT=IER)
+#ifdef AIE_DIAG_FIX_MET
+  allocate(fmEXP(2,2,LM,I_0H:I_1H,J_0H:J_1H),STAT=IER)
+#endif
 #ifdef mjo_subdd
   allocate( &
        TMCDRY(LM,I_0H:I_1H,J_0H:J_1H), &
@@ -321,7 +333,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
   FSS = 1.
   TAUSS = 0.
   TAUSSIP = 0.
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 !@var NCL is initialized to 10.0 cm-3
 !@var NCI is initialised to 0.1 l^-1 or 10^-4 cm-3
   NCL = 10.
@@ -369,7 +381,7 @@ subroutine def_rsf_clouds(fid)
   call defvar(grid,fid,svlhx,'svlhx'//lijstr)
   call defvar(grid,fid,rhsav,'rhsav'//lijstr)
   call defvar(grid,fid,cldsav,'cldsav'//lijstr)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   call defvar(grid,fid,ncl,'ncl'//lijstr)
   call defvar(grid,fid,nci,'nci'//lijstr)
 #endif
@@ -396,7 +408,7 @@ subroutine new_io_clouds(fid,iaction)
     call write_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
     call write_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
     call write_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
     call write_dist_data(grid, fid, 'ncl', ncl, jdim=3)
     call write_dist_data(grid, fid, 'nci', nci, jdim=3)
 #endif
@@ -408,7 +420,7 @@ subroutine new_io_clouds(fid,iaction)
     call read_dist_data(grid, fid, 'svlhx', svlhx, jdim=3)
     call read_dist_data(grid, fid, 'rhsav', rhsav, jdim=3)
     call read_dist_data(grid, fid, 'cldsav', cldsav, jdim=3)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
     call read_dist_data(grid, fid, 'ncl', ncl, jdim=3)
     call read_dist_data(grid, fid, 'nci', nci, jdim=3)
 #endif

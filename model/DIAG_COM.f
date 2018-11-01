@@ -136,7 +136,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
 #if (defined mjo_subdd) || (defined etc_subdd)
      &                                  + 8
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
      &                                  + 16
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
@@ -595,6 +595,21 @@ C****      names, indices, units, idacc-numbers, etc.
 #ifdef HEALY_LM_DIAGS
      &     ,IJ_CROPS
 #endif
+
+#ifdef AIE_DIAG_FIX_MET
+!@param fmSW index for SW for fixed-met diags
+!@param fmLW index for LW for fixed-met diags
+!@param fmW index for water for fixed-met diags
+!@param fmI index for ice for fixed-met diags
+!@param fmS index for particle size for fixed-met diags
+!@param fmO index for optical depth for fixed-met diags
+!@param fmR index for rad forcing for fixed-met diags
+!@param fmMC index for moist-convective for fixed-met diags
+!@param fmSS index for large scale cond for fixed-met diags
+      integer, parameter, public :: fmW=1,fmI=2,fmS=1,fmO=2,fmR=1
+      integer, parameter, public :: fmSW=1,fmLW=2,fmMC=1,fmSS=2
+      integer, dimension(2,2), public :: ij_fm
+#endif
       integer, dimension(:), allocatable, public ::
      &      ij_kw, ij_alpha, ij_gasx
 !@var IJ_Gxx names for old AIJG arrays
@@ -744,7 +759,6 @@ c derived/composite diagnostics
       INTEGER, public ::
      &     JK_hght, JK_dpwt, JK_tx, JK_q, JK_cldh2o ,JK_rh
      &     ,JK_cldwtr, JK_cldice
-
 
 !@var JGRID_U, JGRID_KE latitudes at which U-wind and KE diags are defined
 !@+   (1 for primary latitudes, 2 for secondary latitudes)

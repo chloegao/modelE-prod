@@ -3369,6 +3369,26 @@ c
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
 
+#ifdef AIE_DIAG_FIX_MET
+c
+        k=k+1 !
+        ij_fm(fmR,fmSW) = k ! SW cloud radiative forcing (W/m**2) fixed-met aerosols
+        lname_ij(k) = 'SW CLOUD RF FIXED METEOROLOGY AEROSOLS'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'swcrf_fix_met'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m265_95
+c
+        k=k+1 !
+        ij_fm(fmR,fmLW) = k ! LW cloud radiative forcing (W/m**2) fixed-met aerosols
+        lname_ij(k) = 'LW CLOUD RF FIXED METEOROLOGY AEROSOLS'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lwcrf_fix_met'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+        ir_ij(k) = ir_m95_265
+#endif /* AIE_DIAG_FIX_MET */
 c
         IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
         DO N=1,8
@@ -3881,6 +3901,27 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
       denom_ij(k) = IJ_ICECLD
+
+#ifdef AIE_DIAG_FIX_MET
+c
+      k=k+1 !
+      ij_fm(fmO,fmW) = k
+      lname_ij(k) = 'WATER CLOUD OPT DEPTH FIX MET AEROSOLS'
+      units_ij(k) = ''
+      name_ij(k) = 'optdw_fix_met'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_WTRCLD
+c
+      k=k+1 !
+      ij_fm(fmO,fmI) = k
+      lname_ij(k) = 'ICE CLOUD OPT DEPTH FIX MET AEROSOLS'
+      units_ij(k) = ''
+      name_ij(k) = 'optdi_fix_met'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 1.
+      denom_ij(k) = IJ_ICECLD
+#endif /* AIE_DIAG_FIX_MET */
 c
 !**** Vegetation and Ground Hydrology variables
       k=k+1
@@ -4013,7 +4054,7 @@ c
       scale_ij(k) = 100.
       denom_ij(k) = IJ_VSFR
 c
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       k=k+1
       IJ_dzwm = k
       lname_ij(k) = 'Warm Moist Cnv Cld DZ'
@@ -4153,7 +4194,7 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 1.
       denom_ij(k) = ij_dzis
-#endif
+#endif /* CLD_AER_CDNC  OR  AIE_DIAG_FIX_MET */
 c
 #ifdef CHL_DIAGNOSTIC
       k=k+1
@@ -4219,7 +4260,7 @@ c
 
 #endif
 c
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 c
       k=k+1 !
       IJ_WISUM = k ! ICE WATER PATH (kg/m**2)             1 CL
@@ -5479,7 +5520,7 @@ c
       lname_jl(k) = 'LARGE-SCALE EFFECTIVE CLOUD PARTICLE SIZE'
       units_jl(k) = 'micron'
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 c ! Menon added diag for CDNC
 c
       k=k+1
@@ -6266,7 +6307,7 @@ c
       endif ! lh_diags==1
 
 c
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       k=k+1
       IJL_CFWM=k
       name_ijl(k) = 'cfwm'

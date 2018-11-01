@@ -1664,7 +1664,7 @@ C**** Weighted average cloud sizes
       call print_generic_jl(jl_csizmc)
       call print_generic_jl(jl_csizss)
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 C**** Weighted average warm cloud droplet number
       call print_generic_jl(jl_cnumwm)
       call print_generic_jl(jl_cnumws)

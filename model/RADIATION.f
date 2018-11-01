@@ -107,6 +107,11 @@ C----------------
 !@var CLDEPS        cloud heterogeneity; is computed using KCLDEP,EPSCON
       REAL*8 :: ULGAS(LX,13),TAUWC(LX),TAUIC(LX),SIZEWC(LX),SIZEIC(LX)
      *     ,CLDEPS(LX)
+#ifdef AIE_DIAG_FIX_MET
+!@var fm holds fixed-met diags column data for TAU, SIZ
+!@var fm0 temporary holding array for fm data
+      real*8, dimension(LX,2,2) :: fm,fm0
+#endif /* AIE_DIAG_FIX_MET */
 !@var       EPSCON  cldeps=EPSCON if KCLDEP=1
 !@var       KCLDEP  KCLDEP=0->CLDEPS=0, 1->=EPSCON, 2->as is, 3,4->isccp
       REAL*8 :: EPSCON=0. ; INTEGER :: KCLDEP=4 ! control param

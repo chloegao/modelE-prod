@@ -56,16 +56,19 @@ module CLOUDS
 
 #endif  /* TRACERS_ON */
 
-#if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
+#if defined(CLD_AER_CDNC) || defined(CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
   use CONSTANT, only : kapa,mair,gasc
 #endif
 
-#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
+#if defined(CLD_AER_CDNC) || defined(BLK_2MOM) || (defined AIE_DIAG_FIX_MET)
   use mo_bulk2m_driver_gcm, only: execute_bulk2m_driver
 #ifdef TRACERS_AMP
   use CLOUDS_COM, only: NACTC,NAERC
   use AERO_CONFIG, only: NMODES
 #endif
+#endif
+#ifdef AIE_DIAG_FIX_MET
+  use DIAG_COM, only: fmMC, fmSS
 #endif
 
 #ifdef SCM
@@ -347,7 +350,7 @@ module CLOUDS
 
 #endif  /* TRACERS_ON */
 
-#if defined(CLD_AER_CDNC)
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 !@var ACDNWM,ACDNIM -CDNC - warm and cold moist cnv clouds (cm^-3)
 !@var ACDNWS,ACDNIS -CDNC - warm and cold large scale clouds (cm^-3)
 !@var CDNC_TOMAS, CDNC_NENS -CDNC from Nenes and Seinfel parameterization- warm large scale clouds (cm^-3)
@@ -371,14 +374,19 @@ module CLOUDS
   real*8 :: WMCLWP,WMCTWP
 #endif
 
-#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
+#if (defined CLD_AER_CDNC) || defined(BLK_2MOM) || (defined AIE_DIAG_FIX_MET)
 !@var WMXICE ice water mixing ratio (kg/kg)
   real*8, dimension(LM) :: WMXICE
 #endif
 
-#if defined(CLD_AER_CDNC) || defined(CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
 !@var CTTEM,CD3DL,CL3DL,CI3DL are cld temp, cld thickness,cld water
   real*8, dimension(LM) ::CTEML,CD3DL,CL3DL,CI3DL
+#endif
+#ifdef AIE_DIAG_FIX_MET
+  real*8, dimension(2,LM) :: fmOcol
+  real*8, dimension(  LM) :: fmScol
+  real*8 :: RCLDE_fm
 #endif
 
 #ifdef SCM
@@ -730,7 +738,7 @@ contains
 
 #endif  /* TRACERS_ON */
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
     integer, parameter :: SNTM=31  !for tracers for CDNC
     real*8, dimension(LM) ::  CONDPC
     real*8 &
@@ -747,7 +755,7 @@ contains
     real*8                    :: ncaero (nmodes)
     integer                   ::nm
 #endif
-#endif
+#endif /* CLD_AER_CDNC   OR   AIE_DIAG_FIX_MET */
 
     !          *******                                          *******
     !          *******         END DECLARATION SECTION          *******
@@ -812,6 +820,10 @@ contains
     PRCPMC=0.
     TPSAV=0
     CSIZEL=RWCLDOX*10.*(1.-PEARTH)+10.*PEARTH ! droplet rad in stem
+#ifdef AIE_DIAG_FIX_MET
+    fmOcol(fmMC,:)=0.d0
+    fmScol(:)=CSIZEL(:)
+#endif
     VLAT=LHE
     LHP=0
 
@@ -935,7 +947,7 @@ contains
     end do
     DWCU=0.5*DWCU*BYDTsrc/real(LMCM)
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
     MNdO_max(:)=teeny
     MNdL_max(:)=teeny
     MNdO_min(:)=teeny
@@ -1342,7 +1354,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             FLAMI=(100.d0*PI*CN0I/(CONDMU+teeny))**.25
 
 #ifndef TRACERS_AMP
-#if defined(CLD_AER_CDNC) && \
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && \
    (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
     defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
@@ -1353,13 +1365,14 @@ CLOUD_TOP:  do L=LMIN+1,LM
 #endif
 #endif  /* not TRACERS_AMP */
 
-#if defined(CLD_AER_CDNC) && defined(ALT_CDNC_INPUTS)
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && \
+     defined(ALT_CDNC_INPUTS)
             ! aerosols in the updraft
             tm_cdnc(:) = tmp(:)
             airm_cdnc = mplume
 #endif
 
-#if defined(CLD_AER_CDNC) && !defined(ALT_CDNC_INPUTS)
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && !defined(ALT_CDNC_INPUTS)
             ! ambient aerosols at this level
             tm_cdnc(:) = tm1(l,:)
             airm_cdnc = airm(l)
@@ -1367,7 +1380,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
 !**** Here we change convective precip due to aerosols
 #ifndef TRACERS_AMP
-#if defined(CLD_AER_CDNC) && \
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && \
    (defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
     defined(TRACERS_DUST) || defined(TRACERS_NITRATE) || \
     defined(TRACERS_HETCHEM) || defined(TRACERS_SOA) || \
@@ -1497,11 +1510,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
 
               end select
             end do      !end of n loop for tracers
-#endif  /* CLD_AER_CDNC */
+#endif  /* CLD_AER_CDNC  OR  AIE_DIAG_FIX_MET */
 #endif  /* not TRACERS_AMP */
 
             !** Use MATRIX AMP_actv to decide what the aerosol number conc. is
-#if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
+#if (defined CLD_AER_CDNC) || defined(BLK_2MOM) || (defined AIE_DIAG_FIX_MET)
 
 #if defined(TRACERS_AMP)
             do nm=1,nmodes
@@ -1541,7 +1554,7 @@ CLOUD_TOP:  do L=LMIN+1,LM
             Repsis=Repsi*Repsi
             Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
             RCLD_C=14.d0/Rbeta       !set Reff to threshold size =14 um (Rosenfeld)
-#endif /* CLD_AER_CDNC or BLK_2MOM */
+#endif /* CLD_AER_CDNC or BLK_2MOM or AIE_DIAG_FIX_MET */
 
             TAUMC1(L)=TAUMC1(L)+COND(L)*FMC1
 
@@ -2977,7 +2990,7 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
     QLmc(:)=0.
     QImc(:)=0.
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
     WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
     AREWM=0.   ; AREIM=0.  ; ALWWM=0.  ; ALWIM=0.
     NMCW=0     ; NMCI=0
@@ -2988,7 +3001,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
       if(TL(L).ge.TF) WMSUM=WMSUM+TEMWM ! pick up water path
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       WMCTWP=WMCTWP+TEMWM
       if(TL(L).ge.TF) WMCLWP=WMCLWP+TEMWM
 #endif
@@ -3037,18 +3050,54 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         MNdL = 174.d0
         MNdI = 0.06417127d0
 
-#if defined(CLD_AER_CDNC) && defined(ALT_CDNC_INPUTS)
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && defined(ALT_CDNC_INPUTS)
         ! (min+max)/2 of values from all updrafts at this level.
         ! could average over all updrafts with appropriate weighting instead
         MNdO=.5*(MNdO_max(L)+MNdO_min(L))
         MNdL=.5*(MNdL_max(L)+MNdL_min(L))
 #endif
 
-#if defined(CLD_AER_CDNC) && !defined(ALT_CDNC_INPUTS)
+#if (defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)) && !defined(ALT_CDNC_INPUTS)
         ! values from the last updraft computation at its detrainment level
         MNdO=MCDNO1
         MNdL=MCDNL1
 #endif
+
+#ifdef AIE_DIAG_FIX_MET
+        ! Yunha Lee notes that if CLD_AER_CDNC is on, TAUMCL seems to get overwritten,
+        ! therefore she repeats calculations of TAUMCL found in CLD_AER_CDNC section
+        ! just below. This way, we don't effect main TAUMCL for the GCM:
+        MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
+        MCDNCI=MNdI
+
+        CALL ANVIL_OPTICAL_THICKNESS(SVLATL(L),RCLDX,MCDNCW,MCDNCI, &
+             RIMAX,BYBR,FCLD,TEM,WTEM,RCLD,TAUMCL(L))
+
+        Repsi=1.d0 - 0.7d0*exp(-0.003d0*MCDNCW)
+        Repsis=Repsi*Repsi
+        Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**by3)
+        RCLDE_fm=RCLD*Rbeta
+        fmOcol(fmMC,L)=1.5*TEM/(FCLD*RCLDE_fm+1.E-20) ! evaluate TAUMCL again
+        if(fmOcol(fmMC,L) > 100.) fmOcol(fmMC,L)=100.
+        if(CLDMCL(L) > 0) fmScol(L)=RCLDE_fm ! effective droplet radius in anvil
+        if (FCLD > 1.d-5 .and. SVLATL(L) == LHE) then
+          ACDNWM(L)= MCDNCW
+          AREWM(L) = RCLDE_fm
+          ALWWM(L)= WTEM ! cld water density in g m-3
+          NMCW = NMCW + 1
+        elseif(FCLD > 1.d-5 .and. SVLATL(L) == LHS) then
+          ACDNIM(L)= MCDNCI
+          AREIM(L) = RCLDE_fm
+          ALWIM(L) = WTEM
+          NMCI = NMCI + 1
+        end if
+        ! Then reset these parameters back to their constant values
+        ! in order to not affect meteorology based on aerosol calculated
+        ! values:
+        MNdO = 59.68d0/(RWCLDOX**3)
+        MNdL = 174.d0
+        MNdI = 0.06417127d0
+#endif /* AIE_DIAG_FIX_MET */
 
         MCDNCW=MNdO*(1.-PEARTH)+MNdL*PEARTH
         !          if(MCDNCW.gt.0.) write(6,*)"CDNC MC cld",MNdO,MNdL,l
@@ -3092,6 +3141,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 
       end if
       if(TAUMCL(L).lt.0..and.CLDMCL(L).le.0.) TAUMCL(L)=0.
+#ifdef AIE_DIAG_FIX_MET
+      if(fmOcol(fmMC,L) < 0. .and. CLDMCL(L).le.0.) &
+        fmOcol(fmMC,L)=0.
+#endif
     end do OPTICAL_THICKNESS
 
     if(LMCMAX.le.1) then
@@ -3139,7 +3192,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 !@sum  LSCOND column physics of large scale condensation
 !@auth M.S.Yao/A. Del Genio (modularisation by Gavin Schmidt)
 !@calls CTMIX,QSAT,DQSATDT,THBAR
-#ifdef CLD_AER_CDNC
+#if defined (CLD_AER_CDNC) || defined (AIE_DIAG_FIX_MET)
     use cld_aer_cdnc_mod
 #endif
     implicit none
@@ -3274,17 +3327,20 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
          ,QCXNEW
     real*8 SNdO,SNdL,SNdI,SCDNCW,SCDNCI
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 !@auth Menon  - storing var for cloud droplet number
     real*8 Rbeta,NEWCDN,OLDCDN
     real*8, dimension(lm) :: vvel_sv,CLDSAV0,SNd_L
     real*8, dimension(sntm,lm) :: dsu
 #endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
     real*8 DPP,TEMPR,RHODK,PPRES,PRS        ! for 3 hrly diag
     real*8 D3DL(LM)               ! for 3 hrly diag
 #endif
-
+#ifdef AIE_DIAG_FIX_MET
+    real*8 :: rbeta_fm,SCDNCW_fm,SCDNCI_fm,RCLD_fm,RCLDE_fm,&
+              RCLDE1_fm,CLDSSL_fm
+#endif
 !@var BETA,BMAX,CBFC0,CKIJ,CK1,CK2,PRATM dummy variabls
 !@var SMN12,SMO12 dummy variables
 !@var AIRMR
@@ -3388,6 +3444,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     QHEATI=0.
     CLDSSL=0
     TAUSSL=0
+#ifdef AIE_DIAG_FIX_MET
+    fmOcol(fmSS,:)=0.
+#endif
     WMPR=0.
     prebar1=0.
     rh1=0.
@@ -3415,7 +3474,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     fqcondt(:) = 0.
     fqtowt(:) = 0.
 #endif
-#if (defined CLD_AER_CDNC) || (defined BLK_2MOM)
+#if (defined CLD_AER_CDNC) || (defined BLK_2MOM) || (defined AIE_DIAG_FIX_MET)
     WMXICE(:)=0.
     !      print *,sname,'WMX, WMXICE = ', WMX, WMXICE
 #endif
@@ -3433,7 +3492,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       CLEARA(L)=1.-CLDSAVL(L)
 !     if(WMX(L).le.0.) CLEARA(L)=1.
       if(QCLX(L)+QCIX(L).le.0.) CLEARA(L)=1.
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       CLDSAV0(L) = 1.-CLEARA(L)
 #endif
     end do
@@ -3460,7 +3519,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         VVEL=-.5*(SDL(L)+SDL(L+1))*TEMP
       end if
       VDEF=VVEL-VSUBL(L)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       vvel_sv(l) = vvel ! save for opt. depth calc.
 #endif
 
@@ -3658,7 +3717,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         endif
       endif
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
 
 #ifndef TRACERS_AMP
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AEROSOLS_SEASALT) || \
@@ -3695,9 +3754,12 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #endif
        ,SNd_L(l) & ! output for reason (2)
        ,scdncw,scdnci & ! output for reason (1)
+#ifdef AIE_DIAG_FIX_MET
+       ,scdncw_fm,scdnci_fm &
+#endif
        )
 
-#endif /* CLD_AER_CDNC */
+#endif /* CLD_AER_CDNC   OR  AIE_DIAG_FIX_MET*/
 
       !**** COMPUTE THE AUTOCONVERSION RATE OF CLOUD WATER TO PRECIPITATION
 
@@ -3839,10 +3901,19 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           if(LHX.eq.LHE)  then
             !           RCLD=1d-6*(RWCLDOX*10.*(1.-PEARTH)+7.*PEARTH)*(WTEM*4.)**BY3
             RCLD=RCLDX*1d-6*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCW))**BY3
+#ifdef AIE_DIAG_FIX_MET
+            RCLD_fm=RCLDX*1d-6*100.d0* &
+                    (WTEM/(2.d0*BY3*TWOPI*SCDNCW_fm))**BY3
+#endif
           else
             !           RCLD=25.d-6*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
             RCLD=RCLDX*100.d-6*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
             RCLD=min(RCLD,RIMAX)
+#ifdef AIE_DIAG_FIX_MET
+            RCLD_fm=RCLDX*100.d-6* &
+                    (WTEM/(2.d0*BY3*TWOPI*SCDNCI_fm))**BY3
+            RCLD_fm=min(RCLD_fm,RIMAX)
+#endif
           end if
           CK1=1000.*LHX*LHX/(2.4d-2*RVAP*TL(L)*TL(L))
           CK2=1000.*RGAS*TL(L)/(2.4d-3*QSATL(L)*PL(L))
@@ -4835,7 +4906,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       END IF
       if(WTEM.lt.1d-10) WTEM=1.d-10
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
       ! re-running blk_2mom
       call cld_aer_cdnc_block2( &
          lhx,fcld,dtsrc, &
@@ -4846,6 +4917,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
          rbeta, & ! DSD dispersion factor
          scdncw, & ! output
          scdnci & ! output coincidentally equal to SNdi
+#ifdef AIE_DIAG_FIX_MET
+         ,rbeta_fm ,scdncw_fm ,scdnci_fm &
+#endif
       )
 #endif
 
@@ -4871,6 +4945,12 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         RCLDE1 = RCLDE
 !@auth Menon    end of addition  comment out the RCLDE definition below
 #endif
+#ifdef AIE_DIAG_FIX_MET
+        RCLD_fm=RCLDX*100.d0* &
+                (WTEM/(2.d0*BY3*TWOPI*SCDNCW_fm))**BY3
+        IF(RCLD_fm.GT.RWMAX.AND.PREP(L).GT.QHEATC) RCLD_fm=RWMAX
+        RCLDE_fm=RCLD_fm*Rbeta_fm
+#endif
       else
         !         RCLD=25.0*(WTEM/4.2d-3)**BY3 * (1.+pl(l)*xRICld)
         RCLD=RCLDX*100.d0*(WTEM/(2.d0*BY3*TWOPI*SCDNCI))**BY3
@@ -4878,11 +4958,22 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         RCLDE=RCLD/BYBR
         RCLDE1 = RCLDE
         if(use_vmp .and. cldssl(l).gt.0) CSIZELIP(L)=RCLDE1
+#ifdef AIE_DIAG_FIX_MET
+        ! Yunha Lee was not sure this section is needed
+        RCLD_fm=RCLDX*100.d0*(WTEM/ &
+                (2.d0*BY3*TWOPI*SCDNCI_fm))**BY3
+        RCLD_fm=MIN(RCLD_fm,RIMAX)
+        RCLDE_fm=RCLD_fm/BYBR
+#endif
       end if
       RCLDE1=5.*RCLDE1         ! for precip optical thickness
       CSIZEL(L)=RCLDE
       IF(FCLD.LE.teeny.AND.CSIZEL(L).GT.25.d0) CSIZEL(L)=25.d0
-
+#ifdef AIE_DIAG_FIX_MET
+      RCLDE1_fm=5.*RCLDE_fm    ! for precip optical thickness
+      fmScol(L)=RCLDE_fm
+      IF(FCLD.LE.teeny.AND.fmScol(L).GT.25.d0) fmScol(L)=25.d0
+#endif
 !     TEM=AIRM(L)*WMX(L)*1.d2*BYGRAV
       IF(LHX.EQ.LHE) THEN
         TEM=AIRM(L)*QCLX(L)*1.d2*BYGRAV
@@ -4908,6 +4999,19 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       ENDIF
       if(FCLD.le.teeny) TAUSSL(L)=0.
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
+#ifdef AIE_DIAG_FIX_MET
+      fmOcol(fmSS,L)=1.5d3*TEM/(FCLD*RCLDE_fm+teeny)
+!     fmOcol(fmSS,L)=fmOcol(fmSS,L)+1.5d3*TEM1/ &
+!                    (FCLD*RCLDE1_fm+teeny)
+! That line seems wrong to me, including in the old code
+! because TEM1 has already been updated as a function of itself
+! above. maybe replace TEM1 with AIRM(L)*WMPR(L)*1.d2*BYGRAV
+      fmOcol(fmSS,L)=fmOcol(fmSS,L)+1.5d3*(AIRM(L)*WMPR(L)* &
+        1.d2*BYGRAV)/(FCLD*RCLDE1_fm+teeny)
+        ! Does above assume we are not using vmp clouds!?
+      IF(FCLD.le.teeny) fmOcol(fmSS,L)=0.
+      IF(fmOcol(fmSS,L).gt.100.) fmOcol(fmSS,L)=100.
+#endif
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
     end do OPTICAL_THICKNESS
 
@@ -4960,10 +5064,25 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         end if
       end if
       IF(USE_VMP .AND. TAUSSLIP(L).LT.0.) TAUSSLIP(L)=0.
+#ifdef AIE_DIAG_FIX_MET
+      if(fmOcol(fmMC,L).eq.0..or.CKIJ.ne.1.) then
+        BMAX=1.-exp(-(CLDSV1(L)/.3d0))
+        if(CLDSV1(L).ge..95d0) BMAX=CLDSV1(L)
+        if(L.eq.1.or.L.le.DCL) then
+          CLDSSL_fm=min(CLDSSL(L)+(BMAX-CLDSSL(L))*CKIJ,FSSL(L))
+          fmOcol(fmSS,L)=fmOcol(fmSS,L)*CLDSV1(L)/(CLDSSL_fm+teeny)
+          ! something missing here for vmp clouds?
+        end if
+        if(L.gt.DCL .and. fmOcol(fmMC,L).le.0.) then
+          fmOcol(fmSS,L)=fmOcol(fmSS,L)*CLDSV1(L)**BY3
+        end if
+      end if
+      if(fmOcol(fmSS,L).lt.0.)fmOcol(fmSS,L)=0.
+#endif
     end do
 
 
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
     CTEML=0.
     CD3DL=0.
     CL3DL=0.
