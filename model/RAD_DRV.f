@@ -1847,6 +1847,9 @@ C     INPUT DATA  (i,j) dependent
 #ifdef HEALY_LM_DIAGS
      *             ,VTAULAT
 #endif
+#ifdef AIE_DIAG_FIX_MET
+     &             ,fm,fm0
+#endif
 
 C     OUTPUT DATA
      &          ,TRDFLB ,TRNFLB ,TRUFLB, TRFCRL ,chem_out
@@ -1979,6 +1982,11 @@ C     OUTPUT DATA
       USE CONSTANT, only : SHA
       USE ATM_COM, only : QCL
 #endif
+#ifdef AIE_DIAG_FIX_MET
+      use rad_com, only: fmOs
+      use clouds_com, only: fmEXP
+      use diag_com, only: ij_fm,fmLW,fmSW,fmMC,fmSS,fmW,fmI,fmS,fmO,fmR
+#endif
       IMPLICIT NONE
       real*8 dz,rho
 C
@@ -2006,7 +2014,16 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
-
+#ifdef AIE_DIAG_FIX_MET
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     SNFS_FIX_MET,TNFS_FIX_MET
+#ifdef BC_ALB
+      REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
+     &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
+     *     SNFS_BC_FIX_MET
+#endif /* BC_ALB */
+#endif /* AIE_DIAG_FIX_MET */
 #ifdef CACHED_SUBDD
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
@@ -2112,6 +2129,14 @@ C  GHG Effective forcing relative to 1850
 #ifdef BC_ALB
       REAL*8 dALBsn1
 #endif
+#ifdef AIE_DIAG_FIX_MET
+      !@var fmOacc fixed-met AIE diag optical depth accumulators
+      real*8, dimension(2) :: fmOacc
+      integer :: fmX ! index for loops
+#ifdef BC_ALB
+      real*8 :: dALBsn_fm
+#endif /* BC_ALB */
+#endif /* AIE_DIAG_FIX_MET */
       LOGICAL set_clayilli,set_claykaol,set_claysmec,
      &     set_claycalc,set_clayquar
 C
@@ -2486,6 +2511,9 @@ C****
 C**** DETERMINE CLOUDS (AND THEIR OPTICAL DEPTHS) SEEN BY RADIATION
 C****
       CSS=0. ; CMC=0. ; CLDCV=0. ; DEPTH=0. ; OPTDW=0. ; OPTDI=0.
+#ifdef AIE_DIAG_FIX_MET
+      fmOacc(:)=0.d0
+#endif
       if(cc_cdncx.ne.0. .or. od_cdncx.ne.0.) then
         call dCDNC_EST(i,j,pland, dCDNC)
       else
@@ -2517,6 +2545,9 @@ C**** Adjust RDSS for semi-random overlap
         SIZEWC(L)=0.
         SIZEIC(L)=0.
         TOTCLD(L)=0.
+#ifdef AIE_DIAG_FIX_MET
+        fm(L,:,:)=0.d0
+#endif
 C**** Determine large scale and moist convective cloud cover for radia
         IF (CLDSS(L,I,J)*(1.+dcc_cdncl(l)).GT.RDSS(L,I,J)) THEN
           TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
@@ -2546,9 +2577,17 @@ C**** save 3D cloud fraction as seen by radiation
           IF(TAUMCL.GT.TAUSSL+TAUSSLIP) THEN
             SIZEWC(L)=CSIZMC(L,I,J)
             SIZEIC(L)=CSIZMC(L,I,J)
+#ifdef AIE_DIAG_FIX_MET
+            fm(L,fmS,fmW)=fmEXP(fmS,fmMC,L,I,J)
+            fm(L,fmS,fmI)=fmEXP(fmS,fmMC,L,I,J)
+#endif
             IF(SVLAT(L,I,J).EQ.LHE) THEN
               TAUWC(L)=cldx*TAUMCL
               OPTDW=OPTDW+TAUWC(L)
+#ifdef AIE_DIAG_FIX_MET
+              fm(L,fmO,fmW)=cldx*fmEXP(fmO,fmMC,L,I,J)
+              fmOacc(fmW)=fmOacc(fmW)+fm(L,fmO,fmW)
+#endif
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
               aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLmc(l,i,j)*rhodz
@@ -2559,6 +2598,10 @@ C**** save 3D cloud fraction as seen by radiation
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
+#ifdef AIE_DIAG_FIX_MET
+              fm(L,fmO,fmI)=cldx*fmEXP(fmO,fmMC,L,I,J)
+              fmOacc(fmI)=fmOacc(fmI)+fm(L,fmO,fmI)
+#endif
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
               aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QImc(l,i,j)*rhodz
@@ -2570,9 +2613,17 @@ C**** save 3D cloud fraction as seen by radiation
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
             SIZEIC(L)=CSIZSS(L,I,J)
+#ifdef AIE_DIAG_FIX_MET
+            fm(L,fmS,fmW)=fmEXP(fmS,fmSS,L,I,J)
+            fm(L,fmS,fmI)=fmEXP(fmS,fmSS,L,I,J)
+#endif
             IF(SVLHX(L,I,J).EQ.LHE) THEN
               TAUWC(L)=cldx*TAUSSL
               OPTDW=OPTDW+TAUWC(L)
+#ifdef AIE_DIAG_FIX_MET
+              fm(L,fmO,fmW)=cldx*fmEXP(fmO,fmSS,L,I,J)
+              fmOacc(fmW)=fmOacc(fmW)+fm(L,fmO,fmW)
+#endif
               call inc_ajl(i,j,l,jl_wcld,1d0)
               call inc_ajl(i,j,l,jl_wcldwt,pdsig(l,i,j))
               aij(i,j,ij_lwprad)=aij(i,j,ij_lwprad)+QLss(l,i,j)*rhodz
@@ -2595,6 +2646,10 @@ C**** save 3D cloud fraction as seen by radiation
             ELSE
               TAUIC(L)=cldx*TAUSSL
               OPTDI=OPTDI+TAUIC(L)
+#ifdef AIE_DIAG_FIX_MET
+              fm(L,fmO,fmI)=cldx*fmEXP(fmO,fmSS,L,I,J)
+              fmOacc(fmI)=fmOacc(fmI)+fm(L,fmO,fmI)
+#endif
               call inc_ajl(i,j,l,jl_icld,1d0)
               call inc_ajl(i,j,l,jl_icldwt,pdsig(l,i,j))
               aij(i,j,ij_iwprad)=aij(i,j,ij_iwprad)+QIss(l,i,j)*rhodz
@@ -2655,6 +2710,15 @@ C**** effective cloud cover diagnostics
             AIJ(I,J,IJ_icecld)=AIJ(I,J,IJ_icecld)+1.
             ICECLD(I,J) =   1.
          end if
+
+#ifdef AIE_DIAG_FIX_MET
+        do fmX=1,2 ! water and ice
+          if(fmOacc(fmX) > 0.) then
+            AIJ(I,J,ij_fm(fmO,fmX))=AIJ(I,J,ij_fm(fmO,fmX))+fmOacc(fmX)
+            fmOs(fmX,I,J)=fmOacc(fmX)
+          end if
+        end do
+#endif /* AIE_DIAG_FIX_MET */
 
          DO KR=1,NDIUPT
            IF (I.EQ.IJDD(1,KR).AND.J.EQ.IJDD(2,KR)) THEN
@@ -2802,6 +2866,9 @@ c       JCKERR=JCKERR+1
         tauic(LM+k) = 0.
         sizewc(LM+k)= 0.
         sizeic(LM+k)= 0.
+#ifdef AIE_DIAG_FIX_MET
+        fm(LM+k,:,:)=0. ! as 4 lines above
+#endif
 #ifdef TRACERS_ON
 C**** set radiative equilibrium extra tracer amount to zero
         IF (nraero_aod.gt.0) TRACER(LM+k,1:nraero_aod)=0.
@@ -2844,7 +2911,9 @@ C**** set up parameters for new sea ice and snow albedo
 c to use on-line tracer albedo impact, set dALBsnX=0. in rundeck
 #ifdef BC_ALB
       call GET_BC_DALBEDO(i,j,dALBsn1,bc_snow_present(i,j))
+#ifndef AIE_DIAG_FIX_MET /* NOTE: NOT DEFINED */
       if (rad_interact_aer > 0) dALBsn=dALBsn1
+#endif
       dALBsnBC(I,J)=dALBsn1
 #endif  /* BC_ALB */
       if (poice.gt.0.) then
@@ -3021,6 +3090,22 @@ C**** Ozone:
 
       if (moddrf==0) then
 #ifdef BC_ALB
+#ifdef AIE_DIAG_FIX_MET
+        ! save the current value, then zero current value:
+        dalbsn_fm=dalbsn
+        dalbsn=0.d0
+        CALL RCOMPX
+        NFSNBC(I,J)=SRNFLB(LM+LM_REQ+1)
+        ALBNBC(I,J)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
+        ! then set with BC from aerosol model regardless of
+        ! rad_interact_aer setting:
+        dALBsn=dALBsn1
+        CALL RCOMPX
+        SNFS_BC_FIX_MET(I,J)=SRNFLB(LM+LM_REQ+1)
+        ! restore original value, then contine:
+        dalbsn=dalbsn_fm
+        if (rad_interact_aer > 0) dALBsn=dALBsn1
+#else
         if (rad_interact_aer > 0) dalbsn=0.d0
         CALL RCOMPX
         NFSNBC(I,J)=SRNFLB(LM+LM_REQ+1)
@@ -3028,7 +3113,8 @@ c       NFSNBC(I,J)=SRNFLB(LFRC)
         ALBNBC(I,J)=SRNFLB(1)/(SRDFLB(1)+1.D-20)
 c set for BC-albedo effect
         if (rad_interact_aer > 0) dALBsn=dALBsn1
-#endif
+#endif /* AIE_DIAG_FIX_MET or not */
+#endif /* BC_ALB */
 C**** Optional calculation of CRF using a clear sky calc.
         if (cloud_rad_forc.gt.0) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
@@ -3108,7 +3194,31 @@ C**** second, net aerosols
           TNFSAERRF(18,I,J)=TRNFLB(1) ! SURF
           FS8OPX(:)=tmpS(:)   ; FT8OPX(:)=tmpT(:)
         end if
+#ifdef AIE_DIAG_FIX_MET
+C**** Potential fixed-met AIE call:
+        ! save the current cloud optical depths/sizes:
+        fm0(:,fmO,fmW)=TAUWC(:)
+        fm0(:,fmO,fmI)=TAUIC(:)
+        fm0(:,fmS,fmW)=SIZEWC(:)
+        fm0(:,fmS,fmI)=SIZEIC(:)
+        ! fill those with current fixed-met aerosol-affected exports:
+        TAUWC(:)=fm(:,fmO,fmW)
+        TAUIC(:)=fm(:,fmO,fmI)
+        SIZEWC(:)=fm(:,fmS,fmW)
+        SIZEIC(:)=fm(:,fmS,fmI)
+        ! call radiation:
+        kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+        CALL RCOMPX
+        SNFS_FIX_MET(I,J)=SRNFLB(LM+LM_REQ+1)
+        TNFS_FIX_MET(I,J)=TRNFLB(LM+LM_REQ+1)
+        ! reset to saved values:
+        TAUWC(:)=fm0(:,fmO,fmW)
+        TAUIC(:)=fm0(:,fmO,fmI)
+        SIZEWC(:)=fm0(:,fmS,fmW)
+        SIZEIC(:)=fm0(:,fmS,fmI)
+#endif /* AIE_DIAG_FIX_MET */
       end if  ! moddrf=0
+
 C**** End of initial computations for optional forcing diagnostics
 
 C**** Localize fields that are modified by RCOMPX
@@ -3811,6 +3921,13 @@ c    CRF diagnostics without aerosols and Ox
      +          (SNFS(3,I,J)-SNFSCRF2(I,J))*CSZ2
            AIJ(I,J,IJ_LWCRF2)=AIJ(I,J,IJ_LWCRF2)-
      -          (TNFS(3,I,J)-TNFSCRF2(I,J))
+#ifdef AIE_DIAG_FIX_MET
+c    CRF diagnostics without perturbing meteorology
+           AIJ(I,J,ij_fm(fmR,fmSW))=AIJ(I,J,ij_fm(fmR,fmSW))+
+     &          (SNFS_FIX_MET(I,J)-SNFSCRF(I,J))*CSZ2
+           AIJ(I,J,ij_fm(fmR,fmLW))=AIJ(I,J,ij_fm(fmR,fmLW))-
+     &          (TNFS_FIX_MET(I,J)-TNFSCRF(I,J))
+#endif /* AIE_DIAG_FIX_MET */
          end if
 
 C**** AERRF diags if required
@@ -3853,10 +3970,15 @@ C**** define SNFS/TNFS level (TOA/TROPO) for calculating forcing
         TAIJS(I,J,ijts_alb(1)) = TAIJS(I,J,ijts_alb(1)) + dALBsnBC(I,J)
 !     &       + 100.d0*(ALBNBC(I,J)-ALB(I,J,1))
       endif
+#ifdef AIE_DIAG_FIX_MET
       if (ijts_alb(2).gt.0)
-     & taijs(i,j,ijts_alb(2))
-     &     =taijs(i,j,ijts_alb(2))
-     &         +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
+     & taijs(i,j,ijts_alb(2))=taijs(i,j,ijts_alb(2))
+     & +(SNFS_BC_FIX_MET(I,J)-NFSNBC(I,J))*CSZ2
+#else
+      if (ijts_alb(2).gt.0)
+     & taijs(i,j,ijts_alb(2))=taijs(i,j,ijts_alb(2))
+     &          +(SNFS(3,I,J)-NFSNBC(I,J))*CSZ2
+#endif /* AIE_DIAG_FIX_MET or not */
 #endif /* BC_ALB */
 c     ..........
 c     accumulation of forcings for tracers for which nraero_rf fields are

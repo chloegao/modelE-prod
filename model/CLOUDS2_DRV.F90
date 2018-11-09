@@ -28,11 +28,14 @@ subroutine CONDSE
   use RAD_COM, only : cosz1
   use CLOUDS_COM, only : ttold,qtold,svlhx,svlat,rhsav,cldsav &
        ,isccp_reg2d,ukm,vkm,ncol
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   use CLOUDS_COM, only : ncl,nci,clwp,cdn3d,cre3d  ! for 3 hrly diag
 #endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
   use CLOUDS_COM, only :  ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
+#endif
+#ifdef AIE_DIAG_FIX_MET
+  use CLOUDS_COM, only : fmEXP
 #endif
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
@@ -75,7 +78,7 @@ subroutine CONDSE
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
        ,ijl_cldwtr,ijl_cldice,ijl_MCamFX ! ipcc 3-D model layer diagnostics
 !!     ,IJ_CONDLS,IJ_EVAPLS,IJ_CONDSINKMC
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   use DIAG_COM, only : jl_cnumwm,jl_cnumws,jl_cnumim,jl_cnumis &
        ,ij_dzwm,ij_dzim,ij_dzws,ij_dzis &
        ,ij_3dnwm,ij_3dnws,ij_3dnim,ij_3dnis &
@@ -85,6 +88,9 @@ subroutine CONDSE
        ,ij_wmclwp,ij_wmctwp &
        ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis &
        ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis,ijl_cdtomas
+#endif
+#ifdef AIE_DIAG_FIX_MET
+  use DIAG_COM, only : fmS, fmO, fmMC, fmSS
 #endif
 #ifdef TRACERS_DUST
   use DIAG_COM, only : idd_wet
@@ -183,16 +189,18 @@ subroutine CONDSE
        ,DQMSHLW,DQMDEEP,DQCTOTAL,DQCSHLW,DQCDEEP &
        ,QLss,QIss,QLmc,QImc &
        ,use_vmp,wmpr,tausslip,csizelip
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
        use CLOUDS, only : acdnwm,acdnim,acdnws,acdnis,arews,arewm,areis,areim &
        ,alwim,alwis,alwwm,alwws,nlsw,nlsi,nmcw,nmci &
        ,ncll,ncil,sme &
        ,cdn3dl,cre3dl,smlwp &
        ,wmclwp,wmctwp,CDNC_TOMAS
-
 #endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
        use CLOUDS, only : cteml,cd3dl,cl3dl,ci3dl
+#endif
+#ifdef AIE_DIAG_FIX_MET
+       use CLOUDS, only : fmOcol,fmScol
 #endif
 
 #ifdef SCM
@@ -407,7 +415,7 @@ subroutine CONDSE
               Cloud_daily3d
 #endif
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
   real*8 :: cldwt,cldwtdz
 #endif
 #ifdef SCM
@@ -645,13 +653,13 @@ subroutine CONDSE
         CLDSAVL(:)=CLDSAV(:,I,J)
         CLDSV1(:)=CLDSAV1(:,I,J)
         RH(:)=RHSAV(:,I,J)
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
         CTEML(:) =CTEM(:,I,J)
         CD3DL(:) =CD3D(:,I,J)
         CL3DL(:) =CL3D(:,I,J)
         CI3DL(:) =CI3D(:,I,J)
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
         NCLL(:)=NCL(:,I,J)
         NCIL(:)=NCI(:,I,J)  ! NCI is for rsf save
         SME(:)  =EGCM(:,I,J)  !saving 3D TKE value
@@ -850,7 +858,7 @@ subroutine CONDSE
                CLDMCL(LMCMAX)
           AIJ(I,J,IJ_MCCVBS)=AIJ(I,J,IJ_MCCVBS)+     & ! MC base cloud cover
                CLDMCL(LMCMIN+1)
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
           AIJ(I,J,IJ_WMCLWP)=AIJ(I,J,IJ_WMCLWP)+WMCLWP
           AIJ(I,J,IJ_WMCTWP)=AIJ(I,J,IJ_WMCTWP)+WMCTWP
 #ifdef CACHED_SUBDD
@@ -927,7 +935,7 @@ subroutine CONDSE
 #endif
             end if
           end do
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
           do L =1,LM
             if(SVWMXL(L).le.0.) cycle
             CLDWT = CLDMCL(L)!+teeny
@@ -1022,6 +1030,9 @@ subroutine CONDSE
           end do
 
           CSIZMC(1:LMCMAX,I,J)=CSIZEL(1:LMCMAX)
+#ifdef AIE_DIAG_FIX_MET
+          fmEXP(fmS,fmMC,1:LMCMAX,I,J)=fmScol(1:LMCMAX)
+#endif
           FSS(:,I,J)=FSSL(:)
           AIRX(I,J) = AIRXL*AXYP(I,J)
           do L=1,DCL
@@ -1220,7 +1231,7 @@ subroutine CONDSE
 
         !**** Accumulate diagnostics of LSCOND
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
         ! code transplanted from LSCOND
         SMLWP=WMSUM
         CDN3DL=0.
@@ -1238,20 +1249,36 @@ subroutine CONDSE
           if(CLDSV1(L).gt.1.d-5) then
             if(SVLHXL(L).eq.LHE) then
               ! max(...,20) b/c NCLL had different lower limit than SCDNCW
+#ifndef AIE_DIAG_FIX_MET /* NOT, e.g. normal CLD_AER_CDNC case */
               ACDNWS(L)= max(NCLL(L),20d0)
               AREWS(L) = CSIZEL(L)
               ALWWS(L) = 1.d5*QCLX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
               CDN3DL(L) = NCLL(L)
               CRE3DL(L)=CSIZEL(L)
+#else /* now, AIE_DIAG_FIX_MET case: */
+              ACDNWS(L)= max(NCLL(L),20d0) !??????? what is AIE_DIAG_FIX_MET equivalent?
+              AREWS(L) = fmScol(L)
+              ALWWS(L) = 1.d5*QCLX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny) !???????
+              CDN3DL(L) = NCLL(L) !??????? what is AIE_DIAG_FIX_MET equivalent?
+              CRE3DL(L)= fmScol(L)
+#endif
               NLSW  = NLSW + 1
         !      if(ACDNWS(L).gt.20.d0) write(6,*)"INWCLD",ACDNWS(L),
         !    * SCDNCW,NLSW,AREWS(L),RCLDE,LHX
             elseif(SVLHXL(L).eq.LHS) then
+#ifndef AIE_DIAG_FIX_MET /* NOT, e.g. normal CLD_AER_CDNC case */
               ACDNIS(L)= NCIL(L)
               AREIS(L) = CSIZEL(L)
               ALWIS(L) = 1.d5*QCIX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny)
               CDN3DL(L) = NCIL(L)
               CRE3DL(L)=CSIZEL(L)
+#else /* now, AIE_DIAG_FIX_MET case: */
+              ACDNIS(L)= NCIL(L) !??????? what is AIE_DIAG_FIX_MET equivalent?
+              AREIS(L) = fmScol(L)
+              ALWIS(L) = 1.d5*QCIX(L)*PL(L)/(CLDSV1(L)*TL(L)*RGAS+teeny) !???????
+              CDN3DL(L) = NCIL(L) !??????? what is AIE_DIAG_FIX_MET equivalent?
+              CRE3DL(L)= fmScol(L)
+#endif
               NLSI  = NLSI + 1
         !      if(ACDNIS(L).gt.0.d0)    write(6,*)"INICLD",ACDNIS(L),
         !    * SCDNCI,NLSI,AREIS(L),RCLDE,LHX
@@ -1495,13 +1522,18 @@ subroutine CONDSE
         ENDIF
 
         RHSAV(:,I,J)=RH(:)
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#ifdef AIE_DIAG_FIX_MET
+        fmEXP(fmO,fmMC,:,i,j)=fmOcol(fmMC,:)
+        fmEXP(fmO,fmSS,:,i,j)=fmOcol(fmSS,:)
+        fmEXP(fmS,fmSS,:,i,j)=fmScol(:)
+#endif
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) || (defined AIE_DIAG_FIX_MET)
         CTEM(:,I,J) =CTEML(:)
         CD3D(:,I,J) =CD3DL(:)
         CL3D(:,I,J) =CL3DL(:)
         CI3D(:,I,J) =CI3DL(:)
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
         NCL(:,I,J)=NCLL(:)
         NCI(:,I,J)=NCIL(:)
         EGCM(:,I,J) =SME(:)
@@ -1601,7 +1633,7 @@ subroutine CONDSE
         !QCON if (abs(q2-q0).gt.1d-13) print*,"water err1",i,j,q2-q0,q2,q0,q1
         !QCON*     ,prcp
 
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
         do L=1,LM
           CLDWT = CLDSSL(L)!+teeny
           CLDWTDZ = CLDWT*(RGAS*TL(L)*BYGRAV)*(AIRM(L)/PL(L))

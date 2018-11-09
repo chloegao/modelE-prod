@@ -1866,10 +1866,11 @@ c get_subdd
 #ifdef etc_subdd
      *              ,LWP2D,IWP2D
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
      *           ,cdn3d,cre3d,clwp
 #endif
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) ||\
+ (defined AIE_DIAG_FIX_MET)
      *           ,ctem,cd3d,ci3d,cl3d
 #endif
       USE ATM_COM, only : ptropo,MA,byMA,wsave,pk,phi,pmid
@@ -2579,7 +2580,7 @@ C**** accumulating/averaging mode ***
      &         'Layer 1 Mass of Sulfate + Dust Coated with Sulfate'
 #endif
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
         case ("CLWP")             !LWP (kg m-2)
           datar8=clwp
           units_of_data = 'kg/m^2'
@@ -3541,7 +3542,8 @@ C**** accumulating/averaging mode ***
      &             SECONDS_PER_DAY*bysha*byMA(l,:,:)
               units_of_data = 'K/day'
               long_name = 'Radiative Heating Rate'
-#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
+#if (defined CLD_AER_CDNC) || (defined CLD_SUBDD) ||\
+ (defined AIE_DIAG_FIX_MET)
             case ("CTEM")
               datar8=ctem(l,:,:) ! cld temp (K) at cld top
               units_of_data = 'K'
@@ -3558,7 +3560,7 @@ C**** accumulating/averaging mode ***
               units_of_data = 'm'
               long_name = 'Cloud Thickness'
 #endif
-#ifdef CLD_AER_CDNC
+#if (defined CLD_AER_CDNC) || (defined AIE_DIAG_FIX_MET)
             case ("CDN3D")
               datar8=cdn3d(l,:,:) ! cld CDNC (cm^-3)
               units_of_data = 'cm^3'

@@ -214,6 +214,9 @@ contains
 #endif
        ,SNd &
        ,scdncw,scdnci &
+#ifdef AIE_DIAG_FIX_MET
+       ,scdncw_fm,scdnci_fm &
+#endif
        )
   use constant, only : lhe,rgas,teeny,mb2kg
   use tracer_com, only: ntm
@@ -223,6 +226,9 @@ contains
   real*8 :: oldcdn,newcdn,SNd
   real*8 :: dtsrc,vvel,lhx,fcld,scdncw,scdnci,pearth
   real*8 :: prebar,tl,ql,pl,wturb,cldsavl,qclx,qcix,ncll,ncil,airm
+#ifdef AIE_DIAG_FIX_MET
+  real*8 :: scdncw_fm,scdnci_fm
+#endif
 #ifdef TRACERS_AMP
   real*8 :: nactc(nmodes)
 #endif
@@ -878,6 +884,7 @@ contains
       rablk=execute_bulk2m_driver('get','mprc')
       QAUT_B2M=rablk(mkx)
 
+#ifndef AIE_DIAG_FIX_MET /* NOT */
       SCDNCW=SNd      ! we have already passed the grid box value
       SCDNCI=SNdI
       if (SCDNCI.le.0.0d0) SCDNCI=teeny         !set min ice crystal, do we need this, please check
@@ -885,6 +892,13 @@ contains
       !     if(SCDNCW.gt.2000.) write(6,*)"PROBLEM",SCDNCW,L
       if (SCDNCW.ge.1400.d0) SCDNCW=1400.d0     !set max CDNC, sensitivity test
       !     if (SNd.gt.20.) write(6,*)"CDNC LSS",SCDNCW,SNd,L
+#else
+      SCDNCW_fm=SNd   ! we have already passed the grid box value
+      SCDNCI_fm=SNdI
+      if (SCDNCI_fm.le.0.0d0) SCDNCI_fm=teeny     !set min ice crystal, do we need this, please check
+      if (SCDNCW_fm.le.20.d0) SCDNCW_fm=20.d0     !set min CDNC, sensitivity test
+      if (SCDNCW_fm.ge.1400.d0) SCDNCW_fm=1400.d0 !set max CDNC, sensitivity test
+#endif /* AIE_DIAG_FIX_MET or NOT */
 
   end subroutine cld_aer_cdnc_block1
 
@@ -895,6 +909,9 @@ contains
          snd_l, & ! only for tracers_amp
          rbeta, & ! output
          scdncw,scdnci &
+#ifdef AIE_DIAG_FIX_MET
+         ,rbeta_fm,scdncw_fm,scdnci_fm &
+#endif
       )
       use constant, only : lhe,teeny
       implicit none
@@ -902,6 +919,9 @@ contains
       real*8 :: vvel,lhx,fcld,scdncw,scdnci,dtb2m,snd_l,rbeta
       real*8 :: cleara,CLDSAV0,qclx,qcix,sme,ncll,ncil,tl,ql,pl,wturb,wmxice
       real*8 :: dsu(sntm)
+#ifdef AIE_DIAG_FIX_MET
+      real*8 :: rbeta_fm,scdncw_fm,scdnci_fm
+#endif
 
       ! local variables
       real*8 CDNL1,CDNL0,NEWCDN,OLDCDN,SNd,qcx,SNdi
@@ -1031,6 +1051,7 @@ contains
       ! To get effective radii in micron
       rablk=execute_bulk2m_driver('get','value','ec')  ! [micron]
 
+#ifndef AIE_DIAG_FIX_MET /* NOT */
       SCDNCW=SNd
       SNdI = 0.06417127d0
       SCDNCI=SNdI
@@ -1039,10 +1060,23 @@ contains
       if (SCDNCI.le.0.0d0) SCDNCI=teeny           !set min ice crystal
       if(SCDNCW.gt.1400.d0) SCDNCw=1400.d0
       !     if (SCDNCW.gt.20.) write(6,*) "SCND CDNC",SCDNCW,NCLL(l),l
+#else
+      SCDNCW_fm=SNd
+      SNdI = 0.06417127d0
+      SCDNCI_fm=SNdI
+      If (SCDNCW_fm.le.20.d0) SCDNCW_fm=20.d0   !set min CDNC sensitivity test
+      If (SCDNCI_fm.le.0.0d0) SCDNCI_fm=teeny           !set min ice crystal
+      if(SCDNCW_fm.gt.1400.d0) SCDNCw_fm=1400.d0
+#endif
 
       if(lhx.eq.lhe) then
         !** Using the Liu and Daum paramet
         !** for spectral dispersion effects on droplet size distribution
+#ifdef AIE_DIAG_FIX_MET
+        Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW_fm)
+        Repsis=Repsi*Repsi
+        Rbeta_fm=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
+#endif
         Repsi=1.d0 - 0.7d0*exp(-0.003d0*SCDNCW)
         Repsis=Repsi*Repsi
         Rbeta=(((1.d0+2.d0*Repsis)**0.667d0))/((1.d0+Repsis)**0.333d0)
