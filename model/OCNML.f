@@ -693,14 +693,19 @@ c         may specify ocean temperature for SCM
 
       subroutine advsi_diag(atmocn,atmice)
 !@sum advsi_diag calls sea ice diagnostic routine for kocean=1 case
+!@+   and accumulates OA(13) for kocean=0
       use model_com, only : kocean
       use ocnml, only : z1o,z12o
       use exchange_types, only : atmocn_xchng_vars,atmice_xchng_vars
+      use diag_com, only : oa
       implicit none
       type(atmocn_xchng_vars) :: atmocn
       type(atmice_xchng_vars) :: atmice
       if(kocean.ge.1) then
         call advsi_diag_ocnml(z1o,z12o,atmocn,atmice)
+      else
+        where(atmocn%focean .gt. 0.)
+     &       oa(:,:,13) = oa(:,:,13) + atmice%hsicnv(:,:)
       endif
       end subroutine advsi_diag
 
