@@ -428,87 +428,93 @@ c -----------------------------------------------------------------
       end function AMPtrradius
 !=======================================================================
 
-c -----------------------------------------------------------------
+!=======================================================================
+! Get AMP density for mode or tracer with index n at gridbox i,j,l
+!=======================================================================
       real*8 function AMPtrdens(i,j,l,n,from_trm_col) result(density)
-!----------------------------------------------------------------------------------------------------------------------
-!     Routine to calculate the actual density per mode
-!----------------------------------------------------------------------------------------------------------------------
-      USE OldTracer_mod, only: trpdens
+!=======================================================================
+      USE OldTracer_mod, only: trpdens,trname
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: ntmAMPi, ntm, trm, trm_col
-      USE AERO_CONFIG, ONLY: NMODES
+      USE TRACER_COM, only: ntmAMPi, trm, trm_col
 
       IMPLICIT NONE
-      Integer :: i,j,l,n,x,nAMP
-      real*8, dimension(:), allocatable :: trpdens_local
+      integer, intent(in) :: i,j,l,n
       logical, intent(in) :: from_trm_col
+      real*8, dimension(:), allocatable :: masses,volumes
+      real*8 :: totmass,totvol,sulfratio
+      integer :: x,nAMP
 
-      allocate(trpdens_local(NTM))
-      do x=1,NTM
-        trpdens_local(x)=trpdens(x)
-      enddo
- 
       nAMP=n-ntmAMPi+1
-      density=0.d0
-      if(AMP_MODES_MAP(nAMP).gt.0) then
+      if(AMP_MODES_MAP(nAMP) > 0) then ! for tracers in a mode
+        allocate(masses(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
+        allocate(volumes(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
         if (from_trm_col) then
-          density=
-     &    sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &    trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     &   / (sum(trm_col(l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+          do x=AMP_trm_nm1(nAMP),AMP_trm_nm2(nAMP)
+            masses(x)=trm_col(l,x)
+            volumes(x)=trm_col(l,x)/trpdens(x)
+          enddo
         else
-          density=
-     &    sum(trpdens_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) * 
-     &    trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) 
-     &   / (sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))) + 1.0D-30)
+          do x=AMP_trm_nm1(nAMP),AMP_trm_nm2(nAMP)
+            masses(x)=trm(i,j,l,x)
+            volumes(x)=trm(i,j,l,x)/trpdens(x)
+          enddo
         endif
-      else
+        totmass=sum(masses)
+        totvol=sum(volumes)
+        if (totvol > 0.d0) then
+          density=totmass/totvol
+        else
+          density=trpdens(n) ! just a value to use when totvol is zero
+        endif
+        deallocate(masses)
+        deallocate(volumes)
+      else ! for tracers not belonging to a mode
         density=trpdens(n)
       endif
-      if (density.le.0) density=trpdens_local(AMP_MODES_MAP(nAMP))
-
-      deallocate(trpdens_local)
-
-      RETURN
+!=======================================================================
       END function AMPtrdens
+!=======================================================================
 
-c -----------------------------------------------------------------
+!=======================================================================
+! Get AMP molecular mass for mode or tracer with index n at gridbox i,j,l
+!=======================================================================
       real*8 function AMPtrmass(i,j,l,n) result(trmass)
-!----------------------------------------------------------------------------------------------------------------------
-!     Routine to calculate the actual molecular mass per mode
-!----------------------------------------------------------------------------------------------------------------------
-      USE OldTracer_mod, only: tr_mm
+!=======================================================================
+      USE OldTracer_mod, only: tr_mm,trname
       USE AmpTracersMetadata_mod, only: AMP_MODES_MAP, AMP_trm_nm1,
      *  AMP_trm_nm2
-      USE TRACER_COM, only: ntmAMPi, ntm, trm
-      USE AERO_CONFIG, ONLY: NMODES
+      USE TRACER_COM, only: ntmAMPi, trm
 
       IMPLICIT NONE
-      Integer :: i,j,l,n,x,nAMP
-      real*8, dimension(:), allocatable :: tr_mm_local
-      real*8 :: trsum
-
-      allocate(tr_mm_local(NTM))
-      do x=1,NTM 
-        tr_mm_local(x)=tr_mm(x)
-      enddo
+      integer, intent(in) :: i,j,l,n
+      real*8, dimension(:), allocatable :: masses,moles
+      real*8 :: totmass,totmol,sulfratio
+      integer :: x,nAMP
 
       nAMP=n-ntmAMPi+1
-      trmass=tr_mm_local(n) ! default, for tracers not belonging to a mode
-      if(AMP_MODES_MAP(nAMP) > 0) then
-        trsum=sum(trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
-        if (trsum > 0.) then
-          trmass=sum(tr_mm_local(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP))
-     &               *trm(i,j,l,AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)) )
-     &           /trsum
+      if(AMP_MODES_MAP(nAMP) > 0) then ! for tracers in a mode
+        allocate(masses(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
+        allocate(moles(AMP_trm_nm1(nAMP):AMP_trm_nm2(nAMP)))
+        do x=AMP_trm_nm1(nAMP),AMP_trm_nm2(nAMP)
+          masses(x)=trm(i,j,l,x)
+          moles(x)=trm(i,j,l,x)/tr_mm(x)
+        enddo
+        totmass=sum(masses)
+        totmol=sum(moles)
+        if (totmol > 0.d0) then
+          trmass=totmass/totmol
+        else
+          trmass=tr_mm(n) ! just a value to use when totmol is zero
         endif
+        deallocate(masses)
+        deallocate(moles)
+      else ! for tracers not belonging to a mode
+        trmass=tr_mm(n)
       endif
-
-      deallocate(tr_mm_local)
-
-      RETURN
+!=======================================================================
       END function AMPtrmass
+!=======================================================================
 
       subroutine alloc_tracer_amp_com(grid)
 !@SUM  To alllocate arrays whose sizes now need to be determined
