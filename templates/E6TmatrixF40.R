@@ -1,7 +1,7 @@
 E6TmatrixF40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm MATRIX tracers
 
-E6TomaF40: Same as E6F40, with MATRIX tracers and computed aerosol
-           indirect effect, including Shindell chemistry
+E6TmatrixF40: Same as E6F40, with MATRIX tracers and computed aerosol
+              indirect effect, including Shindell chemistry
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
