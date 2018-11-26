@@ -1613,7 +1613,7 @@ c        END DO
         DO J=J_0, J_1
           DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              atmice%HSICNV(I,J)=RSI(I,J)*SUM(MHS(3+LMI:2+2*LMI,I,J)) -
+              atmice%HSICNV(I,J)=RSI(I,J)*SUM(MHS(3+LMI:4+2*LMI,I,J)) -
      -                              ATMICE%HSICNV(I,J)
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)

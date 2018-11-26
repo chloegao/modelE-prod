@@ -595,7 +595,7 @@ contains
         AMP_trm_nm2(nAMP)=0
       case default
         if (itr==0) then
-          itr=ntm_chem+nAMP
+          itr=n
         endif
         AMP_trm_nm1(nAMP)=itr
         select case (trname_curr(1:2))
@@ -603,7 +603,7 @@ contains
           itr=0 ! reset for next mode
           do nn=1,nAMP
             if (AMP_trm_nm1(nn)==AMP_trm_nm1(nAMP)) then
-              AMP_trm_nm2(nn)=ntm_chem+nAMP-1
+              AMP_trm_nm2(nn)=n-1
             endif
           enddo
         end select
