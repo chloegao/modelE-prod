@@ -97,7 +97,11 @@
      &         'nBBsource>0 for ',trim(trname(n)),' do_fire=t'
           call stop_model('nBBsource do_fire conflict',13)
         else
-          call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
+          if (nBBsources(n) > ntsurfsrc(n)) then
+            call stop_model('nBBsources > ntsurfsrc',255)
+          else
+            call set_ntsurfsrc(n, ntsurfsrc(n)-nBBsources(n))
+          endif
         end if
       end if
 
