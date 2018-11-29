@@ -3461,6 +3461,7 @@ C**** Calculate operators for tridiagonal solver
 
       DO L=1,LMIJ-1
         FL(L)=K(L)*(DTBYDZ(L+1)*U(L+1)-DTBYDZ(L)*U(L))*BYDZ2(L)
+     &       -DT*GHAT(L) ! include nonlocal part
       END DO
 C****
       RETURN

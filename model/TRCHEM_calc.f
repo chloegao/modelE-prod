@@ -258,21 +258,33 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
       do L=1,maxL
         prod(nn_CO,L)=prod(nn_CO,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_CO,L)
-     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
 #if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
         prod(nn_dC17O,L)=prod(nn_dC17O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
-     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
         prod(nn_dC18O,L)=prod(nn_dC18O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
-     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
         prod(nn_d13CO,L)=prod(nn_d13CO,L)
 #ifdef TRACERS_dCO
      &    -0.63d0*chemrate(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
 #elif defined(TRACERS_dCOlite)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
-     &    -0.64d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
