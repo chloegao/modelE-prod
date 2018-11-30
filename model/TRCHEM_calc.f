@@ -26,7 +26,8 @@ C
 #endif
       use OldTracer_mod, only: vol2mass, mass2vol
 #ifdef TRACERS_dCO
-      use tracers_dCO, only: d17O2_to_O2, d18O2_to_O2
+      use tracers_dCO, only: R_17O_16O
+      use tracers_dCO, only: R_18O_16O
 #endif  /* TRACERS_dCO */
       USE TRACER_COM, only  : ntm_chem_beg, ntm_chem_end, ntm_chem,
 #ifdef TRACERS_dCO
@@ -262,7 +263,7 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
 #ifdef TRACERS_TERP
      &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif /* TRACERS_TERP */
-#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+#if defined(TRACERS_dCO)
         prod(nn_dC17O,L)=prod(nn_dC17O,L)
      &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
      &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
@@ -276,15 +277,32 @@ c HCHO, Alkenes, and CO per rxn, correct here following Houweling:
      &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif /* TRACERS_TERP */
         prod(nn_d13CO,L)=prod(nn_d13CO,L)
-#ifdef TRACERS_dCO
      &    -0.63d0*chemrate(rrbi%d13Calke_O3__dH13CHO_d13CO,L)
-#elif defined(TRACERS_dCOlite)
-     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
-#endif  /* TRACERS_dCO || TRACERS_dCOlite */
      &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
 #ifdef TRACERS_TERP
      &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
 #endif /* TRACERS_TERP */
+#elif defined(TRACERS_dCOlite)
+#ifdef TRACERS_dCO_bin_reprod
+        prod(nn_dC17O,L)=prod(nn_dC17O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC17O,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
+        prod(nn_dC18O,L)=prod(nn_dC18O,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_dC18O,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
+        prod(nn_d13CO,L)=prod(nn_d13CO,L)
+     &    -0.63d0*chemrate(rrbi%Alkenes_O3__HCHO_d13CO,L)
+     &    +0.36d0*chemrate(rrbi%Isoprene_O3__HCHO_Alkenes,L)
+#ifdef TRACERS_TERP
+     &    +0.36d0*chemrate(rrbi%Terpenes_O3__HCHO_Alkenes,L)
+#endif /* TRACERS_TERP */
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
         prod(nn_HCHO,L)=prod(nn_HCHO,L)
@@ -890,7 +908,7 @@ c       Check for equilibrium:
 c       Set value for d17Oald:
 !ok to overwrite here Aldehydeprod,Aldehydedest,changeAldehyde
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.11d0*d17O2_to_O2
+     &      *y(nOH,L)*0.11d0*R_17O_16O
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
      &    +rr(rrbi%d17OROR_M__d17Oald_HO2,L)*y(nM,L)*yd17OROR(L,I,J)
      &      *1.1d0
@@ -917,7 +935,7 @@ c       Check for equilibrium:
 
 c       Set value for d18Oald:
         Aldehydeprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.11d0*d18O2_to_O2
+     &      *y(nOH,L)*0.11d0*R_18O_16O
      &    +rr(rrbi%Alkenes_OH__HCHO_HO2,L)*y(nn_Alkenes,L)*y(nOH,L)
      &    +rr(rrbi%d18OROR_M__d18Oald_HO2,L)*y(nM,L)*yd18OROR(L,I,J)
      &      *1.1d0
@@ -986,7 +1004,7 @@ c       Set value for ROR:
 ! ok ot overwrite RORprod,RORdest
 c       Set value for d17OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.76d0*d17O2_to_O2
+     &      *y(nOH,L)*0.76d0*R_17O_16O
         RORdest=(0.98d0*rr(rrbi%d17OROR_M__d17Oald_HO2,L)
      &    +rr(rrbi%d17OROR_M__HO2_M,L))*y(nM,L)
         if(RORdest > 0.d0)then
@@ -998,7 +1016,7 @@ c       Set value for d17OROR:
 
 c       Set value for d18OROR:
         RORprod=rr(rrbi%Paraffin_OH__HO2_M,L)*y(nn_Paraffin,L)
-     &      *y(nOH,L)*0.76d0*d18O2_to_O2
+     &      *y(nOH,L)*0.76d0*R_18O_16O
         RORdest=(0.98d0*rr(rrbi%d18OROR_M__d18Oald_HO2,L)
      &    +rr(rrbi%d18OROR_M__HO2_M,L))*y(nM,L)
         if(RORdest > 0.d0)then
@@ -2669,14 +2687,19 @@ c       skip same reaction if written twice:
 !@var dCOrrtri_i First dCO trimolecular reaction in JPLRX
 !@var dCOrrtri_e Last dCO trimolecular reaction in JPLRX
       integer :: dCOrrbi_i,dCOrrbi_e,dCOrrtri_i,dCOrrtri_e,
-     &           dCOrji,dCOrje
+     &           dCOrj_i,dCOrj_e
 
 #ifdef TRACERS_dCO
       dCOrrbi_i=rrbi%O1D_CH4__OH_dCH317O2
       dCOrrbi_e=rrbi%Terpenes_NO3__HO2_d13Calke
 #elif defined(TRACERS_dCOlite)
+#ifdef TRACERS_dCO_bin_reprod
       dCOrrbi_i=rrbi%dC17O_OH__HO2_O2
       dCOrrbi_e=rrbi%Alkenes_O3__HCHO_d13CO
+#else
+      dCOrrbi_i=rrbi%CH4_OH__dC17O_M
+      dCOrrbi_e=rrbi%d13CO_OH__HO2_O2
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
       if (dCOrrbi_e-dCOrrbi_i+1 /= n_bi_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
@@ -2685,29 +2708,34 @@ c       skip same reaction if written twice:
 #ifdef TRACERS_dCO
       dCOrrtri_i=rrtri%dC217O3_NO2__d17OPAN_M
       dCOrrtri_e=rrtri%d13C2O3_NO2__d13CPAN_M
+#elif defined(TRACERS_dCOlite)
+      dCOrrtri_i=0
+      dCOrrtri_e=dCOrrtri_i-1
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       if (dCOrrtri_e-dCOrrtri_i+1 /= n_tri_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'trimolecular reactions', 255)
-#elif defined(TRACERS_dCOlite)
-      dCOrrtri_i=0
-      dCOrrtri_e=0
-#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 #ifdef TRACERS_dCO
-      dCOrji=rj%dHCH17O__dC17O_H2
-      dCOrje=rj%d13Cald__HCHO_CO
+      dCOrj_i=rj%dHCH17O__dC17O_H2
+      dCOrj_e=rj%d13Cald__HCHO_CO
 #elif defined(TRACERS_dCOlite)
-      dCOrji=rj%HCHO__dC17O_H2
-      dCOrje=rj%Aldehyde__HCHO_d13CO
+#ifdef TRACERS_dCO_bin_reprod
+      dCOrj_i=rj%HCHO__dC17O_H2
+      dCOrj_e=rj%Aldehyde__HCHO_d13CO
+#else
+      dCOrj_i=0
+      dCOrj_e=dCOrj_i-1
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
-      if (dCOrje-dCOrji+1 /= n_rj_dCO)
+      if (dCOrj_e-dCOrj_i+1 /= n_rj_dCO)
      &  call stop_model('ERROR: Check the first and last dCO '//
      &                  'photolysis reactions', 255)
 
       is_dCO_reaction=.false.
       if (maxval(npdnrs)==n_rj) then ! photolysis
-        if ((npdnrs(ireac) >= dCOrji).and.
-     &      (npdnrs(ireac) <= dCOrje)) then
+        if ((npdnrs(ireac) >= dCOrj_i).and.
+     &      (npdnrs(ireac) <= dCOrj_e)) then
           is_dCO_reaction=.true.
         endif
       else                           ! thermal

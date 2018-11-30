@@ -708,6 +708,7 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
                 zj(L,inss)=zj(L,inss)*windowN2Ocorr
               end if
 #ifdef TRACERS_dCO
+
 #ifndef TRACERS_dCO_bin_reprod
             else if(inss == rj%d17Oald__dHCH17O_CO
      &         .or. inss == rj%d17Oald__HCHO_dC17O
@@ -1479,7 +1480,8 @@ C -- CO --
           taijls(i,j,L,ijlt_COd)=taijls(i,j,L,ijlt_COd)+changeCO
      *         *cpd/DTsrc
         end if
-#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+#if defined(TRACERS_dCO) || \
+    (defined(TRACERS_dCOlite) && defined(TRACERS_dCO_bin_reprod))
 C -- dC17O --
 #ifdef TRACERS_dCO
         changeL(L,n_dC17O)=rdHCH17OplusNO3*pfactor*vol2mass(n_dC17O)
@@ -1513,7 +1515,7 @@ C -- d13CO --
           changeL(l,n_d13CO) = minKG - trm_col(l,n_d13CO)
           changed13CO=changeL(L,n_d13CO)*mass2vol(n_d13CO)*bypfactor
         endif
-#endif  /* TRACERS_dCO || TRACERS_dCOlite */
+#endif  /* TRACERS_dCO || (TRACERS_dCOlite && TRACERS_dCO_bin_reprod) */
 C -- HNO3 --  (HNO3 from gas and het phase rxns )
         changeL(L,n_HNO3)=changeHNO3*pfactor*vol2mass(n_HNO3)
         IF((trm_col(L,n_HNO3)+changeL(L,n_HNO3)) < minKG) THEN
@@ -2660,6 +2662,9 @@ C**** GLOBAL parameters and variables:
      & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet,
      & so4_offline
 
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+      use TRACERS_dCO, only: dCO_fact
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
 #ifdef TRACERS_TERP
@@ -2753,13 +2758,7 @@ C**** Local parameters and variables and arguments:
      &           ) then
 !           based on three-parameters from JPL2011
             rr(jj,L)=rr(jj,L)*(tl(L)**0.667)
-          else if (jj==rrbi%CO_OH__HO2_O2
-#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
-     &        .or. jj==rrbi%dC17O_OH__HO2_O2
-     &        .or. jj==rrbi%dC18O_OH__HO2_O2
-     &        .or. jj==rrbi%d13CO_OH__HO2_O2
-#endif  /* TRACERS_dCO || TRACERS_dCOlite */
-     &           ) then
+          else if (jj==rrbi%CO_OH__HO2_O2) then
 !           based on termolecular reaction from JPL2011
 !           (see pages 185-188 and note D1)
             k0TM=y(nM,L)*pe(jj)*((300.d0*bytl)**1.4)
@@ -2848,6 +2847,123 @@ C**** Local parameters and variables and arguments:
 #endif  /* TRACERS_ACETONE */
           end if
         end do                ! bimolecular rates end
+#if defined(TRACERS_dCO) || defined (TRACERS_dCOlite)
+#ifdef TRACERS_dCOlite
+#ifndef TRACERS_dCO_bin_reprod
+        rr(rrbi%CH4_OH__dC17O_M,L)=
+     &    rr(rrbi%CH4_OH__H2O_CH3O2,L)*
+     &      dCO_fact%CH4_OH__dC17O_M
+        rr(rrbi%Isoprene_OH__dC17O_M,L)=
+     &    rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_OH__dC17O_M
+        rr(rrbi%Isoprene_O3__dC17O_M,L)=
+     &    rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_O3__dC17O_M
+        rr(rrbi%Isoprene_NO3__dC17O_M,L)=
+     &    rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Isoprene_NO3__dC17O_M
+        rr(rrbi%Alkenes_OH__dC17O_M,L)=
+     &    rr(rrbi%Alkenes_OH__HCHO_HO2,L)*
+     &      dCO_fact%Alkenes_OH__dC17O_M
+        rr(rrbi%Alkenes_O3__dC17O_M,L)=
+     &    rr(rrbi%Alkenes_O3__HCHO_CO,L)*
+     &      dCO_fact%Alkenes_O3__dC17O_M
+        rr(rrbi%Alkenes_NO3__dC17O_M,L)=
+     &    rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*
+     &      dCO_fact%Alkenes_NO3__dC17O_M
+        rr(rrbi%Paraffin_OH__dC17O_M,L)=
+     &    rr(rrbi%Paraffin_OH__HO2_M,L)*
+     &      dCO_fact%Paraffin_OH__dC17O_M
+        rr(rrbi%Terpenes_OH__dC17O_M,L)=
+     &    rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_OH__dC17O_M
+        rr(rrbi%Terpenes_O3__dC17O_M,L)=
+     &    rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_O3__dC17O_M
+        rr(rrbi%Terpenes_NO3__dC17O_M,L)=
+     &    rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Terpenes_NO3__dC17O_M
+
+        rr(rrbi%CH4_OH__dC18O_M,L)=
+     &    rr(rrbi%CH4_OH__H2O_CH3O2,L)*
+     &      dCO_fact%CH4_OH__dC18O_M
+        rr(rrbi%Isoprene_OH__dC18O_M,L)=
+     &    rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_OH__dC18O_M
+        rr(rrbi%Isoprene_O3__dC18O_M,L)=
+     &    rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_O3__dC18O_M
+        rr(rrbi%Isoprene_NO3__dC18O_M,L)=
+     &    rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Isoprene_NO3__dC18O_M
+        rr(rrbi%Alkenes_OH__dC18O_M,L)=
+     &    rr(rrbi%Alkenes_OH__HCHO_HO2,L)*
+     &      dCO_fact%Alkenes_OH__dC18O_M
+        rr(rrbi%Alkenes_O3__dC18O_M,L)=
+     &    rr(rrbi%Alkenes_O3__HCHO_CO,L)*
+     &      dCO_fact%Alkenes_O3__dC18O_M
+        rr(rrbi%Alkenes_NO3__dC18O_M,L)=
+     &    rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*
+     &      dCO_fact%Alkenes_NO3__dC18O_M
+        rr(rrbi%Paraffin_OH__dC18O_M,L)=
+     &    rr(rrbi%Paraffin_OH__HO2_M,L)*
+     &      dCO_fact%Paraffin_OH__dC18O_M
+        rr(rrbi%Terpenes_OH__dC18O_M,L)=
+     &    rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_OH__dC18O_M
+        rr(rrbi%Terpenes_O3__dC18O_M,L)=
+     &    rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_O3__dC18O_M
+        rr(rrbi%Terpenes_NO3__dC18O_M,L)=
+     &    rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Terpenes_NO3__dC18O_M
+
+        rr(rrbi%CH4_OH__d13CO_M,L)=
+     &    rr(rrbi%CH4_OH__H2O_CH3O2,L)*
+     &      dCO_fact%CH4_OH__d13CO_M
+        rr(rrbi%Isoprene_OH__d13CO_M,L)=
+     &    rr(rrbi%Isoprene_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_OH__d13CO_M
+        rr(rrbi%Isoprene_O3__d13CO_M,L)=
+     &    rr(rrbi%Isoprene_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Isoprene_O3__d13CO_M
+        rr(rrbi%Isoprene_NO3__d13CO_M,L)=
+     &    rr(rrbi%Isoprene_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Isoprene_NO3__d13CO_M
+        rr(rrbi%Alkenes_OH__d13CO_M,L)=
+     &    rr(rrbi%Alkenes_OH__HCHO_HO2,L)*
+     &      dCO_fact%Alkenes_OH__d13CO_M
+        rr(rrbi%Alkenes_O3__d13CO_M,L)=
+     &    rr(rrbi%Alkenes_O3__HCHO_CO,L)*
+     &      dCO_fact%Alkenes_O3__d13CO_M
+        rr(rrbi%Alkenes_NO3__d13CO_M,L)=
+     &    rr(rrbi%Alkenes_NO3__HCHO_NO2,L)*
+     &      dCO_fact%Alkenes_NO3__d13CO_M
+        rr(rrbi%Paraffin_OH__d13CO_M,L)=
+     &    rr(rrbi%Paraffin_OH__HO2_M,L)*
+     &      dCO_fact%Paraffin_OH__d13CO_M
+        rr(rrbi%Terpenes_OH__d13CO_M,L)=
+     &    rr(rrbi%Terpenes_OH__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_OH__d13CO_M
+        rr(rrbi%Terpenes_O3__d13CO_M,L)=
+     &    rr(rrbi%Terpenes_O3__HCHO_Alkenes,L)*
+     &      dCO_fact%Terpenes_O3__d13CO_M
+        rr(rrbi%Terpenes_NO3__d13CO_M,L)=
+     &    rr(rrbi%Terpenes_NO3__HO2_Alkenes,L)*
+     &      dCO_fact%Terpenes_NO3__d13CO_M
+#endif  /* TRACERS_dCO_bin_reprod */
+#endif  /* TRACERS_dCOlite */
+
+        rr(rrbi%dC17O_OH__HO2_O2,L)=
+     &    rr(rrbi%CO_OH__HO2_O2,L)*
+     &      dCO_fact%dC17O_OH__HO2_O2
+        rr(rrbi%dC18O_OH__HO2_O2,L)=
+     &    rr(rrbi%CO_OH__HO2_O2,L)*
+     &      dCO_fact%dC18O_OH__HO2_O2
+        rr(rrbi%d13CO_OH__HO2_O2,L)=
+     &    rr(rrbi%CO_OH__HO2_O2,L)*
+     &      dCO_fact%d13CO_OH__HO2_O2
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
         ! here we USED TO tune rr for N2O+O(1D)-->N2+O2 and N2O+O(1D)-->NO+NO
 

@@ -227,20 +227,65 @@ c
         integer :: Terpenes_O3__dH13CHO_d13Calke=0
         integer :: Terpenes_NO3__HO2_d13Calke=0
 #elif defined(TRACERS_dCOlite)
+#ifndef TRACERS_dCO_bin_reprod
+        integer :: CH4_OH__dC17O_M=0
+        integer :: Isoprene_OH__dC17O_M=0
+        integer :: Isoprene_O3__dC17O_M=0
+        integer :: Isoprene_NO3__dC17O_M=0
+        integer :: Alkenes_OH__dC17O_M=0
+        integer :: Alkenes_O3__dC17O_M=0
+        integer :: Alkenes_NO3__dC17O_M=0
+        integer :: Paraffin_OH__dC17O_M=0
+        integer :: Terpenes_OH__dC17O_M=0
+        integer :: Terpenes_O3__dC17O_M=0
+        integer :: Terpenes_NO3__dC17O_M=0
+#endif  /*not  TRACERS_dCO_bin_reprod */
         integer :: dC17O_OH__HO2_O2=0
+#ifdef TRACERS_dCO_bin_reprod
         integer :: HCHO_OH__HO2_dC17O=0
         integer :: NO3_HCHO__HNO3_dC17O=0
         integer :: Alkenes_O3__HCHO_dC17O=0
+#endif  /* TRACERS_dCO_bin_reprod */
 
+#ifndef TRACERS_dCO_bin_reprod
+        integer :: CH4_OH__dC18O_M=0
+        integer :: Isoprene_OH__dC18O_M=0
+        integer :: Isoprene_O3__dC18O_M=0
+        integer :: Isoprene_NO3__dC18O_M=0
+        integer :: Alkenes_OH__dC18O_M=0
+        integer :: Alkenes_O3__dC18O_M=0
+        integer :: Alkenes_NO3__dC18O_M=0
+        integer :: Paraffin_OH__dC18O_M=0
+        integer :: Terpenes_OH__dC18O_M=0
+        integer :: Terpenes_O3__dC18O_M=0
+        integer :: Terpenes_NO3__dC18O_M=0
+#endif  /*not  TRACERS_dCO_bin_reprod */
         integer :: dC18O_OH__HO2_O2=0
+#ifdef TRACERS_dCO_bin_reprod
         integer :: HCHO_OH__HO2_dC18O=0
         integer :: NO3_HCHO__HNO3_dC18O=0
         integer :: Alkenes_O3__HCHO_dC18O=0
+#endif  /* TRACERS_dCO_bin_reprod */
 
+#ifndef TRACERS_dCO_bin_reprod
+        integer :: CH4_OH__d13CO_M=0
+        integer :: Isoprene_OH__d13CO_M=0
+        integer :: Isoprene_O3__d13CO_M=0
+        integer :: Isoprene_NO3__d13CO_M=0
+        integer :: Alkenes_OH__d13CO_M=0
+        integer :: Alkenes_O3__d13CO_M=0
+        integer :: Alkenes_NO3__d13CO_M=0
+        integer :: Paraffin_OH__d13CO_M=0
+        integer :: Terpenes_OH__d13CO_M=0
+        integer :: Terpenes_O3__d13CO_M=0
+        integer :: Terpenes_NO3__d13CO_M=0
+#endif  /*not  TRACERS_dCO_bin_reprod */
         integer :: d13CO_OH__HO2_O2=0
+#ifdef TRACERS_dCO_bin_reprod
         integer :: HCHO_OH__HO2_d13CO=0
         integer :: NO3_HCHO__HNO3_d13CO=0
         integer :: Alkenes_O3__HCHO_d13CO=0
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
       end type rrbi_index
 
@@ -336,9 +381,17 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      & n_rj_dCO = 21, ! number of dCO photochemical reactions
 #elif defined(TRACERS_dCOlite)
      & ntm_dCO_nontransp = 0, ! number of non-transported dCO tracers
+#ifdef TRACERS_dCO_bin_reprod
      & n_bi_dCO = 12, ! number of dCO bimolecular reactions
+#else
+     & n_bi_dCO = 36, ! number of dCO bimolecular reactions
+#endif  /* TRACERS_dCO_bin_reprod */
      & n_tri_dCO = 0, ! number of dCO trimolecular reactions
+#ifdef TRACERS_dCO_bin_reprod
      & n_rj_dCO =  9, ! number of dCO photochemical reactions
+#else
+     & n_rj_dCO =  0, ! number of dCO photochemical reactions
+#endif  /* TRACERS_dCO_bin_reprod */
 #else
      & ntm_dCO_nontransp = 0,
      & n_bi_dCO = 0,
@@ -1287,32 +1340,110 @@ C**************  Not Latitude-Dependent ****************************
         case('Terpenes_NO3__HO2_d13Calke')
           rrbi%Terpenes_NO3__HO2_d13Calke=irr
 #elif defined(TRACERS_dCOlite)
+#ifndef TRACERS_dCO_bin_reprod
+        case('CH4_OH__dC17O_M')
+          rrbi%CH4_OH__dC17O_M=irr
+        case('Isoprene_OH__dC17O_M')
+          rrbi%Isoprene_OH__dC17O_M=irr
+        case('Isoprene_O3__dC17O_M')
+          rrbi%Isoprene_O3__dC17O_M=irr
+        case('Isoprene_NO3__dC17O_M')
+          rrbi%Isoprene_NO3__dC17O_M=irr
+        case('Alkenes_OH__dC17O_M')
+          rrbi%Alkenes_OH__dC17O_M=irr
+        case('Alkenes_O3__dC17O_M')
+          rrbi%Alkenes_O3__dC17O_M=irr
+        case('Alkenes_NO3__dC17O_M')
+          rrbi%Alkenes_NO3__dC17O_M=irr
+        case('Paraffin_OH__dC17O_M')
+          rrbi%Paraffin_OH__dC17O_M=irr
+        case('Terpenes_OH__dC17O_M')
+          rrbi%Terpenes_OH__dC17O_M=irr
+        case('Terpenes_O3__dC17O_M')
+          rrbi%Terpenes_O3__dC17O_M=irr
+        case('Terpenes_NO3__dC17O_M')
+          rrbi%Terpenes_NO3__dC17O_M=irr
+#endif  /* not TRACERS_dCO_bin_reprod */
         case('dC17O_OH__HO2_O2')
           rrbi%dC17O_OH__HO2_O2=irr
+#ifdef TRACERS_dCO_bin_reprod
         case('HCHO_OH__HO2_dC17O')
           rrbi%HCHO_OH__HO2_dC17O=irr
         case('NO3_HCHO__HNO3_dC17O')
           rrbi%NO3_HCHO__HNO3_dC17O=irr
         case('Alkenes_O3__HCHO_dC17O')
           rrbi%Alkenes_O3__HCHO_dC17O=irr
+#endif  /* TRACERS_dCO_bin_reprod */
 
+#ifndef TRACERS_dCO_bin_reprod
+        case('CH4_OH__dC18O_M')
+          rrbi%CH4_OH__dC18O_M=irr
+        case('Isoprene_OH__dC18O_M')
+          rrbi%Isoprene_OH__dC18O_M=irr
+        case('Isoprene_O3__dC18O_M')
+          rrbi%Isoprene_O3__dC18O_M=irr
+        case('Isoprene_NO3__dC18O_M')
+          rrbi%Isoprene_NO3__dC18O_M=irr
+        case('Alkenes_OH__dC18O_M')
+          rrbi%Alkenes_OH__dC18O_M=irr
+        case('Alkenes_O3__dC18O_M')
+          rrbi%Alkenes_O3__dC18O_M=irr
+        case('Alkenes_NO3__dC18O_M')
+          rrbi%Alkenes_NO3__dC18O_M=irr
+        case('Paraffin_OH__dC18O_M')
+          rrbi%Paraffin_OH__dC18O_M=irr
+        case('Terpenes_OH__dC18O_M')
+          rrbi%Terpenes_OH__dC18O_M=irr
+        case('Terpenes_O3__dC18O_M')
+          rrbi%Terpenes_O3__dC18O_M=irr
+        case('Terpenes_NO3__dC18O_M')
+          rrbi%Terpenes_NO3__dC18O_M=irr
+#endif  /* not TRACERS_dCO_bin_reprod */
         case('dC18O_OH__HO2_O2')
           rrbi%dC18O_OH__HO2_O2=irr
+#ifdef TRACERS_dCO_bin_reprod
         case('HCHO_OH__HO2_dC18O')
           rrbi%HCHO_OH__HO2_dC18O=irr
         case('NO3_HCHO__HNO3_dC18O')
           rrbi%NO3_HCHO__HNO3_dC18O=irr
         case('Alkenes_O3__HCHO_dC18O')
           rrbi%Alkenes_O3__HCHO_dC18O=irr
+#endif  /* TRACERS_dCO_bin_reprod */
 
+#ifndef TRACERS_dCO_bin_reprod
+        case('CH4_OH__d13CO_M')
+          rrbi%CH4_OH__d13CO_M=irr
+        case('Isoprene_OH__d13CO_M')
+          rrbi%Isoprene_OH__d13CO_M=irr
+        case('Isoprene_O3__d13CO_M')
+          rrbi%Isoprene_O3__d13CO_M=irr
+        case('Isoprene_NO3__d13CO_M')
+          rrbi%Isoprene_NO3__d13CO_M=irr
+        case('Alkenes_OH__d13CO_M')
+          rrbi%Alkenes_OH__d13CO_M=irr
+        case('Alkenes_O3__d13CO_M')
+          rrbi%Alkenes_O3__d13CO_M=irr
+        case('Alkenes_NO3__d13CO_M')
+          rrbi%Alkenes_NO3__d13CO_M=irr
+        case('Paraffin_OH__d13CO_M')
+          rrbi%Paraffin_OH__d13CO_M=irr
+        case('Terpenes_OH__d13CO_M')
+          rrbi%Terpenes_OH__d13CO_M=irr
+        case('Terpenes_O3__d13CO_M')
+          rrbi%Terpenes_O3__d13CO_M=irr
+        case('Terpenes_NO3__d13CO_M')
+          rrbi%Terpenes_NO3__d13CO_M=irr
+#endif  /* not TRACERS_dCO_bin_reprod */
         case('d13CO_OH__HO2_O2')
           rrbi%d13CO_OH__HO2_O2=irr
+#ifdef TRACERS_dCO_bin_reprod
         case('HCHO_OH__HO2_d13CO')
           rrbi%HCHO_OH__HO2_d13CO=irr
         case('NO3_HCHO__HNO3_d13CO')
           rrbi%NO3_HCHO__HNO3_d13CO=irr
         case('Alkenes_O3__HCHO_d13CO')
           rrbi%Alkenes_O3__HCHO_d13CO=irr
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 ! trimolecular reactions

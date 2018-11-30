@@ -29,6 +29,9 @@ C**** GLOBAL parameters and variables:
 #endif  /* TRACERS_dCO */
      &    allowSomeChemReinit,pNO3,topLevelOfChemistry,nfam
      &    ,pCLOx,pCLx,pOClOx,pBrOx,yCl2,yCl2O2,mostRecentNonZeroAlbedo
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+      use TRACERS_dCO, only: dCO_init
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
       IMPLICIT NONE
 
@@ -72,6 +75,11 @@ C Read JPL chemical reactions/rates from unit JPLRX:
 
 ! initialize fastj
       call fastj2_init
+
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+! initialize dCO
+      call dCO_init
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 
 c Set up arrays of reaction numbers involving each molecule:
       call reactn

@@ -256,6 +256,7 @@
         integer :: d13Cald__HCHO_d13CO=0
         integer :: d13Cald__HCHO_CO=0
 #elif defined(TRACERS_dCOlite)
+#ifdef TRACERS_dCO_bin_reprod
         integer :: HCHO__dC17O_H2=0
         integer :: HCHO__dC17O_HO2=0
         integer :: Aldehyde__HCHO_dC17O=0
@@ -267,6 +268,7 @@
         integer :: HCHO__d13CO_H2=0
         integer :: HCHO__d13CO_HO2=0
         integer :: Aldehyde__HCHO_d13CO=0
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
       end type rj_index
 
@@ -2804,6 +2806,7 @@ c Extend climatology to 100 km:
         case('d13Cald__HCHO_CO')
           rj%d13Cald__HCHO_CO=irr
 #elif defined(TRACERS_dCOlite)
+#ifdef TRACERS_dCO_bin_reprod
         case('HCHO__dC17O_H2')
           rj%HCHO__dC17O_H2=irr
         case('HCHO__dC17O_HO2')
@@ -2824,6 +2827,7 @@ c Extend climatology to 100 km:
           rj%HCHO__d13CO_HO2=irr
         case('Aldehyde__HCHO_d13CO')
           rj%Aldehyde__HCHO_d13CO=irr
+#endif  /* TRACERS_dCO_bin_reprod */
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
         case default
           call stop_model('Index for '//trim(reaction)//' missing',255)

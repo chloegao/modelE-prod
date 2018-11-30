@@ -4281,7 +4281,9 @@ c find indices of denominators
       use tracers_dCO, only: dMeOOH_IC_fact
       use tracers_dCO, only: dHCHO_IC_fact
 #endif  /* TRACERS_dCO */
-      use tracers_dCO, only: dCO_IC_fact
+      use tracers_dCO, only: dC17O_IC_fact
+      use tracers_dCO, only: dC18O_IC_fact
+      use tracers_dCO, only: d13CO_IC_fact
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
       USE TRCHEM_Shindell_COM,only: ch4icx,
      &  OxIC,COIC,byO3MULT,fix_CH4_chemistry,
@@ -4882,8 +4884,12 @@ c**** earth
      *       )
           select case (trname(n))
 #if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
-            case ('dC17O','dC18O','d13CO')
-              dICfactor=dCO_IC_fact
+            case ('dC17O')
+              dICfactor=dC17O_IC_fact
+            case ('dC18O')
+              dICfactor=dC18O_IC_fact
+            case ('d13CO')
+              dICfactor=d13CO_IC_fact
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
             case default
               dICfactor=1.d0
