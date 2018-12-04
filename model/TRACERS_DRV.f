@@ -5020,6 +5020,17 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 c
 c Append some denominator fields if necessary
 c
+
+c nothing is using this as a denominator yet, but some fields _could_.
+c      if(any(dname_ijlt(1:k).eq.'airmass')) then
+        k = k + 1
+        ijlt_airmass = k
+        lname_ijlt(k) = 'Air Mass'
+        sname_ijlt(k) = 'airmass'
+        units_ijlt(k) = 'kg/m2/layer'
+        scale_ijlt(k) = 1.
+c      endif
+
       if(any(dname_ijlt(1:k).eq.'clrsky2d')) then
         k = k + 1
         ijlt_clrsky2d = k

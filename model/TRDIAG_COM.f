@@ -250,6 +250,7 @@ C**** TAIJLS 3D special tracer diagnostics
      & ,ijlt_JH2O2,ijlt_prodSO4aq,ijlt_prodSO4gs,ijlt_O3ppbv
      & ,ijlt_O3cmatm
      & ,ijlt_clrsky2d=0
+     & ,ijlt_airmass=0
 !@var ijlt_aH2O aerosol H2O from thermodynamics (ug/m3)
 !@var ijlt_apH aerosol pH from thermodynamics (dimensionless)
       integer :: ijlt_aH2O,ijlt_apH
