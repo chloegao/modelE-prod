@@ -28,7 +28,7 @@
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
      &     taijls => taijls_loc,
-     $     to_conc
+     $     to_conc, ijlt_airmass
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
      *     , taijls => taijls_loc, ijlt_3Dmass
 #endif
@@ -64,6 +64,8 @@ C**** save some basic model diags for weighting
       do l=1,lm
         do j=J_0,J_1
           do i=I_0,imaxj(j)
+            n = ijlt_airmass
+            taijls(i,j,l,n) = taijls(i,j,l,n) + ma(l,i,j)
             call inc_ajl(i,j,l,jl_dpasrc,MA(l,i,j))
             call inc_ajl(i,j,l,jl_dwasrc,MA(l,i,j)*
      &        (qcl(i,j,l)+qci(i,j,l)))

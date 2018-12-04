@@ -4179,12 +4179,22 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 c
 c Append some denominator fields if necessary
 c
+c nothing is using this as a denominator yet, but some fields _could_.
+c      if(any(dname_ijlt(1:k).eq.'airmass')) then
+        ijlt_airmass=
+     &    ijlt_diag(ia=ia_rad,
+     &              sname='airmass',
+     &              lname='Air Mass',
+     &              units='kg/m2/layer')
+c      endif
+
       if(any(dname_ijlt.eq.'clrsky2d')) then
         ijlt_clrsky2d=
      &    ijlt_diag(ia=ia_rad,
      &              sname='clrsky2d',
      &              lname='CLEAR SKY FRACTION',
      &              units='%', power=2)
+
       endif
 
 c find indices of denominators
