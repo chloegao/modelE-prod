@@ -146,6 +146,8 @@ contains
       read( kunit, '(a256)', err=666, end=666 ) bufs
 
       if ( len_trim(bufs) < 1 ) cycle
+      if ( len_trim(bufs) > 255 ) &
+           call stop_model("parse_params: rundeck line too long",255)
 
       bufs = strip_comment( bufs )
       call skip_junk( bufs )

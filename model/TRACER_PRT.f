@@ -27,6 +27,7 @@
 #endif
       USE TRDIAG_COM, only : taijln => taijln_loc, taijn  => taijn_loc,
      *     tij_mass, tij_conc, jlnt_conc, jlnt_mass, tajln => tajln_loc,
+     &     taijls => taijls_loc,
      $     to_conc
 #ifdef SAVE_AEROSOL_3DMASS_FOR_NINT
      *     , taijls => taijls_loc, ijlt_3Dmass
