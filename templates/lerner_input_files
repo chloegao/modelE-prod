@@ -12,11 +12,11 @@
   14CO2_IC_DATA=workshop.14co2                            ! for 14CO2 Oct. 1963
 !
   LINOZ_TABLE=chemtab_solfb_20jun02.txt
-  LO3_Trop_loss=linoz/LOx_IJ_F40_trop_L23 
-  LO3_Trop_prod=linoz/POx_IJ_F40_trop_L23 
+  LO3_Trop_loss=linoz/LOx_IJ_F40_trop_L23.nc 
+  LO3_Trop_prod=linoz/POx_IJ_F40_trop_L23.nc 
 ! LO3_Trop_loss=linoz/LOx_IJ_F102_trop_L52    ! Troposphere ozone chemical loss (Harvard
 ! LO3_Trop_prod=linoz/POx_IJ_F102_trop_L52    ! Troposphere ozone chemical production (Harvard)
-  LINOZ_Dep_vel=linoz/O3dv_144x90.bin         ! Deposition velocity for O3 (Harvard)
+  LINOZ_Dep_vel=linoz/O3dv_144x90.nc          ! Deposition velocity for O3 (Harvard)
   N2O_TABLE=N2Oloss.table                     ! Stratosphere tracer forcing
   CFC11_TABLE=F11loss.table                   ! Stratosphere tracer forcing
   CFCic_Lerner=CFCic_Lerner_144x90            ! 1st layer initial distribution

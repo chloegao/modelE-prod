@@ -414,6 +414,7 @@ C     n_O3=tracer number for linoz O3
       USE CONSTANT, only: mair
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: dtsrc
+      use pario, only:par_open,par_close,read_dist_data
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only: pednl00
       USE TRACER_COM, only: tr_mm
@@ -434,7 +435,11 @@ C**** Harvard troposphere production and loss rates, deposition vel
       real*8, dimension(:,:,:,:), allocatable ::
      &     O3trop_Loss,O3trop_Prod ! (im,jm,lm,12)
       real*8, dimension(:,:,:), allocatable ::
+     &     daily_O3_trop_loss, daily_O3_trop_prod !(im,jm,lm)
+      real*8, dimension(:,:,:), allocatable ::
      &     O3_DepVel !(im,jm,12)
+      real*8, dimension(:,:), allocatable ::
+     &      daily_depvel !(im,jm)
 
       contains
       SUBROUTINE LINOZ_SETUP(n_O3)
@@ -447,9 +452,7 @@ C**** Needed for linoz chemistry
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
       real*8    XPSD,XPSLM1,XPSL
-      real*8, dimension(:,:,:), allocatable :: arr_dummy_3d
-      real*8, dimension(:,:), allocatable :: arr_dummy_2d
-      integer :: i_0,i_1,j_0,j_1
+      integer :: i_0,i_1,j_0,j_1,fid
 
       i_0=grid%i_strt
       i_1=grid%i_stop
@@ -458,11 +461,6 @@ C**** Needed for linoz chemistry
 
       call set_prather_constants
       lmtc = lm-nstrtc
-
-      allocate(arr_dummy_3d(grid%i_strt_halo:grid%i_stop_halo,
-     &                      grid%j_strt_halo:grid%j_stop_halo,lmtc))
-      allocate(arr_dummy_2d(grid%i_strt_halo:grid%i_stop_halo,
-     &                      grid%j_strt_halo:grid%j_stop_halo))
 
       call openunit('LINOZ_TABLE',iu,.false.,.true.)
       read (iu,'(a)')   titlch
@@ -483,10 +481,14 @@ C**** Needed for linoz chemistry
 C****
 C**** Harvard troposphere rate data (L.Mickley)
 C****
-C     Loss rates
-      call openunit('LO3_Trop_loss',iu,.true.,.true.)
+C     Loss Rates 
+      fid = par_open(grid,'LO3_Trop_loss','read')
+      call read_dist_data(grid,fid,'LOx',O3trop_Loss)
+      call par_close(grid,fid)
+
+      do I=I_0,I_1
+      do J=J_0,J_1
       do m = 1,12
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_3d,0)
         ! The natural units for a rate constant like O3trop_loss are 1/s,
         ! but for unknowable reasons the input file is in 1/volume/s
         ! (note the 80-byte title says volume/s, not 1/volume/s). To
@@ -497,29 +499,22 @@ C     Loss rates
         ! interpolation to model layering is performed within the model,
         ! the units should become 1/s.
         do l=1,lmtc
-          O3trop_Loss(i_0:i_1,j_0:j_1,l,m)=
-     &      arr_dummy_3d(i_0:i_1,j_0:j_1,l)*axyp(i_0:i_1,j_0:j_1)
-        enddo
+          O3trop_Loss(I,J,L,m)=O3trop_Loss(I,J,L,m)*axyp(I,J)
       enddo
-      call closeunit(iu)
-
-C     Production rates
-      call openunit('LO3_Trop_prod',iu,.true.,.true.)
-      do m = 1,12
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_3d,0)
-        O3trop_Prod(:,:,1:lmtc,m) = arr_dummy_3d
       enddo
-      call closeunit(iu)
-
-C     Deposition velocities
-      call openunit('LINOZ_Dep_vel',iu,.true.,.true.)
-      do m = 1,12
-        CALL READT_PARALLEL(grid,iu,NAMEUNIT(iu),arr_dummy_2d,0)
-        O3_DepVel(:,:,m) = arr_dummy_2d
       enddo
-      call closeunit(iu)
+      enddo
 
-      deallocate(arr_dummy_3d,arr_dummy_2d)
+C     Production Rates
+      fid = par_open(grid,'LO3_Trop_prod','read')
+      call read_dist_data(grid,fid,'POx',O3trop_Prod)
+      call par_close(grid,fid)
+
+C     Deposition Velocities 
+      fid = par_open(grid,'LINOZ_Dep_vel','read')
+      call read_dist_data(grid,fid,'O3dv',O3_DepVel)
+      call par_close(grid,fid)
+
 
 C**** This code moved from STRT2M to go faster
 c-----------------------------------------------------------------------
@@ -542,6 +537,27 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       return
 
       end SUBROUTINE LINOZ_SETUP
+      subroutine Linoz_daily(mo)
+C**** Assigns values to daily arrays from monthly input files
+C**** Called once per day from TRACERS_DRV
+      use DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
+      integer, intent(IN) :: mo
+      integer :: I_0, I_1, J_0, J_1, I, J, L
+
+      call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
+      I_0 = grid%I_STRT
+      I_1 = grid%I_STOP
+
+      do I=I_0,I_1
+          do J= J_0,J_1
+              daily_depvel(i,j)=O3_DepVel(i,j,mo)
+              do l=1,lmtc
+                  daily_O3_trop_loss(i,j,l)=O3trop_loss(i,j,l,mo)
+                  daily_O3_trop_prod(i,j,l)=O3trop_prod(i,j,l,mo)
+             end do
+          end do
+      end do
+      end subroutine Linoz_daily
       end MODULE LINOZ_CHEM_COM
 
 
@@ -556,7 +572,9 @@ c
       USE CONSTANT, only : grav,rgas
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM, only : trm_col
-      USE LINOZ_CHEM_COM, only: O3trop_Prod,O3trop_Loss,lmtc
+      USE LINOZ_CHEM_COM, only: lmtc,
+     & daily_O3_trop_loss, daily_O3_trop_prod,
+     & O3trop_loss, O3trop_prod
       USE FLUXES, only: tr3Dsource
       implicit none
       integer, intent(in) :: i,j,n,nsp,nsl
@@ -572,8 +590,8 @@ C**** Convert from kg/cm3/s to kg
           tk = t(i,j,l)*pk(l,i,j)            ! Temp in kelvin
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           factor = dtsrc*dz*1.d6    ! for 1/cm3->1/m3
-          rprod = O3trop_Prod(i,j,l,jmon)*factor     ! unit=kg/m2
-          rloss = O3trop_Loss(i,j,l,jmon)*factor*trm_col(l,n)
+          rprod = daily_O3_trop_prod(i,j,l)*factor     ! unit=kg/m2
+          rloss = daily_O3_trop_loss(i,j,l)*factor*trm_col(l,n)
           if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
      *             i,j,l,trm_col(l,n),rprod,rloss,itime
@@ -597,7 +615,7 @@ C**** Deposition from layer 1
 C**** Deposition Velocity is in cm/sec.  Convert to kg
 C****
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE LINOZ_CHEM_COM, only: O3_DepVel
+      USE LINOZ_CHEM_COM, only: daily_depvel
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
       USE ATM_COM, only: t,pmid,pk,pdsig
@@ -626,11 +644,11 @@ c         write(*,*)' pdsig',l,i,j,pdsig(l,i,j)
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           tmsurf = max(0.d0,trm(i,j,l,n)
      *                -trmom(mz,I,J,L,n)+trmom(mzz,I,J,L,n))
-          dmass = -O3_DepVel(i,j,jmon)*tmsurf*dtsrc/(dz*100.)
+          dmass = -daily_depvel(i,j)*tmsurf*dtsrc/(dz*100.)
           if(trm(i,j,l,n) + dmass .lt.0.) then
             write(6,'(a,3i3,2f12.0,3E12.3,i9,e12.3,2f7.1)')
      *      ' Negative O3 from deposition', i,j,l,trm(i,j,l,n),
-     *      dmass,O3_DepVel(i,j,jmon),dz,tmsurf,itime
+     *      dmass,daily_depvel(i,j),dz,tmsurf,itime
      *      ,pdsig(l,i,j),tk,pmid(l,i,j)
             dmass = -trm(i,j,l,n)
 c           trm(i,j,l,n) = 0.d0
@@ -1486,9 +1504,12 @@ C****
      *          TLTZZM(J_0H:J_1H,lm,nctable),
      *          STAT=IER )
 
-      allocate(O3trop_Loss(I_0H:I_1H,J_0H:J_1H,lm,12),
-     &         O3trop_Prod(I_0H:I_1H,J_0H:J_1H,lm,12),
-     &           O3_DepVel(I_0H:I_1H,J_0H:J_1H,12))
+      allocate(O3trop_Loss(I_0H:I_1H,J_0H:J_1H,1:23,1:12),
+     &         O3trop_Prod(I_0H:I_1H,J_0H:J_1H,1:23,1:12),
+     &           O3_DepVel(I_0H:I_1H,J_0H:J_1H,12),
+     &           daily_depvel(I_0H:I_1H,J_0H:J_1H),
+     &         daily_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,lm),
+     &        daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm))
 
       END SUBROUTINE ALLOC_LINOZ_CHEM_COM
 

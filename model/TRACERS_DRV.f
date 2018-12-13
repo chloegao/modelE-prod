@@ -5413,7 +5413,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #ifdef TRACERS_SPECIAL_Lerner
       use tracer_com, only: n_O3,n_CO2,n_CH4
       USE TRACERS_MPchem_COM, only: STRATCHEM_SETUP
-      USE LINOZ_CHEM_COM, only: LINOZ_SETUP
+      USE LINOZ_CHEM_COM, only: LINOZ_SETUP, Linoz_daily
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       use photolysis, only: rad_FL,read_FL
@@ -5550,10 +5550,15 @@ C****
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
-        if (itime.ge.itime_tr0(n_O3)) call linoz_setup(n_O3)
+        if (itime.ge.itime_tr0(n_O3)) then  
+              call linoz_setup(n_O3)
+              call linoz_daily(modelEclock%getMonth())
+        endif 
 
 C**** Initialize tables for Prather StratChem tracers
         call stratchem_setup
+      else 
+          call linoz_daily(modelEclock%getMonth()) 
       end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month
