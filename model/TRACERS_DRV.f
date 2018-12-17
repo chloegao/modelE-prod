@@ -4182,8 +4182,7 @@ c
 c nothing is using this as a denominator yet, but some fields _could_.
 c      if(any(dname_ijlt(1:k).eq.'airmass')) then
         ijlt_airmass=
-     &    ijlt_diag(ia=ia_rad,
-     &              sname='airmass',
+     &    ijlt_diag(sname='airmass',
      &              lname='Air Mass',
      &              units='kg/m2/layer')
 c      endif
