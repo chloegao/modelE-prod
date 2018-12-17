@@ -5552,13 +5552,15 @@ C****
 C**** Initialize tables for linoz
         if (itime.ge.itime_tr0(n_O3)) then  
               call linoz_setup(n_O3)
-              call linoz_daily(modelEclock%getMonth())
+              call linoz_daily(modelEclock%getYear(),
+     &        modelEclock%getDayofYear())
         endif 
 
 C**** Initialize tables for Prather StratChem tracers
         call stratchem_setup
       else 
-          call linoz_daily(modelEclock%getMonth()) 
+          call linoz_daily(modelEclock%getYear(),
+     &    modelEclock%getDayofYear())
       end if  ! not end of day
 
 C**** Prather StratChem tracers and linoz tables change each month

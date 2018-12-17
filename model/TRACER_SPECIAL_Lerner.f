@@ -418,6 +418,7 @@ C     n_O3=tracer number for linoz O3
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only: pednl00
       USE TRACER_COM, only: tr_mm
+      use timestream_mod, only : timestream
       USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
       implicit none
       integer lmtc    !=11 for lm=23
@@ -430,29 +431,33 @@ C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
 !@var PS,F Used in STRT2M
       real*8 PS(lz_lx+1)
 C**** Harvard troposphere production and loss rates, deposition vel
-!@var O3trop_Loss, O3trop_Prod, O3_DepVel: production and loss
-!@+       rates, deposition vel from L. Mickley
-      real*8, dimension(:,:,:,:), allocatable ::
-     &     O3trop_Loss,O3trop_Prod ! (im,jm,lm,12)
+!@var daily_O3_trop_Loss, daily_O3_trop_Prod, daily_DepVel:
+!@+    production and loss rates, deposition vel from L. Mickley
       real*8, dimension(:,:,:), allocatable ::
      &     daily_O3_trop_loss, daily_O3_trop_prod !(im,jm,lm)
-      real*8, dimension(:,:,:), allocatable ::
-     &     O3_DepVel !(im,jm,12)
       real*8, dimension(:,:), allocatable ::
      &      daily_depvel !(im,jm)
+
+      type(timestream) :: DepVel_stream
+      type(timestream) :: Trop_loss_stream
+      type(timestream) :: Trop_prod_stream
 
       contains
       SUBROUTINE LINOZ_SETUP(n_O3)
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
+      use model_com, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
+      use timestream_mod, only : init_stream
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
-      use geom, only : axyp
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
       real*8    XPSD,XPSLM1,XPSL
-      integer :: i_0,i_1,j_0,j_1,fid
+      integer :: i_0,i_1,j_0,j_1
+      integer :: jyear,jday
+
+      call modelEclock%get(year=jyear, dayOfYear=jday)
 
       i_0=grid%i_strt
       i_1=grid%i_stop
@@ -481,40 +486,17 @@ C**** Needed for linoz chemistry
 C****
 C**** Harvard troposphere rate data (L.Mickley)
 C****
-C     Loss Rates 
-      fid = par_open(grid,'LO3_Trop_loss','read')
-      call read_dist_data(grid,fid,'LOx',O3trop_Loss)
-      call par_close(grid,fid)
+C     Deposition Velocities       
+      call init_stream(grid,DepVel_stream,'LINOZ_Dep_vel','O3dv',0d0,
+     & 100000d0,"linm2m",jyear,jday)
 
-      do I=I_0,I_1
-      do J=J_0,J_1
-      do m = 1,12
-        ! The natural units for a rate constant like O3trop_loss are 1/s,
-        ! but for unknowable reasons the input file is in 1/volume/s
-        ! (note the 80-byte title says volume/s, not 1/volume/s). To
-        ! convert to 1/s, apply the gridbox-area part of volume
-        ! immediately here; the vertical length part will be applied
-        ! as instantanous dz in subroutine trop_chem_O3.
-        ! Once this input file is converted to netcdf and vertical
-        ! interpolation to model layering is performed within the model,
-        ! the units should become 1/s.
-        do l=1,lmtc
-          O3trop_Loss(I,J,L,m)=O3trop_Loss(I,J,L,m)*axyp(I,J)
-      enddo
-      enddo
-      enddo
-      enddo
+C     Production Rates        
+      call init_stream(grid,Trop_prod_stream,'LO3_Trop_prod','POx',0d0,
+     & 100000d0,"linm2m",jyear,jday)
 
-C     Production Rates
-      fid = par_open(grid,'LO3_Trop_prod','read')
-      call read_dist_data(grid,fid,'POx',O3trop_Prod)
-      call par_close(grid,fid)
-
-C     Deposition Velocities 
-      fid = par_open(grid,'LINOZ_Dep_vel','read')
-      call read_dist_data(grid,fid,'O3dv',O3_DepVel)
-      call par_close(grid,fid)
-
+C     Loss Rates       
+      call init_stream(grid,Trop_loss_stream,'LO3_Trop_loss','LOx',0d0,
+     & 100000d0,"linm2m",jyear,jday)
 
 C**** This code moved from STRT2M to go faster
 c-----------------------------------------------------------------------
@@ -537,26 +519,45 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       return
 
       end SUBROUTINE LINOZ_SETUP
-      subroutine Linoz_daily(mo)
+      subroutine Linoz_daily(jyear,jday)
 C**** Assigns values to daily arrays from monthly input files
 C**** Called once per day from TRACERS_DRV
       use DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      integer, intent(IN) :: mo
+      use timestream_mod, only: read_stream
+      use geom, only : axyp
+      integer, intent(IN) :: jyear, jday
       integer :: I_0, I_1, J_0, J_1, I, J, L
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
+    
+      call read_stream(grid,DepVel_stream,jyear,jday,
+     & daily_depvel)
 
+      call read_stream(grid,trop_loss_stream,jyear,jday,
+     & daily_O3_trop_loss)
+
+      call read_stream(grid,trop_prod_stream,jyear,jday,
+     & daily_O3_trop_prod)
+
+      do L=1,lmtc
+      do J=J_0,J_1
       do I=I_0,I_1
-          do J= J_0,J_1
-              daily_depvel(i,j)=O3_DepVel(i,j,mo)
-              do l=1,lmtc
-                  daily_O3_trop_loss(i,j,l)=O3trop_loss(i,j,l,mo)
-                  daily_O3_trop_prod(i,j,l)=O3trop_prod(i,j,l,mo)
-             end do
-          end do
-      end do
+        ! The natural units for a rate constant like O3trop_loss are 1/s,
+        ! but for unknowable reasons the input file is in 1/volume/s
+        ! (note the 80-byte title says volume/s, not 1/volume/s). To
+        ! convert to 1/s, apply the gridbox-area part of volume
+        ! immediately here; the vertical length part will be applied
+        ! as instantanous dz in subroutine trop_chem_O3.
+        ! Once this input file is converted to netcdf and vertical
+        ! interpolation to model layering is performed within the model,
+        ! the units should become 1/s.
+          daily_O3_trop_loss(I,J,L)=daily_O3_trop_loss(I,J,L)*axyp(I,J)
+      enddo
+      enddo
+      enddo
+
       end subroutine Linoz_daily
       end MODULE LINOZ_CHEM_COM
 
@@ -573,8 +574,7 @@ c
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM, only : trm_col
       USE LINOZ_CHEM_COM, only: lmtc,
-     & daily_O3_trop_loss, daily_O3_trop_prod,
-     & O3trop_loss, O3trop_prod
+     & daily_O3_trop_loss, daily_O3_trop_prod
       USE FLUXES, only: tr3Dsource
       implicit none
       integer, intent(in) :: i,j,n,nsp,nsl
@@ -1504,10 +1504,7 @@ C****
      *          TLTZZM(J_0H:J_1H,lm,nctable),
      *          STAT=IER )
 
-      allocate(O3trop_Loss(I_0H:I_1H,J_0H:J_1H,1:23,1:12),
-     &         O3trop_Prod(I_0H:I_1H,J_0H:J_1H,1:23,1:12),
-     &           O3_DepVel(I_0H:I_1H,J_0H:J_1H,12),
-     &           daily_depvel(I_0H:I_1H,J_0H:J_1H),
+      allocate(daily_depvel(I_0H:I_1H,J_0H:J_1H),
      &         daily_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,lm),
      &        daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm))
 
