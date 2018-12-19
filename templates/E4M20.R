@@ -15,6 +15,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 !#define TRACERS_ON                  ! include tracers code
 #define NEW_IO
+#define OLD_BCdalbsn
 End Preprocessor Options
 
 Object modules: (in order of decreasing priority)
@@ -27,7 +28,7 @@ IO_DRV                              ! new i/o
 
     ! GISS dynamics
 ATMDYN MOMEN2ND                     ! atmospheric dynamics
-QUS_DRV TQUS_DRV                    ! advection of Q/tracers
+QUS_DRV QUS3D                    ! advection of Q/tracers
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
