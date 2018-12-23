@@ -167,7 +167,7 @@ contains
       ! now check the type of variables
       if ( scan( bufs, '''' ) > 0 ) then
         type = 'c'
-      else if ( scan( bufs, '.' ) > 0 ) then
+      else if ( scan( bufs, '.eEdD' ) > 0 ) then
         type = 'r'
       else
         type = 'i'
