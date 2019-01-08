@@ -41,6 +41,7 @@ Preprocessor Options
 #define DO_MEGAN                    ! include biogenic emissions of species set up for megan
 #define ACETONE_MEGAN   ! Acetone source from MEGAN on
 #define ISOPRENE_MEGAN  ! Isoprene source from MEGAN on
+#define TERPENES_MEGAN  ! Multiple Terpene sources from MEGAN on
 !  OFF #define BIOGENIC_EMISSIONS       ! turns on interactive Isoprene emissions
 !  OFF #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
 !  OFF #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
