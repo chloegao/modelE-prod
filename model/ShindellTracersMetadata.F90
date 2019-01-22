@@ -250,7 +250,7 @@ contains
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
       if (tracers_drydep) then
-        call set_F0(n,  1.4d0)
+        call set_F0(n,  1.4d0*2.5d0) ! 2.5 is tuning
         call set_HSTAR(n,  1.d-2)
       end if
       call set_has_chemistry(n, .true.)

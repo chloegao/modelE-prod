@@ -7,7 +7,7 @@
 c
       USE RESOLUTION, only : im,jm,lm
       USE MODEL_COM, only  : dtsrc,Itime,ItimeI
-      USE CONSTANT, only   : pi, mair, mwat, radian,byavog
+      USE CONSTANT, only   : pi,mair,mwat,radian,byavog,avog,gasc
       USE ATM_COM, only    : MA, byMA, PMID, PK
       USE TRACER_COM, only : trm, ntm_chem
       use OldTracer_mod, only: TR_MM
@@ -293,6 +293,8 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param PSClatS SH latitude limit for PSCs
 !@param PSClatN NH latitude limit for PSCs
 !@param minKG minimum kg for trm before we set to this after change
+!@param kbolt Boltzmann's constant in erg K-1 or (1d-7 J) K-1
+!@param boltAvog8byPi kbolt*avog*8/pi derived quantity used in chemistry
       INTEGER, PARAMETER ::
      & LCOalt =   23,
      & LCH4alt=    6,
@@ -405,8 +407,11 @@ C ----------------------------------------------
      &                      minKG        = 0.d0,
      &                      cfc_pppv     = 1722.d-12,
      &                      n2o_pppv     = 316.3d-9,
-     &                      cfc_rad95    = 794.d-12, 
-     &                      fact_cfc     = cfc_pppv/cfc_rad95
+     &                      cfc_rad95    = 794.d-12,
+     &                      fact_cfc     = cfc_pppv/cfc_rad95,
+     &                      kbolt        = 1.d7*gasc/avog,
+     &                      boltAvog8byPi= kbolt*avog*8.d0/pi
+
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it
 C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
