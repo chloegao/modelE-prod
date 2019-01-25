@@ -1220,7 +1220,9 @@ C**** Update time dependent radiative parameters each day
 #ifdef OLD_BCdalbsn
           call updBCd (albsn_yr)
 #else
-          call updBCdalbsn (albsn_yr,dayofyear)
+          ! as per radiation-code convention, pass -albsn_yr to indicate
+          ! perpetual-year mode
+          call updBCdalbsn (-albsn_yr,dayofyear)
 #endif
         end if
       endif
