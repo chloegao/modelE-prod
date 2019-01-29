@@ -22,7 +22,6 @@ Preprocessor Options
 #define ATM_LAYERING L40        ! 40 layers, top at .1 mb
 #define NEW_IO                  ! new I/O (netcdf) on
 #define IRRIGATION_ON
-#define SWFIX_20151201
 #define MODIS_LAI
 #define NEW_BCdalbsn
 End Preprocessor Options
