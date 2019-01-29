@@ -7,7 +7,6 @@ new template system has been finalized.
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define SWFIX_20151201
 #define MODIS_LAI
 #define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
 #define TRACERS_AGE_OCEAN
