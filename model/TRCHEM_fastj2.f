@@ -153,8 +153,6 @@
       real*8, dimension(nwfastj)       :: wl,fl,qrayl,qbc,fl_dummy,flx
 !@var FL4 single precision for reading e.g. fl array from netcdf 
       real*4, dimension(nwfastj)       :: FL4
-!@var wbin Boundaries of wavelength bins
-      real*8, dimension(nwfastj+1)     :: wbin
 !@var qo2 O2 cross-sections
 !@var qo3 O3 cross-sections
 !@var q1d O3 => O(1D) quantum yield
@@ -2146,6 +2144,7 @@ c Read in T & O3 climatology:
 !@ver  1.0 (based on cheminit0C5_M23p & ds4p_chem_init_M23)
 
       USE constant, only: undef 
+      use RAD_COM, only: s0x
 
       IMPLICIT NONE
 
@@ -2185,6 +2184,7 @@ C Read in spectral data:
       READ(NJ1,102) (WL(IW),IW=1,NWWW)
       if(rad_FL == 0)then ! use offline photon flux values
         READ(NJ1,102) (FL(IW),IW=1,NWWW)
+        FL(1:NWWW)=FL(1:NWWW)*s0x
       else                ! read offline values but don't use them
         READ(NJ1,102) (FL_DUMMY(IW),IW=1,NWWW)
       endif
@@ -2352,7 +2352,7 @@ C Read aerosol phase functions:
 
 C**** GLOBAL parameters and variables:
       USE FILEMANAGER, only: openunit,closeunit
-      USE RAD_COM, only: s0_yr
+      USE RAD_COM, only: s0_yr,s0x
       USE RADPAR, only: icycs0,icycs0f
       USE MODEL_COM, only: modelEClock
 
@@ -2470,7 +2470,7 @@ C**** Local parameters and variables and arguments:
             readLoop: do
               READ(iunit,102,end=101) yearx,(FLX(IW),IW=1,NWWW)
               if(yearx == wantYear) then
-                FL(1:NWWW)=FLX(1:NWWW)
+                FL(1:NWWW)=FLX(1:NWWW)*s0x
               else
                 FL_DUMMY(1:NWWW)=FLX(1:NWWW)
               end if
@@ -2578,7 +2578,7 @@ C**** Local parameters and variables and arguments:
 
           ! read all wavelenghts' photon flux for target year:
           rc=nf_get_vara_real(fid,vid,(/1,iWantYear/),(/NWWW,1/),FL4)
-          FL(:)=dble(FL4(:))
+          FL(:)=dble(FL4(:))*s0x
           if(rc/=nf_noerr)call radn9Stop('reading into FL array',rc)
 
           ! also read certain wavelenghts for the years 1988 and 1991:
