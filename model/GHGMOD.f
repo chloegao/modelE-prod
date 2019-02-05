@@ -299,8 +299,9 @@
         deallocate(o3arr_1)
         deallocate(o3arr_2)
 
-      else
-        call stop_model('incorrect logic searching for O3files B',255)
+        ! The illegal case where O3file2 exists, but O3file does not was
+        ! already tested in the init section and would stop the model.
+        ! If neither file exists, the model is supposed to proceed.
       end if ! cases for O3file and O3file2 existence, block B
 
       return
