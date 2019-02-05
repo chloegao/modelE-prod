@@ -8,7 +8,7 @@
       save
 !@var O3stream interface for reading and time-interpolating O3 files
 !@+   See usage notes in timestream_mod
-      type(timestream) :: O3stream,delta_O3stream
+      type(timestream) :: O3stream,O3stream_2,delta_O3stream
 #ifdef HIGH_FREQUENCY_O3_INPUT
       type(timestream) :: OxHFstream,PSFforO3stream
 #endif
@@ -23,12 +23,14 @@
       integer :: ozone_use_ppm_interp = 1
 
 !@var have_o3_file whether an O3file was specified in the rundeck
-      logical :: have_o3_file
-
+!@var have_o3_file_2 whether an O3file2 was specified in the rundeck
+      logical :: have_o3_file, have_o3_file_2
 !@param NLO3_traditional assumed number of layers in ozone data files.
-      integer, parameter :: NLO3_traditional = 49
-!@var NLO3 number of layers in ozone data files, as read from file.
-      integer :: NLO3 = 0
+      integer, parameter :: NLO3_traditional=49
+!@var NLO3_1 number of layers in O3file
+!@var NLO3_2 number of layers in O3file2
+!@var NLO3 number of layers in merged ozone data file input
+      integer :: NLO3=0, NLO3_1=0, NLO3_2=0
 !@var PLBO3_traditional assumed edge pressures in O3 input file.
       real*8 :: PLBO3_traditional(NLO3_traditional+1) = (/
      *       984d0, 934d0, 854d0, 720d0, 550d0, 390d0, 285d0, 210d0,
@@ -38,15 +40,21 @@
      *        1.d0,  7d-1,  5d-1,  4d-1,  3d-1,  2d-1,  1.5d-1,
      *        1d-1,  7d-2,  5d-2,  4d-2,  3d-2,  2d-2,  1.5d-2,
      *        1d-2,  7d-3,  5d-3,  4d-3,  3d-3,  1d-3,  1d-7/)
-!@var PLBO3 edge pressures in O3 input file, as read from file
-      real*8, allocatable :: PLBO3(:)
+!@var PLBO3_1 pressure edges of layers in the O3file
+!@var PLBO3_2 pressure edges of layers in the O3file2
+!@var PLBO3 pressure edges of layers in merged ozone data file input
+      real*8, allocatable :: PLBO3(:), PLBO3_1(:), PLBO3_2(:) 
 
       REAL*8, dimension(:,:,:), pointer :: o3jday,o3jref
 #ifdef HIGH_FREQUENCY_O3_INPUT
       REAL*8, dimension(:,:,:), pointer :: o3jday_HF_modelLevels
 #endif
       INTEGER :: use_o3_ref=0
-
+!@var f1_start layer starting point for O3file when merging
+!@var f1_stop  layer stopping point for O3file when merging
+!@var f2_start layer starting point for O3file2 when merging
+!@var f2_stop  layer stopping point for O3file2 when merging
+      integer :: f1_start,f1_stop,f2_start,f2_stop
       contains
 
       subroutine UPDO3D(JYEARO,JJDAYO,O3JDAY,O3JREF)
@@ -62,12 +70,12 @@
       integer, intent(in) :: JYEARO,JJDAYO
       real*8, dimension(:,:,:), pointer :: o3jday,o3jref
 
-      integer :: i,j,l,jyearx,fid
+      integer :: i,j,l,jyearx,fid,fid_1,fid_2,p1
       logical, save :: init = .false.
       logical :: cyclic,exists
-      real*8, allocatable :: o3arr(:,:,:)
+      real*8, allocatable :: o3arr(:,:,:),o3arr_1(:,:,:),o3arr_2(:,:,:)
       character(len=6) :: method
-      character(len=32) :: fname1st
+      character(len=32) :: fname1st_1,fname1st_2
 
       integer :: j_0, j_1, i_0, i_1
 
@@ -79,43 +87,148 @@
       if (.not. init) then
         init = .true.
 
+        ! The intention is for O3file to contain O3 for the full range
+        ! of pressure levels needed by the radition code. If a second
+        ! file, O3file2 exists, its O3 will take priority for the levels
+        ! that it provides. In this way, e.g., tracer runs can quickly
+        ! provide new O3 input in file O3file2 without needing to provide
+        ! any ozone from levels above the chemistry. This can be expanded
+        ! in the future, but right now we assume that the top pressure
+        ! edge of O3file2 will match a pressure edge in O3file -- for
+        ! easy merging.
         have_o3_file = file_exists('O3file')
+        have_o3_file_2 = file_exists('O3file2')
 
-        if(have_o3_file) then
+        ! Initialize the timestreams for the O3 data files. For now, we assume
+        ! that the cyclic nature and time interpolation method will be the
+        ! same for both files:
+        cyclic = jyearo < 0
+        call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
+        if(ozone_use_ppm_interp==1)then
+          method = 'ppm'
+        else
+           method = 'linm2m'
+        endif
 
-          ! Initialize the timestream for the O3 data file:
-          cyclic = jyearo < 0
+        ! ------------------------------------------------
+        ! The case where we have an O3file but no O3file2:
+        ! ------------------------------------------------
+        if (have_o3_file .and. (.not. have_o3_file_2)) then
 
-          call sync_param("ozone_use_ppm_interp",ozone_use_ppm_interp)
-          if(ozone_use_ppm_interp==1)then
-            method = 'ppm'
-          else
-            method = 'linm2m'
-          endif
           call init_stream(grid,O3stream,'O3file','O3',
-     &         0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
-          ! query the layering
-          call getname_firstfile(O3stream,fname1st)
-          fid = par_open(grid,trim(fname1st),'read')
-          if(variable_exists(grid,fid,'ple'))then
-            nlo3=get_dimlen(grid,fid,'ple') - 1 ! coord var but one less
-            if(nlo3.ne.get_dimlen(grid,fid,'plm'))call
+     &     0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
+          ! query the layering:
+          call getname_firstfile(O3stream,fname1st_1)
+          fid_1 = par_open(grid,trim(fname1st_1),'read')
+          if(variable_exists(grid,fid_1,'ple'))then
+            nlo3=get_dimlen(grid,fid_1,'ple') - 1 ! coord var but one less
+            if(nlo3.ne.get_dimlen(grid,fid_1,'plm'))call
      &        stop_model('ple/plm dim problem in O3file',255)
             allocate(plbo3(nlo3+1))
-            call read_data(grid,fid,'ple',plbo3,bcast_all=.true.)
+            call read_data(grid,fid_1,'ple',plbo3,bcast_all=.true.)
           else
-            call stop_model('missing ple info in o3file',255)
-          endif
-          call par_close(grid,fid)
-        else
+            call stop_model('missing ple info in O3file',255)
+          end if
+          call par_close(grid,fid_1)
+
+          allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
+     &                       grid%j_strt:grid%j_stop))
+          o3jday = 0.
+
+        ! --------------------------------------------------
+        ! The case where we have both an O3file and O3file2:
+        ! --------------------------------------------------
+        else if (have_o3_file .and. have_o3_file_2) then
+
+          call init_stream(grid,O3stream,'O3file','O3',
+     &     0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
+          call init_stream(grid,O3stream_2,'O3file2','O3',
+     &     0d0,1d30,trim(method),jyearx,jjdayo,cyclic=cyclic)
+
+          ! query the layering of both files:
+          call getname_firstfile(O3stream,fname1st_1)
+          call getname_firstfile(O3stream_2,fname1st_2)
+
+          fid_1 = par_open(grid,trim(fname1st_1),'read')
+          fid_2 = par_open(grid,trim(fname1st_2),'read')
+
+          if(variable_exists(grid,fid_1,'ple'))then
+            nlo3_1=get_dimlen(grid,fid_1,'ple') - 1 ! coord var but one less
+            if(nlo3_1.ne.get_dimlen(grid,fid_1,'plm'))call
+     &        stop_model('ple/plm dim problem in O3file',255)
+            allocate(plbo3_1(nlo3_1+1))
+            call read_data(grid,fid_1,'ple',plbo3_1,bcast_all=.true.)
+          else
+            call stop_model('missing ple info in O3file',255)
+          end if
+          call par_close(grid,fid_1)
+
+          if(variable_exists(grid,fid_2,'ple'))then
+            nlo3_2=get_dimlen(grid,fid_2,'ple') - 1 ! coord var but one less
+            if(nlo3_2.ne.get_dimlen(grid,fid_2,'plm'))call
+     &        stop_model('ple/plm dim problem in O3file2',255)
+            allocate(plbo3_2(nlo3_2+1))
+            call read_data(grid,fid_2,'ple',plbo3_2,bcast_all=.true.)
+          else
+            call stop_model('missing ple info in O3file2',255)
+          end if
+          call par_close(grid,fid_2)
+
+          ! Look for pressure edge in O3file that matches top of O3file2
+          ! to determine where merged array should begin using O3file
+          ! values:
+          f1_stop=-1
+          do p1=1,nlo3_1
+            if (plbo3_1(p1) .eq. plbo3_2(nlo3_2+1)) then
+              f1_start=p1
+              f2_stop=nlo3_2
+              f1_stop=nlo3_1
+              f2_start=1
+            end if
+          end do
+          ! If above level choices become more complex, please
+          ! add more if-checks here to avoid out-of-bounds indicies:
+          if (f1_stop .ne. nlo3_1) then
+            write(6,*) "plbo3_1: ",plbo3_1(:)
+            write(6,*) "plbo3_2: ",plbo3_2(:)
+            call stop_model('Incompatable levels: O3file, O3file2',255)
+          end if
+
+          nlo3 = (f2_stop-f2_start)+1+(f1_stop-f1_start)+1
+          allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
+     &                         grid%j_strt:grid%j_stop))
+          o3jday = 0.
+          allocate(plbo3(nlo3+1))
+
+          ! Merge PLBO3 data:
+          do L = f2_start,f2_stop
+            PLBO3(L)=PLBO3_2(L)
+          end do
+          do L = f1_start,(f1_stop+1)
+            PLBO3(L)=PLBO3_1(L)
+          end do
+
+        ! -------------------------------------------------------
+        ! Illegal case where O3file2 exists, but O3file does not:
+        ! -------------------------------------------------------
+        else if ((.not. have_o3_file) .and. have_o3_file_2) then
+          call stop_model('O3file2 found without O3file.',255)
+
+        ! -----------------------------------
+        ! We have neither O3file nor O3file2:
+        ! -----------------------------------
+        else if ((.not. have_o3_file) .and. (.not. have_o3_file_2)) then
+
           nlo3=nlo3_traditional
           allocate(plbo3(nlo3+1))
           plbo3(:)=plbo3_traditional(:)
-        endif
+          allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
+     &                         grid%j_strt:grid%j_stop))
+          o3jday = 0.
 
-        allocate(o3jday(nlo3,grid%i_strt:grid%i_stop,
-     &                       grid%j_strt:grid%j_stop))
-        o3jday = 0.
+        else
+          call stop_model('incorrect logic searching for O3files A',255)
+        end if ! cases for O3file and O3file2 existence, block A
 
         allocate(o3jref(nlo3_traditional,grid%i_strt:grid%i_stop,
      &                                   grid%j_strt:grid%j_stop))
@@ -146,20 +259,49 @@
           deallocate(o3arr) ! note quick deallocation as will be resized below
         endif
 
-      endif  ! end init
+      end if  ! End of init
 
-      if(have_o3_file)then
+
+      ! Update Ozone:
+
+      ! The case where we have an O3file but no O3file2:
+      if( have_o3_file .and. (.not. have_o3_file_2) ) then
         allocate(o3arr(grid%i_strt_halo:grid%i_stop_halo, ! resizing
      &                 grid%j_strt_halo:grid%j_stop_halo,nlo3))
-
         call read_stream(grid,O3stream,jyearx,jjdayo,o3arr)
         do j=j_0,j_1
-        do i=i_0,i_1
-          O3JDAY(:,I,J)=O3ARR(I,J,:)
-        enddo
-        enddo
+          do i=i_0,i_1
+            O3JDAY(:,I,J)=O3ARR(I,J,:)
+          end do
+        end do
         deallocate(o3arr)
-      endif ! there is an o3file
+
+      ! The case where we have both an O3file and O3file2:
+      else if( have_o3_file .and. have_o3_file_2) then
+        allocate(o3arr_1(grid%i_strt_halo:grid%i_stop_halo, ! resizing
+     &                 grid%j_strt_halo:grid%j_stop_halo,nlo3_1))
+        allocate(o3arr_2(grid%i_strt_halo:grid%i_stop_halo, ! resizing
+     &                 grid%j_strt_halo:grid%j_stop_halo,nlo3_2))
+        call read_stream(grid,O3stream,  jyearx,jjdayo,o3arr_1)
+        call read_stream(grid,O3stream_2,jyearx,jjdayo,o3arr_2)
+
+        ! fill in OJDAY by merging the two files:
+        do j=j_0,j_1
+          do i=i_0,i_1
+            do L=f2_start,f2_stop
+              O3JDAY(L,I,J)=O3ARR_2(I,J,L)
+            end do
+            do L=f1_start,f1_stop
+              O3JDAY(L,I,J)=O3ARR_1(I,J,L)
+            end do
+          end do
+        end do
+        deallocate(o3arr_1)
+        deallocate(o3arr_2)
+
+      else
+        call stop_model('incorrect logic searching for O3files B',255)
+      end if ! cases for O3file and O3file2 existence, block B
 
       return
       end subroutine UPDO3D
