@@ -473,10 +473,12 @@ c**** replicate values at pole
       end if
 
 C**** Cold start
-      if (istart.le.2 .and. file_exists('GIC')) then
+      if (istart.le.2) then
+       if(file_exists('GIC')) then
         fid = par_open(grid,'GIC','read')
         call new_io_ocean (fid,ioread)
         call par_close(grid,fid)
+       end if
       end if
 
 c**** set fluxed arrays for oceans
