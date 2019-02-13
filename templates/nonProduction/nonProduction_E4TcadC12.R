@@ -7,7 +7,6 @@ This is for faster testing of tracer code, not scrutinized for "science" purpose
 
 Preprocessor Options
 #define NEW_IO                   ! new I/O (netcdf) on
-#define SWFIX_20151201
 #define NO_HDIURN                ! exclude hdiurn diagnostics
 #define OLD_BCdalbsn
 ! OFF  #define MODIS_LAI
