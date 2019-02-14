@@ -1295,7 +1295,6 @@ C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
      *     FAW(I,J))*ASI-DXYP(J)*(FASI(I,J-1)+FASI(I,J))))
      *    / (DXYP(J) + (FAW(I,J-1)-FAW(I,J)))
       RSI(I,J)  = ASI*BYFOA(I,J)
-      IF( RSI(I,J) > 1.d0  ) RSI(I,J) = 1.d0 ! avoid to round off
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + (FXSI(I,J-1)-FXSI(I,J))*BYFOA(I,J)
       IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
