@@ -23,7 +23,6 @@ Object modules:
      ! resolution-specific source codes
 Atm144x90                  ! horizontal resolution is 144x90 -> 2x2.5deg
 AtmL40                      ! vertical resolution is 40 layers -> 0.1mb
-DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 ORES_2Hx2 OFFT144E                  ! ocean horiz res 2x2.5deg
 

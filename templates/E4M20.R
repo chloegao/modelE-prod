@@ -22,7 +22,7 @@ Object modules: (in order of decreasing priority)
      ! resolution-specific source codes
 Atm72x46                   ! horizontal resolution is 72x46 -> 4x5deg
 AtmL20 STRAT_DUM          ! vertical resolution is 20 layers -> 0.1mb
-DIAG_RES_M FFT72   
+FFT72   
 
 IO_DRV                              ! new i/o
 

@@ -23,7 +23,7 @@ STACKSIZE=524288
 Object modules: (in order of decreasing priority)
 AtmCS32                           ! 32 Cube-Sphere Grid
 AtmL20 STRAT_DUM                 ! vertical resolution is 20 layers -> 0.1mb
-DIAG_RES_M FFTW_COM       
+FFTW_COM       
 MODEL_COM GEOM_CS IO_DRV            ! model variables and geometry
 !GNOM_CS                            ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver

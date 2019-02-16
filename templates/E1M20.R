@@ -20,7 +20,7 @@ End Preprocessor Options
 Object modules: (in order of decreasing priority)
 Atm72x46                          ! horizontal resolution is 72x46 -> 4x5deg
 AtmL20 STRAT_DUM                  ! vertical resolution is 20 layers -> 10mb
-DIAG_RES_M FFT72                    ! 
+FFT72                    ! 
 MODEL_COM GEOM_B IO_DRV              ! model variables and geometry
 TRIDIAG                             ! tridiagonal matrix solver
 MODELE                              ! Main and model overhead
@@ -255,7 +255,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! example of change of VERTICAL layering                    E1M20 -> E1M12
 !            ---------------------------                             =====
 !     replace in "Object modules" (resolution) line 1 by
-! RES_M12 DIAG_RES_M FFT72
+! RES_M12 FFT72
 !     replace section in "Data input files" AIC by
 ! AIC=AIC.RES_M12.D771201   ! observed init cond   (atm. only)       ISTART=2
 ! In &&PARAMETERS : Retune U00a/U00b if necessary
@@ -265,7 +265,7 @@ nssw=2          ! until diurnal diagn. are fixed, nssw should be even
 ! example of change of HORIZONTAL grid                      E1M20 -> E1F12
 !            -------------------------                               =====
 !     replace in "Object modules" (resolution) line 1 by
-! RES_F12 DIAG_RES_F FFT144
+! RES_F12 FFT144
 !     replace all files in "Data input files", sections 1 and 2
 !     M->F 72X46->144X90 72x46->144x90 e.g.
 ! AIC=AIC.RES_F12.D771201    ! obs.atm. init cond (needs GIC); use ISTART=2

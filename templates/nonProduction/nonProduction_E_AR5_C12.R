@@ -12,7 +12,6 @@ Object modules:
      ! resolution-specific source codes
 Atm36x24                     ! horizontal resolution is 36x24 -> 8x10
 AtmL12 STRAT_DUM             ! vertical resolution is 12 layers -> 10mb
-DIAG_RES_M
 FFT36                         ! Fast Fourier Transform
 
 IO_DRV                              ! new i/o

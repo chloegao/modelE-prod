@@ -23,7 +23,7 @@ STACKSIZE=524288
 Object modules: (in order of decreasing priority)
 AtmCS90                           ! 90 Cube-Sphere Grid
 AtmL40                             ! vertical resolution is 40 layers -> 0.1mb
-DIAG_RES_M FFTW_COM   
+FFTW_COM   
 MODEL_COM IO_DRV                     ! model variables and geometry
 GNOM_CS                             ! GNOMONIC cubed sphere geometry
 TRIDIAG                             ! tridiagonal matrix solver

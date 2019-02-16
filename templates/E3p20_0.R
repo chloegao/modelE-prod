@@ -47,7 +47,6 @@ SNOW_DRV SNOW                       ! snow model
 RAD_COM RAD_DRV RADIATION           ! radiation modules
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_RES_M                          ! diagnostics (resolution dependent)
       FFT72                         ! utilities
 POUT                                ! post-processing output
 

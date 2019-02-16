@@ -41,7 +41,6 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS GHGMOD ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_RES_M                          ! ESMF
       FFT72                         ! utilities
 POUT                                ! post-processing output
 hycom |$(R8) -O2 | OCEAN_hycom|$(R8) -O2 | ! ocean driver

@@ -231,7 +231,6 @@ c      INTEGER, PARAMETER, public :: NDIUVAR=73+16+16+100+40+40+40+40
 !@+                    default=0 (off)
       INTEGER, public :: adiurn_dust=0
 !@dbparam IJDD,NAMDD (i,j)-coord.,names of boxes w/diurnal cycle diag
-!@+       defaults set in DIAG_RES (depends on resolution)
       INTEGER, DIMENSION(2,NDIUPT), public :: IJDD
       CHARACTER*4, DIMENSION(NDIUPT), public :: NAMDD
 !@dbparam LLDD (lon,lat)-coords (deg) of boxes w/diurnal cycle diag

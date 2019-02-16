@@ -39,7 +39,6 @@ RAD_COM RAD_DRV RADIATION           ! radiation modules
 RAD_UTILS GHGMOD ALBEDO READ_AERO          ! radiation and albedo
 DIAG_COM DIAG DEFACC DIAG_PRT       ! diagnostics
 DIAG_ZONAL GCDIAGb                  ! grid-dependent code for lat-circle diags
-DIAG_RES_C                          ! diagnostics (resolution dependent)
       FFT36                         ! utilities
 POUT                                ! post-processing output
 

@@ -7,7 +7,7 @@ Grid_M20 = RundeckSection(
     name("Grid" ),
     obj_files_text("""
      ! resolution-specific source codes
-RES_M20AT DIAG_RES_M          ! horiz/vert resolution, 4x5deg, 20 layers -> 0.1mb
+RES_M20AT                          ! horiz/vert resolution, 4x5deg, 20 layers -> 0.1mb
 FFT72                              ! Fast Fourier Transform
 """ )
     )
@@ -16,7 +16,6 @@ Grid_F40 = RundeckSection(
     name("Grid" ),
     obj_files_text("""
 RES_stratF40                        ! horiz/vert resolution, 2x2.5, top at 0.1mb, 40 layers
-DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
 """ )
     )
