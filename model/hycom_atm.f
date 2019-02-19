@@ -18,6 +18,7 @@
      .     ,aemnp_loc,aicemlt_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc
+     .     ,awork1_loc
 
 #ifdef TRACERS_GASEXCH_ocean  /* TNL iserted this line */
       public atracflx_loc
@@ -30,6 +31,7 @@
      .     ,aflxa2o_loc,aemnp_loc,aicemlt_loc,aice_loc,asalt_loc
      .     ,austar_loc,aswflx_loc
      .     ,admui_loc,admvi_loc ! == dmui_loc,dmvi_loc on atm. domain
+     .     ,awork1_loc
 
 #ifdef TRACERS_GASEXCH_ocean /* TNL inserted this line */
       real, ALLOCATABLE, DIMENSION(:,:,:) :: atracflx_loc
@@ -62,6 +64,7 @@
      &     asalt_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     austar_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     aswflx_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
+     &     awork1_loc(aI_0H:aI_1H,aJ_0H:aJ_1H),
      &     admui_loc(aI_0H:aI_1H,aJ_0H:aJ_1H), ! temporary
      &     admvi_loc(aI_0H:aI_1H,aJ_0H:aJ_1H)  ! temporary
      &     )

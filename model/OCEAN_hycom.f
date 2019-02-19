@@ -169,7 +169,7 @@ c     call findmx(ip,saln,ii,ii,jj,'ini sss')
         do ia=aI_0,aI_1
           if (atmocn%focean(ia,ja).gt.0.) then
             if (nstep0.eq.0 .and. atmocn%sss(ia,ja).le.1.) then
-              write(*,'(a,2i3,3(a,f6.1))')'chk low saln at agcm ',ia,ja,
+              write(*,'(a,2i3,3(a,f6.2))')'chk low saln at agcm ',ia,ja,
      &             ' sss=',atmocn%sss(ia,ja),
      &             ' sst=',atmocn%gtemp(ia,ja),
      &             ' focean=',atmocn%focean(ia,ja)

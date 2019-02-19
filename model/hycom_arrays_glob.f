@@ -161,6 +161,7 @@ cddd      public msk
       public sflxcum
       public hflxcum
       public odhsi
+      public odmsi
       public omlhc
       public dmfz
       public taux
@@ -288,6 +289,7 @@ c    .,thkice(:,:)			! grid-cell avg. ice thknss (cm)
 c    .,covice(:,:)			! ice coverage (rel.units)
 c    .,temice(:,:)			! ice surf.temp.
      .,odhsi(:,:)			! heat borrowed from frozen
+     .,odmsi(:,:)			! mass corresponding to odhsi
      .,omlhc(:,:)
      .,dmfz(:,:)            ! ice mass due to freezing
 c
@@ -455,6 +457,7 @@ c
       call unpack_data( ogrid,  sflxcum, sflxcum_loc )
       call unpack_data( ogrid,  hflxcum, hflxcum_loc )
       call unpack_data( ogrid,  odhsi, odhsi_loc )
+      call unpack_data( ogrid,  odmsi, odmsi_loc )
       call unpack_data( ogrid,  omlhc, omlhc_loc )
       call unpack_data( ogrid,  dmfz, dmfz_loc )
       call unpack_data( ogrid,  taux, taux_loc )
@@ -604,6 +607,7 @@ c
       call pack_data( ogrid,  sflxcum_loc, sflxcum )
       call pack_data( ogrid,  hflxcum_loc, hflxcum )
       call pack_data( ogrid,  odhsi_loc, odhsi )
+      call pack_data( ogrid,  odmsi_loc, odmsi )
       call pack_data( ogrid,  omlhc_loc, omlhc )
       call pack_data( ogrid,  dmfz_loc, dmfz )
       call pack_data( ogrid,  taux_loc, taux )
@@ -737,6 +741,7 @@ c    .,thkice(idm,jdm)
 c    .,covice(idm,jdm)
 c    .,temice(idm,jdm)
      .,odhsi(idm,jdm)
+     .,odmsi(idm,jdm)
      .,omlhc(idm,jdm)
      .,dmfz(idm,jdm) )
 c
@@ -881,6 +886,7 @@ c
       sflxcum = 0
       hflxcum = 0
       odhsi = 0
+      odmsi = 0
       omlhc = 0
       dmfz = 0
       taux = 0
@@ -1027,6 +1033,7 @@ c
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(sflxcum(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(hflxcum(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odhsi(:,:))
+      write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(odmsi(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(omlhc(:,:))
       write(801,*) 'hycom_arrays_glob.f ',__LINE__,sum(dmfz(:,:))
 c

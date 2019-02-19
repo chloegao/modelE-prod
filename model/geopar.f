@@ -28,13 +28,13 @@ cddd     &     ,iia,jja,idm,jdm, iu,iv,iq
       integer i,j,k,l,n,nn,ia,ib,ja,jb,jp,iu1,iu2,iu3
 c
       logical, intent(in) :: iniOCEAN
-      real realat,sphdis,q,loncor(4),latcor(4)
+      real realat,sphdis,sphrec,q,loncor(4),latcor(4)
       integer idim,jdim,length,iz,jz,nt
       character util(idm*jdm+14)*2,preambl(5)*79
       real*4 real4(idm,jdm),lat4(idm,jdm,4),lon4(idm,jdm,4)
 c --- 'glufac' = regional viscosity enhancement factor
       real, parameter :: glufac=3., zero=0.
-
+      logical:: succes
 c
 c --- read basin depth array
       if (AM_I_ROOT())
@@ -111,14 +111,8 @@ c
         stop '(geopar)'
       end if
       rewind iu2
-      read (iu2) iz,jz,lat4,lon4
+      read (iu2) iz,jz,latij,lonij
       close(iu2)
-c
-      do 8 j=1,jj
-      do 8 n=1,4
-      do 8 i=1,ii
-      latij(i,j,n)=lat4(i,j,n)
- 8    lonij(i,j,n)=lon4(i,j,n)
 c
 c     write (*,*) 'shown below: latitude of vorticity points'
 c     call zebra(latij(1,1,4),idm,ii,jj)
@@ -137,15 +131,15 @@ c
      .                 latij(i,jb,2),lonij(i,jb,2))
 c
       if (i.lt.ii) then
-      scpx(i,j)=sphdis(latij(i  ,j,1),lonij(i  ,j,1),
-     .                 latij(i+1,j,1),lonij(i+1,j,1))
+        scpx(i,j)=sphdis(latij(i  ,j,1),lonij(i  ,j,1),
+     .                   latij(i+1,j,1),lonij(i+1,j,1))
+        loncor(1:2) = (/ lonij(i:i+1:+1,j ,4) /) ! List the 4 lons/lats
+        latcor(1:2) = (/ latij(i:i+1:+1,j ,4) /) ! of cell corners in
+        loncor(3:4) = (/ lonij(i+1:i:-1,jb,4) /) ! counterclockwise order
+        latcor(3:4) = (/ latij(i+1:i:-1,jb,4) /) ! for the area calculation
 #ifdef CUBED_SPHERE
 c Define cell areas using great-circle polygons.
 c In future, will be done for all cases.
-      loncor(1:2) = (/ lonij(i:i+1:+1,j ,4) /) ! List the 4 lons/lats
-      latcor(1:2) = (/ latij(i:i+1:+1,j ,4) /) ! of cell corners in
-      loncor(3:4) = (/ lonij(i+1:i:-1,jb,4) /) ! counterclockwise order
-      latcor(3:4) = (/ latij(i+1:i:-1,jb,4) /) ! for the area calculation
       n = 4
       do nn=1,4  ! check whether this cell is a triangle
         if(abs(loncor(nn)-loncor(1+mod(nn,4))).lt.1d-3 .and.
@@ -158,39 +152,39 @@ c In future, will be done for all cases.
       enddo
       call gc_polyarea(loncor,latcor,n,scp2(i,j))
 #else
-      scp2(i,j)=scpx(i,j)*scpy(i,j)
+        scp2(i,j)=sphrec(latcor,loncor,succes)
 #endif
-      scp2i(i,j)=1./scp2(i,j)
+        scp2i(i,j)=1./scp2(i,j)
       end if
 c
       scuy(i,j)=sphdis(latij(i,j ,4),lonij(i,j ,4),
      .                 latij(i,jb,4),lonij(i,jb,4))
 c
       if (i.gt.1) then
-      scux(i,j)=sphdis(latij(i  ,j,3),lonij(i  ,j,3),
-     .                 latij(i-1,j,3),lonij(i-1,j,3))
-      scu2(i,j)=scux(i,j)*scuy(i,j)
-      scuxi(i,j)=1./scux(i,j)
+        scux(i,j)=sphdis(latij(i  ,j,3),lonij(i  ,j,3),
+     .                   latij(i-1,j,3),lonij(i-1,j,3))
+        scu2(i,j)=scux(i,j)*scuy(i,j)
+        scuxi(i,j)=1./scux(i,j)
       end if
 c
       scvy(i,j)=sphdis(latij(i,j ,3),lonij(i,j ,3),
      .                 latij(i,ja,3),lonij(i,ja,3))
 c
       if (i.lt.ii) then
-      scvx(i,j)=sphdis(latij(i  ,j,4),lonij(i  ,j,4),
-     .                 latij(i+1,j,4),lonij(i+1,j,4))
-      scv2(i,j)=scvx(i,j)*scvy(i,j)
-      scvyi(i,j)=1./scvy(i,j)
+        scvx(i,j)=sphdis(latij(i  ,j,4),lonij(i  ,j,4),
+     .                   latij(i+1,j,4),lonij(i+1,j,4))
+        scv2(i,j)=scvx(i,j)*scvy(i,j)
+        scvyi(i,j)=1./scvy(i,j)
       end if
 c
       scqy(i,j)=sphdis(latij(i,j ,1),lonij(i,j ,1),
      .                 latij(i,ja,1),lonij(i,ja,1))
 c
       if (i.gt.1) then
-      scqx(i,j)=sphdis(latij(i  ,j,2),lonij(i  ,j,2),
-     .                 latij(i-1,j,2),lonij(i-1,j,2))
-      scq2(i,j)=scqx(i,j)*scqy(i,j)
-      scq2i(i,j)=1./scq2(i,j)
+        scqx(i,j)=sphdis(latij(i  ,j,2),lonij(i  ,j,2),
+     .                   latij(i-1,j,2),lonij(i-1,j,2))
+        scq2(i,j)=scqx(i,j)*scqy(i,j)
+        scq2i(i,j)=1./scq2(i,j)
       end if
 c
  56   continue
@@ -227,13 +221,13 @@ c
       do 57 i=ifp(j,l),ilp(j,l)
       ocnvol=ocnvol+depths(i,j)*scp2(i,j)
       area=area+scp2(i,j)
-      if (latij(i,j,3).gt.50.) then		! arctic zone
+      if (latij(i,j,3).gt.40.) then		! arctic zone is 1
         zone(i,j,1)=1.
         zonarea(1)=zonarea(1)+scp2(i,j)
-      else if (latij(i,j,3).lt.-50.) then	! antarctic zone
+      else if (latij(i,j,3).lt.-40.) then	! antarctic zone is 3
         zone(i,j,3)=1.
         zonarea(3)=zonarea(3)+scp2(i,j)
-      else					! remaining area
+      else					! remaining area is 2
         zone(i,j,2)=1.
         zonarea(2)=zonarea(2)+scp2(i,j)
       end if
@@ -596,28 +590,207 @@ c
       return
       end
 c
-      function sphdis(x1,y1,x2,y2)
-c --- dist.(m) between 2 points on sphere, lat/lon (x1,y1) and lat/lon (x2,y2)
-      USE CONSTANT, only: radius,radian    ! radian = pi/180.
-      implicit none
-      real x1,y1,x2,y2,sphdis,ang
-      real x1_rad,x2_rad,ang_rad
+      real function sphdis(lat1,lon1,lat2,lon2)
 c
-      ang=mod(y2-y1+540.,360.)-180.
-      x1_rad=(90-x1)*radian    ! convert degrees to radian
-      x2_rad=(90-x2)*radian    ! convert degrees to radian
-      ang_rad=ang*radian       ! convert degrees to radian
+c --- great-circle distance between 2 points on sphere
+c
+      USE CONSTANT, only: rad_earth => radius,radian    ! radian = pi/180.
+      implicit none
+      real,intent(IN) :: lat1,lon1,lat2,lon2            ! in degrees
+      real onex,oney,onez,twox,twoy,twoz,qq
+      logical, parameter:: vrbos=.false.
+c
+c --- step 1: define vertical unit vectors at the 2 locations
+      onex=cosd(lat1)*cosd(lon1)
+      oney=cosd(lat1)*sind(lon1)
+      onez=sind(lat1)
+      qq=1./sqrt(onex**2+oney**2+onez**2)
+      onex=onex*qq
+      oney=oney*qq
+      onez=onez*qq
 
-      sphdis=radius*acos(min(1.,cos(x1_rad)*cos(x2_rad)
-     .                         +sin(x1_rad)*sin(x2_rad)*cos(ang_rad)))
-      if (sphdis.eq.0.)  sphdis=radius*
-     .  sqrt((x2-x1)**2+(ang*cos(.5*(x1_rad+x2_rad)))**2)*radian
-cdiag if (sphdis.eq.0.) write (*,'(a,2f8.3,2x,2f8.3)')
-cdiag.  'warning - zero distance between lat/lon points',x1,y1,x2,y2
-      sphdis=max(sphdis,1.)
+      twox=cosd(lat2)*cosd(lon2)
+      twoy=cosd(lat2)*sind(lon2)
+      twoz=sind(lat2)
+      qq=1./sqrt(twox**2+twoy**2+twoz**2)
+      twox=twox*qq
+      twoy=twoy*qq
+      twoz=twoz*qq
+
+c --- step 2: get the angle between the 2 vectors from their dot product
+      sphdis=acos(max(-1.,min(1.,onex*twox+oney*twoy+onez*twoz)))
+     .  *rad_earth
+      sphdis=max(1.,sphdis)
+      if (vrbos) print '(a,es11.3,2(3x,a,2f9.3))','sphdis (km):',
+     .  sphdis*6371./rad_earth,'lat1/2:',lat1,lat2,'lon1/2:',lon1,lon2
+
       return
       end
 
+      real function sphtri(rlat,rlon,succes)
+c
+c --- compute area of spherical triangle delineated by 3 lat/lon points.
+c
+      USE CONSTANT, only: rad_earth => radius,radian    ! radian = pi/180.
+      USE HYCOM_SCALARS, only : pi
+      implicit none
+      real   ,intent(IN)  :: rlat(3),rlon(3)		! in degrees
+      logical,intent(OUT) :: succes
+      real vec(3,3),hor1(3),hor2(3),hlfway(3),ang(3),qq
+      integer n,n1,n2
+CTNL  logical, parameter:: vrbos=.true.
+      logical, parameter:: vrbos=.false.
+c
+      if (vrbos) print '(/a,3f10.4)','(sphtri) corner lat:',rlat
+      if (vrbos) print '( a,3f10.4)','(sphtri) corner lon:',rlon
+      succes=.true.
+
+c --- make sure corner points are not fused
+      do n=1,3
+       n1=mod(n,3)+1
+       if ((rlat(n)-rlat(n1))**2+(rlon(n)-rlon(n1))**2.lt.1.e-13) then
+        print '(a,3f10.4)','(sphtri) corner lat:',rlat
+        print '(a,3f10.4)','(sphtri) corner lon:',rlon
+        print '(a,2i3,2a)','corners',n,n1,' are are identical',
+     .    ' -- set area to zero'
+        sphtri=0.
+        return
+       end if
+      end do
+
+c --- step 1: define vertical unit vectors
+      do n=1,3
+       vec(1,n)=cosd(rlat(n))*cosd(rlon(n))
+       vec(2,n)=cosd(rlat(n))*sind(rlon(n))
+       vec(3,n)=sind(rlat(n))
+       qq=1./sqrt(vec(1,n)**2+vec(2,n)**2+vec(3,n)**2)
+       vec(1,n)=vec(1,n)*qq
+       vec(2,n)=vec(2,n)*qq
+       vec(3,n)=vec(3,n)*qq
+      end do
+      if (vrbos) print '(a,3f14.5/(22x,3f14.5))',
+     .   '(sphtri) vert.vectors:',((vec(n1,n),n=1,3),n1=1,3)
+c
+c --- step 2: use double cross product ax(bxc)=b(a.c)-c(a.b) to onstruct
+c --- horizontal vectors tangential to sphere & parallel to edges
+      do n=1,3
+       n1=mod(n,3)+1
+       call vecprod(vec(1,n),vec(1,n1),hlfway)
+       call vecprod(vec(1,n),hlfway,hor1)
+       n2=mod(n+1,3)+1
+       call vecprod(vec(1,n),vec(1,n2),hlfway)
+       call vecprod(vec(1,n),hlfway,hor2)
+       if (vrbos) print '(a,i3/(2es17.4))',
+     .   '(sphtri) horz.vectors, node',n,(hor1(n1),hor2(n1),n1=1,3)
+c
+c --- step 3: use cosine form of dot product to get angle between edge pairs
+       ang(n)=acos(max(-1.,min(1.,
+     .   (hor1(1)*hor2(1)+hor1(2)*hor2(2)+hor1(3)*hor2(3))/
+     .   sqrt((hor1(1)**2+hor1(2)**2+hor1(3)**2)
+     .       *(hor2(1)**2+hor2(2)**2+hor2(3)**2)))))
+      end do
+
+c --- step 4: get area
+      sphtri=(ang(1)+ang(2)+ang(3)-pi)*rad_earth**2
+      if(sphtri.lt.0.) succes=.false.
+      if (vrbos)
+     . print '(a,es13.5,a,3f8.3)','(sphtri) cell area [km^2]:',
+     .  sphtri*(6371./rad_earth)**2,'  angles:',ang(:)*radian
+      return
+      end function sphtri
+c
+c
+      real function sphrec(rlat,rlon,succes)
+c
+c --- compute area of spherical quadrilateral delineated by 4 lat/lon points.
+c --- points must be ordered in either direction around quadrilateral
+c
+      USE CONSTANT, only: rad_earth => radius,radian    ! radian = pi/180.
+      USE HYCOM_SCALARS, only : pi
+      implicit none
+      real   ,intent(INOUT)  :: rlat(4),rlon(4)		! in degrees
+      logical,intent(OUT)    :: succes
+      real vec(3,4),hor1(3),hor2(3),hlfway(3),ang(4),qq,sphtri
+      integer n,n1,n2
+CTNL  logical, parameter:: vrbos=.true.
+      logical, parameter:: vrbos=.false.
+c
+      if (vrbos) print '(a,4f10.4)','(sphrec) corner lat:',rlat
+      if (vrbos) print '(a,4f10.4)','(sphrec) corner lon:',rlon
+      succes=.true.
+
+c --- make sure corner points are not fused
+      do n=1,4
+       n1=mod(n,4)+1
+       if ((rlat(n)-rlat(n1))**2+(rlon(n)-rlon(n1))**2.lt.1.e-13) then
+        if (vrbos) then
+          print '(a,4f10.4)','(sphrec) corner lat:',rlat
+          print '(a,4f10.4)','(sphrec) corner lon:',rlon
+          print '(a,2i3,2a)','corners',n,n1,' are are identical',
+     .    ' -- treat as triangle'
+        end if
+        do n2=min(n,n1),3
+         rlat(n2)=rlat(n2+1)
+         rlon(n2)=rlon(n2+1)
+        end do
+        sphrec=sphtri(rlat,rlon,succes)
+        return
+       end if
+      end do
+
+c --- step 1: define vertical unit vectors
+      do n=1,4
+       vec(1,n)=cosd(rlat(n))*cosd(rlon(n))
+       vec(2,n)=cosd(rlat(n))*sind(rlon(n))
+       vec(3,n)=sind(rlat(n))
+       qq=1./sqrt(vec(1,n)**2+vec(2,n)**2+vec(3,n)**2)
+       vec(1,n)=vec(1,n)*qq
+       vec(2,n)=vec(2,n)*qq
+       vec(3,n)=vec(3,n)*qq
+      end do
+!     if (vrbos) print '(a,4f14.5/(22x,4f14.5))',
+!    .   '(sphrec) vert.vectors:',((vec(n1,n),n=1,4),n1=1,3)
+c
+c --- step 2: use double cross product ax(bxc)=b(a.c)-c(a.b) to onstruct
+c --- horizontal vectors tangential to sphere & parallel to edges
+      do n=1,4
+       n1=mod(n,4)+1
+       call vecprod(vec(1,n),vec(1,n1),hlfway)
+       call vecprod(vec(1,n),hlfway,hor1)
+       n2=mod(n+2,4)+1
+       call vecprod(vec(1,n),vec(1,n2),hlfway)
+       call vecprod(vec(1,n),hlfway,hor2)
+!      if (vrbos) print '(a,i3/(2es17.4))',
+!    .   '(sphrec) horz.vectors, node',n,(hor1(n1),hor2(n1),n1=1,3)
+c
+c --- step 3: use cosine form of dot product to get angle between edge pairs
+       ang(n)=acos(max(-1.,min(1.,
+     .   (hor1(1)*hor2(1)+hor1(2)*hor2(2)+hor1(3)*hor2(3))/
+     .   sqrt((hor1(1)**2+hor1(2)**2+hor1(3)**2)
+     .       *(hor2(1)**2+hor2(2)**2+hor2(3)**2)))))
+       if (abs(ang(n)*radian-90.).gt.5.) succes=.false.
+      end do
+
+c --- step 4: get area
+      sphrec=(ang(1)+ang(2)+ang(3)+ang(4)-2.*pi)*rad_earth**2
+      if(sphrec.lt.0.) succes=.false.
+!     if (vrbos)
+!    .  print '(a,es13.5,a,4f8.3)','(sphrec) cell area [km^2]:',
+!    .  sphrec*(6371./rad_earth)**2,'  angles:',ang(:)*radian
+      return
+      end function sphrec
+c
+c
+      subroutine vecprod(vec1,vec2,vecout)
+! --- cross product of 2 vectors
+      implicit none
+      real,intent(IN)  :: vec1(3),vec2(3)
+      real,intent(OUT) :: vecout(3)
+      vecout(1)=vec1(2)*vec2(3)-vec1(3)*vec2(2)
+      vecout(2)=vec1(3)*vec2(1)-vec1(1)*vec2(3)
+      vecout(3)=vec1(1)*vec2(2)-vec1(2)*vec2(1)
+      return
+      end subroutine vecprod
       subroutine gc_polyarea(lon,lat,n,area)
 !@sum gc_polyarea calculates the area of a polygon on a sphere
 !@+   whose edges are great circles
