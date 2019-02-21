@@ -541,23 +541,6 @@ C**** Called once per day from TRACERS_DRV
       call read_stream(grid,trop_prod_stream,jyear,jday,
      & daily_O3_trop_prod)
 
-      do L=1,lmtc
-      do J=J_0,J_1
-      do I=I_0,I_1
-        ! The natural units for a rate constant like O3trop_loss are 1/s,
-        ! but for unknowable reasons the input file is in 1/volume/s
-        ! (note the 80-byte title says volume/s, not 1/volume/s). To
-        ! convert to 1/s, apply the gridbox-area part of volume
-        ! immediately here; the vertical length part will be applied
-        ! as instantanous dz in subroutine trop_chem_O3.
-        ! Once this input file is converted to netcdf and vertical
-        ! interpolation to model layering is performed within the model,
-        ! the units should become 1/s.
-          daily_O3_trop_loss(I,J,L)=daily_O3_trop_loss(I,J,L)*axyp(I,J)
-      enddo
-      enddo
-      enddo
-
       end subroutine Linoz_daily
       end MODULE LINOZ_CHEM_COM
 
@@ -591,7 +574,7 @@ C**** Convert from kg/cm3/s to kg
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           factor = dtsrc*dz*1.d6    ! for 1/cm3->1/m3
           rprod = daily_O3_trop_prod(i,j,l)*factor     ! unit=kg/m2
-          rloss = daily_O3_trop_loss(i,j,l)*factor*trm_col(l,n)
+          rloss = daily_O3_trop_loss(i,j,l)*trm_col(l,n)
           if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
      *             i,j,l,trm_col(l,n),rprod,rloss,itime
