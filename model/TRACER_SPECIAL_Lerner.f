@@ -435,10 +435,11 @@ C**** Harvard troposphere production and loss rates, deposition vel
 !@+    production and loss rates, deposition vel from L. Mickley
       real*8, dimension(:,:,:), allocatable ::
      &     daily_O3_trop_loss, daily_O3_trop_prod !(im,jm,lm)
+#ifndef LINOZ_TRDRYDEP
       real*8, dimension(:,:), allocatable ::
      &      daily_depvel !(im,jm)
-
       type(timestream) :: DepVel_stream
+#endif  
       type(timestream) :: Trop_loss_stream
       type(timestream) :: Trop_prod_stream
 
@@ -486,10 +487,12 @@ C**** Needed for linoz chemistry
 C****
 C**** Harvard troposphere rate data (L.Mickley)
 C****
+
+#ifndef LINOZ_TRDRYDEP 
 C     Deposition Velocities       
       call init_stream(grid,DepVel_stream,'LINOZ_Dep_vel','O3dv',0d0,
      & 100000d0,"linm2m",jyear,jday)
-
+#endif 
 C     Production Rates        
       call init_stream(grid,Trop_prod_stream,'LO3_Trop_prod','POx',0d0,
      & 100000d0,"linm2m",jyear,jday)
@@ -531,10 +534,11 @@ C**** Called once per day from TRACERS_DRV
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
-    
+
+#ifndef LINOZ_TRDRYDEP     
       call read_stream(grid,DepVel_stream,jyear,jday,
      & daily_depvel)
-
+#endif
       call read_stream(grid,trop_loss_stream,jyear,jday,
      & daily_O3_trop_loss)
 
@@ -598,7 +602,7 @@ C**** Deposition from layer 1
 C**** Deposition Velocity is in cm/sec.  Convert to kg
 C****
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
-      USE LINOZ_CHEM_COM, only: daily_depvel
+      USE LINOZ_CHEM_COM, only: daily_depvel 
       USE RESOLUTION, only: im,jm
       USE MODEL_COM, only: modelEclock,itime,dtsrc
       USE ATM_COM, only: t,pmid,pk,pdsig
@@ -1487,9 +1491,11 @@ C****
      *          TLTZZM(J_0H:J_1H,lm,nctable),
      *          STAT=IER )
 
-      allocate(daily_depvel(I_0H:I_1H,J_0H:J_1H),
-     &         daily_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,lm),
-     &        daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm))
+      allocate(daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm),
+#ifndef LINOZ_TRDRYDEP
+     &         daily_depvel(I_0H:I_1H,J_0H:J_1H),
+#endif 
+     &         daily_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,lm))
 
       END SUBROUTINE ALLOC_LINOZ_CHEM_COM
 

@@ -28,6 +28,9 @@ Preprocessor Options
 #define TRACERS_SPECIAL_Lerner   ! Lerner (Linoz) tracers
 #define TRACERS_PASSIVE          ! Passive tracers
 #define WATER_MISC_GRND_CH4_SRC  ! Ocean, lake, misc. ground sources for CH4
+!#define LINOZ_TRDRYDEP          ! Ozone Deposition scheme from Ent
+!#define TRACERS_DRYDEP          ! Tracers for dry deposition
+
 End Preprocessor Options
 
 Object modules:

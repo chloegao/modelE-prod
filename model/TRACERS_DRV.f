@@ -6244,7 +6244,9 @@ C****
 C**** Linoz Deposition from layer 1
 C****
       case ('O3')
+#ifndef LINOZ_TRDRYDEP
       call linoz_depo(1,n)
+#endif 
 #endif
 C****
 C**** Sources and sinks for 14CO2

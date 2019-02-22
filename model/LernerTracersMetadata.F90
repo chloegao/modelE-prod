@@ -17,7 +17,8 @@ module LernerTracersMetadata_mod
   use OldTracer_mod, only: set_iMPtable
   use OldTracer_mod, only: set_tcscale
   use OldTracer_mod, only: set_has_chemistry
-  use RunTimeControls_mod, only: tracers_special_lerner
+  use RunTimeControls_mod, only: tracers_special_lerner,       & 
+    linoz_trdrydep
   use Tracer_mod, only: Tracer
   implicit none
 
@@ -84,6 +85,10 @@ contains
       n_O3 = n
       call set_ntm_power(n, -8)
       call set_tr_mm(n, 48.d0)
+      if (linoz_trdrydep) then
+      call set_F0(n, 1.4d0)
+      call set_HSTAR(n, 1.d-2)
+      endif
       if (tracers_special_lerner) then
       !**** Get solar variability coefficient from namelist if it exits
         dsol = 0.
