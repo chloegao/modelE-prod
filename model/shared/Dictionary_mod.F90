@@ -90,6 +90,7 @@ module Dictionary_mod
   public is_set_param, sync_param, print_param
   public query_param, print_unused_param
   public :: reset
+  public MAX_CHAR_LEN
 
   ! params
   public :: DICT_TYPE
@@ -671,7 +672,7 @@ contains
     character*(*), intent(in) :: value
     character(len=*), optional, intent(in) :: opt
     character*(MAX_CHAR_LEN) v(1)
-    if ( len(value) > MAX_CHAR_LEN ) then
+    if ( len_trim(value) > MAX_CHAR_LEN ) then
       print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
       call stop_model('PARAM: Char string too long',255)
     endif
@@ -700,9 +701,10 @@ contains
     endif
 
     do n=1,np
-      if ( len(value(n)) > MAX_CHAR_LEN ) then
+      if ( len_trim(value(n)) > MAX_CHAR_LEN ) then
         print *, 'PARAM: Char string too long. MAX = ', MAX_CHAR_LEN
-        print *, 'You submitted LEN = ', len(value(n))
+        print *, 'You submitted LEN = ', len_trim(value(n))
+        print *, 'name = ', name
         call stop_model('PARAM: Char string too long',255)
       endif
     enddo
@@ -718,7 +720,7 @@ contains
     character*(*), intent(in) ::  name
     character*(*), intent(out) ::  value
     character*(*), intent(in), optional :: default
-    character*(MAX_CHAR_LEN) v(1)
+    character(len=len(value)) :: v(1)
 
     if ( present(default) ) then
       call get_acparam( name, v, 1, (/default/) )
@@ -739,12 +741,22 @@ contains
     logical, intent(in), optional :: update_access_flag
     logical :: update_access
     type (ParamStr), pointer :: PStr
+    integer :: maxstrlen, n
+
+    maxstrlen = 0
 
     update_access = .true.
     if (present(update_access_flag) ) update_access = update_access_flag
 
     call get_pstr( name, np, 'c', PStr )
     if ( associated( PStr) ) then
+      do n=PStr%indx, PStr%indx+np-1
+        maxstrlen = max( maxstrlen, len_trim(Cdata(n)) )
+      enddo
+      if ( len(value(1)) < maxstrlen ) then
+        print *, 'PARAM: arg too short for : ', name
+        call stop_model('PARAM: get_acparam arg too short',255)
+      endif
       value(1:np) = Cdata( PStr%indx : PStr%indx+np-1 )
       if ( update_access ) PStr%is_accessed = 'y'
     else if ( present(default) ) then

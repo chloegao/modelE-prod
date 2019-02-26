@@ -132,7 +132,7 @@ contains
     integer np
     integer ivars(MAXDIM)
     real*8 rvars(MAXDIM)
-    character*128 cvars(MAXDIM)
+    character(len=MAX_CHAR_LEN+1) :: cvars(MAXDIM)
 
     ! skip unrelated stuff
     do
