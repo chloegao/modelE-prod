@@ -424,8 +424,8 @@ C     n_O3=tracer number for linoz O3
       integer lmtc    !=11 for lm=23
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
-C****    lz_linoz heights, 18 lats, 12 months, nctable parameters
-      real*8 TLPARM(lz_linoz,18,INT_MONTHS_PER_YEAR,nctable)
+C****    lz_linoz heights, 90 lats, nctable parameters +1, 12 months
+      real*8 TLPARM(lz_linoz,90,nctable+1,INT_MONTHS_PER_YEAR)
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
       real*8 dsol
 !@var PS,F Used in STRT2M
@@ -448,6 +448,7 @@ C**** Harvard troposphere production and loss rates, deposition vel
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       use model_com, only: modelEclock
+      use pario, only : par_open,par_close,read_data
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
       use timestream_mod, only : init_stream
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
@@ -457,7 +458,9 @@ C**** Needed for linoz chemistry
       real*8    XPSD,XPSLM1,XPSL
       integer :: i_0,i_1,j_0,j_1
       integer :: jyear,jday
-
+      integer :: fid 
+      integer :: kk, nn, mm, jj
+      integer :: miss_count, match_count
       call modelEclock%get(year=jyear, dayOfYear=jday)
 
       i_0=grid%i_strt
@@ -468,21 +471,9 @@ C**** Needed for linoz chemistry
       call set_prather_constants
       lmtc = lm-nstrtc
 
-      call openunit('LINOZ_TABLE',iu,.false.,.true.)
-      read (iu,'(a)')   titlch
-      if (AM_I_ROOT()) write(6,'(1x,a)') titlch
-      do n=1,nctable
-        read (iu,'(a)')   titlch
-        if (AM_I_ROOT()) write(6,'(1x,a)') titlch
-        do m=1,INT_MONTHS_PER_YEAR
-          do j=1,18
-            read(iu,'(20x,6e10.3/(8e10.3))')
-     *           (tlparm(k,j,m,n),k=lz_linoz,1,-1)
-          end do
-        end do
-      end do
-      if (AM_I_ROOT()) write(6,'(a)') ' linoz tables read'
-      call closeunit(iu)
+      fid = par_open(grid,'LINOZ_TABLE','read')
+      call read_data(grid,fid,'tlparm',TLPARM,bcast_all=.true.)
+      call par_close(grid,fid)
 
 C****
 C**** Harvard troposphere rate data (L.Mickley)
@@ -785,18 +776,16 @@ C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       jmon = modelEclock%getMonth()
 
-c-------- TLPARM(25,18,12,N) defined for -----------------------------
-c lz_linoz  25 layers from 58 km to 10 km by 2 km intervals
-c            18 LATS (85S, 75S, ...85N)
-c            12 months
-c            N tables = NCTABLE
-c-------- skip interpolating, pick nearest latitude --------------------
+c-------- TLPARM(25,90,8,12) defined for -----------------------------
+c  lz_linoz 25 layers from 58 km to 10 km by 2 km intervals
+c           90 LATS (89S, 87S, ..., 89N)
+c            8 tables = NCTABLE + 1 (8th not used)
+c           12 months
 
       DO N = 1,NCTABLE
       DO J = J_0,J_1
-        JJ = JLATMD(J)
         DO K = 1,lz_linoz
-          STRTX(K) = TLPARM(K,JJ,jmon,N)
+          STRTX(K) = TLPARM(K,J,N,jmon)
         ENDDO
 
 c-------- stratospheric chem occurs in top NSTRTC layers ---------------
