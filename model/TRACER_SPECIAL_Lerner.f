@@ -414,19 +414,18 @@ C     n_O3=tracer number for linoz O3
       USE CONSTANT, only: mair
       USE RESOLUTION, only: im,jm,lm
       USE MODEL_COM, only: dtsrc
-      use pario, only:par_open,par_close,read_dist_data
-      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      USE pario, only:par_open,par_close,read_dist_data
+      USE TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only: pednl00
       USE TRACER_COM, only: tr_mm
-      use timestream_mod, only : timestream
+      USE timestream_mod, only : timestream, init_stream, read_stream
       USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
       implicit none
       integer lmtc    !=11 for lm=23
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
-C****    144 lons, 90 lats,lz_linoz heights, nctable parameters +1, 12 months
-      real*8 TLPARM(144,90,lz_linoz,nctable+1,INT_MONTHS_PER_YEAR)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TLT0M, TLTZM, TLTZZM
+C****    144 lons, 90 lats,lz_linoz heights, nctable parameters +1
+      real*8,dimension(:,:,:,:),allocatable :: TLPARM,TLT0M,TLTZM,TLTZZM
       real*8 dsol
 !@var PS,F Used in STRT2M
       real*8 PS(lz_lx+1)
@@ -442,16 +441,16 @@ C**** Harvard troposphere production and loss rates, deposition vel
 #endif  
       type(timestream) :: Trop_loss_stream
       type(timestream) :: Trop_prod_stream
+      type(timestream) :: TLPARM_STREAM
 
       contains
       SUBROUTINE LINOZ_SETUP(n_O3)
 C**** Needed for linoz chemistry
       USE FILEMANAGER, only: openunit,closeunit,nameunit
-      use model_com, only: modelEclock
-      use pario, only : par_open,par_close,read_data
+      USE model_com, only: modelEclock
       USE DOMAIN_DECOMP_ATM, only: AM_I_ROOT,grid,readt_parallel
-      use timestream_mod, only : init_stream
-      use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
+      USE timestream_mod, only : init_stream
+      USE TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       implicit none
       integer iu,i,j,k,l,m,n,n_O3,nl
       character*80 titlch
@@ -471,9 +470,8 @@ C**** Needed for linoz chemistry
       call set_prather_constants
       lmtc = lm-nstrtc
 
-      fid = par_open(grid,'LINOZ_TABLE','read')
-      call read_data(grid,fid,'tlparm',TLPARM,bcast_all=.true.)
-      call par_close(grid,fid)
+      call init_stream(grid,TLPARM_STREAM,'LINOZ_TABLE','tlparm',-1d5,
+     & 1d5,"linm2m",jyear,jday)
 
 C****
 C**** Harvard troposphere rate data (L.Mickley)
@@ -482,15 +480,15 @@ C****
 #ifndef LINOZ_TRDRYDEP 
 C     Deposition Velocities       
       call init_stream(grid,DepVel_stream,'LINOZ_Dep_vel','O3dv',0d0,
-     & 100000d0,"linm2m",jyear,jday)
+     & 1d5,"linm2m",jyear,jday)
 #endif 
 C     Production Rates        
       call init_stream(grid,Trop_prod_stream,'LO3_Trop_prod','POx',0d0,
-     & 100000d0,"linm2m",jyear,jday)
+     & 1d5,"linm2m",jyear,jday)
 
 C     Loss Rates       
       call init_stream(grid,Trop_loss_stream,'LO3_Trop_loss','LOx',0d0,
-     & 100000d0,"linm2m",jyear,jday)
+     & 1d5,"linm2m",jyear,jday)
 
 C**** This code moved from STRT2M to go faster
 c-----------------------------------------------------------------------
@@ -756,40 +754,44 @@ cc        end if
 c-----------------------------------------------------------------------
       SUBROUTINE linoz_STRATL
 c-----------------------------------------------------------------------
-c-------- monthly fixup of chemistry PARAM'S
+c-------- daily fixup of chemistry PARAM'S
 c
       USE RESOLUTION, only: jm,lm
       USE MODEL_COM, only: modelEclock
+      USE timestream_mod, only: read_stream
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       USE PRATHER_CHEM_COM, only: jlatmd,p0l,NSTRTC
-      USE LINOZ_CHEM_COM, only: nctable,TLPARM,
+      USE LINOZ_CHEM_COM, only: nctable,TLPARM,TLPARM_STREAM,
      *    tlt0m,tltzm,tltzzm,lz_linoz,lz_lx,ps
       implicit none
       real*8  STRT0L(LM),STRT1L(LM),STRT2L(LM),STRTX(lz_linoz)
       real*8 f(lz_lx)
-      integer i,j,jj,k,lr,n,jmon
+      integer i,j,jj,k,lr,n,jyear,jday
 
       INTEGER :: J_1, J_0, I_1, I_0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
-      jmon = modelEclock%getMonth()
+      jyear= modelEclock%getYear()
+      jday = modelEclock%getDayOfYear()
       I_0=grid%i_strt
       I_1=grid%i_stop
 
-c-------- TLPARM(144,90,25,8,12) defined for -----------------------------
-c          144 LONS 
-c           90 LATS
+c-------- TLPARM(144,90,25,8) defined for -----------------------------
+c          144 LONS (distributed)
+c           90 LATS (distributed)
 c  lz_linoz 25 layers from 58 km to 10 km by 2 km intervals
 c            8 tables = NCTABLE + 1 (8th not used)
-c           12 months
+
+      call read_stream(grid,TLPARM_STREAM,jyear,jday,
+     & TLPARM)
 
       DO N = 1,NCTABLE
       DO J = J_0,J_1
       DO I = I_0,I_1
         DO K = 1,lz_linoz
-          STRTX(K) = TLPARM(I,J,K,N,jmon)
+          STRTX(K) = TLPARM(I,J,K,N)
         ENDDO
 
 c-------- stratospheric chem occurs in top NSTRTC layers ---------------
@@ -1483,6 +1485,7 @@ C****
       ALLOCATE(  TLT0M(I_0H:I_1H,J_0H:J_1H,lm,nctable),
      *           TLTZM(I_0H:I_1H,J_0H:J_1H,lm,nctable),
      *          TLTZZM(I_0H:I_1H,J_0H:J_1H,lm,nctable),
+     *  TLPARM(I_0H:I_1H,J_0H:J_1H,lz_linoz,nctable+1),
      *          STAT=IER )
 
       allocate(daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm),
