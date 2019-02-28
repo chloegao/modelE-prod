@@ -118,6 +118,7 @@ c    .,thkice(:,:)                        ! grid-cell avg. ice thknss (cm)
 c    .,covice(:,:)                        ! ice coverage (rel.units)
 c    .,temice(:,:)                        ! ice surf.temp.
      .,odhsi(:,:)                         ! heat borrowed from frozen
+     .,odmsi(:,:)
      .,omlhc(:,:)
      .,dmfz(:,:)                          ! ice mass due to freezing
 c
@@ -257,6 +258,7 @@ c    .,thkice(I_0H:I_1H,J_0H:J_1H)
 c    .,covice(I_0H:I_1H,J_0H:J_1H)
 c    .,temice(I_0H:I_1H,J_0H:J_1H)
      .,odhsi(I_0H:I_1H,J_0H:J_1H)
+     .,odmsi(I_0H:I_1H,J_0H:J_1H)
      .,omlhc(I_0H:I_1H,J_0H:J_1H)
      .,dmfz(I_0H:I_1H,J_0H:J_1H) )
 c
@@ -406,6 +408,7 @@ c
       sflxcum = 0
       hflxcum = 0
       odhsi = 0
+      odmsi = 0
       omlhc = 0
       dmfz = 0
       taux = 0

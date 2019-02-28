@@ -86,6 +86,7 @@ c    .,thkice_loc => thkice
 c    .,covice_loc => covice
 c    .,temice_loc => temice
      .,odhsi_loc => odhsi
+     .,odmsi_loc => odmsi
      .,omlhc_loc => omlhc
      .,dmfz_loc => dmfz
 c
@@ -236,6 +237,7 @@ c
       public sflxcum_loc
       public hflxcum_loc
       public odhsi_loc
+      public odmsi_loc
       public omlhc_loc
       public dmfz_loc
       public taux_loc
