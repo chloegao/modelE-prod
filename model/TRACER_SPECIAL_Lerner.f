@@ -424,9 +424,9 @@ C     n_O3=tracer number for linoz O3
       integer lmtc    !=11 for lm=23
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
-C****    lz_linoz heights, 90 lats, nctable parameters +1, 12 months
-      real*8 TLPARM(lz_linoz,90,nctable+1,INT_MONTHS_PER_YEAR)
-      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: TLT0M, TLTZM, TLTZZM
+C****    144 lons, 90 lats,lz_linoz heights, nctable parameters +1, 12 months
+      real*8 TLPARM(144,90,lz_linoz,nctable+1,INT_MONTHS_PER_YEAR)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TLT0M, TLTZM, TLTZZM
       real*8 dsol
 !@var PS,F Used in STRT2M
       real*8 PS(lz_lx+1)
@@ -647,7 +647,7 @@ c   Strat_chem_O3 applies linearized chemistry based on tables from
 c    PRATMO model using climatological T, O3, time of year
 c-----------------------------------------------------------------------
 c  stratospheric chem occurs in top NSTRTC layers of CTM
-c  TLT0M(J,LR,N) is stored LR from top (=LM) down (=LM+1-NCSTRT)
+c  TLT0M(I,J,LR,N) is stored LR from top (=LM) down (=LM+1-NCSTRT)
 c
 c Stratospheric Chemistry Tables for O3:
 c ======================================
@@ -693,7 +693,7 @@ cc      najl = jls_3Dsource(ns,n)
 c start at top layer and continue to lowest layer for strat. chem
       DO l = lm,lm+1-nstrtc,-1
         LR = LM+1-L
-        if (tlT0M(j,lr,5) == 0.) cycle
+        if (tlT0M(i,j,lr,5) == 0.) cycle
         if (trm_col(l,n).le.0.d0) cycle
 
 c calculate ozone column above box (and save)
@@ -713,16 +713,16 @@ c ****** O3 Chemistry  ******
 c store tracer mass before chemistry
         T0Mold=trm_col(l,n)
 c climatological P-L:
-        climpml = tlT0M(j,lr,4)/mass2vol(n)*MA(l,i,j)
+        climpml = tlT0M(i,j,lr,4)/mass2vol(n)*MA(l,i,j)
 c local ozone feedback:
-        dero3=tlT0M(j,lr,5)
-        climo3 = tlT0M(j,lr,1)/mass2vol(n)*MA(l,i,j)
+        dero3=tlT0M(i,j,lr,5)
+        climo3 = tlT0M(i,j,lr,1)/mass2vol(n)*MA(l,i,j)
 c column ozone feedback:
-        derco3 = tlT0M(j,lr,7)/mass2vol(n)*MA(l,i,j)
-        dco3=(colo3(l)-tlT0M(j,lr,3))
+        derco3 = tlT0M(i,j,lr,7)/mass2vol(n)*MA(l,i,j)
+        dco3=(colo3(l)-tlT0M(i,j,lr,3))
 c temperature feedback: T is potential temp, need to convert
-        dertmp = tlT0M(j,lr,6)/mass2vol(n)*MA(l,i,j)
-        dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(j,lr,2))
+        dertmp = tlT0M(i,j,lr,6)/mass2vol(n)*MA(l,i,j)
+        dtmp=(t(i,j,l)*PK(L,I,J)-tlT0M(i,j,lr,2))
 c define sol.flux. derivative and convert from mixing ratio to mass
 CXXX        dersol = tlT0M(j,lr,8)/mass2vol(n)*MA(l,i,j)
 c calulate steady-state ozone:
@@ -767,25 +767,29 @@ c
       implicit none
       real*8  STRT0L(LM),STRT1L(LM),STRT2L(LM),STRTX(lz_linoz)
       real*8 f(lz_lx)
-      integer j,jj,k,lr,n,jmon
+      integer i,j,jj,k,lr,n,jmon
 
-      INTEGER :: J_1, J_0
+      INTEGER :: J_1, J_0, I_1, I_0
 C****
 C**** Extract useful local domain parameters from "grid"
 C****
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       jmon = modelEclock%getMonth()
+      I_0=grid%i_strt
+      I_1=grid%i_stop
 
-c-------- TLPARM(25,90,8,12) defined for -----------------------------
+c-------- TLPARM(144,90,25,8,12) defined for -----------------------------
+c          144 LONS 
+c           90 LATS
 c  lz_linoz 25 layers from 58 km to 10 km by 2 km intervals
-c           90 LATS (89S, 87S, ..., 89N)
 c            8 tables = NCTABLE + 1 (8th not used)
 c           12 months
 
       DO N = 1,NCTABLE
       DO J = J_0,J_1
+      DO I = I_0,I_1
         DO K = 1,lz_linoz
-          STRTX(K) = TLPARM(K,J,N,jmon)
+          STRTX(K) = TLPARM(I,J,K,N,jmon)
         ENDDO
 
 c-------- stratospheric chem occurs in top NSTRTC layers ---------------
@@ -796,11 +800,12 @@ c
 c-------store loss freq/yields & moments in TLT0M/TLTZM/TLTZZM
 c-------             for exact CTM layers LM down
           DO LR = 1,NSTRTC
-            TLT0M(J,LR,N) = STRT0L(LR)
-            TLTZM(J,LR,N) = STRT1L(LR)
-            TLTZZM(J,LR,N) = STRT2L(LR)
+            TLT0M(I,J,LR,N) = STRT0L(LR)
+            TLTZM(I,J,LR,N) = STRT1L(LR)
+            TLTZZM(I,J,LR,N) = STRT2L(LR)
           ENDDO
-        ENDDO   ! J
+        ENDDO   ! I
+       ENDDO    ! J
       ENDDO     ! N
       return
       END SUBROUTINE linoz_STRATL
@@ -1475,9 +1480,9 @@ C****
       I_0H = GRID%I_STRT_HALO
       I_1H = GRID%I_STOP_HALO
 
-      ALLOCATE(  TLT0M(J_0H:J_1H,lm,nctable),
-     *           TLTZM(J_0H:J_1H,lm,nctable),
-     *          TLTZZM(J_0H:J_1H,lm,nctable),
+      ALLOCATE(  TLT0M(I_0H:I_1H,J_0H:J_1H,lm,nctable),
+     *           TLTZM(I_0H:I_1H,J_0H:J_1H,lm,nctable),
+     *          TLTZZM(I_0H:I_1H,J_0H:J_1H,lm,nctable),
      *          STAT=IER )
 
       allocate(daily_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,lm),
