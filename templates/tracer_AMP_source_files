@@ -4,6 +4,7 @@ TRACERS_AEROSOLS_SEASALT                   ! seasalt
 TRACERS_AEROSOLS_Koch_e4                   ! BC/OC/sulfate
 ! Aerosol MicroPhysics
 TRAMP_drv        | $(EXTENDED_SOURCE) |
+TRAMP_mod        | $(EXTENDED_SOURCE) |
 TRAMP_actv       | $(EXTENDED_SOURCE) |
 TRAMP_diam       | $(EXTENDED_SOURCE) |
 TRAMP_nomicrophysics | $(EXTENDED_SOURCE) |
