@@ -1732,11 +1732,6 @@ subroutine CONDSE
             (dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)) &
             /DTsrc
 #endif /* TRACERS_AEROSOLS_Koch or TRACERS_AMP or TRACERS_TOMAS */
-#ifdef TRACERS_AMP
-            if (trname(n).eq."M_ACC_SU") then
-              AQsulfRATE(l,i,j)=dt_sulf_mc(n,l)*(1.-fssl(l))+dt_sulf_ss(n,l)
-            endif
-#endif
 #ifdef TRACERS_TOMAS
            if (trname(n).eq."ASO4__01") then
               AQSO4oxid_mc(l,i,j) = dt_sulf_mc(n,l)*(1.-fssl(l))

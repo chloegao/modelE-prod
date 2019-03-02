@@ -44,6 +44,9 @@ module CLOUDS
 
 #if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || defined(TRACERS_TOMAS)
   use TRACER_COM, only: aqchem_list,aqchem_count
+#ifdef TRACERS_AMP 
+  use AMP_AEROSOL, only : AQsulfRATE 
+#endif 
 #endif  /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 #else  /* NOT TRACERS_WATER */
@@ -1595,6 +1598,11 @@ CLOUD_TOP:  do L=LMIN+1,LM
               TMP(N)=TMP(N)+SULFIN(iaqch)
               TMOMP(xymoms,N)= TMOMP(xymoms,N)*(1.+SULFINOM(iaqch))
               TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
+#ifdef TRACERS_AMP 
+              if (trname(n).eq."M_ACC_SU") then 
+                AQsulfRATE(l,i_debug,j_debug)=AQsulfRATE(l,i_debug,j_debug)+SULFOUT(iaqch) 
+              endif 
+#endif 
             enddo
 #endif
 #ifdef TOMAS_DEBUG
@@ -2841,6 +2849,11 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
                 TMOM(xymoms,L,N)=TMOM(xymoms,L,N)*(1.+SULFINOM(iaqch))
                 TRPRCP(N)=TRPRCP(N)+SULFINC(iaqch)
                 TRCOND(N,L) = TRCOND(N,L)+SULFOUT(iaqch)
+#ifdef TRACERS_AMP 
+              if (trname(n).eq."M_ACC_SU") then 
+                AQsulfRATE(l,i_debug,j_debug)=AQsulfRATE(l,i_debug,j_debug)+SULFOUT(iaqch) 
+              endif 
+#endif 
               enddo
 #endif
 
@@ -4192,6 +4205,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
         else
           TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
         endif
+#ifdef TRACERS_AMP 
+        if (trname(n).eq."M_ACC_SU") then 
+          AQsulfRATE(l,i_debug,j_debug)=AQsulfRATE(l,i_debug,j_debug)+SULFOUT(iaqch) 
+        endif 
+#endif 
         TR_LEF(n)=TR_LEFT(iaqch)
       enddo
 
@@ -4439,6 +4457,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
             TMOM(:,L,N) =TMOM(:,L,N)*(1.+SULFINOM(iaqch))
             TRWML(N,L)=TRWML(N,L)+SULFINC(iaqch)
             TRWML(N,L) = TRWML(N,L)+SULFOUT(iaqch)
+#ifdef TRACERS_AMP 
+            if (trname(n).eq."M_ACC_SU") then 
+              AQsulfRATE(l,i_debug,j_debug)=AQsulfRATE(l,i_debug,j_debug)+SULFOUT(iaqch) 
+            endif 
+#endif 
             TR_LEF(N)=TR_LEFT(iaqch)
           enddo
 
