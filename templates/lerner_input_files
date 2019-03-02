@@ -11,7 +11,7 @@
   CO2_06=emis_lerner/CO2_2x2.5_Ocean_flux02.nc
   14CO2_IC_DATA=workshop.14co2                            ! for 14CO2 Oct. 1963
 !
-  LINOZ_TABLE=chemtab_solfb_20jun02.txt
+  LINOZ_TABLE=chemtab_solfb_20jun02_interp_new_ij.nc
   LO3_Trop_loss=linoz/LOx_IJ_F40_trop_L23_new.nc
   LO3_Trop_prod=linoz/POx_IJ_F40_trop_L23.nc 
 ! LO3_Trop_loss=linoz/LOx_IJ_F102_trop_L52    ! Troposphere ozone chemical loss (Harvard

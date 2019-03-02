@@ -5,7 +5,7 @@
      .   ,J_0,J_1,J_0H,J_1H
       USE HYCOM_SCALARS, only : baclin,thref,nstep,nstep0
      & ,diagno,area,avgbot,ocnvol,spcifh,g,onem,itest,jtest
-     & ,tmean0,smean0
+     & ,tmean1,smean1
       USE HYCOM_ARRAYS
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT, GLOBALSUM
       implicit none
@@ -51,33 +51,38 @@
       call GLOBALSUM(ogrid,  smeamj,  smeam, all=.true.)
       call GLOBALSUM(ogrid,  smeanj,  smean, all=.true.)
 !
-      if (tmean0 .le. 0.) then
-        tmean0=tmean
-        smean0=smean
+      if (nstep .eq. nstep0+1) then
+        tmean1=tmean
+        smean1=smean
       end if
 
       if( AM_I_ROOT() ) then
        print 100,nstep,text,
      .   tmeam/(ocnvol*onem),smeam/(ocnvol*onem),
      .   tmean/(ocnvol*onem),smean/(ocnvol*onem),
-     .   nint((tmeam-tmean0)/(ocnvol*onem)*1.e10),
-     .   nint((smeam-smean0)/(ocnvol*onem)*1.e10),
-     .   nint((tmean-tmean0)/(ocnvol*onem)*1.e10),
-     .   nint((smean-smean0)/(ocnvol*onem)*1.e10)
+     .   nint((tmeam-tmean1)/(ocnvol*onem)*1.e10),
+     .   nint((smeam-smean1)/(ocnvol*onem)*1.e10),
+     .   nint((tmean-tmean1)/(ocnvol*onem)*1.e10),
+     .   nint((smean-smean1)/(ocnvol*onem)*1.e10)
  100  format (i7,1x,a12,4f15.10/20x,4i15)
 
-      if (h_glb_cum.gt.0.) print '(a20,30x,2i15,f6.1)','srf.fluxes',
-     .nint(h_glb_cum/(ocnvol*onem*spcifh)*1.e10),
-     .nint(s_glb_cum/(ocnvol*onem       )*1.e10)
+c     if (h_glb_cum.gt.0.) then
+        print '(a20,30x,2i15,f6.1)','srf.fluxes',
+     .  nint(h_glb_cum/(ocnvol*onem*spcifh)*1.e10),
+     .  nint(s_glb_cum/(ocnvol*onem       )*1.e10)
 
-c     print '(i9,2(a,2f9.4),a)',nstep,' global mean temp,saln:',
-c    .tmean,smean,'  (initl:',tmean0,smean0,')'
-c     print '(i9,a,2es11.3)',nstep,' global temp,saln drift (deg,psu):',
-c    .tmean-tmean0,smean-smean0
-c     print '(i9,a,2es11.3)',nstep,' srf.flux-induced drift (deg,psu):',
-c    .h_glb_cum*baclin*g/(spcifh*avgbot*onem),
-c    .s_glb_cum*baclin*g/(       avgbot*onem)
-
+      print '(i9,2(a,2f9.4),a)',nstep,' global mean temp,saln:',
+     .tmean/(ocnvol*onem),smean/(ocnvol*onem),
+     .'  (initl:',tmean1/(ocnvol*onem),smean1/(ocnvol*onem),')'
+      print '(i9,a,2es11.3)',nstep,' global temp,saln drift 
+     .(1.e6deg,1.e6psu):',
+     .(tmean-tmean1)*1.e6/(ocnvol*onem),
+     .(smean-smean1)*1.e6/(ocnvol*onem)
+      print '(i9,a,2es11.3)',nstep,' srf.flux-induced drift 
+     .(1.e6deg,1.e6psu):',
+     .h_glb_cum*1.e6/(spcifh*ocnvol*onem),
+     .s_glb_cum*1.e6/(       ocnvol*onem)
+c       end if !h_glb_cum > 0
       end if !AM_I_ROOT
 c
       return

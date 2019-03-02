@@ -4273,7 +4273,7 @@ c find indices of denominators
       USE ATM_COM, only: MA,byMA  ! Air mass of each box (kg m-2)
       USE PBLCOM, only: npbl
 #ifdef TRACERS_SPECIAL_Lerner
-      USE LINOZ_CHEM_COM, only: tlt0m,tltzm, tltzzm
+      USE LINOZ_CHEM_COM, only: tlt0m,tltzm,tltzzm
       USE PRATHER_CHEM_COM, only: nstrtc
 #endif
       USE FILEMANAGER, only: openunit,closeunit,nameunit,is_fbsa
@@ -4631,14 +4631,16 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
           do l=lm,lm+1-nstrtc,-1
           lr = lm+1-l
             do j=J_0,J_1
-            if (tlt0m(j,lr,5) /= 0.) then
+            do i=I_0,I_1
+            if (tlt0m(i,j,lr,5) /= 0.) then
             trm(:,j,l,n) =
-     *          tlt0m(j,lr,1)*MA(l,:,j)*vol2mass(n)
+     *          tlt0m(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
             trmom(mz,:,j,l,n)  =
-     *          tltzm(j,lr,1)*MA(l,:,j)*vol2mass(n)
+     *          tltzm(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
             trmom(mzz,:,j,l,n)  =
-     *         tltzzm(j,lr,1)*MA(l,:,j)*vol2mass(n)
+     *         tltzzm(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
             end if
+            end do
             end do
           end do
 #endif
@@ -5553,21 +5555,23 @@ C**** Initialize tables for linoz
               call linoz_setup(n_O3)
               call linoz_daily(modelEclock%getYear(),
      &        modelEclock%getDayofYear())
+              call linoz_STRATL
         endif 
 
 C**** Initialize tables for Prather StratChem tracers
         call stratchem_setup
       else 
+C**** Update linoz tables each day
           call linoz_daily(modelEclock%getYear(),
      &    modelEclock%getDayofYear())
+          call linoz_STRATL
       end if  ! not end of day
 
-C**** Prather StratChem tracers and linoz tables change each month
-      IF (modelEclock%getMonth().NE.last_month) THEN
-        CALL STRTL  ! one call does all based on n_MPtable_max
-        if (itime.ge.itime_tr0(n_O3)) CALL linoz_STRATL
+C**** Prather StratChem tracers change each month
+      if (modelEclock%getMonth().NE.last_month) then
+        call STRTL  ! one call does all based on n_MPtable_max
         last_month = modelEclock%getMonth()
-      END IF
+      end if 
 
 #endif
 

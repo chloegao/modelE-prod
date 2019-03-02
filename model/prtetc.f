@@ -1009,3 +1009,39 @@ c
         return
 
       end subroutine pr_9x9_distribute
+
+      subroutine prtfld(array,idm,ii,jj,offset,scale,what)
+
+c --- break 'array' into sections, each 'nchar' characters wide, for printing.
+
+      implicit none
+      integer,intent(IN)   :: idm,ii,jj
+      real   ,intent(IN)   :: array(idm,jj),offset,scale
+      character,intent(IN) :: what*(*)
+      real work(idm,jj)
+      integer ncols,i,j,j1,j2,n
+c     integer,parameter :: nchar=76
+      integer,parameter :: nchar=132
+
+      ncols=nchar/4				!  each number gets 4 spaces
+c     ncols=nchar/9				!  each number gets 9 spaces
+      do 1 n=1,jj/ncols+1
+      j1=ncols*(n-1)+1
+      j2=min0(ncols*n,jj)
+      if (j1.gt.j2) go to 1
+      write (*,'(/" Sec.",i2," (cols ",i3,"-",i3,") -- ",a)')
+     .n,j1,j2,what
+c     if (j2.lt.j1+5) then
+c     write (*,*) '(Not printed. Too few columns. Saving paper.'
+c     go to 1
+c     end if
+      do 2 i=1,ii
+      do 3 j=j1,j2
+      work(i,j)=(array(i,j)-offset)*scale
+ 3    continue
+      write (*,'(36i4)') i,(nint(work(i,j)),j=j1,j2) 		!  4 spaces
+c     write (*,'(i4,8es9.2)') i,(array(i,j),j=j1,j2)		!  9 spaces
+ 2    continue
+ 1    continue
+      return
+      end subroutine prtfld
