@@ -1281,6 +1281,9 @@ C****
 #endif
 #ifdef TRACERS_SPECIAL_O18
       write(6,*) '...and water isotope code'
+#ifdef TRACERS_WISO_O17
+      write(6,*) '...with the H217O isotope tracer'
+#endif
 #ifndef TRACERS_WATER
       call stop_model('Water isotope tracers need TRACERS_WATER '//
      *'as well as TRACERS_SPECIAL_O18',255)
