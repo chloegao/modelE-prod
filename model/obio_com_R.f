@@ -87,7 +87,7 @@ c
 #endif
 
       real atmFe_ij,covice_ij
-
+      real, allocatable, DIMENSION(:,:) :: daily_atmFe
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
                                           !in i and j directions
