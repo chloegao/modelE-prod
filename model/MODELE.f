@@ -95,19 +95,19 @@
 !     ISTART=1 (OBSOLETE)
 !         Default start. This sets atmospheric variables to constants
 !         and requires input files for ground values (a GIC file), and
-!         ocean values (OIC) if required.  ISTART=1 may still work – if
+!         ocean values (OIC) if required.  ISTART=1 may still work - if
 !         I remember correctly, it was used a long time ago for
 !         benchmarking when we were asked to submit a version that
 !         needed no input files. It may still be useful for simpler
 !         versions of the model, maybe for a different planet or
-!         simplified earth (e.g. no topography, all desert, …).
+!         simplified earth (e.g. no topography, all desert, ...).
 ! 
 !     ISTART=3-7 (OBSOLETE)
 !     ----------
 !         These were reserved for starting up a more complex model from
 !         the state obtained by spinning up a simpler model, e.g. a
 !         coupled model from an atmospheric model, a tracer run from a
-!         run without tracers, etc. I’m not sure whether those options
+!         run without tracers, etc. I'm not sure whether those options
 !         are still needed or can be achieved without using the ISTART
 !         parameter. They were kind of place holders to deal with
 !         changes in the model restart file.
@@ -139,8 +139,8 @@
 !     ISTART<0 (OBSOLETE) This option is used by the post-processing
 !         program to run the model to generate nice diagnostics. This
 !         should never need to be set manually.  ISTART<0 may still work
-!         if the model is run with “old I/O” but is not needed with “new
-!         I/O”. It was meant as a device to bridge the transition period
+!         if the model is run with "old I/O" but is not needed with "new
+!         I/O". It was meant as a device to bridge the transition period
 !         from old to new I/O.
 
       subroutine GISS_modelE(qcRestart,coldRestart,iFile,max_wall_time)
@@ -392,7 +392,7 @@ C**** KCOPY > 0 : SAVE THE DIAGNOSTIC ACCUM ARRAYS IN SINGLE PRECISION
           do k=JMON0,JMON0+NMONAV-1
             m = k
             if(m.gt.INT_MONTHS_PER_YEAR) m = m - INT_MONTHS_PER_YEAR
-            monacc(m) = 1
+            monacc(m) = monacc(m) + 1
           end do
           filenm=aDATE(1:7)//'.acc'//XLABEL(1:LRUNID)
           call io_rsf (filenm,Itime,iowrite_single,ioerr)
