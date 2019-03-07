@@ -104,7 +104,8 @@
 
 #ifdef TRACERS_WATER
       subroutine init_irrigmod_tracers
-      USE TRACER_COM, only : ntm, n_H2O18, n_HDO, n_HTO, n_Water
+      USE TRACER_COM, only : ntm, n_H2O18, n_H2O17, n_HDO, n_HTO, 
+     &                       n_Water
 #ifdef TRACERS_SPECIAL_O18
       real*8, external :: water_iso_conc_in_aquifer
 #endif
@@ -120,7 +121,8 @@
 
 #ifdef TRACERS_SPECIAL_O18
       do n=1,ntm
-        if ( n==n_H2O18 .or. n==n_HDO .or. n==n_HTO ) then
+        if ( n==n_H2O18 .or. n==n_H2O17 .or. 
+     &       n==n_HDO .or. n==n_HTO ) then
           tr_conc_in_aquifer(n) = water_iso_conc_in_aquifer(n)
         endif
       enddo

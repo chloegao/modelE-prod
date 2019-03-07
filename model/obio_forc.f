@@ -2,6 +2,7 @@
 
       MODULE obio_forc
 
+      USE timestream_mod, only : timestream
       implicit none
 
 
@@ -28,7 +29,7 @@
       real, ALLOCATABLE, DIMENSION(:,:,:,:,:):: Eda,Esa
       real, ALLOCATABLE, DIMENSION(:,:):: Eda2,Esa2
 #endif
-
+      type(timestream) :: stream_atmFe
 
       END MODULE obio_forc
 

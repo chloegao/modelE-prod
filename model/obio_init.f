@@ -118,11 +118,11 @@ c ----------------------------------------------------------------
 c 
       USE FILEMANAGER, only: openunit,closeunit,file_exists
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT, DIST_GRID
-
+      USE timestream_mod, only : init_stream
       USE obio_dim
       USE obio_incom
-      use bio_inicond_mod, only: bio_inicond_read
-      USE obio_forc, only : atmFe,alk,surfN
+      USE bio_inicond_mod, only: bio_inicond_read
+      USE obio_forc, only : atmFe,stream_atmFe,alk,surfN
       USE obio_com, only : npst,npnd,WtoQ,obio_ws,P_tend,D_tend
      .                    ,C_tend,wsdet,gro,obio_deltath,obio_deltat
      .                    ,sday
@@ -142,8 +142,8 @@ c
       USE obio_forc, only: Eda,Esa
 #endif
       USE pario
-
-      use ocalbedo_mod, only: lam, ocalbedo_init=>init
+      USE model_com, only: modelEclock
+      USE ocalbedo_mod, only: lam, ocalbedo_init=>init
 
       implicit none  
 
@@ -153,6 +153,7 @@ c
     
 
       integer i,j,k
+      integer jyear, jday
       integer iu_bio
       integer nt,nl
       integer imon,ihr,nrec,ichan
@@ -179,7 +180,7 @@ c
 ! time steps
       obio_deltath = dtsrc/3600.d0  !time step in hours
       obio_deltat = obio_deltath*3600.d0    !time step in s  !July 2016
-
+      call modelEclock%get(year=jyear, dayOfYear=jday)
       if (AM_I_ROOT()) 
      . print*, 'Ocean Biology time step =',obio_deltat
 
@@ -582,7 +583,8 @@ c  Read in factors to compute average irradiance
         call read_dist_data(ogrid,fid,'ironflux',atmFe)
         call par_close(ogrid,fid)
       else
-        call bio_inicond_read('atmFe_inicond', atmFe,ogrid=ogrid)
+       call init_stream(ogrid,stream_atmFe,'atmFe_inicond_new',
+     &  'array', 0d0, 1d9,"linm2m",jyear,jday)
 #ifdef Relax2SurfN
         allocate(surfn(ogrid%i_strt:ogrid%i_stop,
      &                       ogrid%j_strt:ogrid%j_stop))

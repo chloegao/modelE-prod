@@ -173,18 +173,30 @@ c         may specify ocean temperature for SCM
 !@+   different data.
 !@var HDOstream is the same as O18stream, but for dD instead
 !@+   of d18O.
+!@var O17stream is the same as O18stream, but for d17O instead
+!@+   of d18O.
       type(timestream) :: O18stream
       type(timestream) :: HDOstream 
+#ifdef TRACERS_WISO_O17
+      type(timestream) :: O17stream
+#endif
 
 !@var wisocn_O18 sea surface d18O (permil)
 !@var wisocn_HDO sea surface dD (permil)
+!@var wisocn_O17 sea surface d17O permil)
       real*8, dimension(:,:), allocatable :: wisocn_O18
       real*8, dimension(:,:), allocatable :: wisocn_HDO
+#ifdef TRACERS_WISO_O17
+      real*8, dimension(:,:), allocatable :: wisocn_O17
+#endif
 
 !@var owiso_XXX_exists are logicals to check for the presence of
 !water isotope ocean surface files.
       logical :: owiso_O18_exists = .true.
       logical :: owiso_HDO_exists = .true.
+#ifdef TRACERS_WISO_O17
+      logical :: owiso_O17_exists = .true.
+#endif 
 
       contains
 
@@ -201,6 +213,10 @@ c         may specify ocean temperature for SCM
       allocate(wisocn_HDO(i_0h:i_1h,j_0h:j_1h))
       wisocn_O18 = 0. !0 permil -> trw0 value
       wisocn_HDO = 0. 
+#ifdef TRACERS_WISO_O17
+      allocate(wisocn_O17(i_0h:i_1h,j_0h:j_1h))
+      wisocn_O17 = 0.
+#endif
       end subroutine alloc_owiso
 
       subroutine init_owiso(atmocn)
@@ -220,6 +236,9 @@ c         may specify ocean temperature for SCM
       !Check if files exist
       owiso_O18_exists = file_exists('OWISO_O18')
       owiso_HDO_exists = file_exists('OWISO_HDO')
+#ifdef TRACERS_WISO_O17
+      owiso_O17_exists = file_exists('OWISO_O17')
+#endif
 
       !If only one of the files is missing, then there was most
       !likely a user error, so kill the model and throw out
@@ -228,14 +247,24 @@ c         may specify ocean temperature for SCM
         if(.not.owiso_HDO_exists) then
           call stop_model("Missing OWISO_HDO file!",255)
         end if
+#ifdef TRACERS_WISO_O17
+        if(.not.owiso_O17_exists) then
+          call stop_model("Missing OWISO_17O file!",255)
+        end if
+#endif
       else
         if(owiso_HDO_exists) then
           call stop_model("Missing OWISO_O18 file!",255)
         end if
+#ifdef TRACERS_WISO_O17
+        if(owiso_O17_exists) then
+          call stop_model("Missing OWISO_O18 file!",255)
+        end if
+#endif
       end if
 
       !If the files are missing, quit this subroutine      
-      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+      if((.not.owiso_O18_exists)) return
 
       !For now, have the water isotope values match up temporally with SST
       if(is_set_param('sst_yr')) then
@@ -256,7 +285,12 @@ c         may specify ocean temperature for SCM
       !dD ocean surface data
       call init_stream(grid,HDOstream,'OWISO_HDO','dD_ocn',-100d0,
      &       100d0,'ppm',jyear,jday,msk=atmocn%focean,cyclic=cyclic)
- 
+#ifdef TRACERS_WISO_O17
+      !d17O ocean surface data
+       call init_stream(grid,O17stream,'OWISO_O17','d17O_ocn',-100d0,
+     &       100d0,'ppm',jyear,jday,msk=atmocn%focean,cyclic=cyclic)
+#endif 
+
       end subroutine init_owiso
 
       subroutine read_owiso(end_of_day,atmocn)
@@ -284,7 +318,7 @@ c
       logical :: have_north_pole, have_south_pole
 
       !If the files are missing, quit this subroutine      
-      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+      if((.not.owiso_O18_exists)) return
 
       call modelEclock%get(year=jyear, dayOfYear=jday)
 
@@ -298,6 +332,9 @@ c
 C**** read and time-interpolate
       call read_stream(grid,O18stream,jyear,jday,wisocn_O18)
       call read_stream(grid,HDOstream,jyear,jday,wisocn_HDO)
+#ifdef TRACERS_WISO_O17
+      call read_stream(grid,O17stream,jyear,jday,wisocn_O17)
+#endif
 
 c**** replicate values at pole
       if(have_north_pole) then
@@ -305,6 +342,9 @@ c**** replicate values at pole
           do i=2,im
             wisocn_O18(i,jm)=wisocn_O18(1,jm)
             wisocn_HDO(i,jm)=wisocn_HDO(1,jm)
+#ifdef TRACERS_WISO_O17
+            wisocn_O17(i,jm)=wisocn_O17(1,jm)
+#endif
           end do
         end if
       end if
@@ -313,6 +353,9 @@ c**** replicate values at pole
           do i=2,im
             wisocn_O18(i,1)=wisocn_O18(1,1)
             wisocn_HDO(i,1)=wisocn_HDO(1,1)
+#ifdef TRACERS_WISO_O17
+            wisocn_O17(i,1)=wisocn_O17(1,1)
+#endif
           end do
         end if
       end if
@@ -331,14 +374,20 @@ c**** replicate values at pole
       use exchange_types, only : atmocn_xchng_vars
       use OldTracer_mod, only : trw0
       use TRACER_COM, only : n_H2O18, n_HDO
+#ifdef TRACERS_WISO_O17
+      use TRACER_COM, only : n_H2O17
+#endif
       implicit none
       type(atmocn_xchng_vars) :: atmocn
 c
       real*8 :: ratio_O18,ratio_HDO !water isotope ratios
+#ifdef TRACERS_WISO_O17
+      real*8 :: ratio_O17
+#endif
       integer :: i,j,j_0,j_1, i_0,i_1
 
       !If the files are missing, quit this subroutine      
-      if((.not.owiso_O18_exists).and.(.not.owiso_HDO_exists)) return
+      if((.not.owiso_O18_exists)) return
  
       call getDomainBounds(grid,i_strt=i_0,i_stop=i_1)
       call getDomainBounds(grid,j_strt=j_0,j_stop=j_1)
@@ -353,6 +402,12 @@ c
           atmocn%gtracer(n_H2O18,i,j)=trw0(n_H2O18)*ratio_O18
           !HDO
           atmocn%gtracer(n_HDO,i,j)=trw0(n_HDO)*ratio_HDO
+#ifdef TRACERS_WISO_O17
+          !Convert to ratio:
+          ratio_O17=wisocn_O17(i,j)*1d-3+1.
+          !H217O
+          atmocn%gtracer(n_H2O17,i,j)=trw0(n_H2O17)*ratio_O17 
+#endif
         endif
       enddo
       enddo

@@ -35,7 +35,7 @@ module MiscTracersMetadata_mod
   use OldTracer_mod, only: set_pm10fact
   use OldTracer_mod, only: set_has_chemistry
   use TRACER_COM, only: &
-    n_Air, n_water, n_H2O18, n_HDO, n_HTO, n_Pb210,n_Be7, &
+    n_Air, n_water, n_H2O18, n_H2O17, n_HDO, n_HTO, n_Pb210,n_Be7, &
     n_Be10, n_CFCn, n_CO2n, n_Age, n_SO4_d1, n_SO4_d2, n_SO4_d3, &
     n_N_d1, n_N_d2, n_N_d3, n_NH3,   n_NH4,   n_NO3p, &
     n_OCocean, n_clay, n_silt1, n_silt2, n_silt3, n_silt4, n_silt5

@@ -447,6 +447,9 @@
         if (tracers_special_o18) then
           call H2O18_setSpec('H2O18')
           call HDO_setSpec('HDO')
+#ifdef TRACERS_WISO_O17
+          call H2O17_setSpec('H2O17')
+#endif
         end if
 #endif
 
