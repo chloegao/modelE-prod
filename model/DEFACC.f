@@ -6442,6 +6442,14 @@ c
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 c
+      k=k+1        ! Air mass on model layers
+      ijl_airmass  = k
+      name_ijl(k)  = 'airmass'
+      lname_ijl(k) = 'Air Mass'
+      units_ijl(k) = 'kg/m2/layer'
+      scale_ijl(k) = 1.
+      ia_ijl(k)    = ia_src ! to match taijl one
+      lgrid_ijl(k) = ctr_ml
 #ifdef AIJL_CP_TRANSPORTS
 c
       k=k+1        ! u on constant-pressure layers
