@@ -443,7 +443,8 @@ done # targets
 #------------------ Combine dusts into one file ----------------------------------------
 if [[ $skipAero -eq 0 ]] ; then
   echo "\n combining dusts..."
-  dd=${outDir}/DUST_${run}_kg_m2_${nlon}x${nlat}x${nlev} ; mkdir $dd
+  dd=${outDir}/DUST_${run}_kg_m2_${nlon}x${nlat}x${nlev}
+  if [[ ! -d $dd ]] ; then mkdir $dd ; fi
   fd=${dd}/${repYear}.nc
   flist=''
   for dustX in dust0 dust1 dust2 dust3 dust4 dust5 dust6 ;do
