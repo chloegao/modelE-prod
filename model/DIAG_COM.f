@@ -157,6 +157,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &    ,IJL_REIM,IJL_REIS,IJL_CDIM,IJL_CDIS,IJL_CWIM,IJL_CWIS
      &    ,IJL_CFWM,IJL_CFIM,IJL_CFWS,IJL_CFIS
      &    ,IJL_TEMPL,IJL_GRIDH,IJL_HUSL,IJL_ZL,IJL_CDTOMAS
+     &    ,ijl_airmass=0
 #ifdef AIJL_CP_TRANSPORTS
       INTEGER, public :: ijk_ucp,ijk_vcp,
      &     ijk_utcp,ijk_vtcp,ijk_uqcp,ijk_vqcp,ijk_uphicp,ijk_vphicp

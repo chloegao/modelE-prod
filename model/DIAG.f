@@ -1403,6 +1403,23 @@ C****
       END SUBROUTINE DIAG4A
 #endif
 
+      subroutine accum_ma_ia_src
+      use diag_com, only : aijl=>aijl_loc,ijl_airmass
+      use domain_decomp_atm, only : grid, getDomainBounds
+      use atm_com, only : ma
+      use resolution, only: LM
+      use geom, only: imaxj
+      integer :: i,j,L,J_0,J_1,I_0
+      call getDomainBounds(grid,J_STRT=J_0,J_STOP=J_1,I_STRT=I_0)
+      do j=J_0,J_1
+        do L=1,LM
+          do i=I_0,imaxj(j)
+            aijl(i,j,L,ijl_airmass)=aijl(i,j,L,ijl_airmass)+ma(L,i,j)
+          end do
+        end do
+      end do
+      end subroutine accum_ma_ia_src
+
 #ifndef CACHED_SUBDD
 
       module subdaily
