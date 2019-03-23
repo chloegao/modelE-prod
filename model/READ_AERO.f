@@ -9,7 +9,7 @@
 !@+   changes of lower-tropospheric CDNC relative to 1850, as input
 !@+   to prescriptions of aerosol indirect effects on cloud cover
 !@+   and optical depth.
-!@+   Dust aerosols are currently ingested via a separate module.
+!@+   Dust aerosols are ingested via the module DustParam_mod below.
 !@auth D. Koch, R. Ruedy
 !@auth M. Kelley added comments, reprogrammed for netcdf input
 
@@ -20,9 +20,8 @@
 
       public :: dCDNC_est
       public :: updateAerosol
-      public :: updateAerosol2
+      public :: updateAerosol2, get_aero_column
       public :: DRYM2G, aermix
-      public :: lma
 
       real*8, allocatable :: anssdd(:,:)
       real*8, allocatable :: mdpi(:,:,:)
@@ -62,7 +61,11 @@ C       1    2    3    4    5    6    7    8    9   10   11   12   13
 C      SNP  SBP  SSP  ANP  ONP  OBP  BBP  SUI  ANI  OCI  BCI  OCB  BCB
      + 1.0, 1.0, 1.0, 1.0, 2.5, 2.5, 1.9, 1.0, 1.0, 2.5, 1.9, 2.5, 1.9/)
 
-      integer :: ima, jma, lma
+      integer :: lma  ! ima,jma are now the same as the model grid im,jm
+!@var a6jday optical depth for 6 aerosol types
+      real*8, allocatable :: a6jday(:,:,:,:)
+!@var plbaer pressures of layer interfaces in the aerosol files
+      real*8, dimension(:), allocatable :: plbaer
 
 !@var A6streams interface for reading and time-interpolating AERO files
 !@+   See usage notes in timestream_mod
@@ -129,18 +132,16 @@ C                    Ocean         Land      ! r**3: r=.085,.052 microns
       return
       end subroutine dCDNC_EST
 
-      SUBROUTINE updateAerosol(JYEARA,JJDAYA, a6jday, plbaer)
+      SUBROUTINE updateAerosol(JYEARA,JJDAYA)
       implicit none
       INTEGER, intent(in) :: jyeara,jjdaya
-      real*8, pointer :: a6jday(:,:,:,:)
-      real*8, dimension(:), pointer ::  plbaer
 
       call stop_model('updateAerosol: should not get here',255)
 
       RETURN
       END SUBROUTINE updateAerosol
 
-      subroutine updateAerosol2(jYearA, jjDaya, a6jday, plbaer)
+      subroutine updateAerosol2(jYearA, jJDaya)
 !@sum updateAerosol2 reads aerosol file(s) and calculates A6JDAY(lma,6,:,:)
 !@+   (dry aerosol Tau) for current day, year.  On startup, it allocates
 !@+   a6jday and plbaer, and reads plbaer.  Note that jYearA may be
@@ -166,10 +167,6 @@ c
 !@var jyeara current year; negative if the same year is to be repeated
 !@var jjdaya current day
       INTEGER, intent(in) :: jyeara,jjdaya
-!@var a6jday optical depth for 6 aerosol types
-      real*8, pointer :: a6jday(:,:,:,:)
-!@var plbaer pressures of layer interfaces in aerosol datafiles
-      real*8, dimension(:), pointer ::  plbaer
 c
       INTEGER m,mi,mj,i,j,l,n,jyearx
       REAL*8 wtmi,wtmj
@@ -215,10 +212,9 @@ c
         call get_dimlens(grid,fid,'plbaer',n,dlens)
         lma = dlens(1)-1
 
-        if (.not.associated(A6JDAY))
-     *       allocate(A6JDAY(lma,6,i_0:i_1,j_0:j_1))
+        allocate(A6JDAY(lma,6,i_0:i_1,j_0:j_1))
 
-        if (.not. associated(plbaer)) allocate( plbaer(lma+1) )
+        allocate( plbaer(lma+1) )
         call read_data(grid,fid,'plbaer',plbaer,bcast_all=.true.)
 
         call par_close(grid,fid)
@@ -362,6 +358,21 @@ C     ------------------------------------------------------------------
       return
       end subroutine updateAerosol2
 
+      subroutine get_aero_column (i,j,nlayrs,plb, ataulx)
+!@sum Repartitions the aerosols to the current model grid
+      integer, intent(in) :: i,j,nlayrs
+      real*8 , intent(in) :: plb(nlayrs+1)
+      real*8 , intent(out) :: ataulx(nlayrs,6)
+      integer na
+
+      do na=1,6 ! loop over first 6 of 8 aerosol types
+        call repart(a6jday(1,na,i,j),plbaer,lma+1,  ! in
+     *              ataulx(1,na),    plb,nlayrs+1)  ! out,   in
+      end do
+
+      return
+      end subroutine get_aero_column
+
       end module AerParam_mod
 
 #ifdef OLD_BCdalbsn
@@ -464,7 +475,7 @@ c
 
       contains
 
-      subroutine upddst2(jyeard,jjdayd)
+      subroutine upddst2(jyeard,jjdayd, nsized_max)
       use domain_decomp_atm, only : grid
       use timestream_mod, only : init_stream,read_stream,
      &     getname_firstfile
@@ -475,6 +486,7 @@ c
 !@+   Note that jyeard may be negative, which is the Model E method for
 !@+   indicating that the data for abs(jyeard) is to be used for all years.
       integer, intent(in) :: jyeard,jjdayd
+      integer, optional, intent(in) :: nsized_max
 !
       integer :: i_0,i_1,j_0,j_1,i,j,n,jyearx
       logical :: cyclic
@@ -504,6 +516,10 @@ c
         call get_dimlens(grid,fid,'DUST',ndims,dlens)
         lmd    = dlens(3)
         nsized = dlens(4)
+        if(nsized > nsized_max) then
+          write(*,*) 'nsized=',nsized,' > nsized_max=',nsized_max
+          call stop_model('upddst2: increase nsized_max')
+        endif
         allocate( plbdust(lmd+1), redust(nsized), rodust(nsized) )
         call read_data(grid,fid,'plbdust',plbdust,bcast_all=.true.)
         call read_data(grid,fid,'redust',redust,bcast_all=.true.)
@@ -530,5 +546,25 @@ c
       deallocate ( ddjday_transp )
 
       end subroutine upddst2
+
+      subroutine get_dust_column (i,j,Nlayrs,PLB, DTAULX, taucon_dust)
+!@sum Repartitions the dust to the current model grid
+      integer, intent(in) :: i,j,nlayrs
+      real*8 , intent(in) :: plb(nlayrs+1)
+      real*8 , intent(out) :: dtaulx(nlayrs,nsized)
+      real*8 , intent(in) :: taucon_dust(nsized)
+      real*8 , allocatable :: TDUST_col(:)
+      integer n
+
+      allocate (TDUST_col(lmd))
+      do n=1,nsized
+        TDUST_col(:) = ddjday(:,n,i,j)*taucon_dust(n)
+        call repart(TDUST_col,   PLBdust,lmd+1,  ! in
+     *              dtaulx(1,n), plb, nlayrs+1)  ! out,   in
+      end do
+      deallocate (TDUST_col)
+
+      return
+      end subroutine get_dust_column
 
       end module DustParam_mod

@@ -176,6 +176,11 @@ C----------------
       logical :: set_gases_internally = .true.,
      &           set_aerosols_internally = .true.
 
+!@var ATAULX, DTAULX column data for aerosols and desert dust
+      real*8 ataulx(LX,6)
+      integer, parameter :: nsized_max=10
+      real*8 dtaulx(LX,nsized_max)
+
 !@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
@@ -274,7 +279,7 @@ C------------------------------------------
       real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron
      *     ATDUST                                                    !ron
       real*8, dimension(  :), allocatable :: QDST55                  !ron
-      real*8, dimension(:), allocatable :: taucon_dust
+      real*8 taucon_dust(nsized_max)
 
 !@dbparam planck_tmin, planck_tmax temperature range for Planck function
 !@+       lookup table.  If the requested tmin is less than the default
@@ -349,7 +354,7 @@ C--------------------------------------   have to handle 1 point in time
 !     -------------------------------------------------------i/o control
 !@var MADxxx  Model Add-on Data of Extended Climatology Enable Parameter
 !@+   ------   if 0   input process is skipped
-!@+ 2 MADAER   =  1   Reads  Aerosol tropospheric climatology
+!@+ 2 MADAER   =  3   Reads  Aerosol tropospheric climatology 1,2 obsol.
 !@+ 3 MADDST   =  1   Reads  Dust-windblown mineral climatology   RFILE6
 !@+ 4 MADVOL   =  1   Reads  Volcanic 1950-00 aerosol climatology RFILE7
 !@+ 5 MADEPS   =  1   Reads  Epsilon cloud heterogeneity data     RFILE8
@@ -379,17 +384,6 @@ C--------------------------------------   have to handle 1 point in time
       INTEGER ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
-
-!@var PLBA21 Vert. Layering for tropospheric aerosols (reference)
-      REAL*8, PARAMETER :: PLBA20(21)=(/
-     *  984.,964.,934.,884.,810.,710.,550.,390.,285.,210.,
-     *  150.,110., 80., 55., 35., 20., 10., 3.,  1.,0.3,0.1/)
-!@var PLBA09 Vert. Layering for tropospheric aerosols/dust (reference)
-      REAL*8, PARAMETER :: PLBA09(10)=(/
-     *  1010.,934.,854.,720.,550.,390.,255.,150., 70., 10./)
-      real*8, dimension(:), pointer ::  plbaer => null()
-      real*8, dimension(:,:,:,:), pointer :: A6JDAY => null()
-
 
 C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
 !      REAL*4 TDUST(72,46,9,8,12)                                   !ron
@@ -1611,9 +1605,9 @@ C----------------------------------------------
       IF(KYEARA.ne.0)            JYEARA=KYEARA
 C----------------------------------------------
       IF(MADAER.eq.3) THEN
-        CALL updateAerosol2(JYEARA,JJDAYA, a6jday, plbaer)
+        CALL updateAerosol2(JYEARA,JJDAYA)
       ELSE IF(MADAER.ne.0) THEN
-        CALL updateAerosol(JYEARA,JJDAYA, a6jday, plbaer)
+        CALL updateAerosol(JYEARA,JJDAYA)
       ENDIF
 C----------------------------------------------
 
@@ -1622,7 +1616,7 @@ C----------------------------------------------
       IF(KJDAYD > 0)             JJDAYD=KJDAYD
       IF(KYEARD.ne.0)            JYEARD=KYEARD
 C----------------------------------------------
-      IF(MADDST > 0) CALL UPDDST2(JYEARD,JJDAYD)
+      IF(MADDST > 0) CALL UPDDST2(JYEARD,JJDAYD,nsized_max)
 C----------------------------------------------
 
       JJDAYV=JDAY
@@ -1656,6 +1650,8 @@ C----------------------------------------------
       use SURF_ALBEDO, only : getsur
       use ghgmod, only : getgas
       use ghgmod, only : use_tracer_chem,chem_in
+      use AerParam_mod, only : get_aero_column
+      use DustParam_mod, only : get_dust_column
       IMPLICIT NONE
       integer k,l
 C     ------------------------------------------------------------------
@@ -1721,9 +1717,13 @@ C--------------------------------
       SRBEXT=1.d-20 ; SRBSCT=0. ; SRBGCB=0. ; TRBALK=0.
       IF(MADBAK > 0) CALL GETBAK
 
-      IF(MADAER.ne.0.OR.NTRACE > 0) THEN ; CALL GETAER
+      IF(MADAER.ne.0.OR.NTRACE > 0) THEN
+        call get_aero_column (Igcm,Jgcm,LX,PLB0, aTAULX)
+        call getaer
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
-      IF(MADDST > 0) THEN ; CALL GETDST
+      IF(MADDST > 0) THEN 
+        call get_dust_column (Igcm,Jgcm,LX,PLB0, DTAULX, taucon_dust)
+        CALL GETDST
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
       IF(MADVOL > 0) THEN ; CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
@@ -2454,7 +2454,6 @@ cc    INCLUDE  'rad00def.radCOMMON.f'
       USE RESOLUTION, only :LM
 #endif
       use AerParam_mod, only : DRYM2G
-      use AerParam_mod, only : LMA
       IMPLICIT NONE
       INTEGER, optional :: GETAER_flag
 C     ---------------------------------------------------------------
@@ -2490,7 +2489,7 @@ C          Set size ANT (NA=3) = Nitrate aerosol  (Nominal dry Reff=0.3)
 C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
-      REAL*8 ATAULX(LX,6),TTAULX(LX,ITRMAX),SRBGQL,FAC,RHFTAU_dry
+      REAL*8 TTAULX(LX,ITRMAX),SRBGQL,FAC,RHFTAU_dry
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
       REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
       REAL*8, DIMENSION(LM,33) :: TAB
@@ -2645,16 +2644,6 @@ C-----------------
 
       IF(MADAER <= 0) GO TO 500
 
-      DO NA=1,6
-      IF(MADAER.eq.3) THEN
-      CALL REPART (A6JDAY(1,NA,IGCM,JGCM),PLBAER,lma+1,    ! in
-     *             ATAULX(1,NA),PLB,NL+1)               ! out
-      ELSE
-      CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBA09,10,    ! in
-     *             ATAULX(1,NA),PLB,NL+1)               ! out
-      ENDIF
-      END DO
-
       FSXTAU=FSTAER*FSAAER+1.D-10
       FTXTAU=FTTAER*FTAAER
                            !            (Solar BCI,BCB components)
@@ -2775,18 +2764,16 @@ C                        FTTAER    LW   (All-type) Aerosol Optical Depth
 C                        FSDAER    SW   Dust Aer   Aerosol Optical Depth
 C                        FTDAER    LW   Dust Aer   Aerosol Optical Depth
 C                        -----------------------------------------------
-      use DustParam_mod
+      use DustParam_mod, only : nsized, redust, rodust
       IMPLICIT NONE
-      REAL*8 SRDGQL,FSXTAU,FTXTAU,DTAULX(LX+1,nsized) !ron
+      REAL*8 SRDGQL,FSXTAU,FTXTAU
       INTEGER K,L,N
-      real*8 :: TDUST_col(lmd)
 
       if(.not.dust_optics_initialized) then
         dust_optics_initialized = .true.
         allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized),
      *       ATDUST(33,nsized), QDST55(nsized) )
 
-        allocate(taucon_dust(nsized))
         DO N=1,nsized
           CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
      +         ,ATDUST(1,N),QDST55(N))
@@ -2794,11 +2781,6 @@ C                        -----------------------------------------------
           TAUCON_dust(N)=0.75E+03*QDST55(N)/(RODUST(N)*REDUST(N))
         ENDDO
       endif
-
-      DO N=1,nsized
-        TDUST_col(:) = DDJDAY(:,N,IGCM,JGCM)*taucon_dust(n) ! kg/m2 -> tau
-        CALL REPART(TDUST_col,PLBdust,lmd+1,DTAULX(1,N),PLB,NL+1)
-      ENDDO
 
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
 C                              Dust Aerosol  Solar   FSXD=FSTAER*FSDAER
@@ -2818,18 +2800,18 @@ C                              ----------------------------------------
 
       DO 270 L=L1,NL
       DO 260 K=1,6
-      SRDGQL=0.                                                         !ron
+!     SRDGQL=0.                                                         !ron
 !      DO 250 N=1, 8                                                    !ron
 !      SRDEXT(L,K)=SRDEXT(L,K)+QXDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
 !      SRDSCT(L,K)=SRDSCT(L,K)+QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
 !      SRDGQL     =SRDGQL +                                             !ron
 !     +            QCDUST(K,N)*QSDUST(K,N)*DTAULX(L,N)*FSXTAU*FS8OPX(7) !ron
       SRDEXT(L,K)= SRDEXT(L,K) +                                        !ron
-     *     sum( QXDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)              !ron
+     *     sum( QXDUST(K,:)*DTAULX(L,1:nsized) )*FSXTAU*FS8OPX(7)       !ron
       SRDSCT(L,K)= SRDSCT(L,K) +                                        !ron
-     *     sum( QSDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)              !ron
-      SRDGQL     =                                                      !ron
-     +     sum( QCDUST(K,:)*QSDUST(K,:)*DTAULX(L,:) )*FSXTAU*FS8OPX(7)  !ron
+     *     sum( QSDUST(K,:)*DTAULX(L,1:nsized) )*FSXTAU*FS8OPX(7)       !ron
+      SRDGQL     =  sum( QCDUST(K,:)*QSDUST(K,:)*DTAULX(L,1:nsized) ) * !ron
+     *                  FSXTAU*FS8OPX(7) 
 !  250 CONTINUE                                                         !ron
       SRDGCB(L,K)=SRDGQL/(SRDSCT(L,K)+1.D-10)
   260 CONTINUE
@@ -8082,10 +8064,10 @@ C
       K=6
       IF (MADAER.eq.3) THEN ! newer aerosol fields
       IF(KAEROS==1.OR.KAEROS > 3)
-     &       CALL updateAerosol2(JYRREF,JJDAY,a6jday, plbaer)
+     &       CALL updateAerosol2(JYRREF,JJDAY)
       ELSE
       IF(KAEROS==1.OR.KAEROS > 3)
-     &       CALL updateAerosol(JYRREF,JJDAY, a6jday, plbaer)
+     &       CALL updateAerosol(JYRREF,JJDAY)
       ENDIF
       IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST2(JYRREF,JJDAY)
       IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)
