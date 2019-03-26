@@ -2825,7 +2825,7 @@ C                              ----------------------------------------
 
       DO 280 L=L1,NL
       DO 280 K=1,33
-      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,:)*FTXTAU*FT8OPX(7)) ! 1:nsized !ron
+      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,1:nsized)*FTXTAU*FT8OPX(7)) ! 1:nsized !ron
   280 CONTINUE
 
       RETURN
