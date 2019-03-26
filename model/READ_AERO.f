@@ -365,7 +365,7 @@ C     ------------------------------------------------------------------
       real*8 , intent(out) :: ataulx(nlayrs,6)
       integer na
 
-      do na=1,6 ! loop over first 6 of 8 aerosol types
+      do na=1,6 ! loop over 6 aerosol types
         call repart(a6jday(1,na,i,j),plbaer,lma+1,  ! in
      *              ataulx(1,na),    plb,nlayrs+1)  ! out,   in
       end do
@@ -547,22 +547,17 @@ c
 
       end subroutine upddst2
 
-      subroutine get_dust_column (i,j,Nlayrs,PLB, DTAULX, taucon_dust)
+      subroutine get_dust_column (i,j,Nlayrs,PLB, DTAULX)
 !@sum Repartitions the dust to the current model grid
       integer, intent(in) :: i,j,nlayrs
       real*8 , intent(in) :: plb(nlayrs+1)
       real*8 , intent(out) :: dtaulx(nlayrs,nsized)
-      real*8 , intent(in) :: taucon_dust(nsized)
-      real*8 , allocatable :: TDUST_col(:)
       integer n
 
-      allocate (TDUST_col(lmd))
       do n=1,nsized
-        TDUST_col(:) = ddjday(:,n,i,j)*taucon_dust(n)
-        call repart(TDUST_col,   PLBdust,lmd+1,  ! in
-     *              dtaulx(1,n), plb, nlayrs+1)  ! out,   in
+        call repart(ddjday(1,n,i,j),   PLBdust,lmd+1,  ! in
+     *              dtaulx(1,n),       plb, nlayrs+1)  ! out,   in
       end do
-      deallocate (TDUST_col)
 
       return
       end subroutine get_dust_column

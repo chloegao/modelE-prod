@@ -279,7 +279,7 @@ C------------------------------------------
       real*8, dimension(:,:), allocatable :: QXDUST, QSDUST, QCDUST, !ron
      *     ATDUST                                                    !ron
       real*8, dimension(  :), allocatable :: QDST55                  !ron
-      real*8 taucon_dust(nsized_max)
+      real*8, dimension(:), allocatable :: taucon_dust
 
 !@dbparam planck_tmin, planck_tmax temperature range for Planck function
 !@+       lookup table.  If the requested tmin is less than the default
@@ -1722,7 +1722,7 @@ C--------------------------------
         call getaer
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
       IF(MADDST > 0) THEN 
-        call get_dust_column (Igcm,Jgcm,LX,PLB0, DTAULX, taucon_dust)
+        call get_dust_column (Igcm,Jgcm,LX,PLB0, DTAULX)
         CALL GETDST
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
       IF(MADVOL > 0) THEN ; CALL GETVOL
@@ -2774,6 +2774,7 @@ C                        -----------------------------------------------
         allocate( QXDUST(6,nsized), QSDUST(6,nsized), QCDUST(6,nsized),
      *       ATDUST(33,nsized), QDST55(nsized) )
 
+        allocate(taucon_dust(nsized))
         DO N=1,nsized
           CALL GETMIE(7,REDUST(N),QXDUST(1,N),QSDUST(1,N),QCDUST(1,N)
      +         ,ATDUST(1,N),QDST55(N))
@@ -2786,6 +2787,11 @@ C                     Apply Solar/Thermal Optical Depth Scaling Factors
 C                              Dust Aerosol  Solar   FSXD=FSTAER*FSDAER
 C                              Dust Aerosol Thermal  FTXD=FSTAER*FTDAER
 C                              ----------------------------------------
+
+!!   convert dust concentration to aerosol optical depth
+      do n=1,nsized
+        DTAULX(:,n) = DTAULX(:,n) * TAUCON_dust(n)
+      end do
 
       FSXTAU=FSTAER*FSDAER+1.D-10
       FTXTAU=FTTAER*FTDAER
