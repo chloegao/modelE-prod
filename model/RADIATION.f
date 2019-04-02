@@ -763,6 +763,9 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
 
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
+#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)      
+      MADBAK=0 ; MADDST=0 ! skip adding background and dust aerosols
+#endif
 
 C     ------------------------------------------------------------------
 C     Input data are read as specified in the first CALL RCOMP1 (NRFUN).
