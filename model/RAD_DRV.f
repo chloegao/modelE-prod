@@ -1016,9 +1016,8 @@ C**** set up unit numbers for 14 more radiation input files
       nrfun(:) = 0 ! green light
       nrfun(12:13) = donotread ! not used in GCM
       nrfun(10:11) = donotread ! obsolete O3 data
-      nrfun(6)     = donotread ! dust read externally now
+      nrfun(6:7)   = donotread ! dust/volc aeros read externally now
       if(.not.transmission_corrections) nrfun(4) = donotread
-      if(madvol == 0) nrfun(7) = donotread
       if(madeps == 0) nrfun(8) = donotread
 !      if(ksolar < 0)  nrfun(9) = donotread
       nrfun(9) = donotread     ! open/read RADN9 inside RCOMP1

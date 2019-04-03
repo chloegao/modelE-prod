@@ -181,6 +181,9 @@ C----------------
       integer, parameter :: nsized_max=10
       real*8 dtaulx(LX,nsized_max)
 
+!@var VReff,Vtaulx effective radius, optical depth of volcanic aerosols
+      real*8 VReff, VTAULX(LX)
+
 !@var U0GAS   reference gas amounts, 13 types  (cm atm)      (in setgas)
 C     array with local and global entries: repeat this section in driver
       REAL*8 U0GAS(LX,13)
@@ -384,17 +387,6 @@ C--------------------------------------   have to handle 1 point in time
       INTEGER ::                    KYEARS=0,KJDAYS=0, KYEARG=0,KJDAYG=0
      *          ,KYEARO=0,KJDAYO=0, KYEARA=0,KJDAYA=0, KYEARD=0,KJDAYD=0
      *          ,KYEARV=0,KJDAYV=0, KYEARE=0,KJDAYE=0, KYEARR=0,KJDAYR=0
-
-C            RADMAD3_DUST_SEASONAL            (user SETDST)     radfile6
-!      REAL*4 TDUST(72,46,9,8,12)                                   !ron
-!      REAL*8 DDJDAY(9,8,72,46)                                     !ron
-
-C            RADMAD4_VOLCAER_DECADAL          (user SETVOL)     radfile7
-      INTEGER JVOLYI,JVOLYE,NVOLMON,NVOLLAT,NVOLK
-      real*8, dimension(:), allocatable :: ELATVOL,HVOLKM
-      real*8, dimension(:,:,:), allocatable :: VTauTJK ! (NVOLMON,NVOLLAT,NVOLK)
-      real*8, dimension(:,:), allocatable :: VReffTJ   ! (NVOLMON,NVOLLAT)
-
 
 C            RADMAD5_CLDEPS_3D_SEASONAL       (user SETCLD)     radfile8
       REAL*4 EPLMHC(72,46,12,4)
@@ -1141,65 +1133,6 @@ C                        -----------------------------------------------
  352  CONTINUE
 
 C-----------------------------------------------------------------------
-CR(7)        Read Stratospheric Volcanic binary data
-C            (NVOLMON months (years JVOLYI to JVOLYE) x NVOLLAT latitudes)
-C            If KyearV<0 use the NVOLMON-month mean as background aerosol
-C            ---------------------------------------------------------
-      NRFU=NRFUN(7)
-      if(madvol==1) then
-        READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE
-        NVolLat = 24 ; NVolK = 4
-        IF(TITLE(1:9).ne.'OD Header')
-     &      call stop_model('rcomp1: use new RADN7 header file',255)
-        ALLOCATE (VTauTJK(NVOLMON,NVolLat,NVolK), HVolKM(NVolK+1))
-        ALLOCATE (VReffTJ(NVOLMON,NVolLat), VTAUR4(NVOLMON,NVolLat))
-        DO K=1,NVolK
-          READ (NRFU) TITLE,VTAUR4
-          DO J=1,NVolLat
-            SUMV=0.
-            DO I=1,NVOLMON
-              VTauTJK(I,J,K)=VTAUR4(I,J)
-              SUMV=SUMV+VTAUR4(I,J)
-            END DO
-            if(kyearv < 0) VTauTJK(1,J,K)=SUMV/NVOLMON
-          END DO
-        END DO
-        READ (NRFU) TITLE,VTAUR4
-        DO J=1,NVolLat
-          SUMV=0.
-          DO I=1,NVOLMON
-            VReffTJ(I,J)=VTAUR4(I,J)
-            SUMV=SUMV+VTAUR4(I,J)
-          END DO
-          if(kyearv < 0) VReffTJ(1,J)=SUMV/NVOLMON
-        END DO
-        deallocate (VTAUR4)
-      else if(madvol==2) then
-        READ (NRFU) TITLE ; rewind NRFU
-        IF(TITLE(1:12).ne.'CMIP6 Header')
-     &      call stop_model('rcomp1: use CMIP6 RADN7 header file',255)
-        READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE,NVolLat,NVolK
-        ALLOCATE (VTauTJK(NVOLMON,NVolLat,NVolK))
-        ALLOCATE (VTau4(NVOLMON,NVolLat,NVolK))
-        ALLOCATE (VReff4(NVOLMON,NVolLat))
-        ALLOCATE (VReffTJ(NVOLMON,NVolLat))
-        ALLOCATE (HVOLKM(NVolK+1),ELATVOL(NVolLat+1))
-        ALLOCATE (hv4(NVolK+1),LAT4(NVolLat+1))
-        READ (NRFU) TITLE,VTau4  ; VTauTJK = VTau4
-        READ (NRFU) TITLE,VReff4 ; VReffTJ = VReff4
-        READ (NRFU) TITLE,hv4    ; HVOLKM  = hv4
-        READ (NRFU) TITLE,LAT4   ; ELATVOL = lat4
-        deallocate (VTau4,VReff4,hv4,LAT4)
-        if(kyearv < 0) then
-          do j=1,NVolLat
-          VReffTJ(1,J)=sum(VReffTJ(:,j))/nvolmon
-            do k=1,NVolK
-            VTauTJK(1,J,K)=sum(VTauTJK(:,j,k))/nvolmon
-            end do
-          end do
-        end if
-      end if
-C-----------------------------------------------------------------------
 CR(8)  ISCCP Derived Cloud Variance (EPSILON) Cloud Optical Depth Factor
 C      Low, Mid, High  Cloud Optical Depths are Reduced by (1 - EPSILON)
 C
@@ -1522,6 +1455,7 @@ C--------------------------------
       use SURF_ALBEDO, only : UPDSUR
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use DustParam_mod, only : upddst2
+      use VolcParam_mod, only : updvol2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3,o3jday,o3jref
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
@@ -1618,17 +1552,17 @@ C----------------------------------------------
       JYEARD=JYEAR
       IF(KJDAYD > 0)             JJDAYD=KJDAYD
       IF(KYEARD.ne.0)            JYEARD=KYEARD
-C----------------------------------------------
+C----------------------------------------------------------
       IF(MADDST > 0) CALL UPDDST2(JYEARD,JJDAYD,nsized_max)
-C----------------------------------------------
+C----------------------------------------------------------
 
       JJDAYV=JDAY
       JYEARV=JYEAR
       IF(KJDAYV > 0)             JJDAYV=KJDAYV
       IF(KYEARV.ne.0)             JYEARV=KYEARV
-C----------------------------------------------
-      IF(MADVOL > 0) CALL UPDVOL(JYEARV,JJDAYV)
-C----------------------------------------------
+C-----------------------------------------------
+      IF(MADVOL > 0) CALL UPDVOL2(JYEARV,JJDAYV)
+C-----------------------------------------------
 
       JJDAYE=JDAY
       JYEARE=JYEAR
@@ -1655,6 +1589,7 @@ C----------------------------------------------
       use ghgmod, only : use_tracer_chem,chem_in
       use AerParam_mod, only : get_aero_column
       use DustParam_mod, only : get_dust_column
+      use VolcParam_mod, only : get_volc_column
       IMPLICIT NONE
       integer k,l
 C     ------------------------------------------------------------------
@@ -1728,7 +1663,12 @@ C--------------------------------
         call get_dust_column (Igcm,Jgcm,LX,PLB0, DTAULX)
         CALL GETDST
        ELSE ; SRDEXT=0.     ; SRDSCT=0. ; SRDGCB=0. ; TRDALK=0. ; END IF
-      IF(MADVOL > 0) THEN ; CALL GETVOL
+      IF(MADVOL > 0) THEN
+         call get_volc_column(jlat,LX,HLB0, VReff,VTAULX)
+#ifdef HEALY_LM_DIAGS
+         VTAULAT(jgcm) = sum(VTAULX(:))
+#endif
+         CALL GETVOL
        ELSE ; SRVEXT=0.     ; SRVSCT=0. ; SRVGCB=0. ; TRVALK=0. ; END IF
       chem_out(:)=SRVEXT(:,6) ! save 3D aerosol extinction in SUB RADIA
       endif
@@ -2828,42 +2768,27 @@ C                              ----------------------------------------
 
       DO 280 L=L1,NL
       DO 280 K=1,33
-      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,1:nsized)*FTXTAU*FT8OPX(7)) ! 1:nsized !ron
+      TRDALK(L,K)= sum (ATDUST(K,:)*DTAULX(L,1:nsized)*FTXTAU*FT8OPX(7))
   280 CONTINUE
 
       RETURN
       end subroutine GETDST
 
-
-      subroutine UPDVOL(JYEARV,JDAYVA)
-      INTEGER, INTENT(IN) :: JYEARV,JDAYVA
-      call SETVOL(JYEARV,JDAYVA)
-      end subroutine UPDVOL
-
       subroutine GETVOL
+C                                          (Volcanic data)
+C                                          -------------------------
       call SETVOL(GETVOL_flag=1)
       end subroutine GETVOL
 
-      SUBROUTINE SETVOL(JYEARV,JDAYVA,GETVOL_flag)
+      SUBROUTINE SETVOL(GETVOL_flag)
       IMPLICIT NONE
 
-
-      REAL*8, SAVE :: E46LAT(47),SIZLAT(46),TAULAT(46)
-      INTEGER, SAVE :: NJ46
-      REAL*8, PARAMETER :: HVOL00(5) = (/15.0, 20.0, 25.0, 30.0, 35.0/)
 cx    INTEGER, SAVE :: LATVOL = 0   ! not ok for grids finer than 72x46
 
 !nu   REAL*8, PARAMETER :: htplim=1.d-3
       REAL*8, SAVE :: FSXTAU,FTXTAU
-      INTEGER, INTENT(IN), optional :: JYEARV,JDAYVA,GETVOL_flag
-      INTEGER J,L,MI,MJ,K
-      REAL*8 XYYEAR,XYI,WMI,WMJ,SIZVOL !nu ,SUMHTF
-      REAL*8, save, allocatable :: gdata(:), hlattf(:), HTFLAT(:,:)
-      REAL*8, save, allocatable :: HTPROF(:)
-#ifdef HEALY_LM_DIAGS
-      INTEGER, SAVE :: NJDG
-      REAL*8, SAVE :: EDGLAT(JM_DIAG)
-#endif
+      INTEGER, INTENT(IN), optional :: GETVOL_flag
+      INTEGER K
 
 C     ------------------------------------------------------------------
 C     Tau Scaling Factors:    Solar    Thermal    apply to:
@@ -2882,41 +2807,10 @@ C     VEFF0   Selects Size Distribution Variance (this affects Thermal)
 C     REFF0   Selects Effective Particle Size for Archive Volcanic Data
 C     -----------------------------------------------------------------
 
-      if ( present(JYEARV) ) goto 777 ! UPDVOL
       if ( present (GETVOL_flag) ) goto 778 ! GETVOL
 
       FSXTAU=FSTAER*FSVAER
       FTXTAU=FTTAER*FTVAER
-
-C                   Set Grid-Box Edge Latitudes for Data Repartitioning
-C                   ---------------------------------------------------
-      if(madvol==1) then
-        allocate(ELATVOL(NVolLat+1))
-        DO J=2,24 ! NVolLat
-          ELATVOL(J)=-90.D0+(J-1.5D0)*180.D0/23.D0
-        END DO
-        ELATVol( 1)=-90.D0
-        ELATVol(25)= 90.D0
-        HVolKM = HVol00
-      end if
-      NJ46=46+1
-      DO J=2,46
-        E46LAT(J)=-90.D0+(J-1.5D0)*180.D0/(MLAT46-1)
-      END DO
-      E46LAT(   1)=-90.D0
-      E46LAT(NJ46)= 90.D0
-#ifdef  HEALY_LM_DIAGS
-      NJDG=JM_DIAG+1
-      DO J=2,JM_DIAG
-      EDGLAT(J)=-90.D0+(J-1.5D0)*180.D0/(JM_DIAG-1)
-      END DO
-      EDGLAT(   1)=-90.D0
-      EDGLAT(NJDG)= 90.D0
-#endif
-      allocate (gdata(NVolLat),hlattf(NVolK),HTFLAT(NJ46,NVOLK))
-      allocate (HTPROF(NL))
-
-      HTPROF(:)=0
 
 C                       -----------------------------------------------
 C                       Initialize H2SO4 Q,S,C,A Tables for Input VEFF0
@@ -2927,99 +2821,31 @@ C     ------------------
 
       RETURN
 
-
-C--------------------------------
-!      ENTRY UPDVOL(JYEARV,JDAYVA)
-C--------------------------------
- 777  continue
-
-C                                          (Volcanic data)
-C                                          -------------------------
-      XYYEAR=JYEARV+JDAYVA/366.D0
-      IF(XYYEAR < JVOLYI) XYYEAR=JVOLYI
-      XYI=(XYYEAR-JVOLYI)*12.D0+1.D0
-      IF(XYI > NVOLMON - .001D0) XYI=NVOLMON-.001D0
-!!    write(6,'(a,2f9.1,3i7)') 'VOLCYEAR=',
-!!   .   XYI,XYYEAR,JVOLYI,JYEARV,JDAYVA
-      MI=XYI
-      WMJ=XYI-MI
-      WMI=1.D0-WMJ
-      MJ=MI+1
-      DO 250 J=1,NVolLat
-      GDATA(J)=WMI*VReffTJ(MI,J)+WMJ*VReffTJ(MJ,J)
-!!    write(6,'(a,2I7,2f8.1,2f10.4)')'VOLCREFF:: ',MI,MJ,
-!!   . XYYEAR,XYI,VReffTJ(MI,J),VReffTJ(MJ,J)
-  250 CONTINUE
-      CALL RETERP(GDATA,ELATVol,NVolLat+1,SIZLAT,E46LAT,NJ46)
-      DO 270 K=1,NVOLK
-      DO 260 J=1,NVolLat
-      GDATA(J)=WMI*VTauTJK(MI,J,K)+WMJ*VTauTJK(MJ,J,K)
-!!    write(6,'(a,3I7,2f8.1,2F10.4)')'VOLCAER:: ',K,MI,MJ,
-!!   . XYYEAR,XYI,VTauTJK(MI,J,K),VTauTJK(MJ,J,K)
-  260 CONTINUE
-      CALL RETERP(GDATA,ELATVOL,NVolLat+1,HTFLAT(1,K),E46LAT,NJ46)
-  270 CONTINUE
-#ifdef HEALY_LM_DIAGS
-      DO J=1,46
-      TAULAT(J) = SUM (HTFLAT(J,:))
-      END DO
-      CALL RETERP(TAULAT,E46LAT,NJ46,VTAULAT,EDGLAT,NJDG)
-#endif
-
-
-      RETURN
-
-
 C-----------------
 !      ENTRY GETVOL
 C-----------------
  778   continue
-cx    IF(MRELAY > 0)    GO TO 300
-cx    IF(JLAT==LATVOL) GO TO 350  ! not ok for grids finer than 72x46
 
-C                      Set JLAT Dependent Aerosol Distribution and Size
-C                      ------------------------------------------------
-cx300 CONTINUE
-
-      HLATTF(1:NVolK)=HTFLAT(JLAT,1:NVolK)
-      CALL REPART(HLATTF,HVOLKM,NVolK+1,HTPROF,HLB0,NL+1)
-!nu   LHPMAX=0       ! not used
-!nu   LHPMIN=NL      ! not used
-!nu   DO L=L1,NL
-!nu     N=NL+1-L
-!nu     IF(HTPROF(L) >= HTPLIM) LHPMAX=L
-!nu     IF(HTPROF(N) >= HTPLIM) LHPMIN=N
-!nu   END DO
-!nu   SUMHTF=1.D-10
-      DO 330 L=L1,NL
-      IF(HTPROF(L) < 0.) HTPROF(L)=0.D0
-!nu   SUMHTF=SUMHTF+HTPROF(L)
-  330 CONTINUE
-
-      SIZVOL=SIZLAT(JLAT)
-
-C                        Select H2SO4 Q,S,C,A Tables for  Size = SIZVOL
+C                        Select H2SO4 Q,S,C,A Tables for  Size = VReff
 C                        ----------------------------------------------
 
 C------------------------
-      CALL GETQVA(SIZVOL)
+      CALL GETQVA(VReff)
 C------------------------
 
-cx    LATVOL=JLAT
-cx350 CONTINUE
 C                                  ------------------------------------
 C                                  H2SO4 Thermal Contribution in TRVALK
 C                                  ------------------------------------
       DO 420 K=1,33
-      TRVALK(L1:NL,K)=HTPROF(L1:NL)*AVH2S(K)*FTXTAU*FT8OPX(8)
+      TRVALK(L1:NL,K)=VTAULX(L1:NL)*AVH2S(K)*FTXTAU*FT8OPX(8)
   420 CONTINUE
 
 C                      H2SO4 Solar Contribution in SRVEXT,SRVSCT,SRVGCB
 C                      ------------------------------------------------
 
       DO 440 K=1,6
-      SRVEXT(L1:NL,K)=QVH2S(K)*HTPROF(L1:NL)*FSXTAU*FS8OPX(8)
-      SRVSCT(L1:NL,K)=SVH2S(K)*HTPROF(L1:NL)*FSXTAU*PIVMAX*FS8OPX(8)
+      SRVEXT(L1:NL,K)=QVH2S(K)*VTAULX(L1:NL)*FSXTAU*FS8OPX(8)
+      SRVSCT(L1:NL,K)=SVH2S(K)*VTAULX(L1:NL)*FSXTAU*PIVMAX*FS8OPX(8)
       SRVGCB(L1:NL,K)=GVH2S(K)
   440 CONTINUE
 
@@ -3027,12 +2853,12 @@ C                      ------------------------------------------------
       END SUBROUTINE SETVOL
 
 
-      subroutine GETQVA(SIZVOL)
-      REAL*8, INTENT(IN) :: SIZVOL
-      call SETQVA(SIZVOL=SIZVOL)
+      subroutine GETQVA(VReff)
+      REAL*8, INTENT(IN) :: VReff
+      call SETQVA(VReff=VReff)
       end subroutine GETQVA
 
-      SUBROUTINE SETQVA(VEFF,SIZVOL)
+      SUBROUTINE SETQVA(VEFF,VReff)
       IMPLICIT NONE
 C     ------------------------------------------------------------------
 C     SETQVA   Selects (interpolates) H2SO4 Mie Parameters for specified
@@ -3050,11 +2876,11 @@ C     SRVQEX Volcanic Aerosol sizes (Reff) range from 0.1 to 5.0 microns
 C     To utilize equal interval interpolation, Reff N=9,20 are redefined
 C     so Volcanic Aerosol sizes have effective range of 0.1-2.0 microns.
 C     ------------------------------------------------------------------
-      REAL*8, INTENT(IN), optional :: SIZVOL,VEFF
+      REAL*8, INTENT(IN), optional :: VReff,VEFF
       REAL*8 REFN,RADX,WTJHI,WTJLO
       INTEGER I,K,N,JRXLO,JRXHI
 
-      if ( present(SIZVOL) ) goto 777
+      if ( present(VReff) ) goto 777
 
       DO 130 N=1,20
       RV20(N)=REFV20(N,1)
@@ -3134,14 +2960,14 @@ C     ------------------------------------------------------------------
       RETURN
 
 C-------------------------
-!      ENTRY GETQVA(SIZVOL)
+!      ENTRY GETQVA(VReff)
 C-------------------------
  777  continue
 C     ------------------------------------------------------------------
 C     Volcanic Aerosol sizes have effective range of  0.1 - 2.0 microns.
 C     ------------------------------------------------------------------
 
-      RADX=SIZVOL*10.D0
+      RADX=VReff*10.D0
       IF(RADX < 1.000001D0) RADX=1.000001D0
       IF(RADX > 19.99999D0) RADX=19.99999D0
       JRXLO=RADX
@@ -7648,6 +7474,7 @@ C
       SUBROUTINE WRITET(KWRU,INDEX,JYRREF,JYRNOW,JMONTH,KLIMIT)
       use AerParam_mod, only : updateAerosol,updateAerosol2
       use DustParam_mod, only : upddst2
+      use VolcParam_mod, only : updvol2
       use O3mod, only : updO3d,updO3d_solar,plbo3,nlo3,o3jday,o3jref
 #ifdef HIGH_FREQUENCY_O3_INPUT
       use O3mod, only : UPDO3D_highFrequency
@@ -8079,7 +7906,7 @@ C
      &       CALL updateAerosol(JYRREF,JJDAY)
       ENDIF
       IF(KAEROS==2.OR.KAEROS > 3) CALL UPDDST2(JYRREF,JJDAY)
-      IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL(JYRREF,JJDAY)
+      IF(KAEROS==3.OR.KAEROS > 3) CALL UPDVOL2(JYRREF,JJDAY)
 C
       DO 650 J=1,46
       DO 610 L=1,NL
