@@ -618,7 +618,7 @@ c
       real*4, allocatable :: vtau4(:,:,:),vreff4(:,:),hv4(:),lat4(:)
       INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,mi,mj
       REAL*8 XYYEAR,XYI,WMI,WMJ
-      INTEGER JVOLYI,JVOLYE
+      INTEGER, SAVE :: JVOLYI,JVOLYE
 
       REAL*8, SAVE :: E46LAT(47),TAULAT(46)
       INTEGER, SAVE :: NJ46
