@@ -79,7 +79,6 @@ NAMERVR=RD_Fd.names.txt  ! named river outlets
 #include "rad_input_files"
 #include "rad_144x90_input_files_CMIP6clim"
 #include "dust_tracer_144x90_input_files"
-#include "dry_depos_144x90_input_files"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag

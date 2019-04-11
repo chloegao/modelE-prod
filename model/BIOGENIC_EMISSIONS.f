@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
 
       module biogenic_emis
-      integer, parameter :: npolynb=20, ntype=16, nvegtype=74
+      integer, parameter :: npolynb=20, ntype=16
 !@dbparam base_isopreneX factor to tune the base isoprene emissions
 !@+ globally when #defined BIOGENIC_EMISSIONS
       real*8 :: base_isopreneX=1.d0
@@ -21,8 +21,8 @@
 !@+    at run-time
 !@auth G.Faluvegi
       use domain_decomp_atm, only : dist_grid, getDomainBounds
-      use biogenic_emis, only:  baseisop,nvegtype
-
+      use biogenic_emis,     only : baseisop
+      use tracers_DRYDEP,    only : nent
       IMPLICIT NONE
 
       type (dist_grid), intent(in) :: grid
@@ -34,7 +34,7 @@
       J_0=grid%J_STRT
       J_1=grid%J_STOP
 
-      allocate( baseisop(I_0:I_1,J_0:J_1,nvegtype) )
+      allocate( baseisop(I_0:I_1,J_0:J_1,NENT) )
 
       end subroutine alloc_biogenic_emis
 
@@ -42,11 +42,12 @@
       subroutine isoprene_emission(i,j,itype,emisop,CanTemp)
 
       use biogenic_emis
-      use rad_com, only : cosz1,cfrac
-      use pbl_drv, only : t_pbl_args
-      use constant, only : rgas
-      use tracers_drydep, only : xylai,ijreg,ijuse
-      use constant, only : tf
+      use rad_com,        only : cosz1, cfrac
+      use pbl_drv,        only : t_pbl_args
+      use constant,       only : rgas
+      use tracers_drydep, only : xylai, ijuse, nent
+      use constant,       only : tf
+      use ghy_com,        only : fearth
     
       implicit none
  
@@ -74,27 +75,23 @@
         emisop=0.d0
         tlai=0.d0
 
-        do inveg=1,ijreg(i,j)
+        do inveg=1,nent
           tlai=tlai+xylai(i,j,inveg)*baseisop(i,j,inveg)
         end do
 
 ! Light correction
-
-        if ((cosz1(i,j) > 0.).and.(tlai > 0.)) then ! Only calculate
+        if ((cosz1(i,j) > 0.d0).and.(tlai > 0.d0)) then ! Only calculate
         ! for grid cell with sunlight and isoprene-emitting vegetation
-
           embio=0.d0
-          do inveg=1,ijreg(i,j)
-            if (xylai(i,j,inveg)*baseisop(i,j,inveg) > 0.) then
+          do inveg=1,nent
+            if (xylai(i,j,inveg)*baseisop(i,j,inveg) > 0.d0) then
               clight=biofit(isopcoeff,xylai(i,j,inveg),
      &               cosz1(i,j),cfrac(i,j))
-              embio=embio+baseisop(i,j,inveg)*
-     &              clight*ijuse(i,j,inveg)*1.d-3
+              embio=embio+baseisop(i,j,inveg)*clight*ijuse(i,j,inveg)
             endif
           end do
 
 ! Temperature correction
-
           if(tmmpk > tf) THEN
             emisop=tcorr(tmmpk)*embio
           else
@@ -107,7 +104,6 @@
 
       return                                                          
       end                              
-
 
 
       subroutine rdisopcf                                              
@@ -126,12 +122,11 @@
 
       if(npolynb /= 20)call stop_model('npolynb problem',255)
 
-
       return                                                            
       end                       
 
 
-      subroutine rdisobase                                               
+      subroutine rdisobase
 !@sum These baseline emissions factors normally should be read
 !@+  in from the file 'isopemis.table'. I am hardcoding them
 !@+  here, as the quickest way to make sure this is ESMF-
@@ -140,60 +135,59 @@
 !@+  Construct the base emission for each grid box                         
 !@+  Output is baseisop in kg C m^-2 s^-1
 
-
       use biogenic_emis
-      use tracers_drydep, only : ijreg,ijland
-      use constant, only   : byavog
-      use geom, only : imaxj
-      use domain_decomp_atm, only : getDomainBounds, grid
+      use tracers_DRYDEP,      only : nent
+      use ent_drv,             only : map_ent_pfts_to_megan_pfts
+      use constant,            only : byavog
+      use geom,                only : imaxj
+      use domain_decomp_atm,   only : getDomainBounds, grid
+      use trchem_shindell_com, only : nMeganPFT      
+      use ghy_com,             only : fearth
 
       implicit none
 
       integer:: i,j,k,j_0,j_1,i_0,i_1
-      real*8, dimension(0:nvegtype-1), parameter ::  converT = (/
-     *     0.00E+00, 2.79E+12, 8.71E+11, 2.79E+12, 2.79E+12, 2.79E+12, 
-     *     2.79E+12, 2.79E+12, 3.34E+12, 2.79E+12, 2.79E+12, 2.79E+12, 
-     *     2.79E+12, 2.79E+12, 2.79E+12, 2.79E+12, 2.79E+12, 2.79E+12, 
-     *     2.79E+12, 2.79E+12, 1.67E+12, 1.67E+12, 1.67E+12, 1.39E+12, 
-     *     3.34E+12, 6.27E+12, 6.27E+12, 3.34E+12, 0.93E+12, 0.93E+12,
-     *     8.71E+11, 8.71E+11, 2.49E+12, 1.39E+12, 2.79E+12, 2.79E+12,
-     *     8.71E+11, 8.71E+11, 8.71E+11, 8.71E+11, 0.93E+12, 1.39E+12,
-     *     8.71E+11, 2.79E+12, 1.67E+12, 1.67E+12, 3.34E+12, 2.79E+12,
-     *     9.41E+12, 2.79E+12, 3.34E+12, 3.34E+12, 2.79E+12, 2.79E+12,
-     *     3.34E+12, 2.79E+12, 4.18E+12, 4.18E+12, 1.39E+12, 3.34E+12,
-     *     3.14E+12, 3.34E+12, 1.39E+12, 3.34E+12, 8.71E+11, 2.79E+12,
-     *     2.79E+12, 2.79E+12, 2.79E+12, 3.34E+12, 2.79E+12, 3.34E+12,
-     *     8.71E+11, 2.79E+12 /)
 
-      real*8 :: factor                       
+! Baseline isoprene emissions factors for the 16 Megan types 
+      real*8, dimension(0:nMeganPFT), parameter ::  convert = (/0.d0,
+     & 600.d0, 1.d0, 3000.d0, 7000.d0, 10000.d0, 7000.d0, 10000.d0, 
+     & 11000.d0, 2000.d0, 4000.d0, 4000.d0, 1600.d0, 800.d0, 200.d0, 
+     & 50.d0, 1.d0/)
+
+      real*8 :: factor
+      real*8, dimension(nent)      :: v_dummy, h_dummy, megan_map
+      real*8, dimension(nMeganPFT) :: v_m_dummy
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
      &               I_STRT=I_0, I_STOP=I_1)
 
-      if(nvegtype /= 74) call stop_model('nvegtype problem',255)
+      if(nent/=18) call stop_model('Number of Ent types incorrect',255)
 
 ! Isoprene is traced in terms of equivalent C atoms.
-! Compute the baseline ISOPRENE emissions, which depend on veg type   
-! 12.d-3 is the carbon mol wt. in kg/mole.
-! 1.d4 is for cm^2 -> m^2
+! Compute the baseline ISOPRENE emissions, which depend on veg type. 
 
-      factor = 12.d-3*1.d4*byavog      
+! Convert from microgram/m^2/hr to C/cm^2 leaf/s
+      factor = (1.d-9)/3600.d0
 
       do J=J_0,J_1
         do I=I_0,imaxj(J)
-          do k=1,ijreg(i,j)
-            baseisop(i,j,K) = 
-     &      convert(ijland(i,j,k)+1)*factor*base_isopreneX
-          enddo                                                       
-        enddo                                                          
-      enddo                                                             
-                                                                        
-      return                                                            
-      end                                                               
+            call map_ent_pfts_to_megan_pfts(v_dummy, h_dummy,
+     &      v_m_dummy, i, j, megan_map)
+            if (fearth(i,j)>0.d0) then
+               do k=1,nent
+                   baseisop(i,j,k)=convert(megan_map(k))*
+     &             factor*base_isopreneX
+               enddo ! k
+            endif ! fearth>0
+        enddo     ! i
+      enddo       ! j
+
+      return
+      end
 
 ! Local Air temperature correction for isoprene emissions:
 ! From Guenther et al. 1992
-	
+
       real*8 function tcorr(temp)
 
       implicit none

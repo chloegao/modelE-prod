@@ -744,7 +744,7 @@ c****
 #ifdef SCM
       use SCM_COM, only : SCMopt,SCMin,nstepSCM
 #endif
-      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds, AM_I_ROOT
+      use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds
       use geom, only : imaxj,lat2d
       use rad_com, only :
      &      FSRDIR, SRVISSURF, CO2ppm
@@ -3089,7 +3089,7 @@ cddd     &         *fr_snow_ij(2,imax,jmax)
      &     q_ij,dz_ij,ngm,w_ij,wfcs
      &     ,aalbveg
       use surf_albedo, only: albvnh, updsur  !nyk
-      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds
+      USE DOMAIN_DECOMP_ATM, ONLY : GRID, getDomainBounds,AM_I_ROOT
       !use sle001, only : fb,fv,ws
       use sle001, only : get_soil_properties
       use ent_com, only : entcells
@@ -3226,8 +3226,20 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
 
 
 #ifdef TRACERS_DRYDEP
-      CALL RDLAI ! read leaf area indices for tracer dry deposition
+! Update leaf area indices & land fractions for tracer dry deposition.
+      CALL RDLAI
 #endif
+
+      if(.not.end_of_day) then
+! Hardcoded polynomial coefficients, resistances, 
+! maximum deposition velocity, and Ent->DryDep PFT mapping. 
+      CALL RDDRYCF
+#ifdef BIOGENIC_EMISSIONS
+      CALL RDISOPCF
+      CALL RDISOBASE
+#endif
+      endif
+
 
       call accumulate_excess_C(1)
 

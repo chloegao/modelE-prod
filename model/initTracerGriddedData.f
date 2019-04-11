@@ -1,7 +1,7 @@
 #include "rundeck_opts.h"
       SUBROUTINE initTracerGriddedData(is_coldstart)
 !@sum init_tracer initializes trace gas attributes
-!@calls sync_param, SET_TCON, RDLAND, RDDRYCF
+!@calls sync_param, SET_TCON
       USE DOMAIN_DECOMP_ATM, only:GRID,getDomainBounds,AM_I_ROOT
       USE RESOLUTION, only : jm,lm
       USE ATM_COM, only: pmidl00
@@ -238,15 +238,6 @@ c**** soil dust aerosol initializations
 
 C**** Miscellaneous initialisations
 
-#ifdef TRACERS_DRYDEP
-C Read landuse parameters and coefficients for tracer dry deposition:
-      CALL RDLAND
-      CALL RDDRYCF
-#endif
-#ifdef BIOGENIC_EMISSIONS
-      CALL RDISOPCF
-      CALL RDISOBASE
-#endif
 #ifdef TRACERS_SPECIAL_Shindell
       call cheminit ! **** Initialize the chemistry ****
 #ifdef TRACERS_ACETONE
