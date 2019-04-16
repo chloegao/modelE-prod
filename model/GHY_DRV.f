@@ -3228,8 +3228,6 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
 #ifdef TRACERS_DRYDEP
 ! Update leaf area indices & land fractions for tracer dry deposition.
       CALL RDLAI
-#endif
-
       if(.not.end_of_day) then
 ! Hardcoded polynomial coefficients, resistances, 
 ! maximum deposition velocity, and Ent->DryDep PFT mapping. 
@@ -3239,7 +3237,7 @@ cddd            write(934,*) "wfcs", i,j,wfcs(i,j)
       CALL RDISOBASE
 #endif
       endif
-
+#endif
 
       call accumulate_excess_C(1)
 

@@ -18,8 +18,9 @@
 
       public init_module_ent, update_vegetation_data
       public map_ent2giss !YKIM- temporary hack to use Ent pfts in modelE
+#ifdef TRACERS_SPECIAL_Shindell
       public map_ent_pfts_to_megan_pfts
-
+#endif 
       logical :: initialized = .false.
       integer :: crops_yr = 0
       integer :: do_soilresp
@@ -534,6 +535,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 
       end subroutine map_ent2giss
 
+#ifdef TRACERS_SPECIAL_Shindell
       subroutine map_ent_pfts_to_megan_pfts(v_ent,h_ent,v_megan,i,j,meg)
       !@sum Map Ent plant functional type coverage fractions onto MEGAN types.
       !@+ Similar "hack" by Y. Kim was in radiation code and flammability
@@ -765,7 +767,7 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 ! End categories 17 and 18 are bare sand/dirt, so no
 ! accumulation into a MEGAN type. So we're done.
       end subroutine map_ent_pfts_to_megan_pfts
-
+#endif
 
       subroutine read_laimax(I0,I1,J0,J1, laimax)
 !@sum read maximum LAI from a file, 
@@ -846,5 +848,4 @@ cddd     &               I_STRT     =I_0,    I_STOP     =I_1)
       call par_close(grid,fid)
 
       end subroutine read_height
-
       end module ent_drv
