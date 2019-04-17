@@ -165,7 +165,7 @@ use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
 use megan_objects_mod, only: runningAverage, biogenicSpecies
-use TRCHEM_Shindell_COM, only: nMeganPFT, n_covertypes
+use TRCHEM_Shindell_COM, only: nMeganPFT
 use OldTracer_mod, only: trname,itime_tr0
 use tracer_com, only: ntm, sfc_src, tracers
 use tracer_mod, only: Tracer
