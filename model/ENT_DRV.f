@@ -18,7 +18,9 @@
 
       public init_module_ent, update_vegetation_data
       public map_ent2giss !YKIM- temporary hack to use Ent pfts in modelE
-
+#ifdef TRACERS_SPECIAL_Shindell
+      public map_ent_pfts_to_megan_pfts
+#endif 
       logical :: initialized = .false.
       integer :: crops_yr = 0
       integer :: do_soilresp
@@ -321,7 +323,7 @@
          !call get_laimaxdata(laimaxdata_H) !VEG_DRV version of init_ent_laimax_geo
          call init_ent_hdata(IM,JM,I0,I1,J0,J1,hdata) !height
          if (do_init_geo==0) then !This is hack if no LAI init file is avail.
-	    call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
+         call prescr_get_laidata(jday,hemi,I0,I1,J0,J1,laidata) !lai
 c            call prescr_get_ent_plant(I0,I1,J0,J1, 
 c     &           laidata,hdata,laimaxdata
 c     &           ,dbhdata,popdata,craddata,cpooldata)
@@ -533,6 +535,239 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 
       end subroutine map_ent2giss
 
+#ifdef TRACERS_SPECIAL_Shindell
+      subroutine map_ent_pfts_to_megan_pfts(v_ent,h_ent,v_megan,i,j,meg)
+      !@sum Map Ent plant functional type coverage fractions onto MEGAN types.
+      !@+ Similar "hack" by Y. Kim was in radiation code and flammability
+      !@+ codes to map to GISS vegetation.
+       !@auth initial modelE implementation by Greg Faluvegi
+      use TRCHEM_Shindell_COM, only:  nMeganPFT
+      use tracers_DRYDEP, only: NENT
+      use geom, only: lat2D_dg
+      implicit none
+      real*8, dimension(nent), intent(in)       :: h_ent,v_ent
+      real*8, dimension(nMeganPFT), intent(out) :: v_megan
+      real*8, dimension(nent), intent(out)      :: meg
+
+      integer, intent(in) :: i,j
+      logical :: tropical, temperate, boreal, arctic
+
+! TO DO: I am simply putting in the most basic, 'semi-reasonable' mapping
+! here. The whole routine should be looked at by an expert in the vegetation.
+! E.g. things should be decided by temperature climatologies [or possibly
+! MEGAN ecoregion maps], not by latitude as I have done here. Note that h_ent
+! (vegetation heights) are passed in, in case useful in refining this, but not
+! used in current mapping:
+! The person who refines this might want to look at the CLM4 model
+! (http://www.cesm.ucar.edu/) pft definitions, as that's what the MEGAN
+! ones (basically) are.
+! Crops are particularly sketchy in my quick mapping. For example hammoz has
+! crop1 and then crop2, though the value for EF of 1 for isoprene seems like 16
+! should be crop1?
+
+! Only mapped for a single configuration so far:
+      if(nent.ne.18) then
+        call stop_model(
+     & 'nent.ne.18 in map_ent_pfts_to_megan_pfts',255)
+      endif
+
+      if(nMeganPFT.ne.16) then
+      call stop_model(
+     & 'nMeganPFT.ne.16 in map_ent_pfts_to_megan_pfts',255)
+      endif
+
+! Determine latitude zone as a very rough(!) determination of
+! temperate, tropical, boreal & arctic vegetation:
+! Please make only one of the four true!
+      if(abs(lat2D_dg(i,j))>=60.d0) then
+        arctic=.true.
+        boreal=.false.
+        temperate=.false.
+        tropical=.false.
+      elseif(abs(lat2D_dg(i,j))<
+     & 60.d0.and.abs(lat2D_dg(i,j))>=50.d0) then
+        arctic=.false.
+        boreal=.true.
+        temperate=.false.
+        tropical=.false.
+      elseif(abs(lat2D_dg(i,j))<
+     & 50.d0.and.abs(lat2D_dg(i,j))>=23.d0) then
+        arctic=.false.
+        boreal=.false.
+        temperate=.true.
+        tropical=.false.
+      elseif(abs(lat2D_dg(i,j))<23.d0) then
+        arctic=.false.
+        boreal=.false.
+        temperate=.false.
+        tropical=.true.
+      else
+        call stop_model(
+     & 'bad lat band definition in map_ent_pfts_to_megan_pfts',255)
+      end if
+
+!  I *believe* the 16 Megan types are:
+!  =====================================
+!  1 needleleaf evergreen temperate tree
+!  2 needleleaf deciduous boreal tree   - swapped order compared to G 2012
+!  3 needleleaf evergreen boreal tree   - swapped order compared to G 2012
+!  4 broadleaf evergreen tropical tree
+!  5 broadleaf evergreen temperate tree
+!  6 broadleaf deciduous tropical tree! 
+!  7 broadleaf deciduous temperate tree
+!  8 broadleaf deciduous boreal tree
+!  9 broadleaf evergreen temperate shrub
+! 10 broadleaf deciduous temperate shrub
+! 11 broadleaf deciduous boreal shrub
+! 12 arctic C3 grass
+! 13 cool C3 grass
+! 14 warm C4 grass (though I think megan *code* says C3 warm... *paper* says this)
+! 15 crop1 (?) (*paper* has no 16 and 15=Crop1)
+! 16 crop2 (corn??)
+
+! I *believe* the 18 Ent types are:
+! ===================================
+!  1 evergreen broadleaf early successional
+!  2 evergreen broadleaf late successional
+!  3 evergreen needleleaf early successional
+!  4 evergreen needleleaf late successional
+!  5 cold deciduous broadleaf early successional
+!  6 cold deciduous broadleaf late successional
+!  7 drought deciduous broadleaf
+!  8 deciduous needleleaf
+!  9 cold adapted shrub
+! 10 arid adapted shrub
+! 11 C3 grass perennial
+! 12 C4 grass
+! 13 C3 grass - annual
+! 14 arctic C3 grass
+! 15 C4 crops
+! 16 crops broadleaf woody
+! 17 like sand
+! 18 like dirt
+
+      v_megan(:)=0.d0
+
+! Depending on latitude band, placing Ent:
+!  1 evergreen broadleaf early successional
+!  2 evergreen broadleaf late successional
+! in Megan categories:
+!  4 broadleaf evergreen tropical tree
+!  5 broadleaf evergreen temperate tree
+
+      if(tropical)then
+        v_megan(4)=v_megan(4)+v_ent(1)+v_ent(2)
+        meg(1) = 4
+        meg(2) = 4
+      else ! extra-tropical
+        v_megan(5)=v_megan(5)+v_ent(1)+v_ent(2)
+        meg(1) = 5
+        meg(2) = 5
+      end if
+
+! Depending on latitude band, placing Ent:
+!  3 evergreen needleleaf early successional
+!  4 evergreen needleleaf late successional
+! in Megan categories:
+!  1 needleleaf evergreen temperate tree
+!  3 needleleaf evergreen boreal tree
+      if(boreal .or. arctic)then
+        v_megan(3)=v_megan(3)+v_ent(3)+v_ent(4)
+        meg(3) = 3
+        meg(4) = 3
+      else ! temperate or tropical
+        v_megan(1)=v_megan(1)+v_ent(3)+v_ent(4)
+        meg(3) = 1
+        meg(4) = 1
+      end if
+
+! Depending on latitude band, placing Ent:
+!  5 cold deciduous broadleaf early successional
+!  6 cold deciduous broadleaf late successional
+!  7 drought deciduous broadleaf
+! Into Megan categories:
+!  6 broadleaf deciduous tropical tree
+!  7 broadleaf deciduous temperate tree
+!  8 broadleaf deciduous boreal tree
+      if(boreal .or. arctic)then
+        v_megan(8)=v_megan(8)+v_ent(5)+v_ent(6)+v_ent(7)
+        meg(5) = 8
+        meg(6) = 8
+        meg(7) = 8
+      else if(temperate)then
+        v_megan(7)=v_megan(7)+v_ent(5)+v_ent(6)+v_ent(7)
+        meg(5) = 7
+        meg(6) = 7
+        meg(7) = 7
+      else if(tropical)then
+        v_megan(6)=v_megan(6)+v_ent(5)+v_ent(6)+v_ent(7)
+        meg(5) = 6
+        meg(6) = 6
+        meg(7) = 6
+      end if
+
+! Place Ent: {8 deciduous needleleaf} into Megan {2 needleleaf deciduous boreal tree}
+      v_megan(2)=v_megan(2)+v_ent(8)
+      meg(8) = 2
+
+! Depending on latitude band, placing Ent:
+!  9 cold adapted shrub
+! Into Megan categories:
+! 10 broadleaf deciduous temperate shrub
+! 11 broadleaf deciduous boreal shrub
+      if(boreal .or. arctic)then
+        v_megan(11)=v_megan(11)+v_ent(9)
+        meg(9) = 11
+      else
+        v_megan(10)=v_megan(10)+v_ent(9)
+        meg(9) = 10
+      end if
+
+! Place Ent: {10 arid adapted shrub} into Megan:
+!  9 broadleaf evergreen temperate shrub
+! though this is hardly obvious:
+      v_megan(9)=v_megan(9)+v_ent(10)
+      meg(10) = 9
+
+! Place Ent:
+! 11 C3 grass perennial
+! 13 C3 grass - annual
+! Into Megan category:
+! 13 cool C3 grass
+! OK?
+      v_megan(13)=v_megan(13)+v_ent(11)+v_ent(13)
+      meg(11) = 13
+      meg(13) = 13
+
+! Place Ent: {12 C4 grass} into Megan:
+! 14 warm C4 grass (though I think megan notes says C3 warm...?)
+      v_megan(14)=v_megan(14)+v_ent(12)
+      meg(12) = 14
+
+
+! Place Ent: {14 arctic C3 grass} into Megan:
+! 12 arctic C3 grass
+      v_megan(12)=v_megan(12)+v_ent(14)
+      meg(14) = 12
+
+! Place Ent: {15 C4 crops} into Megan:
+! 16 crop2 (corn??). Simply because I think corn is C4.
+      v_megan(16)=v_megan(16)+v_ent(15)
+      meg(15) = 16
+
+! Place Ent: {16 crops broadleaf woody} into Megan:
+! 15 crop1 (?). But for no good reason.
+! Vegetation height criterion could be used to determine these woody crops.
+      v_megan(15)=v_megan(15)+v_ent(16)
+      meg(16) = 15
+
+      meg(17) = 0 ! maps to 0 in the converT array
+      meg(18) = 0
+
+! End categories 17 and 18 are bare sand/dirt, so no
+! accumulation into a MEGAN type. So we're done.
+      end subroutine map_ent_pfts_to_megan_pfts
+#endif
 
       subroutine read_laimax(I0,I1,J0,J1, laimax)
 !@sum read maximum LAI from a file, 
@@ -613,5 +848,4 @@ cddd     &               I_STRT     =I_0,    I_STOP     =I_1)
       call par_close(grid,fid)
 
       end subroutine read_height
-
       end module ent_drv

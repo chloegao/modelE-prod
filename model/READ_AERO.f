@@ -9,7 +9,8 @@
 !@+   changes of lower-tropospheric CDNC relative to 1850, as input
 !@+   to prescriptions of aerosol indirect effects on cloud cover
 !@+   and optical depth.
-!@+   Dust aerosols are ingested via the module DustParam_mod below.
+!@+   Dust and volcanic aerosols are ingested via the modules 
+!@+   DustParam_mod VolcParam_mod below.
 !@auth D. Koch, R. Ruedy
 !@auth M. Kelley added comments, reprogrammed for netcdf input
 
@@ -563,3 +564,151 @@ c
       end subroutine get_dust_column
 
       end module DustParam_mod
+
+      module VolcParam_mod
+!@sum This module reads, time-interpolates, and stores fields needed
+!@+   by the radiation code in the prescribed-volcanic aerosol
+!@+   configuration of modelE. (effective radius, optical depth)
+!@+   The interface routine is updvol2().
+!@auth R. Ruedy original version
+!@auth M. Kelley reprogrammed for new-style time-varying input
+!strm use timestream_mod, only : timestream
+      implicit none
+
+!@var vtau/vreff optical depth/effective radius of volcanic aerosols
+      real*8, dimension(:,:,:), allocatable :: VTauTJK ! (time,lat,lev)
+      real*8, dimension(:,:), allocatable :: VReffTJ ! (time,lat)
+      real*8 vreffJ(46)                  ! (lat) reference grid
+      REAL*8, save, allocatable :: gdata(:), VtauL(:), VtauJL(:,:)
+
+!@var LMv,JMv number of layers, lat-zones in VOLCaer input file
+      integer :: LMv,JMv    ,NVOLMON ! # of avail. months
+!@var Latitude and Layer edges (km) of data file grid
+      real*8, dimension(:), allocatable :: ELATVOL,HVOLKM
+
+!@var VOLCaerstream interface for reading and time-interpolating VOLCaer files
+!@+   See usage notes in timestream_mod
+!strm type(timestream) :: VOLCaerstream
+
+!@var hlbvolc nominal edge heights of VOLCaer file layers
+!@var Reff effective radius of volc. aerosol - latitude dep
+!strm real*8, dimension(:), allocatable :: HVOLKM,    volc
+
+!@var is_initialized whether the VOLCaer stream has been initialized
+!@+   and various arrays allocated
+      logical :: is_initialized=.false.
+
+      contains
+
+      subroutine updvol2(jyearv,jjdayv)
+      use domain_decomp_atm, only : grid
+!strm use timestream_mod, only : init_stream,read_stream,
+!strm&     getname_firstfile
+!strm use pario, only : par_open,par_close,get_dimlens,read_data
+      use filemanager, only : openunit, closeunit 
+      implicit none
+!@var jyeard, jjdayd year and day of the data to read into ddjday.
+!@+   Note that jyeard may be negative, which is the Model E method for
+!@+   indicating that the data for abs(jyeard) is to be used for all years.
+      integer, intent(in) :: jyearv,jjdayv
+
+!            for binary input files (obsolescent)
+      CHARACTER*80 TITLE
+      real*4, dimension(:,:), allocatable :: VTAUR4
+      real*4, allocatable :: vtau4(:,:,:),vreff4(:,:),hv4(:),lat4(:)
+      INTEGER :: I,J,K,L,M,N,N1,N2,NRFU,mi,mj
+      REAL*8 XYYEAR,XYI,WMI,WMJ
+      INTEGER, SAVE :: JVOLYI,JVOLYE
+
+      REAL*8, SAVE :: E46LAT(47),TAULAT(46)
+      INTEGER, SAVE :: NJ46
+
+!strm logical :: cyclic
+!strm real*8, dimension(:,:,:,:), allocatable :: ddjday_transp
+!strm integer :: fid,ndims,dlens(7),jyearx
+!strm character(len=32) :: fname1_volc
+  
+!strm cyclic = jyearv < 0      
+!strm jyearx = abs(jyearv)     
+
+      if(.not. is_initialized) then
+        is_initialized = .true.
+
+C-----------------------------------------------------------------------
+CR(7)        Read Stratospheric Volcanic binary data
+C            (NVOLMON months (years JVOLYI to JVOLYE) x JMv latitudes)
+C            If KyearV<0 use the NVOLMON-month mean as background aerosol
+C            ---------------------------------------------------------
+        call openunit('RADN7',nrfu,.true.,.true.)
+        READ (NRFU) TITLE ; rewind NRFU
+        IF(TITLE(7:12).ne.'Header')
+     &      call stop_model('updvol2: use new type header file',255)
+        READ (NRFU) TITLE,NVOLMON,JVOLYI,JVOLYE,JMv,LMv
+        ALLOCATE (VTauTJK(NVOLMON,JMv,LMv))
+        ALLOCATE (VTau4(NVOLMON,JMv,LMv))
+        ALLOCATE (VReff4(NVOLMON,JMv))
+        ALLOCATE (VReffTJ(NVOLMON,JMv))
+        ALLOCATE (HVOLKM(LMv+1),ELATVOL(JMv+1))
+        ALLOCATE (hv4(LMv+1),LAT4(JMv+1))
+        READ (NRFU) TITLE,VTau4  ; VTauTJK = VTau4
+        READ (NRFU) TITLE,VReff4 ; VReffTJ = VReff4
+        READ (NRFU) TITLE,hv4    ; HVOLKM  = hv4
+        READ (NRFU) TITLE,LAT4   ; ELATVOL = lat4
+        call closeunit(nrfu)
+        deallocate (VTau4,VReff4,hv4,LAT4)
+        if(jyearv == -1) then
+          do j=1,JMv
+          VReffTJ(1,J)=sum(VReffTJ(:,j))/nvolmon
+            do k=1,LMv
+            VTauTJK(1,J,K)=sum(VTauTJK(:,j,k))/nvolmon
+            end do
+          end do
+        end if
+C                   Set Grid-Box Edge Latitudes for Data Repartitioning
+C                   ---------------------------------------------------
+        NJ46=46+1
+        DO J=2,46
+          E46LAT(J)=-90.D0+(J-1.5D0)*180.D0/45
+        END DO
+        E46LAT(   1)=-90.D0
+        E46LAT(NJ46)= 90.D0
+        allocate (gdata(JMv),VtauL(LMv),VtauJL(NJ46,LMv))
+      end if ! is_initialized
+C                                          (Volcanic data)
+C                                          -------------------------
+      XYYEAR=JYEARV+JJDAYV/366.D0              ! time interpolation (lin)
+      IF(XYYEAR < JVOLYI) XYYEAR=JVOLYI
+      XYI=(XYYEAR-JVOLYI)*12.D0+1.D0
+      IF(XYI > NVOLMON - .001D0) XYI=NVOLMON-.001D0
+      MI=XYI
+      WMJ=XYI-MI
+      WMI=1.D0-WMJ
+      MJ=MI+1
+      DO 250 J=1,JMv
+      GDATA(J)=WMI*VReffTJ(MI,J)+WMJ*VReffTJ(MJ,J)
+  250 CONTINUE                                    ! hor. interpolation
+      CALL RETERP(GDATA,ELATVol,JMv+1,vreffj,E46LAT,NJ46)
+      DO 270 K=1,LMv
+      DO 260 J=1,JMv
+      GDATA(J)=WMI*VTauTJK(MI,J,K)+WMJ*VTauTJK(MJ,J,K)
+  260 CONTINUE
+      CALL RETERP(GDATA,ELATVOL,JMv+1,VtauJL(1,K),E46LAT,NJ46)
+  270 CONTINUE
+      return
+      end subroutine updvol2
+
+      subroutine get_volc_column (jlat,Nlayrs,HLB, vReff,VTAULX)
+!@sum Vertically repartitions to the current model grid
+      integer, intent(in) :: jlat,nlayrs
+      real*8 , intent(in) :: hlb(nlayrs+1)
+      real*8 , intent(out) :: vtaulx(nlayrs), vReff
+
+      VtauL(:) = VtauJL(jlat,:)
+      call repart(VtauL,hvolkm,LMv+1, VTAULX,hlb,nlayrs+1)
+
+      vreff = vreffj(jlat)
+
+      return
+      end subroutine get_volc_column
+
+      end module VolcParam_mod

@@ -516,6 +516,7 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
 !@dbparam Lmax_rad_CH4 model levels to use tracer CH4 in rad code(if on)
 !@dbparam which_trop 1=ls1-1 is tropopause, 0=LTROPO(I,J) is tropopause
 !@dbparam PltOx for pres<PltOx Ox, NOx, ClOx, and BrOx get overwritten
+!@dbparam nMeganPFT number of megan plant functional types
 
       INTEGER ::        fix_CH4_chemistry = 0
      &                 ,which_trop        = 0
@@ -542,7 +543,7 @@ C to define BrOx,ClOx,ClONOs,HCL,COIC,OxIC,CFCIC,N2OICX,CH4ICX too:
      &                     ,PSClatN       =  50.d0
 
       LOGICAL, PARAMETER :: luselb            = .false.
-
+      INTEGER, PARAMETER :: nMeganPFT         = 16
 C**************  V  A  R  I  A  B  L  E  S *******************  
 !@var topLevelOfChemistry the model level above which no chemistry is done
 !@var nn name of species that reacts, as defined in the trchemname array. The
