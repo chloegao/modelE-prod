@@ -1295,6 +1295,7 @@ C**** VSIDT(J-1)<0, VSIDT(J)<0  or  VSIDT(J-1)>0, VSIDT(J) not 0.
      *     FAW(I,J))*ASI-DXYP(J)*(FASI(I,J-1)+FASI(I,J))))
      *    / (DXYP(J) + (FAW(I,J-1)-FAW(I,J)))
       RSI(I,J)  = ASI*BYFOA(I,J)
+      IF( RSI(I,J) > 1.d0  ) RSI(I,J) = 1.d0 ! avoid to round off
       RSIY(I,J) = YRSI*BYFOA(I,J)
       RSIX(I,J) = RSIX(I,J) + (FXSI(I,J-1)-FXSI(I,J))*BYFOA(I,J)
       IF (ASI.gt.0) MHS(1:NTRICE,I,J) = AMSI(1:NTRICE)/ASI
@@ -1613,7 +1614,7 @@ c        END DO
         DO J=J_0, J_1
           DO I=1,si_ocn%IMAXJ(J)
             IF (FOCEAN(I,J).gt.0) THEN
-              atmice%HSICNV(I,J)=RSI(I,J)*SUM(MHS(3+LMI:2+2*LMI,I,J)) -
+              atmice%HSICNV(I,J)=RSI(I,J)*SUM(MHS(3+LMI:4+2*LMI,I,J)) -
      -                              ATMICE%HSICNV(I,J)
 C**** reset sea ice concentration
               RSI(I,J)=RSISAVE(I,J)

@@ -399,7 +399,9 @@ c
 #else
       subroutine updBCdalbsn(year,day)
 !@sum updBCdalbsn reads timeseries file for black carbon delta-snow-albedo
-!@+   and interpolates to the requested day/year.
+!@+   and interpolates to the requested day/year.   If the year is negative,
+!@+   this is interpreted as indicating perpetual-year mode, as per the
+!@+   convention for numerous radiation input files.
 !@auth R. Ruedy, M. Kelley
       use domain_decomp_atm, only : grid,getDomainBounds
       use timestream_mod, only : init_stream,read_stream
@@ -409,7 +411,10 @@ c
 c
       logical, save :: init = .false.
       integer :: i_0h,i_1h,j_0h,j_1h
+      logical :: cyclic
+      integer :: absyr
 
+      absyr = abs(year)
       if (.not. init) then
         init = .true.
 
@@ -417,11 +422,12 @@ c
      &                             j_strt_halo=j_0h, j_stop_halo=j_1h)
         allocate(BCdalbsn(i_0h:i_1h, j_0h:j_1h))
         BCdalbsn = 0.
+        cyclic = year < 0
         call init_stream(grid,BCdalbsnstream,'BCdalbsn','BCdalbsn',
-     &       -1d30,1d30,'linm2m',year,day)
+     &       -1d30,1d30,'linm2m',absyr,day,cyclic=cyclic)
       endif
 
-      call read_stream(grid,BCdalbsnstream,year,day,BCdalbsn)
+      call read_stream(grid,BCdalbsnstream,absyr,day,BCdalbsn)
       BCdalbsn = BCdalbsn / 100d0 ! units conversion from % to 1
 
       end subroutine updBCdalbsn

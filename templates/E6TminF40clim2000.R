@@ -18,7 +18,6 @@ Preprocessor Options
 #define ATM_LAYERING L40         ! 40 layers, top at .1 mb
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
-#define SWFIX_20151201
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start
@@ -118,7 +117,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_OMA_params_CMIP6"
-#include "mineral_params"
+#include "mineral_params_model"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
 #include "ch4_params_CMIP6_2000"

@@ -508,6 +508,7 @@ C**** Accumulate tracer distribution diagnostics
          CALL TIMER (NOW,MTRACE)
          CALL CHECKT ('T3DSRC')
 #endif
+      call accum_ma_ia_src
 C****
 C**** WRITE SUB-DAILY DIAGNOSTICS EVERY NSUBDD hours
 C****

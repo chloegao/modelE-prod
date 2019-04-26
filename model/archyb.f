@@ -15,6 +15,10 @@ c
       USE HYCOM_DIM_GLOB, only : ii1,jj,JDM,kk,isp,ifp,ilp,ntrcr,isu
      &     ,ifu,ilu,isv,ifv,ilv,ii,idm,kdm
       USE HYCOM_ARRAYS_GLOB
+      use hycom_arrays_glob_renamer
+      USE HYCOM_DIM, only : ogrid
+      USE DOMAIN_DECOMP_1D, ONLY: UNPACK_DATA
+
 #ifdef TRACERS_OceanBiology
       USE obio_com, only : pCO2av,ao_co2fluxav,diag_counter
      .                    ,cexpav,pp2tot_dayav
@@ -78,7 +82,7 @@ c --- check if ogcm date matches agcm date
 c --- check if ogcm date matches agcm date
         write(*,*) 'mismatching archive date in agcm/ogcm=',
      .     (itime+1.)/nday,time
-        stop 'mismatching archive date'
+c       stop 'mismatching archive date'
       else
         write(flnm,'(a3,i4.4,2a)') amon,year,'.out',xlabel(1:lrunid)
         write(flnm_nc,'(a3,i4.4,3a)')
@@ -521,6 +525,10 @@ c
      .    'tauxav','monthly taux','N/m2')
         call out2cdf(ncid1,idm,jdm,tauyav,time,
      .    'tauyav','monthly tauy','N/m2')
+        call out2cdf(ncid1,idm,jdm,diag1,time,
+     .    'odmsi','monthly odmsi','kg/m2')
+        call out2cdf(ncid1,idm,jdm,diag2,time,
+     .    'runsi','monthly runsi','kg/m2')
 
         call out3cdf(ncid1,idm,jdm,kdm,temav,time,
      .    'tempav','monthly potential temperature','deg C')
@@ -584,12 +592,16 @@ c
       do 60 j=1,jj
       do 601 l=1,isp(j)
       do 601 i=ifp(j,l),ilp(j,l)
-      eminpav(i,j)=0.
-      surflav(i,j)=0.
-      salflav(i,j)=0.
-      brineav(i,j)=0.
-       tauxav(i,j)=0.
-       tauyav(i,j)=0.
+c      eminpav(i,j)=0.
+c      surflav(i,j)=0.
+c      salflav(i,j)=0.
+c      brineav(i,j)=0.
+c       tauxav(i,j)=0.
+c       tauyav(i,j)=0.
+c       pbavav(i,j)=0.
+c       dpmxav(i,j)=0.
+c       sfhtav(i,j)=0.
+c       oiceav(i,j)=0.
 c
 #ifdef TRACERS_OceanBiology
         diag_counter =0
@@ -602,27 +614,24 @@ c
 #endif
 #endif
 
-      pbavav(i,j)=0.
-      dpmxav(i,j)=0.
-      sfhtav(i,j)=0.
- 601  oiceav(i,j)=0.
+ 601  continue
 c
-      do 60 k=1,kk
-      do 602 l=1,isp(j)
-      do 602 i=ifp(j,l),ilp(j,l)
-      uav(i,j,k)=0.
-      vav(i,j,k)=0.
-      dpuav(i,j,k)=0.
-      dpvav(i,j,k)=0.
-      dpav (i,j,k)=0.
-      temav(i,j,k)=0.
-      salav(i,j,k)=0.
-      th3av(i,j,k)=0.
-      uflxav(i,j,k)=0.
-      vflxav(i,j,k)=0.
-      ufxavp(i,j,k)=0.
-      vfxavp(i,j,k)=0.
- 602  diaflx(i,j,k)=0.
+c     do 60 k=1,kk
+c     do 602 l=1,isp(j)
+c     do 602 i=ifp(j,l),ilp(j,l)
+c     uav(i,j,k)=0.
+c     vav(i,j,k)=0.
+c     dpuav(i,j,k)=0.
+c     dpvav(i,j,k)=0.
+c     dpav (i,j,k)=0.
+c     temav(i,j,k)=0.
+c     salav(i,j,k)=0.
+c     th3av(i,j,k)=0.
+c     uflxav(i,j,k)=0.
+c     vflxav(i,j,k)=0.
+c     ufxavp(i,j,k)=0.
+c     vfxavp(i,j,k)=0.
+c602  diaflx(i,j,k)=0.
  60   continue
 c
       return

@@ -11,7 +11,7 @@
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: solz,tirrq,Ed,Es
-     .                    ,rmud,atmFe,avgq,sunz
+     .                    ,rmud,atmFe,stream_atmFe,avgq,sunz
      .                    ,wind
      .                    ,alk
      .                    ,tirrq3d
@@ -21,7 +21,7 @@
 #endif
       USE obio_com,  only: dobio,gcmax,day_of_month,hour_of_day
      .                    ,temp1d,dp1d,obio_P,det,car,avgq1d
-     .                    ,gcmax1d,atmFe_ij,covice_ij
+     .                    ,gcmax1d,atmFe_ij,daily_atmFe,covice_ij
      .                    ,P_tend,D_tend,C_tend,saln1d
      .                    ,pCO2_ij,p1d,wsdet,pHsfc
      .                    ,rhs,alk1d
@@ -90,6 +90,7 @@
       use JulianCalendar_mod, only: jdendofm
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE FILEMANAGER, only: openunit,closeunit,file_exists
+      USE timestream_mod, only: read_stream
       USE obio_com, only : co2flux
       use obio_com, only: ze
       USE DOMAIN_DECOMP_1D, only: AM_I_ROOT,DIST_GRID,GLOBALSUM
@@ -654,8 +655,17 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
 !      atmFe_ij=atmFe_all(i,j,l0)*w0 + atmFe_all(i,j,l1)*w1
 !    .         +atmFe_all(i,j,l2)*w2 + atmFe_all(i,j,l3)*w3
 
-       !atmospheric deposition iron 
-       atmFe_ij=atmFe(i,j,month)
+      if (.not.allocated(daily_atmFe)) then
+         allocate(daily_atmFe(ogrid%i_strt_halo:ogrid%i_stop_halo,
+     &    ogrid%j_strt_halo:ogrid%j_stop_halo))
+      endif
+
+      call read_stream(ogrid,stream_atmFe,year,dayOfYear,
+     & daily_atmFe)
+
+       !atmospheric deposition iron
+      atmFe_ij=daily_atmFe(i,j)
+
        if (vrbos) then
          write(*,'(/,a,3i5,4e12.4)')'obio_model, forcing: ',
      .   nstep,i,j,solz,sunz,wind,atmFe_ij

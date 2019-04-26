@@ -18,7 +18,6 @@ Preprocessor Options
 #define ATM_LAYERING L40         ! 40 layers, top at .1 mb
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
-#define SWFIX_20151201
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start
@@ -44,7 +43,8 @@ Preprocessor Options
 !<--- chemistry end
 !---> TOMAS start
 #define TRACERS_TOMAS    ! TOMAS aerosol tracers (aerosols, etc)
-#define TOMAS_12_3NM    ! 15 BIN and 3nm size cutoff 
+!#define TOMAS_12_3NM    ! 15 bin and 3nm size
+#define TOMAS_12_10NM    ! 12 bin and 10nm size is new default
 #define One_percent_sulfate
 #define Old_DMS_emis
 #define TOMAS_COARSER_EMISSION     ! larger emission size
@@ -145,7 +145,7 @@ initial_GHG_setup = 1 ! Set to 0 after initial setup.
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_TOMAS_params_CMIP6"
-#include "dust_params_vmp_matrix" /* THIS MUST BE REPLACED WITH A TOMAS ONE */
+#include "dust_params_vmp_tomas"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6"
 #include "ch4_params_CMIP6"

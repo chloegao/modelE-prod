@@ -58,7 +58,6 @@
       LOGICAL, PARAMETER :: MASS_ADJ    = .TRUE.   ! enforce precise mass conservation: default setting is .TRUE.
       LOGICAL, PARAMETER :: CPU_STATS   = .FALSE.  ! timer for sections of the MATRIX code
       LOGICAL, PARAMETER :: UPDATE_DP   = .TRUE.   ! update particle diameters at each time step: default is .TRUE.
-      LOGICAL, PARAMETER :: UPDATE_DIAM = .TRUE.   ! update particle diameters at each time step in global DIAM array
       LOGICAL, PARAMETER :: UPDATE_VDEP = .FALSE.  ! update particle diameters at each time step in global array
       LOGICAL, PARAMETER :: SET_INTERMODAL_TRANSFER  = .TRUE.  ! do AKK -> ACC transfer if mode AKK is defined
       LOGICAL, PARAMETER :: NO_MICROPHYSICS          = .FALSE. ! no-microphysics option
@@ -156,8 +155,7 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: DG_DD2 = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1 = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
       REAL(8), PARAMETER :: DG_DS2 = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA = 0.06D+00 *2.     ! set to match GISS sea salt emissions         
-!      REAL(8), PARAMETER :: DG_SSA = 0.370D+00 *2.     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSA = 0.440D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSC = 1.D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------
@@ -216,8 +214,7 @@ c     &               80.81, 85.58, 90./
       REAL(8), PARAMETER :: DG_DD2_EMIS = 1.000D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
       REAL(8), PARAMETER :: DG_DS1_EMIS = 0.580D+00 *2.     ! set to match GISS dust emissions for average of sizes 1 & 2         
       REAL(8), PARAMETER :: DG_DS2_EMIS = 1.00D+00 *2.     ! set to match GISS dust emissions for average of sizes 3 & 4         
-      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.1D+00 *2     ! set to match GISS sea salt emissions         
-!      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.370D+00 *2     ! set to match GISS sea salt emissions         
+      REAL(8), PARAMETER :: DG_SSA_EMIS = 0.440D+00 *2     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSC_EMIS = 1.000D+00 *2.     ! set to match GISS sea salt emissions         
       REAL(8), PARAMETER :: DG_SSS_EMIS = 0.690D+00 *2.     ! 10:1 average of modes SSA and SSC
       !-------------------------------------------------------------------------------------------------------------------

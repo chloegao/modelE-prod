@@ -353,6 +353,10 @@ c**** Calculates concentration in per mille units
         call get_param("H2O18_in_aquifer", in_permil, default=-8.d0)
       case('HDO')
         call get_param("HDO_in_aquifer", in_permil, default=-54.d0)
+      case('H2O17')
+        !Default assumes 17O-excess of zero:
+        call get_param("H2O17_in_aquifer", in_permil, 
+     &                 default=-4.240036d0)
       case default
         c = 0.d0
         return

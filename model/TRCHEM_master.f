@@ -154,11 +154,10 @@ C**** Local parameters and variables and arguments:
 !@+ loops like L=maxT+1,topLevelOfChemistry will do nothing.
 !@var sumOx for summing regional Ox tracers
 !@var bysumOx reciprocal of sum of regional Ox tracers
-!@var maxPSC a limit placed on some PSC reactions to prevent sudden overflows
       REAL*8, DIMENSION(NTM) :: PIfact
       REAL*8, DIMENSION(LM) :: PRES2 ! keep LM; based on PMIDL00(:)
       REAL*8 :: FACT1,FACT2,FACT3,FACT4,FACT5,FACT6,FACT7,fact_so4,
-     &  FASTJ_PFACT,bydtsrc,CH4FACT,r179,rlossN,maxPSC,
+     &  FASTJ_PFACT,bydtsrc,CH4FACT,r179,rlossN,
      &  rprodN,ratioN,pfactor,bypfactor,gwprodHNO3,
 #ifdef TRACERS_dCO
      &  changed17Oald,changed18Oald,changed13Cald,
@@ -351,7 +350,6 @@ c This is to work around initial instabilities.
       else 
         dt2=dtsrc
       endif
-      maxPSC=0.2d0/dt2
 
 c Calculate new photolysis rates every n_phot main timesteps:
 
@@ -792,36 +790,6 @@ c Calculate the chemical reaction rates:
       if(daylight)then
 CCCCCCCCCCCCCCCCCCCC   SUNLIGHT   CCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
 
-c      When PSCs present, ensure heterogenous reactions do not destroy
-c      more than exists to prevent non-conserving reaction overflows at
-c      end of polar night:
-       do L=1,topLevelOfChemistry
-         if(pscX(L))then
-           if(rr(rrhet%N2O5_H2O__HNO3_HNO3,L)>=maxPSC)
-     &       rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=maxPSC
-           if(rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)>=maxPSC)
-     &       rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=maxPSC
-           if(rr(rrhet%ClONO2_HCl__Cl_HNO3,L)>=maxPSC)
-     &       rr(rrhet%ClONO2_HCl__Cl_HNO3,L)=maxPSC
-           if(rr(rrhet%ClONO2_HCl__Cl_HNO3,L)>=
-     &        maxPSC*(y(nn_HCl,L)/y(nn_ClONO2,L)))
-     &       rr(rrhet%ClONO2_HCl__Cl_HNO3,L)=
-     &         maxPSC*(y(nn_HCl,L)/y(nn_ClONO2,L))
-           if(rr(rrhet%HOCl_HCl__Cl_H2O,L)>=maxPSC)
-     &       rr(rrhet%HOCl_HCl__Cl_H2O,L)=maxPSC
-           if(rr(rrhet%HOCl_HCl__Cl_H2O,L)>=
-     &        maxPSC*(y(nn_HCl,L)/y(nn_HOCl,L)))
-     &       rr(rrhet%HOCl_HCl__Cl_H2O,L)=
-     &         maxPSC*(y(nn_HCl,L)/y(nn_HOCl,L))
-           if(rr(rrhet%N2O5_HCl__Cl_HNO3,L)>=maxPSC)
-     &       rr(rrhet%N2O5_HCl__Cl_HNO3,L)=maxPSC
-           if(rr(rrhet%N2O5_HCl__Cl_HNO3,L)>=
-     &        maxPSC*(y(nn_HCl,L)/y(nn_N2O5,L)))
-     &       rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
-     &         maxPSC*(y(nn_HCl,L)/y(nn_N2O5,L))
-         end if
-       end do
-
 CCCCCCCCCCCCCCCCC FAMILY PARTITIONING CCCCCCCCCCCCCCCCCCCCCCCCCC
 
        call Oxfam(topLevelOfChemistry,I,J)
@@ -951,7 +919,7 @@ CCCCCCCCCCCCCCCC NIGHTTIME CCCCCCCCCCCCCCCCCCCCCC
         pfactor=axyp(I,J)*MA(L,I,J)/y(nM,L)
         bypfactor=1.D0/pfactor
         RVELN2O5=SQRT(TX(I,J,L)*RKBYPIM)*100.d0
-C       Calculate sulfate sink, and cap it at 20% of N2O5:
+C       Calculate sulfate sink
 c       in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
         wprod_sulf=
      &  dt2*sulfate(I,J,L)*y(nn_N2O5,L)*RGAMMASULF*RVELN2O5*0.25d0
@@ -2637,7 +2605,8 @@ C**** GLOBAL parameters and variables:
       USE ATM_COM, only : MA, PMIDL00
       USE TRCHEM_Shindell_COM, only: n_bi,n_tri,n_nst,n_het,ta,ea,rr,pe,
      & cboltz,r1,sb,nst,y,nM,nH2O,ro,sn,which_trop,sulfate,RKBYPIM,dt2,
-     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet
+     & RGAMMASULF,pscX,topLevelOfChemistry,rh,bythick,aero,rrbi,rrhet,
+     & boltAvog8byPi
 
 #ifdef TRACERS_AEROSOLS_SOA
       USE TRACER_COM, only: n_isopp1a,n_isopp2a
@@ -2945,8 +2914,12 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
             end if
           end if
 
-          ! here for certain pressures in the tropics we used to scale rkext
-           
+          ! Convert rkext from optical depth per layer to optical depth
+          ! per cm. (Division by thickness added Jan 2019 concurrent
+          ! with removal of km-1 --> cm-1 conversion where rkext is
+          ! used below):
+          rkext(l)=rkext(l)*bythick(l)*1.d-2
+
           if(rkext(l) /= 0.)aero(l) = 1
 
           ! NAT PSC surface conc per unit volume (cm^2/cm^3)
@@ -2957,17 +2930,15 @@ c         in troposphere loss is rxn on sulfate, in strat rxn w PSC or sulfate
           end if
 
 c         Reaction rrhet%N2O5_H2O__HNO3_HNO3 on sulfate and PSCs:
-          temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
-          rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
-     &      0.5d0*rkext(l)*1.d-5*temp*0.2d0
+          temp=sqrt(boltAvog8byPi*ta(l)/108.d0)
+          rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=0.5d0*rkext(l)*temp*0.2d0
           if(pres(l) > 31.6d0) rr(rrhet%N2O5_H2O__HNO3_HNO3,L)=
-     &      rr(rrhet%N2O5_H2O__HNO3_HNO3,L)
-     &      +0.25d0*pscEx(l)*temp*4.d-4
+     &      rr(rrhet%N2O5_H2O__HNO3_HNO3,L)+0.25d0*pscEx(l)*temp*4.d-4
 
 c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
-          temp=sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*97.d0))
+          temp=sqrt(boltAvog8byPi*ta(l)/97.d0)
           rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
-     &      0.5d0*rkext(l)*1.d-5*temp*0.8d-2
+     &      0.5d0*rkext(l)*temp*0.8d-2
           if(pres(l) > 31.6d0) rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)=
      &      rr(rrhet%ClONO2_H2O__HOCl_HNO3,L)
      &      +0.25d0*pscEx(l)*temp*4.d-3
@@ -2975,16 +2946,16 @@ c         Reaction rrhet%ClONO2_H2O__HOCl_HNO3 on sulfate and PSCs:
           if(pres(l) > 31.6d0) then
             rr(rrhet%ClONO2_HCl__Cl_HNO3,L)=0.25d0*pscEx(l)*temp*0.2d0
             rr(rrhet%HOCl_HCl__Cl_H2O,L)=
-     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*52.d0))
+     &        sqrt(boltAvog8byPi*ta(l)/52.d0)
             rr(rrhet%HOCl_HCl__Cl_H2O,L)=
      &        0.25d0*pscEx(l)*rr(rrhet%HOCl_HCl__Cl_H2O,L)*0.1d0
             rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
-     &        sqrt(8.d0*1.38d-16*ta(l)*6.02d23/(PI*108.d0))
+     &        sqrt(boltAvog8byPi*ta(l)/108.d0)
             rr(rrhet%N2O5_HCl__Cl_HNO3,L)=
      &        0.25d0*pscEx(l)*rr(rrhet%N2O5_HCl__Cl_HNO3,L)*0.003d0
           end if
 
-        end if  
+        end if
 
         if(pres(L) < 245.d0 .and. pres(L) > 5.d0)then
           wprod_sulf=dt2*y(nn_N2O5,L)*rr(rrhet%N2O5_H2O__HNO3_HNO3,L)

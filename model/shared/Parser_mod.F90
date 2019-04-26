@@ -132,7 +132,7 @@ contains
     integer np
     integer ivars(MAXDIM)
     real*8 rvars(MAXDIM)
-    character*128 cvars(MAXDIM)
+    character(len=MAX_CHAR_LEN+1) :: cvars(MAXDIM)
 
     ! skip unrelated stuff
     do
@@ -146,6 +146,8 @@ contains
       read( kunit, '(a256)', err=666, end=666 ) bufs
 
       if ( len_trim(bufs) < 1 ) cycle
+      if ( len_trim(bufs) > 255 ) &
+           call stop_model("parse_params: rundeck line too long",255)
 
       bufs = strip_comment( bufs )
       call skip_junk( bufs )
@@ -165,7 +167,7 @@ contains
       ! now check the type of variables
       if ( scan( bufs, '''' ) > 0 ) then
         type = 'c'
-      else if ( scan( bufs, '.' ) > 0 ) then
+      else if ( scan( bufs, '.eEdD' ) > 0 ) then
         type = 'r'
       else
         type = 'i'

@@ -28,7 +28,6 @@ C
       use OldTracer_mod, only: pm2p5fact
       use OldTracer_mod, only: pm10fact
       use OldTracer_mod, only: nBBsources
-      use OldTracer_mod, only: emisPerFireByVegType
       use OldTracer_mod, only: trpdens
       use OldTracer_mod, only: trradius
       use OldTracer_mod, only: tr_wd_TYPE
@@ -72,7 +71,7 @@ c
 !@+ month-to-month (linm2m)
       integer :: nc_emis_use_ppm_interp=1
 
-!@dbparam whichEPFCs choses emisPerFireByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
+!@dbparam whichEPFCs choses EPFCByVegType calibration: 1=AR5, 2=GFED3, 3=GFED2, 4=MOPITT
       integer :: whichEPFCs = 1 
 !@dbparam seasonalNH3src Defines the NH3 input file that a seasonal
 !@+                      variability should be imposed, NH3_XX
@@ -84,7 +83,11 @@ C**** Each tracer has a variable name and a unique index
 
 !@var ntm_O18: Number of TRACERS_SPECIAL_O18 tracers.
 #ifdef TRACERS_SPECIAL_O18
+#ifdef TRACERS_WISO_O17
+      integer, parameter :: ntm_o18=3
+#else
       integer, parameter :: ntm_o18=2
+#endif
 #else
       integer, parameter :: ntm_o18=0
 #endif  /* TRACERS_SPECIAL_O18 */

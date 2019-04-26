@@ -1135,13 +1135,14 @@ c
       use dynamics, only : do_gwdrag,ido_gwdrag
       use rad_com, only: nradfrc
 #ifdef DETAILED_FIRE_OUTPUT
-      use flammability_com, only: nVtype,ij_flamV
+      use flammability_com, only: ij_flamV
+      use ent_const, only : N_COVERTYPES
 #endif
       USE SOCPBL, only : calc_wspdf
       use dictionary_mod
       implicit none
-      integer :: i,k,kk,k3,k1,l,n,ngx,nq
-      character(len=16) :: ijstr,string_flamV
+      integer :: i,k,kk,k1,l,n,ngx,nq
+      character(len=16) :: ijstr
       real*8 x_dummy(im)
 #ifdef ENT_DEBUG_DIAGS
       integer ent_k1, ent_k2
@@ -4498,6 +4499,27 @@ c
       ia_ij(k) = ia_srf
 #endif
 #ifdef CALCULATE_FLAMMABILITY
+      k=k+1        !rh for flammability 
+        ij_flam_rh = k
+        lname_ij(k) = 'rh for FLAMMABILITY'
+        units_ij(k) = 'none'
+        name_ij(k) = 'FLAMM_rh'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e0
+      k=k+1        ! prec for flammability 
+        ij_flam_prec = k
+        lname_ij(k) = 'prec for FLAMMABILITY'
+        units_ij(k) = 'mm/day'
+        name_ij(k) = 'FLAMM_prec'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e0
+      k=k+1        ! tsurf for flammability 
+        ij_flam_tsurf = k
+        lname_ij(k) = 'tsurf for FLAMMABILITY'
+        units_ij(k) = 'K'
+        name_ij(k) = 'FLAMM_tsurf'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.e0
       k=k+1        ! flammability of vegetation
         ij_flam = k
         lname_ij(k) = 'VEGETATION FLAMMABILITY'
@@ -4506,17 +4528,13 @@ c
         ia_ij(k) = ia_src
         scale_ij(k) = 1.e0
 #if (defined DYNAMIC_BIOMASS_BURNING)&&(defined DETAILED_FIRE_OUTPUT)
-      do k3=1,nVtype
-        k=k+1   ! vegetation fractions used in fire model
-          ij_flamV(k3) = k
-          string_flamV=' '; write(string_flamV,*) k3
-          lname_ij(k) = 'VEG FRACTION FOR FLAMMABILITY TYPE '//
-     &    trim(ADJUSTL(string_flamV))
-          units_ij(k) = 'fraction of whole grid'
-          name_ij(k) = 'FVFRAC'//trim(ADJUSTL(string_flamV))
-          ia_ij(k) = ia_src
-          scale_ij(k) = 1.
-      end do
+      k=k+1   ! vegetation fractions used in fire model
+        ij_flamV = k
+        lname_ij(k) = 'FLAMMABLE VEG FRACTION'
+        units_ij(k) = 'fraction of whole grid'
+        name_ij(k) = 'FVFRAC'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
 #endif /* DYNAMIC_BIOMASS_BURNING && DETAILED_FIRE_OUTPUT */
       k=k+1        ! vegetation density for fire model purposes
         ij_fvden = k
@@ -4531,7 +4549,7 @@ c
         lname_ij(k) = 'FRAC OF DYN BB EMIS DUE TO NONSUPPRESS'
         units_ij(k) = 'none'
         name_ij(k) = 'f_nsuppress'
-        ia_ij(k) = ia_src
+        ia_ij(k) = ia_inst
         scale_ij(k) = 1.
       k=k+1        ! frac dynamic biomass burning emis from lightning 
         ij_cgign = k
@@ -4547,19 +4565,68 @@ c
         name_ij(k) = 'f_ignHUMAN'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
-      k=k+1        ! frac dynamic biomass burning emis from humans
-        ij_human = k
-        lname_ij(k) = 'FRAC OF DYN BIOBURN EMIS DUE TO HUMAN IGN.'
-        units_ij(k) = 'none'
-        name_ij(k) = 'fHUMAN'
-        ia_ij(k) = ia_src
-        scale_ij(k) = 1.
 #endif /* ANTHROPOGENIC_FIRE_MODEL */
       k=k+1        ! The Fire Count (no need to save for ubiquitous
         ij_fireC = k ! case, since it is constant factor times flammability)
         lname_ij(k) = 'FIRE COUNT FOR DYN BIOBURN USING ANTHRO MODEL'
         units_ij(k) = 'm-2 s-1'
         name_ij(k) = 'fireCount'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        !gridbox RH used for burnt area calculation 
+        ij_barh1 = k 
+        lname_ij(k) = 'RH for BA calc'
+        units_ij(k) = ''
+        name_ij(k) = 'BA_RH'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        !gridbox wsurf used for burnt area calculation 
+        ij_bawsurf = k 
+        lname_ij(k) = 'wsurf for BA calc'
+        units_ij(k) = 'm/s'
+        name_ij(k) = 'BA_wsurf'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        !gridbox burnt area of tree surface type 
+        ij_ba_tree = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'TREE BA FOR DYN BIOBURN USING ANTHRO MODEL'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'BA_tree'
+        ia_ij(k) = ia_inst
+        scale_ij(k) = 1.
+      k=k+1        !gridbox burnt area of shrub surface type 
+        ij_ba_shrub = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'SHRUB BA FOR DYN BIOBURN USING ANTHRO MODEL'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'BA_shrub'
+        ia_ij(k) = ia_inst
+        scale_ij(k) = 1.
+      k=k+1        !gridbox burnt area of grass surface type 
+        ij_ba_grass = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'GRASS BA FOR DYN BIOBURN USING ANTHRO MODEL'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'BA_grass'
+        ia_ij(k) = ia_inst
+        scale_ij(k) = 1.
+      k=k+1        !gridbox fire spread area of tree surface type 
+        ij_a_tree = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'FIRE SPREAD AREA FOR TREES'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'A_tree'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        !gridbox fire spread area of shrub surface type 
+        ij_a_shrub = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'FIRE SPREAD AREA FOR SHRUBS'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'A_shrub'
+        ia_ij(k) = ia_src
+        scale_ij(k) = 1.
+      k=k+1        !gridbox fire spread area of grass surface type 
+        ij_a_grass = k ! case, since it is constant factor times flammability)
+        lname_ij(k) = 'FIRE SPREAD AREA FOR GRASS'
+        units_ij(k) = 'm2'
+        name_ij(k) = 'A_grass'
         ia_ij(k) = ia_src
         scale_ij(k) = 1.
 #endif /* CALCULATE_FLAMMABILITY */
@@ -6375,6 +6442,14 @@ c
       ia_ijl(k)    = ia_dga
       lgrid_ijl(k) = ctr_ml
 c
+      k=k+1        ! Air mass on model layers
+      ijl_airmass  = k
+      name_ijl(k)  = 'airmass'
+      lname_ijl(k) = 'Air Mass'
+      units_ijl(k) = 'kg/m2/layer'
+      scale_ijl(k) = 1.
+      ia_ijl(k)    = ia_src ! to match taijl one
+      lgrid_ijl(k) = ctr_ml
 #ifdef AIJL_CP_TRANSPORTS
 c
       k=k+1        ! u on constant-pressure layers

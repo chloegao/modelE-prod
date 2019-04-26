@@ -5020,6 +5020,17 @@ C**** 3D tracer-related arrays but not attached to any one tracer
 c
 c Append some denominator fields if necessary
 c
+
+c nothing is using this as a denominator yet, but some fields _could_.
+c      if(any(dname_ijlt(1:k).eq.'airmass')) then
+        k = k + 1
+        ijlt_airmass = k
+        lname_ijlt(k) = 'Air Mass'
+        sname_ijlt(k) = 'airmass'
+        units_ijlt(k) = 'kg/m2/layer'
+        scale_ijlt(k) = 1.
+c      endif
+
       if(any(dname_ijlt(1:k).eq.'clrsky2d')) then
         k = k + 1
         ijlt_clrsky2d = k
@@ -5159,9 +5170,6 @@ c find indices of denominators
       USE trdust_mod,ONLY : hbaij,ricntd
       use trdust_drv, only: tracer_ic_soildust
 #endif
-#ifdef TRACERS_AMP
-      USE AMP_AEROSOL
-#endif
       use OldTracer_mod, only: trli0
 #ifdef TRACERS_AMP
       use TRACER_COM, only:n_M_OCC_OC
@@ -5184,7 +5192,10 @@ c find indices of denominators
 #ifdef TRACERS_ON
       REAL*8, DIMENSION(GRID%I_STRT_HALO:GRID%I_STOP_HALO,
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
-     *                                CO2ic,ic14CO2
+     *                                CO2ic
+      REAL*8, DIMENSION(GRID%I_STRT:GRID%I_STOP,
+     &                  GRID%J_STRT:GRID%J_STOP,lm) ::
+     *                                ic14CO2
       REAL*4, DIMENSION(jm,lm)    ::  N2Oic   !each proc. reads global array
       REAL*8, DIMENSION(GRID%J_STRT_HALO:GRID%J_STOP_HALO,lm) ::
      *                                                      CH4ic
@@ -8814,7 +8825,7 @@ c
       END SUBROUTINE GET_WASH_FACTOR
 
       SUBROUTINE GET_EVAP_FACTOR(
-     &     NTX,TEMP,LHX,QBELOW,HEFF,FQ0,fq,ntix)
+     &     NTX,TEMP,LHX,HEFF,FQ0,fq,ntix)
 !@sum  GET_EVAP_FACTOR calculation of the evaporation fraction
 !@+    for tracers.
 !@auth Dorothy Koch (modelEifications by Greg Faluvegi)
@@ -8834,8 +8845,6 @@ C**** Local parameters and variables and arguments:
       INTEGER, INTENT(IN) :: NTX,ntix(NTM)
       REAL*8,  INTENT(OUT):: FQ(NTM)
       REAL*8,  INTENT(IN) :: FQ0,TEMP,LHX
-!@var QBELOW true if evap is occuring below cloud
-      LOGICAL, INTENT(IN) :: QBELOW
 !@var HEFF effective relative humidity for evap occuring below cloud
       REAL*8, INTENT(IN) :: HEFF
 #ifdef TRACERS_SPECIAL_O18
@@ -8860,8 +8869,8 @@ c overwrite fq for water isotopes
         n = water_list(iwat)
         if (lhx.eq.lhe) then
           alph=fracvl(tdegc,ntix(n))
-C**** below clouds kinetic effects with evap into unsaturated air
-          if (QBELOW.and.heff.lt.1.)
+C**** kinetic effects with evap into unsaturated air
+          if (heff.lt.1.)
      &         alph=kin_evap_prec(alph,heff,ntix(n))
         else
 C**** no fractionation for ice evap

@@ -18,9 +18,9 @@ c
 c
       real, public :: time,time0,delt1,dlt,w0,w1,w2,w3,ws0,ws1,ws2,ws3,
      . area,avgbot,ocnvol,watcum=0.,empcum=0.,slfcum=0.,brncum=0.,
-     . sala2o,tavini,tmean0=0,smean0=0,
+     . sala2o,tavini,tmean0,smean0,tmean1,smean1,
      . zonarea(3)=0.,zonwat(3)=0.,zonemp(3)=0.,zonsfl(3)=0.,
-     . zonbrn(3)=0.,zonsqi(3)=0.
+     . zonbrn(3)=0.,zonsqi(3)=0.,zonrun(3)=0.,zondm(3)=0.
 c
       integer, public ::  nstep,nstep0,nstepi,lstep,l0,l1,l2,l3,ls0,ls1
      .             ,ls2,ls3,oddev
@@ -69,7 +69,7 @@ c
      &     flnmdep,flnmrsi,flnmrso,flnmarc,flnmfor,flnmovt
      &            ,flnmini,flnmriv,flnmbas,flnmdia,flnmlat
      &            ,flnminp,flnmint,flnmins
-     &            ,flnmcoso,flnmcosa,flnma2o,flnmo2a
+     &            ,flnmcoso,flnmcosa,flnma2o,flnmo2a,flnmcellsz
 
 c --- opening the bering strait requires information exchange across a
 c --- 'u' face represented in 2 different locations in the tri-pole grid.
@@ -166,12 +166,11 @@ c --- 'sigjmp' = minimum density jump at mixed-layer bottom (theta units)
       data slip/-1./,cbar/0.1/,thkbot/10./,ekman/30./,sigjmp/.01/
 c
 c --- weights for time smoothing
-ccc      data wuv1,wuv2/.5,.25/
+ccc   data wuv1,wuv2/.5,.25/
       data wuv1,wuv2/.75,.125/
-ccc   data wts1,wts2/.5,.25/
 ccc   data wts1,wts2/.875,.0625/
-ccc      data wts1,wts2/.9375,.03125/
-CCC   data wts1,wts2/.96875,.015625/
+ccc   data wts1,wts2/.9375,.03125/
+ccc   data wts1,wts2/.96875,.015625/
       data wts1,wts2/.984375,.0078125/
       data wbaro/.125/
 c
@@ -228,6 +227,7 @@ c     flnmrso = location (pathname) of restart file (output)
 c     flnmarc = location (pathname) of archive files
 c     flnmovt = location (pathname) of ovtn.xxxxxx files
 c     flnmlat = location (pathname) of lat/lon at vorticity points
+c     flnmscp2= name/location of scp2
 c
       data flnmlat    /'latlonij'/
       data flnmdep    /'hycomtopo'/
@@ -238,7 +238,8 @@ c
       data flnma2o    /'wgt_a2o'/
       data flnmo2a    /'wgt_o2a'/
       data flnmcoso   /'cososino'/
-      data flnmovt/'./'/
+      data flnmovt    /'./'/
+      data flnmcellsz /'hycom_cellsz'/
 
 c --- grid point where detailed diagnostics are desired:
       integer, public :: itest=-1, jtest=-1    !overwritten by values in rundeck
@@ -253,7 +254,7 @@ c --- brntop/brnbot:top/bottom of depth interval over which to distribute brine
       real, public :: brntop=50., brnbot=200.  !overwritten by values in rundeck
 c
 c --- ocnmx_factor_s/ocnmx_factor_t:factor to reduce difs/dift in mxkprf.f
-      real, public :: ocnmx_factor_s=1., ocnmx_factor_t=1.
+      real, public :: ocnmx_factor_s=.1, ocnmx_factor_t=.1
 c
 c --- 'diapyn' = diapycnal diffusivity times buoyancy freq. (m^2/s^2)
 c --- 'diapyc' = diapycnal diffusivity (m^2/s)

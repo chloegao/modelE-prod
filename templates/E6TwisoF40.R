@@ -17,7 +17,6 @@ Preprocessor Options
 #define ATM_LAYERING L40         ! 40 layers, top at .1 mb
 #define NEW_IO                   ! new I/O (netcdf) on
 #define IRRIGATION_ON
-#define SWFIX_20151201
 #define MODIS_LAI
 #define NEW_BCdalbsn
 !---> generic tracers code start
@@ -26,6 +25,7 @@ Preprocessor Options
 !---> wiso start
 #define TRACERS_WATER            ! include water tracers
 #define TRACERS_SPECIAL_O18      ! include water isotopes
+!#define TRACERS_WISO_O17        ! uncomment to turn on H217O tracer
 !<--- wiso end
 End Preprocessor Options
 
@@ -71,6 +71,11 @@ NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
+
+!Uncomment lines below to read in water isotope surface ocean values from a file:
+!OWISO_O18=ocn_d18O_144X90_LS2006v1.1.nc
+!OWISO_HDO=ocn_dD_144X90_LS2006v1.1.nc
+!OWISO_O17=ocn_d17O_144X90_LS2006v1.1.nc
 
 Label and Namelist:  (next 2 lines)
 E6TwisoF40 (prescribed ocean atmospheric tracer model with water isotope tracers only)

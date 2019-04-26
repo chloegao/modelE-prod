@@ -22,7 +22,6 @@ Preprocessor Options
 #define ATM_LAYERING L102smoothed  ! 102 smooth layers, top at .002 mb
 #define NEW_IO                  ! new I/O (netcdf) on
 #define IRRIGATION_ON
-#define SWFIX_20151201
 #define MODIS_LAI
 #define NEW_BCdalbsn
 #define ALT_MC_EXITS

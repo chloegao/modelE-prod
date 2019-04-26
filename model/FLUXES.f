@@ -51,23 +51,23 @@
          real*8, dimension(:,:,:), pointer ::
      &        srfflx_exports=>null()
          real*8, dimension(:,:), pointer ::
-!@var E0 net energy flux at surface (J/m^2)
-!@var SOLAR absorbed solar radiation (J/m^2)
-!@var TRHEAT net LW flux accumulation (J/m^2)
+!@var E0 net energy flux at surface [J m-2]
+!@var SOLAR absorbed solar radiation [J m-2]
+!@var TRHEAT net LW flux accumulation [J m-2]
      &      E0,SOLAR,TRHEAT
 !@var DMUA,DMVA momentum flux from atmosphere (kg/m s)
 !@+   On atmospheric A grid (tracer point)
      &     ,DMUA, DMVA
 !@var EVAPOR evaporation (kg/m^2) 
-!@var SENSHT sensible heat flux accumulation (J/m^2)
-!@var LATHT latent heat flux accumulation (J/m^2)
+!@var SENSHT sensible heat flux accumulation [J m-2]
+!@var LATHT latent heat flux accumulation [J m-2]
      &     ,EVAPOR,SENSHT,LATHT
      &     ,UFLUX1,VFLUX1 ! (temporary redundancy with dmua, dmva)
      &     ,DTH1  ! (temporary) first layer temp. increment
      &     ,DQ1   ! (temporary) first layer humidity increment
 !@+   TODO: have sea ice code refer to these
-!@var RUNO runoff (kg/m^2)
-!@var ERUNO energy of runoff (J/m^2)
+!@var RUNO runoff [kg m-2]
+!@var ERUNO energy of runoff [J m-2]
      &     ,RUNO, ERUNO
 
 
@@ -80,10 +80,10 @@
          real*8, dimension(:,:,:), pointer ::
      &        srfstate_exports=>null()
          real*8, dimension(:,:), pointer ::
-!@var GTEMP temperature of surface (C)
-!@var GTEMP2 "ground" temperature of "second" layer (C)
-!@var GTEMPR radiative ground temperature over surface type (K)
-!@var GTEMPS skin temperature over surface type (C)
+!@var GTEMP temperature of surface [degC]
+!@var GTEMP2 "ground" temperature of "second" layer [degC]
+!@var GTEMPR radiative ground temperature over surface type [K]
+!@var GTEMPS skin temperature over surface type [degC]
 !@var SNOW,SNOWFR,SNOWDP snow mass, fraction, depth
      &      GTEMP,GTEMP2,GTEMPR,GTEMPS
      &     ,SNOW,SNOWFR,SNOWDP
@@ -149,8 +149,8 @@
      &     ,AM1   ! first-layer air mass (kg/m2)
      &     ,BYAM1 ! 1/AM1
      &     ,P1    ! center pressure of first layer (mb)
-!@var PREC precipitation (kg/m^2)
-!@var EPREC energy of preciptiation (J/m^2)
+!@var PREC precipitation [kg m-2]
+!@var EPREC energy of preciptiation [J m-2]
      &     ,PREC,EPREC
 !@var COSZ1 Mean Solar Zenith angle for curr. physics(not rad) time step
      &     ,COSZ1
@@ -268,8 +268,9 @@
 #endif /* TRACERS_ON */
 
          REAL*8, DIMENSION(:,:), POINTER ::
-!@var ftype fraction of the gridcell occupied by this patch
+!@var ftype fraction of the gridcell occupied by this patch = flice*fhc
      &      FTYPE
+!@var fhc fraction of ICE-COVERED area occupied by this patch
      &     ,FHC
 !@var LAT latitude of gridbox (radians)
      &     ,LAT
@@ -467,7 +468,8 @@ C**** array of Chlorophyll data for use in ocean albedo calculation
          REAL*8, DIMENSION(:,:), POINTER ::
      &     E1
      &    ,TGRND,TGR4  ! temporary temps for surface flux calcs
-         !@var IMPLM,IMPLH implicit mass,energy flux at bottom of domain
+         !@var IMPLM [kg m-2] implicit mass flux at bottom of domain
+         !@var IMPLH [J m-2] implicit energy flux at bottom of domain
          REAL*8, DIMENSION(:,:), POINTER :: IMPLM,IMPLH
 #ifdef TRACERS_WATER
 !@var IMPLT implicit tracer flux at bottom of domain
@@ -506,18 +508,18 @@ ccc model can't handle fractional cover for thick snow (will fix later)
      &     ,RSI
 !@var CORIOL coriolis parameter (1/s)
      &     ,CORIOL
-!@var SOLAR solar radiation penetrating the ice absorbed by ocean (J/m^2)
+!@var SOLAR solar radiation penetrating the ice absorbed by ocean [J m-2]
      &     ,SOLAR
 !@var APRESS total atmos + sea ice pressure (at base of sea ice) (Pa)
      &     ,APRESS
 !@var RUNOSI run off from sea/lake ice after surface (kg/m^2)
-!@var ERUNOSI energy of run off from sea/lake ice after surface (J/m^2)
+!@var ERUNOSI energy of run off from sea/lake ice after surface [J m-2]
 !@var SRUNOSI salt in run off from sea/lake ice after surface (kg/m^2)
      &     ,RUNOSI, ERUNOSI, SRUNOSI
 !@var MELTI,EMELTI,SMELTI mass,energy,salt from simelt into ocn (kg/m^2,J/m^2)
      &     ,MELTI, EMELTI, SMELTI
 !@var RUNPSI run off from sea/lake ice after precip (kg/m^2)
-!@var ERUNPSI energy of run off from sea/lake ice after precip (J/m^2)
+!@var ERUNPSI energy of run off from sea/lake ice after precip [J m-2]
 !@var SRUNPSI salt in run off from sea/lake ice after precip (kg/m^2)
      &     ,RUNPSI, ERUNPSI, SRUNPSI
 !@var DMUI,DMVI momentum flux from sea ice to ocean (kg/m s)
@@ -540,7 +542,7 @@ ccc model can't handle fractional cover for thick snow (will fix later)
 
 C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
 !@var DMSI mass flux of sea ice 1) open water and 2) under ice (kg/m^2)
-!@var DHSI energy flux of sea ice 1) open water and 2) under ice (J/m^2)
+!@var DHSI energy flux of sea ice 1) open water and 2) under ice [J m-2]
 !@var DSSI salt flux in sea ice 1) open water and 2) under ice (kg/m^2)
          REAL*8, DIMENSION(:,:,:), POINTER ::
      &      DMSI, DHSI, DSSI
@@ -642,7 +644,8 @@ C**** DMSI,DHSI,DSSI are fluxes for ice formation within water column
         ! qtys that are not in any bundle
         that%itype4 = this%itype4
         that%surf_name = this%surf_name
-        that%ftype  => this%ftype
+        that%ftype => this%ftype
+        that%fhc => this%fhc
         that%ipbl => this%ipbl
 
         call alloc_atmsrf_xchng_bundles(grd_dum,this,that,.true.)
@@ -1503,7 +1506,7 @@ C**** sea ice melt and iceberg/glacial melt.
 
 !@var PREC precipitation (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PREC
-!@var EPREC energy of preciptiation (J/m^2)
+!@var EPREC energy of preciptiation [J m-2]
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: EPREC
 !@var PRECSS precipitation from super-saturation (kg/m^2)
       REAL*8, ALLOCATABLE, DIMENSION(:,:) :: PRECSS

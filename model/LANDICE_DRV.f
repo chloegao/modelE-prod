@@ -78,7 +78,10 @@
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
-      ! temporary 
+      ! Make sure fhc is set, even when running with EC's
+      atmglas(1)%fhc(:,:) = fhc(:,:,1)
+
+      ! temporary
       do ihc=1+lbound(atmglas,1),ubound(atmglas,1)
         do j=j_0,j_1
         do i=i_0,i_1
@@ -303,7 +306,7 @@ C****
      &     ,units_ijhc,denom_ijhc,scale_ijhc,cdl_ijhc
       use LANDICE_COM, only : nhc
       use LANDICE_COM, only :
-     &     ijhc_frac,ijhc_tsurf,
+     &     ijhc_frac,ijhc_fhc,ijhc_one,
      %     IJHC_SRFP,
      &     IJHC_PRECLI,  ! done
      &     IJHC_RUNLI,   ! done
@@ -350,101 +353,108 @@ c
       units_ijhc(k) = '1'
 c
       k=k+1				! ijhc
-      ijhc_tsurf = k
-      sname_ijhc(k) = 'tsurf'
-      lname_ijhc(k) = 'surface air temperature'
+      ijhc_fhc = k
+      sname_ijhc(k) = 'fhc'
+      lname_ijhc(k) = 'area fraction (ice only)'
+      units_ijhc(k) = '1'
+      denom_ijhc(k) = 0  ! not ijhc_frac
+c
+      k=k+1				! ijhc
+      ijhc_one = k
+      sname_ijhc(k) = 'one'
+      lname_ijhc(k) = 'test diagnostic, should == 1'
       units_ijhc(k) = 'K'
       scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1				! ijhc
       ijhc_srfp = k
       sname_ijhc(k) = 'srfp'
       lname_ijhc(k) = 'surface air pressure'
       units_ijhc(k) = 'hPa'
-      scale_ijhc(k) = 1d0/DTsrc ! to cancel acc factor of dtsurf
-      denom_ijhc(k) = ijhc_frac
+      scale_ijhc(k) = 1d0/DTsrc ! [s-1] to cancel acc factor of dtsurf
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_PRECLI = k ! PREC OVER LAND ICE (mm/day)       1 CN
+      IJHC_PRECLI = k ! PREC OVER LAND ICE [mm day-1]       1 CN
       lname_ijhc(k) = 'PRECIPITATION OVER LAND ICE (HC)'
-      units_ijhc(k) = 'mm/day'
+      units_ijhc(k) = 'mm day-1'
       sname_ijhc(k) = 'pr_lndice'
       scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_RUNLI = k ! RUN1 OVER LAND ICE  (KG/m**2) (NO PRT)    1 PG
+      IJHC_RUNLI = k ! RUN1 OVER LAND ICE  [kg m-2] (NO PRT)    1 PG
       lname_ijhc(k) = 'SURFACE RUNOFF OVER LAND ICE (HC)'
-      units_ijhc(k) = 'mm/day'
+      units_ijhc(k) = 'mm day-1'
       sname_ijhc(k) = 'runoff_lndice'
       scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_EVAPLI = k ! EVAP OVER LAND ICE  (KG/m**2)          1 GD
+      IJHC_EVAPLI = k ! EVAP OVER LAND ICE  [kg m-2]          1 GD
       lname_ijhc(k) = 'LAND ICE EVAPORATION (HC)'
-      units_ijhc(k) = 'mm/day'
+      units_ijhc(k) = 'mm day-1'
       sname_ijhc(k) = 'evap_lndice'
       scale_ijhc(k) = SECONDS_PER_DAY/DTsrc
 c     iw built-in
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE  (J/m**2) 1 GD
+      IJHC_F0LI = k ! F0DT, NET HEAT AT Z0 OVER LAND ICE [J m-2] 1 GD
       lname_ijhc(k) = 'NET HEAT INTO LAND ICE (HC)'
-      units_ijhc(k) = 'W/m^2'
+      units_ijhc(k) = 'W m-2'
       sname_ijhc(k) = 'netht_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_TSLI = k ! SURF AIR TEMP OVER LAND ICE  (C)  NISURF*1 SF
+      IJHC_TSLI = k ! SURF AIR TEMP OVER LAND ICE  [K]  NISURF*1 SF
       lname_ijhc(k) = 'SURF AIR TEMP OVER LAND ICE (HC)'
       units_ijhc(k) = 'K'
       sname_ijhc(k) = 'tsurf_lndice'
       scale_ijhc(k) = 1.d0/DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_SHDTLI = k ! SHDT OVER LAND ICE  (J/m**2)           1 SF
+      IJHC_SHDTLI = k ! SHDT OVER LAND ICE  [J m-2]           1 SF
       lname_ijhc(k) = 'SENS HEAT FLUX OVER LAND ICE (HC)'
-      units_ijhc(k) = 'W/m^2'
+      units_ijhc(k) = 'W m-2'
       sname_ijhc(k) = 'sensht_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_EVHDT = k ! EVHDT OVER LAND ICE  (J/m**2)           1 SF
+      IJHC_EVHDT = k ! EVHDT OVER LAND ICE  [J m-2]           1 SF
       lname_ijhc(k) = 'LATENT HEAT FLUX OVER LAND ICE (HC)'
-      units_ijhc(k) = 'W/m^2'
+      units_ijhc(k) = 'W m-2'
       sname_ijhc(k) = 'latht_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
-      IJHC_TRHDT = k ! TRHDT OVER LAND ICE  (J/m**2)           1 SF
+      IJHC_TRHDT = k ! TRHDT OVER LAND ICE  [J m-2]           1 SF
       lname_ijhc(k) = 'NET THERMAL RADIATION INTO LAND ICE (HC)'
-      units_ijhc(k) = 'W/m^2'
+      units_ijhc(k) = 'W m-2'
       sname_ijhc(k) = 'trht_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 c
       k=k+1 ! ijhc
-      IJHC_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE (kg/s*m^2)           1 SF
+      IJHC_IMPMLI = k ! IMPLICIT MASS FLUX over LAND ICE [kg m-2]
       lname_ijhc(k) = 'IMPLICIT MASS FLUX over LAND ICE (HC)'
-      units_ijhc(k) = 'kg/s*m^2'
+      units_ijhc(k) = 'kg m-2 s-1'
       sname_ijhc(k) = 'impm_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 
 c
       k=k+1 ! ijhc
-      IJHC_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE (W/m^2)           1 SF
+      IJHC_IMPHLI = k ! IMPLICIT HEAT FLUX over LAND ICE [J m-2]
       lname_ijhc(k) = 'IMPLICIT HEAT FLUX over LAND ICE (HC)'
-      units_ijhc(k) = 'W/m^2'
+      units_ijhc(k) = 'W m-2'
       sname_ijhc(k) = 'imph_lndice'
       scale_ijhc(k) = 1./DTsrc
-      denom_ijhc(k) = ijhc_frac
+      denom_ijhc(k) = ijhc_fhc
 
       if (k .gt. kijhc) then
         if(am_i_root())
@@ -509,7 +519,8 @@ c
 #endif
       USE DOMAIN_DECOMP_ATM, only : GRID,getDomainBounds
       USE EXCHANGE_TYPES
-      USE LANDICE_COM, only : ijhc,ijhc_frac,IJHC_PRECLI,IJHC_RUNLI
+      USE LANDICE_COM, only : ijhc,ijhc_frac,ijhc_fhc,
+     &       IJHC_PRECLI,IJHC_RUNLI
 #ifdef GLINT2
       use fluxes, only : flice
       use landice_com, only : usedhp
@@ -545,7 +556,7 @@ C**** Get useful grid parameters
 
       DO J=J_0,J_1
       DO I=I_0,IMAXJ(J)
-      PRCP=atmgla%prec(i,j)
+      PRCP=atmgla%prec(i,j)   ! [kg m-2]
       atmgla%RUNO(I,J)=0
 #ifdef TRACERS_WATER
       atmgla%TRUNO(:,I,J)=0.
@@ -557,13 +568,19 @@ C**** Get useful grid parameters
 #endif
       ! demo diagnostic
       ijhc(i,j,ihc,ijhc_frac) = ijhc(i,j,ihc,ijhc_frac) +
-     &       atmgla%ftype(i,j)	! A bit bogus...
+     &       atmgla%ftype(i,j)
+      ijhc(i,j,ihc,ijhc_fhc) = ijhc(i,j,ihc,ijhc_fhc) +
+     &       atmgla%fhc(i,j)
+
 #ifdef GLINT2
       IF (usedhp(i,j,ihc) /= 0 .and. PRCP.gt.0) THEN
 #else
       IF (atmgla%ftype(i,j).gt.0 .and. PRCP.gt.0) THEN
 #endif
         ENRGP=atmgla%eprec(I,J)      ! energy of precipitation
+!      if (i==53.and.j==83.and.ihc==1)
+!     &       print *,'AZZ PRECLI in',PRCP,ENRGP/PRCP
+
         SNOW=SNOWLI(I,J,IHC)
         TG1=TLANDI(1,I,J,IHC)
         TG2=TLANDI(2,I,J,IHC)
@@ -578,6 +595,9 @@ C**** Get useful grid parameters
      *       TRSNOW,TRLI,TRPRCP,TRDIFS,TRUN0,
 #endif
      *       EDIFS,DIFS,ERUN2,RUN0)
+
+!      if (i==53.and.j==83.and.ihc==1)
+!     &       print *,'AZZ PRECLI out',RUN0,ERUN2/RUN0
 
 C**** RESAVE PROGNOSTIC QUANTITIES AND FLUXES
         SNOWLI(I,J,IHC)=SNOW
@@ -613,9 +633,9 @@ C**** ACCUMULATE DIAGNOSTICS
         atmgla%E1(I,J)=EDIFS
 
         ! demo diagnostic
-        ijhc(i,j,ihc,IJHC_PRECLI) = ijhc(i,j,ihc,IJHC_PRECLI)+prcp
+        ijhc(i,j,ihc,IJHC_PRECLI) = ijhc(i,j,ihc,IJHC_PRECLI)+prcp  ! [kg m-2]
         ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
-     &        atmgla%RUNO(i,j)
+     &        atmgla%RUNO(i,j)  ! [kg m-2]
       ELSE
         atmgla%IMPLM(I,J)=0.
         atmgla%IMPLH(I,J)=0.
@@ -755,7 +775,7 @@ C**** ACCUMULATE DIAGNOSTICS
 
         ! Put height-classified diagnostics here.
         ! Put PBL-related diagnostics in SURFACE_LANDICE.f
-
+        ! This accumulation is run once per Model Timestep (dtsrc=3600s)
         ijhc(i,j,ihc,IJHC_SHDTLI)=ijhc(i,j,ihc,IJHC_SHDTLI) +
      &       atmgla%SENSHT(I,J)
         ijhc(i,j,ihc,IJHC_EVHDT)=ijhc(i,j,ihc,IJHC_EVHDT) +
@@ -775,10 +795,10 @@ C**** ACCUMULATE DIAGNOSTICS
      &       atmgla%IMPLH(I,J)
 
         ijhc(i,j,ihc,IJHC_RUNLI)=ijhc(i,j,ihc,IJHC_RUNLI) +
-     &        atmgla%RUNO(i,j)
+     &        atmgla%RUNO(i,j)    ! [kg m-2]
 
         ijhc(i,j,ihc,IJHC_SRFP)=ijhc(i,j,ihc,IJHC_SRFP) +
-     &        atmgla%SRFP(i,j)
+     &        atmgla%SRFP(i,j) * dtsrc   ! [hPa s]
 
       END IF
 

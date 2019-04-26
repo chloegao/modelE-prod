@@ -1,0 +1,27 @@
+!--------- mineralogical dust aerosol parameters----------------
+#include "dust_params_general"
+
+#include "mineral_params_general"
+
+!! OMA-Mineral nudged with NCEP winds:
+! for imDust=3 (AeroCom size distribution):
+!scaleDustEmission=0.0877932196337 ! scales total dust emission
+  !scaleDustEmission = 0.0885905344437[1] * 0.991[2]
+  ![1]: emission parameter used for calibration run E2p1_20180927TomaNcepF40IM3_000
+  ![2]: total emitted mass factor derived from calibration run
+! for imDust=0(=4)
+scaleDustEmission=0.422273999119 ! scales total dust emission
+  !scaleDustEmission = 0.42653939305[1] * 0.990[2]
+  ![1]: emission parameter used for calibration run E2p1_20180927TomaNcepF40IM4_000
+  ![2]: total emitted mass factor derived from calibration run
+! for imDust=5 (same as imDust=4, but with AeroCom source distribution):
+!scaleDustEmission=0.422219111601 ! scales total dust emission
+  !scaleDustEmission = 0.426053593947[1] * 0.991[2]
+  ![1]: emission parameter used for calibration run E2p1_20180927TomaNcepF40IM5_000
+  ![2]: total emitted mass factor derived from calibration run
+!for imDust=3-5 (also set as default in the model)
+  !fracClayPDFscheme=1.0
+  !fracSiltPDFscheme=1.0
+! for imDust=1 (prescribed AeroCom emissions):
+!scaleDustEmission=1.0
+!----------------------------------------------------------------
