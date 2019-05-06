@@ -452,12 +452,13 @@ function unit_string (pow10,ending)
   implicit none
   character*(*) ending,unit_string
   character*10 tpow
-  integer pow10
+  integer pow10,p
 
   tpow = ' '
   if(pow10.ne.0) then
     write(tpow,'(i3)') pow10
-    if (index(ending,')') .ne.0) then
+    p=len_trim(ending)
+    if (ending(p:p)==')') then
       tpow='(10^'//trim(adjustl(tpow))
     else
       tpow= '10^'//trim(adjustl(tpow))
