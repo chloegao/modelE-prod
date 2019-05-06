@@ -24,7 +24,6 @@
          IFL911,JFL911   !@var IFL911,JFL911 grid box indexes for emergency downstream direction
       Real*8,Allocatable,Dimension(:,:) :: &
          dZSG , &  !@var dZSG (m) = continental range of solid ground topography in grid cell
-         ZLBOT, &  !@var ZLBOT (m) = lowest continental solid ground topography in grid cell
          RATE, &  !@var RATE rate of river flow downslope (fraction)
          DHORZ    !@var DHORZ horizontal distance to downstream box (m)
       Real*8,Parameter :: &
@@ -350,7 +349,7 @@
 !@SUM  To alllocate arrays whose sizes now need to be determined at run-time
 !@auth Raul Garza-Robles
       Use DOMAIN_DECOMP_ATM, Only: DIST_GRID, getDomainBounds
-      Use LAKES, Only: dZSG,ZLBOT, RATE, DHORZ,KDIREC,IFLOW,JFLOW, KD911,IFL911,JFL911
+      Use LAKES, Only: dZSG, RATE, DHORZ,KDIREC,IFLOW,JFLOW, KD911,IFL911,JFL911
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
       integer :: i_0h,i_1h,j_0h,j_1h
@@ -367,7 +366,6 @@
                   IFL911(I_0H:I_1H,J_0H:J_1H), &
                   JFL911(I_0H:I_1H,J_0H:J_1H), &
                   dZSG  (I_0H:I_1H,J_0H:J_1H), &
-                  ZLBOT (I_0H:I_1H,J_0H:J_1H), &
                   RATE  (I_0H:I_1H,J_0H:J_1H), &
                   DHORZ (I_0H:I_1H,J_0H:J_1H))
       END SUBROUTINE ALLOC_LAKES
@@ -407,7 +405,7 @@
                  fid,ios, iloop_min,iloop_max,jloop_min,jloop_max, get_dir, &
                  iu_RVR  !@var iu_RVR unit number for river direction file
       Logical :: HAVE_NORTH_POLE, HAVE_SOUTH_POLE, QCON(NPTS), T=.TRUE., F=.FALSE., &
-                 QEXIST, &  !  whether both variables dZSG and ZLBOT are provided on the atmospheric TOPO file 
+                 QEXIST, &  !  whether dZSG is provided on atmospheric TOPO file 
                  iwrap  !@var iwrap true if I direction is periodic and has no halo
       Real*8  :: ZSOLID,WT,ZMEAN,ZSQ, dZSGmin,yAREA11, dZSG11 = 10
       Real*8  :: SPMIN,SPMAX,SPEED0,SPEED,DZDH,DZDH1,MLK1,fac,fac1, &
@@ -449,7 +447,6 @@
 !****         HLAKE    Lake sill depth (m)
 !****         ALAKE    Lake surface area (m^2)
 !****         dZSG     Range of Solid Ground Topography in cell (m)
-!****         ZLBOT    Altitude of Lake Bottom (m)
 !****
 !**** FIXDCB  FLAKE0    Original Lake fraction (1)
 !****
@@ -462,29 +459,27 @@
       call sync_param("lake_rise_max",lake_rise_max)
       call sync_param("lake_ice_max" ,lake_ice_max)
 
-!**** Read dZLAKE,dZSG,ZLBOT from TOPO input file
+!**** Read dZLAKE and dZSG from TOPO input file
       fid = par_open(grid,'TOPO','read')
       call read_dist_data(grid,fid,'hlake',hlake)
-      QEXIST = Variable_Exists (GRID,FID,'dZSG') .and. Variable_Exists (GRID,FID,'ZLBOT')
-      If (QEXIST) Then  ;  Call Read_Dist_Data (GRID,FID,'dZSG' ,dZSG)
-                           Call Read_Dist_Data (GRID,FID,'ZLBOT',ZLBOT)  ;  EndIf
+      QEXIST = Variable_Exists (GRID,FID,'dZSG')
+      If (QEXIST)  Call Read_Dist_Data (GRID,FID,'dZSG' ,dZSG)
       call par_close(grid,fid)
 
       If (QEXIST)  GoTo 100
 !****
-!**** If dZSG and ZLBOT are not provided on the atmospheric TOPO file, they are derived here
+!**** If dZSG is not provided on atmospheric TOPO file, it is derived here
 !**** ZSOLID = solid ground topography = ZATMO/GRAV - FLAKE0*HLAKE - FOCEAN*HOCEAN = ZATMO/GRAV - (FLAKE0+FOCEAN)*HLAKE
 !**** dZSG = range of ZSOLID in grid cell = StanDev(neighboring ZSOLID) * 2
-!**** ZLBOT = lake bottom topography = ZSOLID - dZSG / 2
 !**** Minimum value of dZSG in a cell is roughly equal to minimum dZSG11 of 1x1 cell times square root of ratio of areas:
 !**** Minimum dZSGXY = dZSG11 * (AREAXY / AREA11)^.5 = 10 * [AREAXY / (TWOPI/360)^2]^.5
 !****
-      If (AM_I_ROOT())  Write (6,*) 'LAKES2: dZSG and ZLBOT are derived from ZATMO,FLAKE0,HLAKE'
+      If (AM_I_ROOT())  Write (6,*) 'LAKES2: dZSG is derived from ZATMO,FLAKE0,HLAKE'
       yAREA11 = 1 / (TWOPI*RADIUS/360)**2
 !**** Lat-Lon south pole cells
       If (Have_South_Pole) Then
          If (FOCEAN(1,1) > 0) &
-            Then  ;  dZSG(:,1) = 0  ;  ZLBOT(:,1) = 0
+            Then  ;  dZSG(:,1) = 0
             Else  ;  ZSOLID = ZATMO(1,1)/GRAV - FLAKE0(1,1)*HLAKE(1,1) 
                      WT     = .25*IM
                      ZMEAN  = .25*IM * ZSOLID
@@ -497,13 +492,11 @@
                      ZMEAN = ZMEAN / WT
                      dZSGmin = dZSG11 * (AXYP(1,1)*yAREA11)**.5
                      dZSG(1,1) = Max (Sqrt(ZSQ/WT - ZMEAN**2)*2, dZSGmin)
-                     dZSG(:,1) = dZSG(1,1)
-                     ZSOLID = ZATMO(1,1)/GRAV - FLAKE0(1,1)*HLAKE(1,1)
-                     ZLBOT(:,1) = ZSOLID - .5*dZSG(1,1)  ;  EndIf  ;  EndIf
+                     dZSG(:,1) = dZSG(1,1)  ;  EndIf  ;  EndIf
 !**** Lat-Lon north pole cells
       If (Have_North_Pole) Then
          If (FOCEAN(1,JM) > 0) &
-            Then  ;  dZSG(:,JM) = 0  ;  ZLBOT(:,JM) = 0
+            Then  ;  dZSG(:,JM) = 0
             Else  ;  ZSOLID = ZATMO(1,JM)/GRAV - FLAKE0(1,JM)*HLAKE(1,JM)
                      WT     = .25*IM
                      ZMEAN  = .25*IM * ZSOLID
@@ -516,13 +509,11 @@
                      ZMEAN = ZMEAN / WT
                      dZSGmin = dZSG11 * (AXYP(1,JM)*yAREA11)**.5
                      dZSG(1,JM) = Max (Sqrt(ZSQ/WT - ZMEAN**2)*2, dZSGmin)
-                     dZSG(:,JM) = dZSG(1,JM)
-                     ZSOLID = ZATMO(1,JM)/GRAV - FLAKE0(1,JM)*HLAKE(1,JM)
-                     ZLBOT(:,JM) = ZATMO(1,JM)/GRAV - .5*dZSG(1,JM)  ;  EndIf  ;  Endif
+                     dZSG(:,JM) = dZSG(1,JM)  ;  EndIf  ;  Endif
 !**** Non-polar cells
       Do J=J_0S,J_1S  ;  Do I=I_0,I_1
          If (FOCEAN(I,J) > 0) &
-            Then  ;  dZSG(I,J) = 0  ;  ZLBOT(I,J) = 0
+            Then  ;  dZSG(I,J) = 0
             Else  ;  ZSOLID = ZATMO(I,J)/GRAV - FLAKE0(I,J)*HLAKE(I,J)
                      WT     = 1
                      ZMEAN  = ZSOLID
@@ -555,9 +546,7 @@
                                  ZSQ    = ZSQ   + (1-FOCEAN(I+1,J)) * ZSOLID**2  ;  EndIf
                      ZMEAN = ZMEAN / WT
                      dZSGmin = dZSG11 * (AXYP(I,J)*yAREA11)**.5
-                     dZSG(I,J) = Max (Sqrt(ZSQ/WT - ZMEAN**2)*2, dZSGmin)
-                     ZSOLID = ZATMO(I,J)/GRAV - FLAKE0(I,J)*HLAKE(I,J)
-                     ZLBOT(I,J) = ZSOLID - .5*dZSG(I,J)  ;  EndIf  ;  EndDo  ;  EndDo
+                     dZSG(I,J) = Max (Sqrt(ZSQ/WT - ZMEAN**2)*2, dZSGmin)  ;  EndIf  ;  EndDo  ;  EndDo
 
 !**** initialise FLAKE if requested (i.e. from older restart files)
   100 If (INILAKE) Then
@@ -630,10 +619,10 @@
 
 !**** Set fixed topographic variables when FOCEAN == 0
 !**** Solid ground topography is a linear function of cell area or FLAKE
-!**** Lake fills like a triangle from lowest solid ground topography (ZLBOT)
+!**** Lake fills like a triangle from lowest solid ground topography
 !**** Vertical cross section of circular lake is then a concave parabola
 !**** dZSG  = fixed range of continental solid ground topography (m) in grid cell
-!**** ZLBOT = fixed lowest altitude of solid ground topography (m) in grid cell
+!**** ZLBOT = fixed lowest altitude of solid ground topography (m) in grid cell = ZSOLID - .5*dZSG
 !**** HLAKE = [ZLTOP - ZLBOT] / 2 = FLAKE * dZSG / 2 = average lake thickness (m)
 !**** FLAKE = 2 * HLAKE / dZSG = horizontal lake fraction of cell area
 !**** MWL   = RHOW * AXYP * HLAKE * FLAKE = RHOW * AXYP * HLAKE * 2 * HLAKE / dZSG = liquid lake mass (kg)
@@ -1176,7 +1165,10 @@
           DMM = Min(DMM,.5*RHOW*AXYP(IU,JU)) ! minimise 'flood' events!
           If (FLAKE(IU,JU) > 0)  Then
             MLM = RHOW*MLDLK(IU,JU)*FLAKE(IU,JU)*AXYP(IU,JU)
-            If (DMM > .95d0*MLM) Write (0,*) 'RIVERF:',ITIME,IU,JU,DMM,'->',.95*MLM
+            If (DMM > .95d0*MLM) Write (0,920) IU,JU,ID,JD, DMM/AXYP(IU,JU), MLM/AXYP(IU,JU), MWL(IU,JU)/AXYP(IU,JU), &
+               MWLSILL/AXYP(IU,JU), MLDLK(IU,JU), HLAKE(IU,JU), FLAKE(IU,JU), FLAKE(IU,JU)+FEARTH(IU,JU)
+  920       FORMAT ('RIVERF: DMM>.95*MLM     DMM       MLM       MWL     MWLSILL    MLDLK    HLAKE    FLAKE   FL+FE' / &
+                    I6,I3.3,' >=',I3,I3.3,1X,6F10.3,2F8.4)
             DMM = Min (DMM,.95d0*MLM)  ;  EndIf
           DGM = TLAKE(IU,JU)*DMM*SHW  !  TLAKE always defined
 #ifdef TRACERS_WATER
@@ -1666,7 +1658,7 @@
 !@ver  2019/02/08
       Use CONSTANT,    Only: rhow,by3,pi,lhm,shi,shw,teeny,tf
       Use RESOLUTION,  Only: im
-      Use LAKES,       Only: minmld, variable_lk, hlake_min, lake_ice_max, dZSG,ZLBOT
+      Use LAKES,       Only: minmld, variable_lk, hlake_min, lake_ice_max, dZSG
       Use LAKES_COM,   Only: mwl,flake,mldlk,tlake,gml,svflake,hlake,dlake,glake
       Use SEAICE_COM,  Only: lakeice=>si_atm
       Use SEAICE,      Only: ace1i,xsi,ac2oim
@@ -1723,10 +1715,10 @@
 
 !**** Set fixed topographic variables when FOCEAN == 0
 !**** Solid ground topography is a linear function of cell area or FLAKE
-!**** Lake fills like a triangle from lowest solid ground topography (ZLBOT)
+!**** Lake fills like a triangle from lowest solid ground topography
 !**** Vertical cross section of circular lake is then a concave parabola
 !**** dZSG  = fixed linear range of continental solid ground topography (m) in grid cell
-!**** ZLBOT = fixed lowest altitude of solid ground topography (m) in grid cell
+!**** ZLBOT = fixed lowest altitude of solid ground topography (m) in grid cell = ZSOLID - .5*dZSG
 !**** ZLTOP = ZLBOT + FLAKE * dZSG = lake top altitude (m); ZLTOP is a linear function of FLAKE or cell area
 
 !**** If DLAKEn < HLAKE_MIN, then DLAKEn = HLAKE_MIN and FLAKEn = MWL / RHOW * AXYP * DLAKEn
