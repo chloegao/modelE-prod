@@ -94,6 +94,7 @@ c**** Extract domain decomposition info
       SCF3D(:,:,:) = 0
 
       byNCYC = 1d0 / NCYC
+      SD(:,:,:) = - MWs(:,:,:)*byNCYC
       do nc=1,ncyc
 
         if(nc.gt.1) CALL HALO_UPDATE(grid, MMA, FROM=NORTH+SOUTH)
@@ -225,7 +226,6 @@ c when flow out both sides would cause negative tracer mass, modify moments
           endif                 ! l.le.lm
 
 c when flow out both sides would cause negative tracer mass, modify moments
-          SD(:,:,:) = - MWs(:,:,:)*byNCYC
           if(qlimit .and. l.gt.1 .and. l.lt.lm) then
             do j=j_0,j_1
               do ii=1,ni_checkfobs_z(j,l)
