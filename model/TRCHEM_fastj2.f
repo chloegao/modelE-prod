@@ -316,10 +316,10 @@ c       10 = Dust (Clay, 1-st size bin) (n_clay)
 c       11 = Dust (Clay, 2-nd size bin) (n_clay)
 c       12 = Dust (Clay, 3-rd size bin) (n_clay)
 c       13 = Dust (Clay, 4-th size bin) (n_clay)
-c       14 = Dust (Clay, 1-st size bin) (n_silt1)
-c       15 = Dust (Clay, 2-nd size bin) (n_silt2)
-c       16 = Dust (Clay, 3-rd size bin) (n_silt3)
-c       17 = Dust (Clay, 4-rd size bin) (n_silt4)
+c       14 = Dust (Silt, 1-st size bin) (n_silt1)
+c       15 = Dust (Silt, 2-nd size bin) (n_silt2)
+c       16 = Dust (Silt, 3-rd size bin) (n_silt3)
+c       17 = Dust (Silt, 4-rd size bin) (n_silt4)
 c       18 = Liquid Clouds
 c       19 = Ice Clouds
 
