@@ -21,7 +21,7 @@ filters: U,V in E-W and N-S direction (after every physics time step)
 Preprocessor Options
 #define NEW_IO                       ! new I/O (netcdf) on
 #define NUDGE_ON                     ! nudged winds on
-! OFF #define MERRA_NUDGING            ! nudging to use MERRA input files
+! OFF #define MERRA_NUDGING            ! nudging to use MERRA/MERRA2 input files
 !#define TRACERS_ON                  ! include tracers code
 End Preprocessor Options
 
@@ -60,6 +60,15 @@ NAMERVR=RD_modelE_Fa.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
 #include "nudging_NCEP_144x89_input_files"
+
+!If interested in MERRA2 6-hourly nudging winds, replace files above with paths/filenames like this:
+!u1980.nc=/discover/nobackup/projects/giss/OBS/giss_nudging_winds/MERRA2/uwnd.1980.MERRA2onGISSE2.nc
+!v1980.nc=/discover/nobackup/projects/giss/OBS/giss_nudging_winds/MERRA2/vwnd.1980.MERRA2onGISSE2.nc
+
+!If interested in MERRA2 3-hourly nudging wiwnds, replace files above with paths/filenames like this:
+!u1980.nc=/discover/nobackup/projects/giss/OBS/giss_nudging_winds/MERRA2/three_hourly/uwnd.1980.MERRA2onGISSE2.nc
+!v1980.nc=/discover/nobackup/projects/giss/OBS/giss_nudging_winds/MERRA2/three_hourly/vwnd.1980.MERRA2onGISSE2.nc
+
 #include "rad_input_files"
 #include "rad_144x90_input_files"
 
