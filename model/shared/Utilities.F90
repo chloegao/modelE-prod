@@ -457,11 +457,12 @@ function unit_string (pow10,ending)
   tpow = ' '
   if(pow10.ne.0) then
     write(tpow,'(i3)') pow10
+    tpow= '10^'//trim(adjustl(tpow))
     p=len_trim(ending)
-    if (ending(p:p)==')') then
-      tpow='(10^'//trim(adjustl(tpow))
-    else
-      tpow= '10^'//trim(adjustl(tpow))
+    if (p > 0) then
+      if (ending(p:p)==')') then
+        tpow='('//trim(adjustl(tpow))
+      end if
     end if
   endif
   unit_string = adjustl(trim(tpow)//" "//trim(ending))
