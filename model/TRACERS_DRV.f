@@ -4331,6 +4331,7 @@ c find indices of denominators
       use oldtracer_mod, only: src_dist_base, src_dist_index
       use tracer_com, only: xyztr
       use pario, only : par_open,par_close,read_dist_data
+      use filemanager, only: file_exists
       IMPLICIT NONE
       real*8,parameter :: d18oT_slope=0.45,tracerT0=25
       INTEGER i,n,l,j,iu_data,ipbl,it,lr,m,ls,lt,ipatch
@@ -5237,17 +5238,19 @@ C****
     (defined TRACERS_TOMAS)
 c read in DMS source
       DMSinput(:,:,:)= 0.d0
-      if(is_fbsa('DMS_SEA')) then
-        call openunit('DMS_SEA',iudms,.true.,.true.)
-        do mm=1,12
-          call readt_parallel(grid,iudms,nameunit(iudms),
-     *         DMSinput(:,:,mm),0)
-        end do
-        call closeunit(iudms)
-      else
-        iudms = par_open(grid,'DMS_SEA','read')
-        call read_dist_data(grid,iudms,'DMSwater',DMSinput)
-        call par_close(grid,iudms)
+      if (file_exists('DMS_SEA')) then
+        if(is_fbsa('DMS_SEA')) then
+          call openunit('DMS_SEA',iudms,.true.,.true.)
+          do mm=1,12
+            call readt_parallel(grid,iudms,nameunit(iudms),
+     *           DMSinput(:,:,mm),0)
+          end do
+          call closeunit(iudms)
+        else
+          iudms = par_open(grid,'DMS_SEA','read')
+          call read_dist_data(grid,iudms,'DMSwater',DMSinput)
+          call par_close(grid,iudms)
+        endif
       endif
  901  FORMAT(3X,3(I4),E11.3)
 
@@ -5304,34 +5307,39 @@ c NOTE: the input file specifies integrals over its gridboxes.
     (defined TRACERS_TOMAS)
 c Terpenes
       OCT_src(:,:,:)=0.d0
-      if(is_fbsa('Terpenes_01')) then
-        call openunit('Terpenes_01',iuc,.true.,.true.)
-        call skip_parallel(iuc)
-        do mm=1,12
-          call readt_parallel(grid,iuc,nameunit(iuc),OCT_src(:,:,mm),0)
-        end do
-        call closeunit(iuc)
-      else ! netcdf
-        iuc = par_open(grid,'Terpenes_01','read')
-        call read_dist_data(grid,iuc,'Terpenes',OCT_src)
-        call par_close(grid,iuc)
-      endif
+      if (file_exists('Terpenes_01')) then
+        if(is_fbsa('Terpenes_01')) then
+          call openunit('Terpenes_01',iuc,.true.,.true.)
+          call skip_parallel(iuc)
+          do mm=1,12
+            call readt_parallel(grid,iuc,nameunit(iuc),
+     &                          OCT_src(:,:,mm),0)
+          end do
+          call closeunit(iuc)
+        else ! netcdf
+          iuc = par_open(grid,'Terpenes_01','read')
+          call read_dist_data(grid,iuc,'Terpenes',OCT_src)
+          call par_close(grid,iuc)
+        endif
 c units are mg Terpene/m2/month
-      do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
+        do i=I_0,I_1; do j=J_0,J_1; do mm=1,12
 ! 10% of terpenes end up being SOA
 #ifdef TRACERS_TOMAS
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
-     +                  *om2oc(n_AOCOB(1))
+          OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
+     +                    *om2oc(n_AOCOB(1))
 #else
 #ifdef TRACERS_AMP
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
-     +                  *om2oc(n_M_OCC_OC)
+          OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
+     +                    *om2oc(n_M_OCC_OC)
 #else
-        OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
-     +                  *om2oc(n_OCII)
+#ifndef SULF_ONLY_AEROSOLS
+          OCT_src(i,j,mm)=OCT_src(i,j,mm)*0.1d0
+     +                    *om2oc(n_OCII)
+#endif  /* SULF_ONLY_AEROSOLS */
 #endif
 #endif
-      end do; end do; end do
+        end do; end do; end do
+      endif
 #endif
 #endif  /* TRACERS_AEROSOLS_SOA */
 ! ---------------------------------------------------
