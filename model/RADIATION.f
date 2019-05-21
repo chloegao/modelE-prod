@@ -1656,7 +1656,7 @@ C--------------------------------
       IF(MADBAK > 0) CALL GETBAK
 
       IF(MADAER.ne.0.OR.NTRACE > 0) THEN
-        call get_aero_column (Igcm,Jgcm,LX,PLB0, aTAULX)
+        if (madaer > 0) call get_aero_column (Igcm,Jgcm,LX,PLB0, aTAULX)
         call getaer
        ELSE ; SRAEXT=0.     ; SRASCT=0. ; SRAGCB=0. ; TRAALK=0. ; END IF
       IF(MADDST > 0) THEN 

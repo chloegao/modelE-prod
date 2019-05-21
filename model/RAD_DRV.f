@@ -978,6 +978,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       n=n+nraero_TOMAS
 #endif
 !=======================================================================
+! for documentation purposes, copy the final values to the data base
+      call set_param( "FS8OPX", FS8OPX, 8, 'o' )
+      call set_param( "FT8OPX", FT8OPX, 8, 'o' )
 !=======================================================================
 #endif  /* TRACERS_ON */
 
