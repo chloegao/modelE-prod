@@ -2439,7 +2439,7 @@ C     ------------------------------------------------------------------
 #endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
-
+      q55 = 0.
 #if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
 #ifdef TRACERS_AMP
       CALL SETAMP(EXT,SCT,GCB,TAB)
@@ -2466,18 +2466,18 @@ c LW
       AREFF=REFDRY(NA)
 !nu   IF(KRHAER(NA) < 0) AREFF=REFWET(NA)
       CALL GETMIE(NA,AREFF,SRHQEX(1,1,NA),SRHQSC(1,1,NA),SRHQCB(1,1,NA)
-     +                    ,TRHQAB(1,1,NA),Q55DRY(NA))
-      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
+     +                    ,TRHQAB(1,1,NA),Q55)
+      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55/AREFF
 !nu   IF(KRHAER(NA) < 0) DRYM2G(NA)=WETM2G(NA)
       RHINFO(1,1,NA)=0.D0                                     !  Rel Hum
       RHINFO(1,2,NA)=1.D0                                     !  TAUFAC
       RHINFO(1,3,NA)=AREFF                                    !  AerSize
       RHINFO(1,4,NA)=0.D0                                     !  LW g/m2
-      RHINFO(1,5,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55DRY(NA) !  Dryg/m2
-      RHINFO(1,6,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55DRY(NA) !  Totg/m2
+      RHINFO(1,5,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55        !  Dryg/m2
+      RHINFO(1,6,NA)=1.33333333D0*AREFF*DENAER(NA)/Q55        !  Totg/m2
       RHINFO(1,7,NA)=1.D0                                     !  Xmas fr
       RHINFO(1,8,NA)=DENAER(NA)                               !  Density
-      RHINFO(1,9,NA)=Q55DRY(NA)                               !  Q55 Ext
+      RHINFO(1,9,NA)=Q55                                      !  Q55 Ext
   110 CONTINUE
 
 C     Set size BCI (NA=5) = Black Carbon (Industrial) (Nominal Reff=0.1)
@@ -2486,8 +2486,8 @@ C     ------------------------------------------------------------------
       DO 120 NA=5,6
       AREFF=REFDRY(NA)
       CALL GETMIE(NA,AREFF,SRBQEX(1,NA),SRBQSC(1,NA),SRBQCB(1,NA)
-     +                    ,TRBQAB(1,NA),Q55DRY(NA))
-      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55DRY(NA)/AREFF
+     +                    ,TRBQAB(1,NA),Q55)
+      DRYM2G(NA)=0.75D0/DENAER(NA)*Q55/AREFF
   120 CONTINUE
 
               !      Extend default dry aerosol coefficients for N=2,190
