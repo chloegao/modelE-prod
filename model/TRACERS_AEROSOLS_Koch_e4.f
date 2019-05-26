@@ -25,7 +25,10 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
       INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
+      INTEGER :: iso2exvolc=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
+!@var H2O_src_3D H2O volcanic sources (kg kg-1 s-1)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: H2O_src_3D !(im,jm,lm)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
@@ -55,11 +58,13 @@
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM
+      use TRACER_COM, only: ex_volc_num
       use AEROSOL_SOURCES, only: DMSinput,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
+     * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,H2O_src_3d,
+     * iso2exvolc,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
@@ -104,7 +109,12 @@
         nso2src_3d=nso2src_3d+1
         iso2volcanoexpl=nso2src_3d
       endif
+      if (ex_volc_num>0) then
+        nso2src_3d=nso2src_3d+1
+        iso2exvolc=nso2src_3d
+      endif
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
+      allocate( H2O_src_3D(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
      * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
      * ,o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
