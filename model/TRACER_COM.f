@@ -72,8 +72,8 @@ c
 !@dbparam ex_volc_year Year of eruptions
 !@dbparam ex_volc_lat Latitude of volcanoes
 !@dbparam ex_volc_lon Longitude of volcanoes
-!@dbparam ex_volc_bot Plume bottom (in km) of volcanoes
-!@dbparam ex_volc_top Plume top (in km) of volcanoes
+!@dbparam ex_volc_bot Plume bottom (in m) of volcanoes
+!@dbparam ex_volc_top Plume top (in m) of volcanoes
 !@dbparam ex_volc_SO2 SO2 emissions (in Tg day-1) of volcanoes
 !@dbparam ex_volc_H2O H2O emissions (in Tg day-1) of volcanoes
       integer                            :: ex_volc_num
