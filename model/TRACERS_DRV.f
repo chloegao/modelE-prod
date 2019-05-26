@@ -6459,10 +6459,10 @@ C****
 
 ! find layers range
           do lmin=2,lm ! start from 2, to avoid mixing layer
-            if (daily_z(i,j,lmin)>=ex_volc_bot(ex)*1.d3) exit
+            if (daily_z(i,j,lmin)>=ex_volc_bot(ex)) exit
           enddo
           do lmax=lmin,lm
-            if (daily_z(i,j,lmax)>=ex_volc_top(ex)*1.d3) exit
+            if (daily_z(i,j,lmax)>=ex_volc_top(ex)) exit
           enddo
 
 ! set emissions
