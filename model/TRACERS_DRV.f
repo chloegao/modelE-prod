@@ -4634,12 +4634,12 @@ C**** Fill in the tracer; above 100 mb interpolate linearly with P to 0 at top
             do j=J_0,J_1
             do i=I_0,I_1
             if (tlt0m(i,j,lr,5) /= 0.) then
-            trm(:,j,l,n) =
-     *          tlt0m(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
-            trmom(mz,:,j,l,n)  =
-     *          tltzm(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
-            trmom(mzz,:,j,l,n)  =
-     *         tltzzm(i,j,lr,1)*MA(l,:,j)*vol2mass(n)
+            trm(i,j,l,n) =
+     *          tlt0m(i,j,lr,1)*MA(l,i,j)*vol2mass(n)
+            trmom(mz,i,j,l,n)  =
+     *          tltzm(i,j,lr,1)*MA(l,i,j)*vol2mass(n)
+            trmom(mzz,i,j,l,n)  =
+     *         tltzzm(i,j,lr,1)*MA(l,i,j)*vol2mass(n)
             end if
             end do
             end do
