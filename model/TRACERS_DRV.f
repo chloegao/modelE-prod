@@ -5419,6 +5419,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TRACER_COM, only: n_ASO4,nbins
 #endif
 #endif
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+      use TRACERS_dCO, only: dCO_fact
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
 #ifdef TRACERS_SPECIAL_Lerner
       use tracer_com, only: n_O3,n_CO2,n_CH4
       USE TRACERS_MPchem_COM, only: STRATCHEM_SETUP
@@ -5750,6 +5753,24 @@ C**** Next line for fastj photon fluxes to vary with time:
             endif ! else there is only the terpene source
             sfc_src(:,J_0:J_1,n,ntsurfsrc(n))=0.d0 ! this will become terpene sources
           endif
+
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+        case ('dC17O')
+          do ns=1,nread
+            sfc_src(:,J_0:J_1,n,ns)=
+     &        sfc_src(:,J_0:J_1,n,ns)*dCO_fact%dC17O_emis(ns)
+          enddo
+        case ('dC18O')
+          do ns=1,nread
+            sfc_src(:,J_0:J_1,n,ns)=
+     &        sfc_src(:,J_0:J_1,n,ns)*dCO_fact%dC18O_emis(ns)
+          enddo
+        case ('d13CO')
+          do ns=1,nread
+            sfc_src(:,J_0:J_1,n,ns)=
+     &        sfc_src(:,J_0:J_1,n,ns)*dCO_fact%d13CO_emis(ns)
+          enddo
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
         end select
 
       end do ! ntm
@@ -7174,6 +7195,9 @@ C**** 3D biomass source
       use model_com, only: modelEclock
       use ATM_COM, only: phi
       use TRACER_COM, only: AIRCstreams,AIRCsrc,AIRSstreams
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+      use TRACERS_dCO, only: dCO_fact
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
       implicit none
       INTEGER n,xday
 !@var src_index source index for the current tracer
@@ -7192,6 +7216,16 @@ C**** Get current model time
           call get_aircraft_tracer
      &     (n,trim(trname(src_index))//'_AIRC',year,xday,
      &      phi,AIRCstreams(n),AIRSstreams(n),AIRCsrc(:,:,:,n))
+#if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
+          select case (trname(n))
+          case ('dC17O')
+            AIRCsrc(:,:,:,n)=AIRCsrc(:,:,:,n)*dCO_fact%dC17O_airc
+          case ('dC18O')
+            AIRCsrc(:,:,:,n)=AIRCsrc(:,:,:,n)*dCO_fact%dC18O_airc
+          case ('d13CO')
+            AIRCsrc(:,:,:,n)=AIRCsrc(:,:,:,n)*dCO_fact%d13CO_airc
+          end select
+#endif  /* TRACERS_dCO || TRACERS_dCOlite */
         end if
       end do
       end subroutine aircraft_emissions_prep

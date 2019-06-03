@@ -28,14 +28,21 @@ type dCO_factors
 ! If the variable name is a species, multiplying the species concentration
 ! with the corresponding factor will provide the concentration of the
 ! isotopically-labeled species.
-! If the variable name is a reaction, multiplying the reaction rate with
-! the corresponding factor will provide the reaction rate for the reaction
-! with the corresponding isotopically-labeled species.
+! If the variable name is a reaction or a flux, multiplying the reaction
+! or flux rate with the corresponding factor will provide the reaction
+! rate for the reaction with the corresponding isotopically-labeled species.
   real(8) :: d13CH4
   real(8) :: d13Cisop
   real(8) :: d13Calk
   real(8) :: d13Cpar
   real(8) :: d13Cterp
+
+  real(8) :: dC17O_airc
+  real(8) :: dC18O_airc
+  real(8) :: d13CO_airc
+  real(8), dimension(:), allocatable :: dC17O_emis
+  real(8), dimension(:), allocatable :: dC18O_emis
+  real(8), dimension(:), allocatable :: d13CO_emis
 
   real(8) :: CH4_OH__dC17O_M
   real(8) :: Isoprene_OH__dC17O_M
@@ -125,14 +132,72 @@ contains
 !-----------------------------------------------------------------------
 subroutine dCO_init
 !-----------------------------------------------------------------------
+  use OldTracer_mod, only: trname
+  use TRACER_COM, only: ntm
+  use TRACER_COM, only: ntsurfsrc
+  use OldTracer_mod, only: nBBsources
+  use Dictionary_mod, only: sync_param
   implicit none
+  real(8) :: dCO_airc_e
+  real(8), dimension(:), allocatable :: dCO_emis_e
+  integer :: nsrc,n,ns
+
+! emissions factors, as provided from the rundeck
+  do n=1,ntm
+    nsrc=ntsurfsrc(n)+nBBsources(n)
+    if (nsrc == 0) cycle
+
+    select case (trname(n))
+
+    case ('dC17O')
+      call sync_param(trim(trname(n))//'_airc_e',dCO_airc_e)
+      dCO_fact%dC17O_airc=dCO_iso_sig(dC17O_IC_fact, dCO_airc_e)
+
+      allocate(dCO_emis_e(nsrc))
+      allocate(dCO_fact%dC17O_emis(nsrc))
+      call sync_param(trim(trname(n))//'_emis_e', &
+                      dCO_emis_e, nsrc)
+      do ns=1,nsrc
+        dCO_fact%dC17O_emis(ns)=dCO_iso_sig(dC17O_IC_fact, dCO_emis_e(ns))
+      enddo
+      deallocate(dCO_emis_e)
+
+    case ('dC18O')
+      call sync_param(trim(trname(n))//'_airc_e',dCO_airc_e)
+      dCO_fact%dC18O_airc=dCO_iso_sig(dC18O_IC_fact, dCO_airc_e)
+
+      allocate(dCO_emis_e(nsrc))
+      allocate(dCO_fact%dC18O_emis(nsrc))
+      call sync_param(trim(trname(n))//'_emis_e', &
+                      dCO_emis_e, nsrc)
+      do ns=1,nsrc
+        dCO_fact%dC18O_emis(ns)=dCO_iso_sig(dC18O_IC_fact, dCO_emis_e(ns))
+      enddo
+      deallocate(dCO_emis_e)
+
+    case ('d13CO')
+      call sync_param(trim(trname(n))//'_airc_e',dCO_airc_e)
+      dCO_fact%d13CO_airc=dCO_iso_sig(d13CO_IC_fact, dCO_airc_e)
+
+      allocate(dCO_emis_e(nsrc))
+      allocate(dCO_fact%d13CO_emis(nsrc))
+      call sync_param(trim(trname(n))//'_emis_e', &
+                      dCO_emis_e, nsrc)
+      do ns=1,nsrc
+        dCO_fact%d13CO_emis(ns)=dCO_iso_sig(d13CO_IC_fact, dCO_emis_e(ns))
+      enddo
+      deallocate(dCO_emis_e)
+
+    end select
+
+  enddo
 
 ! Mean parent HCs factors. Set those before setting out reaction factors.
-dCO_fact%d13CH4=dCO_iso_sig(d13CO_IC_fact, -47.d0) ! from Park et al., 2015, table S1
-dCO_fact%d13Cisop=dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
-dCO_fact%d13Calk=dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
-dCO_fact%d13Cpar=dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
-dCO_fact%d13Cterp=dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
+dCO_fact%d13CH4=dCO_iso_sig(d13CO_IC_fact, -47.d0) ! Park et al., 2015, table S1; Lowe et al., 1991; 1997; Mak et al., 2000; Quay et al., 1999
+dCO_fact%d13Cisop=dCO_iso_sig(d13CO_IC_fact, -32.2d0) ! Park et al., 2015, table S1
+dCO_fact%d13Calk=dCO_iso_sig(d13CO_IC_fact, -32.2d0) ! Park et al., 2015, table S1
+dCO_fact%d13Cpar=dCO_iso_sig(d13CO_IC_fact, -32.2d0) ! Park et al., 2015, table S1
+dCO_fact%d13Cterp=dCO_iso_sig(d13CO_IC_fact, -32.2d0) ! Park et al., 2015, table S1
 
 ! dC17O formation yields from parent HCs
 dCO_fact%CH4_OH__dC17O_M=R_17O_16O*dCO_iso_sig(dC17O_IC_fact, 0.d0) ! guess
@@ -161,7 +226,7 @@ dCO_fact%Terpenes_O3__dC18O_M=R_18O_16O*dCO_iso_sig(dC18O_IC_fact, 0.d0) ! guess
 dCO_fact%Terpenes_NO3__dC18O_M=R_18O_16O*dCO_iso_sig(dC18O_IC_fact, 0.d0) ! guess
 
 ! d13CO formation yields from parent HCs
-dCO_fact%CH4_OH__d13CO_M=dCO_fact%d13CH4*dCO_KIE(-3.9d0) ! from Park et al., 2015, table S1: Saueressig et al. (2001)
+dCO_fact%CH4_OH__d13CO_M=dCO_fact%d13CH4*dCO_KIE(-3.9d0) ! from Park et al., 2015, table S1; Saueressig et al. (2001)
 dCO_fact%Isoprene_OH__d13CO_M=dCO_fact%d13Cisop*dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
 dCO_fact%Isoprene_O3__d13CO_M=dCO_fact%d13Cisop*dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
 dCO_fact%Isoprene_NO3__d13CO_M=dCO_fact%d13Cisop*dCO_iso_sig(d13CO_IC_fact, 0.d0) ! guess
