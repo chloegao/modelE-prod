@@ -338,6 +338,7 @@ C**** Local parameters and variables and arguments:
 #endif  /* TRACERS_dCO */
      &  changedC17O,changedC18O,changed13CO,
 #endif  /* TRACERS_dCO || TRACERS_dCOlite */
+     &  CLdenom,BRdenom,
      &  BRTOT,CLTOT,colmO2,colmO3,changeClONO2,changeClOx,
      &  changeHOCl,changeHCl,changehetClONO2,chgHT3,albedoToUse,
      &  chgHT4,chgHT5,rmrClOx,rmrBrOx,rmv,rmrOx,
@@ -1757,10 +1758,13 @@ c 1.8 ppbv CFC plus 0.8 ppbv background which is tied to methane) :
           CLTOT=((y(nn_CFC,1)/y(nM,1) -
      &         y(nn_CFC,L)/y(nM,L))*(3.0d0/1.8d0)*
      &    y(nn_CFC,1)/(1.8d-9*y(nM,1)))
-          CLTOT=CLTOT+0.8d-9*(y(nn_CH4,1)/y(nM,1)-y(nn_CH4,L)/y(nM,L))/
-     &    (y(nn_CH4,1)/y(nM,1))
-          CLTOT=CLTOT*y(nM,L)/
-     &    (y(nn_ClOx,L)+y(nn_HCl,L)+y(nn_HOCl,L)+y(nn_ClONO2,L))
+          if (y(nn_CH4,1) /= 0.d0) then
+            CLTOT=CLTOT
+     &           +0.8d-9*(y(nn_CH4,1)/y(nM,1)-y(nn_CH4,L)/y(nM,L))
+     &           /(y(nn_CH4,1)/y(nM,1))
+          endif
+          CLdenom=y(nn_ClOx,L)+y(nn_HCl,L)+y(nn_HOCl,L)+y(nn_ClONO2,L)
+          if (CLdenom /= 0.d0) CLTOT=CLTOT*y(nM,L)/CLdenom
           if(prnchg.and.
      &       J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3))then
             write(out_line,'("CLTOT = ",F20.5)') CLTOT
@@ -1802,10 +1806,13 @@ C from complete oxidation of 1.8 ppbv CFC plus 0.5 pptv background) :
           BRTOT=((y(nn_CFC,1)/y(nM,1) - 
      &         y(nn_CFC,L)/y(nM,L))*(4.5d-3/1.8d0)
      &    *y(nn_CFC,1)/(1.8d-9*y(nM,1)))
-          BRTOT=BRTOT+0.5d-12*(y(nn_CH4,1)/y(nM,1)-y(nn_CH4,L)/y(nM,L))/
-     &    (y(nn_CH4,1)/y(nM,1))
-          BRTOT=BRTOT*y(nM,L)/
-     &    (y(nn_BrOx,L)+y(nn_HBr,L)+y(nn_HOBr,L)+y(nn_BrONO2,L))
+          if (y(nn_CH4,1) /= 0.d0) then
+            BRTOT=BRTOT
+     &           +0.5d-12*(y(nn_CH4,1)/y(nM,1)-y(nn_CH4,L)/y(nM,L))
+     &           /(y(nn_CH4,1)/y(nM,1))
+          endif
+          BRdenom=y(nn_BrOx,L)+y(nn_HBr,L)+y(nn_HOBr,L)+y(nn_BrONO2,L)
+          if (BRdenom /= 0.d0) BRTOT=BRTOT*y(nM,L)/BRdenom
           if(prnchg.and.
      &       J==ijlprn(2).and.I==ijlprn(1).and.L==ijlprn(3))then
             write(out_line,'("BrTOT = ",F20.5)') BRTOT
