@@ -1980,6 +1980,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=pOx(L,i,j)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
         OH_conc(i,j,l)=y(nOH,L)
         HO2_conc(i,j,l)=y(nHO2,L)
+        JO1D_rate(i,j,l)=zj(l,rj%O3__O1D_O2)
+        JNO2_rate(i,j,l)=zj(l,rj%NO2__NO_O)
 #endif
      
 #ifdef TRACERS_HETCHEM
@@ -2003,6 +2005,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=0.d0
         OH_conc(i,j,L)=0.d0
         HO2_conc(i,j,L)=0.d0
+        JO1D_rate(i,j,L)=0.d0
+        JNO2_rate(i,j,L)=0.d0
       end do
 #endif
 
@@ -2411,7 +2415,8 @@ C Make sure nighttime chemistry changes are not too big:
       use geom, only : imaxj
       use trchem_shindell_com, only : pOx, topLevelOfChemistry
 #ifdef CACHED_SUBDD
-      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc
+      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &                                JO1D_rate,JNO2_rate
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups
 #endif
@@ -2493,6 +2498,10 @@ C Make sure nighttime chemistry changes are not too big:
               call inc_subdd(subdd,k,OH_conc)
             case ('HO2_conc')
               call inc_subdd(subdd,k,HO2_conc)
+            case ('JO1D')
+              call inc_subdd(subdd,k,JO1D_rate)
+            case ('JNO2')
+              call inc_subdd(subdd,k,JNO2_rate)
             end select
           end do ! k
         end do ! igroup

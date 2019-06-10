@@ -1786,6 +1786,18 @@ C
      &  lname = 'HO2 concentration',
      &  units = 'molecules cm-3'
      &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'JO1D'//trim(sfx), ! because not a tracer
+     &  lname = 'O3-->O1D+O2 photolysis rate',
+     &  units = 's-1'
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'JNO2'//trim(sfx), ! because not a tracer
+     &  lname = 'NO2-->NO+O photolysis rate',
+     &  units = 's-1'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return

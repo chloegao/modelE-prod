@@ -685,7 +685,8 @@ C**************  Latitude-Dependent (allocatable) *******************
       ! declaring the following arrays here until masterchem
       ! migration to inc_subdd(...,i,j) interface possible
       real*8, dimension(:,:,:), allocatable ::
-     &     mrno,mrno2,mro3,OH_conc,HO2_conc
+     &     mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &     JO1D_rate,JNO2_rate
 #endif
 
 C**************  Not Latitude-Dependent ****************************      
@@ -775,7 +776,8 @@ C**************  Not Latitude-Dependent ****************************
       use TRCHEM_Shindell_COM, only: mostRecentNonZeroAlbedo
 
 #ifdef CACHED_SUBDD
-      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc
+      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &                                JO1D_rate,JNO2_rate
 #endif
       IMPLICIT NONE
 
@@ -916,6 +918,8 @@ C**************  Not Latitude-Dependent ****************************
       allocate( MRO3(I_0H:I_1H,J_0H:J_1H,LM) ) 
       allocate( OH_conc(I_0H:I_1H,J_0H:J_1H,LM) ) 
       allocate( HO2_conc(I_0H:I_1H,J_0H:J_1H,LM) ) 
+      allocate( JO1D_rate(I_0H:I_1H,J_0H:J_1H,LM) )
+      allocate( JNO2_rate(I_0H:I_1H,J_0H:J_1H,LM) )
 #endif
 
       return
