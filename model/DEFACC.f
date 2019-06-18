@@ -1133,7 +1133,7 @@ c
       use MDIAG_COM, only : make_timeaxis,sname_strlen,lname_strlen
       use geom
       use dynamics, only : do_gwdrag,ido_gwdrag
-      use rad_com, only: nradfrc
+      use rad_com, only: nradfrc, cloud_rad_forc
 #ifdef DETAILED_FIRE_OUTPUT
       use flammability_com, only: ij_flamV
       use ent_const, only : N_COVERTYPES
@@ -3350,7 +3350,41 @@ c
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
+
+        k=k+1 !
+        IJ_SW_CS_noA = k ! SW aerosol free radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'SW Clear Sky Aerosol FREE RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'sw_cs_noa_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+
+        k=k+1 !
+        IJ_LW_CS_noA = k ! LW aerosol free radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'LW Clear Sky Aerosol FREE RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lw_cs_noa_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+
+        k=k+1 !
+        IJ_SW_AS_noA = k ! SW aerosol free radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'SW All Sky Aerosol FREE RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'sw_as_noa_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
+
+        k=k+1 !
+        IJ_LW_AS_noA = k ! LW aerosol free radiative forcing (W/m**2)      2 RD
+        lname_ij(k) = 'LW All Sky Aerosol FREE RADIATIVE FORCING, TOA'
+        units_ij(k) = 'W/m^2'
+        name_ij(k) = 'lw_as_noa_toa'
+        ia_ij(k) = ia_rad_frc
+        scale_ij(k) = 1.
 c
+
+         if (cloud_rad_forc = 2) then
         k=k+1 !
         IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
         lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'
@@ -3368,6 +3402,7 @@ c
         ia_ij(k) = ia_rad_frc
         scale_ij(k) = 1.
         ir_ij(k) = ir_m95_265
+         end if
 
 c
         IJ_SWAERRF = k+1   ! TOA SW aerosol rad forcing (W/m**2)
