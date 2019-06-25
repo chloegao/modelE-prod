@@ -3627,7 +3627,7 @@ c    CRF diagnostics
            AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
      -          (TNFS(3,I,J)-TNFSCRF(I,J))
           endif
-         if (cloud_rad_forc = 2) then
+         if (cloud_rad_forc.eq.2) then
 c    CRF diagnostics without aerosols and Ox
            AIJ(I,J,IJ_SWCRF2)=AIJ(I,J,IJ_SWCRF2)+
      +          (SNFS(3,I,J)-SNFSCRF2(I,J))*CSZ2

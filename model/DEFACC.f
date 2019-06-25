@@ -3384,7 +3384,7 @@ c
         scale_ij(k) = 1.
 c
 
-         if (cloud_rad_forc = 2) then
+         if (cloud_rad_forc.eq.2) then
         k=k+1 !
         IJ_SWCRF2 = k ! SW cloud radiative forcing (W/m**2) without aerosols and Ozone
         lname_ij(k) = 'SW CLOUD RF NO AER NO OX, TOA'

@@ -167,7 +167,7 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 !@var ijts_AMPpdf special diagnostic for not-transported tracers
       INTEGER ijts_AMPpdf(1,nbins)
 #endif
-!@var ijts_AMPe tracer independent array for emissions
+!@var ijts_AMPe tracer independent array for extra diadnostics
       INTEGER, ALLOCATABLE ::ijts_AMPe(:)
 !@var ijts_AMPp tracer independent array for AMP processes
       INTEGER, ALLOCATABLE ::ijts_AMPp(:,:)

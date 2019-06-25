@@ -3915,6 +3915,8 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
+
+
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -3958,6 +3960,32 @@ c- interactive sources diagnostic
       end do
 
 c - Tracer independent Diagnostic (stays here if 2D, moves to ijlt if 3D)
+       k = k + 1
+         ijts_AMPe(1)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM1'
+         lname_ijts(k) = 'PM1 Mixing ratio'
+         ijts_power(k) =  -18
+         units_ijts(k) = unit_string(ijts_power(k),'kg/kg air')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+
+       k = k + 1
+         ijts_AMPe(2)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM2.5'
+         lname_ijts(k) = 'PM2.5 Mixing ratio'
+         ijts_power(k) =  -18
+         units_ijts(k) = unit_string(ijts_power(k),'kg/kg air')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+
+       k = k + 1
+         ijts_AMPe(3)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM10'
+         lname_ijts(k) = 'PM10 Mixing ratio'
+         ijts_power(k) =  -18
+         units_ijts(k) = unit_string(ijts_power(k),'kg/kg air')
+         scale_ijts(k) = 10.**(-ijts_power(k))
 c      do L=1,1    !LTOP
 c      do m=1,NBINS
 c        k = k + 1

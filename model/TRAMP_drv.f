@@ -30,6 +30,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: AMP_TR_MM  !molec. mass(i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: VDDEP_AERO != 1.0D-30  ![m/s](i,j,nmodes,2)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: ampPM2p5, ampPM10  ! [kg/kg air]
 
 !-------------------------------------------------------------------------------------------------------------------------
 !     The array VDDEP_AERO(X,Y,Z,I,1) contains current values for the dry deposition velocities 
@@ -73,7 +74,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 #endif
       use OldTracer_mod, only: trname
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
-     *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf
+     *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf, ijts_AMPe
      *     ,itcon_AMP,itcon_AMPm
       USE AMP_AEROSOL
       USE AEROSOL_SOURCES, only: off_HNO3
@@ -84,7 +85,7 @@ C**************  Latitude-Dependant (allocatable) *******************
      $                     ,q            ! saturated pressure
       USE MODEL_COM, only : dtsrc
       USE GEOM, only: axyp,imaxj,BYAXYP
-      USE CONSTANT,   only:  lhe,mair,gasc   
+      USE CONSTANT,   only:  lhe,mair,gasc,rgas  
       USE FLUXES, only: tr3Dsource,trsource,trflux1
       USE ATM_COM,   only: pmid,pk,byMA,gz, MA   ! midpoint pressure in hPa (mb)
 !                                           and pk is t mess up factor
@@ -102,7 +103,7 @@ C**************  Latitude-Dependant (allocatable) *******************
 
       IMPLICIT NONE
 
-      REAL(8):: TK,RH,PRES,TSTEP,AQSO4RATE
+      REAL(8):: TK,RH,PRES,TSTEP,AQSO4RATE,PM(3)
       REAL(8):: AERO(NAEROBOX)     ! aerosol conc. [ug/m^3] or [#/m^3]
       REAL(8):: GAS(NGASES)        ! gas-phase conc. [ug/m^3]
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
@@ -238,7 +239,7 @@ c conversion trm [kg/gb] -> AERO [ug/m3]
 !=========
 ! WARNING: EMIS_MASS is only used to modify number, the mass is already modified in ATURB.
 !=========
-       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO) 
+       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUP,DT_AERO,PM) 
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
  
        DO n=ntmAMPi,ntmAMPe
@@ -262,6 +263,18 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
      *        -trm(i,j,l,n_HNO3))/dtsrc
 #endif
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
+
+      if (l.eq.1) then
+c - 2d acc output
+c      PM1  [ug/m3] - [kg/kg(air)]
+        taijs(i,j,ijts_AMPe(1))=taijs(i,j,ijts_AMPe(1)) + PM(1)*1.d-9*rgas*tk/pres 
+c      PM2.5
+        taijs(i,j,ijts_AMPe(2))=taijs(i,j,ijts_AMPe(2)) + PM(2)*1.d-9*rgas*tk/pres 
+        ampPM2p5(i,j) = PM(2)*1.d-9*rgas*tk/pres 
+c      PM10
+        taijs(i,j,ijts_AMPe(3))=taijs(i,j,ijts_AMPe(3)) + PM(3)*1.d-9*rgas*tk/pres 
+        ampPM10(i,j)  = PM(3)*1.d-9*rgas*tk/pres 
+        endif
 
 c Update physical properties per mode
        do n=ntmAMPi,ntmAMPe
@@ -294,6 +307,7 @@ c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(3,n))=taijls(i,j,l,ijlt_AMPm(3,n)) + DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))
         taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l,i,j)/axyp(i,j))
 
+
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
         if (itcon_AMPm(3,n) .gt.0) call inc_diagtcb(i,j,(DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(3,n),n) 
@@ -304,6 +318,7 @@ c - 2d PRT Diagnostic
       ENDDO !i
       ENDDO !j
       ENDDO !l
+
 
 #ifdef CACHED_SUBDD
       call find_groups('taijlh',grpids,ngroups)
@@ -529,15 +544,20 @@ c        WRITE(JUNIT,91) I, DGRID(I), DMDLOGD(:)
       allocate(  AQsulfRATE(I_0H:I_1H,J_0H:J_1H,LM)   )
 ! other dimensions
       allocate(  DIAM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
+      allocate(  ampPM10(I_0H:I_1H,J_0H:J_1H)  )
+      allocate(  ampPM2p5(I_0H:I_1H,J_0H:J_1H)  )
       allocate(  DIAM_dry(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_TR_MM(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  AMP_dens(I_0H:I_1H,J_0H:J_1H,LM,nmodes)  )
       allocate(  NACTV(I_0H:I_1H,J_0H:J_1H,LM,nmodes) )
       allocate(  VDDEP_AERO(I_0H:I_1H,J_0H:J_1H,nmodes,2))
 
-      NACTV   = 1.0D-30
-      DIAM    = 1.0D-30
-      DIAM_dry= 1.0D-30
+      NACTV    = 1.0D-30
+      DIAM     = 1.0D-30
+      ampPM10  = 1.0D-30
+      ampPM2p5 = 1.0D-30
+      DIAM_dry = 1.0D-30
+
       return
       end subroutine alloc_tracer_amp_com
       
