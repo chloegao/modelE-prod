@@ -30,6 +30,7 @@ subroutine CONDSE
        ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
   use CLOUDS_COM, only : ncl,nci,clwp,cdn3d,cre3d  ! for 3 hrly diag
+  use DIAG_COM, only : ij_nclssct
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CLOUDS_COM, only :  ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
@@ -37,6 +38,7 @@ subroutine CONDSE
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
   use CLOUDS_COM, only : NACTC
+  use DIAG_COM, only : ij_ccnssct
 #endif
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
@@ -70,7 +72,7 @@ subroutine CONDSE
   use DIAG_COM, only : hdiurn=>hdiurn_loc
 #endif
   use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi &
-       ,ij_tclssct,ij_rclssct,ij_nclssct,ij_ccnssct &
+       ,ij_tclssct,ij_rclssct &
        ,ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx &
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
@@ -1651,7 +1653,9 @@ subroutine CONDSE
               rcl_sum = rcl_sum + cldssl(L)*taussl(L)*csizel(L)
 #ifdef CLD_AER_CDNC
               ncl_sum = ncl_sum + taussl(L)*ncll(L)
+#endif
 #ifdef TRACERS_AMP
+#ifdef BLK_2MOM
               ccn_sum = ccn_sum + cldssl(L)*taussl(L)*sum(nactc(L,:))
 #endif
 #endif
@@ -1666,7 +1670,9 @@ subroutine CONDSE
 #ifdef CLD_AER_CDNC
               aij(i,j,ij_nclssct) = aij(i,j,ij_nclssct) + &
                  dum1*ncl_sum + dum2*taussl(L)*ncll(L)
+#endif
 #ifdef TRACERS_AMP
+#ifdef BLK_2MOM
               aij(i,j,ij_ccnssct) = aij(i,j,ij_ccnssct) + &
                  dum1*ccn_sum + dum2*cldssl(L)*taussl(L)*sum(nactc(L,:))
 #endif

@@ -1532,7 +1532,9 @@ c
       ia_ij(k) = ia_src
       denom_ij(k) = ij_tclssct
 c
+#endif
 #ifdef TRACERS_AMP
+#ifdef BLK_2MOM
       k=k+1
       ij_ccnssct = k
       lname_ij(k) = 'CCN activated near cld top'
@@ -1541,9 +1543,9 @@ c
       ia_ij(k) = ia_src
       denom_ij(k) = ij_tclssct
       scale_ij(k) = 1e-6
-#endif /* TRACERS_AMP */
-#endif /* CLD_AER_CDNC */
 c
+#endif
+#endif
       k=k+1 !
       IJ_SNOW = k ! SNOW (KG/m**2)       1 GD
       atmice%IJ_SNOW = k
