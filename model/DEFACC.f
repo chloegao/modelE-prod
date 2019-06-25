@@ -1511,6 +1511,41 @@ c
       ia_ij(k) = ia_rad
       scale_ij(k) = 1.
 c
+      k=k+1
+      ij_tclssct = k ! cumulative layer-average stratiform liquid cloud opacity (not output)
+      ia_ij(k) = ia_src
+c
+      k=k+1
+      ij_rclssct = k
+      lname_ij(k) = 'Large-scale cld droplet r_eff near cld top'
+      units_ij(k) = 'micron'
+      name_ij(k) = 'sscldtop_reffcl'
+      ia_ij(k) = ia_src
+      denom_ij(k) = ij_tclssct
+c
+#ifdef CLD_AER_CDNC
+      k=k+1
+      ij_nclssct = k
+      lname_ij(k) = 'Large-scale cld droplet num conc near cld top'
+      units_ij(k) = '#/cm^3'
+      name_ij(k) = 'sscldtop_ncl'
+      ia_ij(k) = ia_src
+      denom_ij(k) = ij_tclssct
+c
+#endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+      k=k+1
+      ij_ccnssct = k
+      lname_ij(k) = 'CCN activated near cld top'
+      units_ij(k) = '#/cm^3'
+      name_ij(k) = 'sscldtop_ccn'
+      ia_ij(k) = ia_src
+      denom_ij(k) = ij_tclssct
+      scale_ij(k) = 1e-6
+c
+#endif
+#endif
       k=k+1 !
       IJ_SNOW = k ! SNOW (KG/m**2)       1 GD
       atmice%IJ_SNOW = k

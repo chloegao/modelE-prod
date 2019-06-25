@@ -30,6 +30,7 @@ subroutine CONDSE
        ,isccp_reg2d,ukm,vkm,ncol
 #ifdef CLD_AER_CDNC
   use CLOUDS_COM, only : ncl,nci,clwp,cdn3d,cre3d  ! for 3 hrly diag
+  use DIAG_COM, only : ij_nclssct
 #endif
 #if (defined CLD_AER_CDNC) || (defined CLD_SUBDD)
   use CLOUDS_COM, only :  ctem,cd3d,cl3d,ci3d  ! for 3 hrly diag
@@ -37,6 +38,7 @@ subroutine CONDSE
 #ifdef TRACERS_AMP
 #ifdef BLK_2MOM
   use CLOUDS_COM, only : NACTC
+  use DIAG_COM, only : ij_ccnssct
 #endif
 #endif
   use CLOUDS_COM, only : tauss,taumc,cldss,cldmc,csizmc,csizss,fss,cldsav1 &
@@ -70,6 +72,7 @@ subroutine CONDSE
   use DIAG_COM, only : hdiurn=>hdiurn_loc
 #endif
   use DIAG_COM, only : ntau,npres,aisccp=>aisccp_loc,ij_precmc,ij_cldw,ij_cldi &
+       ,ij_tclssct,ij_rclssct &
        ,ij_fwoc,p_acc,pm_acc,ndiuvar,nisccp,adiurn_dust,jl_mcdflx &
        ,lh_diags,ijl_llh,ijl_mctlh,ijl_mcdlh,ijl_mcslh &
        ,ijl_ldry,ijl_tmcdry,ijl_dmcdry,ijl_smcdry &
@@ -406,6 +409,18 @@ subroutine CONDSE
               grid%j_strt_halo:grid%j_stop_halo,LM,15) :: &
               Cloud_daily3d
 #endif
+
+!@var tau_thresh optical depth threshold for cloud-top diagnostics (-)
+  real*8, parameter :: tau_thresh = 1d0
+!@var tau_sum cumulative layer-average stratiform cloud optical depth from TOA (-)
+!@var rcl_sum cumulative layer-average stratiform cloud optical depth times cloud droplet effective radius    (um)
+!@var rci_sum cumulative layer-average stratiform cloud optical depth times cloud ice effective radius (um)
+!@var ncl_sum cumulative layer-average stratiform cloud optical depth times cloud droplet num conc (m-3)
+!@var nci_sum cumulative layer-average stratiform cloud optical depth times cloud ice num conc (m-3)
+!@var ccn_sum cumulative layer-average stratiform cloud optical depth times activated CCN conc (m-3)
+  real*8 :: tau_sum,rcl_sum,rci_sum,ncl_sum,nci_sum,ccn_sum
+!@var dum1,dum2 dummy variables
+  real*8 :: dum1,dum2
 
 #ifdef CLD_AER_CDNC
   real*8 :: cldwt,cldwtdz
@@ -1600,6 +1615,72 @@ subroutine CONDSE
         !QCON q2=sum((Q(I,J,:)+WMX(:))*AIRM(:))*100*BYGRAV+PRCP
         !QCON if (abs(q2-q0).gt.1d-13) print*,"water err1",i,j,q2-q0,q2,q0,q1
         !QCON*     ,prcp
+
+        ! Accumulate stratiform cloud droplet and cloud ice number conc and effective radii
+        ! diagnostics near cloud top (down to where cumulative layer-average cloud optical
+        ! depth > 1), simplistically applying optional temperature cutoffs only
+        ! at layer where threshold is passed and ignoring convective cloud opacity to avoid
+        ! overlap complications. This is a crude treatment (all the more so because phases
+        ! are treated separately for the sake of answers closer to expectations) for purposes
+        ! of comparing model runs but not for rigorous comparisons with, say, satellite-borne
+        ! measurements. Note that ncl and nci diagnostics are in-cloud values and thus
+        ! cloud fraction appears in denominator but not numerator.
+
+        if( svlhxl(lmcld)==lhe )then ! liquid-phase stratiform cloud
+          tau_sum = cldssl(lmcld)*taussl(lmcld)
+          rcl_sum = cldssl(lmcld)*taussl(lmcld)*csizel(lmcld)
+#ifdef CLD_AER_CDNC
+          ncl_sum = taussl(lmcld)*ncll(lmcld)
+#ifdef TRACERS_AMP
+          ccn_sum = cldssl(lmcld)*taussl(lmcld)*sum(nactc(lmcld,:))
+#endif
+#endif
+        else
+          tau_sum = 0.
+          rcl_sum = 0.
+#ifdef CLD_AER_CDNC
+          ncl_sum = 0.
+#ifdef TRACERS_AMP
+          ccn_sum = 0.
+#endif
+#endif
+        endif
+        do L = lmcld-1, 1, -1
+          if( svlhxl(L)==lhe )then ! liquid-phase stratiform cloud
+            if( tau_sum + cldssl(L)*taussl(L) < tau_thresh )then
+              ! accumulate sums vertically
+              tau_sum = tau_sum + cldssl(L)*taussl(L)
+              rcl_sum = rcl_sum + cldssl(L)*taussl(L)*csizel(L)
+#ifdef CLD_AER_CDNC
+              ncl_sum = ncl_sum + taussl(L)*ncll(L)
+#endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+              ccn_sum = ccn_sum + cldssl(L)*taussl(L)*sum(nactc(L,:))
+#endif
+#endif
+            else
+              ! cumulative optical depth threshold crossed
+              dum1 = tau_sum/tau_thresh
+              dum2 = 1d0-dum1
+              aij(i,j,ij_tclssct) = aij(i,j,ij_tclssct) + &
+                 dum1*tau_sum + dum2*cldssl(L)*taussl(L)
+              aij(i,j,ij_rclssct) = aij(i,j,ij_rclssct) + &
+                 dum1*rcl_sum + dum2*cldssl(L)*taussl(L)*csizel(L)
+#ifdef CLD_AER_CDNC
+              aij(i,j,ij_nclssct) = aij(i,j,ij_nclssct) + &
+                 dum1*ncl_sum + dum2*taussl(L)*ncll(L)
+#endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+              aij(i,j,ij_ccnssct) = aij(i,j,ij_ccnssct) + &
+                 dum1*ccn_sum + dum2*cldssl(L)*taussl(L)*sum(nactc(L,:))
+#endif
+#endif
+              exit
+            endif  ! threshold crossed or not
+          endif    ! liquid-phase stratiform cloud
+        enddo      ! L
 
 #ifdef CLD_AER_CDNC
         do L=1,LM
