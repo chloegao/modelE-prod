@@ -2260,13 +2260,13 @@ C
         ! L=1 PM2.5 mass mixing ratio:
          case('PM2p5l1m')
          sddarr2d(:,:)= ampPM2p5(:,:)     ! kg/kg air
-         call inc_subdd(subdd,k,sddarr2d) ! cycle diag_loop
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
 
         ! L=1 PM10 mass mixing ratio:
          case('PM10l1m')
          sddarr2d(:,:)= ampPM10(:,:)      ! kg/kg air
-         call inc_subdd(subdd,k,sddarr2d) ! cycle diag_loop
-          cycle diag_loop
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+         
         end select
 #else
         select case(trim(subdd%name(k)))
