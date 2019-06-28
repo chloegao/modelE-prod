@@ -2014,6 +2014,7 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     SNFSCRF,TNFSCRF,SNFSCRF2,TNFSCRF2,LWDNCS,
+     &     SNFS_AS_noA, TNFS_AS_noA, SNFS_CS_noA, TNFS_CS_noA, 
      &     SWUS,CTT,CTP,WTRCLD,ICECLD
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
@@ -2976,7 +2977,6 @@ C**** or not.
       if (clim_interact_chem > 0) onoff_chem=1
       use_o3_ref=0
 
-C YUNHA LEE - took the shindell outside of the Koch/dust directives.
 #ifdef TRACERS_SPECIAL_Shindell
 C**** Ozone and Methane:
       CHEM_IN(1,1:LM)=chem_tracer_save(1,1:LM,I,J)
@@ -3145,7 +3145,7 @@ C       END AMIP
 
 
 C**** 2nd Optional calculation of CRF using a clear sky calc. without aerosols and Ox
-        if (cloud_rad_forc.gt.0) then
+        if (cloud_rad_forc.eq.2) then
           FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
           kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
 c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++
@@ -3154,7 +3154,7 @@ c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++
 #endif
        FSTOPX(:) = 0 !turns off aerosol tracers
        FTTOPX(:) = 0
-        CALL RCOMPX          ! cloud_rad_forc>0 : clr sky
+        CALL RCOMPX          ! cloud_rad_forc=2 : clr sky
        FSTOPX(:) = onoff_aer !turns on aerosol tracers, if requested
        FTTOPX(:) = onoff_aer !
 #ifdef TRACERS_SPECIAL_Shindell
@@ -3162,18 +3162,36 @@ c Including turn off of aerosols and Ox during crf calc.+++++++++++++++++++
 #endif
           SNFSCRF2(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
           TNFSCRF2(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
-
-c          AIJ(I,J,IJ_SWDCLS2)=AIJ(I,J,IJ_SWDCLS2)+SRDFLB(1)*COSZ2(I,J)
-c          AIJ(I,J,IJ_SWNCLS2)=AIJ(I,J,IJ_SWNCLS2)+SRNFLB(1)*COSZ2(I,J)
-c          AIJ(I,J,IJ_LWDCLS2)=AIJ(I,J,IJ_LWDCLS2)+TRDFLB(1)
-c          AIJ(I,J,IJ_SWNCLT2)=AIJ(I,J,IJ_SWNCLT2)+SRNFLB(LM+LM_REQ+1)
-c     *     *COSZ2(I,J)
-c          AIJ(I,J,IJ_LWNCLT2)=AIJ(I,J,IJ_LWNCLT2)+TRNFLB(LM+LM_REQ+1)
         end if
         FTAUC=1.     ! default: turn on cloud tau
 
+        if (cloud_rad_forc.gt.0) then
+C**** all sky calc. without aerosol
+       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+       FSTOPX(:) = 0 !turns off aerosol tracers
+       FTTOPX(:) = 0
+        CALL RCOMPX          !  all sky
+       FSTOPX(:) = onoff_aer !turns on aerosol tracers, if requested
+       FTTOPX(:) = onoff_aer !
 
-C**** Optional calculation of the impact of default aerosols
+          SNFS_AS_noA(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
+          TNFS_AS_noA(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+
+C**** clear sky calc. without aerosol
+          FTAUC=0.   ! turn off cloud tau (tauic +tauwc)
+       kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+       FSTOPX(:) = 0 !turns off aerosol tracers
+       FTTOPX(:) = 0
+        CALL RCOMPX          !  clr sky
+       FSTOPX(:) = onoff_aer !turns on aerosol tracers, if requested
+       FTTOPX(:) = onoff_aer !
+
+          SNFS_CS_noA(I,J)=SRNFLB(LM+LM_REQ+1)   ! always TOA
+          TNFS_CS_noA(I,J)=TRNFLB(LM+LM_REQ+1)   ! always TOA
+        FTAUC=1.     ! default: turn on cloud tau
+       end if
+
+C**** Optional calculation of the impact of NINT aerosols
         if (aer_rad_forc.gt.0) then
 C**** first, separate aerosols
           DO N=1,8
@@ -3920,6 +3938,8 @@ c    CRF diagnostics
      +          (SNFS(3,I,J)-SNFSCRF(I,J))*CSZ2
            AIJ(I,J,IJ_LWCRF)=AIJ(I,J,IJ_LWCRF)-
      -          (TNFS(3,I,J)-TNFSCRF(I,J))
+          endif
+         if (cloud_rad_forc.eq.2) then
 c    CRF diagnostics without aerosols and Ox
            AIJ(I,J,IJ_SWCRF2)=AIJ(I,J,IJ_SWCRF2)+
      +          (SNFS(3,I,J)-SNFSCRF2(I,J))*CSZ2
@@ -3955,6 +3975,17 @@ C**** AERRF diags if required
            AIJ(I,J,IJ_LWAERSRFNT)=AIJ(I,J,IJ_LWAERSRFNT)-
      *          (TNFS(1,I,J)-TNFSAERRF(18,I,J))
          end if
+
+C***** Clear Sky and All Sky TOA Forcing without aerosol
+           AIJ(I,J,IJ_SW_AS_noA)=AIJ(I,J,IJ_SW_AS_noA)+
+     +          (SNFS(3,I,J)-SNFS_AS_noA(I,J))*CSZ2
+           AIJ(I,J,IJ_LW_AS_noA)=AIJ(I,J,IJ_LW_AS_noA)-
+     -          (TNFS(3,I,J)-TNFS_AS_noA(I,J))
+           AIJ(I,J,IJ_SW_CS_noA)=AIJ(I,J,IJ_SW_CS_noA)+
+     +          (SNFS(3,I,J)-SNFS_CS_noA(I,J))*CSZ2
+           AIJ(I,J,IJ_LW_CS_noA)=AIJ(I,J,IJ_LW_CS_noA)-
+     -          (TNFS(3,I,J)-TNFS_CS_noA(I,J))
+
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_SPECIAL_Shindell) || (defined TRACERS_MINERALS) ||\

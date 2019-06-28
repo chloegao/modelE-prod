@@ -18,7 +18,7 @@
 #endif  /* TRACERS_AMP_M9 */
       use OldTracer_mod, only: trname
       USE TRDIAG_COM, only : taijs=>taijs_loc,taijls=>taijls_loc
-     *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf
+     *     ,ijts_AMPp,ijlt_AMPm,ijts_AMPpdf, ijts_AMPe
      *     ,itcon_AMP,itcon_AMPm
       USE AMP_AEROSOL
       use RunTimeControls_mod, only: tracers_special_shindell
@@ -27,8 +27,7 @@
 
       USE RESOLUTION, only : lm     ! dimensions
       USE MODEL_COM, only : dtsrc
-      USE GEOM, only: imaxj
-      USE CONSTANT,   only:  lhe,mair,gasc   
+      USE CONSTANT,   only:  lhe,mair,gasc,rgas  
       USE FLUXES, only: tr3Dsource,trsource,trflux1
       use ATMCOL_COM, only: tl   ! layer temperature (K)
       use ATMCOL_COM, only: rhl  ! layer relative humidity (0-1)
@@ -48,8 +47,8 @@
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
-!
-      REAL(8):: RH,PRES,TSTEP,AQSO4RATE
+
+      REAL(8):: TK,RH,PRES,TSTEP,AQSO4RATE,PM(3)
       REAL(8):: AERO(NAEROBOX)     ! aerosol conc. [ug/m^3] or [#/m^3]
       REAL(8):: GAS(NGASES)        ! gas-phase conc. [ug/m^3]
       REAL(8):: EMIS_MASS(NEMIS_SPCS) ! mass emission rates [ug/m^3]
@@ -202,10 +201,10 @@ c conversion trm_col [kg/m2/layer] -> AERO [ug/m3]
 
        CALL SPCMASSES(AERO,GAS,SPCMASS)
 
-       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO)
 !=========
 ! WARNING: EMIS_MASS is only used to modify number, the mass is already modified in ATURB.
 !=========
+       CALL MATRIX(AERO,GAS,EMIS_MASS,TSTEP,tl(l),RH,PRES,AQSO4RATE,WUP,DT_AERO,PM)
 c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
        do n=1,nweights
          DIAM(i,j,l,n)=DP(n)
@@ -261,6 +260,18 @@ c       CALL SIZE_PDFS(AERO,PDF1,PDF2)
 
 c       DT_AERO(:,:) = DT_AERO(:,:) * dtsrc !DT_AERO [# or ug/m3/s] , taijs [kg m2/kg(air)], byMA [kg/m2]
 
+      if (l.eq.1) then
+c - 2d acc output
+c      PM1  [ug/m3] - [kg/kg(air)]
+        taijs(i,j,ijts_AMPe(1))=taijs(i,j,ijts_AMPe(1)) + PM(1)*1.d-9*rgas*tl(l)/pres 
+c      PM2.5
+        taijs(i,j,ijts_AMPe(2))=taijs(i,j,ijts_AMPe(2)) + PM(2)*1.d-9*rgas*tl(l)/pres 
+        ampPM2p5(i,j) = PM(2)*1.d-9*rgas*tl(l)/pres 
+c      PM10
+        taijs(i,j,ijts_AMPe(3))=taijs(i,j,ijts_AMPe(3)) + PM(3)*1.d-9*rgas*tl(l)/pres 
+        ampPM10(i,j)  = PM(3)*1.d-9*rgas*tl(l)/pres 
+        endif
+
 c Update physical properties per mode
        do n=ntmAMPi,ntmAMPe
          nAMP=n-ntmAMPi+1
@@ -291,6 +302,7 @@ c - 3d acc output
         taijls(i,j,l,ijlt_AMPm(1,n))=taijls(i,j,l,ijlt_AMPm(1,n)) + DIAM(i,j,l,AMP_MODES_MAP(nAMP))
         taijls(i,j,l,ijlt_AMPm(3,n))=taijls(i,j,l,ijlt_AMPm(3,n)) + DIAM_dry(i,j,l,AMP_MODES_MAP(nAMP))
         taijls(i,j,l,ijlt_AMPm(2,n))=taijls(i,j,l,ijlt_AMPm(2,n)) + (NACTV(i,j,l,AMP_MODES_MAP(nAMP))*AVOL*byMA(l))
+
 
 c - 2d PRT Diagnostic
         if (itcon_AMPm(1,n) .gt.0) call inc_diagtcb(i,j,(DIAM(i,j,l,AMP_MODES_MAP(nAMP))*1d6),itcon_AMPm(1,n),n) 
@@ -463,7 +475,7 @@ c -----------------------------------------------------------------
 !@auth Susanne Bauer
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use resolution, only : lm
-      use amp_aerosol, only: AQsulfRATE, DIAM, DIAM_dry, NACTV
+      use amp_aerosol
       use aero_config, only: nmodes
 
       IMPLICIT NONE
@@ -484,12 +496,17 @@ c -----------------------------------------------------------------
 ! I,J,L
       allocate(  AQsulfRATE(LM,I_0:I_1,J_0:J_1)   )
 ! other dimensions
+      allocate(  ampPM10(I_0:I_1,J_0:J_1)  )
+      allocate(  ampPM2p5(I_0:I_1,J_0:J_1)  )
       allocate(  DIAM(I_0:I_1,J_0:J_1,LM,nmodes)  )
       allocate(  DIAM_dry(I_0:I_1,J_0:J_1,LM,nmodes)  )
       allocate(  NACTV(I_0:I_1,J_0:J_1,LM,nmodes) )
 
-      NACTV   = 1.0D-30
-      DIAM    = 1.0D-30
-      DIAM_dry= 1.0D-30
+      NACTV    = 1.0D-30
+      DIAM     = 1.0D-30
+      DIAM_dry = 1.0D-30
+      ampPM10  = 1.0D-30
+      ampPM2p5 = 1.0D-30
+
       end subroutine alloc_tracer_amp_com
 

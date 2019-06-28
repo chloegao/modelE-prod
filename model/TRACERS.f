@@ -1819,6 +1819,9 @@ C
       use trdiag_com, only : to_volume_MixRat,trcsurf,trcSurfByVol
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
+#ifdef TRACERS_AMP
+      use AMP_AEROSOL, only: ampPM2p5, ampPM10
+#endif
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       integer :: L, n, k
@@ -1915,9 +1918,21 @@ C
           call tomas_pm_subdd_accum(subdd,k,trim(subdd%name(k)))
           cycle diag_loop
         end select
+#elif (defined TRACERS_AMP) 
+        select case(trim(subdd%name(k)))
+        ! L=1 PM2.5 mass mixing ratio:
+         case('PM2p5l1m')
+         sddarr2d(:,:)= ampPM2p5(:,:)     ! kg/kg air
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        ! L=1 PM10 mass mixing ratio:
+         case('PM10l1m')
+         sddarr2d(:,:)= ampPM10(:,:)      ! kg/kg air
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+         
+        end select
 #else
         select case(trim(subdd%name(k)))
-
         ! surface PM2.5 mass mixing ratio:
         case('PM2p5sm')
           sddarr2d(:,:)=0.d0

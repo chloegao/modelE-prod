@@ -815,6 +815,10 @@ C**** Local variables initialised in init_RAD
      &     ,ij_lwprad=1
      &     ,ij_iwprad=1
      &     ,ij_h2och4 = 1
+     &     ,ij_sw_cs_noa=1
+     &     ,ij_lw_cs_noa=1
+     &     ,ij_sw_as_noa=1
+     &     ,ij_lw_as_noa=1
 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)

@@ -30,6 +30,7 @@ C**************  Latitude-Dependant (allocatable) *******************
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM       ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: DIAM_dry   ![m](i,j,l,nmodes)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:)     :: NACTV      != 1.0D-30  ![#/m^3](i,j,l,nmodes)
+      REAL*8, ALLOCATABLE, DIMENSION(:,:)         :: ampPM2p5, ampPM10  ! [kg/kg air]
 
 !-------------------------------------------------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------------------------------------------------

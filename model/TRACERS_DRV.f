@@ -3259,6 +3259,8 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
+
+
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
@@ -3295,17 +3297,19 @@ c- interactive sources diagnostic
       end do
 
 c - Tracer independent Diagnostic (stays here if 2D, moves to ijlt if 3D)
-c      do L=1,1    !LTOP
-c      do m=1,NBINS
-c        k = k + 1
-c         ijts_AMPpdf(l,m)=k
-c         write(lname_ijts(k),'(a15,i2.2,i2.2)') 'NUMB_PDF BIN L=',L,M
-c         write(sname_ijts(k),'(a9,i2.2,i2.2)') 'N_PDF_BIN',L,M
-c         ijts_power(k) = -2
-c         units_ijts(k) = unit_string(ijts_power(k),'#')
-c         scale_ijts(k) = 10.**(-ijts_power(k))
-c      end do
-c      end do
+         ijts_AMPe(1)=
+     *    ijts_diag('PM1',
+     *              'PM1 Mixing ratio',
+     *              'kg kg-1', power=-9, ia=ia_src)
+         ijts_AMPe(2)=
+     *    ijts_diag('PM2p5',
+     *              'PM2p5 Mixing ratio',
+     *              'kg kg-1', power=-9, ia=ia_src)
+         ijts_AMPe(3)=
+     *    ijts_diag('PM10',
+     *              'PM10 Mixing ratio',
+     *              'kg kg-1', power=-9, ia=ia_src)
+
 #endif  /* TRACERS_AMP */
 
 c
