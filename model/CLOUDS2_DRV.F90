@@ -87,7 +87,7 @@ subroutine CONDSE
        ,ijl_rewm,ijl_rews,ijl_cdwm,ijl_cdws,ijl_cwwm,ijl_cwws &
        ,ij_wmclwp,ij_wmctwp &
        ,ijl_reim,ijl_reis,ijl_cdim,ijl_cdis,ijl_cwim,ijl_cwis &
-       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis,ijl_cdtomas 
+       ,ijl_cfwm,ijl_cfim,ijl_cfws,ijl_cfis,ijl_cdtomas
 #endif
 #ifdef TRACERS_DUST
   use DIAG_COM, only : idd_wet
@@ -98,7 +98,7 @@ subroutine CONDSE
   use AMP_AEROSOL, only: NACTV
 #endif
 #endif
-#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell) 
+#if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
       USE LIGHTNING,  only : FLASH_DENS, CG_DENS, FLASH_PERTURB,L440mbM1
 #ifdef AUTOTUNE_LIGHTNING
       USE LIGHTNING,  only : TUNE_LT_LAND, TUNE_LT_SEA
@@ -243,6 +243,21 @@ subroutine CONDSE
 #ifdef SCM
   use SCM_COM, only : SCMopt
 #endif
+#ifdef COSP_SIM
+  ! Import modules needed for the COSP simulator
+  use atm_com, only : zatmo
+  use geom, only : lon_dg,lat_dg
+  use clouds, only : ccl_cosp,ccp_cosp,reff_cosp,reffp_cosp
+  use clouds_com, only : nsubdd_cosp,npoints_cosp,flag_pfluxes_cosp,flag_re_cosp
+  use cosp_drv, only : init_cosp_gbx,run_cosp_sims,free_cosp_sims
+  use cosp_drv, only : gbx,i_lscliq,i_lscice,i_lsrain,i_lssnow,i_cvcliq, &
+    i_cvcice,i_cvrain,i_cvsnow,i_lsgrpl,cosp_bywc,cosp_byic
+#endif
+#ifdef CFMIP3_SUBDD
+  use CLOUDS, only : wmctwp,wmclwp
+  use ATM_COM, only : ma
+#endif
+
   implicit none
 
 #ifdef TRACERS_ON
@@ -279,7 +294,7 @@ subroutine CONDSE
 #ifdef CACHED_SUBDD
 #ifdef TRACERS_WATER
    !tracer precipitation variable name
-   character(len=20) :: trpname 
+   character(len=20) :: trpname
 #endif
 #ifdef SCM
    !  isccp diagnostics   save frequency histogram for subdd diagnostics
@@ -431,7 +446,12 @@ subroutine CONDSE
   integer :: iThread
   integer :: numThreads
   integer :: I_0thread, I_1thread, imaxj_thread
-
+#ifdef COSP_SIM
+  ! Declare local variables for the COSP simulator
+!@var np_cosp grid/column index being passed to COSP
+  integer :: np_cosp
+  real*8 :: scale_pr_cosp
+#endif
   call startTimer('CONDSE()')
   !**** Initialize
 #ifdef TRACERS_SPECIAL_Shindell
@@ -537,6 +557,27 @@ subroutine CONDSE
 #endif
   saveMCCLDTP(:,:)=undef
 
+#ifdef COSP_SIM
+  if (mod(Itime+1,nsubdd_cosp).eq.0) then
+    ! Trigger COSP (CFMIP Observation Simulator Package)
+    ! Scaling factor
+    scale_pr_cosp = 0.5*(100.0*bygrav)/dtsrc
+    ! Reset grid counter for the COSP simulator
+    np_cosp = 1
+    ! Initialize COSP simulator data structures
+    call init_cosp_gbx()
+  endif ! nsubdd_cosp
+#endif
+#ifdef CFMIP3_SUBDD
+  cfmip_ctp_mc = 0.d0
+  cfmip_cbp_mc = 0.d0
+  cfmip_dcnvfrq = 0.d0
+  cfmip_scnvfrq = 0.d0
+  cfmip_mc_twp = 0.d0
+  cfmip_mc_lwp = 0.d0
+  cfmip_wvp = 0.d0
+  cfmip_mcamfx = 0.d0
+#endif
 
   numThreads = 1 ! no openmp
 
@@ -2124,7 +2165,7 @@ subroutine CONDSE
         if(trpname.eq.trim(subdd%name(k))) then
           call inc_subdd(subdd,k,trprec(n,:,:))
           exit ntm_loop
-        end if 
+        end if
       end do ntm_loop
     end do !subdd diagnostics/variables
   end do   !subdd groups
@@ -2178,7 +2219,7 @@ subroutine CONDSE
 
 #if (defined CALCULATE_LIGHTNING) || (defined TRACERS_SPECIAL_Shindell)
 #ifdef AUTOTUNE_LIGHTNING
-      CALL GLOBALSUM( grid, FLASH_UNC*(FOCEAN), SEA_FR_UNC(1), ALL=.true. ) 
+      CALL GLOBALSUM( grid, FLASH_UNC*(FOCEAN), SEA_FR_UNC(1), ALL=.true. )
       CALL GLOBALSUM( grid, FLASH_UNC*(1d0-FOCEAN), LAND_FR_UNC(1), ALL=.true. )
       CNT_FR(1) = 1
 #endif

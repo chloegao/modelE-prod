@@ -387,7 +387,16 @@ module CLOUDS
          ENTALL(LM,2,LM),DETALL(LM,2,LM),MPLUMEALL(LM,2,LM), &
          PLUME_MAX(2,LM),PLUME_MIN(2,LM)
 #endif
-
+#ifdef COSP_SIM
+!@var ccl_cosp Mixing ratio of convective cloud [kg/kg]
+      REAL*8 ccl_cosp(LM)
+!@var reff_cosp Effective radius of large-scale cloud [um]
+      REAL*8 reff_cosp(LM)
+!@var reff_cosp Effective radius of large-scale precipitation [um]
+      REAL*8 reffp_cosp(LM)
+!@var ccp_cosp Mixing ratio of convective precipitation [kg/kg]
+      REAL*8 ccp_cosp(LM+1)
+#endif
 
 contains
 
@@ -865,6 +874,10 @@ contains
 !**** save initial values (which will be updated after subsid)
     SM1=SM
     QM1=QM
+#ifdef COSP_SIM
+    ccp_cosp(:) = 0.
+    ccl_cosp(:) = 0.
+#endif
 
 !**** SAVE ORIG PROFILES
     SMOLD(:) = SM(:)
@@ -1894,8 +1907,8 @@ CLOUD_TOP:  do L=LMIN+1,LM
             if(CONDP(L).gt.CONDP1(L)) CONDP(L)=CONDP1(L)
             CONDV(L)=COND(L)-CONDP1(L)       ! part of COND transported up
             COND(L)=COND(L)-CONDV(L)         ! CONDP1(L)
-            TAUMC1(L)=TAUMC1(L)-CONDV(L)*FMC1 
- 
+            TAUMC1(L)=TAUMC1(L)-CONDV(L)*FMC1
+
 #ifdef TRACERS_WATER
             FQCONDV=CONDV(L)/((COND(L)+CONDV(L))+teeny)
             TRCONDV(:,L)=FQCONDV*TRCOND(:,L)
@@ -2432,7 +2445,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 !              !**** reduce subsidence post hoc.
 !              LM1=max(1,L-1)
 !              if (TM(LM1,N)+TM(L,N).lt.0) then
-!              	 TM(L,N) = 0.d0 
+!              	 TM(L,N) = 0.d0
 !	         write(6,*) trname(n)," neg cannot be fixed!",L,TM(LM1:L,N)
 !              else
 !                TM(L-1,N)=TM(L-1,N)+TM(L,N)
@@ -2462,7 +2475,7 @@ DOWNDRAFT: do L=LDRAFT,1,-1
                   tm(l,n)=0.d0 !dmw 2/1/2017 set neg tracer to zero
                   ! setting tm=0 here means tm multiplier below is 1
                   write(6,*) 'TOMAS setting tm=0, not taking tm from below'
-#endif                 
+#endif
                 endif
                 ! note: borrowing from more than one layer is done by
                 ! multiplication rather than subtraction
@@ -2556,7 +2569,11 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
         PRCP=COND(LMAX)
         PRHEAT=CDHEAT(LMAX)
-
+#ifdef COSP_SIM
+        DO L=1,LM
+          ccl_cosp(L) = COND(L)*FMC1*BYAM(L)
+        ENDDO
+#endif
         !**** check whether environment is the same phase as cond
         TOLD=SMOLD(LMAX)*PLK(LMAX)*BYAM(LMAX)
         lhp(lmax)=lhe
@@ -2689,9 +2706,9 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
               end do
             else ! otherwise, tracers evaporate dependent on type of tracer
               !**** estimate effective humidity
-              !The "effective humidity" here is the relative humidity of the vapor directly in 
-              !contact with the rain drops during evaporation, as opposed to the grid-box average.  
-              !Thus the grid-scale humidity is inversely weighted by the amount of 
+              !The "effective humidity" here is the relative humidity of the vapor directly in
+              !contact with the rain drops during evaporation, as opposed to the grid-box average.
+              !Thus the grid-scale humidity is inversely weighted by the amount of
               !cloud in the grid box, and is assumed to be the average
               !of the humidity values before and after evaporation.
               TNX1=(SM(L)*PLK(L)-SLH*DQSUM*(1./(2.*MCLOUD)-1.))*BYAM(L)
@@ -2836,7 +2853,9 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           end if
         end if
         PRCPMC=PRCPMC+PRCP*FMC1
-
+#ifdef COSP_SIM
+        ccp_cosp(LMIN) = FMC1*PRCP*BYAM(LMIN)
+#endif
 #ifdef TRACERS_WATER
         TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
 #endif
@@ -3076,6 +3095,9 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 !@calls CTMIX,QSAT,DQSATDT,THBAR
 #ifdef CLD_AER_CDNC
     use cld_aer_cdnc_mod
+#endif
+#ifdef COSP_SIM
+      use clouds_com, only : nsubdd_cosp
 #endif
     implicit none
 
@@ -3377,6 +3399,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     PREICE(LMCLD+1)=0.
     SSHR=0.
     DCTEI=0.
+#ifdef COSP_SIM
+    reff_cosp = 0.
+    reffp_cosp = 0.
+#endif
     !****
     !**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
     !****
@@ -4842,6 +4868,92 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       if(FCLD.le.teeny) TAUSSL(L)=0.
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
+#ifdef COSP_SIM
+      !@auth Mike Bauer
+      ! Store effective radius of LS cloud particles and/or precipitation.
+      !   Special efforts are made to avoid several inconsistencies that
+      !   affect COSP simulations.
+      if (mod(Itime+1,nsubdd_cosp).eq.0) then
+        ! Test 1: Ensure consistency of LS cloud mixing ratios and effective radii
+        !         If one is zero the other is too.
+        if (CLDSSL(L).le.teeny) then
+          ! No LS cloud area, set the effective radii to zero.
+          reff_cosp(L) = 0.0
+        else
+          ! Some LS cloud area
+          if (svlhxl(l).eq.lhe) then
+            ! Liquid
+            if (qclx(l).gt.teeny) then
+              ! Some cloud water mass
+              if (RCLD.gt.RWMAX) then
+                ! Limit size
+                reff_cosp(L) = RWMAX/BYBR
+              else
+                reff_cosp(L) = RCLDE
+              endif
+            else
+              ! No cloud water mass
+              reff_cosp(L) = 0.0
+            endif
+          else
+            ! Ice
+            if(qcix(l).gt.teeny) then
+              ! Some cloud ice mass
+              if(RCLD.gt.RIMAX) then
+                ! Limit size
+                reff_cosp(L) = RIMAX/BYBR
+              else
+                 reff_cosp(L) = RCLDE
+              endif
+            else
+              ! No cloud ice mass
+              reff_cosp(L) = 0.0
+            endif
+          endif ! svlhxl
+        endif  ! CLDSSL
+        ! Deal with LS precipitation, ensure consistency.
+        if (CLDSSL(L).le.teeny) then
+            ! No LS cloud area
+            if (LHX.eq.LHE) then
+              if (qclx(l).gt.teeny) then
+                ! No cloud, Cloud water. Problem
+                ! Look if valid reffp_cosp above
+                if (L.lt.LMCLD) then
+                  if (reffp_cosp(L+1).gt.0.) then
+                    reffp_cosp(L) = reffp_cosp(L+1)
+                  else
+                    reffp_cosp(L) = 0.0
+                  endif
+                else
+                  reffp_cosp(L) = 0.0
+                endif
+              else
+                ! No Cloud, No Cloud water
+                reffp_cosp(L) = RCLDE1
+              endif
+           else
+            if (qcix(l).gt.teeny) then
+              ! No cloud, Cloud ice. Problem
+              if (L.lt.LMCLD) then
+                if (reffp_cosp(L+1).gt.0.) then
+                  reffp_cosp(L) = reffp_cosp(L+1)
+                else
+                  reffp_cosp(L) = 0.0
+                endif
+              else
+                reffp_cosp(L) = 0.0
+              endif
+            else
+              ! No Cloud, No Cloud ice
+              reffp_cosp(L) = RCLDE1
+            endif
+          endif ! LHX
+        else
+          ! Some LS cloud
+          reffp_cosp(L) = RCLDE1
+        endif ! CLDSSL
+      endif ! nsubdd_cosp
+#endif
     end do OPTICAL_THICKNESS
 
     !**** CALCULATE OPTICAL THICKNESS

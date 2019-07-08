@@ -1767,12 +1767,19 @@ C     INPUT DATA   partly (i,j) dependent, partly global
       REAL*8, DIMENSION(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      &     SNFSCRF,TNFSCRF,SNFSCRF2,TNFSCRF2,LWDNCS,
-     &     SNFS_AS_noA, TNFS_AS_noA, SNFS_CS_noA, TNFS_CS_noA, 
+     &     SNFS_AS_noA, TNFS_AS_noA, SNFS_CS_noA, TNFS_CS_noA,
      &     SWUS,CTT,CTP,WTRCLD,ICECLD
       REAL*8, DIMENSION(18,grid%I_STRT_HALO:grid%I_STOP_HALO,
      &                  grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     SNFSAERRF,TNFSAERRF
-
+#ifdef CFMIP3_SUBDD
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) ::
+     &        swut,swutcs,cfmip_twp,swdcls,swucls,swdt
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo,lm) ::
+     &        cfmip_cf,cfmip_qci,cfmip_qcl
+#endif
 #ifdef CACHED_SUBDD
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
@@ -2173,7 +2180,17 @@ c      write(6,*) 'RJH: GHG: FORC=',ghg_totforc
       ctp = 0.
       ctt = 0.
       swus = 0.
-
+#ifdef CFMIP3_SUBDD
+      swut = 0.
+      swutcs = 0.
+      cfmip_twp = 0.
+      swdcls = 0.
+      swucls = 0.
+      swdt = 0.
+      cfmip_cf = 0.
+      cfmip_qci = 0.
+      cfmip_qcl = 0.
+#endif
 C****
 C**** MAIN J LOOP
 C****
@@ -2301,10 +2318,18 @@ C**** Determine large scale and moist convective cloud cover for radia
           shl(L)=QSS
           CSS=1.
           call inc_ajl(i,j,l,jl_sscld,css)
+#ifdef CFMIP3_SUBDD
+          ! LS Cloud
+          cfmip_cf(i,j,l)=cfmip_cf(i,j,l)+1.
+#endif
         END IF
         IF (CLDMC(L,I,J).GT.RDMC(I,J)) THEN
           CMC=1.
           call inc_ajl(i,j,l,jl_mccld,cmc)
+#ifdef CFMIP3_SUBDD
+          ! MC Cloud
+          cfmip_cf(i,j,l)=min(cfmip_cf(i,j,l)+1.,1.)
+#endif
           DEPTH=DEPTH+PDSIG(L,I,J)
           IF(TAUMC(L,I,J).GT.TAUSSL+TAUSSLIP) THEN
             TAUMCL=TAUMC(L,I,J)
@@ -2332,6 +2357,12 @@ C**** save 3D cloud fraction as seen by radiation
               aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
      &                             +QLmc(l,i,j)*pdsig(l,i,j)
      &                             /cldmc(l,i,j)
+#ifdef CFMIP3_SUBDD
+              ! MC Cloud Liquid
+              cfmip_twp(i,j)=cfmip_twp(i,j)
+     &                       +QLmc(l,i,j)*rhodz/cldmc(l,i,j)
+              cfmip_qcl(i,j,l)=QLmc(l,i,j)*pdsig(l,i,j)/cldmc(l,i,j)
+#endif
             ELSE
               TAUIC(L)=cldx*TAUMCL
               OPTDI=OPTDI+TAUIC(L)
@@ -2342,6 +2373,12 @@ C**** save 3D cloud fraction as seen by radiation
               aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                             +QImc(l,i,j)*pdsig(l,i,j)
      &                             /cldmc(l,i,j)
+#ifdef CFMIP3_SUBDD
+              ! MC Cloud Ice
+              cfmip_twp(i,j)=cfmip_twp(i,j)
+     &                       +QImc(l,i,j)*rhodz/cldmc(l,i,j)
+              cfmip_qci(i,j,l)=QImc(l,i,j)*pdsig(l,i,j)/cldmc(l,i,j)
+#endif
             END IF
           ELSE
             SIZEWC(L)=CSIZSS(L,I,J)
@@ -2356,6 +2393,12 @@ C**** save 3D cloud fraction as seen by radiation
               aijl(i,j,l,ijl_QLrad)=aijl(i,j,l,ijl_QLrad)
      &                             +QLss(l,i,j)*pdsig(l,i,j)
      &                             /cldss(l,i,j)
+#ifdef CFMIP3_SUBDD
+              ! LS Cloud Liquid
+              cfmip_twp(i,j)=cfmip_twp(i,j)
+     &                       +QLss(l,i,j)*rhodz/cldss(l,i,j)
+              cfmip_qcl(i,j,l)=QLss(l,i,j)*pdsig(l,i,j)/cldss(l,i,j)
+#endif
               if(tausslip.gt.0.) then
                 SIZEIC(L)=CSIZSSIP(L,I,J)
                 TAUIC(L)=cldx*TAUSSLIP
@@ -2367,6 +2410,11 @@ C**** save 3D cloud fraction as seen by radiation
                 aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                               +QIss(l,i,j)*pdsig(l,i,j)
      &                               /cldss(l,i,j)
+#ifdef CFMIP3_SUBDD
+               ! LS Snow in supercooled liquid
+              cfmip_twp(i,j)=cfmip_twp(i,j)
+     &                       +QIss(l,i,j)*rhodz/cldss(l,i,j)
+#endif
               endif
             ELSE
               TAUIC(L)=cldx*TAUSSL
@@ -2378,6 +2426,12 @@ C**** save 3D cloud fraction as seen by radiation
               aijl(i,j,l,ijl_QIrad)=aijl(i,j,l,ijl_QIrad)
      &                             +QIss(l,i,j)*pdsig(l,i,j)
      &                             /cldss(l,i,j)
+#ifdef CFMIP3_SUBDD
+              ! LS Cloud Ice
+              cfmip_twp(i,j)=cfmip_twp(i,j)
+     &                       +QIss(l,i,j)*rhodz/cldss(l,i,j)
+              cfmip_qci(i,j,l)=QIss(l,i,j)*pdsig(l,i,j)/cldss(l,i,j)
+#endif
             END IF
           END IF
           call inc_ajl(i,j,l,jl_wcod,tauwc(l))
@@ -2850,6 +2904,15 @@ C         BEGIN AMIP
      *     *COSZ2(I,J)
           AIJ(I,J,IJ_LWNCLT)=AIJ(I,J,IJ_LWNCLT)+TRNFLB(LM+LM_REQ+1)
 C       END AMIP
+#ifdef CFMIP3_SUBDD
+          ! SW upward flux at TOA, Csky
+          !swutcs(i,j)=sruflb(lm)*csz2
+          swutcs(i,j)=sruflb(lm)*cosz2(i,j)
+          ! SW downward flux at SFC, Csky
+          swdcls(i,j)=srdflb(1)*cosz2(i,j)
+          ! SW upward flux at SFC, Csky
+          swucls(i,j)=sruflb(1)*cosz2(i,j)
+#endif
         end if
         FTAUC=1.     ! default: turn on cloud tau
 
@@ -3403,7 +3466,12 @@ C****
 #endif
 
       SWUS(I,J)=SRUFLB(1)*CSZ2
-
+#ifdef CFMIP3_SUBDD
+      ! SW upward flux at TOA
+      swut(i,j)=sruflb(lm)*csz2
+      ! SW downward flux at TOA
+      swdt(i,j)=srdflb(lm)*csz2
+#endif
       SRDN(I,J) = SRDFLB(1)     ! save total solar flux at surface
 C**** SALB(I,J)=ALB(I,J,1)      ! save surface albedo (pointer)
       FSRDIR(I,J)=SRXVIS        ! direct visible solar at surface **coefficient
@@ -4055,6 +4123,25 @@ C****
         call inc_subdd(subdd,k,CTP)
       case ('ctt')
         call inc_subdd(subdd,k,CTT)
+#ifdef CFMIP3_SUBDD
+      case ('rtmt')
+        do j=j_0,j_1; do i=i_0,imaxj(j)
+          sddarr(i,j) = (snfs(3,i,j)*cosz2(i,j))-tnfs(2,i,j)
+        enddo;        enddo
+        call inc_subdd(subdd,k,sddarr)
+      case ('swut')
+        call inc_subdd(subdd,k,swut)
+      case ('swutcs')
+        call inc_subdd(subdd,k,swutcs)
+      case ('clwvi')
+        call inc_subdd(subdd,k,cfmip_twp)
+      case ('swdcls')
+        call inc_subdd(subdd,k,swdcls)
+      case('swucls')
+        call inc_subdd(subdd,k,swucls)
+      case('swdt')
+        call inc_subdd(subdd,k,swdt)
+#endif
       end select
 
       enddo
@@ -4109,7 +4196,22 @@ C****
       enddo
 
 #endif
-
+#ifdef CFMIP3_SUBDD
+      call find_groups('rijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('cf')
+        call inc_subdd(subdd,k,cfmip_cf)
+      case ('qcirad')
+        call inc_subdd(subdd,k,cfmip_qci)
+      case ('qclrad')
+        call inc_subdd(subdd,k,cfmip_qcl)
+      end select
+      enddo
+      enddo
+#endif
 #ifdef TRACERS_ON
 
 
@@ -4910,7 +5012,64 @@ c
      &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
-
+c
+#ifdef CFMIP3_SUBDD
+      arr(next()) = info_type_(
+     &  sname = 'rtmt',
+     &  lname = 'Net downward radiative flux, TOA',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swut',
+     &  lname = 'TOA outgoing SW',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swutcs',
+     &  lname = 'TOA outgoing SW, CSKY',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'clwvi',
+     &  lname = 'Total water path',
+     &  units = 'kg/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swdcls',
+     &  lname = 'SFC downward radiative flux, CSKY',
+     &  units = 'kg/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swucls',
+     &  lname = 'SFC upward radiative flux, CSKY',
+     &  units = 'kg/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swus',
+     &  lname = 'SFC upward radiative flux',
+     &  units = 'kg/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'swdt',
+     &  lname = 'TOA incoming SW',
+     &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+#endif
       return
       contains
       integer function next()
@@ -4987,6 +5146,28 @@ c
      &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
+c
+#ifdef CFMIP3_SUBDD
+      arr(next()) = info_type_(
+     &  sname = 'cf',
+     &  lname = 'Cloud Fraction',
+     &  units = '%',
+     &  scale = 1d2,
+     &  sched = sched_rad
+     &     )
+      arr(next()) = info_type_(
+     &  sname = 'qcirad',
+     &  lname = 'Ice Water Mass Mixing Ratio Seen by Radiation',
+     &  units = 'kg/kg',
+     &  sched = sched_rad
+     &     )
+      arr(next()) = info_type_(
+     &  sname = 'qclrad',
+     &  lname = 'Liquid Water Mass Mixing Ratio Seen by Radiation',
+     &  units = 'kg/kg',
+     &  sched = sched_rad
+     &     )
+#endif
 c
       return
       contains
