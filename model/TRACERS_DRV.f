@@ -5352,6 +5352,10 @@ C**** set some defaults for water tracers
 
          ! defaults ok
 
+        case ('aoa','aoanh')
+
+         ! defaults ok
+
         case ('st8025','tape_rec','nh15')
 
          ! defaults ok
@@ -5381,10 +5385,6 @@ C**** ESMF: Each processor reads the global array: N2Oic
           enddo; enddo
 #endif
 
-#ifdef TRACERS_PASSIVE
-         case ('aoa','aoanh')
-             trm(:,:,:,n) = 0.d0
-#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
