@@ -111,6 +111,14 @@ module CLOUDS_COM
 #else
   integer,parameter :: ncol = 20    !@var ncol number of subcolumns
 #endif
+#ifdef COSP_SIM
+!@dbparam nsubdd_cosp: sub-daily diag freq for COSP simulator (set in rundeck)
+!@var npoints_cosp: number of grids in a given spatial sub-domain for the COSP simulator
+!@var flag_pfluxes_cosp trigger reflecting rundeck pre-processor flag COSP_PFLUX
+!@var flag_re_cosp trigger reflecting rundeck pre-processor flag COSP_USERE
+  integer :: nsubdd_cosp,npoints_cosp
+  logical :: flag_pfluxes_cosp,flag_re_cosp
+#endif
 
 contains
   subroutine get_cld_overlap (lmax, cldssl, cldmcl, CldTot, CldSS, CldMC, RandSS)
@@ -143,7 +151,7 @@ contains
 !          overlap schemes are already realized by having picked a single MC
 !          random number for the whole column in addition to the ones for SS
 !          (That block was added to avoid unneeded computations in long runs)
-!  Note 2: Reverse looping over L was only kept for bit-wise consistency 
+!  Note 2: Reverse looping over L was only kept for bit-wise consistency
 !          with the previous version of the code.
 
    if(present(RandSS)) then
@@ -151,9 +159,9 @@ contains
      do L=lmax,1,-1       ! better:  1,lmax  (and replace L+1 by L-1 below)
         if( cldssl(L) > 0 ) then
           if(same_cloud) RandSS(L) = RandSS(L+1)        ! use same random #
-          same_cloud = .true.                           
+          same_cloud = .true.
         else
-          same_cloud = .false.                          
+          same_cloud = .false.
         end if
      end do
    end if
@@ -164,14 +172,14 @@ contains
       if( cldssl(L) > 0 ) then
 !!      if(same_cloud) RandSS(L) = RandSS(L-1)            ! use same random #
         clearss_part = min( clearss_part, 1-cldssl(L) )   ! total overlap
-        same_cloud = .true.                               
+        same_cloud = .true.
       else                                                ! clear sky layer
-        same_cloud = .false.                         
+        same_cloud = .false.
         clearss = clearss * clearss_part                  ! random overlap
         clearss_part = 1.                                 ! reset for next cloud
       end if
    end do
-   clearss = clearss * clearss_part                 
+   clearss = clearss * clearss_part
    if( present(CldSS) ) CldSS = 1.-clearss
 
 !! Treat convective clouds as a single cloud with max. overlap
@@ -231,6 +239,10 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #endif
 #ifdef AIE_DIAG_FIX_MET
   use CLOUDS_COM, only : fmEXP
+#endif
+#ifdef COSP_SIM
+  use dictionary_mod, only : get_param, is_set_param
+  use clouds_com, only : nsubdd_cosp,flag_pfluxes_cosp,flag_re_cosp
 #endif
 
   implicit none
@@ -363,6 +375,21 @@ subroutine ALLOC_CLOUDS_COM(grid)
   NAERC      = 1.0D-30
 #endif
 #endif
+#ifdef COSP_SIM
+  ! Set of COSP parameters
+  if(is_set_param("nsubdd_cosp")) call get_param("nsubdd_cosp",nsubdd_cosp)
+#ifdef COSP_PFLUX
+  flag_pfluxes_cosp = .true.
+#else
+  flag_pfluxes_cosp = .false.
+#endif
+#ifdef COSP_USERE
+  flag_re_cosp = .true.
+#else
+  flag_re_cosp = .false.
+#endif
+#endif
+
 end subroutine ALLOC_CLOUDS_COM
 
 subroutine def_rsf_clouds(fid)
@@ -429,3 +456,110 @@ subroutine new_io_clouds(fid,iaction)
   end select
   return
 end subroutine new_io_clouds
+
+#ifdef COSP_SIM
+  subroutine save_cosp(grid)
+  !------------------------------------------------------------------------------
+  !@sum  Pass COSP output data structures to modelE SUBDD for storage.
+  !@auth Mike Bauer
+  !@usage Run once for time-steps where the COSP simulators are asked for after
+  !@+       run_cosp_sims() is complete and before free_cosp_sims() is executed.
+  !@calls remap_cosp_2d,remap_cosp_3d
+
+    ! MODULE Imports
+    ! =========================================================================
+
+    ! Imported Type Definitions:
+    use domain_decomp_atm, only : dist_grid
+    !use cosp_drv, only : cfg,gbx
+    ! Imported Parameters:
+    use clouds_com, only : nsubdd_cosp
+    use cosp_drv, only : n_out_list
+
+    ! Imported Variables:
+    use cosp_drv, only : cvar
+    use geom, only : imaxj
+
+    ! Imported Routines:
+    use cosp_drv, only : remap_cosp_2d,remap_cosp_3d
+    use subdd_mod, only : inc_subdd
+
+    ! All variables, parameters, and functions must be declared
+    ! =========================================================================
+    implicit none
+
+    ! Subroutine Arguments, in order of appearance
+    ! =========================================================================
+    type (dist_grid),intent(in) :: grid
+
+    ! Subroutine Scalers/Variables
+    ! =========================================================================
+    integer :: i_cosp!np_cosp,i_cosp,j_cosp
+    real*8,dimension(:,:),allocatable :: blob2d
+    real*8,dimension(:,:,:),allocatable :: blob3d
+    ! real*8,dimension(:,:,:,:),allocatable :: blob4d
+    integer,dimension(8) :: geom_2d
+    ! ^^^^^^^^^^^^^^^^^^^^^ end of declaration of variables ^^^^^^^^^^^^^^^^^^^
+    ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    ! Deal with domain decomposition
+    geom_2d = (/                                                                &
+    ! 1=I_0       2=I_1       3=J_0       4=J_1
+      grid%i_strt,grid%i_stop,grid%j_strt,grid%j_stop,                          &
+    ! 5=I_0H           6=5=I_1H         7=J_0H           8=J_1H
+      grid%i_strt_halo,grid%i_stop_halo,grid%j_strt_halo,grid%j_stop_halo /)
+
+    ! General COSP Variables (e.g, axis data like IJ layers)
+    ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ! call inc_subdd(
+    !   'some_var',               ! name of this field
+    !   real*8  some_array,       ! data to be saved/accumulated
+    !   integer Nsubdd,           ! output frequency for this field
+    !   logical instant,          ! T for snapshots, F for averages
+    !   optional units='xxxx',    ! units specification
+    !   optional long_name='xxxx' ! description
+    !   dim3name='isccp_ntau',
+    !   dim4name='isccp_npres'
+    !   )
+    ! Generally ends up calling SUBDD.f:inc_subdd_solo_2d()
+    !   inc_subdd_solo_2d(vname,arr,nsubdd,inst,units,long_name)
+
+    do i_cosp=1,n_out_list
+#ifdef COSP_DEBUG
+        write(0, *) "i_cosp ",i_cosp
+#endif
+      if (cvar(i_cosp)%cflag) then
+#ifdef COSP_DEBUG
+        write(0, *) "cvar(i_cosp)%cflag ",cvar(i_cosp)%cflag
+#endif
+        ! Requested COSP Output
+        ! ---------------------
+        if (cvar(i_cosp)%is_3d) then
+#ifdef COSP_DEBUG
+         write(0, *) "3d ",trim(cvar(i_cosp)%sname)," ", &
+          cvar(i_cosp)%dim1," ",cvar(i_cosp)%dim2
+#endif
+          ! 3D Output
+          ! ----------
+          call remap_cosp_3d(trim(cvar(i_cosp)%sname),imaxj,geom_2d,           &
+            cvar(i_cosp)%dim1,cvar(i_cosp)%dim2,blob3d)
+
+          call inc_subdd(trim(cvar(i_cosp)%sname(2:16)),blob3d,nsubdd_cosp,    &
+            .true.,units=trim(cvar(i_cosp)%units),                             &
+            long_name=trim(cvar(i_cosp)%lname))
+        else
+          ! 2D Output
+          ! ----------
+#ifdef COSP_DEBUG
+          write(0, *) "2d ",trim(cvar(i_cosp)%sname)
+#endif
+          call remap_cosp_2d(trim(cvar(i_cosp)%sname),imaxj,geom_2d,blob2d)
+          call inc_subdd(trim(cvar(i_cosp)%sname(2:16)),blob2d,nsubdd_cosp,    &
+            .true.,units=trim(cvar(i_cosp)%units),                             &
+            long_name=trim(cvar(i_cosp)%lname))
+        endif ! is_3d
+      endif ! cflag
+    enddo
+  end subroutine save_cosp
+#endif
