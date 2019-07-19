@@ -1736,7 +1736,7 @@ c daily_z is currently only needed for CS
 ! 2D tracer outputs (model horizontal grid).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type, sched_rad
+      use subdd_mod, only : info_type, sched_rad, reduc_max
       use OldTracer_mod, only: trname
 #ifdef TRACERS_WATER 
       use OldTracer_mod, only : nWater, tr_wd_type
@@ -1853,6 +1853,54 @@ c daily_z is currently only needed for CS
      &  )
       end do ! ntm
 
+! Tracer Load (column mass)
+
+      do n=1,ntm
+        arr(next()) = info_type_(
+     &  sname = trim(trname(n))//'load',
+     &  lname = trim(trname(n))//' Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      end do ! ntm
+
+#ifdef TRACERS_AMP
+      arr(next()) = info_type_(
+     &  sname = 'ampBCload',
+     &  lname = 'BC clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampDustload',
+     &  lname = 'Dust clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampNH4load',
+     &  lname = 'NH4 clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampNO3load',
+     &  lname = 'NO3 clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampOAload',
+     &  lname = 'OA clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampSO4load',
+     &  lname = 'SO4 clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampSSload',
+     &  lname = 'SS clolumn Mann',
+     &  units = 'kg m-2'
+     &  )
+#endif
+
 ! Surface Particulate Matter Amount
 
       do p=1,size(ssiz)
@@ -1889,7 +1937,14 @@ C
      &  lname = 'L=1 NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
-#endif 
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRO3l1max', ! because not a tracer
+     &  lname = 'Maximum Daily L=1 O3 mixing ratio',
+     &  units = 'mole species / mole air',
+     &  reduc = reduc_max
+     &  )
+#endif
 
 #ifdef TRACERS_WATER
 ! Water tracer/isotope precipitation 
@@ -2241,7 +2296,13 @@ C
             else
               sddarr2d(:,:)=trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
             endif
-            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop 
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+          end if
+
+          ! tracer column load:
+          if(trim(trname(n))//'load'.eq.trim(subdd%name(k))) then
+            sddarr2d(:,:)=sum(trm(:,:,:,n),dim=3)*byaxyp(:,:)
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
           end if
 
         enddo ntm_loop3
@@ -2255,7 +2316,7 @@ C
           call tomas_pm_subdd_accum(subdd,k,trim(subdd%name(k)))
           cycle diag_loop
         end select
-#elif (defined TRACERS_AMP) 
+#elif (defined TRACERS_AMP)
         select case(trim(subdd%name(k)))
         ! L=1 PM2.5 mass mixing ratio:
          case('PM2p5l1m')
@@ -2266,7 +2327,7 @@ C
          case('PM10l1m')
          sddarr2d(:,:)= ampPM10(:,:)      ! kg/kg air
          call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
-         
+
         end select
 #else
         select case(trim(subdd%name(k)))
@@ -2288,7 +2349,7 @@ C
      &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
           end do
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
-      
+
         ! surface PM2.5 concentration:
         case('PM2p5sc')
           sddarr2d(:,:)=0.d0
@@ -2327,7 +2388,7 @@ C
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
 
         end select
-#endif /* --not- TRACERS_TOMAS section */
+#endif /* -not- TRACERS_TOMAS, TRACERS_AMP sections */
 
       enddo diag_loop
       enddo ! igroup

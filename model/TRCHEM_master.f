@@ -2082,6 +2082,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2(:,:,1))
           case ('MRNOl1')
             call inc_subdd(subdd,k,mrno(:,:,1))
+          case ('MRO3l1max')
+            call inc_subdd(subdd,k,mro3(:,:,1))
           end select
         enddo ! k
       enddo ! igroup

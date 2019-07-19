@@ -198,6 +198,7 @@ C--------------------------------------------------------
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var chem_out column variable for exporting radiation code quantities
 !@    1=Ozone, 2=aerosol ext, 3=N2O, 4=CH4,5=CFC11+CFC12
+!@var CO2outCol column CO2 export [mole mole-1] for SUBDD
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
@@ -208,6 +209,7 @@ C--------------------------------------------------------
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
       REAL*8 :: chem_out(LX,5)=0d0
+      REAL*8 :: CO2outCol(LX)=0.d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -2557,6 +2559,8 @@ C     chem_out(:,2)= _________              ! set in RCOMPX
       chem_out(:,3)=ULGAS(:,6)              ! N2O
 C     chem_out(:,4)=ULGAS(:,7) ! CH4 (moved above before tracer option)
       chem_out(:,5)=ULGAS(:,8)+ULGAS(:,9)   ! CFC11(+)   +  CFC12(+)
+      ! output CO2 in mole CO2 per mole air:
+      CO2outCol(1:NL)=1.d-6*ULGAS(1:NL,2)/(ppmv_to_cm_at_stp*DPL(1:NL))
 
 C-----------------
       CALL  TAUGAS
