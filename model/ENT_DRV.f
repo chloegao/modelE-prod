@@ -262,7 +262,7 @@
         enddo
       endif
 
-      call get_vdata(vdata_H, ent_cover_names)
+      call get_vdata(year, vdata_H, ent_cover_names)
       if ( year == -1 ) then
         do k=1,N_COVERTYPES
           vegdata(k,I0:I1,J0:J1) = vdata_H(I0:I1,J0:J1,k)

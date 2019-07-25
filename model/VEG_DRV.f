@@ -13,16 +13,17 @@
 
       contains
 
-      subroutine get_vdata(vdata, vegnames)
+      subroutine get_vdata(year, vdata, vegnames)
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
-      use pario, only : par_open,par_close,read_dist_data
+      use pario, only: par_open,par_close,read_dist_data,variable_exists
       use filemanager, only : file_exists
       !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
       !use veg_com
       !use model_com, only : jyear,focean
       !use ghy_com, only : fearth
-      use ent_mod, only: N_COVERTYPES, N_OTHER,COVER_SAND !ykim - use ent_const to accomodate GISS and Ent PFTs.
-      implicit none
+      use ent_mod, only: N_COVERTYPES,COVER_SAND !ykim - use ent_const to accomodate GISS and Ent PFTs.
+      use timestream_mod, only : init_stream,read_stream,timestream      implicit none
+      integer, intent(in) :: year
       real*8, intent(out) :: vdata(grid%I_STRT_HALO:grid%I_STOP_HALO,
      &     grid%J_STRT_HALO:grid%J_STOP_HALO,N_COVERTYPES)
       character(len=*) :: vegnames(:)
@@ -31,6 +32,12 @@
       integer :: i, j, k, fid
       real*8 :: s
       !character(len=32) :: vegnames(N_COVERTYPES-N_OTHER)
+      logical, save :: init = .false.
+      integer :: day
+      type(timestream), save :: VEGstream(N_COVERTYPES)
+      logical, save :: have_veg_file = .false.
+      logical, save :: is_timestream = .false.
+
       call getDomainBounds(grid, J_STRT     =J_0,    J_STOP     =J_1,
      &               J_STRT_HALO=J_0H, J_STOP_HALO=J_1H)
       I_0 = grid%I_STRT
@@ -48,22 +55,50 @@ cddd     &     'evergreen      ','rainforest     ','cultivation    ',
 cddd     &     'darksoil       '
 cddd     &     /)
 
-      if(file_exists('VEG')) then
+      day = 1 ! to pass a required argument
+
+      if (.not. init) then
+        init = .true.
+        have_veg_file = file_exists('VEG')
+        if (have_veg_file) then
+          fid = par_open(grid,'VEG','read')
+          is_timestream = variable_exists(grid,fid,'time')
+          call par_close(grid,fid)
+          if (is_timestream) then
+            if (year<0)
+     &           call stop_model("get_vdata: year<0 in timestream",255)
+            do k=1,size(vegnames)
+              write(6,*) 'GET_VDATA initializing:', trim(vegnames(k))
+              call init_stream(grid,VEGstream(k),'VEG',
+     &             trim(vegnames(k)),
+     &             0d0,1d30,'none',year,day)
+            enddo
+          endif ! is timestream
+        endif ! VEG file exists
+      endif
+
+      vdata(:,:,:) = 0.d0 ! set to zero everything not present in the file
+      if ( have_veg_file .and. is_timestream ) then
+        if(year<0)call stop_model("get_vdata: year<0 in timestream",255)
+        do k=1,size(vegnames)
+          write(6,*) 'GET_VDATA reading:', trim(vegnames(k)),year
+          call read_stream(grid,VEGstream(k),year,day,vdata(:,:,k))
+        enddo
+      else if ( have_veg_file ) then
         fid = par_open(grid,'VEG','read')
         do k=1,size(vegnames)
-          vdata(:,:,k) = 0.     ! if type is absent in file, assume 0
           call read_dist_data(grid,fid,trim(vegnames(k)),vdata(:,:,k))
         enddo
         call par_close(grid,fid)
       else
-        vdata(:,:,:) = 0.
         vdata(:,:,COVER_SAND) = 1.d0 ! all bare soil if no input data available
       endif
 
 c**** zero-out vdata(11) until it is properly read in
-      do k=N_COVERTYPES-N_OTHER+1, N_COVERTYPES
-        vdata(:,:,k) = 0.
-      end do
+!!! already taken care of above
+!      do k=N_COVERTYPES-N_OTHER+1, N_COVERTYPES
+!        vdata(:,:,k) = 0.
+!      end do
 
       ! make sure that veg fractions are reasonable
       do j=J_0,J_1
