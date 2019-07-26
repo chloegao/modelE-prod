@@ -5944,6 +5944,14 @@ C**** at the start of any day
       use AbstractAttribute_mod
       USE FILEMANAGER, only: openunit,closeunit
       USE Dictionary_mod, only: sync_param
+#ifdef KLOVENSKI_DEV
+      !=== temp do not push ===
+#ifdef DO_MEGAN
+      USE megan, only: acc_vcmax, acc_betadL
+      use subdd_mod, only : inc_subdd
+#endif
+      !=== temp do not push ===
+#endif
       implicit none
       integer :: i,j,ns,ns_isop,l,ky,n
       REAL*8 :: sarea,steppy,base,steppd,x,airm,anngas,
@@ -6031,6 +6039,18 @@ C****
           call biogenicEmissions_drv(i,j)
         end do
       end do
+#ifdef KLOVENSKI_DEV
+      !=== temp do not push ===
+#ifdef CACHED_SUBDD
+      call inc_subdd('vcmax_',acc_vcmax,2,.false.,
+     & units='umol m-2 s-1',
+     & long_name='MEGAN debug Vcmax variable')
+      call inc_subdd('btran_',acc_betadL,2,.false.,
+     & units='unknown',
+     & long_name='MEGAN debug btran_megan variable')
+#endif
+      !=== temp do not push ===
+#endif
 #endif /* DO_MEGAN */
 #ifdef TRACERS_ACETONE
       ! Outside of tracer loop, call routine to fill an ocean source

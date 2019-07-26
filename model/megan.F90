@@ -144,7 +144,15 @@ real*8, parameter :: ConvertShadePPFD = 4.6d0
 real*8, parameter :: ConvertSunPPFD = 4.0d0
 !dbparam use_canopy_model on/off switch for canopy model
 integer :: use_canopy_model=0
+!dbparam calculated_Vcmax on/off switch for Ent/hardcoded Vcmax
+integer :: calculated_Vcmax=0
 
+#ifdef KLOVENSKI_DEV
+!=== temp do not push ===
+! (just for accumulating type II subddiags)
+real*8, allocatable, dimension(:,:) :: acc_vcmax, acc_betadL
+!=== temp do not push ===
+#endif
 
 end module megan
 
@@ -161,6 +169,7 @@ use fluxes, only: atmsrf
 use ghy_com, only: fearth
 use ent_com, only: entcells,n_covertypes
 use ent_mod, only: ent_get_exports
+use ent_const, only: N_DEPTH
 use rad_com, only: cosz1, CO2ppm, CO2X, FSRDIR, SRVISSURF
 use constant, only: radian, undef, tf
 use TimeConstants_mod, only: HOURS_PER_DAY, SECONDS_PER_HOUR
@@ -172,6 +181,7 @@ use tracer_mod, only: Tracer
 use tracers_DRYDEP, only : nent
 use TracerSurfaceSource_mod, only: itsMegan
 use ent_drv, only : map_ent_pfts_to_megan_pfts
+use photcondmod, only: pspar ! type photosynthpar
 implicit none
 
 ! The *_megan variables here are quantities extracted from the GCM for
@@ -180,10 +190,10 @@ implicit none
 ! to megan gamma routines.
 real*8 :: CO2_megan,LAI_megan,cosSZA_megan,PPFD_megan,PPFD_daily_megan
 real*8 :: LAI_current_megan, LAI_previous_megan, T_daily_megan, T_megan
-real*8 :: SAT_daily_megan, SAT_megan
+real*8 :: SAT_daily_megan, SAT_megan, btran_megan
 integer :: JDAY_megan
-real*8 :: gamma_CO2, gamma_LAI, gamma_PPFD, gamma_AGE, gamma_SM 
-real*8 :: gamma_TLD, gamma_TLI, bulk_EF
+real*8 :: gamma_CO2, gamma_LAI, gamma_PPFD, gamma_AGE, gamma_SM
+real*8 :: gamma_TLD, gamma_TLI, bulk_EF, bulk_Vcmax
 real*8 :: par_total, par_direct, par_diffuse ! assumed components of ppfd below
 real*8, parameter :: radianToDegree=1.d0/radian
 !@param convertUnits to convert from emission factor in microgram m-2 hr-1
@@ -191,7 +201,14 @@ real*8, parameter :: radianToDegree=1.d0/radian
 real*8, parameter :: convertUnits=1.d-9/SECONDS_PER_HOUR
 real*8, dimension(n_covertypes) :: pvt0,hvt0 ! ent types and heights
 real*8, dimension(nMeganPFT) :: pvt ! locat fraction of MEGAN PFTs
-real*8, dimension(1:nent) :: dummy
+real*8, dimension(N_DEPTH) :: betadL
+!@param prescribed_Vcmax Hardcoded Vcmax25 from Table 8.1 of Technical
+!@+ Note NCAR/TN-503+STR in umol m-2 s-1
+real*8, parameter, dimension(nMeganPFT) :: prescribed_Vcmax = &
+  ! NETtemp NDTbor  NETbor  BETtrop BETtemp BDTtrop BDTtemp BDTbor
+  (/62.5d0, 39.1d0, 62.6d0, 55.0d0, 61.5d0, 41.0d0, 57.7d0,  57.7d0, &
+  ! BEStemp BDStemp BDSbor  C3grArc C3grass C4grass crop     crop
+    61.7d0, 54.0d0, 54.0d0, 78.2d0, 78.2d0, 51.6d0, 100.7d0, 100.7d0/)
 integer, intent(IN) :: i,j
 integer :: n, localTimeIndex, hour, dayOfYear, nTracer, ns
 integer :: ipft
@@ -326,6 +343,11 @@ end if
 
 if(fearth(i,j)>0.d0) then
   call ent_get_exports( entcells(i,j),leaf_area_index=LAI_megan)
+  ! Greg's note for future:
+  ! call ent_get_exports( entcells(i,j),leaf_area_index=LAI_Ent)
+  ! except that call will be Igor's new one that return by pft. Then:
+  !                                  inp  inp   outp    inp   inp
+  ! call map_ent_pfts_to_megan_pfts(pvt0,hvt0,LAI_megan,i,j,LAI_Ent)
 else
   LAI_megan=0.d0
 end if
@@ -366,10 +388,50 @@ end if
 if(fearth(i,j)>0.d0)then
   call ent_get_exports(entcells(i,j),vegetation_fractions=PVT0)
   call ent_get_exports(entcells(i,j),vegetation_heights=HVT0)
-  call map_ent_pfts_to_megan_pfts(pvt0,hvt0,pvt,i,j,dummy)
+  call map_ent_pfts_to_megan_pfts(pvt0,hvt0,pvt,i,j)
 else
   pvt(:)=0.d0
 end if
+
+! Define the bulk grid-cell maximum photosynthetic capacity:
+! -----------------------------------------------------------------
+if (calculated_Vcmax==1) then
+  ! Set bulk_Vcmax from Ent here:
+  ! currently compiles but is totally wrong, as this is simply the
+  ! last use of this variable (we will export differently):
+  bulk_Vcmax=pspar%Vcmax
+  call stop_model("incorrect bulk_Vcmax as coded.",255)
+else
+  ! Hardcoded Vcmax25 from Table 8.1 of NCAR/TN-503+STR:
+  bulk_Vcmax=0.d0
+  do ipft=1,nMeganPFT
+    bulk_Vcmax=bulk_Vcmax+prescribed_Vcmax(ipft)*pvt(ipft)
+  end do
+end if
+#ifdef KLOVENSKI_DEV
+!=== temp do not push ===
+acc_vcmax(i,j)=bulk_Vcmax
+!=== temp do not push ===
+#endif
+
+! Obtain the average soil layers beta from Ent:
+! TODO: too many beta's in this code, give this a better name.
+if(fearth(i,j)>0.d0) then
+  call ent_get_exports(entcells(i,j),beta_soil_layers=betadL)
+  ! some confusion whether betadL is returned summed over N_DEPTH(=6)
+  ! layers or not. Seemed to Greg not, so doing average for now:
+  ! Elizabeth's note: "need to re-write btran in the driver to match CLM4.5"
+  btran_megan=sum(betadL(1:N_DEPTH))/float(N_DEPTH)
+else
+  btran_megan=0.d0
+  ! perhaps 0 is not an appropriate default? But I think when fearth is 0,
+  ! the emissions are 0 anyhow...
+end if
+#ifdef KLOVENSKI_DEV
+!=== temp do not push ===
+acc_betadL(i,j)=btran_megan
+!=== temp do not push ===
+#endif
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! Calculate the gammas from MEGAN for current conditions:
@@ -388,12 +450,6 @@ else
                   & PPFD_daily_megan, gamma_PPFD)
 end if
 
-! Gamma for CO2 Inhibition (independent of species properties):
-call get_gamma_CO2(CO2_megan, gamma_CO2)
-
-! Gamma for Soil Moisture (independent of species properties):
-! Right now just returns a gamma of 1.0:
-call get_gamma_s(gamma_SM)
 
 ! begin loop over species objects. I.e. below gammas are species-dependant:
 tracers_loop: do nTracer=1,ntm
@@ -410,9 +466,16 @@ tracers_loop: do nTracer=1,ntm
   species_loop: do n=1,size(species)
     if(trim(trc%surfaceSources(ns)%sourceName)==trim(species(n)%itsname)) then
 
-      ! G 2012 says that CO2 gamma and soil moisture gamma should be non-unity
-      ! only for Isoprene. So overwrite here for non-Isoprene species:
-      if (trim(species(n)%itsname) .ne. 'MegISOP_src')then
+      ! G 2012 says that gamma for CO2 inhibition and for soil moisture
+      ! should be non-unity only for Isoprene:
+      if (trim(species(n)%itsname) == 'MegISOP_src')then
+        call get_gamma_CO2(CO2_megan, gamma_CO2)
+#ifdef KLOVENSKI_DEV
+        call get_gamma_SM(btran_megan, bulk_Vcmax, gamma_SM)
+#else
+        gamma_SM=1.d0
+#endif
+      else
         gamma_CO2=1.d0
         gamma_SM=1.d0
       end if
@@ -574,6 +637,14 @@ allocate( T%dayAvg(I_0H:I_1H,J_0H:J_1H,T%daysPerPeriod) )
 allocate( T%runningAverage(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%periodRunningSum(I_0H:I_1H,J_0H:J_1H) )
 allocate( T%marker(I_0H:I_1H,J_0H:J_1H) )
+
+#ifdef KLOVENSKI_DEV
+!=== temp do not push ===
+! (just for accumulating type II subddiags)
+allocate( acc_vcmax(I_0H:I_1H,J_0H:J_1H) )
+allocate( acc_betadL(I_0H:I_1H,J_0H:J_1H) )
+!=== temp do not push ===
+#endif
 
 ! Initializing running average stuff (values may be overwritten by reading from restart files):
 
@@ -1513,14 +1584,14 @@ end subroutine get_gamma_a
 !     SUBROUTINE GAMMA_S returns the GAMMA_SM values
 !-----------------------------------------------------------------------
 
-subroutine get_gamma_s(gam_s)
+!subroutine get_gamma_s(gam_s)
 !@sum Calculate gamma soil moisture response factor
 !@+ from MEGAN2.1
 !@auth MEGAN team, initial modelE implementation by Greg Faluvegi
-implicit none
-real*8, intent(OUT) :: gam_s
+!implicit none
+!real*8, intent(OUT) :: gam_s
 
-gam_s = 1.d0
+!gam_s = 1.d0
 
 ! While MEGAN 2.1 sets this to unity, as above, we could parameterize like G 2012.
 ! We would need to pass in the volumetric soil moisture (m3 m-3), theta, and
@@ -1542,9 +1613,27 @@ gam_s = 1.d0
 !       gam_s=(theta-theta_w)/delta_theta_1
 !     end if
 
-return
-end subroutine get_gamma_s
+!return
+!end subroutine get_gamma_s
 
+
+subroutine get_gamma_SM( b, Vcmax_M3, gam_sm)
+
+implicit none
+
+real*8, parameter :: alpha_M3 = 37.d0, b_crit = 0.6d0
+real*8, intent(in) :: Vcmax_M3 ! Maximum photosynthetic capacity (umol m-2 s-1)
+real*8, intent(in) :: b ! TODO explain name and units
+real*8, intent(out) :: gam_sm
+
+if( b >= b_crit ) then
+  gam_sm = 1.d0
+else
+  gam_sm = min(1.d0,Vcmax_M3/alpha_M3)
+end if
+
+return
+end subroutine get_gamma_SM
 
 !  MEGAN Notes:
 !-----------------------------------------------------------------------

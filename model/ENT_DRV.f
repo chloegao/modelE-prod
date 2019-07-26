@@ -536,21 +536,39 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       end subroutine map_ent2giss
 
 #ifdef TRACERS_SPECIAL_Shindell
-      subroutine map_ent_pfts_to_megan_pfts(v_ent,h_ent,v_megan,i,j,meg)
+      subroutine map_ent_pfts_to_megan_pfts(v_ent,h_ent,x_megan,i,j
+      ! rest are optional (and positional):
+     & ,x_ent_in,meg)
       !@sum Map Ent plant functional type coverage fractions onto MEGAN types.
       !@+ Similar "hack" by Y. Kim was in radiation code and flammability
       !@+ codes to map to GISS vegetation.
-       !@auth initial modelE implementation by Greg Faluvegi
+      !@+ If x_ent_in optional argument is present, a plant-type-weighted
+      !@+ average variable will be returned in x_megan. Otherwise, the
+      !@+ MEGAN PFTs vegatation fractions will be returned in x_megan.
+      !@+ I.e. the averaging option converts a variable from being
+      !@+ over Ent types to being over MEGAN types.
+      !@auth initial modelE implementation by Greg Faluvegi
+
+      !@var v_ent the Ent PFT fractions
+      !@var x_megan the MEGAN PFT fraction or weighted average variable
+      !@var h_ent the Ent PFT heights (not currently used)
+      !@var x_ent_in the input variable over Ent PFTs (optional)
+      !@var x_ent either holds x_ent_in or ones.
+      !@var meg for outputting the megan mapping to be used in calling
+      !@+ routine (optional)
       use TRCHEM_Shindell_COM, only:  nMeganPFT
       use tracers_DRYDEP, only: NENT
       use geom, only: lat2D_dg
       implicit none
-      real*8, dimension(nent), intent(in)       :: h_ent,v_ent
-      real*8, dimension(nMeganPFT), intent(out) :: v_megan
-      real*8, dimension(nent), intent(out)      :: meg
-
+      real*8, dimension(nent), intent(in) :: h_ent,v_ent
+      real*8, dimension(nent), intent(in), optional :: x_ent_in
+      real*8, dimension(nent) :: x_ent
+      real*8, dimension(nMeganPFT), intent(out) :: x_megan
+      real*8, dimension(nMeganPFT) :: a_megan
+      integer, dimension(nent), intent(out), optional :: meg
       integer, intent(in) :: i,j
-      logical :: tropical, temperate, boreal, arctic
+      integer :: k
+      logical :: tropical, temperate, boreal, arctic, do_avg, do_meg
 
 ! TO DO: I am simply putting in the most basic, 'semi-reasonable' mapping
 ! here. The whole routine should be looked at by an expert in the vegetation.
@@ -575,6 +593,20 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
       call stop_model(
      & 'nMeganPFT.ne.16 in map_ent_pfts_to_megan_pfts',255)
       endif
+
+! Determine whether we're just summing or doing a weighted average:
+      if(present(x_ent_in)) then
+        do_avg=.true.
+        x_ent(:)=x_ent_in(:)
+      else
+        do_avg=.false.
+        x_ent(:)=1.d0
+      end if
+      if(present(meg)) then
+        do_meg=.true.
+      else
+        do_meg=.false.
+      end if
 
 ! Determine latitude zone as a very rough(!) determination of
 ! temperate, tropical, boreal & arctic vegetation:
@@ -646,7 +678,9 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 ! 17 like sand
 ! 18 like dirt
 
-      v_megan(:)=0.d0
+! initialize:
+      x_megan(:)=0.d0
+      if(do_avg) a_megan(:)=0.d0
 
 ! Depending on latitude band, placing Ent:
 !  1 evergreen broadleaf early successional
@@ -656,13 +690,9 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 !  5 broadleaf evergreen temperate tree
 
       if(tropical)then
-        v_megan(4)=v_megan(4)+v_ent(1)+v_ent(2)
-        meg(1) = 4
-        meg(2) = 4
+        call fill_it(4,[1,2])
       else ! extra-tropical
-        v_megan(5)=v_megan(5)+v_ent(1)+v_ent(2)
-        meg(1) = 5
-        meg(2) = 5
+        call fill_it(5,[1,2])
       end if
 
 ! Depending on latitude band, placing Ent:
@@ -672,13 +702,9 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 !  1 needleleaf evergreen temperate tree
 !  3 needleleaf evergreen boreal tree
       if(boreal .or. arctic)then
-        v_megan(3)=v_megan(3)+v_ent(3)+v_ent(4)
-        meg(3) = 3
-        meg(4) = 3
+        call fill_it(3,[3,4])
       else ! temperate or tropical
-        v_megan(1)=v_megan(1)+v_ent(3)+v_ent(4)
-        meg(3) = 1
-        meg(4) = 1
+        call fill_it(1,[3,4])
       end if
 
 ! Depending on latitude band, placing Ent:
@@ -690,25 +716,15 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 !  7 broadleaf deciduous temperate tree
 !  8 broadleaf deciduous boreal tree
       if(boreal .or. arctic)then
-        v_megan(8)=v_megan(8)+v_ent(5)+v_ent(6)+v_ent(7)
-        meg(5) = 8
-        meg(6) = 8
-        meg(7) = 8
+        call fill_it(8,[5,6,7])
       else if(temperate)then
-        v_megan(7)=v_megan(7)+v_ent(5)+v_ent(6)+v_ent(7)
-        meg(5) = 7
-        meg(6) = 7
-        meg(7) = 7
+        call fill_it(7,[5,6,7])
       else if(tropical)then
-        v_megan(6)=v_megan(6)+v_ent(5)+v_ent(6)+v_ent(7)
-        meg(5) = 6
-        meg(6) = 6
-        meg(7) = 6
+        call fill_it(6,[5,6,7])
       end if
 
 ! Place Ent: {8 deciduous needleleaf} into Megan {2 needleleaf deciduous boreal tree}
-      v_megan(2)=v_megan(2)+v_ent(8)
-      meg(8) = 2
+      call fill_it(2,[8])
 
 ! Depending on latitude band, placing Ent:
 !  9 cold adapted shrub
@@ -716,18 +732,15 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 ! 10 broadleaf deciduous temperate shrub
 ! 11 broadleaf deciduous boreal shrub
       if(boreal .or. arctic)then
-        v_megan(11)=v_megan(11)+v_ent(9)
-        meg(9) = 11
+        call fill_it(11,[9])
       else
-        v_megan(10)=v_megan(10)+v_ent(9)
-        meg(9) = 10
+        call fill_it(10,[9])
       end if
 
 ! Place Ent: {10 arid adapted shrub} into Megan:
 !  9 broadleaf evergreen temperate shrub
 ! though this is hardly obvious:
-      v_megan(9)=v_megan(9)+v_ent(10)
-      meg(10) = 9
+      call fill_it(9,[10])
 
 ! Place Ent:
 ! 11 C3 grass perennial
@@ -735,37 +748,51 @@ cddd     &       cropsdata=cropdata_H(I0:I1,J0:J1) )
 ! Into Megan category:
 ! 13 cool C3 grass
 ! OK?
-      v_megan(13)=v_megan(13)+v_ent(11)+v_ent(13)
-      meg(11) = 13
-      meg(13) = 13
+      call fill_it(13,[11,13])
 
 ! Place Ent: {12 C4 grass} into Megan:
 ! 14 warm C4 grass (though I think megan notes says C3 warm...?)
-      v_megan(14)=v_megan(14)+v_ent(12)
-      meg(12) = 14
-
+      call fill_it(14,[12])
 
 ! Place Ent: {14 arctic C3 grass} into Megan:
 ! 12 arctic C3 grass
-      v_megan(12)=v_megan(12)+v_ent(14)
-      meg(14) = 12
+      call fill_it(12,[14])
 
 ! Place Ent: {15 C4 crops} into Megan:
 ! 16 crop2 (corn??). Simply because I think corn is C4.
-      v_megan(16)=v_megan(16)+v_ent(15)
-      meg(15) = 16
+      call fill_it(16,[15])
 
 ! Place Ent: {16 crops broadleaf woody} into Megan:
 ! 15 crop1 (?). But for no good reason.
 ! Vegetation height criterion could be used to determine these woody crops.
-      v_megan(15)=v_megan(15)+v_ent(16)
-      meg(16) = 15
-
-      meg(17) = 0 ! maps to 0 in the converT array
-      meg(18) = 0
+      call fill_it(15,[16])
 
 ! End categories 17 and 18 are bare sand/dirt, so no
-! accumulation into a MEGAN type. So we're done.
+! accumulation into a MEGAN type.
+      if(do_meg)then
+        meg(17)=0 ; meg(18)=0 ! e.g. maps to 0 in the converT array
+      end if                  ! in biogenic_emissions code
+
+! For averaging, now must divide the accumulated weights:
+      if(do_avg)then
+        do k=1,nMeganPFT
+          if(a_megan(k).ne.0.)x_megan(k)=x_megan(k)/a_megan(k)
+          ! (if a_megan is zero x_megan should already be zero)
+        end do
+      end if
+
+      contains
+
+        subroutine fill_it(n,arr)
+        integer :: m,n
+        integer, dimension(:) :: arr
+        do m=1,size(arr)
+          x_megan(n)=x_megan(n)+v_ent(arr(m))*x_ent(arr(m))
+          if(do_avg)a_megan(n)=a_megan(n)+v_ent(arr(m))
+          if(do_meg)meg(arr(m))=n
+        end do
+        end subroutine fill_it
+
       end subroutine map_ent_pfts_to_megan_pfts
 #endif
 

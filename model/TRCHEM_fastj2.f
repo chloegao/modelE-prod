@@ -648,7 +648,7 @@ c  Add Aerosol Column - include aerosol (+cloud) types here.
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
 c Now do the rest of the aerosols
-      if (aerosols_affect_photolysis == 1) then
+      if (aerosols_affect_photolysis == 1 .and. nraero_aod > 0) then
         AER2(1:NLGCM,1:nraero_aod)=
      &    tau_as(NSLON,NSLAT,1:NLGCM,1:nraero_aod)
       endif

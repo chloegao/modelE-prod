@@ -155,7 +155,8 @@
      & 50.d0, 1.d0/)
 
       real*8 :: factor
-      real*8, dimension(nent)      :: v_dummy, h_dummy, megan_map
+      real*8, dimension(nent)      :: v_dummy=0., h_dummy=0., x_dummy=0.
+      integer, dimension(nent)     :: megan_map
       real*8, dimension(nMeganPFT) :: v_m_dummy
 
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1,
@@ -172,7 +173,7 @@
       do J=J_0,J_1
         do I=I_0,imaxj(J)
             call map_ent_pfts_to_megan_pfts(v_dummy, h_dummy,
-     &      v_m_dummy, i, j, megan_map)
+     &      v_m_dummy, i, j, x_dummy, megan_map)
             if (fearth(i,j)>0.d0) then
                do k=1,nent
                    baseisop(i,j,k)=convert(megan_map(k))*
