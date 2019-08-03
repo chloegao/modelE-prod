@@ -191,6 +191,7 @@
                              ! - this is remainig respiration carbon 
          real*8 :: C_growth_flux ! respiration flux due to C_growth
          real*8 :: C_total   !* Hack to check for C balance.
+         real*8 :: Vcmax ! output needed for external isoprene model
       end type cohort
 
 !****************************************************************************

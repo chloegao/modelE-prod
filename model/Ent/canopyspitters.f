@@ -216,6 +216,8 @@
      i         ,O2frac*psdrvpar%Pa
      i         ,cop%stressH2O,cop%Sacclim,cop%llspan)
 
+          cop%Vcmax = pspar%Vcmax ! need it for exports
+
           call canopyfluxes(dtsec, cop%pft
      &         ,pp%albedo(1)
      &         ,pp%LAI

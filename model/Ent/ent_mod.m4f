@@ -1463,6 +1463,8 @@ C NADINE
      &     soilcpools,
      &     leaf_area_index,
      &     leaf_area_index_pft,
+     &     stressH2O_pft,
+     &     Vcmax_pft,
      &     C_total,
      &     C_entcell
      &     )
@@ -1492,7 +1494,9 @@ C NADINE
      &     albedo,
      &     vegetation_fractions,
      &     vegetation_heights,
-     &     leaf_area_index_pft
+     &     leaf_area_index_pft,
+     &     stressH2O_pft,
+     &     Vcmax_pft
       real*8, dimension(:,:,:m4_comma`'m4_ext`'), optional, intent(out) ::
      &     soilcpools
       !----------
@@ -1608,6 +1612,17 @@ C NADINE
         call entcell_extract_heights(entcell`'m4_brkts(m4_ind)`'%entcell,
      &       vegetation_heights(:`'m4_comma`'m4_ind))
       endif
+
+      if ( present(stressH2O_pft) ) then
+        call entcell_extract_stressH2O(entcell`'m4_brkts(m4_ind)`'%entcell,
+     &       stressH2O_pft(:`'m4_comma`'m4_ind))
+      endif
+
+      if ( present(Vcmax_pft) ) then
+        call entcell_extract_Vcmax(entcell`'m4_brkts(m4_ind)`'%entcell,
+     &       Vcmax_pft(:`'m4_comma`'m4_ind))
+      endif
+
 
       if ( present(soilcpools) ) then
         do n=1,N_CASA_LAYERS

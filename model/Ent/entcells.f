@@ -19,6 +19,7 @@
       public assign_entcell, assign_entcell_soilcarbon
       public init_simple_entcell, entcell_construct, entcell_destruct
       public entcell_extract_pfts, entcell_extract_heights
+      public entcell_extract_stressH2O, entcell_extract_Vcmax
       public entcell_carbon
 
       contains
@@ -1016,6 +1017,66 @@ C NADINE - IS THIS CORRECT?
       enddo
 
       end subroutine entcell_extract_heights
+
+ !*********************************************************************
+
+      subroutine entcell_extract_stressH2O(ecp, stress)
+!@sum return water stress per pft
+      type(entcelltype) :: ecp
+      real*8 :: stress(:)
+      !---
+      type(patch), pointer :: pp
+      type(cohort),pointer :: cop
+      real*8 :: area(size(stress))
+
+      stress(:) = 0.d0
+      area(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        cop => pp%tallest
+        if( associated(cop) ) then
+          stress(cop%pft + COVEROFFSET) = stress(cop%pft + COVEROFFSET)
+     &         + cop%stressH2O*pp%area
+          area(cop%pft + COVEROFFSET) = area(cop%pft + COVEROFFSET)
+     &         + pp%area
+        endif
+        pp => pp%younger
+      enddo
+
+      where( area(:) > 0.d0 ) stress(:) = stress(:)/area(:)
+
+      end subroutine entcell_extract_stressH2O
+
+ !*********************************************************************
+      subroutine entcell_extract_Vcmax(ecp, Vcmax)
+!@sum return Vcmax per pft
+! Well, this algorithm is an overkill, since Vcmax depends only on pft
+! and canopy temperature (which is the same for the entire cell).
+! But things may change in the future, so it is written in a generic form. 
+      type(entcelltype) :: ecp
+      real*8 :: Vcmax(:)
+      !---
+      type(patch), pointer :: pp
+      type(cohort),pointer :: cop
+      real*8 :: area(size(Vcmax))
+
+      Vcmax(:) = 0.d0
+      area(:) = 0.d0
+      pp => ecp%oldest
+      do while( associated(pp) )
+        cop => pp%tallest
+        if( associated(cop) ) then
+          Vcmax(cop%pft + COVEROFFSET) = Vcmax(cop%pft + COVEROFFSET)
+     &         + cop%Vcmax*pp%area
+          area(cop%pft + COVEROFFSET) = area(cop%pft + COVEROFFSET)
+     &         + pp%area
+        endif
+        pp => pp%younger
+      enddo
+
+      where( area(:) > 0.d0 ) Vcmax(:) = Vcmax(:)/area(:)
+
+      end subroutine entcell_extract_Vcmax
 
  !*********************************************************************
 
