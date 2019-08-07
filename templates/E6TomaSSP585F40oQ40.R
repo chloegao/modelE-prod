@@ -1,14 +1,17 @@
-E6TomaF40int.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
+E6TomaSSP585F40oQ40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
 
-This rundeck is not set up for any particular science but serves as an
-example that has additional tracer "int"eractions on like fire model,
-interactive biomass burning, CH4 sources (instead of rad code synchronizing)
-and climate-sensitive CH4 wetland emissions.
-This deck also is not quite really "E6" because CMIP6 CH4 emissions files
-are not available for non-biomass burning sources. Also note that
-the wetlands source has not yet been "balanced" (from the rundeck)
-vs. obvservations. But making deck available now for testing 
-purposes.
+
+================== NON-FINAL VERSION =======================
+ for example: no land-use change from historical yet, and the CH4 wetlands source
+              not tuned yet. Correct year ACI/rsf not in place yet.
+
+E6TomaSSP585F40oQ40 = adds coupled ocean based on CMIP6 run E212Tomaf10aF40oQ40_2.R
+                and set up for transition between historical and SSP run (ISTART=9)
+                This example uses climate-interactive CH4 wetlands+tundra
+                emissions and SSP585 (IAMC-REMIND-MAGPIE-ssp585-1-1)
+
+E6TomaF40: Same as E6F40, with OMA tracers and computed aerosol
+           indirect effect, including Shindell chemistry
 
 Lat-lon: 2x2.5 degree horizontal resolution
 F40: 40 vertical layers with standard hybrid coordinate, top at .1 mb
@@ -24,8 +27,17 @@ Preprocessor Options
 #define STDHYB                   ! standard hybrid vertical coordinate
 #define ATM_LAYERING L40         ! 40 layers, top at .1 mb
 #define NEW_IO                   ! new I/O (netcdf) on
+#define NEW_IO_SUBDD
+#define CACHED_SUBDD
 #define IRRIGATION_ON
+#define SWFIX_20151201
+#define NO_HDIURN                ! exclude hdiurn diagnostics
 #define MODIS_LAI
+#define CHECK_OCEAN                  ! needed to compile aux/file CMPE002
+#define SIMPLE_MESODIFF
+#define OCN_LAYERING L40_5008m
+#define ODIFF_FIXES_2017
+#define EXPEL_COASTAL_ICEXS
 #define NEW_BCdalbsn
 !---> generic tracers code start
 #define TRAC_ADV_CPU             ! timing index for tracer advection on
@@ -42,11 +54,8 @@ Preprocessor Options
 #define TRACERS_TERP                ! include terpenes in gas-phase chemistry
 #define BIOGENIC_EMISSIONS       ! turns on interactive isoprene emissions
 #define WATER_MISC_GRND_CH4_SRC ! adds lake, ocean, misc. ground sources for CH4
-#define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
-#define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
-#define DETAILED_FIRE_OUTPUT
-#define LIMIT_BARREN_FLAMMABILITY
-#define ANTHROPOGENIC_FIRE_MODEL
+!  OFF #define CALCULATE_FLAMMABILITY  ! activated code to determine flammability of surface veg
+!  OFF #define DYNAMIC_BIOMASS_BURNING  ! alter biomas burning my flammability
 #define SHINDELL_STRAT_EXTRA     ! non-chemistry stratospheric tracers
 #define INTERACTIVE_WETLANDS_CH4 ! turns on interactive CH4 wetland source
 #define ACCMIP_LIKE_DIAGS  ! adds many diags as defined by ACCMIP project
@@ -56,7 +65,6 @@ Preprocessor Options
 #define TRACERS_DUST_Silt4       ! include 4th silt size class of dust
 #define TRACERS_AEROSOLS_SEASALT ! seasalt
 #define TRACERS_AEROSOLS_Koch    ! Dorothy Koch's tracers (aerosols, etc)
-#define TRACERS_AEROSOLS_VBS     ! Volatility-basis set
 #define TRACERS_AEROSOLS_SOA     ! Secondary Organic Aerosols
 !  OFF #define SOA_DIAGS                ! Additional diagnostics for SOA
 #define TRACERS_NITRATE
@@ -66,7 +74,6 @@ Preprocessor Options
 #define CLD_AER_CDNC              !aerosol-cloud interactions
 #define BLK_2MOM                  !aerosol-cloud interactions
 !  OFF #define NUDGE_ON                 ! nudge the meteorology
-#define CACHED_SUBDD
 End Preprocessor Options
 
 Object modules:
@@ -75,6 +82,7 @@ Atm144x90                           ! horizontal resolution is 144x90 -> 2x2.5de
 AtmLayering                         ! vertical resolution
 DIAG_RES_F                          ! diagnostics
 FFT144                              ! Fast Fourier Transform
+ORES_1Qx1 OFFT288E                  ! ocean horiz res 1.25x1deg
 
 IO_DRV                              ! new i/o
 
@@ -85,17 +93,16 @@ STRATDYN STRAT_DIAG                 ! stratospheric dynamics (incl. gw drag)
 
 #include "latlon_source_files"
 #include "modelE4_source_files"
-#include "static_ocn_source_files"
-
+#include "dynamic_ocn_source_files_CMIP6"
+OCN_Int_LATLON                      ! atm-ocn regrid routines
 #include "tracer_shared_source_files"
 #include "tracer_shindell_source_files"
 #include "tracer_OMA_source_files"
-TRACERS_AEROSOLS_VBS                ! Volatility-basis set
 TRDIAG                              ! new i/o
 SUBDD
 CLD_AEROSOLS_Menon_MBLK_MAT_E29q BLK_DRV ! aerosol-cloud interactions
 CLD_AER_CDNC                        ! aerosol-cloud interactions wrapper
-flammability_drv flammability       ! Olga''s fire model
+! flammability_drv flammability       ! Olga's fire model
 
 Components:
 #include "E4_components_nc"    /* without "Ent" */
@@ -107,32 +114,49 @@ OPTS_Ent = ONLINE=YES PS_MODEL=FBB PFT_MODEL=ENT /* needed for "Ent" only */
 OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
-#include "IC_144x90_input_files"
-#include "static_ocn_transient_144x90_input_files"
-FLAMPOPDEN=gsin/fire/RCP8.5_PopDens_2000-2100.dat ! for fire model
+! start from the restart file of an earlier run ...                 ISTART=8 or 9
+!!!!! OBVIOUSLY JUST A PLACEHOLDER HERE. REPLACE IT WITH 2015 WHEN AVAILABLE:
+AIC=gsin/AIC/1JAN1918.rsfE212Tomaf10aF40oQ40_2.nc ! initial conditions, no GIC needed
+!!!!! ----------------------------------------------------------------------
+#include "dynamic_ocn_288x180_input_files_CMIP6_istart8or9"
+TOPO=Z2HX2fromZ1QX1N.BS1.nc        ! surface fractions and topography (1 cell Bering Strait)
+ICEDYN_MASKFAC=iceflowmask_144x90.nc
+
+TDISS=altocnbc288x180_20170717/TIDAL_e_v2_1QX1.HB.nc
+TDISS_N=tdiss/Jayne2009_288x180.nc
+POROS=altocnbc288x180_20170717/poros.nc
+
 RVR=RD_Fd.nc             ! river direction file
 NAMERVR=RD_Fd.names.txt  ! named river outlets
 
 #include "land144x90_input_files"
-#include "rad_input_files"
+#include "rad_input_files_SSP585"
 #include "rad_144x90_input_files_CMIP6"
 #include "chemistry_input_files"
 #include "chemistry_144x90_input_files"
 #include "dust_tracer_144x90_input_files"
 #include "dry_depos_144x90_input_files"
-#include "chem_emiss_144x90_input_files_CMIP6_noBBURN"
-#include "ch4_emiss_144x90_input_files_CMIP6_noBBURN"
+#include "chem_emiss_144x90_input_files_SSP585"
 #include "ch4_interactive_wetlands_files"
-#include "aerosol_OMAVBS_input_files_CMIP6_noBBURN"
+#include "aerosol_OMA_input_files_SSP585"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag
 REG=REG2X2.5                      ! special regions-diag
 
 Label and Namelist:  (next 2 lines)
-E6TomaF40int (prescribed ocean atmospheric tracer model with OMA and Shindell chemistry and some interactive sources)
+E6TomaSSP585F40oQ40 (SSP case dynamic ocean atm tracer model with OMA and Shindell chemistry)
 
 &&PARAMETERS
-#include "static_ocn_params"
+
+#include "dynamic_ocn_params"
+ocean_use_qus=1     ! Advection uses the quadratic upstream scheme
+DTO=112.5
+ocean_use_tdmix=1  ! tdmix scheme for meso mixing
+ocean_use_gmscz=1  ! vertically variation of meso diffusivity, option 1
+ocean_kvismult=2.  ! mult. factor for meso diffusivity
+ocean_enhance_shallow_kmeso=1 ! stronger meso mixing in shallow water
+ocean_use_tdiss=1  ! simple tidally induced diapycnal diffusivity
+
 #include "sdragF40_params"
 #include "gwdragF40_params"
 
@@ -153,32 +177,38 @@ PTLISO=0.        ! pressure(mb) above which radiation assumes isothermal layers
 H2ObyCH4=0.      ! if =1. activates stratospheric H2O generated by CH4 without interactive chemistry
 KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 
-initial_GHG_setup = 1 ! Set to 0 after initial setup.
+initial_GHG_setup = 0 ! Set to 0 after initial setup.
 
-#include "atmCompos_transient_params"
+#include "atmCompos_transient_params_SSP"
 !!!!!!!!!!!!!!!!!!!!!!!
 ! Please note that making o3_yr non-zero tells the model
 ! to override the transient chemistry tracer emissions'
 ! use of model year and use abs(o3_yr) instead!
 !!!!!!!!!!!!!!!!!!!!!!!
-#include "aerosol_OMA_params_CMIP6_noBBURN"
-VBSemifact=0.03d0,0.06d0,0.09d0,0.14d0,0.18d0,0.30d0,0.40d0,0.50d0,0.80d0
+#include "aerosol_OMA_params_CMIP6"
 #include "dust_params_vmp_oma"
-#include "common_tracer_params_CMIP6"
-#include "chemistry_params_CMIP6_noBBURN"
-#include "ch4_params_with_emissions_CMIP6_noBBURN"
+#include "common_tracer_params_SSP"
+#include "chemistry_params_CMIP6"
+#include "ch4_params_with_emissions_CMIP6"
+! Lines like these next two may be needed in some cases (like ISTART=8 starts) to
+! prevent tracers reinitialization:
+! itime_tr0=-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,0
+! allowSomeChemReinit = 0 ! If set to 0, disallows certain sections of chemistry
+!   code from reinitializing (including stratospheric model Q( ) variable).
+!   Also prevents fractional application of chemistry terms for first X-timesteps
+!   from ItimeI.
 ! ---- for interactive wetlands -----
 nn_or_zon=0     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants
 gw_ulim=100.d0  ! upper limit on ground wetness for new wetlands
 gw_llim=18.d0   ! lower limit on ground wetness for new wetlands
 SW_lim=27.d0    ! lower limit on SW downward flux for new wetlands
-! -----------------------------------
+! -----------------------------------«
 
 DTsrc=1800.      ! cannot be changed after a run has been started
 DT=225.
@@ -198,7 +228,7 @@ Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step
 &&END_PARAMETERS
 
 &INPUTZ
- YEARI=1949,MONTHI=12,DATEI=1,HOURI=0, ! pick IYEAR1=YEARI (default) or < YEARI
- YEARE=1949,MONTHE=12,DATEE=2,HOURE=0,     KDIAG=12*0,9,
- ISTART=2,IRANDI=0, YEARE=1949,MONTHE=12,DATEE=1,HOURE=1,
+ YEARI=2015,MONTHI=1,DATEI=1,HOURI=0,IYEAR1=1850, ! pick IYEAR1=YEARI (default) or < YEARI
+ YEARE=2101,MONTHE=1,DATEE=1,HOURE=0,     KDIAG=12*0,9,
+ ISTART=9,IRANDI=0, YEARE=2015,MONTHE=1,DATEE=1,HOURE=1,
 /
