@@ -114,7 +114,8 @@ c
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
-     &                  LM) :: mrno,mrno2,mro3,OH_conc,HO2_conc
+     &                  LM) :: mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &                         JO1D_rate,JNO2_rate
 #endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
@@ -2002,6 +2003,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
         OH_conc(i,j,l)=y(nOH,L)
         HO2_conc(i,j,l)=y(nHO2,L)
+        JO1D_rate(i,j,l)=zj(l,rj%O3__O1D_O2)
+        JNO2_rate(i,j,l)=zj(l,rj%NO2__NO_O)
 #endif
      
 #ifdef TRACERS_HETCHEM
@@ -2025,6 +2028,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=0.d0
         OH_conc(i,j,L)=0.d0
         HO2_conc(i,j,L)=0.d0
+        JO1D_rate(i,j,L)=0.d0
+        JNO2_rate(i,j,L)=0.d0
       end do
 #endif
 
@@ -2050,6 +2055,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,OH_conc)
           case ('HO2_conc')
             call inc_subdd(subdd,k,HO2_conc)
+          case ('JO1D')
+            call inc_subdd(subdd,k,JO1D_rate)
+          case ('JNO2')
+            call inc_subdd(subdd,k,JNO2_rate)
           end select
         enddo ! k
       enddo ! igroup
