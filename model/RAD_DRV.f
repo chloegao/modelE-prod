@@ -323,6 +323,7 @@ C**** sync radiation parameters from input
       call sync_param( "ref_mult", ref_mult )
 #ifdef TRACERS_ON
       call sync_param( "save3dAOD", save3dAOD)
+      CALL sync_param("save_dry_aod",save_dry_aod)
 #endif
       REFdry = REFdry*ref_mult
 

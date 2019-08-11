@@ -714,7 +714,6 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
       CALL sync_param("diag_aod_3d",diag_aod_3d)
-      CALL sync_param("save_dry_aod",save_dry_aod)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif
