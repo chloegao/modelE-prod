@@ -17,6 +17,8 @@ module LernerTracersMetadata_mod
   use OldTracer_mod, only: set_iMPtable
   use OldTracer_mod, only: set_tcscale
   use OldTracer_mod, only: set_has_chemistry
+  use OldTracer_mod, only: set_HSTAR
+  use OldTracer_mod, only: set_F0
   use RunTimeControls_mod, only: tracers_special_lerner,       & 
     linoz_trdrydep
   use Tracer_mod, only: Tracer
