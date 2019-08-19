@@ -1866,37 +1866,37 @@ c daily_z is currently only needed for CS
 #ifdef TRACERS_AMP
       arr(next()) = info_type_(
      &  sname = 'ampBCload',
-     &  lname = 'BC clolumn Mann',
+     &  lname = 'BC Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampDustload',
-     &  lname = 'Dust clolumn Mann',
+     &  lname = 'Dust Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampNH4load',
-     &  lname = 'NH4 clolumn Mann',
+     &  lname = 'NH4 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampNO3load',
-     &  lname = 'NO3 clolumn Mann',
+     &  lname = 'NO3 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampOAload',
-     &  lname = 'OA clolumn Mann',
+     &  lname = 'OA Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampSO4load',
-     &  lname = 'SO4 clolumn Mann',
+     &  lname = 'SO4 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampSSload',
-     &  lname = 'SS clolumn Mann',
+     &  lname = 'SS Column Mass',
      &  units = 'kg m-2'
      &  )
 #endif
@@ -1943,6 +1943,12 @@ C
      &  lname = 'Maximum Daily L=1 O3 mixing ratio',
      &  units = 'mole species / mole air',
      &  reduc = reduc_max
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'O3col', ! not "load", to contrast with tracers
+     &  lname = 'O3 Column Mass',
+     &  units = 'kg m-2'
      &  )
 #endif
 
