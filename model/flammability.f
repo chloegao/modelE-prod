@@ -139,12 +139,13 @@
       implicit none
       
       real*8 :: inst_FC, recovered_ba
-      real*8 :: RHlow,RHup,CRH,Cm,Cb,Lb,Hb,gW,g0,nv,up,a,tau,N_steps
+      real*8 :: RHlow,RHup,CRH,Cm,Cb,Lb,Hb,gW,g0,up,a,tau,N_steps
       real*8 :: new_burnt_area,previous_BA,pvt_area
       real*8, Dimension(N_COVERTYPES), intent(INOUT) :: burnt_area 
       real*8, intent(IN) :: RH1,wsurf,saveFireCount,fearth_axyp
       real*8, Dimension(N_COVERTYPES), intent(IN) :: pvt 
       real*8 :: umax,T
+      integer :: nv
       integer, intent(in) :: i,j
       !if there are no fires to create new BA and no old BA to recover
       if ((saveFireCount <= 0.d0) .AND. (sum(burnt_area) <= 0.d0)) 
