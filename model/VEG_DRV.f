@@ -17,7 +17,7 @@
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
       use pario, only: par_open,par_close,read_dist_data,variable_exists
       use filemanager, only : file_exists
-      !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
+      !use vegetation, only : cond_scheme,vegCO2X_off
       !use veg_com
       !use model_com, only : jyear,focean
       !use ghy_com, only : fearth
@@ -178,7 +178,7 @@ c
       use DOMAIN_DECOMP_ATM, only : GRID, getDomainBounds!, AM_I_ROOT
       use DOMAIN_DECOMP_ATM, only : READT_PARALLEL
       use filemanager
-      !use vegetation, only : cond_scheme,vegCO2X_off,crops_yr
+      !use vegetation, only : cond_scheme,vegCO2X_off
       !use veg_com
       !use model_com, only : jyear,focean
       !use ghy_com, only : fearth
