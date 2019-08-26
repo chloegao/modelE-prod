@@ -3030,7 +3030,12 @@ C-----------------
       DO NA=1,6
       IF(MADAER.eq.3) THEN
       CALL REPART (A6JDAY(1,NA,IGCM,JGCM),PLBAER,lma+1,    ! in
+#ifdef REPART_AER_FIX
+      ! passing plb0 instead of plb for approximate consistency with input
+     *             ATAULX(1,NA),PLB0,NL+1)              ! out
+#else
      *             ATAULX(1,NA),PLB,NL+1)               ! out
+#endif
       ELSE
       CALL REPART (A6JDAY(1,NA,ILON,JLAT),PLBA09,10,    ! in
      *             ATAULX(1,NA),PLB,NL+1)               ! out
@@ -3179,7 +3184,12 @@ C                        -----------------------------------------------
 
       DO N=1,nsized
         TDUST_col(:) = DDJDAY(:,N,IGCM,JGCM)*taucon_dust(n) ! kg/m2 -> tau
+#ifdef REPART_AER_FIX
+        ! passing plb0 instead of plb for approximate consistency with input
+        CALL REPART(TDUST_col,PLBdust,lmd+1,DTAULX(1,N),PLB0,NL+1)
+#else
         CALL REPART(TDUST_col,PLBdust,lmd+1,DTAULX(1,N),PLB,NL+1)
+#endif
       ENDDO
 
 C                     Apply Solar/Thermal Optical Depth Scaling Factors
