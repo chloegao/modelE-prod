@@ -669,7 +669,15 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         ! things - would be needed). In next two lines, 5.6d21 is really 5.6d20/0.1
         ! and 5.0d17 is 5.0d16/0.1:
         colmO2=5.6d21*plbot(min(JPNL,topLevelOfChemistry)+1)
+#ifdef VARIABLE_COLMO3_FROM_NINT
+        colmO3=0.d0
+        do L=min(JPNL,topLevelOfChemistry)+1,lxghg
+          colmO3=colmO3+ghgCmAtm(L,3)
+        end do
+        colmO3=colmO3*loschmidt_constant ! cm-atm to molecules cm-2
+#else
         colmO3=5.0d17*plbot(min(JPNL,topLevelOfChemistry)+1)
+#endif
 
         ! Using MAX() here because 
         ! letting this spherical corrections get too small (0?) causes NaNs
