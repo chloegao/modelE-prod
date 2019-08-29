@@ -5416,12 +5416,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      use TRACER_COM, only: aer_int_yr
 #ifdef TRACERS_TOMAS
       use TRACER_COM, only: n_ASO4,nbins
-#endif
 #endif
 #if defined(TRACERS_dCO) || defined(TRACERS_dCOlite)
       use TRACERS_dCO, only: dCO_fact
