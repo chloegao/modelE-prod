@@ -52,6 +52,9 @@
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
 
+!@dbparam tune_DMS Multiplication factor for DMS emissions
+      real*8 :: tune_DMS=1.
+
       END MODULE AEROSOL_SOURCES
 
       SUBROUTINE alloc_aerosol_sources(grid)
@@ -399,6 +402,7 @@ c want kg DMS/m2/s
       use OldTracer_mod, only: tr_mm
       USE TRACER_COM, only: n_DMS
       use model_com, only: modelEclock
+      USE AEROSOL_SOURCES, only: tune_DMS
       USE AEROSOL_SOURCES, only: DMSinput
 #ifdef old_DMS_emis
       USE FLUXES, only: GTEMP
@@ -429,7 +433,7 @@ c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,modelEclock%getMonth())*1.d-9*62.d0 !*tr_mm(nt)
-     *       /SECONDS_PER_DAY
+     *       /SECONDS_PER_DAY*tune_DMS
 #endif
 
 #ifdef old_DMS_emis
@@ -449,7 +453,7 @@ c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
        akw=(1.42*SWIND - 11.8)*DSQRT(SCHR)
        endif  !swind
        erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0/
-     *      SECONDS_PER_DAY     !not sure of units
+     *      SECONDS_PER_DAY*tune_DMS     !not sure of units
 
 #endif
 c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
@@ -466,7 +470,7 @@ c       else
 c       akw=E4*(swind-13.d0)*DSQRT(SCHR)+E5*(swind-3.6d0)*
 c    *      DSQRT(SCHR)+E6*(SCHR)**(2.d0/3.d0)
 c       endif  !swind
-c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday !not sure of units
+c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday*tune_DMS !not sure of units
 c       endif ! lm
         endif !itype
         DMS_flux=erate          ! units are kg/m2/s

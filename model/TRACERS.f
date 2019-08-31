@@ -2434,6 +2434,10 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
 #endif
       use Dictionary_mod, only: is_set_param, get_param
       use RAD_COM, only: o3_yr
@@ -2534,8 +2538,18 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
         call get_param('aer_int_yr',cyclic_yr,default=copy_master_yr)
-#else 
-        continue
+        select case (trname(nTracer))
+        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+          call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('NH3')
+          call get_param('NH3_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+          call get_param('BC_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &        'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          call get_param('OC_int_yr',cyclic_yr,default=cyclic_yr)
+        end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       end if

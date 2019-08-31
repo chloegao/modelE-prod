@@ -611,13 +611,14 @@ contains
 
   end subroutine releaseCache
 
-  subroutine readSurfaceSource(this, fname, checkname, sfc_src, xyear, xday, isChemTracer)
+  subroutine readSurfaceSource(tracerName, this, fname, checkname, sfc_src, xyear, xday, isChemTracer)
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     USE FILEMANAGER, only: openunit,closeunit, nameunit,is_fbsa
     use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
     use timestream_mod, only : init_stream,read_stream
     use dictionary_mod, only : get_param
+    character(len=*), intent(in) :: tracerName
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
     logical, intent(in) :: checkname
@@ -644,6 +645,18 @@ contains
           call get_param('o3_yr',cyclic_yr,default=master_yr)
         else
           call get_param('aer_int_yr',cyclic_yr,default=master_yr)
+          select case (tracerName)
+          case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+          case ('NH3')
+            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+          case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+          case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',&
+                'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',&
+                'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+          end select
         end if
         cyclic_yr=ABS(cyclic_yr)
         call get_param('nc_emis_use_ppm_interp',nc_emis_use_ppm_interp,&

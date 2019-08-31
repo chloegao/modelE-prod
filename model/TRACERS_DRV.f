@@ -6325,6 +6325,10 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
       use TRACER_COM, only: ex_volc_num
       use TRACER_COM, only: ex_volc_jday
       use TRACER_COM, only: ex_volc_year
@@ -6360,7 +6364,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only:
-     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+     *  n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
@@ -6632,11 +6636,20 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
 ! allow overriding of transient aerosol emissions date
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-          if(aer_int_yr > 0) then
-            xyear=aer_int_yr
-          else
-            xyear=year
-          endif
+          xyear=year
+          if(aer_int_yr > 0) xyear=aer_int_yr
+          select case (trname(n))
+          case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+            if (SO2_int_yr > 0) xyear=SO2_int_yr
+          case ('NH3')
+            if (NH3_int_yr > 0) xyear=NH3_int_yr
+          case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+            if (BC_int_yr > 0) xyear=BC_int_yr
+          case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &          'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+            if (OC_int_yr > 0) xyear=OC_int_yr
+          end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         end if
@@ -7666,10 +7679,6 @@ c latlon grid
 c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname, do_aircraft
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      USE TRACER_COM, only: aer_int_yr
-#endif
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */

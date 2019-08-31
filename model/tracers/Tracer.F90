@@ -288,7 +288,7 @@ contains
     if (nsrc <= 0) return
 
     do ns=1,nsrc
-      call readSurfaceSource(trcer%surfaceSources(ns), addIntegerSuffix(getName(trcer), ns), checkname, sfc_src(:,:,n,ns), &
+      call readSurfaceSource(trcer%getName(),trcer%surfaceSources(ns), addIntegerSuffix(getName(trcer), ns), checkname, sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)
     enddo
 

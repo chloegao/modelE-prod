@@ -611,6 +611,9 @@
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      use aerosol_sources, only: tune_DMS
+#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
@@ -652,6 +655,10 @@
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_RAD_KEY
@@ -691,6 +698,9 @@ C**** Synchronise tracer related parameters from rundeck
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
+#ifdef TRACERS_AEROSOLS_Koch
+      call sync_param("tune_DMS",tune_DMS)
+#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_SEASALT
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
@@ -702,6 +712,26 @@ C**** determine year of emissions
         call get_param("aer_int_yr",aer_int_yr)
       else
         aer_int_yr=master_yr
+      endif
+      if (is_set_param("SO2_int_yr")) then
+        call get_param("SO2_int_yr",SO2_int_yr)
+      else
+        SO2_int_yr=aer_int_yr
+      endif
+      if (is_set_param("NH3_int_yr")) then
+        call get_param("NH3_int_yr",NH3_int_yr)
+      else
+        NH3_int_yr=aer_int_yr
+      endif
+      if (is_set_param("BC_int_yr")) then
+        call get_param("BC_int_yr",BC_int_yr)
+      else
+        BC_int_yr=aer_int_yr
+      endif
+      if (is_set_param("OC_int_yr")) then
+        call get_param("OC_int_yr",OC_int_yr)
+      else
+        OC_int_yr=aer_int_yr
       endif
 #endif
 #ifdef TRACERS_AEROSOLS_VBS

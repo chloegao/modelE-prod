@@ -583,6 +583,15 @@ C**** Aerosol specific switches and arrays
 
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
+!@dbparam SO2_int_yr Year of SO2 emissions to use
+      integer :: SO2_int_yr=0
+!@dbparam NH3_int_yr Year of NH3 emissions to use
+      integer :: NH3_int_yr=0
+!@dbparam BC_int_yr Year of BC emissions to use
+      integer :: BC_int_yr=0
+!@dbparam OC_int_yr Year of OC emissions to use
+      integer :: OC_int_yr=0
+
 #endif
 
 C**** tracer specific switches
