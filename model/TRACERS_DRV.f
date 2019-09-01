@@ -6322,6 +6322,11 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use GEOM, only: lon_to_i
       USE ATM_COM, only: byMA
       USE GEOM, only: byaxyp
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: NOx_yr
+      use TRCHEM_Shindell_COM, only: CO_yr
+      use TRCHEM_Shindell_COM, only: VOC_yr
+#endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
@@ -6381,6 +6386,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only:
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
+      USE TRCHEM_Shindell_COM, only: tune_NOx
+      USE TRCHEM_Shindell_COM, only: tune_BVOC
       use photolysis, only: rad_FL,read_FL
 #endif
 #ifdef TRACERS_COSMO
@@ -6630,6 +6637,15 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           else
             xyear=year
           endif
+
+          select case (trname(n))
+          case ('NOx')
+            if (NOx_yr > 0) xyear=NOx_yr
+          case ('CO')
+            if (CO_yr > 0) xyear=CO_yr
+          case ('Alkenes', 'Paraffin')
+            if (VOC_yr > 0) xyear=VOC_yr
+          end select
         else
 #endif
 
@@ -6723,7 +6739,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
           if (COUPLED_CHEM.ne.1)
      &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
-#endif
+
+       case ('NOx') ! use : for sources, to include BB
+         sfc_src(:,J_0:J_1,n,:)=tune_NOx*sfc_src(:,J_0:J_1,n,:)
+
+       case ('Isoprene', 'Terpenes')
+         sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))=
+     &     tune_BVOC*sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))
+#endif  /* TRACERS_SPECIAL_Shindell */
 
         case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
@@ -7707,6 +7730,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #ifdef SHINDELL_STRAT_EXTRA
       use TRACER_COM, only: n_GLT, n_stratOx
 #endif
+      use TRACER_COM, only: tune_BBsources
       use TRACER_COM, only: n_aoa, n_aoanh
       USE CONSTANT, only : mair, byavog, pi
 #ifndef SKIP_TRACER_SRCS
@@ -8040,7 +8064,7 @@ C**** 3D biomass source
             blsrc = axyp(i,j)*get_src_fact(n,do_fire(n))* ! not src_fact here
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)
+             tr3Dsource(i,j,l,nBiomass,n)=tune_BBsources*blsrc*MA(l,i,j)
             end do
           end do; end do
         end if

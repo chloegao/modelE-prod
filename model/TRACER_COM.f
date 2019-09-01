@@ -577,10 +577,12 @@ c for gas phase sulfur chemistry used by aerosol and chemistry models
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:)::rsulf1,rsulf2,rsulf3,rsulf4
 #endif
 
+!@dbparam tune_BBsources Factor to multiply biomass burning emissions with
+      real*8 :: tune_BBsources = 1.d0
+
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
 C**** Aerosol specific switches and arrays
-
 !@dbparam aer_int_yr indicates year of emission
       integer :: aer_int_yr = 0
 !@dbparam SO2_int_yr Year of SO2 emissions to use
@@ -591,7 +593,6 @@ C**** Aerosol specific switches and arrays
       integer :: BC_int_yr=0
 !@dbparam OC_int_yr Year of OC emissions to use
       integer :: OC_int_yr=0
-
 #endif
 
 C**** tracer specific switches

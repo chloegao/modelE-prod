@@ -611,6 +611,11 @@
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: tune_NOx
+      use TRCHEM_Shindell_COM, only: tune_BVOC
+#endif  /* TRACERS_SPECIAL_Shindell */
+      use TRACER_COM, only: tune_BBsources
 #ifdef TRACERS_AEROSOLS_Koch
       use aerosol_sources, only: tune_DMS
 #endif  /* TRACERS_AEROSOLS_Koch */
@@ -651,6 +656,10 @@
 #ifdef BIOGENIC_EMISSIONS
       use biogenic_emis, only: base_isopreneX
 #endif
+      use RAD_COM, only: O3_yr
+      use TRCHEM_Shindell_COM, only: NOx_yr
+      use TRCHEM_Shindell_COM, only: CO_yr
+      use TRCHEM_Shindell_COM, only: VOC_yr
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
@@ -698,6 +707,27 @@ C**** Synchronise tracer related parameters from rundeck
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call sync_param("tune_NOx",tune_NOx)
+      call sync_param("tune_BVOC",tune_BVOC)
+      call get_param("O3_yr", O3_yr, default=master_yr) ! duplicate of RAD_DRV
+      if (is_set_param("NOx_yr")) then
+        call get_param("NOx_yr",NOx_yr)
+      else
+        NOx_yr=O3_yr
+      endif
+      if (is_set_param("CO_yr")) then
+        call get_param("CO_yr",CO_yr)
+      else
+        CO_yr=O3_yr
+      endif
+      if (is_set_param("VOC_yr")) then
+        call get_param("VOC_yr",VOC_yr)
+      else
+        VOC_yr=O3_yr
+      endif
+#endif  /* TRACERS_SPECIAL_Shindell */
+      call sync_param("tune_BBsources",tune_BBsources)
 #ifdef TRACERS_AEROSOLS_Koch
       call sync_param("tune_DMS",tune_DMS)
 #endif  /* TRACERS_AEROSOLS_Koch */

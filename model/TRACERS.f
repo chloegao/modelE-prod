@@ -2533,6 +2533,14 @@ C
 #ifdef TRACERS_SPECIAL_Shindell
       if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
         call get_param('o3_yr',cyclic_yr,default=copy_master_yr)
+        select case (trname(nTracer))
+        case ('NOx')
+          call get_param('NOx_yr',cyclic_yr,default=cyclic_yr)
+        case ('CO')
+          call get_param('CO_yr',cyclic_yr,default=cyclic_yr)
+        case ('Alkenes', 'Paraffin')
+          call get_param('VOC_yr',cyclic_yr,default=cyclic_yr)
+        end select
       else
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \

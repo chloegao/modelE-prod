@@ -643,6 +643,14 @@ contains
         call get_param('master_yr',master_yr)
         if (isChemTracer) then
           call get_param('o3_yr',cyclic_yr,default=master_yr)
+          select case (tracerName)
+          case ('NOx')
+            call get_param('NOx_yr',cyclic_yr,default=cyclic_yr)
+          case ('CO')
+            call get_param('CO_yr',cyclic_yr,default=cyclic_yr)
+          case ('Alkenes', 'Paraffin')
+            call get_param('VOC_yr',cyclic_yr,default=cyclic_yr)
+          end select
         else
           call get_param('aer_int_yr',cyclic_yr,default=master_yr)
           select case (tracerName)
