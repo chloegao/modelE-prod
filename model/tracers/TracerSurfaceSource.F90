@@ -649,13 +649,13 @@ contains
           case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
             call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
           case ('NH3')
-            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+            call get_param('NH3_int_yr',cyclic_yr,default=cyclic_yr)
           case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
-            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+            call get_param('BC_int_yr',cyclic_yr,default=cyclic_yr)
           case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',&
                 'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',&
                 'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
-            call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+            call get_param('OC_int_yr',cyclic_yr,default=cyclic_yr)
           end select
         end if
         cyclic_yr=ABS(cyclic_yr)
