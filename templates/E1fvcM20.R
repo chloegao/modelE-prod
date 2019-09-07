@@ -170,7 +170,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1880                                      ! =1979 , also change OSST,SICE
 dalbsnX=.024
-o3_yr=-1880                                        ! =1979 , also change OSST,SICE
+o3_yr=1880                                        ! =1979 , also change OSST,SICE
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=0. ! Shapiro filter on U in E-W direction; (not used)

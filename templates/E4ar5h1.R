@@ -208,7 +208,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.        ! include 2nd indirect effect
 albsn_yr=1850
 dalbsnX=.024
-o3_yr=-1850
+o3_yr=1850
 
 variable_orb_par=0
 orb_par_year_bp=100  !  BP i.e. 1950-orb_par_year_bp AD = 1850 AD

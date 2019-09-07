@@ -148,7 +148,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.0036    ! include 2nd indirect effect
 albsn_yr=1979
 dalbsnX=.015
-o3_yr=-1979
+o3_yr=1979
 
 ! parameters that control the Shapiro filter
 DT_XUfilter=225. ! Shapiro filter on U in E-W direction; usually same as DT (below)

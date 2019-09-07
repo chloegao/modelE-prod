@@ -131,7 +131,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 !!!!!!!!!!!!!!!!!!!!!!!
 ! Please note that making o3_yr non-zero tells the model
 ! to override the transient chemistry tracer emissions'
-! use of model year and use abs(o3_yr) instead!
+! use of model year and use o3_yr instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_MATRIX_params_CMIP6"
 #include "dust_params_vmp_matrix"

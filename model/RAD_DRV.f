@@ -1235,7 +1235,7 @@ C**** Update time dependent radiative parameters each day
 !     Optional scaling of the observed value only in case it was (re)set
       if(.not. end_of_day .and. H2OstratX.GE.0.)
      *   FULGAS(1)=FULGAS(1)*H2OstratX
-      if(.not. end_of_day .or. O3_yr==0.)
+      if(.not. end_of_day .or. O3_yr==0)
      *   FULGAS(3)=FULGAS(3)*O3X
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X

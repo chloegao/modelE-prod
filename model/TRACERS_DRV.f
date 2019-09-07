@@ -5627,7 +5627,7 @@ C**** Next line for fastj photon fluxes to vary with time:
 #endif /* TRACERS_SPECIAL_Shindell */
 
 #if defined DYNAMIC_BIOMASS_BURNING && defined ANTHROPOGENIC_FIRE_MODEL
-      trans_emis_overr_yr=ABS(o3_yr) ! note: for now, ignores aer_int_yr
+      trans_emis_overr_yr=o3_yr ! note: for now, ignores aer_int_yr
       if(trans_emis_overr_yr > 0)then
         xyear=trans_emis_overr_yr
       else
@@ -5653,7 +5653,7 @@ C**** Next line for fastj photon fluxes to vary with time:
 ! day overriding yet, because of that.
 #ifdef TRACERS_SPECIAL_Shindell
         if (isChemTracer) then
-          trans_emis_overr_yr=ABS(o3_yr)
+          trans_emis_overr_yr=o3_yr
           if(trans_emis_overr_yr > 0)then
             xyear=trans_emis_overr_yr
           else

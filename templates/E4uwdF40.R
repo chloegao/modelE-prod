@@ -145,7 +145,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.        ! don't include 2nd indirect effect (used 0.0036)
 albsn_yr=1850
 dalbsnX=.024
-o3_yr=-1850
+o3_yr=1850
 CO2X=1.
 
 variable_orb_par=0
