@@ -2083,7 +2083,7 @@ c
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
 c Oxidants
-        if (coupled_chem==0) then
+        if (coupled_chem.le.0) then
 #ifndef TRACERS_SPECIAL_Shindell
           k = k + 1
           jls_OHconk = k
@@ -7844,7 +7844,7 @@ C****
 
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
-      if (coupled_chem==0) call aerosol_gas_chem_prep ! testing moving it to beginning of tr3dsrc
+      if (coupled_chem.le.0) call aerosol_gas_chem_prep ! testing moving it to beginning of tr3dsrc
 #endif
 
 #ifdef TRACERS_SPECIAL_Shindell

@@ -63,7 +63,9 @@ c
       type (TracerBundle) :: tomasTracers
       type (TracerBundle) :: ampTracers
 
-!@dbparam COUPLED_CHEM: if 0 => uncoupled, if 1 => coupled
+!@dbparam COUPLED_CHEM: 0 means uncoupled; read files, 1 means coupled
+!@+ use chemistry and aerosol codes, -1 means uncoupled and use zero
+!@+ aerosols and don't read from files.
       integer :: COUPLED_CHEM = 0
 
 ! explosive volcano injections based on rundeck parameters

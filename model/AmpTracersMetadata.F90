@@ -463,7 +463,7 @@ contains
     call  H2SO4_setSpec('H2SO4')
     call  DMS_setSpec('DMS')  ! duplicate with Koch
     call  SO2_setSpec('SO2')  ! duplicate with Koch
-    if (.not. tracers_special_shindell .or. coupled_chem.eq.0) then
+    if (.not. tracers_special_shindell .or. coupled_chem.le.0) then
       call  H2O2_s_setSpec('H2O2_s') ! duplicate with Koch
     endif
     call  NH3_setSpec('NH3')  ! duplicate with nitrate
