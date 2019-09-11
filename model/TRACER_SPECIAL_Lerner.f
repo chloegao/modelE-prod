@@ -567,7 +567,7 @@ C**** Convert from kg/cm3/s to kg
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           factor = dtsrc*dz*1.d6    ! for 1/cm3->1/m3
           rprod = daily_O3_trop_prod(i,j,l)*factor     ! unit=kg/m2
-          rloss = daily_O3_trop_loss(i,j,l)*trm_col(l,n)
+          rloss = daily_O3_trop_loss(i,j,l)*dtsrc*trm_col(l,n)
           if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
      *             i,j,l,trm_col(l,n),rprod,rloss,itime
