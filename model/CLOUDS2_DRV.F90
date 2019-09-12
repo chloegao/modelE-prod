@@ -243,6 +243,7 @@ subroutine CONDSE
 #ifdef SCM
   use SCM_COM, only : SCMopt
 #endif
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
   ! Import modules needed for the COSP simulator
   use atm_com, only : zatmo
@@ -252,6 +253,7 @@ subroutine CONDSE
   use cosp_drv, only : init_cosp_gbx,run_cosp_sims,free_cosp_sims
   use cosp_drv, only : gbx,i_lscliq,i_lscice,i_lsrain,i_lssnow,i_cvcliq, &
     i_cvcice,i_cvrain,i_cvsnow,i_lsgrpl,cosp_bywc,cosp_byic
+#endif
 #endif
 #ifdef CFMIP3_SUBDD
   use CLOUDS, only : wmctwp,wmclwp
@@ -424,7 +426,25 @@ subroutine CONDSE
               grid%j_strt_halo:grid%j_stop_halo,LM,15) :: &
               Cloud_daily3d
 #endif
-
+#ifdef CFMIP3_SUBDD
+    !@var cfmip_ctp_mc cloud top pressure convective clouds for SUBDD output 'ctp_mc'
+    !@var cfmip_cbp_mc cloud base pressure convective clouds for SUBDD output 'cbp_mc'
+    !@var cfmip_dcnvfrq fraction time deep MC occurs for SUBDD output 'dcnvfrq'
+    !@var cfmip_dcnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
+    !@var cfmip_mc_twp MC total cloud water path for SUBDD output 'mc_twp'
+    !@var cfmip_mc_lwp MC liquid cloud water path for SUBDD output 'mc_twp'
+    !@var cfmip_wvp atmospheric water vapour column for SUBDD output 'qatm'
+    REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                      grid%j_strt_halo:grid%j_stop_halo) :: cfmip_ctp_mc, &
+                                                            cfmip_cbp_mc, &
+                                                            cfmip_dcnvfrq, &
+                                                            cfmip_mc_twp, &
+                                                            cfmip_mc_lwp, &
+                                                            cfmip_wvp, &
+                                                            cfmip_scnvfrq
+    REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
+                      grid%j_strt_halo:grid%j_stop_halo,lm) :: cfmip_mcamfx
+#endif
 !@var tau_thresh optical depth threshold for cloud-top diagnostics (-)
   real*8, parameter :: tau_thresh = 1d0
 !@var tau_sum cumulative layer-average stratiform cloud optical depth from TOA (-)
@@ -446,11 +466,13 @@ subroutine CONDSE
   integer :: iThread
   integer :: numThreads
   integer :: I_0thread, I_1thread, imaxj_thread
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
   ! Declare local variables for the COSP simulator
 !@var np_cosp grid/column index being passed to COSP
   integer :: np_cosp
   real*8 :: scale_pr_cosp
+#endif
 #endif
   call startTimer('CONDSE()')
   !**** Initialize
@@ -557,6 +579,7 @@ subroutine CONDSE
 #endif
   saveMCCLDTP(:,:)=undef
 
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
   if (mod(Itime+1,nsubdd_cosp).eq.0) then
     ! Trigger COSP (CFMIP Observation Simulator Package)
@@ -567,6 +590,7 @@ subroutine CONDSE
     ! Initialize COSP simulator data structures
     call init_cosp_gbx()
   endif ! nsubdd_cosp
+#endif
 #endif
 #ifdef CFMIP3_SUBDD
   cfmip_ctp_mc = 0.d0
@@ -915,6 +939,30 @@ subroutine CONDSE
           Cloud_daily(I,J,3) =  PLE(LMCMAX+1)*CLDMCL(LMCMAX)
 #endif
 #endif
+#ifdef CFMIP3_SUBDD  /* CFMIP3_SUBDD */
+          ! MC cloud top pressure
+          cfmip_ctp_mc(i,j) = ple(lmcmax+1)
+          ! MC cloud base pressure
+          cfmip_cbp_mc(i,j) = ple(lmcmin+1)
+          ! Fraction of Time deep MC Occurs
+          if (clddepij.gt.1e-6) cfmip_dcnvfrq(i,j)=cfmip_dcnvfrq(i,j)+1.
+          ! Fraction of Time Shallow MC Occurs
+          if(cldslwij.gt.1e-6) cfmip_scnvfrq(i,j)=cfmip_scnvfrq(i,j)+1.
+          ! MC total water path
+          cfmip_mc_twp(i,j) = max(0.d0, wmctwp)
+          ! MC liquid water path
+          cfmip_mc_lwp(i,j) = max(0.d0, wmclwp)
+          ! ! Column Water vapor
+          ! do l=1,lm
+          !   cfmip_wvp(i,j) = cfmip_wvp(i,j)+q(i,j,l)*ma(l,i,j)
+          ! enddo
+          do l=1,lmcmax
+            ! MC air mass flux, limit 100 [hPa/m2]
+            if (mcflx(l).gt.0d0 .and. mcflx(l).lt.100d0) then
+              cfmip_mcamfx(i,j,l) = max(0.d0, mcflx(l))
+            endif
+          enddo
+#endif  /* CFMIP3_SUBDD */
           ! Also save instantaneous MC cloud top pressure for SUBDDiags:
           saveMCCLDTP(i,j)=PLE(LMCMAX+1)
 
@@ -1098,7 +1146,12 @@ subroutine CONDSE
           !**** level 1 downfdraft mass flux/rho (m/s)
           DDM1(I,J) = DDMFLX(1)*RGAS*TSV/(GRAV*PEDN(1,I,J)*DTSrc)
         end if
-
+#ifdef CFMIP3_SUBDD
+          ! Column Water vapor
+          do l=1,lm
+            cfmip_wvp(i,j) = cfmip_wvp(i,j)+q(i,j,l)*ma(l,i,j)
+          enddo
+#endif
 #ifdef CACHED_SUBDD
         ! calculate profile changes and save initial values again
         do L=1,LM
@@ -1520,7 +1573,300 @@ subroutine CONDSE
                  fq_isccp(:,:)*axyp(i,j)
           end if
         end if
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM /* COSP_SIM */
+        !@auth Mike Bauer
+        !
+        ! Populate COSP data structures (Only for nsubdd_cosp)
+        ! See init_cosp_gbx() in COSP_drv.F90 for detailed description of
+        ! the gbx variables.
+        if (mod(Itime+1,nsubdd_cosp).eq.0) then
+          ! Geo-location Information for each grid being processed by COSP
+          ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          gbx%longitude(np_cosp) = modulo(lon_dg(i,1)+360.0,360.0)
+          gbx%latitude(np_cosp) = lat_dg(j,1)
+          ! Surface Information for each grid being processed by COSP
+          ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          gbx%land(np_cosp)=merge(1,0,pland.ge.0.5)
+          gbx%skt(np_cosp)=sqrt(sqrt(                                            &
+            (focean(i,j)+flake(i,j))*(1.-si_atm%rsi(i,j))*atmocn%gtempr(i,j)**4+ &
+            (focean(i,j)+flake(i,j))*si_atm%rsi(i,j) *atmice%gtempr(i,j)**4+     &
+            flice(i,j)*atmgla%gtempr(i,j)**4+fearth(i,j)*atmlnd%gtempr(i,j)**4))
+          gbx%psfc(np_cosp)=ple(1)*100.0
+          gbx%sunlit(np_cosp)=merge(1,0,cosz1(i,j).gt.0)
+          ! Column Based Information for each grid being processed by COSP, SFC -> TOA
+          ! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          gbx%p(np_cosp,:) = pl(:)*100.0
+          gbx%ph(np_cosp,:) = ple(1:lm)*100.
+          gbx%t(np_cosp,:) = tl(:)
+          gbx%q(np_cosp,:) = rh(:)*100.
+          gbx%sh(np_cosp,:) = ql(:)
+          gbx%zlev(np_cosp,:) = bygrav*gz(i,j,:)
+          ! Some quantities need to be dealt with by layer
+          do l=1,lm
+            if (l.eq.1) then
+              gbx%zlev_half(np_cosp,l) = 0.5*bygrav*(gz(i,j,l)+zatmo(i,j))
+            else
+              gbx%zlev_half(np_cosp,l) = 0.5*bygrav*(gz(i,j,l)+gz(i,j,l-1))
+            endif
+            gbx%tca(np_cosp,l) = min(1.d0,cldmcl(l)+cldssl(l))
+            if (cldssl(l).le.teeny) then
+              ! No LS cloud, ensure consistency
+              gbx%dtau_s(np_cosp,l) = 0.0
+              gbx%dem_s(np_cosp,l) = 0.0
+              gbx%mr_hydro(np_cosp,l,i_lscliq) = 0.0
+              gbx%reff(np_cosp,l,i_lscliq) = 0.0
+              gbx%mr_hydro(np_cosp,l,i_lscice) = 0.0
+              gbx%reff(np_cosp,l,i_lscice) = 0.0
+            else
+              gbx%dtau_s(np_cosp,l) = taussl(l)
+              gbx%dem_s(np_cosp,l) = 0.0
 
+              ! Trigger by latent heat test
+              if (svlhxl(l).eq.lhe) then ! LS Cloud Water
+                if (qclx(l).gt.teeny) then
+                    ! Non-zero LS cloud water mass
+                    gbx%mr_hydro(np_cosp,l,i_lscliq) = qclx(l)
+                    gbx%dem_s(np_cosp,l) = 1.-exp(-taussl(l)*cosp_bywc)
+                    if (flag_re_cosp) then
+                      if (reff_cosp(l).le.teeny) then
+                        ! Zero EffRad, ensure consistency
+                        gbx%mr_hydro(np_cosp,l,i_lscliq) = 0.0
+                        gbx%reff(np_cosp,l,i_lscliq) = 0.0
+                        gbx%dem_s(np_cosp,l) = 0.0
+                        gbx%dtau_s(np_cosp,l) = 0.0
+                      else
+                        gbx%reff(np_cosp,l,i_lscliq) = 1.e-6*reff_cosp(l)
+                      endif ! teeny
+                    endif ! flag_re_cosp
+                else
+                  ! Zero LS cloud water mass, ensure consistency
+                  gbx%mr_hydro(np_cosp,l,i_lscliq) = 0.0
+                  gbx%dem_s(np_cosp,l) = 0.0
+                  gbx%dtau_s(np_cosp,l) = 0.0
+                  if (flag_re_cosp) gbx%reff(np_cosp,l,i_lscliq) = 0.0
+                endif ! qclx
+              endif ! LS Cloud Water
+
+              ! Trigger by latent heat test
+              if (svlhxl(l).eq.lhs) then ! LS Cloud Ice
+                if (qcix(l).gt.teeny) then
+                  ! Non-zero LS cloud ice mass
+                  gbx%mr_hydro(np_cosp,l,i_lscice) = qcix(l)
+                  gbx%dem_s(np_cosp,l) = 1.-exp(-taussl(l)*cosp_byic)
+                  if (flag_re_cosp) then
+                    if (reff_cosp(l).le.teeny) then
+                      ! Zero EffRad, ensure consistency
+                      gbx%mr_hydro(np_cosp,l,i_lscice) = 0.0
+                      gbx%reff(np_cosp,l,i_lscice) = 0.0
+                      gbx%dem_s(np_cosp,l) = 0.0
+                      gbx%dtau_s(np_cosp,l) = 0.0
+                    else
+                      gbx%reff(np_cosp,l,i_lscice) = 1.e-6*reff_cosp(l)
+                    endif ! teeny
+                  endif ! flag_re_cosp
+                else
+                  ! Zero LS cloud ice mass, ensure consistency
+                  gbx%mr_hydro(np_cosp,l,i_lscice) = 0.0
+                  gbx%dem_s(np_cosp,l) = 0.0
+                  gbx%dtau_s(np_cosp,l) = 0.0
+                  if (flag_re_cosp) gbx%reff(np_cosp,l,i_lscice) = 0.0
+                endif ! qcix
+              endif ! LS Cloud Ice
+            endif ! cldssl
+
+            ! Question: No need to include flag_pfluxes_cosp as never happens (as in Sandbox)?
+            if (lhp(l).eq.lhe) then ! LS Rain
+              if (flag_pfluxes_cosp) then
+                gbx%mr_hydro(np_cosp,l,i_lsrain) = 50.*(prebar1(l)+prebar1(l+1))
+              else
+                if (0.5*(prebar1(l)+prebar1(l+1)).ge.teeny) then
+                  ! Because if prebar1(l) and prebar1(l+1) zero, the following
+                  ! will still be non-zero
+                  gbx%mr_hydro(np_cosp,l,i_lsrain) = 50.*dtsrc*grav*           &
+                    ((prebar1(l)*byam(l))+(prebar1(l+1)*byam(l+1)))
+                endif
+              endif ! flag_pfluxes_cosp
+              if (gbx%mr_hydro(np_cosp,l,i_lsrain).gt.teeny) then
+                ! Non-zero LS rain mass
+                if (flag_re_cosp) then
+                  if (reffp_cosp(l).le.teeny) then
+                    ! Zero EffRad, ensure consistency
+                    gbx%reff(np_cosp,l,i_lsrain) = 0.0
+                    gbx%mr_hydro(np_cosp,l,i_lsrain) = 0.0
+                  else
+                   gbx%reff(np_cosp,l,i_lsrain) = 1.e-6*reffp_cosp(l)
+                  endif ! teeny
+                endif ! flag_re_cosp
+              else
+                ! Zero LS rain mass, ensure consistency
+                gbx%mr_hydro(np_cosp,l,i_lsrain) = 0.0
+                if (flag_re_cosp) gbx%reff(np_cosp,l,i_lsrain) = 0.0
+              endif ! mr_hydro
+            endif  ! LS Rain
+
+            ! Question: Can there be LS Rain and Snow at the same time? if/else if
+            if (lhp(l).eq.lhs) then ! LS Snow
+              if (flag_pfluxes_cosp) then
+                gbx%mr_hydro(np_cosp,l,i_lssnow) = 50.*(prebar1(l)+prebar1(l+1))
+              else
+                if (0.5*(prebar1(l)+prebar1(l+1)).ge.teeny) then
+                  ! Because if prebar1(l) and prebar1(l+1) zero, the following
+                  ! will still be non-zero
+                  gbx%mr_hydro(np_cosp,l,i_lssnow) = 50.*dtsrc*grav*            &
+                    ((prebar1(l)*byam(l))+(prebar1(l+1)*byam(l+1)))
+                endif
+              endif  ! flag_pfluxes_cosp
+              if (gbx%mr_hydro(np_cosp,l,i_lssnow).gt.teeny) then
+                ! Non-zero LS snow mass
+                if (flag_re_cosp) then
+                  if (reffp_cosp(l).le.teeny) then
+                      ! Zero EffRad, ensure consistency
+                      gbx%reff(np_cosp,l,i_lssnow) = 0.0
+                      gbx%mr_hydro(np_cosp,l,i_lssnow) = 0.0
+                  else
+                    gbx%reff(np_cosp,l,i_lssnow) = 1.e-6*reffp_cosp(l)
+                  endif ! teeny
+                endif ! flag_re_cosp
+              else
+                ! Zero LS snow mass, ensure consistency
+                gbx%mr_hydro(np_cosp,l,i_lssnow) = 0.0
+                if (flag_re_cosp) gbx%reff(np_cosp,l,i_lssnow) = 0.0
+              endif ! mr_hydro
+            endif ! LS Snow
+
+            ! LS Graupel, N/A modelE
+            gbx%mr_hydro(np_cosp,l,i_lsgrpl) = 0.0
+            gbx%reff(np_cosp,l,i_lsgrpl) = 0.0
+
+            ! MC Cloud and Precip
+            if (cldmcl(l).le.teeny) then
+              ! No MC cloud ensure consistency
+              gbx%cca(np_cosp,l) = 0.0
+              gbx%dtau_c(np_cosp,l) = 0.0
+              gbx%dem_c(np_cosp,l) = 0.0
+              gbx%mr_hydro(np_cosp,l,i_cvcliq) = 0.0
+              gbx%reff(np_cosp,l,i_cvcliq) = 0.0
+              gbx%mr_hydro(np_cosp,l,i_cvcice) = 0.0
+              gbx%reff(np_cosp,l,i_cvcliq) = 0.0
+            else
+              gbx%cca(np_cosp,l) = min(1.d0, cldmcl(l))
+              gbx%dtau_c(np_cosp,l) = taumcl(l)
+              gbx%dem_c(np_cosp,l) = 0.0
+              if (svlatl(l).eq.lhe) then ! MC Cloud Water
+                if (ccl_cosp(l).gt.teeny) then
+                  ! Non-zero MC cloud water mass
+                  gbx%mr_hydro(np_cosp,l,i_cvcliq) = ccl_cosp(l)
+                  gbx%dem_c(np_cosp,l) = 1.-exp(-taumcl(l)*cosp_bywc)
+                  if (flag_re_cosp) then
+                    if (csizmc(l,i,j).le.teeny) then
+                      ! Zero EffRad, ensure consistency
+                      gbx%reff(np_cosp,l,i_cvcliq) = 0.0
+                      gbx%mr_hydro(np_cosp,l,i_cvcliq) = 0.0
+                      gbx%dem_c(np_cosp,l) = 0.0
+                      gbx%dtau_c(np_cosp,l) = 0.0
+                    else
+                      ! Question: is csizmc MC Cloud Water only?
+                      gbx%reff(np_cosp,l,i_cvcliq) = 1.0e-6*csizmc(l,i,j)
+                    endif ! teeny
+                  endif ! flag_re_cosp
+                else
+                  ! Zero MC cloud liq mass, ensure consistency
+                  gbx%mr_hydro(np_cosp,l,i_cvcliq) = 0.0
+                  gbx%dem_c(np_cosp,l) = 0.0
+                  gbx%dtau_c(np_cosp,l) = 0.0
+                  if (flag_re_cosp) gbx%reff(np_cosp,l,i_cvcliq) = 0.0
+                endif ! ccl_cosp
+              endif ! MC Cloud Water
+
+              ! Question: Can svlatl test if if/else if?
+              if (svlatl(l).eq.lhs) then ! MC Cloud Ice
+                if (ccl_cosp(l).gt.teeny) then
+                  ! Non-zero MC cloud ice mass
+                  gbx%mr_hydro(np_cosp,l,i_cvcice) = ccl_cosp(l)
+                  gbx%dem_c(np_cosp,l) = 1.-exp(-taumcl(l)*cosp_byic)
+                  if (flag_re_cosp) then
+                    if (csizss(l,i,j).le.teeny) then
+                      ! Zero MC cloud ice effective radius, ensure consistency
+                      gbx%reff(np_cosp,l,i_cvcice) = 0.0
+                      gbx%mr_hydro(np_cosp,l,i_cvcice) = 0.0
+                      gbx%dem_c(np_cosp,l) = 0.0
+                      gbx%dtau_c(np_cosp,l) = 0.0
+                    else
+                      ! Question: is csizss MC Cloud Ice only?
+                      gbx%reff(np_cosp,l,i_cvcice) = 1.0e-6*csizss(l,i,j)
+                    endif ! teeny
+                  endif ! flag_re_cosp
+                else
+                  ! Zero MC cloud ice mass, ensure consistency
+                  gbx%mr_hydro(np_cosp,l,i_cvcice) = 0.0
+                  gbx%dem_c(np_cosp,l) = 0.0
+                  gbx%dtau_c(np_cosp,l) = 0.0
+                  if (flag_re_cosp) gbx%reff(np_cosp,l,i_cvcice) = 0.0
+                endif ! ccl_cosp
+              endif ! MC Cloud Ice
+            endif ! cldmcl
+
+            ! Question: No need to include flag_pfluxes_cosp as never happens (as in Sandbox)?
+            if (lhp(l).eq.lhe) then ! MC Rain
+              if (flag_pfluxes_cosp) then
+                gbx%mr_hydro(np_cosp,l,i_cvrain) = scale_pr_cosp*(ccp_cosp(l)  &
+                  +ccp_cosp(l+1))
+              else
+                gbx%mr_hydro(np_cosp,l,i_cvrain) = 0.5*(ccp_cosp(l)+ccp_cosp(l+1))
+              endif ! flag_pfluxes_cosp
+              if (gbx%mr_hydro(np_cosp,l,i_cvrain).gt.teeny) then
+                ! Non-zero MC cloud rain mass
+                if (flag_re_cosp) then
+                  if (csizmc(l,i,j).le.teeny) then
+                    ! Zero MC rain effective radius
+                    gbx%reff(np_cosp,l,i_cvrain) = 0.0
+                    gbx%mr_hydro(np_cosp,l,i_cvrain) = 0.0
+                  else
+                    ! Rain only?
+                    gbx%reff(np_cosp,l,i_cvrain) = 1.0e-6*csizmc(l,i,j)
+                  endif ! teeny
+                endif ! flag_re_cosp
+              else
+                ! Zero MC rain mass
+                gbx%mr_hydro(np_cosp,l,i_cvrain) = 0.0
+                if (flag_re_cosp) gbx%reff(np_cosp,l,i_cvrain) = 0.0
+              endif ! mr_hydro
+            endif ! MC Rain
+
+            ! Question: Can there be MC Rain and Snow at the same time? if/else if
+            if (lhp(l).eq.lhs) then ! MC Snow
+              if (flag_pfluxes_cosp) then
+                gbx%mr_hydro(np_cosp,l,i_cvsnow) = scale_pr_cosp*              &
+                  (ccp_cosp(l)+ccp_cosp(l+1))
+              else
+                gbx%mr_hydro(np_cosp,l,i_cvsnow) = 0.5*(ccp_cosp(l)+ccp_cosp(l+1))
+              endif ! flag_pfluxes_cosp
+              if (gbx%mr_hydro(np_cosp,l,i_cvsnow).gt.teeny) then
+                ! Non-zero MC cloud snow mass
+                if (flag_re_cosp) then
+                  if (csizss(l,i,j).le.teeny) then
+                    ! Zero MC snow effective radius, ensure consistency
+                    gbx%reff(np_cosp,l,i_cvsnow) = 0.0
+                    gbx%mr_hydro(np_cosp,l,i_cvsnow) = 0.0
+                  else
+                    ! Question: is csizss MC Cloud Ice only?
+                   gbx%reff(np_cosp,l,i_cvsnow) = 1.0e-6*csizss(l,i,j)
+                  endif ! teeny
+                endif ! flag_re_cosp
+              else
+                ! Zero MC snow mass, ensure consistency
+                gbx%mr_hydro(np_cosp,l,i_cvsnow) = 0.0
+                if (flag_re_cosp) gbx%reff(np_cosp,l,i_cvsnow) = 0.0
+              endif ! mr_hydro
+            endif ! MC Snow
+          end do ! lm
+          ! Increment COSP grid counter
+          np_cosp = np_cosp + 1
+        endif ! nsubdd_cosp
+        ! Done Populating COSP data structures
+#endif /* COSP_SIM */
+#endif
         !**** Peak static stability diagnostic
         SSTAB=-1.d30
         do L=1,DCL
@@ -2032,6 +2378,14 @@ subroutine CONDSE
 !C     To fix inconsistent aerosol size distribution and water eqm.
       CALL aeroupdate
 #endif
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM
+  ! Trigger COSP (CFMIP Observation Simulator Package (Only sample nsubdd_cosp)
+  if (mod(itime+1,nsubdd_cosp).eq.0) then
+    call run_cosp_sims()
+  endif
+#endif
+#endif
   !
   !     NOW UPDATE THE MODEL WINDS
   !
@@ -2083,6 +2437,10 @@ subroutine CONDSE
       endif
     enddo;        enddo
     call inc_subdd(subdd,k,sddarr)
+#ifdef CFMIP3_SUBDD
+  case ('mc_lwp')
+    call inc_subdd(subdd,k,cfmip_mc_lwp)
+#endif
   end select
   enddo
   enddo
@@ -2100,6 +2458,10 @@ subroutine CONDSE
     call inc_subdd(subdd,k,cldss,jdim=3)
   case ('cldmc')
     call inc_subdd(subdd,k,cldmc,jdim=3)
+#ifdef CFMIP3_SUBDD
+  case ('mcamfx')
+    call inc_subdd(subdd,k,cfmip_mcamfx)
+#endif
   end select
   enddo
   enddo
@@ -2121,6 +2483,22 @@ subroutine CONDSE
     call inc_subdd(subdd,k,saveMCLDI)
   case ('isccp_hcld')
     call inc_subdd(subdd,k,saveHCLDI)
+#ifdef CFMIP3_SUBDD  /* CFMIP3_SUBDD */
+  case ('ctp_mc')
+    call inc_subdd(subdd,k,cfmip_ctp_mc)
+  case ('cbp_mc')
+    call inc_subdd(subdd,k,cfmip_cbp_mc)
+  case ('dcnvfrq')
+    call inc_subdd(subdd,k,cfmip_dcnvfrq)
+  case ('mc_twp')
+    call inc_subdd(subdd,k,cfmip_mc_twp)
+  ! case ('mc_lwp')
+  !   call inc_subdd(subdd,k,cfmip_mc_lwp)
+  case ('qatm')
+    call inc_subdd(subdd,k,cfmip_wvp)
+  case ('scnvfrq')
+    call inc_subdd(subdd,k,cfmip_scnvfrq)
+#endif  /* CFMIP3_SUBDD */
   end select
   enddo
   enddo
@@ -2151,6 +2529,18 @@ subroutine CONDSE
   end select
   enddo
   enddo
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM
+  ! Save requested COSP variables to disk (instantaneous)
+  ! using the SUBDD framework (Only sample nsubdd_cosp)
+  if (mod(Itime+1,nsubdd_cosp).eq.0) then
+    ! Save requested COSP variables using the SUBDD framework.
+    call save_cosp(grid)
+    ! Release COSP data structure memory
+    call free_cosp_sims()
+  endif
+#endif
+#endif
 
 #ifdef TRACERS_WATER
 
@@ -2290,6 +2680,16 @@ subroutine init_CLD(istart)
   USE mo_bulk2m_driver_gcm, ONLY: init_bulk2m_driver
 #ifdef TRACERS_AMP
   USE AERO_CONFIG, ONLY: NMODES
+#endif
+#endif
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM
+  ! Import modules needed for the COSP simulator
+  use MODEL_COM, only : itime
+  use domain_decomp_atm, only : hasSouthPole, hasNorthPole
+  use resolution, only : im
+  use clouds_com, only : npoints_cosp,flag_pfluxes_cosp,flag_re_cosp
+  use cosp_drv, only : init_cosp
 #endif
 #endif
   implicit none
@@ -2500,7 +2900,23 @@ subroutine init_CLD(istart)
     call closeunit(iu_ISCCP)
 
   endif
-
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM
+  ! Number of grids in this domain, pole free, skipping halo
+  npoints_cosp = (1+I_1-I_0)*(1+J_1-J_0)
+  ! Deal with possible poles
+  if (hassouthpole(grid)) then
+    ! Domain contains a pole w/ single longitude
+    npoints_cosp = npoints_cosp - im + 1
+  end if
+  if (hasnorthpole(grid)) then
+    ! domain contains a pole w/ single longitude
+    npoints_cosp = npoints_cosp - im + 1
+  end if
+  ! Initialize COSP
+  call init_cosp(npoints_cosp,im,lm,flag_pfluxes_cosp,flag_re_cosp)
+#endif
+#endif
 end subroutine init_CLD
 
 subroutine qmom_topo_adjustments
@@ -2804,7 +3220,46 @@ end subroutine qmom_topo_adjustments
     lname = 'High Cloud Fraction', &
     units = 'fraction' &
        )
+#ifdef CFMIP3_SUBDD  /* CFMIP3_SUBDD */
+  arr(next()) = info_type_(                                            &
+    sname = 'ctp_mc',                                                  &
+    lname = 'Convective cloud top pressure',                           &
+    units = 'Pa',                                                      &
+    scale = 1d2)
 
+  arr(next()) = info_type_(                                            &
+    sname = 'cbp_mc',                                                  &
+    lname = 'Convective cloud base pressure',                          &
+    units = 'Pa',                                                      &
+    scale = 1d2)
+
+  arr(next()) = info_type_(                                            &
+     &  sname = 'dcnvfrq',                                             &
+     &  lname = 'Deep convective cloud occurrence',                    &
+     &  units = '%',                                                   &
+     &  scale = 1d2 )
+
+  arr(next()) = info_type_(                                            &
+    sname = 'mc_twp',                                                  &
+    lname = 'Convective total water path',                             &
+    units = 'kg/m^2')
+
+  ! arr(next()) = info_type_(                                            &
+  !   sname = 'mc_lwp',                                                  &
+  !   lname = 'Convective liquid water path',                            &
+  !   units = 'kg/m^2')
+
+  arr(next()) = info_type_(                                            &
+    sname = 'qatm',                                                    &
+    lname = 'Atmospheric water vapour column',                         &
+    units = 'kg/m^2')
+
+  arr(next()) = info_type_(                                            &
+    sname = 'scnvfrq',                                                 &
+    lname = 'Shallow convective cloud occurrence',                     &
+    units = '%',                                                       &
+    scale = 1d2)
+#endif  /* CFMIP3_SUBDD */
       return
       contains
       integer function next()

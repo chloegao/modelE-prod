@@ -369,6 +369,10 @@ module CLOUDS
   integer NLSW,NLSI,NMCW,NMCI
 !@var WMCLWP , WMCTWP moist convective LWP and total water path
   real*8 :: WMCLWP,WMCTWP
+#else  /* NOT CLD_AER_CDNC */
+#ifdef CFMIP3_SUBDD
+  real*8 :: WMCLWP,WMCTWP
+#endif
 #endif
 
 #if defined(CLD_AER_CDNC) || defined(BLK_2MOM)
@@ -387,6 +391,8 @@ module CLOUDS
          ENTALL(LM,2,LM),DETALL(LM,2,LM),MPLUMEALL(LM,2,LM), &
          PLUME_MAX(2,LM),PLUME_MIN(2,LM)
 #endif
+
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
 !@var ccl_cosp Mixing ratio of convective cloud [kg/kg]
       REAL*8 ccl_cosp(LM)
@@ -396,6 +402,7 @@ module CLOUDS
       REAL*8 reffp_cosp(LM)
 !@var ccp_cosp Mixing ratio of convective precipitation [kg/kg]
       REAL*8 ccp_cosp(LM+1)
+#endif
 #endif
 
 contains
@@ -874,11 +881,12 @@ contains
 !**** save initial values (which will be updated after subsid)
     SM1=SM
     QM1=QM
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
     ccp_cosp(:) = 0.
     ccl_cosp(:) = 0.
 #endif
-
+#endif
 !**** SAVE ORIG PROFILES
     SMOLD(:) = SM(:)
     SMOMOLD(:,:) = SMOM(:,:)
@@ -2569,10 +2577,12 @@ DOWNDRAFT: do L=LDRAFT,1,-1
 
         PRCP=COND(LMAX)
         PRHEAT=CDHEAT(LMAX)
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
         DO L=1,LM
           ccl_cosp(L) = COND(L)*FMC1*BYAM(L)
         ENDDO
+#endif
 #endif
         !**** check whether environment is the same phase as cond
         TOLD=SMOLD(LMAX)*PLK(LMAX)*BYAM(LMAX)
@@ -2853,8 +2863,10 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
           end if
         end if
         PRCPMC=PRCPMC+PRCP*FMC1
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
         ccp_cosp(LMIN) = FMC1*PRCP*BYAM(LMIN)
+#endif
 #endif
 #ifdef TRACERS_WATER
         TRPRMC(1:NTX) = TRPRMC(1:NTX) + TRPRCP(1:NTX)*FMC1
@@ -2935,8 +2947,12 @@ EVAP_PRECIP: do L=LMAX-1,1,-1
     WMCLWP=0.  ; WMCTWP=0. ; ACDNWM=0. ; ACDNIM=0.
     AREWM=0.   ; AREIM=0.  ; ALWWM=0.  ; ALWIM=0.
     NMCW=0     ; NMCI=0
+#else  /* NOT CLD_AER_CDNC */
+#ifdef CFMIP3_SUBDD
+    wmctwp=0.
+    wmclwp=0.
 #endif
-
+#endif
 OPTICAL_THICKNESS: do L=1,LMCMAX
       TL(L)=(SM(L)*BYAM(L))*PLK(L)
       TEMWM=(TAUMCL(L)-SVWMXL(L)*AIRM(L))*1.d2*BYGRAV
@@ -2945,8 +2961,12 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #ifdef CLD_AER_CDNC
       WMCTWP=WMCTWP+TEMWM
       if(TL(L).ge.TF) WMCLWP=WMCLWP+TEMWM
+#else  /* NOT CLD_AER_CDNC */
+#ifdef CFMIP3_SUBDD
+      wmctwp=wmctwp+temwm
+      if(tl(l).ge.tf) wmclwp=wmclwp+temwm
 #endif
-
+#endif
       ! pick up cloud and precip water profiles
       TEMWM=TAUMCL(L)-CONDPT(L)*FMC1-SVWMXL(L)*AIRM(L)
       if(SVLATL(L).eq.LHE)then
@@ -3096,8 +3116,10 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
 #ifdef CLD_AER_CDNC
     use cld_aer_cdnc_mod
 #endif
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
       use clouds_com, only : nsubdd_cosp
+#endif
 #endif
     implicit none
 
@@ -3399,9 +3421,11 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
     PREICE(LMCLD+1)=0.
     SSHR=0.
     DCTEI=0.
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
     reff_cosp = 0.
     reffp_cosp = 0.
+#endif
 #endif
     !****
     !**** MAIN L LOOP FOR LARGE-SCALE CONDENSATION, PRECIPITATION AND CLOUDS
@@ -4868,7 +4892,8 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
       if(FCLD.le.teeny) TAUSSL(L)=0.
       if(TAUSSL(L).gt.100.) TAUSSL(L)=100.
       if(LHX.eq.LHE) WMSUM=WMSUM+TEM      ! pick up water path
-#ifdef COSP_SIM
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM  /* COSP_SIM */
       !@auth Mike Bauer
       ! Store effective radius of LS cloud particles and/or precipitation.
       !   Special efforts are made to avoid several inconsistencies that
@@ -4953,6 +4978,7 @@ OPTICAL_THICKNESS: do L=1,LMCMAX
           reffp_cosp(L) = RCLDE1
         endif ! CLDSSL
       endif ! nsubdd_cosp
+#endif  /* COSP_SIM */
 #endif
     end do OPTICAL_THICKNESS
 

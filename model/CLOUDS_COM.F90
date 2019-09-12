@@ -105,6 +105,7 @@ module CLOUDS_COM
 #else
   integer,parameter :: ncol = 20    !@var ncol number of subcolumns
 #endif
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
 !@dbparam nsubdd_cosp: sub-daily diag freq for COSP simulator (set in rundeck)
 !@var npoints_cosp: number of grids in a given spatial sub-domain for the COSP simulator
@@ -112,6 +113,7 @@ module CLOUDS_COM
 !@var flag_re_cosp trigger reflecting rundeck pre-processor flag COSP_USERE
   integer :: nsubdd_cosp,npoints_cosp
   logical :: flag_pfluxes_cosp,flag_re_cosp
+#endif
 #endif
 
 contains
@@ -231,11 +233,14 @@ subroutine ALLOC_CLOUDS_COM(grid)
   use CLOUDS_COM, only : NACTC,NAERC
 #endif
 #endif
+#ifdef CACHED_SUBDD
 #ifdef COSP_SIM
+  ! use dictionary_mod, only : get_param, is_set_param, sync_param
   use dictionary_mod, only : get_param, is_set_param
   use clouds_com, only : nsubdd_cosp,flag_pfluxes_cosp,flag_re_cosp
+  ! use domain_decomp_atm, only : am_i_root
 #endif
-
+#endif
   implicit none
   type (DIST_GRID), intent(IN) :: grid
 
@@ -363,8 +368,14 @@ subroutine ALLOC_CLOUDS_COM(grid)
   NAERC      = 1.0D-30
 #endif
 #endif
-#ifdef COSP_SIM
-  ! Set of COSP parameters
+#ifdef CACHED_SUBDD
+#ifdef COSP_SIM /* COSP_SIM */
+  ! Trigger SUBDD COSP sampling at nsubdd_cosp
+  !call sync_param('nsubdd_cosp', nsubdd_cosp, default=0)
+  !call sync_param('nsubdd_cosp', nsubdd_cosp)
+  !if( am_i_root() .and. nsubdd_cosp <= 0 )then
+  !  call stop_model('nsubdd_cosp must be +ve when COSP_SIM defined',255)
+  !endif
   if(is_set_param("nsubdd_cosp")) call get_param("nsubdd_cosp",nsubdd_cosp)
 #ifdef COSP_PFLUX
   flag_pfluxes_cosp = .true.
@@ -376,6 +387,7 @@ subroutine ALLOC_CLOUDS_COM(grid)
 #else
   flag_re_cosp = .false.
 #endif
+#endif /* COSP_SIM */
 #endif
 
 end subroutine ALLOC_CLOUDS_COM
@@ -445,7 +457,7 @@ subroutine new_io_clouds(fid,iaction)
   return
 end subroutine new_io_clouds
 
-#ifdef COSP_SIM
+#ifdef COSP_SIM /* COSP_SIM */
   subroutine save_cosp(grid)
   !------------------------------------------------------------------------------
   !@sum  Pass COSP output data structures to modelE SUBDD for storage.
@@ -550,4 +562,4 @@ end subroutine new_io_clouds
       endif ! cflag
     enddo
   end subroutine save_cosp
-#endif
+#endif /* COSP_SIM */
