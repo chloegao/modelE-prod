@@ -342,7 +342,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param MWabyMWw ratio of molecular weights of air/water
 !@param kboltJ Boltzmann constant in J K-1
-!@param MASSN2O5 presently mystery hardcode in RKBYPIM calculation
+!@param MASSN2O5 mass of one molecule of N2O5 in kg for RKBYPIM calc
 !@param kboltErg Boltzmann constant in erg K-1
 !@param boltAvog8byPi derived convenience param kboltErg*avog*8/pi
 !@param RKBYPIM derived convenience parameter (8./pi)*kboltJ/MASSN2O5
@@ -443,7 +443,7 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
      &                      kboltJ       = gasc/avog,
-     &                      MASSN2O5     = 1.793d-25, ! ? see RKBYPIM
+     &                      MASSN2O5     = 1.793d-25,
 !               RKBYPIM was 1.961d2 = 8.*1.38062D-23/3.14159/1.793D-25
      &                      RKBYPIM      = 8.d0*kboltJ/(pi*MASSN2O5),
      &                      zlbatm       = 4.d0,
