@@ -3,7 +3,7 @@
       module photolysis
 
       USE DOMAIN_DECOMP_ATM, only: write_parallel 
-      use constant, only: pO2
+      use constant, only: pO2,avog,mair,grav
       use RAD_COM, only: o2x
 #ifdef TRACERS_ON
       use RAD_COM, only: njaero
@@ -84,13 +84,14 @@
       integer, dimension(nlfastj) :: jaddlv,jadsub
 !@var jaddto Cumulative total of new levels to be added
       integer, dimension(nlfastj+1) :: jaddto
-!@param masfac Conversion factor, pressure to column density (fastj2)
+!@param masfac converts pressure(hPa) to column density(molecules cm-2).
+!@+ It's 1.d1 factor is (kg)(hPa)/m2 --> (g)(Pa)/cm2
 !@param odmax Maximum allowed optical depth, above which they're scaled
 !@param dtausub # optic. depths at top of cloud requiring subdivision
 !@param dtaumax max optical depth above which must instert new level
 !@param dsubdiv additional levels in first dtausub of cloud (fastj2) 
 !@param zzht Scale height above top of atmosphere (cm)
-      real*8, parameter :: masfac=100.d0*6.022d23/28.97d0/9.8d0/10.d0 !XXXXXXXXX
+      real*8, parameter :: masfac=1.d1*avog/(mair*grav)
      &                    ,odmax=200.d0
      &                    ,dtausub=1.d0
      &                    ,dtaumax=1.0d0
@@ -552,6 +553,7 @@ C**** GLOBAL parameters and variables:
       use model_com, only: modelEclock
       USE RAD_COM,only: tau_as
       USE RADPAR, only : nraero_aod=>ntrace
+      USE CONSTANT, only: avog,gasc
 #ifdef TRACERS_ON
       use OldTracer_mod, only: trname
 #endif
@@ -561,6 +563,12 @@ C**** GLOBAL parameters and variables:
 C**** Local parameters and variables and arguments:
 !@param dlogp 10.d0**(-2./16.)
       real*8, parameter :: dlogp=7.49894209d-1 !=10^(-.125)
+!@param kboltJ_photo Boltzmann constant in J K-1
+      real*8, parameter :: kboltJ_photo = gasc/avog
+!@param cboltz_photo Boltzmann constant and other unit conversions.
+!@+ E.g. the 1.d4=1d2*1d2*1d2*1d-2 is hPa/m3 --> Pa/cm3. See cboltz
+!@+ in the chemistry.
+      real*8, parameter :: cboltz_photo=1.d4*kboltJ_photo
 !@var nslon,nslat I and J spatial indicies passed from master chem
 !@var pstd Approximate pressures of levels for supplied climatology
 !@var skip_tracer logical to not define aer2 for a rad code tracer
@@ -636,7 +644,7 @@ c Overwrite O3 with GISS chemistry O3:
 c  Calculate effective altitudes using scale height at each level
       zfastj2(1) = 0.d0
       do LL=1,NLGCM
-        scaleh=1.3806d-19*masfac*TFASTJ(LL)
+        scaleh=cboltz_photo*masfac*TFASTJ(LL)
         zfastj2(LL+1)=zfastj2(LL)-
      &                (log(PFASTJ2(LL+1)/PFASTJ2(LL))*scaleh)
       enddo
