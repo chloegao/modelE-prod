@@ -201,6 +201,15 @@
       subroutine initTracerMetadata()
 !------------------------------------------------------------------------------
       use TRACER_COM, only: COUPLED_CHEM
+      use TRACER_COM, only: ex_volc_num
+      use TRACER_COM, only: ex_volc_jday
+      use TRACER_COM, only: ex_volc_year
+      use TRACER_COM, only: ex_volc_lat
+      use TRACER_COM, only: ex_volc_lon
+      use TRACER_COM, only: ex_volc_bot
+      use TRACER_COM, only: ex_volc_top
+      use TRACER_COM, only: ex_volc_SO2
+      use TRACER_COM, only: ex_volc_H2O
       use Dictionary_mod, only: set_param, sync_param
       use RunTimeControls_mod, only: tracers_special_shindell
       use RunTimeControls_mod, only: tracers_terp
@@ -288,6 +297,7 @@
       class (Tracer), pointer :: pTracer
       external setDefaultSpec
       integer :: i
+      integer :: ex
 
       call sync_param( "COUPLED_CHEM", COUPLED_CHEM )
 #ifdef TRACERS_SPECIAL_Shindell
@@ -296,6 +306,50 @@
 
 ! call routine to read/set up sectors for emissions:
       call setup_emis_sectors()
+
+! explosive volcano injections based on rundeck parameters
+      call sync_param("ex_volc_num", ex_volc_num)
+      if (ex_volc_num>0) then
+        allocate(ex_volc_jday(ex_volc_num))
+        allocate(ex_volc_year(ex_volc_num))
+        allocate(ex_volc_lat(ex_volc_num))
+        allocate(ex_volc_lon(ex_volc_num))
+        allocate(ex_volc_bot(ex_volc_num))
+        allocate(ex_volc_top(ex_volc_num))
+        allocate(ex_volc_SO2(ex_volc_num))
+        allocate(ex_volc_H2O(ex_volc_num))
+
+! set default emissions to zero
+        ex_volc_SO2(:)=0.d0
+        ex_volc_H2O(:)=0.d0
+
+        call sync_param("ex_volc_jday", ex_volc_jday, ex_volc_num)
+        call sync_param("ex_volc_year", ex_volc_year, ex_volc_num)
+        call sync_param("ex_volc_lat", ex_volc_lat, ex_volc_num)
+        call sync_param("ex_volc_lon", ex_volc_lon, ex_volc_num)
+        call sync_param("ex_volc_bot", ex_volc_bot, ex_volc_num)
+        call sync_param("ex_volc_top", ex_volc_top, ex_volc_num)
+        call sync_param("ex_volc_SO2", ex_volc_SO2, ex_volc_num)
+        call sync_param("ex_volc_H2O", ex_volc_H2O, ex_volc_num)
+
+        do ex=1,ex_volc_num
+          if (ex_volc_jday(ex)<=0 .or. ex_volc_jday(ex)>366)
+     &      call stop_model('ex_volc_jday(ex) out of bounds', 255)
+          if (ex_volc_year(ex)<=0)
+     &      call stop_model('ex_volc_year(ex)<=0', 255)
+          if (ex_volc_lat(ex)<=-90.d0 .or. ex_volc_lat(ex)>90.d0)
+     &      call stop_model('ex_volc_lat(ex) out of bounds', 255)
+          if (ex_volc_lon(ex)<=-180.d0 .or. ex_volc_lon(ex)>180.d0)
+     &      call stop_model('ex_volc_lon(ex) out of bounds', 255)
+          if (ex_volc_bot(ex)>=ex_volc_top(ex))
+     &      call stop_model('ex_volc_bot(ex)>=ex_volc_top(ex)', 255)
+          if (ex_volc_SO2(ex)<0.d0)
+     &      call stop_model('ex_volc_SO2(ex)<0.d0', 255)
+          if (ex_volc_H2O(ex)<0.d0)
+     &      call stop_model('ex_volc_H2O(ex)<0.d0', 255)
+        enddo
+      endif
+
       call initializeOldTracers(tracers, setDefaultSpec)
 
 ! ***  BEGIN TRACER METADATA INITIALIZATION
@@ -557,6 +611,14 @@
 #ifdef TRACERS_WATER
       use TRDIAG_com, only: to_per_mil
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: tune_NOx
+      use TRCHEM_Shindell_COM, only: tune_BVOC
+#endif  /* TRACERS_SPECIAL_Shindell */
+      use TRACER_COM, only: tune_BBsources
+#ifdef TRACERS_AEROSOLS_Koch
+      use aerosol_sources, only: tune_DMS
+#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_SEASALT
       use tracers_seasalt, only: tune_ss1, tune_ss2
 #endif  /* TRACERS_AEROSOLS_SEASALT */
@@ -594,10 +656,18 @@
 #ifdef BIOGENIC_EMISSIONS
       use biogenic_emis, only: base_isopreneX
 #endif
+      use RAD_COM, only: O3_yr
+      use TRCHEM_Shindell_COM, only: NOx_yr
+      use TRCHEM_Shindell_COM, only: CO_yr
+      use TRCHEM_Shindell_COM, only: VOC_yr
 #endif /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)  || (defined TRACERS_AEROSOLS_SEASALT)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
 #endif
 #ifdef TRACERS_AMP
       USE AMP_AEROSOL, only: AMP_RAD_KEY
@@ -637,6 +707,30 @@ C**** Synchronise tracer related parameters from rundeck
 C**** Decide on water tracer conc. units from rundeck if it exists
       call sync_param("to_per_mil",to_per_mil,ntm)
 #endif
+#ifdef TRACERS_SPECIAL_Shindell
+      call sync_param("tune_NOx",tune_NOx)
+      call sync_param("tune_BVOC",tune_BVOC)
+      call get_param("O3_yr", O3_yr, default=master_yr) ! duplicate of RAD_DRV
+      if (is_set_param("NOx_yr")) then
+        call get_param("NOx_yr",NOx_yr)
+      else
+        NOx_yr=O3_yr
+      endif
+      if (is_set_param("CO_yr")) then
+        call get_param("CO_yr",CO_yr)
+      else
+        CO_yr=O3_yr
+      endif
+      if (is_set_param("VOC_yr")) then
+        call get_param("VOC_yr",VOC_yr)
+      else
+        VOC_yr=O3_yr
+      endif
+#endif  /* TRACERS_SPECIAL_Shindell */
+      call sync_param("tune_BBsources",tune_BBsources)
+#ifdef TRACERS_AEROSOLS_Koch
+      call sync_param("tune_DMS",tune_DMS)
+#endif  /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_AEROSOLS_SEASALT
       call sync_param("tune_ss1",tune_ss1)
       call sync_param("tune_ss2",tune_ss2)
@@ -649,6 +743,26 @@ C**** determine year of emissions
       else
         aer_int_yr=master_yr
       endif
+      if (is_set_param("SO2_int_yr")) then
+        call get_param("SO2_int_yr",SO2_int_yr)
+      else
+        SO2_int_yr=aer_int_yr
+      endif
+      if (is_set_param("NH3_int_yr")) then
+        call get_param("NH3_int_yr",NH3_int_yr)
+      else
+        NH3_int_yr=aer_int_yr
+      endif
+      if (is_set_param("BC_int_yr")) then
+        call get_param("BC_int_yr",BC_int_yr)
+      else
+        BC_int_yr=aer_int_yr
+      endif
+      if (is_set_param("OC_int_yr")) then
+        call get_param("OC_int_yr",OC_int_yr)
+      else
+        OC_int_yr=aer_int_yr
+      endif
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       call sync_param("VBSemifact",VBSemifact,vbs_tr%nbins)
@@ -660,7 +774,6 @@ C**** set super saturation parameter for isotopes if needed
 #ifdef TRACERS_ON
       CALL sync_param("diag_rad",diag_rad)
       CALL sync_param("diag_aod_3d",diag_aod_3d)
-      CALL sync_param("save_dry_aod",save_dry_aod)
 #if (defined TRACERS_WATER) && (defined TRDIAG_WETDEPO)
       CALL sync_param("diag_wetdep",diag_wetdep)
 #endif

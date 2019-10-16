@@ -28,8 +28,19 @@ SAVEDISK=<ModelE_Support>/huge_space
 
 ## External libraries ##
 
+# Some of these options can be provided by environment modules (if you 
+# use them). Specify here only what is necessary. Options specified 
+# here will overwrite options proviided by environment modules.
+
 # NETCDFHOME - path to location of netcdf installation directory. 
 # NETCDFHOME=/opt/netcdf/3.6.3
+
+# MPI - set to YES if you want to compile the model for parallel 
+# execution on multiple CPU cores. Keep in mind, that functional 
+# MPI library should be installed on your computer and its type 
+# and location should be specified below.
+# This option can be overwritten from the compile line.
+MPI=NO
 
 # MPIDISTR - the MPI distribution you are using. Currently supported 
 # distributions are: 'intel, 'openmpi', 'mpich2', 'mvapich2', 'SCALI',
@@ -40,6 +51,14 @@ SAVEDISK=<ModelE_Support>/huge_space
 # only if compiler can't find correct MPI library and include files by
 # default)
 # MPIDIR=/opt/openmpi
+
+# MPILIBDIR - path to the location of MPI library. Set it only if 
+# it is different from the default $MPIDIR/lib
+# MPILIBDIR=/opt/openmpi/lib
+
+# MPIINCLUDEDIR - path to location of MPI include files. Set it only
+# if it is different from the default $MPIDIR/include
+# MPIINCLUDEDIR=/opt/openmpi/include
 
 # ESMF5_DIR - path to the installation directory of ESMF (version 5)
 # library. (Required only for Cubed Sphere simulations)

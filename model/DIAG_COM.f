@@ -567,6 +567,15 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_GICE, IJ_GWTR1, IJ_ZSNOW, IJ_AFLMLT, IJ_AERUNS, IJ_AERUNU,
      *     IJ_HTSOIL, IJ_HTSNOW, IJ_AINTRCP, IJ_MCCLDTP, IJ_MCCLDBS,
      *     IJ_TRSDN,
+     *     ij_tclssct,ij_rclssct,
+#ifdef CLD_AER_CDNC
+     *     ij_nclssct,
+#endif
+#ifdef TRACERS_AMP
+#ifdef BLK_2MOM
+     *     ij_ccnssct,
+#endif
+#endif
      *     IJ_TRSUP, IJ_CLDW, IJ_CLDI, IJ_QM, IJ_SSH, IJ_FWOC,
      *     IJ_DSKIN, IJ_DSKINSNOW, IJ_MCCVTP, IJ_MCCVBS,
      *     IJ_LI, IJ_LK,

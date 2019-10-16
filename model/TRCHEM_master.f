@@ -114,7 +114,10 @@ c
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
      &                  grid%j_strt_halo:grid%j_stop_halo,
-     &                  LM) :: mrno,mrno2,mro3,OH_conc,HO2_conc
+     &                  LM) :: mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &                         JO1D_rate,JNO2_rate
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: O3col
 #endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
@@ -2002,6 +2005,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=pOx(i,j,L)*(y(nn_Ox,L)+tempChangeOx)/y(nM,L)
         OH_conc(i,j,l)=y(nOH,L)
         HO2_conc(i,j,l)=y(nHO2,L)
+        JO1D_rate(i,j,l)=zj(l,rj%O3__O1D_O2)
+        JNO2_rate(i,j,l)=zj(l,rj%NO2__NO_O)
 #endif
      
 #ifdef TRACERS_HETCHEM
@@ -2025,6 +2030,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
         mro3(i,j,L)=0.d0
         OH_conc(i,j,L)=0.d0
         HO2_conc(i,j,L)=0.d0
+        JO1D_rate(i,j,L)=0.d0
+        JNO2_rate(i,j,L)=0.d0
       end do
 #endif
 
@@ -2050,6 +2057,10 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,OH_conc)
           case ('HO2_conc')
             call inc_subdd(subdd,k,HO2_conc)
+          case ('JO1D')
+            call inc_subdd(subdd,k,JO1D_rate)
+          case ('JNO2')
+            call inc_subdd(subdd,k,JNO2_rate)
           end select
         enddo ! k
       enddo ! igroup
@@ -2082,6 +2093,8 @@ CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC
             call inc_subdd(subdd,k,mrno2(:,:,1))
           case ('MRNOl1')
             call inc_subdd(subdd,k,mrno(:,:,1))
+          case ('MRO3l1max')
+            call inc_subdd(subdd,k,mro3(:,:,1))
           end select
         enddo ! k
       enddo ! igroup
@@ -2255,7 +2268,39 @@ c (radiation code wants atm-cm units):
         end do ! i
         if(prnchg)DU_O3(J)=1.d3*DU_O3(J)/IMAXJ(J)
       end do   ! j
-      
+
+#ifdef CACHED_SUBDD
+      ! (in future branch combine this accumulation with one for taijs;
+      ! here being very conservative to not change taijs by roundoff)
+      do j=J_0,J_1
+        do i=I_0,imaxj(j)
+          o3col(i,j)=0.d0
+          o3col(i,j)=o3col(i,j)+
+     &    sum( pOx(i,j,1:topLevelOfChemistry)*
+     &    (trm(i,j,1:topLevelOfChemistry,n_Ox)+
+     &    (tr3Dsource(i,j,1:topLevelOfChemistry,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,1:topLevelOfChemistry,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+          o3col(i,j)=o3col(i,j)+
+     &    sum(
+     &    (trm(i,j,topLevelOfChemistry+1:LM,n_Ox)+
+     &    (tr3Dsource(i,j,topLevelOfChemistry+1:LM,nChemistry,n_Ox)+
+     &    tr3Dsource(i,j,topLevelOfChemistry+1:LM,nOverwrite,n_Ox))
+     &    *dtsrc))*byaxyp(i,j)
+        end do ! i
+      end do ! j
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+        subdd => subdd_groups(grpids(igrp))
+        diag_loop: do k=1,subdd%ndiags
+          select case (subdd%name(k))
+          case ('O3col')
+            call inc_subdd(subdd,k,o3col) ; cycle diag_loop
+          end select
+        enddo diag_loop
+      enddo ! igroup
+#endif
+
       if(prnchg)then
         call PACK_DATA( grid, DU_O3, DU_O3_glob )
         IF(AM_I_ROOT()) THEN

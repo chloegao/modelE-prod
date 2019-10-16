@@ -25,7 +25,10 @@
 #endif  /* TRACERS_AEROSOLS_SOA */
 !@var SO2_src_3D SO2 volcanic sources (and biomass) (kg/s)
       INTEGER :: nso2src_3d=0,iso2volcano=0,iso2volcanoexpl=0
+      INTEGER :: iso2exvolc=0
       real*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: SO2_src_3D !(im,jm,lm,nso2src_3d)
+!@var H2O_src_3D H2O volcanic sources (kg kg-1 s-1)
+      real*8, ALLOCATABLE, DIMENSION(:,:,:) :: H2O_src_3D !(im,jm,lm)
 !@var PBLH boundary layer height
 !@var MDF is the mass of the downdraft flux
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: 
@@ -49,17 +52,22 @@
       real*8, allocatable, dimension(:) :: VBSemifact
 #endif /* TRACERS_AEROSOLS_VBS */
 
+!@dbparam tune_DMS Multiplication factor for DMS emissions
+      real*8 :: tune_DMS=1.
+
       END MODULE AEROSOL_SOURCES
 
       SUBROUTINE alloc_aerosol_sources(grid)
 !@auth D. Koch
       use domain_decomp_atm, only: dist_grid, getDomainBounds
       use TRACER_COM, only: NTM
+      use TRACER_COM, only: ex_volc_num
       use AEROSOL_SOURCES, only: DMSinput,
 #ifndef TRACERS_AEROSOLS_SOA
      * OCT_src,
 #endif  /* TRACERS_AEROSOLS_SOA */
-     * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,
+     * nso2src_3d,SO2_src_3D,iso2volcano,iso2volcanoexpl,H2O_src_3d,
+     * iso2exvolc,
      * ohr,dho2r,perjr, tno3r, 
      * ohrCache, dho2rCache, perjrCache, tno3rCache,
      * oh,dho2,perj,tno3,ohsr
@@ -104,7 +112,12 @@
         nso2src_3d=nso2src_3d+1
         iso2volcanoexpl=nso2src_3d
       endif
+      if (ex_volc_num>0) then
+        nso2src_3d=nso2src_3d+1
+        iso2exvolc=nso2src_3d
+      endif
       allocate( SO2_src_3D(I_0H:I_1H,J_0H:J_1H,lm,nso2src_3d),STAT=IER )
+      allocate( H2O_src_3D(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
       allocate( oh(I_0H:I_1H,J_0H:J_1H,lm),dho2(I_0H:I_1H,J_0H:J_1H,lm),
      * perj(I_0H:I_1H,J_0H:J_1H,lm),tno3(I_0H:I_1H,J_0H:J_1H,lm)
      * ,o3_offline(I_0H:I_1H,J_0H:J_1H,lm),STAT=IER )
@@ -389,6 +402,7 @@ c want kg DMS/m2/s
       use OldTracer_mod, only: tr_mm
       USE TRACER_COM, only: n_DMS
       use model_com, only: modelEclock
+      USE AEROSOL_SOURCES, only: tune_DMS
       USE AEROSOL_SOURCES, only: DMSinput
 #ifdef old_DMS_emis
       USE FLUXES, only: GTEMP
@@ -419,7 +433,7 @@ c Nightingale et al
         akw = 0.23d0*swind*swind + 0.1d0 * swind
         akw = akw * 0.24d0
         erate=akw*DMSinput(i,j,modelEclock%getMonth())*1.d-9*62.d0 !*tr_mm(nt)
-     *       /SECONDS_PER_DAY
+     *       /SECONDS_PER_DAY*tune_DMS
 #endif
 
 #ifdef old_DMS_emis
@@ -439,7 +453,7 @@ c Liss and Merlivat (1986), use for > lm=40 to moderate DMS flux
        akw=(1.42*SWIND - 11.8)*DSQRT(SCHR)
        endif  !swind
        erate=akw*DMSinput(i,j,modelEclock%month())*1.d-9*62.d0/
-     *      SECONDS_PER_DAY     !not sure of units
+     *      SECONDS_PER_DAY*tune_DMS     !not sure of units
 
 #endif
 c       if (lm.ge.40) erate=erate/5.d0   !I think there was an error in input files
@@ -456,7 +470,7 @@ c       else
 c       akw=E4*(swind-13.d0)*DSQRT(SCHR)+E5*(swind-3.6d0)*
 c    *      DSQRT(SCHR)+E6*(SCHR)**(2.d0/3.d0)
 c       endif  !swind
-c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday !not sure of units
+c       erate=akw*DMSinput(i,j,jmon)*1.d-9/sday*tune_DMS !not sure of units
 c       endif ! lm
         endif !itype
         DMS_flux=erate          ! units are kg/m2/s

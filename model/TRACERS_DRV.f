@@ -3915,11 +3915,13 @@ c SW forcing from albedo change
 #endif
 
 #ifdef TRACERS_AMP
+
+
       do n=1,NTM
         pTracer => tracers%getReference(trname(n))
         sources => pTracer%surfaceSources
       select case(trname(n))
-        case('M_AKK_SU','M_ACC_SU')
+        case('M_AKK_SU','M_ACC_SU','Water')
         k = k + 1
           ijts_3Dsource(nVolcanic,n)=k
           ia_ijts(k) = ia_src
@@ -3958,6 +3960,36 @@ c- interactive sources diagnostic
       end do
 
 c - Tracer independent Diagnostic (stays here if 2D, moves to ijlt if 3D)
+       k = k + 1
+         ijts_AMPe(1)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM1'
+         lname_ijts(k) = 'PM1 Mixing ratio'
+         ijts_power(k) =  -9
+         units_ijts(k) = unit_string(ijts_power(k),'kg kg-1')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+         ijts_HasArea(k) = .false.
+
+       k = k + 1
+         ijts_AMPe(2)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM2.5'
+         lname_ijts(k) = 'PM2.5 Mixing ratio'
+         ijts_power(k) =  -9
+         units_ijts(k) = unit_string(ijts_power(k),'kg kg-1')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+         ijts_HasArea(k) = .false.
+
+       k = k + 1
+         ijts_AMPe(3)=k
+         ia_ijts(k) = ia_src
+         sname_ijts(k) = 'PM10'
+         lname_ijts(k) = 'PM10 Mixing ratio'
+         ijts_power(k) =  -9
+         units_ijts(k) = unit_string(ijts_power(k),'kg kg-1')
+         scale_ijts(k) = 10.**(-ijts_power(k))
+         ijts_HasArea(k) = .false.
+
 c      do L=1,1    !LTOP
 c      do m=1,NBINS
 c        k = k + 1
@@ -5320,6 +5352,10 @@ C**** set some defaults for water tracers
 
          ! defaults ok
 
+        case ('aoa','aoanh')
+
+         ! defaults ok
+
         case ('st8025','tape_rec','nh15')
 
          ! defaults ok
@@ -5349,10 +5385,6 @@ C**** ESMF: Each processor reads the global array: N2Oic
           enddo; enddo
 #endif
 
-#ifdef TRACERS_PASSIVE
-         case ('aoa','aoanh')
-             trm(:,:,:,n) = 0.d0
-#endif
 
 #ifdef TRACERS_SPECIAL_Shindell
          if(use_rad_n2o <= 0)then
@@ -6286,6 +6318,33 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
+      use GEOM, only: lat_to_j
+      use GEOM, only: lon_to_i
+      USE ATM_COM, only: byMA
+      USE GEOM, only: byaxyp
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: NOx_yr
+      use TRCHEM_Shindell_COM, only: CO_yr
+      use TRCHEM_Shindell_COM, only: VOC_yr
+#endif  /* TRACERS_SPECIAL_Shindell */
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+      use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
+      use TRACER_COM, only: ex_volc_num
+      use TRACER_COM, only: ex_volc_jday
+      use TRACER_COM, only: ex_volc_year
+      use TRACER_COM, only: ex_volc_lat
+      use TRACER_COM, only: ex_volc_lon
+      use TRACER_COM, only: ex_volc_bot
+      use TRACER_COM, only: ex_volc_top
+      use TRACER_COM, only: ex_volc_SO2
+      use TRACER_COM, only: ex_volc_H2O
+      USE AEROSOL_SOURCES, only: so2_src_3d,iso2exvolc,H2O_src_3d
+#endif
 #ifdef CUBED_SPHERE
       USE tracer_com, only: AIRCstreams
 #endif
@@ -6310,7 +6369,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only:
-     *  aer_int_yr,n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
+     *  n_NH3,n_SO2,n_SO4,n_BCII,n_BCB,n_OCII,n_OCB
      * ,n_M_ACC_SU,n_M_AKK_SU,n_M_BC1_BC,n_M_OCC_OC,n_M_BOC_BC
      * ,n_M_BOC_OC
 #ifdef TRACERS_TOMAS
@@ -6327,6 +6386,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE FLUXES, only: tr3Dsource
       USE TRCHEM_Shindell_COM,only:
      & dms_offline,so2_offline,sulfate,fix_CH4_chemistry
+      USE TRCHEM_Shindell_COM, only: tune_NOx
+      USE TRCHEM_Shindell_COM, only: tune_BVOC
       use photolysis, only: rad_FL,read_FL
 #endif
 #ifdef TRACERS_COSMO
@@ -6351,6 +6412,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
      &                  GRID%J_STRT_HALO:GRID%J_STOP_HALO)
      &     :: SO2_volc_emis_expl, Plume_hei_volc_emis_expl !  volc emiss
 #endif
+      integer :: ex
+      real*8 :: dz
       class (Tracer), pointer :: pTracer
 C****
       integer :: year, month, dayOfYear
@@ -6418,6 +6481,48 @@ C****
         enddo
       enddo
 #endif
+
+#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
+    (defined TRACERS_TOMAS)
+! explosive volcano injections based on rundeck parameters
+      if (iso2exvolc>0) then
+        so2_src_3d(:,:,:,iso2exvolc)=0.d0
+        H2O_src_3d(:,:,:)=0.d0
+        do ex=1,ex_volc_num
+
+! check data
+          if (ex_volc_jday(ex)/=dayOfYear) cycle
+          if (ex_volc_year(ex)/=year) cycle
+
+! check location
+          j=lat_to_j(ex_volc_lat(ex))
+          if (j<j_0 .or. j>j_1) cycle
+          i=lon_to_i(ex_volc_lon(ex))
+          if (i<i_0 .or. i>i_1) cycle
+
+! find layers range
+          do lmin=2,lm ! start from 2, to avoid mixing layer
+            if (daily_z(i,j,lmin)>=ex_volc_bot(ex)) exit
+          enddo
+          do lmax=lmin,lm
+            if (daily_z(i,j,lmax)>=ex_volc_top(ex)) exit
+          enddo
+
+! set emissions
+          dz=sum(daily_z(i,j,lmin:lmax))
+          do ll=lmin,lmax
+            so2_src_3d(i,j,ll,iso2exvolc)=so2_src_3d(i,j,ll,iso2exvolc)+
+     &        daily_z(i,j,ll)/dz*ex_volc_SO2(ex)/SECONDS_PER_DAY*1.d9 ! kg s-1
+! Water not implemented yet, and it might never be in this branch.
+!            H2O_src_3d(i,j,ll)=H2O_src_3d(i,j,ll)+
+!     &        daily_z(i,j,ll)/dz*ex_volc_H2O(ex)/SECONDS_PER_DAY*1.d9*
+!     &        byMA(ll,i,j) ! kg kg-1 s-1
+          enddo
+
+        enddo ! ex
+      endif
+#endif
+
 #ifdef TRACERS_SPECIAL_Lerner
       if (.not. end_of_day) then
 C**** Initialize tables for linoz
@@ -6532,17 +6637,35 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           else
             xyear=year
           endif
+
+          select case (trname(n))
+          case ('NOx')
+            if (NOx_yr > 0) xyear=NOx_yr
+          case ('CO')
+            if (CO_yr > 0) xyear=CO_yr
+          case ('Alkenes', 'Paraffin')
+            if (VOC_yr > 0) xyear=VOC_yr
+          end select
         else
 #endif
 
 ! allow overriding of transient aerosol emissions date
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-          if(aer_int_yr > 0) then
-            xyear=aer_int_yr
-          else
-            xyear=year
-          endif
+          xyear=year
+          if(aer_int_yr > 0) xyear=aer_int_yr
+          select case (trname(n))
+          case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+            if (SO2_int_yr > 0) xyear=SO2_int_yr
+          case ('NH3')
+            if (NH3_int_yr > 0) xyear=NH3_int_yr
+          case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+            if (BC_int_yr > 0) xyear=BC_int_yr
+          case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &          'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+            if (OC_int_yr > 0) xyear=OC_int_yr
+          end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         end if
@@ -6616,7 +6739,14 @@ C**** Daily tracer-specific calls to read 2D and 3D sources:
           tr3Dsource(I_0:I_1,J_0:J_1,:,:,n) = 0.
           if (COUPLED_CHEM.ne.1)
      &      call read_aero(sulfate,'SULFATE_SA') !not applied directly
-#endif
+
+       case ('NOx') ! use : for sources, to include BB
+         sfc_src(:,J_0:J_1,n,:)=tune_NOx*sfc_src(:,J_0:J_1,n,:)
+
+       case ('Isoprene', 'Terpenes')
+         sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))=
+     &     tune_BVOC*sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))
+#endif  /* TRACERS_SPECIAL_Shindell */
 
         case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
@@ -7572,10 +7702,6 @@ c latlon grid
 c$$$      use OldTracer_mod, only: itime_tr0, do_fire, trname, do_aircraft
 c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
       use OldTracer_mod
-#if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
-    (defined TRACERS_TOMAS)
-      USE TRACER_COM, only: aer_int_yr
-#endif
 #ifdef TRACERS_AEROSOLS_VBS
       USE TRACERS_VBS, only: vbs_tr
 #endif  /* TRACERS_AEROSOLS_VBS */
@@ -7604,6 +7730,7 @@ c$$$      use OldTracer_mod, only: tr_mm, nBBsources, mass2vol
 #ifdef SHINDELL_STRAT_EXTRA
       use TRACER_COM, only: n_GLT, n_stratOx
 #endif
+      use TRACER_COM, only: tune_BBsources
       use TRACER_COM, only: n_aoa, n_aoanh
       USE CONSTANT, only : mair, byavog, pi
 #ifndef SKIP_TRACER_SRCS
@@ -7905,6 +8032,22 @@ C**** 3D volcanic source
           tr3Dsource(:,J_0:J_1,:,nVolcanic,n)=
      &      sum(so2_src_3d(:,J_0:J_1,:,:),4)*src_fact
           call apply_tracer_3Dsource(nVolcanic,n)
+! Water not implemented yet, and it might never be in this branch.
+!          select case(trname(n))
+!          case ('SO2') ! apply changes to q. do not update qmom,
+!                       ! since the concentration always increases.
+!            q(i,j,:)=XXX
+!#ifdef TRACERS_WATER
+!C**** Add water to relevant tracers as well
+!            do nn=1,ntm
+!              select case (tr_wd_type(n))
+!              case (nWater)       ! water: initialise tracers
+!                trm(i,j,:,n)=trm(i,j,:,n)*
+!     &            XXX
+!              end select
+!            end do
+!#endif
+!          end select
         end select
 #endif
 C**** 3D biomass source
@@ -7921,7 +8064,7 @@ C**** 3D biomass source
             blsrc = axyp(i,j)*get_src_fact(n,do_fire(n))* ! not src_fact here
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay,i,j))
             do l=1,blay
-              tr3Dsource(i,j,l,nBiomass,n) = blsrc*MA(l,i,j)
+             tr3Dsource(i,j,l,nBiomass,n)=tune_BBsources*blsrc*MA(l,i,j)
             end do
           end do; end do
         end if

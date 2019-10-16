@@ -1,4 +1,4 @@
-      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG)
+      SUBROUTINE MATRIX(AERO,GAS,EMIS_MASS,TSTEP,TK,RH,PRES,AQSO4RATE,WUPDRAFT,DIAG,PM)
 !-----------------------------------------------------------------------------------------------------------------------
 !
 !@sum     This is the top-level routine of the MATRIX aerosol microphysical module.
@@ -72,8 +72,8 @@
       REAL(8), INTENT(IN)    :: PRES                       ! ambient pressure [Pa]  
       REAL(8), INTENT(IN)    :: AQSO4RATE                  ! in-cloud SO4 production rate [ug/m^3/s]
       REAL(8), INTENT(IN)    :: WUPDRAFT                   ! cloud updraft velocity [m/s]
-      REAL(8), INTENT(INOUT) :: DIAG(NDIAG_AERO,NAEROBOX)  ! budget or tendency diagnostics [ug/m^3/s] or [#/m^3/s]
-
+      REAL(8), INTENT(INOUT) :: DIAG(NDIAG_AERO,NAEROBOX)  ! budget or tendency diagnostics [ug/m^3/s] or [#/m^3/s]      
+      REAL(8), INTENT(INOUT) :: PM(3)                      ! Particulate Matter, PM1, PM2,5, PM10 at ambient humidity
       ! Local variables.
 
       INTEGER :: I,J,K,L,Q,QQ              ! indices
@@ -202,7 +202,6 @@
       REAL(8) :: AEROTMP2(NAEROBOX)                     ! scratch aerosol concentrations [ug/m^3] or [#/m^3]
       REAL(8) :: PIQTMP(NWEIGHTS,NMASS_SPCS)            ! scratch work array for mass production terms [ug/m^3/s]
 !      REAL(8), PARAMETER :: N_MIN_DIAM_HISTOGRAM = 1.0D+04  ! min. # conc. for count in DIAM_HISTOGRAM [#/m^3] 
-
       LOGICAL, SAVE :: FIRSTIME = .TRUE.
 
       !----------------------------------------------------------------------------------------------------------------
@@ -214,9 +213,9 @@
       ! and Engineering Formulas, Tables, Functions, Graphs, Transforms: REA, Piscataway, NJ. p. 493.
       !----------------------------------------------------------------------------------------------------------------
        REAL(8), PARAMETER :: ERFCONST = -4.0D+00 / PI
-       REAL(8)            :: XX, ERF, ERFC                          ! Error Function, Error Function Complement
-       ERF(XX) = SQRT(1.0D+00 - EXP( ERFCONST * XX * XX ) )
-       ERFC(XX) = 1.0D+00 - ERF(XX)
+       REAL(8)            :: XX, ERF1, ERFC, ERF                          ! Error Function, Error Function Complement
+       ERF1(XX) = SQRT(1.0D+00 - EXP( ERFCONST * XX * XX ) )
+       ERFC(XX) = 1.0D+00 - ERF1(XX)
 
 !----------------------------------------------------------------------------------------------------------------------
 !     Begin execution.
@@ -1311,6 +1310,30 @@ c        DO J=8, NDIAG_AERO-1
 c          DIAG(J,I) = DIAG(J,I) * ( DIAGTMP1(7,I) / ( AEROTMP2(I) + TINYDENOM ) )
 c        ENDDO 
 c      ENDDO 
+
+c Diagnostics for PM1 PM(1), PM2.5 PM(2) and PM10 PM(3)
+        IF ( ILAY.eq.1) THEN 
+        PM(:) = 0.d0
+
+      DO I=1, NWEIGHTS                               ! loop over modes (quadrature points) 
+          DO Q=1, NM(I)                              ! loop over species defined for mode I 
+           
+               PM(1) = PM(1) + AERO(MASS_MAP(I,Q))*
+     &          0.5d0*(erf(log(1.d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))) 
+     &              -erf(log(0.001d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))))
+
+               PM(2) = PM(2) + AERO(MASS_MAP(I,Q))*
+     &          0.5d0*(erf(log(2.5d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))) 
+     &              -erf(log(0.001d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))))
+
+               PM(3) = PM(3) + AERO(MASS_MAP(I,Q))*
+     &          0.5d0*(erf(log(10.d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))) 
+     &              -erf(log(0.001d0/DGN(I))/(sqrt(2.d0)*log(sig0(I)))))
+
+         ENDDO
+         ENDDO
+        ENDIF
+
 
 
 90000 FORMAT(3I6,D15.5)

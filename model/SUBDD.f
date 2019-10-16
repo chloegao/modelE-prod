@@ -17,7 +17,7 @@
 !@+      II. outputs whose registration is deferred until the stage
 !@+          of model execution at which the first time-slice of the
 !@+          output data is saved/accumulated.
-!@+     
+!@+
 !@+     The type II interface is intended for outputs that do not
 !@+     naturally fall into one of the pre-existing categories of
 !@+     type I, and for which the creation of a new category
@@ -31,7 +31,7 @@
 !@+     parameters.  Automatic vertical regridding of outputs to
 !@+     constant-pressure levels is currently only possible via I
 !@+     (will be added to II soon).
-!@+     
+!@+
 !@+     Requests for type I outputs are made through rundeck
 !@+     strings SUBDD, SUBDD1, ..., following the traditional
 !@+     subdaily diagnostics framework.  However, the parsing
@@ -300,7 +300,11 @@
 
 !@param subdd_ngroups_max maximum number of output groups per run
 !@+     (increase as necessary)
+#ifdef COSP_SIM
+      integer, parameter :: subdd_ngroups_max=40
+#else
       integer, parameter :: subdd_ngroups_max=30
+#endif
 c SUSA only for MEEEEE
 c       integer, parameter :: subdd_ngroups_max=50
 c SUSA
@@ -1363,7 +1367,7 @@ c
       allocate(subdd%name(ndiags))
       allocate(subdd%denom(ndiags))
       subdd%scale(:) = 1.
-      
+
       subdd%name(1) = vname
       subdd%reduc(:) = reduc_avg
       subdd%denom(:) = 0
@@ -1372,7 +1376,7 @@ c
       subdd%is_inst = is_inst
 
       if(is_inst) then
-        subdd%sched(:) = sched_inst        
+        subdd%sched(:) = sched_inst
       else
         subdd%sched(:) = sched_src
       endif
@@ -1806,7 +1810,7 @@ c
      &  scale = real(nday,kind=8)
      &     )
 c
-      arr(next()) = info_type_(        
+      arr(next()) = info_type_(
      &  sname = 'evap',
      &  lname = 'EVAPORATION',
      &  units = 'mm/day',
@@ -1942,7 +1946,7 @@ c
      &     )
 c
       arr(next()) = info_type_(
-     &  sname = 'FLOPN', 
+     &  sname = 'FLOPN',
      &  lname = 'Ice-Free Land Cover',
      &  units = 'fraction'
      &     )
@@ -2156,36 +2160,52 @@ c
      &  units = 'Pa'
      &     )
 c
+#ifdef CFMIP3_SUBDD
+      arr(next()) = info_type_(
+     &  sname = 'tauus',
+     &  lname = 'U COMPON OF MOMENTUM SRF DRAG',
+     &  units = 'g/m*s^2',
+     &  scale = 1d3
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'tauvs',
+     &  lname = 'V COMPON OF MOMENTUM SRF DRAG',
+     &  units = 'g/m*s^2',
+     &  scale = 1d3
+     &     )
+#endif
+c
       arr(next()) = info_type_(
      &  sname = 'r_w_mc',
      &  lname = 'Warm-Cloud effective Radius convective',
      &  units = 'um'
-     &     )    
+     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'r_i_mc',
      &  lname = 'Ice-Cloud effective Radius convective',
      &  units = 'um'
-     &     )    
+     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'r_w_ls',
      &  lname = 'Warm-Cloud effective Radius Large Scale',
      &  units = 'um'
-     &     )    
+     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'r_i_ls',
      &  lname = 'Ice-Cloud effective Radius Large scale',
      &  units = 'um'
-     &     )    
+     &     )
 c
       arr(next()) = info_type_(
      &  sname = 'pn',
      &  lname = 'Number Concentration of dg > 0.1 um',
      &  units = '#/m^2'
      &     )
-c 
+c
       arr(next()) = info_type_(
      &  sname = 'apn',
      &  lname = 'Activated Particles Number Concentration',
@@ -2298,7 +2318,7 @@ c
      &   lname = 'Raw model HDO',
      &   units = 'kg/kg'
      &     )
-     
+
       arr(next()) = info_type_(
      &   sname = 'H2ORaw',
      &   lname = 'Raw model H2O',
@@ -2343,7 +2363,7 @@ c
      & dname = 'nTESGoodR',
      & units = 'kg/kg'
      &     )
-   
+
       arr(next()) = info_type_(
      & sname = 'H2OR',
      & lname = 'H2O from retrieval-based TES operator',
@@ -2367,6 +2387,9 @@ c
       use subdd_mod, only : info_type,sched_rad
 ! info_type_ is a homemade structure constructor for older compilers
       use subdd_mod, only : info_type_
+#ifdef CFMIP3_SUBDD
+      use model_com, only : dtsrc
+#endif
       use constant, only : bygrav,kapa
       implicit none
       integer :: nmax,decl_count
@@ -2589,6 +2612,14 @@ c
      &  lname = 'APN on model levels',
      &  units = 'cm-3'
      &     )
+#ifdef CFMIP3_SUBDD
+       arr(next()) = info_type_(
+     &  sname = 'mcamfx',
+     &  lname = 'MC Air Mass Flux',
+     &  units = 'kg/s',
+     &  scale = 100.*bygrav/dtsrc
+     &     )
+#endif
       return
       contains
       integer function next()

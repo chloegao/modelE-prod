@@ -12,8 +12,6 @@
 #else
       INTEGER, PARAMETER :: nlevnc =17 ! NCEP (default)
 #endif
-!@param nts_max max number of time steps in file (4*365)
-      INTEGER, PARAMETER :: nts_max = 1460
 !@var  U1, V1 NCEP wind at prior ncep timestep (m/s)
 !@var  U2, V2 NCEP wind at the following ncep timestep (m/s)
       REAL*4, ALLOCATABLE, DIMENSION(:,:,:) :: u1,v1,u2,v2
@@ -23,9 +21,16 @@
       REAL*8, DIMENSION(IM,JM,LM) :: UN18,VN18,UN28,VN28
       REAL*8, DIMENSION(nlevnc) :: pl8
 !@var netcdf integer
-      INTEGER :: ncidu,ncidv,uid,vid,plid
+      INTEGER :: ncidu,ncidv,uid,vid,plid,tmid
 !@var step_rea current second set timestamp
       INTEGER :: step_rea
+!@var nts_max max number of time steps in file
+      INTEGER :: nts_max
+!@var nts_day total number of time steps in one day
+      INTEGER :: nts_day
+!@var nts_len length of time step in hours
+      !variable is "real" to allow for time steps shorter than one hour
+      REAL*8  :: nts_len
 !@var tau nudging time interpolation
       REAL*8 :: tau
 !@param  anudgeu anudgev relaxation constant (1/s)
@@ -85,21 +90,30 @@ C**** Rundeck parameters:
 
 C**** initiallise all netcdf parameters etc.
 
-
+C**** determine current model year
       write(nstr1,'(I0)') modelEclock%getYear()
 
-      step_rea = INT( (((modelEclock%getDayOfYear() - 1) * 24) + 
-     &  modelEclock%getHour())/6) + 1
-      if (am_i_root())
-     &  print*,'READING REANALYSIS INIT ',modelEclock%getHour(), 
-     &    modelEclock%getDayOfYear(), step_rea
-
 C**** always need to open at least one file
-
-      if(am_i_root()) call open_nudge_file(nstr1)
+      if(am_i_root()) then
+        call open_nudge_file_init(nstr1)
+      end if
 C**** broadcast pressure levels just once (since they don't change)
       call broadcast(grid,pl8)
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
+
+C**** broadcast timestep variables just once (since they shouldn't change either)
+      call broadcast(grid,nts_max)
+      call broadcast(grid,nts_day)
+      call broadcast(grid,nts_len)
+
+c**** determine current nudging file time step
+      step_rea = INT((((modelEclock%getDayOfYear() - 1) * 24) +
+     &  modelEclock%getHour())/nts_len) + 1  
+
+c**** print time info to PRT file
+      if (am_i_root())
+     &  print*,'READING REANALYSIS INIT ',modelEclock%getHour(), 
+     &    modelEclock%getDayOfYear(), step_rea
 
 C**** read first set of nudged winds
       if (am_i_root()) print*,"nudge init0",step_rea
@@ -140,9 +154,10 @@ c******************************************************************
       character(len=4) :: nstr1,nstr2
 
 C**** Check whether nudged winds need to be updated
-      step_rea_1 = INT( (((modelEclock%getDayOfYear() - 1) * 24) + 
-     *  modelEclock%getHour())/6) + 2
-      if (step_rea.lt.step_rea_1 .and. (mod(itime,nday/4).eq.0.))
+        step_rea_1 = INT( (((modelEclock%getDayOfYear() - 1) * 24) +
+     *  modelEclock%getHour())/nts_len) + 2 
+
+      if (step_rea.lt.step_rea_1 .and. (mod(itime,nday/nts_day).eq.0.)) 
      *     then                 ! they do
 
 C**** move existing second set to first set
@@ -165,7 +180,7 @@ C**** read new second set of winds
       endif
 
 C**** set time interpolation for this dynamic time step
-      tau  = mod(itime,nday/4)/float(nday/4)
+      tau  = mod(itime,nday/nts_day)/float(nday/nts_day) 
 
 C**** vertical interpolation
       call vinterana2mod(un1,nlevnc,pl,u1)
@@ -308,17 +323,21 @@ c******************************************************************
 
 c******************************************************************
 
-      subroutine open_nudge_file(nstr)
-!@sum open a new nudging file (should only be called by root)
+      subroutine open_nudge_file_init(nstr)
+!@sum open a new nudging file, and read in all necessary variables
+!@+   and dimensions, including those that do not change with time
+!@+   (should only be called by root)
       USE NUDGE_COM
-      USE DOMAIN_DECOMP_1D, only: am_i_root
       implicit none
       include 'netcdf.inc'
       character(len=4) :: nstr
       integer status
+      !variables for time-step calculations
+      !---------
+      character(len=4) :: tname
+      !---------
       
-      if (am_i_root())
-     &  print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
+      print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
       status=NF_OPEN('u'//trim(nstr)//'.nc',NCNOWRIT,ncidu)
       if(status /= nf_noerr)call nudgeStop('opening U file',status)
       status=NF_OPEN('v'//trim(nstr)//'.nc',NCNOWRIT,ncidv)
@@ -337,6 +356,50 @@ c**** get levels which don't change as a function of time
       pl8=0.d0
       pl8(1:nlevnc)=dble(pl(1:nlevnc))
       pl(1:nlevnc)=sngl(pl8(1:nlevnc))
+
+c**** check to see if time dimension is present in file
+      status=NF_INQ_DIMID(ncidu,'time',tmid)
+      if(status /= nf_noerr)call nudgeStop('reading time dim',status)
+
+c**** determine total/max number of time steps from time dimension
+      nts_max = 0
+      status=NF_INQ_DIM(ncidu,tmid,tname,nts_max)
+      if(status /= nf_noerr)
+     &  call nudgeStop('reading time length',status)   
+
+c**** determine if file represents a whole year
+      if(mod(nts_max,365) /= 0) 
+     &  call nudgeStop('Nudge time not divisible by 365:',nts_max)
+
+c**** determine number of time steps per day
+      nts_day = nts_max/365
+
+c**** determine number of hours per time step
+      nts_len = 24/nts_day
+
+      return
+      end subroutine open_nudge_file_init
+
+c******************************************************************
+
+      subroutine open_nudge_file(nstr)
+!@sum open a new nudging file (should only be called by root)
+      USE NUDGE_COM
+      implicit none
+      include 'netcdf.inc'
+      character(len=4) :: nstr
+      integer status
+
+      print*, 'IN NUDGE: OPEN NF FILES','  {u,v}'//trim(nstr)//'.nc'
+      status=NF_OPEN('u'//trim(nstr)//'.nc',NCNOWRIT,ncidu)
+      if(status /= nf_noerr)call nudgeStop('opening U file',status)
+      status=NF_OPEN('v'//trim(nstr)//'.nc',NCNOWRIT,ncidv)
+      if(status /= nf_noerr)call nudgeStop('opening V file',status)
+
+      status=NF_INQ_VARID(ncidu,'uwnd',uid)
+      if(status /= nf_noerr)call nudgeStop('finding uwnd var',status)
+      status=NF_INQ_VARID(ncidv,'vwnd',vid)
+      if(status /= nf_noerr)call nudgeStop('finding vwnd var',status)
 
       return
       end subroutine open_nudge_file

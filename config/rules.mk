@@ -11,13 +11,13 @@ endif
 
 ######  Some user customizable settings:   ########
 
-# EXTRA_FFLAGS specifies some extra flags you want to pass 
+# EXTRA_FFLAGS specifies some extra flags you want to pass
 # to Fortarn compiler, like
 # -g        - include debugging information
 # -listing  - create listings (.L)
-EXTRA_FFLAGS = 
+EXTRA_FFLAGS =
 
-# EXTRA_LFLAGS specifies some extra flags you want to pass 
+# EXTRA_LFLAGS specifies some extra flags you want to pass
 # to linker. Currently needed as a hack to compile hybrid MPI/OpenMP
 # code to pass "-openmp" to linker
 EXTRA_LFLAGS =
@@ -33,7 +33,7 @@ endif
 
 # if -s specified enable some extra messages
 ifeq ($(findstring s,$(MFLAGS)),s)
-  MSG = 
+  MSG =
 else
   MSG = > /dev/null
 endif
@@ -51,7 +51,7 @@ CMP_MOD = cmp -s
 SETUP = $(SCRIPTS_DIR)/setup_e.pl
 CPP = $(NO_COMMAND)
 LIBS =
-INCS = 
+INCS =
 F90_VERSION = 'Unknown compiler version'
 ECHO_FLAGS =
 CPPFLAGS =
@@ -98,6 +98,12 @@ ifeq ($(FVCUBED),YES)
   ESMF = YES
 endif
 
+ifeq ($(COSP_SIM),YES)
+   CPPFLAGS += -DCOSP_SIM
+   FFLAGS += -$(I)COSP_SIM
+   F90FLAGS += -$(I)COSP_SIM
+endif
+
 # hack to keep Intel8 name valid (only temporarily)
 ifeq ($(COMPILER),Intel8)
   $(error please set "COMPILER=intel" in your ~/.modelErc)
@@ -135,7 +141,7 @@ ifeq ($(FVCUBED),YES)
   ifndef FVCUBED_ROOT
      FVCUBED_ROOT = false
   endif
-  
+
   # Cubed-sphere requires FVCORE and MPP enabled
   FVCORE=YES
   #MPP=YES but current FVcubed has its own MPP already
@@ -172,17 +178,17 @@ endif
 
 # If using Fortuna2-5 w/HDF5
 #ifeq ($(FVCUBED),YES)
-#  LIBS += -lhdf5_hl -lhdf5 -lz -lm -lmfhdf -ldf -lsz -ljpeg -lm  -lmfhdf -ldf  -lcurl -lrt -lm -lz -lm 
+#  LIBS += -lhdf5_hl -lhdf5 -lz -lm -lmfhdf -ldf -lsz -ljpeg -lm  -lmfhdf -ldf  -lcurl -lrt -lm -lz -lm
 #endif
 
 ifeq ($(FVCORE),YES)
   ifndef FVCORE_ROOT
      FVCORE_ROOT = false
   endif
-  CPPFLAGS += -DUSE_FVCORE 
+  CPPFLAGS += -DUSE_FVCORE
   ifneq ($(FVCUBED),YES)
     FVINC = -I$(FVCORE_ROOT)/$(MACHINE)/include
-    CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART 
+    CPPFLAGS += -DFVCUBED_SKIPPED_THIS -DCREATE_FV_RESTART
     INCS += $(FVINC) $(FVINC)/GEOS_Base $(FVINC)/GEOS_Shared $(FVINC)/GMAO_gfio_r8 $(FVINC)/GMAO_cfio_r8 $(FVINC)/GMAO_pilgrim $(FVINC)/FVdycore_GridComp  -I$(BASELIBDIR)/include
     LIBS += -L$(FVCORE_ROOT)/$(MACHINE)/lib  -lFVdycore_GridComp  -lGMAO_pilgrim -lGMAO_gfio_r8 -lGMAO_cfio_r8 -lGEOS_Shared -lGEOS_Base -L$(BASELIBDIR)/lib
     LIBS += -L${BASELIBDIR}/lib -lesmf
@@ -199,12 +205,12 @@ ifeq ($(CUBED_SPHERE),YES)
   LIBS += -L$(FFTW_ROOT)/lib -lfftw3
 endif
 
-ifeq ($(MPP),YES)  
+ifeq ($(MPP),YES)
   CPPFLAGS += -DUSE_MPP
   # if using MPP installation on /usr/local
   FFLAGS += -I$(MPPDIR)/include
   F90FLAGS += -I$(MPPDIR)/include
-  LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared 
+  LIBS += -L$(MPPDIR)/lib -lfms_mpp_shared
   # MPPDIR is the path of the GEOS5 installation
   # if using GFDL installation within GEOS5
   #FFLAGS += -I$(MPPDIR)/include/GFDL_fms

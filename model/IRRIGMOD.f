@@ -142,7 +142,6 @@
       use model_com,only : itime,itimei,master_yr
       use model_com, only :  modelEclock
       use resolution, only : im,jm
-      use ghy_com, only : fearth
       use geom, only : imaxj
       use timestream_mod, only : read_stream
       use DIAG_COM, only : aij=>aij_loc, ij_irrW_tot
@@ -188,28 +187,16 @@
 
 !**** Replicate values at pole (not relevant for present-day Earth)
       if(have_north_pole) then
-        if (fearth(1,jm).gt.0) then
-          do i=2,im
-            irrig_water_pot(i,jm)=irrig_water_pot(1,jm)
-          end do
-        end if
+        irrig_water_pot(2:,jm)=irrig_water_pot(1,jm)
       end if
       if(have_south_pole) then
-        if (fearth(1,1).gt.0) then
-          do i=2,im
-            irrig_water_pot(i,1)=irrig_water_pot(1,1)
-          end do
-        end if
+        irrig_water_pot(2:,1)=irrig_water_pot(1,1)
       end if
 
 !**** Make sure no negative irrigation and update diagnostic
       do j=j_0,j_1
       do i=i_0,imaxj(j)
-        if (fearth(i,j).gt.0) then
-          if (irrig_water_pot(i,j).lt.0) irrig_water_pot(i,j)=0
-        else
-          irrig_water_pot(i,j) = 0.
-        endif
+        if (irrig_water_pot(i,j).lt.0) irrig_water_pot(i,j)=0
 
 !**** Diagnostic
         if (end_of_day) aij(i,j,ij_irrW_tot)=aij(i,j,ij_irrW_tot)+

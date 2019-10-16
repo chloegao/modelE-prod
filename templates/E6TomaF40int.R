@@ -122,12 +122,7 @@ NAMERVR=RD_Fd.names.txt  ! named river outlets
 #include "dry_depos_144x90_input_files"
 #include "chem_emiss_144x90_input_files_CMIP6_noBBURN"
 #include "ch4_emiss_144x90_input_files_CMIP6_noBBURN"
-! ----- for interactive wetlands -----
-PREC_NCEP=gsin/ncep_prec_w_2wk_lag_2x2.5
-TEMP_NCEP=gsin/ncep_g1temp_2x2.5
-BETA_NCEP=temp_2x2.5/beta_p_ch4_4x5_2x2.5gf
-ALPHA_NCEP=temp_2x2.5/alpha_t_ch4_4x5_2x2.5gf
-! ----- end interactive wetlands -----
+#include "ch4_interactive_wetlands_files"
 #include "aerosol_OMAVBS_input_files_CMIP6_noBBURN"
 
 MSU_wts=MSU_SSU_RSS_weights.txt      ! MSU-diag

@@ -1736,7 +1736,7 @@ c daily_z is currently only needed for CS
 ! 2D tracer outputs (model horizontal grid).
 ! Each tracer output must be declared separately (no bundling).
       use model_com, only : dtsrc,nday
-      use subdd_mod, only : info_type, sched_rad
+      use subdd_mod, only : info_type, sched_rad, reduc_max
       use OldTracer_mod, only: trname
 #ifdef TRACERS_WATER 
       use OldTracer_mod, only : nWater, tr_wd_type
@@ -1853,6 +1853,54 @@ c daily_z is currently only needed for CS
      &  )
       end do ! ntm
 
+! Tracer Load (column mass)
+
+      do n=1,ntm
+        arr(next()) = info_type_(
+     &  sname = trim(trname(n))//'load',
+     &  lname = trim(trname(n))//' Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      end do ! ntm
+
+#ifdef TRACERS_AMP
+      arr(next()) = info_type_(
+     &  sname = 'ampBCload',
+     &  lname = 'BC Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampDustload',
+     &  lname = 'Dust Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampNH4load',
+     &  lname = 'NH4 Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampNO3load',
+     &  lname = 'NO3 Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampOAload',
+     &  lname = 'OA Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampSO4load',
+     &  lname = 'SO4 Column Mass',
+     &  units = 'kg m-2'
+     &  )
+      arr(next()) = info_type_(
+     &  sname = 'ampSSload',
+     &  lname = 'SS Column Mass',
+     &  units = 'kg m-2'
+     &  )
+#endif
+
 ! Surface Particulate Matter Amount
 
       do p=1,size(ssiz)
@@ -1889,7 +1937,20 @@ C
      &  lname = 'L=1 NO mixing ratio',
      &  units = 'mole species / mole air'
      &  )
-#endif 
+C
+      arr(next()) = info_type_(
+     &  sname = 'MRO3l1max', ! because not a tracer
+     &  lname = 'Maximum Daily L=1 O3 mixing ratio',
+     &  units = 'mole species / mole air',
+     &  reduc = reduc_max
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'O3col', ! not "load", to contrast with tracers
+     &  lname = 'O3 Column Mass',
+     &  units = 'kg m-2'
+     &  )
+#endif
 
 #ifdef TRACERS_WATER
 ! Water tracer/isotope precipitation 
@@ -2048,6 +2109,18 @@ C
      &  lname = 'HO2 concentration',
      &  units = 'molecules cm-3'
      &  )
+
+      arr(next()) = info_type_(
+     &  sname = 'JO1D', ! because not a tracer
+     &  lname = 'O3-->O1D+O2 photolysis rate',
+     &  units = 's-1'
+     &  )
+
+      arr(next()) = info_type_(
+     &  sname = 'JNO2', ! because not a tracer
+     &  lname = 'NO2-->NO+O photolysis rate',
+     &  units = 's-1'
+     &  )
 #endif /* TRACERS_SPECIAL_Shindell */
 
       return
@@ -2149,6 +2222,9 @@ C
       use trdiag_com, only : to_volume_MixRat,trcsurf,trcSurfByVol
       use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
      &     ,inc_subdd,find_groups, LmaxSUBDD
+#ifdef TRACERS_AMP
+      use AMP_AEROSOL, only: ampPM2p5, ampPM10
+#endif
       integer :: igrp,ngroups,grpids(subdd_ngroups)
       type(subdd_type), pointer :: subdd
       integer :: L, n, k
@@ -2238,7 +2314,13 @@ C
             else
               sddarr2d(:,:)=trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
             endif
-            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop 
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+          end if
+
+          ! tracer column load:
+          if(trim(trname(n))//'load'.eq.trim(subdd%name(k))) then
+            sddarr2d(:,:)=sum(trm(:,:,:,n),dim=3)*byaxyp(:,:)
+            call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
           end if
 
         enddo ntm_loop3
@@ -2252,9 +2334,21 @@ C
           call tomas_pm_subdd_accum(subdd,k,trim(subdd%name(k)))
           cycle diag_loop
         end select
+#elif (defined TRACERS_AMP)
+        select case(trim(subdd%name(k)))
+        ! L=1 PM2.5 mass mixing ratio:
+         case('PM2p5l1m')
+         sddarr2d(:,:)= ampPM2p5(:,:)     ! kg/kg air
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        ! L=1 PM10 mass mixing ratio:
+         case('PM10l1m')
+         sddarr2d(:,:)= ampPM10(:,:)      ! kg/kg air
+         call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
+
+        end select
 #else
         select case(trim(subdd%name(k)))
-
         ! surface PM2.5 mass mixing ratio:
         case('PM2p5sm')
           sddarr2d(:,:)=0.d0
@@ -2273,7 +2367,7 @@ C
      &            trm(:,:,1,n)*byaxyp(:,:)*byma(1,:,:)
           end do
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
-      
+
         ! surface PM2.5 concentration:
         case('PM2p5sc')
           sddarr2d(:,:)=0.d0
@@ -2312,7 +2406,7 @@ C
           call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
 
         end select
-#endif /* --not- TRACERS_TOMAS section */
+#endif /* -not- TRACERS_TOMAS, TRACERS_AMP sections */
 
       enddo diag_loop
       enddo ! igroup
@@ -2340,6 +2434,10 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
 #endif
       use Dictionary_mod, only: is_set_param, get_param
       use RAD_COM, only: o3_yr
@@ -2435,13 +2533,31 @@ C
 #ifdef TRACERS_SPECIAL_Shindell
       if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
         call get_param('o3_yr',cyclic_yr,default=copy_master_yr)
+        select case (trname(nTracer))
+        case ('NOx')
+          call get_param('NOx_yr',cyclic_yr,default=cyclic_yr)
+        case ('CO')
+          call get_param('CO_yr',cyclic_yr,default=cyclic_yr)
+        case ('Alkenes', 'Paraffin')
+          call get_param('VOC_yr',cyclic_yr,default=cyclic_yr)
+        end select
       else
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
         call get_param('aer_int_yr',cyclic_yr,default=copy_master_yr)
-#else 
-        continue
+        select case (trname(nTracer))
+        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+          call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('NH3')
+          call get_param('NH3_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+          call get_param('BC_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &        'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          call get_param('OC_int_yr',cyclic_yr,default=cyclic_yr)
+        end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       end if

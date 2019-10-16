@@ -31,6 +31,9 @@ if ( /Preprocessor *Options/i ) {
     }
     print "\n";
     # skip till next section
+    if (eof) { 
+	print STDERR "Error: no 'End preprocessor options'\n"; exit 1;
+    }
     while(<>) { last if(/Run *Options/i || /Object *modules/i); }  
 }
 
@@ -60,10 +63,16 @@ if ( /Preprocessor *Options/i ) {
     }
     print "\n";
     # skip till next section
+    if (eof) { 
+	print STDERR "Error: no 'End preprocessor options'\n"; exit 1;
+    }
     while(<>) { last if(/Run *Options/i || /Object *modules/i); }
 }
 
-
+if (eof) { 
+    print STDERR "Error: 'Object modules' not found in the rundeck.\n";
+    exit 1;
+}
 if ( /Object *modules/i ) {
     print "OBJ_LIST = \n";
     $OBJ_LIST_O = "";
@@ -111,7 +120,10 @@ if ( /Component Options:/i ) {
     print "\n";
 }
 
-
+if (eof) { 
+    print STDERR "Error: 'Data input files' not found in the rundeck.\n";
+    exit 1;
+}
 if ( /Data input files/i ) {
     print "INPUT_FILES = \n";
     while(<>) {
@@ -128,6 +140,10 @@ if ( /Data input files/i ) {
 
 }
 
+if (eof) { 
+    print STDERR "Error: PARAMETERS not found in the rundeck.\n";
+    exit 1;
+}
 if ( /\&\&PARAMETERS/i ) {
     print "RUN_PARAMETERS = \n";
     while(<>) {
@@ -144,6 +160,11 @@ if ( /\&\&PARAMETERS/i ) {
 
 }
 
+# allow skipping INPUTZ if not needed
+if (eof) { 
+    print STDERR "Warning: INPUTZ not found in the rundeck. Hope it's OK\n";
+    exit 0;
+}
 if ( /\&INPUTZ/i ) {
     print "INPUTZ = \n";
     while(<>) {
@@ -155,6 +176,7 @@ if ( /\&INPUTZ/i ) {
     print "\n";
 }
 
+exit 0 if eof;
 # add the rest as comments
 while(<>) {
     print "# $_";

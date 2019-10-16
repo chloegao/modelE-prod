@@ -1,11 +1,11 @@
 
-C****   
+C****
 C**** SURFACE.f    SURFACE fluxes    2006/12/21
 C****
 #include "rundeck_opts.h"
 
 ! Overall structure:
-! 
+!
 ! 1. Init
 ! 2. Loop over grid points (some diagnostics here)
 ! 3. Diagnostics (in separate loop over gridpoints; composite diagnostics)
@@ -14,8 +14,8 @@ C****
 ! 5. Other diagnostics
 ! 6. Things that were moved from the main loop to the end
 !    (Each one has its own loop inside).
-! 
-! 
+!
+!
 
 
 
@@ -306,8 +306,8 @@ C**** INITIALIZE TGRND: THIS IS USED TO UPDATE T OVER SURFACE STEPS
         TGRND(2,I,J)=atmice%GTEMP(I,J)
         TGRN2(2,I,J)=atmice%GTEMP2(I,J)
         TGR4(2,I,J)=atmice%GTEMPR(I,J)**4
-      END DO 
-      END DO 
+      END DO
+      END DO
 
 C**** Zero out fluxes summed over type and surface time step
 
@@ -371,7 +371,7 @@ C**** Set up tracers for PBL calculation if required
           nx=nx+1
           ntix(nx) = n
         end if
-      end do 
+      end do
       ntx = nx
       pbl_args%ntix(1:ntm) = ntix(1:ntm)
       pbl_args%ntx = ntx
@@ -468,9 +468,9 @@ C**** pass salinity (zero for lakes)
       pbl_args%sss_loc=sss(i,j)
 c**** sanity check (to prevent rare anomalies that will be dealt with by
 C**** addice next time)
-#ifndef SCM 
+#ifndef SCM
       TG1=max(TG1,tfrez(sss(i,j)))
-#else 
+#else
 c**** skip sanity check when forcing skin temperature
       if( .not. SCMopt%Tskin )then
         TG1=max(TG1,tfrez(sss(i,j)))
@@ -539,11 +539,11 @@ C**** fraction of solar radiation leaving layer 1 and 2
 
 C**** pass salinity in underlying water (zero for lakes)
       pbl_args%sss_loc=sss(i,j)
-C**** Underlying ocean temperature with sanity check 
+C**** Underlying ocean temperature with sanity check
 C**** (to prevent rare anomalies that will be dealt with by
 C**** addice next time)
       TGO=max(atmocn%GTEMP(I,J),tfrez(sss(i,j)))
-      
+
       END IF
 
       endif ! itype check
@@ -559,7 +559,7 @@ C****
 
       TG=TG1+TF
       QG_SAT=QSAT(TG,ELHX,PS)
-      IF (ITYPE.eq.ITYPE_OCEAN.and. 
+      IF (ITYPE.eq.ITYPE_OCEAN.and.
      &    focean(i,j).gt.0) QG_SAT=0.98d0*QG_SAT
 #ifdef SCM
       if( SCMopt%Qskin )then ! force skin water vapor mixing ratio
@@ -812,7 +812,7 @@ C****
      &       AIJ(I,J,IJ_DSKINSNOW)=AIJ(I,J,IJ_DSKINSNOW)+pbl_args%dskin
       endif
 
-C**** 
+C****
       END IF
       END DO   ! end of itype loop
       END DO   ! end of I loop
@@ -980,7 +980,7 @@ c****   retrieve fluxes
         vflux1(i,j)=atmsrf%vflux1(i,j)
         tflux1(i,j) = -atmsrf%dth1(i,j)*MA(1,I,J) / dtsurf
         qflux1(i,j) = -atmsrf%dq1(i,j) *MA(1,I,J) / dtsurf
-      END DO 
+      END DO
       END DO
 
 c create land ice composite values for a few diagnostics that
@@ -1047,6 +1047,12 @@ C****
      &         atmsrf%qsavg(i,j)/qsat(atmsrf%tsavg(i,j),lhe,pedn(1,i,j))
         enddo;        enddo
         call inc_subdd(subdd,k,sddarr2d)
+#ifdef CFMIP3_SUBDD
+      case('tauus')
+        call inc_subdd(subdd,k,uflux1)
+      case('tauvs')
+        call inc_subdd(subdd,k,vflux1)
+#endif
       end select
       enddo
       enddo
@@ -1252,7 +1258,7 @@ C
       case ('GT1')
         do j=j_0,j_1; do i=i_0,imaxj(j)
            if (FEARTH(I,J).gt.0) then
-              sddarr2d(i,j)=atmlnd%gtemp(i,j) 
+              sddarr2d(i,j)=atmlnd%gtemp(i,j)
            else
               sddarr2d(i,j)=undef
            endif
@@ -1305,7 +1311,7 @@ C
         call inc_subdd(subdd,k,sddarr2d)
 C
       case ('evap')
-        call inc_subdd(subdd,k,atmsrf%evapor) 
+        call inc_subdd(subdd,k,atmsrf%evapor)
 C
       end select
       enddo
@@ -1456,13 +1462,13 @@ C**** For distributed implementation - ensure point is on local process.
             do ii=1,5
               tmp(IDD_PT5+ii-1)=PEK(1,I,J)*T(I,J,ii)
               tmp(IDD_Q5+ii-1) =Q(I,J,ii)
-            end do 
+            end do
             ADIURN(idx1(:),kr,ih)=ADIURN(idx1(:),kr,ih)+tmp(idx1(:))
 #ifdef USE_HDIURN
             HDIURN(idx1(:),kr,ihm)=HDIURN(idx1(:),kr,ihm)+tmp(idx1(:))
 #endif
           END IF
-        END DO 
+        END DO
       END IF
       return
       end subroutine surface_diag0
@@ -1517,7 +1523,7 @@ C**** For distributed implementation - ensure point is on local process.
      *      taijs=>taijs_loc,jls_isrc, tij_surf,
      *      tij_surfbv, tij_evap, tij_grnd
 #ifdef TRACERS_SPECIAL_O18
-      use trdiag_com, only: tij_owiso 
+      use trdiag_com, only: tij_owiso
 #endif
 #endif /*SKIP_TRACER_DIAGS*/
 #ifdef TRACERS_ON
@@ -1584,7 +1590,7 @@ C*** min/max tsurf
      &       max(  (atmsrf%tsavg(i,j)-tf), aijmm(i,j,ij_tsurfmax) )
         aij(i,j,ij_evap)=aij(i,j,ij_evap)-dtsurf*qflux1(i,j)
 #ifdef mjo_subdd
-C**** SUBDD E_acc for evaporation *** 
+C**** SUBDD E_acc for evaporation ***
         E_acc(I,J)=E_acc(I,J)-dtsurf*qflux1(i,j)
 #endif
       enddo
@@ -2067,7 +2073,7 @@ C**** For distributed implementation - ensure point is on local process.
             HDIURN(idx6(:),kr,ihm)=HDIURN(idx6(:),kr,ihm)+tmp(idx6(:))
 #endif
           END IF
-        END DO 
+        END DO
       END IF
       end subroutine surface_diag2
 
@@ -2221,7 +2227,7 @@ C**** Limit evaporation if lake mass is at minimum
 #else
           if( TREVAPOR+TEVAP.gt.TEVAPLIM ) THEN
 #endif
-c            IF(QCHECK) 
+c            IF(QCHECK)
 c     &           WRITE(99,*) "Lake TEVAP limited: I,J,TEVAP,TMWL"
 c     *           ,N,TREVAPOR+TEVAP,TEVAPLIM
             TEVAP= TEVAPLIM-TREVAPOR
@@ -2324,10 +2330,10 @@ C****
         case default
           trc_flux=0
 #ifdef TRACERS_TOMAS
-        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04',
      &         'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
      &         'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
-#ifdef TOMAS_12_3NM 
+#ifdef TOMAS_12_3NM
      *    ,'ANACL_13','ANACL_14','ANACL_15'
 #endif
      &         )
@@ -2342,13 +2348,13 @@ C****
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &         'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
      &         'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
-#ifdef TOMAS_12_3NM 
+#ifdef TOMAS_12_3NM
      *    ,'ANUM__13','ANUM__14','ANUM__15'
 #endif
      &         )
            num_bin=num_bin+1
            trc_flux=ss_num(num_bin)
-      
+
 #endif
         end select
 
@@ -2372,43 +2378,43 @@ C****
 #endif
 #endif
 
-      
+
 #ifdef TRACERS_TOMAS
 
         select case (trname(n))
 
-            case ('DMS')              
+            case ('DMS')
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *              trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
 
-        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04', 
+        case ('ANACL_01','ANACL_02','ANACL_03','ANACL_04',
      &       'ANACL_05','ANACL_06','ANACL_07','ANACL_08',
      &       'ANACL_09','ANACL_10','ANACL_11','ANACL_12'
-#ifdef TOMAS_12_3NM 
+#ifdef TOMAS_12_3NM
      *    ,'ANACL_13','ANACL_14','ANACL_15'
 #endif
      &         )
-        
+
         if (itcon_surf(1,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(1,n),n)
-        
+
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
-        
+
         case ('ANUM__01','ANUM__02','ANUM__03','ANUM__04',
      &       'ANUM__05','ANUM__06','ANUM__07','ANUM__08',
      &       'ANUM__09','ANUM__10','ANUM__11','ANUM__12'
-#ifdef TOMAS_12_3NM 
+#ifdef TOMAS_12_3NM
      *    ,'ANUM__13','ANUM__14','ANUM__15'
 #endif
      &         )
-        
+
 !TOMAS - itcon_surf (1,3) is for SO4/EC/OC.
         if (itcon_surf(4,n).gt.0) call inc_diagtcb(i,j,
      *       trc_flux*axyp(i,j)*ptype*dtsurf,itcon_surf(4,n),n)
 
         if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
-     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols? 
+     *       trc_flux*axyp(i,j)*ptype*dtsurf) ! why not for all aerosols?
 
             end select
 #endif
@@ -2475,7 +2481,7 @@ C****
           trs=pbl_args%trs(nx)
           ngx=gasex_index%getindex(n)
           if (n==n_cfcn) then
-            term = pbl_args%Kw_gas(ngx) * 
+            term = pbl_args%Kw_gas(ngx) *
      .             (pbl_args%beta_gas(ngx)*trs-trgrnd)
 
             TRGASEX(ngx,I,J) = TRGASEX(ngx,I,J) + term
@@ -2498,7 +2504,7 @@ C****
      .         * dtsurf/dtsrc      !in order to accumulate properly over time
      .         * (1.d0-RSI)   !units mol,co2/m2/s
 
-! trsrfflx is positive up 
+! trsrfflx is positive up
 ! units are kg,CO2/s
             atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)
      .         - term * 1.0d6/vol2mass(n)
