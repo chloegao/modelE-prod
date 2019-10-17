@@ -524,6 +524,13 @@ C**** Necessary initiallisation?
       motr = 0.
       call sync_param('ocean_ntrtrans',ntrtrans)
       if(ntrtrans.gt.1) then
+#ifdef TRACERS_SPECIAL_O18
+! Salt/freshwater are not (yet) transported on the ntrtrans schedule.  Full
+! instantaneous consistency of water isotopes with freshwater requires
+! identical timestepping.   Future releases will relax this restriction.
+        call stop_model('ocean_ntrtrans>1 incompatible with '//
+     &       'TRACERS_SPECIAL_O18',255)
+#endif
         allocate( mosv0(im,j_0h:j_1h,lmo), stat = ier)
         allocate( asmu(im,j_0h:j_1h,lmo), stat = ier)
         allocate( asmv(im,j_0h:j_1h,lmo), stat = ier)
