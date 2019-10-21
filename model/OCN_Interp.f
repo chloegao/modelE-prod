@@ -1176,7 +1176,6 @@ c*
 !!      on the ocean grid
 !@auth Larissa Nazarenko
       USE MODEL_COM, only: nstep=>itime
-      use rad_com, only : dirvis,fsrdif,dirnir,difnir
 #if (defined TRACERS_OCEAN)
       USE OCN_TRACER_COM, only: tracerlist
 #endif
