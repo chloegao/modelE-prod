@@ -132,7 +132,7 @@ cmax      INTEGER, DIMENSION(IM,JM), public :: JREG
      &     AIJmm
 
 !@param KAIJL number of AIJL accumulations
-      INTEGER, PARAMETER, public :: KAIJL=21
+      INTEGER, PARAMETER, public :: KAIJL=24
 #if (defined mjo_subdd) || (defined etc_subdd)
      &                                  + 8
 #endif
