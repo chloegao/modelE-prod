@@ -1,5 +1,6 @@
 
 F90 = gfortran
+CC = gcc
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS += -DCOMPILER_G95
 FFLAGS = -g -cpp -fconvert=big-endian -O2 -fno-range-check
