@@ -755,7 +755,7 @@ C          radfile1   2   3   4   5   6   7   8   9   A   B   C   D   E
 
 !?    IF(LASTVC > 0) NRFUN=NRFN0
       IF(IFIRST < 1) GO TO 9999
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)      
+#if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) || (defined TRACERS_TOMAS)      
       MADBAK=0 ; MADDST=0 ! skip adding background and dust aerosols
 #endif
 
@@ -2393,7 +2393,7 @@ C                                                                -------
 
       SUBROUTINE SETAER( GETAER_flag )
 cc    INCLUDE  'rad00def.radCOMMON.f'
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) || (defined TRACERS_TOMAS)
       USE RESOLUTION, only :LM
 #endif
       use AerParam_mod, only : DRYM2G
@@ -2433,17 +2433,16 @@ C          Set size OCX (NA=4) = Organic aerosol  (Nominal dry Reff=0.3)
 C     ------------------------------------------------------------------
       REAL*8 AREFF, XRH,FSXTAU,FTXTAU,SRAGQL,RHFTAU,q55,RHDNA,RHDTNA
       REAL*8 TTAULX(LX,ITRMAX),SRBGQL,FAC,RHFTAU_dry
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
+#if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) || (defined TRACERS_TOMAS)
       REAL*8, DIMENSION(LM,6)  :: EXT,SCT,GCB
       REAL*8, DIMENSION(LM,33) :: TAB
 #endif
       INTEGER NRHNAN(LX,8),K,L,NA,N,NRH,M,KDREAD,NT
 
       q55 = 0.
-#if (defined TRACERS_AMP) || (defined TRACERS_TOMAS)
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) 
       CALL SETAMP(EXT,SCT,GCB,TAB)
-#endif
+
 #ifdef TRACERS_TOMAS
       CALL SETTOMAS(EXT,SCT,GCB,TAB)
 #endif
@@ -2458,6 +2457,7 @@ c LW
 
 #ifndef TRACERS_TOMAS
 #ifndef TRACERS_AMP
+#ifndef USE_OFFLINE_AEROSOLS
 
       if ( present(GETAER_flag) ) goto 200
 
@@ -2679,6 +2679,7 @@ C     ------------------------------------------------------------------
      *  *FTTASC(NT)
       TRBALK(L,:)=TRBALK(L,:)+TRTQAB(:,NRHNAN(L,NA),NT)*RHFTAU ! 1:33
   750 CONTINUE
+#endif
 #endif
 #endif
       RETURN
