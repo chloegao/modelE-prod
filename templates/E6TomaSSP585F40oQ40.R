@@ -3,7 +3,7 @@ E6TomaSSP585F40oQ40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OM
 
 ================== NON-FINAL VERSION =======================
  for example: no land-use change from historical yet, and the CH4 wetlands source
-              not tuned yet. Correct year ACI/rsf not in place yet.
+              not tuned yet.
 
 E6TomaSSP585F40oQ40 = adds coupled ocean based on CMIP6 run E212Tomaf10aF40oQ40_2.R
                 and set up for transition between historical and SSP run (ISTART=9)
@@ -115,9 +115,7 @@ OPTS_dd2d = NC_IO=PNETCDF
 
 Data input files:
 ! start from the restart file of an earlier run ...                 ISTART=8 or 9
-!!!!! OBVIOUSLY JUST A PLACEHOLDER HERE. REPLACE IT WITH 2015 WHEN AVAILABLE:
-AIC=gsin/AIC/1JAN1918.rsfE212Tomaf10aF40oQ40_2.nc ! initial conditions, no GIC needed
-!!!!! ----------------------------------------------------------------------
+AIC=1JAN2015.rsfE212Tomaf10aF40oQ40_2.nc ! initial conditions, no GIC needed
 #include "dynamic_ocn_288x180_input_files_CMIP6_istart8or9"
 TOPO=Z2HX2fromZ1QX1N.BS1.nc        ! surface fractions and topography (1 cell Bering Strait)
 ICEDYN_MASKFAC=iceflowmask_144x90.nc
