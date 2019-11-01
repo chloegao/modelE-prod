@@ -2442,10 +2442,16 @@ C     ------------------------------------------------------------------
       q55 = 0.
 #if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) 
       CALL SETAMP(EXT,SCT,GCB,TAB)
-
+!radiation has 3 extra levels on the top - aerosols are zero
+c SW
+      SRBEXT(L1:LM,:) = EXT(L1:LM,:)
+      SRBSCT(L1:LM,:) = SCT(L1:LM,:)
+      SRBGCB(L1:LM,:) = GCB(L1:LM,:)
+c LW
+      TRBALK(L1:LM,:) = TAB(L1:LM,:)
+#endif
 #ifdef TRACERS_TOMAS
       CALL SETTOMAS(EXT,SCT,GCB,TAB)
-#endif
 !radiation has 3 extra levels on the top - aerosols are zero
 c SW
       SRBEXT(L1:LM,:) = EXT(L1:LM,:)
