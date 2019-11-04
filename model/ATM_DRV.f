@@ -656,7 +656,9 @@ C****        tropospheric temperatures are changed by at most 1 degree C
       endif
       call initTracerGriddedData(istart<=2)
 #endif
-
+#ifdef USE_OFFLINE_AEROSOLS
+      call SETUP_RAD
+#endif
 C****
       CALL RINIT (IRAND)
 c Note on FFT initialization: IMLON is defined by the diag_zonal module,
