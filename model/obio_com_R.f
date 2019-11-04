@@ -21,6 +21,10 @@ c
       real, ALLOCATABLE, DIMENSION(:,:)    :: tzoo2d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: tfac3d,wshc3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: Fescav3d
+
+#ifdef restart_add_o2
+      real, ALLOCATABLE, DIMENSION(:,:,:)  :: o2rst
+#endif
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: rmuplsr3d,rikd3d
       real, ALLOCATABLE, DIMENSION(:,:,:,:):: acdom3d
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: gcmax         !cocco max growth rate
@@ -44,6 +48,8 @@ c
       integer :: nstep0=0
 
       integer:: num_tracers
+      integer:: errchk1=0
+      integer:: errchk2=0    !@PL check if there are NaNs in O2     
 
       !test point
 !!    integer, parameter :: itest=16, jtest=45    !equatorial Pacific                  2deg ocean
@@ -81,12 +87,14 @@ c
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
-     .                 ,alk1d(kdm),flimit(kdm,nchl,5)
+     .                 ,alk1d(kdm),flimit(kdm,nchl,5),rho1d(kdm)
 #ifdef TRACERS_Ocean_O2
-     .                 ,o21d(kdm)
+     .                 ,o21d(kdm)   ! oxygen 1d array
+     .                 ,abo21d(kdm) ! abiotic oxygen 1d array
 #endif
-
+      real rho_water
       real atmFe_ij,covice_ij
+
       real, allocatable, DIMENSION(:,:) :: daily_atmFe
       integer inwst,inwnd,jnwst,jnwnd     !starting and ending indices 
                                           !for daylight 
@@ -99,7 +107,7 @@ c
       real ca_det_calc1d(kdm),Ca_tend(kdm)
 #endif
 #ifdef TRACERS_Ocean_O2
-      real O_tend(kdm)
+      real O_tend(kdm),Abo_tend(kdm) ! oxygen tendency terms
 #endif
       real rmuplsr(kdm,nchl)                  !growth+resp 
       real D_tend(kdm,ndet)                   !detrtial tendency
@@ -109,6 +117,11 @@ c
       real wsdet(kdm+1,ndet)                  !detrital sinking rate
       real rikd(kdm,nchl)                     !photoadaption state
       real tzoo                               !herbivore T-dependence
+      real docbac(kdm)                             !bacterial loss of DOC
+      real rmu3(kdm,nchl)                      !grwoth on nitrate
+      real rmu4(kdm,nchl)                      !growth on ammonium
+      real gronfix(kdm)                       !growth from nitrogen fixation
+      real dicresp(nchl)                      !phyto respiration 
       real Fescav(kdm)                        !iron scavenging rate
 
 C if NCHL_DEFINED > 3
@@ -117,6 +130,9 @@ C endif
 
       real :: C_tend(kdm,ncar)                !carbon tendency
       real :: pCO2_ij,pHsfc                   !partial pressure of CO2, pH
+#ifdef TRACERS_Ocean_O2
+      real :: pO2_ij,pabO2_ij                          !partial presure O2
+#endif
       real :: gro(kdm,nchl)                   !realized growth rate
       integer :: day_of_month, hour_of_day
 
@@ -125,6 +141,14 @@ C endif
       real :: pp2_1d(kdm,nchl)          !net primary production
 
       real*8 :: co2flux
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+     &          ,o2flux
+#endif
+#ifdef TRACERS_abio_O2 
+     &          ,abo2flux ! Air-sea o2 fluxes
+#endif
+#endif
       integer kzc
       real*8 :: carb_old,iron_old    !prev timesetep total carbon inventory
 
@@ -187,7 +211,7 @@ C endif
       
       do i=ogrid%i_strt,ogrid%i_stop
         do j=ogrid%j_strt,ogrid%j_stop
-          pres=oapress(i,j)
+          pres=oapress(i,j) 
           do k=1, lmm(i,j)
             pres=pres+mo(i,j,k)*grav*.5
             g=g0m(i,j,k)/(mo(i,j,k)*dxypo(j))
@@ -231,6 +255,7 @@ C endif
      &   add_diag
 
       real*8, dimension(:, :, :), allocatable, public :: obio_ij
+!      real*8, dimension(:, :, :), allocatable, public :: hemis_obio_ij
       real*8, dimension(:, :, :, :), allocatable, public :: obio_ijl
 #ifdef obio_rhsdiags
       real*8, dimension(:, :, :, :), allocatable, public :: rhs_ijl
@@ -241,11 +266,16 @@ C endif
      &   ij_cexp, ij_ndet, ij_setl, ij_sink, ij_xchl, ij_fca, 
      &   ij_rnitrmflo,
      &   ij_rnitrconc, ij_rdicconc, ij_rdocconc, ij_rsiliconc,
-     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp,
-     &   ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
-     &   ij_ph
+     &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4,5),
+     &   ij_rhs(ntrac,17),ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
+     &   ij_ph,kobio_ij
 #ifdef TRACERS_Ocean_O2
-     &  ,ij_o2
+#ifdef TRACERS_bio_O2
+     &  ,ij_o2,ij_oflx,ij_po2
+#endif
+#ifdef TRACERS_abio_O2
+     &  ,ij_abo2,ij_aboflx,ij_pabo2
+#endif
 #endif
       integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d,ijl_dtemp
      .                  ,ijl_wss(nchl),ijl_wsdet(ndet)
@@ -256,10 +286,24 @@ C endif
      .                  ,ijl_lim4(nchl)
      .                  ,ijl_lim5(nchl)
      .                  ,ijl_rhs3(ntrac,17)
+#ifdef TRACERS_bio_O2
+     .                  ,ijl_cprod
+     .                  ,ijl_cdet
+     .                  ,ijl_cdoc
+     .                  ,ijl_caresp
+     .                  ,ijl_chresp
+     .                  ,ijl_oprodam
+     .                  ,ijl_oprodnit
+     .                  ,ijl_odet
+     .                  ,ijl_odoc
+     .                  ,ijl_oaresp
+     .                  ,ijl_ohresp
+#endif
       type(vector_str30) :: sname_ij, units_ij
       type(vector_str30) :: sname_ijl, units_ijl
       type(vector_str80) :: lname_ij, lname_ijl
       type(vector_integer) :: ia_ij, ia_ijl
+      type(vector_integer) :: denom_ij
       type(vector_real8) :: scale_ij, scale_ijl
       type(cdl_type) :: cdl_ij, cdl_ijl
 #ifdef obio_rhsdiags
@@ -276,7 +320,8 @@ C endif
       subroutine add_diag(lname, sname, units, dim3, idx)
 
       use mdiag_com, only : ia_cpl
-       
+      use DIAG_COM, only : IJ_POCEAN 
+
       implicit none
 
       character(len=*), target, intent(in) :: lname, sname, units
@@ -313,6 +358,7 @@ C endif
         call sname_ij%push_back(sname1)
         call units_ij%push_back(units1)
         call scale_ij%push_back(1.d0)
+        call denom_ij%push_back(IJ_POCEAN)
         call ia_ij%push_back(ia_cpl)
         idx=lname_ij%getsize()
       endif
@@ -337,6 +383,10 @@ C endif
      &         ogrid%j_strt:ogrid%j_stop, lname_ij%getsize()))
       allocate(obio_ijl(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, kdm, lname_ijl%getsize()))
+!@PL
+!      allocate(hemis_obio_ij(1,3,lname_ij%getsize()))
+!@PL
+
 #ifdef obio_rhsdiags
       allocate(rhs_ijl(ogrid%i_strt:ogrid%i_stop,
      &         ogrid%j_strt:ogrid%j_stop, kdm, lname_rhs_ijl%getsize()))
@@ -360,6 +410,10 @@ C endif
      &   'obio_ij('//trim(arg2d)//',kobio_ij)', r4_on_disk=r4_on_disk)
       call defvar(ogrid, fid, obio_ijl,
      &   'obio_ijl('//trim(arg3d)//',kobio_ijl)', r4_on_disk=r4_on_disk)
+!@PL
+!      call defvar(ogrid,fid,hemis_obio_ij,
+!     &      'hemis_obio_ij(one,shnhgm,kobio_ij)', r4_on_disk=r4_on_disk)
+!@PL
 #ifdef obio_rhsdiags
       call defvar(ogrid, fid, rhs_ijl,
      &   'rhs_ijl('//trim(arg3d)//',krhs_ijl)', r4_on_disk=r4_on_disk)
@@ -419,6 +473,8 @@ C endif
         do k=1, sname_ij%getsize()
             call add_var(cdl_ij,
      &         'float '//trim(sname_ij%at(k))//'(lato,lono) ;',
+!     &       auxvar_string=                                            !@PL aux var for hemis
+!     &           'float '//trim(sname_ij%at(k))//'_hemis(shnhgm);',    !@PL
      &         long_name=trim(lname_ij%at(k)),
      &         units=trim(units_ij%at(k)) )
           enddo
@@ -451,12 +507,21 @@ C endif
 
       call write_attr(ogrid, fid, 'obio_ij', 'reduction', 'sum')
       call write_attr(ogrid, fid, 'obio_ij', 'split_dim', 3)
+
+!@PL
+!      call write_attr(ogrid,fid,'hemis_obio_ij','reduction','sum')
+!@PL
       call defvar(ogrid, fid, ia_ij%getdata(), 'ia_obio_ij(kobio_ij)')
       call defvar(ogrid, fid, scale_ij%getdata(),
      &            'scale_obio_ij(kobio_ij)')
       call defvar(ogrid, fid, sname_ij%getdata(),
      &            'sname_obio_ij(sname_strlen,kobio_ij)')
 
+
+!@PL
+      call defvar(ogrid, fid, denom_ij%getdata(),
+     &            'denom_obio_ij(kobio_ij)')
+!@PL
 
       call write_attr(ogrid, fid, 'obio_ijl', 'reduction', 'sum')
       call write_attr(ogrid, fid, 'obio_ijl', 'split_dim', 4)
@@ -478,6 +543,10 @@ C endif
      &            'sname_rhs_ijl(sname_strlen,krhs_ijl)')
 #endif
 
+      !@PL size of obio_ij
+      kobio_ij = sname_ij%getsize()
+      !@PL
+
       end subroutine def_meta_obio_diag
 
 
@@ -492,6 +561,11 @@ C endif
       call write_data(ogrid, fid, 'ia_obio_ij', ia_ij%getdata())
       call write_data(ogrid, fid, 'scale_obio_ij', scale_ij%getdata())
       call write_data(ogrid, fid, 'sname_obio_ij', sname_ij%getdata())
+      !@PL
+      call write_data(ogrid, fid, 'denom_obio_ij', denom_ij%getdata())
+!      call write_data(ogrid,fid,'hemis_obio_ij',hemis_obio_ij)
+
+      !@PL
       if (associated(cdl_lons))
      &      call write_cdl(ogrid, fid, 'cdl_obio_ij', cdl_ij)
 
@@ -572,6 +646,10 @@ c**** Extract domain decomposition info
       ALLOCATE(tot_chlo(i_0:i_1,j_0:j_1))
       ALLOCATE(rhs_obio(i_0:i_1,j_0:j_1,ntrac,17))
       ALLOCATE(chng_by(i_0:i_1,j_0:j_1,14))
+
+#ifdef restart_add_o2
+      ALLOCATE(o2rst(i_0:i_1,j_0:j_1,kdm))
+#endif
 
       ALLOCATE(Edz(nlt,kdm))
       ALLOCATE(Esz(nlt,kdm))
@@ -658,7 +736,15 @@ c**** Extract domain decomposition info
 
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
-      use obio_dim, only: ntrac,nchl,ndet,nnut,ntyp
+      use obio_dim, only: ntrac,nchl,ndet,nnut,ntyp,ndimc
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+     .                   ,no2,ndimo2
+#endif
+#ifdef TRACERS_abio_O2
+     .                   ,nabo2,ndimabo2
+#endif
+#endif
       use obio_diag
 
        implicit none
@@ -667,13 +753,32 @@ c**** Extract domain decomposition info
       character(len=10), dimension(1) :: con_str
       integer :: nt, ilim, ll
       character :: str1*5,str2*9,str3*10,str4*6,str5*7,str6*9
+      character :: unit_str*8
       character(len=1), parameter :: lim_sym(4)=(/'d', 'h', 'b', 'c'/)
 ! diatoms, chloroph, cyanobact, coccoliths
-      character(len=4), parameter :: rhs_sym(16)=(/ 'nitr', 'ammo',
+!@PL ifdef statements for O2 and alkalinity options
+      character(len=4), parameter :: rhs_sym(ntrac)=(/ 'nitr', 'ammo',
      &     'sili', 'iron', 'diat', 'chlo', 'cyan', 'cocc', 'herb',
-     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_', 'alk_'
-     &   , 'o2__'/)
+     &     'ndet', 'sdet', 'idet', 'doc_', 'dic_'
+#ifdef TRACERS_Alkalinity
+     &      ,'alk_'
+#endif
 
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+     &      ,'o2__'
+#endif
+#ifdef TRACERS_abio_O2
+     &      ,'abo2'
+#endif
+
+
+#endif
+     &           /)
+
+
+
+!@PL
       con_idx=[12]
       con_str=['OCN BIOL']
 
@@ -709,8 +814,14 @@ c**** Extract domain decomposition info
      &  call add_ocn_tracer('Alk       ',i_ntrocn=-6,i_ntrocn_delta=-14,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #ifdef TRACERS_Ocean_O2
-        call add_ocn_tracer('O2        ',i_ntrocn=-4,i_ntrocn_delta=-12,   !**check
+#ifdef TRACERS_bio_O2
+        call add_ocn_tracer('O2        ',i_ntrocn=-3,i_ntrocn_delta=-11,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+#endif
+#ifdef TRACERS_abio_O2
+        call add_ocn_tracer('abO2      ',i_ntrocn=-3,i_ntrocn_delta=-11,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+#endif
 #endif
 #ifdef TOPAZ_params
       call add_diag("co3 ", "oij_co3",
@@ -751,8 +862,22 @@ c**** Extract domain decomposition info
       call add_diag("Surface ocean DIC", "oij_dic",
      &              "uM", .false., IJ_dic)
 #ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
       call add_diag("Surface ocean O2", "oij_o2",
-     &              "uM", .false., IJ_o2)
+     &              "mmol/kg", .false., IJ_o2)
+      call add_diag("AO Flux O2",  "oij_oflx",
+     &              "molO2/m2/yr", .false., IJ_oflx)
+      call add_diag("Surface ocean partial O2 pressure",
+     &              "oij_pO2","atm",.false.,IJ_po2)
+#endif
+#ifdef TRACERS_abio_O2
+      call add_diag("Surface ocean abiotic O2", "oij_abo2",
+     &              "mmol/kg", .false., IJ_abo2)
+      call add_diag("AO Flux abO2",  "oij_aboflx",
+     &              "molO2/m2/yr", .false., IJ_aboflx)
+      call add_diag("Surface ocean abiotic partial O2 pressure",
+     &              "oij_pabO2","atm",.false.,IJ_pabo2)
+#endif
 #endif
       call add_diag("Surface ocean partial CO2 pressure",
      &              "oij_pCO2", "uatm", .false., IJ_pCO2)
@@ -785,6 +910,18 @@ c**** Extract domain decomposition info
      &              "mg,C/m2/day", .false., IJ_pp3)
       call add_diag("PP-cocc", "oij_pp4",
      &              "mg,C/m2/day", .false., IJ_pp4)
+      do nt=1, 4
+        do ilim=1, 5
+          write(str1, '(A1,A3,I1)') lim_sym(nt), 'lim', ilim
+          call add_diag(str1, str1, "?", .false., ij_lim(nt, ilim))
+        end do
+      end do
+      do nt=1, ntrac
+        do ll=1, 17
+          write(str2, '(A4,A3,I2.2)') rhs_sym(nt), 'rhs', ll
+          call add_diag(str2, str2, "?", .false., ij_rhs(nt, ll))
+        end do
+      end do
 #ifdef OBIO_RUNOFF
 !      call add_diag("Nitrate mass flow from rivers", "oij_rnitrmflo",
 !     &               "kg/s", IJ_rnitrmflo)
@@ -830,6 +967,33 @@ c**** Extract domain decomposition info
         call add_diag(str4, str4,"mg,C/m2/day", .true., IJL_pp(nt))
       enddo
 
+!@PL rhs diagnostics when rhsobio is undefined
+#ifdef TRACERS_bio_O2
+      call add_diag("O2 Nitrate production", "Oprod",
+     &              "kg/d", .true., IJL_oprodnit)
+      call add_diag("O2 auto respiration", "Oaresp",
+     &              "kg/d", .true., IJL_oaresp)
+      call add_diag("O2 heter respiration", "Ohresp",
+     &              "kg/d", .true., IJL_ohresp)
+      call add_diag("O2 detritial degradation", "Odet",
+     &              "kg/d", .true., IJL_odet)
+      call add_diag("O2 doc degradation", "Odoc",
+     &              "kg/d", .true., IJL_odoc)
+      call add_diag("O2 Ammonium production", "Oprodam",
+     &              "kg/d", .true., IJL_oprodam)
+      call add_diag("DIC Nitrate production", "Cprod",
+     &              "kg/d", .true., IJL_cprod)
+      call add_diag("DIC auto respiration", "Caresp",
+     &              "kg/d", .true., IJL_caresp)
+      call add_diag("DIC heter respiration", "Chresp",
+     &              "kg/d", .true., IJL_chresp)
+      call add_diag("DIC detritial degradation", "Cdet",
+     &              "kg/d", .true., IJL_cdet)
+      call add_diag("DIC doc degradation", "Cdoc",
+     &              "kg/d", .true., IJL_cdoc)
+
+#endif
+
       do nt=1,nchl
         write(str6,'(A4,A5)')rhs_sym(nnut+nt),'_lim1'
         call add_diag(str6,str6,"?",.true.,IJL_lim1(nt))
@@ -847,12 +1011,34 @@ c**** Extract domain decomposition info
         call add_diag(str6,str6,"?",.true.,IJL_lim5(nt))
       enddo
 
+!@PL currently including all tracers in rhs diagnostics causes an error
+! in the checkpoint file. So only DIC and O2 are included for now
 #ifdef obio_rhsdiags
-      do nt=1, ntrac
+      do nt=ndimc, ntrac
+       if (nt.eq.ndimc
+#ifdef TRACERS_bio_O2
+     & .or. nt.eq.ndimo2
+#endif
+#ifdef TRACERS_abio_O2
+     & .or. nt.eq.ndimabo2
+#endif
+     &           ) then
       do ll=1, 17
         write(str3, '(A4,A4,I2.2)') rhs_sym(nt), 'rhs3', ll
-        call add_diag(str3, str3,"mol/m3/s", .true., IJL_rhs3(nt,ll))
+        if (nt.eq.ndimc) unit_str='kg,C/s'
+!@PL
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+        if (nt.eq.ndimo2) unit_str='kg,O/s'
+#endif
+#ifdef TRACERS_abio_O2
+        if (nt.eq.ndimabo2) unit_str='kg,O/s'
+#endif
+#endif
+        call add_diag(str3,str3,unit_str,.true.,IJL_rhs3(nt,ll))
+!@PL
       enddo
+      endif
       enddo
 #endif
 

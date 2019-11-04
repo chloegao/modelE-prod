@@ -47,7 +47,7 @@
       USE obio_incom, only: rain_ratio,cpratio,sigma_Ca,d_Ca,
      .      npratio,uMtomgm3,cnratio,bn,zc,mgchltouMC
       USE obio_com, only: P_tend,p1d,pp2_1d,dp1d,A_tend,
-     .      rhs,alk1d,caexp,kzc,sday
+     .      rhs,alk1d,caexp,kzc,sday,rho_water
 
       implicit none
 
@@ -88,7 +88,19 @@
       J_PO4(k) =  rhs(k,1,5)+rhs(k,1,6)+rhs(k,1,7)+rhs(k,1,8)+rhs(k,1,9)
      .          + rhs(k,1,10)+rhs(k,1,11)+rhs(k,1,14)+rhs(k,1,15)
 
-      term = -1.d0* J_PO4(k)            !uM,N/hr= mili-mol,N/m3/hr: mili-mol,N/m3/s  July 2016
+      term = -1.d0* J_PO4(k)            !uM,N/s= mili-mol,N/m3/s  July 2016
+#ifdef alk_adj
+      term = 0.2d0*term
+#endif
+#ifdef alk_adj2
+      term = -0.2d0*P_tend(k,1)
+#endif
+#ifdef alk_adj3
+      term = -1.d0*(P_tend(k,1)+P_tend(k,2))
+#endif
+#ifdef alk_adj4
+      term = -0.15d0*(P_tend(k,1)+P_tend(k,2))
+#endif
       rhs(k,15,1) = term
       A_tend(k)= term 
       enddo
@@ -179,11 +191,14 @@
 !    .   nstep,i,j,k,term,offterm,rhs(k,15,5)
 
 
+#ifdef no_offtermalk
+#else
       !bottom boundary condition adjust bottom layer
       if (k.eq.kmax) then
          rhs(kmax,15,5) = rhs(kmax,15,5) - offterm /dp1d(kmax)
          A_tend(kmax) = A_tend(kmax) - offterm / dp1d(kmax)
       endif
+#endif
 
 !     if(vrbos)
 !    .write(*,'(a,4i5,3e12.4)')'obio_alkalinity3:',
@@ -193,7 +208,7 @@
 
       !for consistency, keep term that goes into rhs table in uM/hr = mili-mol,N/m3/hr
       !convert A_tend terms into uE/kg/hr, the actual units of alkalinity 
-      A_tend = A_tend /1024.5d0 *1.d3     ! mili-mol,N/m3/s -> umol/m3/s -> umol/kg/s
+      A_tend = A_tend /rho_water *1.d3     ! mili-mol,N/m3/s -> umol/m3/s -> umol/kg/s
 
 !!!!!!!!!! NEED TO ADD BOTTOM BOUNDARY CONDITIONS 
 

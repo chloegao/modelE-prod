@@ -27,7 +27,16 @@ c  P(9) = herbivores (mg chl m-3)
 #endif
       USE obio_forc, only: tirrq
       USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
-     .                    ,gro,rlamz,dratez1,dratez2
+     .                    ,gro,rlamz,dratez1,dratez2,rmu3,rmu4 !@PL added rmu3,rmu4 in obio_com
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+     .                    ,O_tend
+#endif
+#ifdef TRACERS_abio_O2
+     .                    ,Abo_tend
+#endif
+#endif                       
+
      .                    ,greff,pnoice,drate,tfac,regen,Fescav
      .                    ,wshc,rikd,rmuplsr,det
      .                    ,gcmax1d,covice_ij,atmFe_ij
@@ -46,8 +55,6 @@ c  P(9) = herbivores (mg chl m-3)
       integer i,j,k,kto
       integer nt,kmax
 
-      real rmu4(kdm,nchl)     !growth on ammonium, NH4
-      real rmu3(kdm,nchl)     !growth on nitrate, NO4
       real zoo(ntyp)      !herbivores (zooplankton)
       real dphy(ntyp)     !death rate of phytoplankton
       real viscfac(kdm), Sgronfix, SobioP1, ratio
@@ -75,6 +82,14 @@ c  P(9) = herbivores (mg chl m-3)
        P_tend = 0.0
        C_tend = 0.0
        D_tend = 0.0
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+       O_tend = 0.0
+#endif
+#ifdef TRACERS_abio_O2
+       Abo_tend = 0.0
+#endif
+#endif
        wsdet = 0.0
        rmu4 = 0.0
        rmu3 = 0.0
@@ -712,6 +727,11 @@ c    .     rhs(kto,1,11),rhs(k,7,12)*bn
 !to the subroutine.  
       call obio_carbon(gro,vrbos,kmax,i,j,nstep,kdm,n_co2n,
      &                 DTS,mmo,ddxypo,n_abioDIC,num_tracers,SDIC)
+#ifdef TRACERS_Ocean_O2
+!@PL sum tendencies of O2 in obio_O2
+      call obio_o2(gro,vrbos,kmax,i,j,nstep,kdm,
+     &                       DTS,mmo,ddxypo)
+#endif
 
  107  format (/'lyr',i3,4x,'amount   tndcy   ',
      .    9(2x,a7)/(a7,2es9.1,2x,6es9.1))
@@ -758,20 +778,20 @@ c Sinking rate temperature (viscosity) dependence (also convert to /hr) -> conve
        enddo
       enddo
 
-      if(vrbos)then
-        do k=1,kmax
-           write(*,'(a,4i5,8e12.4)')
-     .       'obio_ptend, ws:',
-     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
-     .       ,obio_P(k,nnut+nt),(obio_ws(k,nt),nt=1,nchl)
-        enddo
-        do k=1,kmax
-           write(*,'(a,4i5,9e12.4)')
-     .       'obio_ptend, wsdet:',
-     .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
-     .       ,(det(k,nt),nt=1,ndet),(wsdet(k,nt),nt=1,ndet)
-        enddo
-      endif  !vrbos
+!     if(vrbos)then
+!       do k=1,kmax
+!          write(*,'(a,4i5,8e12.4)')
+!    .       'obio_ptend, ws:',
+!    .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
+!    .       ,obio_P(k,nnut+nt),(obio_ws(k,nt),nt=1,nchl)
+!       enddo
+!       do k=1,kmax
+!          write(*,'(a,4i5,9e12.4)')
+!    .       'obio_ptend, wsdet:',
+!    .        nstep,i,j,k,temp1d(k),viscfac(k),pnoice(k)
+!    .       ,(det(k,nt),nt=1,ndet),(wsdet(k,nt),nt=1,ndet)
+!       enddo
+!     endif  !vrbos
 
 c Save method for hard boundary condition (no flux)
 c      srate = 0.0 - obio_wsh(n)*tracer(i,k-1,m,n)

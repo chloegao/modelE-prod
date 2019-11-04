@@ -11,6 +11,9 @@
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: atmFe           !atm Fe in nM
       real, ALLOCATABLE, DIMENSION(:,:)  :: surfN
       real, ALLOCATABLE, DIMENSION(:,:,:)  :: alk             !alkalinity in 'umol/kg'
+#ifdef prescribe_o2sf
+      real, ALLOCATABLE, DIMENSION(:,:,:) :: o2fc            !@PL array for prescribed surface ocean O2
+#endif
 
       real solz               !mean cosine solar zenith angle
       real sunz               !solar zenith angle

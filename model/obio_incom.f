@@ -31,6 +31,9 @@
       real :: cnratio             !C:N ratio
       real :: csratio             !C:Si ratio
       real :: cfratio             !C:Fe ratio
+      real :: ro2c_DET            !O2:C ratio from detritus
+      real :: ro2c_NH4            !O2:C ratio from ammonium production
+      real :: ro2c_NO3            !O2:C rati from NO3 productio    
       
       real :: mgchltouMC
 
@@ -38,6 +41,7 @@
       real :: remin(ndet)         !detrital remineralization rate /d: changed to m/s !July 2016
       
       real :: Fescavrate(2)       !scavenging rate for dissolved iron
+      real:: HvO2                !@PL dirac delta function for O2 consumption processes
 
 C if CARBON == 1
       real, parameter :: excp=0.05              !excretion of DOC by phyto growth
@@ -64,6 +68,8 @@ C if CARBON == 1
                                                !DOC excretion mg/m3(chl,assuming
                                                !C:chl ratio of 50))
       real, parameter :: stdslp=1013.25        !standard sea level pressure in mb
+      real, parameter :: ko2=20e-3             !@PL half-saturation constant for transfer from aerobic remin to denit
+      real, parameter :: O2thr=2e-3            !@PL O2 concentration threshold for cessation of aerobic remin/respiration
 
 !     real, parameter :: Rm=1.20/24.0          !max zoopl. growth rate/hr
       real, parameter :: Rm=1.20/sday          !max zoopl. growth rate/s    !July 1016

@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_daysetbio(vrbos,i,j,kdm,nstep)
+      subroutine obio_daysetbio(vrbos,i,j,kdm,nstep,kmax)
 c
 c  Sets daily parameters for bio.
 c
@@ -8,7 +8,7 @@ c
       USE obio_dim
       USE obio_incom, only : rmumax,cchl,cnratio,obio_wsd,obio_wsh
      .                      ,Fescavrate,rik,obio_wss
-      USE obio_com,   only : tfac,rmuplsr,rikd,wshc,Fescav
+      USE obio_com,   only : tfac,rmuplsr,rikd,wshc,Fescav,dp1d
      .                      ,avgq1d,gcmax1d,temp1d,obio_P,tzoo,sday
 
 
@@ -23,7 +23,7 @@ c
 
       logical vrbos
 
-      integer, intent (in) :: kdm,nstep
+      integer, intent (in) :: kdm,nstep,kmax
 
 !change: March 15, 2010
       tfac20 = 0.34722*0.851*1.066**20.0
@@ -60,6 +60,15 @@ c  Additional T-dependent factor for cyanobacteria
       endif
 !#endif
 
+!@PL option to increase grwoth rate at coasts
+#ifdef increase_pp_shelf
+       if (dp1d(kmax).le.150.0d0) then
+         do nt = 1,nchl
+          rmuplsr(k,nt) = rmuplsr(k,nt)*2.0d0
+         enddo
+       endif
+#endif
+!@PL
 
 c  Above provides for lower growth of cyanobacteria in cold water.
 c  The principle is to keep the delta t difference between cyano to

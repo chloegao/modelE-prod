@@ -22,6 +22,8 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d,trmo_unit_factor
+     .                    ,rho1d,dicresp,docbac          !@PL added rho1d,docbac,dicresp
+!    .                    ,dic_river_sink,p1d
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
 #endif
@@ -76,12 +78,18 @@ c
         rmmzoo = obio_P(k,ntyp)/(Pzo+obio_P(k,ntyp))
 
         docexcz = excz*rmmzoo*obio_P(k,ntyp)  !zoopl production DOC
+#ifdef apply_newnadj
+        docexcz = 1.5d0*docexcz
+#endif
         term = - docexcz*pnoice(k)
         rhs(k,9,14) = term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
 
 !change: June 1, 2010
         term = bn*docexcz*pnoice(k)
+#ifdef apply_nadj
+        term = 1.5d0*term
+#endif
         rhs(k,1,9) = term
         P_tend(k,1) = P_tend(k,1) + term
 
@@ -92,7 +100,7 @@ c
 
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
-        docbac = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
+        docbac(k) = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
 !!!!    term = (docexcz*mgchltouMC
@@ -106,7 +114,7 @@ c
         C_tend(k,1) = C_tend(k,1) + term
 
 
-        term = -docbac           *pnoice(k)
+        term = -docbac(k)           *pnoice(k)
         rhs(k,13,14) = term
         C_tend(k,1) = C_tend(k,1) + term
 
@@ -132,7 +140,7 @@ c
         rhs(k,14,15) = term
         C_tend(k,2) = C_tend(k,2) + term
 
-        term = docbac * pnoice(k)
+        term = docbac(k) * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
      
@@ -217,6 +225,28 @@ c
       endif !tirrq>0
       enddo !k=1,kmax
 
+!ifdef OBIO_RUNOFF
+!#ifdef obio_burial 
+!     if (p1d(kmax) >= 3700.) then  !for water columns that extend deeper of 3700m
+!      do k=1,kmax  
+!       if (p1d(k)>3700.) then
+!                  !kg/m2 -> kg/m2/s
+!         !term = - dic_river_sink/54629.d0/dtsrc   !negative = burial
+!         !term = - dic_river_sink/5000.d0/dtsrc   !negative = burial
+!         term = - dic_river_sink/2500.d0/dtsrc   !negative = burial
+!    .             * 1e6/12.d0/dp1d(k)     !uM/s
+!         write(*,'(a,4i5,2e12.4)')'obio_burial: '
+!    .           ,nstep,i,j,k,dic_river_sink,term
+!total number of points below 3700m 54629
+!         rhs(k,4,14) = term
+!         C_tend(k,2) = C_tend(k,2) + term
+!          
+!       endif
+!      enddo
+!     endif
+!#endif
+!endif
+
 c pCO2
       if (pco2_online) then
         !this ppco2 routine comes from OCMIP. I am not using psurf
@@ -293,8 +323,8 @@ c Update DIC for sea-air flux of CO2
      .            temp1d(1),saln1d(1),sdic_uM,alk1d(1),
      .            obio_P(1,1),obio_P(1,3),pnoice(1),
      .            pCO2_abio,dummy,vrbos)
-
-        deltco2 = (xco2-pCO2_abio)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+!@PL replaced 1024.5 with rho1d
+        deltco2 = (xco2-pCO2_abio)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
 
@@ -340,7 +370,8 @@ c Update DIC for sea-air flux of CO2
 
 
         xco2 = atmCO2*1013.D0/stdslp
-        deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+!@PL replaced 1024.5 with rho1d
+        deltco2 = (xco2-pCO2_ij)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
 !       flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr       July 2016
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
@@ -348,7 +379,8 @@ c Update DIC for sea-air flux of CO2
         C_tend(k,2) = C_tend(k,2) + term
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
-        co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)! air-sea co2 flux
+      !@PL replaced 1.0245d+3 with rho1d
+        co2flux= rkwco2*(xco2-pCO2_ij)*ff*rho1d(k)*pnoice(k)! air-sea co2 flux
      .            *SECONDS_PER_HOUR                             ! mol/m2/hr
      .            *44.d0*HOURS_PER_DAY*DAYS_PER_YEAR            ! grC/m2/yr
         if (vrbos) then
@@ -360,17 +392,17 @@ c Update DIC for sea-air flux of CO2
         if (vrbos) then
           write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
      .      nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
-     .      rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
+     .      rkwco2*(xco2-pCO2_ij)*ff*rho1d(k),term     !this flux should have units mol,co2/m2/s
         endif
-
+!@PL replaced 1024.5d0 with rho1d
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
          ! trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
           SDIC(n_abioDIC) = SDIC(n_abioDIC) 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
-!    .                          * mo(i,j,1)*dxypo(j)/rho_water 
+!     .                          * mo(i,j,1)*dxypo(j)/rho_water 
 !     .                          * mo(i,j,1)*dxypo(j)/1024.d0
-     &                          *mmo*ddxypo/1024.d0
+     .                           *mmo*ddxypo/rho1d(k)
       endif
       endif
 
@@ -401,7 +433,7 @@ c ---------------------------------------------------------------------------
         if (S.ge.40. .and. pCO2.lt.100.)pCO2=100.
         if (S.le.31. .and. pCO2.gt.800.)pCO2=800.
         if (pCO2 .lt. 100.) pCO2=100.
-        if (pCO2 .gt.1000.) pCO2=1000.
+!!        if (pCO2 .gt.1000.) pCO2=1000. !@PL change on 07/05/2019
 
         if(vrbos)then
           write(*,'(a,3i5,9e12.4)')
@@ -523,6 +555,7 @@ c  Computes pCO2 in the surface layer and delta pCO2 with the
 c  atmosphere using OCMIP protocols.
 c
       USE obio_dim, only: ALK_CLIM
+      USE obio_com, only: rho1d !@PL added use statement
 
       implicit none
 
@@ -560,7 +593,8 @@ c
 c  Convert to units for co2calc
        dic_in = dic*1.0E-3  !uM to mol/m3
        if (ALK_CLIM.eq.0) TA = tabar*S/Sbar  !adjust alk for salinity
-       ta_in = ta*1024.5*1.0E-6  !uE/kg to E/m3
+!@PL replaced 1024.5 with rho1d
+       ta_in = ta*rho1d(1)*1.0E-6  !uE/kg to E/m3 
        pt_in = PO4*1.0E-3   !uM to mol/m3
        sit_in = Si*1.0E-3   !uM to mol/m3
        xco2_in = atmco2
@@ -588,6 +622,7 @@ C
      &                  ,phlo,phhi,ph,xco2_in
      &                  ,co2star,pCO2surf)
       USE CONSTANT, only: tf
+      USE obio_com, only: rho1d !@PL added use statement
 C
 C-------------------------------------------------------------------------
 C
@@ -686,7 +721,7 @@ c       where the ocean's mean surface density is 1024.5 kg/m^3
 c       Note: mol/kg are actually what the body of this routine uses 
 c       for calculations.  
 c       ---------------------------------------------------------------------
-        permil = 1.d0 / 1024.5d0
+        permil = 1.d0 / rho1d(1) !@PL replaced 1024.5d0 with rho1d
 c       To convert input in mol/m^3 -> mol/kg 
 
 !       print*,permil,pt_in,sit_in,ta_in,dic_in
@@ -746,15 +781,24 @@ C f = k0(1-pH2O)*correction term for non-ideality
 C
 C Weiss & Price (1980, Mar. Chem., 8, 347-359; Eq 13 with table 6 values)
 C
-      ff = exp(-162.8301 + 218.2968/tk100  +
-     & 90.9241*log(tk100) - 1.47696*tk1002 +
-     & s * (.025695 - .025225*tk100 + 
-     & 0.0049867*tk1002))
+c      ff = exp(-162.8301 + 218.2968/tk100  +
+c     & 90.9241*log(tk100) - 1.47696*tk1002 +
+c     & s * (.025695 - .025225*tk100 + 
+c     & 0.0049867*tk1002))
 C
 C K0 from Weiss 1974
 C
       k0 = exp(93.4517/tk100 - 60.2409 + 23.3585 * log(tk100) +
      & s * (.023517 - 0.023656 * tk100 + 0.0047036 * tk1002))
+
+C solubility from OMIP protocols (Orr et al.m 2017, table 2, GeoSci Mod Dev)
+C to be consistent with TRACER_GASEXCH_CO2
+
+
+      ff = exp(-160.7333d0 + 215.4152d0/tk100  +
+     .          89.8920d0*log(tk100) - 1.47759d0*tk1002 +
+     .          s * (0.029941d0 - 0.027455d0*tk100 +
+     .          0.0053407d0*tk1002))
 
 C
 C------------------------------------------------------------------------
