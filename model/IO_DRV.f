@@ -318,12 +318,17 @@ c parameter database in their attributes.
       use domain_decomp_atm, only: grid
       use pario, only : write_data,read_data,write_attr,read_attr
       use timings, only : ntimemax,ntimeacc,timestr,timing
+      use Dictionary_mod
       implicit none
       integer fid   !@var fid unit number of read/write
       integer iaction !@var iaction flag for reading or writing to file
       integer :: ihrX !@var ihrX a dummy itime read from IC files
       integer :: idum,nday_dummy
       logical :: is_ic
+!@dbparam keep_params if =1, params are read in from a *.rsf* file
+!@+                   if =0, defaults and rundeck values are used
+!@+       this is used only in istart=8 starts
+      integer :: keep_params=0 ! .false.
 
       select case (iaction)
       case (:iowrite) ! output to restart or acc file
@@ -360,6 +365,8 @@ c parameter database in their attributes.
           call read_data(grid,fid,'itime', IhrX, bcast_all=.true.)
 !!        IhrX = IhrX*24/nday_dummy
           IhrX=nint(IhrX*(24.d0/nday_dummy)) ! to prevent overflow
+          call sync_param('keep_params',keep_params)
+          if(keep_params==1) call new_io_param(fid,ioread,.false.)
         endif
       end select
       end subroutine new_io_label
