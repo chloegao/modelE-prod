@@ -28,6 +28,14 @@ ifneq ($(MPILIBDIR),)
   LIBS += -L$(MPILIBDIR)
 endif
 
-#LIBS += -ldl -lpmpich  -lmpich -lstdc++
-LIBS += -lpmpich -lmpich -lopa -lmpl -lpthread
+MPIRUN = mpirun
+
+MPICH_VER := $(subst ., ,$(word 5,$(shell $(MPIRUN) -version 2>&1)))
+MPICH_VER_MAJOR := $(word 1,$(MPICH_VER))
+ifeq ($(MPICH_VER_MAJOR),3)
+  LIBS += -lfmpich -lmpich -lopa -lmpl
+else
+  #LIBS += -ldl -lpmpich  -lmpich -lstdc++
+  LIBS += -lpmpich -lmpich -lopa -lmpl -lpthread
+endif
 
