@@ -18,6 +18,10 @@ endif
 # LIBRARY_PATH is specified for F90 because it is used for linking
 F90 = $(LIBRARY_PATH_HACK) gfortran
 CC = $(CPATH_HACK) gcc
+ifneq ($(CPATH_HACK),)
+  CPP := $(CPATH_HACK) $(CPP)
+endif
+
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS += -DCOMPILER_G95
 FFLAGS = -g -cpp -fconvert=big-endian -O2 -fno-range-check
