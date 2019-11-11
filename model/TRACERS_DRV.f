@@ -6776,13 +6776,14 @@ C****
       integer :: year, month, dayOfYear
       INTEGER ns,xday   ; real*8 now
       REAL*8 factor 
-      real*8 :: bydt 
+      real*8 :: bydt,expdecst8025,trm_final
 
 
 C**** NH5, NH50 and NH15: idealized loss tracers set over NH midlatitudes (30N-50N)
 
       bydt = 1./dtsrc 
 
+      if(n_nh5 > 0) then
       if(itime.ge.itime_tr0(n_nh5)) then
 
        do l=1,lm
@@ -6795,13 +6796,15 @@ C**** NH5, NH50 and NH15: idealized loss tracers set over NH midlatitudes (30N-5
            else
               tr3Dsource(l,:,n_nh5) = 0.
          endif
-        call apply_tracer_3Dsource(i,j,nChemistry,n_nh5,.FALSE.)
-        !now apply loss everywhere
-        call calc_and_apply_expo_decay(i,j,5.d0,nChemistry,n_nh5)
        enddo
+       call apply_tracer_3Dsource(i,j,nChemistry,n_nh5,.FALSE.)
+       !now apply loss everywhere
+       call calc_and_apply_expo_decay(i,j,5.d0,nChemistry,n_nh5)
 
       endif
+      endif
 
+      if(n_nh15 > 0) then
       if(itime.ge.itime_tr0(n_nh15)) then
 
        do l=1,lm
@@ -6814,13 +6817,15 @@ C**** NH5, NH50 and NH15: idealized loss tracers set over NH midlatitudes (30N-5
            else
               tr3Dsource(l,:,n_nh15) = 0.
          endif
-        call apply_tracer_3Dsource(i,j,nChemistry,n_nh15,.FALSE.)
-        !now apply loss everywhere
-        call calc_and_apply_expo_decay(i,j,15.d0,nChemistry,n_nh15)
        enddo
+       call apply_tracer_3Dsource(i,j,nChemistry,n_nh15,.FALSE.)
+       !now apply loss everywhere
+       call calc_and_apply_expo_decay(i,j,15.d0,nChemistry,n_nh15)
 
       endif
+      endif
 
+      if(n_nh50 > 0) then
       if(itime.ge.itime_tr0(n_nh50)) then
 
        do l=1,lm
@@ -6833,15 +6838,17 @@ C**** NH5, NH50 and NH15: idealized loss tracers set over NH midlatitudes (30N-5
            else
               tr3Dsource(l,:,n_nh50) = 0.
          endif
-        call apply_tracer_3Dsource(i,j,nChemistry,n_nh50,.FALSE.)
-        !now apply loss everywhere
-        call calc_and_apply_expo_decay(i,j,50.d0,nChemistry,n_nh50)
        enddo
+       call apply_tracer_3Dsource(i,j,nChemistry,n_nh50,.FALSE.)
+       !now apply loss everywhere
+       call calc_and_apply_expo_decay(i,j,50.d0,nChemistry,n_nh50)
 
+      endif
       endif
 
 C**** E90: idealized loss tracer set over entire surface layer
 
+      if(n_e90 > 0) then
       if(itime.ge.itime_tr0(n_e90)) then
 
        do l=1,lm
@@ -6851,24 +6858,24 @@ C**** E90: idealized loss tracer set over entire surface layer
            else
               tr3Dsource(l,:,n_e90) = 0.
            endif
+        enddo
         call apply_tracer_3Dsource(i,j,nChemistry,n_e90,.FALSE.)
         !now apply loss everywhere
         call calc_and_apply_expo_decay(i,j,90.d0,nChemistry,n_e90)
-        enddo
 
+      endif
       endif
 
 C****AOANH and AOA: Two mean age tracers are defined, one with respect to the NH midlatitude surface and one with respect to the Earth's surface.  In lieu of the "clock-tracer" implementation (see GLT tracer), here we solve for the mean age as the solution to d(G)dt=1, where G is the mean age and d/dt is the advective derivative. Zero boundary conditions are enforced over the source region (either NH midlatitude surface layer (30N-50N) or the entire Earth's surface). Units are in days.
 
 
+      if(n_aoanh > 0) then
       if(itime.ge.itime_tr0(n_aoanh)) then
 
-      factor = 1/(60.d0*60.d0*24.d0) !ensure units of days
+       factor = 1/(60.d0*60.d0*24.d0) !ensure units of days
 
-       do l=1,lm
-         tr3Dsource(l,:,n_aoanh) = ma(l)*factor/dtsrc 
-         call apply_tracer_3Dsource(i,j,nChemistry,n_aoanh,.FALSE.)
-       enddo
+       tr3Dsource(:,nChemistry,n_aoanh) = ma(:)*factor
+       call apply_tracer_3Dsource(i,j,nChemistry,n_aoanh,.FALSE.)
  
        if (nint(lat2d_dg(i,j)).ge.30 .and.
      &     nint(lat2d_dg(i,j)).le.50) then
@@ -6876,53 +6883,46 @@ C****AOANH and AOA: Two mean age tracers are defined, one with respect to the NH
        endif
      
       endif
+      endif
 
-
+      if(n_aoa > 0) then
       if(itime.ge.itime_tr0(n_aoa)) then
-
-       tr3Dsource(:,:,n_aoa) = 0.
 
        factor = 1/(60.d0*60.d0*24.d0)
 
-       do l=1,lm
-         tr3Dsource(l,:,n_aoa) = ma(l)*factor/dtsrc
-         call apply_tracer_3Dsource(i,j,nChemistry,n_aoa,.FALSE.)
-       enddo
+       tr3Dsource(:,nChemistry,n_aoa) = ma(:)*factor
+       call apply_tracer_3Dsource(i,j,nChemistry,n_aoa,.FALSE.)
 
        trm_col(1,n_aoa) = 0.d0
 
       endif
+      endif
 
-C****ST8025: An idealized loss tracer with a stratospheric source (fixed concentration above 80 mb) and idealized exponential decay.  Can be used to evaluate stratosphere-troposphere-exchange.
+C****ST8025: An idealized loss tracer with a stratospheric source (fixed concentration above 80 mb) and idealized exponential decay in the troposphere.  Can be used to evaluate stratosphere-troposphere-exchange.
 
- 
+
+      if(n_st8025 > 0) then 
       if(itime.ge.itime_tr0(n_st8025)) then
-
-       do l=1,lm
-
-       ! first apply decay
-
-       if (LTROPO(i,j).le.l) then
-           call calc_and_apply_expo_decay(i,j,25.d0,nChemistry,n_st8025)
-       endif
-
-       ! then apply fixed concentrations above 80 mb
-
-        if (nint(pmidl00(l)).le.82.) then
-            tr3Dsource(l,:,n_st8025) = (ma(l)*200.0d-9
-     *        -trm_col(l,n_st8025))*bydt
-        else
-            tr3Dsource(l,:,n_st8025) = 0.
-        endif
-
-       call apply_tracer_3Dsource(i,j,nChemistry,n_st8025,.FALSE.)
-      
-      enddo
-
+        expdecst8025 = exp(-4.629629629d-7*dtsrc)
+        do l=1,lm
+          if(nint(pmidl00(l)).le.82.) then ! constant concentration above 80 hPa
+            trm_final = ma(l)*200.0d-9
+          elseif(l.le.ltropo(i,j)) then    ! decay in the troposphere
+            trm_final = trm_col(l,n_st8025)*expdecst8025
+          else                             ! no tendency between tropopause and 80 hPa
+            trm_final = trm_col(l,n_st8025)
+          endif
+          tr3Dsource(l,nChemistry,n_st8025) =
+     &         (trm_final-trm_col(l,n_st8025))*bydt
+        enddo
+        ! reset and exp decay combined into one "Chemistry" source here.
+        call apply_tracer_3Dsource(i,j,nChemistry,n_st8025,.FALSE.)
+      endif
       endif
 
 C****TAPE_REC: An idealized oscillating tracer in the tropical lower stratosphere whose period mimics the seasonal cycle of water vapor.  Can be used to evaluate vertical ascent in the lower stratosphere.
 
+      if(n_tape_rec > 0) then
       if(itime.ge.itime_tr0(n_tape_rec)) then
 
 C**** Get current model time
@@ -6943,9 +6943,10 @@ C**** Get current model time
            else
               tr3Dsource(l,:,n_tape_rec) = 0.
          endif
-       call apply_tracer_3Dsource(i,j,nChemistry,n_tape_rec,.FALSE.)
        enddo
+       call apply_tracer_3Dsource(i,j,nChemistry,n_tape_rec,.FALSE.)
   
+      endif
       endif
 
       end subroutine calculate_and_apply_passive
