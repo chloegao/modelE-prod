@@ -34,7 +34,7 @@ C****
         if (trname(n).eq.'st8025') then
          do j=J_0,J_1
           do i=I_0,I_1
-             if (LTROPO(i,j).le.l) then
+             if (LTROPO(i,j).ge.l) then
                trm(i,j,l,n) = expdecst8025*trm(i,j,l,n)
                trmom(:,i,j,l,n) = expdecst8025*trmom(:,i,j,l,n)
                tr3Dsource(i,j,l,ns,n)=trm(i,j,l,n)
