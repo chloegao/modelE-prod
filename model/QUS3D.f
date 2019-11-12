@@ -479,8 +479,13 @@ c      mw_extra(:,:,:) = 0d0 ! zeroing not needed
         mw1d(1:nl) = - mw(i,j,lmin:lmax)*byn
 c first determine the limit on the initial mass flux.
 c at this point, div1d only includes xy contributions.
+#ifdef Z_EXTRA_FIX_201911
+        ma1d(1:nl) = mb1d(1:nl) + div1d(1:nl)
+        mamin(1:nl) = ma1d(1:nl)
+#else
         ma1d(1:nl) = mb1d(1:nl)
         mamin(1:nl) = ma1d(1:nl) + div1d(1:nl)
+#endif
         do nc3d=2,ncyc
           ma1d(1:nl-1) = ma1d(1:nl-1) - mw1d(1:nl-1)
           ma1d(2:nl  ) = ma1d(2:nl  ) + mw1d(1:nl-1)
