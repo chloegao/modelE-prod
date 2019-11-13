@@ -1,3 +1,5 @@
+#include "rundeck_opts.h"
+
 !------------------------------------------------------------------------------
 module PassiveTracersMetadata_mod
 !------------------------------------------------------------------------------
@@ -28,17 +30,31 @@ contains
   subroutine Passive_InitMetadata(pTracer)
 !------------------------------------------------------------------------------
     class (Tracer), pointer :: pTracer
+    character(len=128) :: traclist
 
-    call  SF6_setSpec('SF6')
-    call  SF6_c_setSpec('SF6_c')
-    call  nh5_setSpec('nh5')
-    call  nh50_setSpec('nh50')
-    call  e90_setSpec('e90')
-    call  st8025_setSpec('st8025')
-    call  aoa_setSpec('aoa')
-    call  aoanh_setSpec('aoanh')
-    call  tape_rec_setSpec('tape_rec')
-    call  nh15_setSpec('nh15')
+    ! Here, the _value_ associated with the TRACERS_PASSIVE CPP directive
+    ! is a string containing the requested list of tracers to instantiate.
+    ! Example value: "aoa st8025"
+    write(traclist,'(a128)') TRACERS_PASSIVE ! Write instead of assignment,
+    ! to handle TRACERS_PASSIVE being defined but having no value, in which
+    ! case the list is the full set.
+    if(len_trim(traclist)==0) &
+         traclist = 'SF6 SF6_c nh5 nh15 nh50 e90 st8025 aoa aoanh tape_rec'
+    traclist = ' '//adjustl(traclist)//' '
+
+    ! Instantiate tracers in the request list.
+    ! Unrecognized requests are silently ignored.
+    if(index(traclist,' SF6 '     ) > 0) call SF6_setSpec('SF6')
+    if(index(traclist,' SF6_c '   ) > 0) call SF6_c_setSpec('SF6_c')
+    if(index(traclist,' nh5 '     ) > 0) call nh5_setSpec('nh5')
+    if(index(traclist,' nh15 '    ) > 0) call nh15_setSpec('nh15')
+    if(index(traclist,' nh50 '    ) > 0) call nh50_setSpec('nh50')
+    if(index(traclist,' e90 '     ) > 0) call e90_setSpec('e90')
+    if(index(traclist,' st8025 '  ) > 0) call st8025_setSpec('st8025')
+    if(index(traclist,' aoa '     ) > 0) call aoa_setSpec('aoa')
+    if(index(traclist,' aoanh '   ) > 0) call aoanh_setSpec('aoanh')
+    if(index(traclist,' tape_rec ') > 0) call tape_rec_setSpec('tape_rec')
+
 
 !------------------------------------------------------------------------------
   contains
