@@ -3,6 +3,7 @@
 !-----------------------------------------------
 !--- define emission sectors above files belong to ---
 CH4_12_sect='WET'
+CH4_09_sect='MISC'
 
 !      (careful; they're allowed to overlap):
 !       ---------define-REGIONS------------
@@ -16,9 +17,10 @@ REGIONS_ARE='global S_Asia E_Asia Europe N_America'
 !-fit-here--|                                                              |---
 !       ---define-factors-by-sector--------
 !        global S.Asia E.Asia Europe N.Amer
-SECT_01= 0.900, 1.000, 1.000, 1.000, 1.000 ! WET
+SECT_01= 1.000, 1.000, 1.000, 1.000, 1.000 ! WET
+SECT_02= 2.000, 1.000, 1.000, 1.000, 1.000 ! MISC
 !       ---define-sectors-names/order------
-SECTORS_ARE='WET'
+SECTORS_ARE='WET MISC'
 !-fit-here--|                                                              |---
 !-----
 

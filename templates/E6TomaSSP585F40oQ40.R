@@ -2,8 +2,7 @@ E6TomaSSP585F40oQ40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OM
 
 
 ================== NON-FINAL VERSION =======================
- for example: no land-use change from historical yet, and the CH4 wetlands source
-              not tuned yet.
+ for example: no land-use change from historical yet
 
 E6TomaSSP585F40oQ40 = adds coupled ocean based on CMIP6 run E212Tomaf10aF40oQ40_2.R
                 and set up for transition between historical and SSP run (ISTART=9)
