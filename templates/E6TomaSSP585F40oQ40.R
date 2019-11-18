@@ -1,9 +1,5 @@
 E6TomaSSP585F40oQ40.R GISS ModelE Lat-Lon Atmosphere Model, transient ocn/atm OMA tracers
 
-
-================== NON-FINAL VERSION =======================
- for example: no land-use change from historical yet
-
 E6TomaSSP585F40oQ40 = adds coupled ocean based on CMIP6 run E212Tomaf10aF40oQ40_2.R
                 and set up for transition between historical and SSP run (ISTART=9)
                 This example uses climate-interactive CH4 wetlands+tundra
@@ -126,7 +122,7 @@ POROS=altocnbc288x180_20170717/poros.nc
 RVR=RD_Fd.nc             ! river direction file
 NAMERVR=RD_Fd.names.txt  ! named river outlets
 
-#include "land144x90_input_files"
+#include "land144x90_input_files_SSP585"
 #include "rad_input_files_SSP585"
 #include "rad_144x90_input_files_CMIP6"
 #include "chemistry_input_files"
