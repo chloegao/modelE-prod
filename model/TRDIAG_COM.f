@@ -206,13 +206,102 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 C**** TAIJLS 3D special tracer diagnostics
 
 !@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=105+50
+      INTEGER, PARAMETER :: ktaijl= 1
+#ifndef SKIP_TRACER_DIAGS
 #ifdef TRACERS_SPECIAL_Shindell
-     &                            + 17
-#endif
+     &                            + 52
+#endif /* TRACERS_SPECIAL_Shindell */
+#if defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)
+     &                            + 9
+#endif /* defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP) */ 
+#if defined(TRACERS_AEROSOLS_SOA) && !defined(TRACERS_TERP)
+     &                            + 4
+#endif /* defined(TRACERS_AEROSOLS_SOA) && !defined(TRACERS_TERP)*/
+#if !defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)
+     &                            + 1
+#endif /* !defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)*/
 #ifdef SOA_DIAGS
      &                            + 13 + 16*nsoa
 #endif  /* SOA_DIAGS */
+#ifdef TRACERS_AEROSOLS_SEASALT
+     &                            + 2
+#endif /* TRACERS_AEROSOLS_SEASALT */
+#ifdef TRACERS_AEROSOLS_Koch
+     &                            + 31
+#ifdef SULF_ONLY_AEROSOLS
+     &                            - 6
+#endif /* SULF_ONLY_AEROSOLS */
+#ifdef TRACERS_AEOROLS_VBS
+     &                            + 15
+#endif /* TRACERS_AEROSOLS_VBS */
+#ifdef TRACERS_DUST
+     &                            + 4
+#ifdef TRACERS_DUST_silt4 
+     &                            + 1
+#endif /* TRACERS_DUST_silt4 */
+#ifdef TRACERS_DUST_silt5
+     &                            + 1
+#endif /* TRACERS_DUST_silt5 */
+#if defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM)
+     &                            + 11
+#endif /* defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM) */
+
+#if defined(TRACERS_NITRATE) && !defined(TRACERS_HETCHEM)
+     &                            + 5
+#endif /* defined(TRACERS_NITRATE) && !defined(TRACERS_HETCHEM) */
+#if !defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM)
+     &                            + 3
+#endif /* !defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM) */
+#endif /* TRACERS_DUST */
+#endif /* TRACERS_AEROSOLS_Koch */
+#ifdef TRACERS_MINERALS
+     &                            + 74 
+#endif /* TRACERS_MINERALS */
+#ifdef TRACERS_AIR
+     &                            + 1
+#endif /* TRACERS_AIR */
+#ifdef TRACERS_WATER 
+     &                            + 1
+#endif /* TRACERS_WATER */
+#ifdef TRACERS_AMP
+#ifdef TRACERS_AMP_M1
+     &                            + 106
+#endif /* TRACERS_AMP_M1 */
+#ifdef TRACERS_AMP_M10
+     &                            + 99
+#endif /* TRACERS_AMP_M10 */
+#endif /* TRACERS_AMP */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                            + 1
+#endif /* TRACERS_AEROSOLS_OCEAN */
+#if defined(TRACERS_GASEXCH_OCEAN_CO2) || defined(TRACERS_GASEXCH_LAND_CO2)
+     &                            + 1
+#endif /* defined(TRACERS_GASEXCH_OCEAN_CO2) || defined(TRACERS_GASEXCH_LAND_CO2) */
+#ifdef TRACERS_SPECIAL_Lerner
+     &                            + 7
+#endif /* TRACERS_SPECIAL_Lerner */
+#ifdef TRACERS_PASSIVE
+     &                            + 10
+#endif /* TRACERS_PASSIVE */
+#ifdef TRACERS_COSMO
+     &                            + 2
+#endif /* TRACERS_COSMO */
+#ifdef TRACERS_RADON
+     &                            + 2
+#endif /* TRACERS_RADON */
+#ifdef TRACERS_dCO
+     &                            + 5
+#endif /* TRACERS_dCO */ 
+#ifdef TRACERS_dCOlite
+     &                            + 3
+#endif /* TRACERS_dCOlite */
+#ifdef TRACERS_SPECIAL_O18
+     &                            + 4
+#endif /* TRACERS_SPECIAL_O18 */
+#ifdef TRACERS_WISO_O17
+     &                            + 1
+#endif /* TRACERS_WISO_O17 */
+#endif /* SKIP_TRACER_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
