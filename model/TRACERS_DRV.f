@@ -200,7 +200,7 @@
       integer function ijlt_diag(sname,lname,units,ia,power,denom)
 !@sum ijlt_diag populate tracer 3d diagnostics
 !@auth Kostas Tsigaridis
-      use TRDIAG_COM, only: ktaijl,ia_ijlt,sname_ijlt,lname_ijlt,
+      use TRDIAG_COM, only: ktaijls,ia_ijlt,sname_ijlt,lname_ijlt,
      &                      units_ijlt,scale_ijlt,
      &                      dname_ijlt
       implicit none
@@ -221,13 +221,13 @@
       integer :: k,i,pow
 
       k=0
-      do i=1,ktaijl ! brute force, but only happens during initialization
+      do i=1,ktaijls ! brute force, but only happens during initialization
         if (trim(sname_ijlt(i))=='') then
           k=i
           exit
         endif
       enddo
-      if (k==0) call stop_model('ktaijl too small to fit '//sname,255)
+      if (k==0) call stop_model('ktaijls too small to fit '//sname,255)
 
       if (present(power)) then
         pow=power
@@ -4201,7 +4201,7 @@ c      endif
       endif
 
 c find indices of denominators
-      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,ktaijl)
+      call FindStrings(dname_ijlt,sname_ijlt,denom_ijlt,ktaijls)
 
 #endif /* TRACERS_ON */
 
