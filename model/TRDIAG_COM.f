@@ -234,6 +234,7 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_AEOROLS_VBS
      &                            + 15
 #endif /* TRACERS_AEROSOLS_VBS */
+#endif /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_DUST
      &                            + 4
 #ifdef TRACERS_DUST_silt4 
@@ -253,7 +254,6 @@ C**** TAIJLS 3D special tracer diagnostics
      &                            + 3
 #endif /* !defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM) */
 #endif /* TRACERS_DUST */
-#endif /* TRACERS_AEROSOLS_Koch */
 #ifdef TRACERS_MINERALS
      &                            + 74 
 #endif /* TRACERS_MINERALS */
