@@ -3523,7 +3523,7 @@ C**** Save optical depth diags
             if (ijlt_3DaaodDRY(1).gt.0)
      &           taijls(i,j,1:lm,ijlt_3DaaodDRY(1))
      &           =taijls(i,j,1:lm,ijlt_3DaaodDRY(1))+
-     *            (aesqex_dry(1:lm,6,n)-aesqsc(1:lm,6,n))
+     *            (aesqex_dry(1:lm,6,n)-aesqsc_dry(1:lm,6,n))
             if (ijlt_3Dtau(1).gt.0)
      &           taijls(i,j,1:lm,ijlt_3Dtau(1))
      &         =taijls(i,j,1:lm,ijlt_3Dtau(1))+aesqex(1:lm,6,n)
