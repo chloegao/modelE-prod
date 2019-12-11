@@ -57,9 +57,28 @@
       integer :: var_size
       integer :: ndims,dimsizes(7)
       call get_vdimsizes(fid,var_name,ndims,dimsizes)
-      var_size = product(dimsizes(1:ndims))
+      if(ndims.eq.0) then
+        var_size = 1
+      else
+        var_size = product(dimsizes(1:ndims))
+      endif
       return
       end subroutine get_varsize
+
+      subroutine get_varsize8(fid,var_name,var_size)
+      implicit none
+      integer :: fid
+      character(len=*) :: var_name
+      integer*8 :: var_size
+      integer :: ndims,dimsizes(7)
+      call get_vdimsizes(fid,var_name,ndims,dimsizes)
+      if(ndims.eq.0) then
+        var_size = 1
+      else
+        var_size = product(dimsizes(1:ndims))
+      endif
+      return
+      end subroutine get_varsize8
 
       subroutine get_vdimsizes(fid,var_name,ndims,dimsizes)
       implicit none
