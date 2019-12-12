@@ -45,9 +45,9 @@
 
       real*8, dimension(:), allocatable ::
      &       DIST, !  fixed length of strait (m)
-     &     DISTPG, !  fixed distance between ocean cell centers
-     &      RSIST, !  horizontal sea ice cover in strait
-     &     RSIXST  !  center of sea ice cover in strait
+     &     DISTPG  !  fixed distance between ocean cell centers
+!     &      RSIST, !  horizontal sea ice cover in strait
+!     &     RSIXST  !  center of sea ice cover in strait
 
       real*8, dimension(:,:), allocatable ::
      &   MMST, !  mass of water in strait (kg)
@@ -57,10 +57,10 @@
      &  GZMST, !  down. vert. gradient of pot. enthalpy (J)
      &  S0MST, !  mass of salt in strait (kg)
      &  SXMST, !  west-east gradient of salt (kg)
-     &  SZMST, !  down. vert. gradient of salt (kg)
-     &  MSIST, !  2 mass layers of sea ice in strait (kg)
-     &  HSIST, !  LMI layers of heat content in strait (J)
-     &  SSIST  !  LMI layers of salt in strait (kg)
+     &  SZMST  !  down. vert. gradient of salt (kg)
+!     &  MSIST, !  2 mass layers of sea ice in strait (kg)
+!     &  HSIST, !  LMI layers of heat content in strait (J)
+!     &  SSIST  !  LMI layers of salt in strait (kg)
 
 #ifdef OCN_GISS_TURB
       real*8, dimension(:,:), allocatable ::
@@ -86,9 +86,9 @@
       REAL*8, DIMENSION(:,:,:,:), ALLOCATABLE ::
      &     TRME,TXME,TYME,TZME !(2,NMST,LMO,NTM)
 #endif
-#ifdef TRACERS_WATER
-      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
-#endif
+!#ifdef TRACERS_WATER
+!      Real*8, ALLOCATABLE :: TRSIST(:,:,:) !(NTM_ATM,LMI,NMST)
+!#endif
 
 
       end module straits
@@ -156,11 +156,11 @@
      &     SZMST(LMO,NMST),
      &     DIST(NMST),
      &     DISTPG(NMST),
-     &     RSIST(NMST),
-     &     RSIXST(NMST),
-     &     MSIST(2,NMST),
-     &     HSIST(LMI,NMST),
-     &     SSIST(LMI,NMST),
+!     &     RSIST(NMST),
+!     &     RSIXST(NMST),
+!     &     MSIST(2,NMST),
+!     &     HSIST(LMI,NMST),
+!     &     SSIST(LMI,NMST),
 #ifdef OCN_GISS_TURB
      &     OTKEST(LMO,NMST),
 #endif

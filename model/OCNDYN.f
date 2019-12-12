@@ -1601,11 +1601,11 @@ c straits arrays
       call defvar(grid,fid,s0mst,'s0mst(lmo,nmst)')
       call defvar(grid,fid,sxmst,'sxmst(lmo,nmst)')
       call defvar(grid,fid,szmst,'szmst(lmo,nmst)')
-      call defvar(grid,fid,rsist,'rsist(nmst)')
-      call defvar(grid,fid,rsixst,'rsixst(nmst)')
-      call defvar(grid,fid,msist,'msist(two,nmst)')
-      call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
-      call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
+!      call defvar(grid,fid,rsist,'rsist(nmst)')
+!      call defvar(grid,fid,rsixst,'rsixst(nmst)')
+!      call defvar(grid,fid,msist,'msist(two,nmst)')
+!      call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
+!      call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
       endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1639,9 +1639,9 @@ c tracer arrays in straits
       call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntmo)')
       call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntmo)')
       call defvar(grid,fid,tzmst,'tzmst(lmo,nmst,ntmo)')
-#ifdef TRACERS_WATER
-      call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
-#endif
+!#ifdef TRACERS_WATER
+!      call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
+!#endif
       endif
 #ifdef TRACERS_OceanBiology
       call def_rsf_obio(fid)
@@ -1732,11 +1732,11 @@ c straits arrays
         call write_data(grid,fid,'s0mst',s0mst)
         call write_data(grid,fid,'sxmst',sxmst)
         call write_data(grid,fid,'szmst',szmst)
-        call write_data(grid,fid,'rsist',rsist)
-        call write_data(grid,fid,'rsixst',rsixst)
-        call write_data(grid,fid,'msist',msist)
-        call write_data(grid,fid,'hsist',hsist)
-        call write_data(grid,fid,'ssist',ssist)
+!        call write_data(grid,fid,'rsist',rsist)
+!        call write_data(grid,fid,'rsixst',rsixst)
+!        call write_data(grid,fid,'msist',msist)
+!        call write_data(grid,fid,'hsist',hsist)
+!        call write_data(grid,fid,'ssist',ssist)
         endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1770,9 +1770,9 @@ c tracer arrays in straits
         call write_data(grid,fid,'trmst',trmst)
         call write_data(grid,fid,'txmst',txmst)
         call write_data(grid,fid,'tzmst',tzmst)
-#ifdef TRACERS_WATER
-        call write_data(grid,fid,'trsist',trsist)
-#endif
+!#ifdef TRACERS_WATER
+!        call write_data(grid,fid,'trsist',trsist)
+!#endif
         endif
 #endif
         call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
@@ -1827,11 +1827,11 @@ c straits arrays
         call read_data(grid,fid,'s0mst',s0mst,bcast_all=.true.)
         call read_data(grid,fid,'sxmst',sxmst,bcast_all=.true.)
         call read_data(grid,fid,'szmst',szmst,bcast_all=.true.)
-        call read_data(grid,fid,'rsist',rsist,bcast_all=.true.)
-        call read_data(grid,fid,'rsixst',rsixst,bcast_all=.true.)
-        call read_data(grid,fid,'msist',msist,bcast_all=.true.)
-        call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
-        call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
+!        call read_data(grid,fid,'rsist',rsist,bcast_all=.true.)
+!        call read_data(grid,fid,'rsixst',rsixst,bcast_all=.true.)
+!        call read_data(grid,fid,'msist',msist,bcast_all=.true.)
+!        call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
+!        call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
         endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1865,9 +1865,9 @@ c tracer arrays in straits
         call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)
         call read_data(grid,fid,'txmst',txmst,bcast_all=.true.)
         call read_data(grid,fid,'tzmst',tzmst,bcast_all=.true.)
-#ifdef TRACERS_WATER
-        call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
-#endif
+!#ifdef TRACERS_WATER
+!        call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
+!#endif
         endif
 #endif
       end select

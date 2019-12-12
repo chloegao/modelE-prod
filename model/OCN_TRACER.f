@@ -24,14 +24,14 @@
 #endif
       use ocean, only : nbyzm,i1yzm,i2yzm
       USE SEAICE, only : xsi,lmi
-      USE STRAITS, only : nmst,msist,ssist
+      USE STRAITS, only : nmst!,msist,ssist
 #ifdef TRACERS_OCEAN
      *     ,lmst,ist,jst,xst,yst,mmst,s0mst,sxmst,szmst,trmst,txmst
      *     ,tzmst
 #endif
-#ifdef TRACERS_WATER
-     *     ,trsist
-#endif
+!#ifdef TRACERS_WATER
+!     *     ,trsist
+!#endif
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : getDomainBounds, haveLatitude,
      *     broadcast, GLOBALSUM
@@ -115,10 +115,10 @@ C**** straits
 
 #endif
 
-#ifdef TRACERS_WATER
-          if (am_i_root()) trsist(:,:,n)=0.
-          CALL broadcast(grid, trsist)
-#endif
+!#ifdef TRACERS_WATER
+!          if (am_i_root()) trsist(:,:,n)=0.
+!          CALL broadcast(grid, trsist)
+!#endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
         case ('zebraL')
@@ -293,12 +293,12 @@ C**** Initiallise strait values based on adjacent ocean boxes
               txmst(l,nst,n) = 0.
               tzmst(l,nst,n) = 0.
             end do
-#ifdef TRACERS_WATER
-            trsist(n,1:2,nst) = entry%trw0*(msist(1,nst)*xsi(1:2)
-     *           -ssist(1:2,nst))
-            trsist(n,3:lmi,nst)=entry%trw0*(msist(2,nst)*xsi(3:lmi)
-     *           -ssist(3:lmi,nst))
-#endif
+!#ifdef TRACERS_WATER
+!            trsist(n,1:2,nst) = entry%trw0*(msist(1,nst)*xsi(1:2)
+!     *           -ssist(1:2,nst))
+!            trsist(n,3:lmi,nst)=entry%trw0*(msist(2,nst)*xsi(3:lmi)
+!     *           -ssist(3:lmi,nst))
+!#endif
           end do
           end if
 
