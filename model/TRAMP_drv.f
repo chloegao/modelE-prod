@@ -61,7 +61,6 @@
 C**** functions
       REAL(8):: QSAT
 
-
       NACTV(I,J,:,:)      = 0.d0 
       DIAM(I,J,:,:)       = 0.d0
       DIAM_dry(I,J,:,:)   = 0.d0
@@ -327,12 +326,27 @@ c -----------------------------------------------------------------
       use AmpTracersMetadata_mod, only: amp_modes_map
       use amp_aerosol, only : diam
       use resolution, only : lm
+      USE TRACER_COM, only: trm
+      USE TRACER_COM, only: n_M_DD1_DU,n_M_DS1_DU,n_M_DD2_DU,n_M_DS2_DU,
+     &                      n_M_DBC_DU,n_M_MXX_DU
+      USE TRACER_COM, only: n_M_BC1_BC,n_M_BC2_BC,n_M_BC3_BC,n_M_DBC_BC,
+     &                      n_M_BOC_BC,n_M_BCS_BC,n_M_MXX_BC
+      USE TRACER_COM, only: n_M_NH4
+      USE TRACER_COM, only: n_M_NO3
+      USE TRACER_COM, only: n_M_OCC_OC,n_M_BOC_OC,n_M_MXX_OC
+      USE TRACER_COM, only: n_M_AKK_SU,n_M_ACC_SU,n_M_DD1_SU,n_M_DS1_SU,
+     &                      n_M_DD2_SU,n_M_DS2_SU,n_M_SSA_SU,n_M_OCC_SU,
+     &                      n_M_BC1_SU,n_M_BC2_SU,n_M_BC3_SU,n_M_BOC_SU,
+     &                      n_M_BCS_SU,n_M_DBC_SU,n_M_MXX_SU
+      USE TRACER_COM, only: n_M_SSA_SS,n_M_SSC_SS,n_M_MXX_SS
+      use geom, only : byaxyp
       implicit none
       integer :: igrp,ngroups,grpids(subdd_ngroups),k,n,nAMP
       type(subdd_type), pointer :: subdd
       real*8, dimension(grid%i_strt:grid%i_stop,
-     &                  grid%j_strt:grid%j_stop,lm) ::
-     &     sddarr3d
+     &                  grid%j_strt:grid%j_stop) :: sddarr2d
+      real*8, dimension(grid%i_strt:grid%i_stop,
+     &                  grid%j_strt:grid%j_stop,lm) :: sddarr3d
 
       call find_groups('taijlh',grpids,ngroups)
       do igrp=1,ngroups
@@ -344,6 +358,75 @@ c -----------------------------------------------------------------
             sddarr3d(:,:,:)=diam(:,:,:,amp_modes_map(nAMP))
             call inc_subdd(subdd,k,sddarr3d)
           enddo ! n
+        enddo ! k
+      enddo ! igrp
+
+! Tracer 2D I-J diags
+      call find_groups('taijh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case(trim(subdd%name(k)))
+         case('ampDustload')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_DD1_DU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DS1_DU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DD2_DU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DS2_DU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DBC_DU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_MXX_DU),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampBCload')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_BC1_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BC2_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BC3_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DBC_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BOC_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BCS_BC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_MXX_BC),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampNH4load')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_NH4),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampNO3load')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_NO3),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampOAload')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_OCC_OC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BOC_OC),dim=3)
+     *                  +sum(trm(:,:,:,n_M_MXX_OC),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampSO4load')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_AKK_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_ACC_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DD1_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DS1_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DD2_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DS2_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_SSA_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_OCC_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BC1_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BC2_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BC3_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BOC_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_BCS_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_DBC_SU),dim=3)
+     *                  +sum(trm(:,:,:,n_M_MXX_SU),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+         case('ampSSload')
+         sddarr2d(:,:)= (sum(trm(:,:,:,n_M_SSA_SS),dim=3)
+     *                  +sum(trm(:,:,:,n_M_SSC_SS),dim=3)
+     *                  +sum(trm(:,:,:,n_M_MXX_SS),dim=3))
+     *                  *byaxyp(:,:)
+         call inc_subdd(subdd,k,sddarr2d) 
+
+       end select
+        
         enddo ! k
       enddo ! igrp
 #endif

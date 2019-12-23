@@ -206,6 +206,7 @@ C--------------------------------------------------------
 !sl!@var FTAUSL,TAUSL,...  surface layer computations commented out: !sl
 !@var LBOTCL,LTOPCL  bottom and top cloud level (lbot < ltop)
 !@var chem_out column variable for exporting rad code aerosol extinction
+!@var CO2outCol column CO2 export [mole mole-1] for SUBDD
 !@var aesqex saves extinction aerosol optical thickness
 !@var aesqsc saves scattering aerosol optical thickness
 !@var aesqcb saves aerosol scattering asymmetry factor
@@ -216,6 +217,7 @@ C--------------------------------------------------------
       REAL*8 TRDFLB(LX+1),TRUFLB(LX+1),TRNFLB(LX+1), TRFCRL(LX)
       REAL*8 SRDFLB(LX+1),SRUFLB(LX+1),SRNFLB(LX+1), SRFHRL(LX)
       REAL*8 :: chem_out(LX)=0d0
+      REAL*8 :: CO2outCol(LX)=0.d0
       REAL*8 SRIVIS,SROVIS,PLAVIS,SRINIR,SRONIR,PLANIR,
      *       SRDVIS,SRUVIS,ALBVIS,SRDNIR,SRUNIR,ALBNIR,
      *       SRTVIS,SRRVIS,SRAVIS,SRTNIR,SRRNIR,SRANIR
@@ -1587,6 +1589,7 @@ C----------------------------------------------
       use SURF_ALBEDO, only : getsur
       use ghgmod, only : getgas
       use ghgmod, only : use_tracer_chem,chem_in
+      use ghgmod, only : ppmv_to_cm_at_stp
       use AerParam_mod, only : get_aero_column
       use DustParam_mod, only : get_dust_column
       use VolcParam_mod, only : get_volc_column
@@ -1645,6 +1648,7 @@ C--------------------------------
           ULGAS(1:use_tracer_chem(2),7)=chem_IN(2,1:use_tracer_chem(2))
         endif
 
+       CO2outCol(1:NL)=1.d-6*ULGAS(1:NL,2)/(ppmv_to_cm_at_stp*DPL(1:NL))
       endif
 
 C--------------------------------

@@ -358,7 +358,8 @@ c parameter database in their attributes.
           call new_io_param(fid,ioread,.false.)
         else
           call read_data(grid,fid,'itime', IhrX, bcast_all=.true.)
-          IhrX=IhrX*24/nday_dummy
+!!        IhrX = IhrX*24/nday_dummy
+          IhrX=nint(IhrX*(24.d0/nday_dummy)) ! to prevent overflow
         endif
       end select
       end subroutine new_io_label

@@ -317,6 +317,9 @@ C**** sync radiation parameters from input
       call sync_param( "cloud_rad_forc", cloud_rad_forc )
       call sync_param( "aer_rad_forc", aer_rad_forc )
       call sync_param( "ref_mult", ref_mult )
+#ifdef TRACERS_ON
+      CALL sync_param("save_dry_aod",save_dry_aod)
+#endif
       REFdry = REFdry*ref_mult
 
       if(is_set_param('planck_tmin')) then
@@ -1862,7 +1865,7 @@ C     OUTPUT DATA
      &          ,SRRVIS ,SRRNIR ,SRAVIS ,SRANIR ,SRXVIS ,SRDVIS
      &          ,BTEMPW ,SRAEXT ,SRASCT ,SRAGCB
      &          ,SRDEXT ,SRDSCT ,SRDGCB ,SRVEXT ,SRVSCT ,SRVGCB
-     &          ,aesqex,aesqsc,aesqcb
+     &          ,aesqex,aesqsc,aesqcb,CO2outCol
      &          ,aesqex_dry,aesqsc_dry,aesqcb_dry
      &          ,SRXNIR,SRDNIR
       USE RAD_COM, only : modrd,nrad
@@ -2074,7 +2077,10 @@ C     for GCM grid but currently limited to SCM use
       character(len=50) :: sname
       integer :: g,s,a
 #endif  /* TRACERS_ON */
-#endif
+      !@var CO2out for holding 3D CO2 from rad code for SUBDD
+      REAL*8, dimension(LM,grid%i_strt_halo:grid%i_stop_halo,
+     & grid%j_strt_halo:grid%j_stop_halo) :: CO2out
+#endif /* CACHED_SUBDD */
 #ifdef TRACERS_SPECIAL_Shindell
 #ifndef SKIP_ACCMIP_GHG_RADF_DIAGS
 !@var snfs_ghg,tnfs_ghg like SNFS/TNFS but with reference GHG for
@@ -3315,6 +3321,9 @@ C     Main RADIATIVE computations, SOLAR and THERM(A)L
       CALL RCOMPX
 C*****************************************************
 
+#ifdef CACHED_SUBDD
+      CO2out(1:LM,i,j)=CO2outCol(1:LM)
+#endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_DUST) ||\
     (defined TRACERS_MINERALS) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS) || (defined TRACERS_AEROSOLS_SEASALT)
@@ -4451,6 +4460,20 @@ C****
       enddo
       enddo
 
+      call find_groups('rijlh',grpids,ngroups)
+      do igrp=1,ngroups
+      subdd => subdd_groups(grpids(igrp))
+      do k=1,subdd%ndiags
+      select case (subdd%name(k))
+      case ('MRCO2rad')
+        do j=j_0,j_1; do i=i_0,imaxj(j); do l=1,lmaxsubdd
+          sddarr3d(i,j,l) = CO2out(l,i,j)
+        enddo;        enddo;             enddo
+        call inc_subdd(subdd,k,sddarr3d)
+      end select
+      end do
+      end do
+
 #ifdef SCM
 
       call find_groups('rijlh',grpids,ngroups)
@@ -5399,6 +5422,13 @@ c
      &  sname = 'swup',
      &  lname = 'SHORTWAVE UPWARD FLUX profile',
      &  units = 'W/m^2',
+     &  sched = sched_rad
+     &     )
+c
+      arr(next()) = info_type_(
+     &  sname = 'MRCO2rad',
+     &  lname = 'radiation code CO2 volume mixing ratio',
+     &  units = 'mole species / mole air',
      &  sched = sched_rad
      &     )
 c
