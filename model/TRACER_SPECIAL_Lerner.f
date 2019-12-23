@@ -32,7 +32,7 @@ C**** These variables are used by both ozone and strat chem routines
 
       INTEGER :: J_1,  J_0,  I_1,  I_0
       INTEGER :: J_1H, J_0H, I_1H, I_0H
-      INTEGER :: IER, lmtc
+      INTEGER :: IER
 
 C****
 C**** Extract useful local domain parameters from "grid"
@@ -43,8 +43,8 @@ C****
      *               I_STRT_HALO=I_0H, I_STOP_HALO=I_1H)
 
       call sync_param("NSTRTC",NSTRTC)
+      call sync_param("LMTC",LMTC)
 C**** ESMF: This array is read in only
-      lmtc = lm-nstrtc
       ALLOCATE(   frqlos(I_0:I_1,J_0:J_1,lmtc),
      *          STAT=IER)
 
@@ -164,12 +164,12 @@ c-------- N.B. F(@30km) assumed to be constant from 29-31 km (by mass)
       use OldTracer_mod, only: itime_tr0,trname,tcscale,iMPtable
       USE TRACER_COM, only: trm_col, trmom_col
       USE TRACERS_MPchem_COM, only: tltrm,tltzm,tltzzm
-      USE PRATHER_CHEM_COM, only: nstrtc
+      USE PRATHER_CHEM_COM, only: nstrtc,lmtc
       USE FLUXES, only: tr3Dsource
       implicit none
       integer, intent(in) :: i,j,ns,n
 
-      integer l,lr,lmtc
+      integer l,lr
       real*8, parameter :: by7=1./7.d0
       real*8 f0l,f1l,f2l,g0l,g1l,g2l,t0l,t1l,t2l,facbb
 
@@ -181,7 +181,6 @@ C-----uses TCSCALE for different tracers to scale loss
 C-----uses S.O.M. formulation for vertical losses
 C-----NOTE that TLTRM(J,LR,N) stored from top (=LM) down
 
-      lmtc = lm-nstrtc
       do l=lm,lmtc+1,-1
         if (trm_col(l,n).le.0.) cycle
         lr = lm+1-l
@@ -287,12 +286,12 @@ C---- CTM layers LM down
       USE DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds, AM_I_ROOT,
      *  readt8_parallel,haveLatitude,broadcast
       USE GEOM, only: byim
-      USE PRATHER_CHEM_COM, only: nstrtc
+      USE PRATHER_CHEM_COM, only: nstrtc,lmtc
       USE TRACER_COM
       USE CH4_SOURCES, only : frqlos
       USE FILEMANAGER, only: openunit,closeunit,nameunit
       implicit none
-      integer n,ns,i,j,l,FRQfile,lmtc,it_from_Dec29hr12,nrec,nr
+      integer n,ns,i,j,l,FRQfile,it_from_Dec29hr12,nrec,nr
       real*8 tune
       real*8, save :: taux=-1. ! hr of latest record read in (0.->8640.)
       parameter (tune = 445./501.)
@@ -316,7 +315,6 @@ C****
       I_0H = grid%I_STRT_HALO
       I_1H = grid%I_STOP_HALO
 
-      lmtc = lm-nstrtc
 
       call modelEclock%get(hour=jhour, date=jdate, year=jyear ,
      &                     month=month)
@@ -419,9 +417,8 @@ C     n_O3=tracer number for linoz O3
       USE ATM_COM, only: pednl00
       USE TRACER_COM, only: tr_mm
       USE timestream_mod, only : timestream, init_stream, read_stream
-      USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc
+      USE PRATHER_CHEM_COM, only: set_prather_constants,nstrtc,lmtc
       implicit none
-      integer lmtc    !=11 for lm=23
 !@param lz_linoz Number of heights in linoz tables
       integer, PARAMETER :: lz_linoz=25,nctable=7,lz_lx=lz_linoz+5
 C****    144 lons, 90 lats,lz_linoz heights, nctable parameters +1
@@ -434,6 +431,8 @@ C**** Harvard troposphere production and loss rates, deposition vel
 !@+    production and loss rates, deposition vel from L. Mickley
       real*8, dimension(:,:,:), allocatable ::
      &     daily_O3_trop_loss, daily_O3_trop_prod !(im,jm,lm)
+      real*8, dimension(:,:,:), allocatable ::                      
+     &     dummy_O3_trop_loss, dummy_O3_trop_prod !(im,jm,nstrtc+lmtc)
 #ifndef LINOZ_TRDRYDEP
       real*8, dimension(:,:), allocatable ::
      &      daily_depvel !(im,jm)
@@ -468,7 +467,6 @@ C**** Needed for linoz chemistry
       j_1=grid%j_stop
 
       call set_prather_constants
-      lmtc = lm-nstrtc
 
       call init_stream(grid,TLPARM_STREAM,'LINOZ_TABLE','tlparm',-1d5,
      & 1d5,"linm2m",jyear,jday)
@@ -517,6 +515,7 @@ C**** Called once per day from TRACERS_DRV
       use DOMAIN_DECOMP_ATM, only: GRID, getDomainBounds
       use timestream_mod, only: read_stream
       use geom, only : axyp
+      USE PRATHER_CHEM_COM, only: nstrtc,lmtc
       integer, intent(IN) :: jyear, jday
       integer :: I_0, I_1, J_0, J_1, I, J, L
 
@@ -524,15 +523,32 @@ C**** Called once per day from TRACERS_DRV
       I_0 = grid%I_STRT
       I_1 = grid%I_STOP
 
+C**** Read timestreams into daily arrays 
+C**** Interpolate inputs onto model layers if needed
+
 #ifndef LINOZ_TRDRYDEP     
       call read_stream(grid,DepVel_stream,jyear,jday,
      & daily_depvel)
 #endif
+
+      if ((nstrtc+lmtc).eq.lm) then 
+cc    model/input layers DO match
+
       call read_stream(grid,trop_loss_stream,jyear,jday,
      & daily_O3_trop_loss)
-
       call read_stream(grid,trop_prod_stream,jyear,jday,
      & daily_O3_trop_prod)
+
+      else 
+cc    model/inpout layers DON'T match
+cc    read timestreams, then interpolate into daily arrays
+
+      call read_stream(grid,trop_loss_stream,jyear,jday,
+     & dummy_O3_trop_loss)
+      call read_stream(grid,trop_prod_stream,jyear,jday,
+     & dummy_O3_trop_prod)
+
+      endif 
 
       end subroutine Linoz_daily
       end MODULE LINOZ_CHEM_COM
@@ -549,8 +565,9 @@ c
       USE CONSTANT, only : grav,rgas
       USE ATM_COM, only: t,pmid,pk,pdsig
       USE TRACER_COM, only : trm_col
-      USE LINOZ_CHEM_COM, only: lmtc,
-     & daily_O3_trop_loss, daily_O3_trop_prod
+      USE PRATHER_CHEM_COM, only : lmtc
+      USE LINOZ_CHEM_COM, only: daily_O3_trop_loss, 
+     & daily_O3_trop_prod
       USE FLUXES, only: tr3Dsource
       implicit none
       integer, intent(in) :: i,j,n,nsp,nsl
@@ -567,7 +584,7 @@ C**** Convert from kg/cm3/s to kg
           dz = pdsig(l,i,j)*rgas*tk/(pmid(l,i,j)*grav)   ! meters
           factor = dtsrc*dz*1.d6    ! for 1/cm3->1/m3
           rprod = daily_O3_trop_prod(i,j,l)*factor     ! unit=kg/m2
-          rloss = daily_O3_trop_loss(i,j,l)*trm_col(l,n)
+          rloss = daily_O3_trop_loss(i,j,l)*dtsrc*trm_col(l,n)
           if(trm_col(l,n) +(rprod-rloss).lt.0.) then
             write(6,'(a,3i3,4e14.3)') ' Negative O3 due to trop chem',
      *             i,j,l,trm_col(l,n),rprod,rloss,itime
@@ -673,7 +690,7 @@ cXXXXX DSOL NOT USED XXXXX
       USE MODEL_COM, only: itime,dtsrc
       USE ATM_COM, only: t,pk,MA! Air mass of each box (kg/m^2)
       USE TRACER_COM, only : trm_col,tr_mm,mass2vol
-      USE PRATHER_CHEM_COM, only: nstrtc
+      USE PRATHER_CHEM_COM, only: nstrtc,lmtc
       USE LINOZ_CHEM_COM, only: tlT0M,TLTZM,TLTZZM,dsol
       USE FLUXES, only: tr3Dsource
       implicit none
@@ -1469,6 +1486,7 @@ C****
 !@auth NCCS (Goddard) Development Team
       USE LINOZ_CHEM_COM
       USE DOMAIN_DECOMP_ATM, ONLY : DIST_GRID, getDomainBounds
+      USE PRATHER_CHEM_COM, only: nstrtc, lmtc 
       IMPLICIT NONE
       TYPE (DIST_GRID), INTENT(IN) :: grid
 
@@ -1493,6 +1511,9 @@ C****
      &         daily_depvel(I_0H:I_1H,J_0H:J_1H),
 #endif 
      &         daily_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,lm))
+
+      allocate(dummy_O3_trop_prod(I_0H:I_1H,J_0H:J_1H,nstrtc+lmtc),
+     &         dummy_O3_trop_loss(I_0H:I_1H,J_0H:J_1H,nstrtc+lmtc))
 
       END SUBROUTINE ALLOC_LINOZ_CHEM_COM
 

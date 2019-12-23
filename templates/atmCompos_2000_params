@@ -14,7 +14,7 @@ od_cdncx=0.        ! don't include 1st indirect effect
 cc_cdncx=0.        ! don't include 2nd indirect effect (used 0.0036)
 !albsn_yr=2000
 dalbsnX=1.
-!o3_yr=-2000
+!o3_yr=2000
 !aer_int_yr=2000    !select desired aerosol emissions year or 0 to use JYEAR
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 

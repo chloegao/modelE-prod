@@ -205,34 +205,123 @@ C**** TAIJS  <<<< KTAIJS and IJTS_xx are Tracer-Dependent >>>>
 
 C**** TAIJLS 3D special tracer diagnostics
 
-!@param ktaijl number of TAIJLS tracer diagnostics;
-      INTEGER, PARAMETER :: ktaijl=105+50
+!@param ktaijls number of TAIJLS tracer diagnostics;
+      INTEGER, PARAMETER :: ktaijls= 1
+#ifndef SKIP_TRACER_DIAGS
 #ifdef TRACERS_SPECIAL_Shindell
-     &                            + 17
-#endif
+     &                            + 52
+#endif /* TRACERS_SPECIAL_Shindell */
+#if defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)
+     &                            + 9
+#endif /* defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP) */ 
+#if defined(TRACERS_AEROSOLS_SOA) && !defined(TRACERS_TERP)
+     &                            + 4
+#endif /* defined(TRACERS_AEROSOLS_SOA) && !defined(TRACERS_TERP)*/
+#if !defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)
+     &                            + 1
+#endif /* !defined(TRACERS_AEROSOLS_SOA) && defined(TRACERS_TERP)*/
 #ifdef SOA_DIAGS
      &                            + 13 + 16*nsoa
 #endif  /* SOA_DIAGS */
+#ifdef TRACERS_AEROSOLS_SEASALT
+     &                            + 2
+#endif /* TRACERS_AEROSOLS_SEASALT */
+#ifdef TRACERS_AEROSOLS_Koch
+     &                            + 31
+#ifdef SULF_ONLY_AEROSOLS
+     &                            - 6
+#endif /* SULF_ONLY_AEROSOLS */
+#ifdef TRACERS_AEOROLS_VBS
+     &                            + 15
+#endif /* TRACERS_AEROSOLS_VBS */
+#endif /* TRACERS_AEROSOLS_Koch */
+#ifdef TRACERS_DUST
+     &                            + 4
+#ifdef TRACERS_DUST_silt4 
+     &                            + 1
+#endif /* TRACERS_DUST_silt4 */
+#ifdef TRACERS_DUST_silt5
+     &                            + 1
+#endif /* TRACERS_DUST_silt5 */
+#if defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM)
+     &                            + 11
+#endif /* defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM) */
+
+#if defined(TRACERS_NITRATE) && !defined(TRACERS_HETCHEM)
+     &                            + 5
+#endif /* defined(TRACERS_NITRATE) && !defined(TRACERS_HETCHEM) */
+#if !defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM)
+     &                            + 3
+#endif /* !defined(TRACERS_NITRATE) && defined(TRACERS_HETCHEM) */
+#endif /* TRACERS_DUST */
+#ifdef TRACERS_MINERALS
+     &                            + 74 
+#endif /* TRACERS_MINERALS */
+#ifdef TRACERS_AIR
+     &                            + 1
+#endif /* TRACERS_AIR */
+#ifdef TRACERS_WATER 
+     &                            + 1
+#endif /* TRACERS_WATER */
+#ifdef TRACERS_AMP
+#ifdef TRACERS_AMP_M1
+     &                            + 106
+#endif /* TRACERS_AMP_M1 */
+#ifdef TRACERS_AMP_M10
+     &                            + 99
+#endif /* TRACERS_AMP_M10 */
+#endif /* TRACERS_AMP */
+#ifdef TRACERS_AEROSOLS_OCEAN
+     &                            + 1
+#endif /* TRACERS_AEROSOLS_OCEAN */
+#if defined(TRACERS_GASEXCH_OCEAN_CO2) || defined(TRACERS_GASEXCH_LAND_CO2)
+     &                            + 1
+#endif /* defined(TRACERS_GASEXCH_OCEAN_CO2) || defined(TRACERS_GASEXCH_LAND_CO2) */
+#ifdef TRACERS_SPECIAL_Lerner
+     &                            + 7
+#endif /* TRACERS_SPECIAL_Lerner */
+#ifdef TRACERS_PASSIVE
+     &                            + 10
+#endif /* TRACERS_PASSIVE */
+#ifdef TRACERS_COSMO
+     &                            + 2
+#endif /* TRACERS_COSMO */
+#ifdef TRACERS_RADON
+     &                            + 2
+#endif /* TRACERS_RADON */
+#ifdef TRACERS_dCO
+     &                            + 5
+#endif /* TRACERS_dCO */ 
+#ifdef TRACERS_dCOlite
+     &                            + 3
+#endif /* TRACERS_dCOlite */
+#ifdef TRACERS_SPECIAL_O18
+     &                            + 4
+#endif /* TRACERS_SPECIAL_O18 */
+#ifdef TRACERS_WISO_O17
+     &                            + 1
+#endif /* TRACERS_WISO_O17 */
+#endif /* SKIP_TRACER_DIAGS */
 !@var TAIJLS  3D tracer diagnostics (tracer dependent)
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS
       REAL*8, ALLOCATABLE, DIMENSION(:,:,:,:) :: TAIJLS_loc
 !@var SNAME_IJLT: Names of 3D tracer IJL diagnostics
-      character(len=sname_strlen), dimension(ktaijl) :: sname_ijlt=''
+      character(len=sname_strlen), dimension(ktaijls) :: sname_ijlt=''
 !@var DNAME_IJLT, DENOM_IJLT: Short names, indices of taijls denominators.
 !@+   Currently, dname is specified along with the standard metadata and
 !@+   the denom indices are looked up afterward.
-      character(len=sname_strlen), dimension(ktaijl) :: dname_ijlt=''
-      integer, dimension(ktaijl) :: denom_ijlt=0
+      character(len=sname_strlen), dimension(ktaijls) :: dname_ijlt=''
+      integer, dimension(ktaijls) :: denom_ijlt=0
 !@var LNAME_IJLT,UNITS_IJLT: descriptions/units of 3D tracer diagnostics
-      character(len=lname_strlen), dimension(ktaijl) ::
+      character(len=lname_strlen), dimension(ktaijls) ::
      &     lname_ijlt = 'unused'
-      character(len=units_strlen), dimension(ktaijl) :: units_ijlt
+      character(len=units_strlen), dimension(ktaijls) :: units_ijlt
 !@var SCALE_IJLT: printout scaling factor for 3D tracer diagnostics
-      REAL*8, dimension(ktaijl) :: scale_ijlt
+      REAL*8, dimension(ktaijls) :: scale_ijlt
 !@var IR_IJLT: range index of IJL diagnostics
-      integer, dimension(ktaijl) :: ir_ijlt
+      integer, dimension(ktaijls) :: ir_ijlt
 !@var IA_IJLT: accumulation index for IJL diagnostics
-      integer, dimension(ktaijl) :: ia_ijlt
+      integer, dimension(ktaijls) :: ia_ijlt
 !@var ijlt_XXX diag names associated with 3D tracer special diags
       INTEGER :: ijlt_OHvmr,ijlt_OHconc,
      & ijlt_NO3,ijlt_HO2,ijlt_COp,ijlt_COd,
@@ -561,7 +650,7 @@ C**** TCONSRV
       type(cdl_type) :: cdl_taij,cdl_taij_latlon
       real*8, dimension(:,:,:), allocatable :: hemis_taij
 
-      integer :: ktaijl_
+      integer :: ktaijl
       integer :: ktaijl_out ! actual number of qtys in taijl_out
       real*8, dimension(:,:,:,:), allocatable :: taijl_out
       integer, allocatable, dimension(:) ::ir_taijl,ia_taijl,denom_taijl
@@ -945,19 +1034,19 @@ C****
       logical :: r4_on_disk !@var r4_on_disk if true, real*8 stored as real*4
       if(r4_on_disk) then ! acc file
         call defvar(grid,fid,taijl,
-     &       'taijl(dist_im,dist_jm,lm,ktaijl)',r4_on_disk=.true.)
+     &       'taijl(dist_im,dist_jm,lm,ktaijls)',r4_on_disk=.true.)
         call defvar(grid,fid,taij,
      &       'taij(dist_im,dist_jm,ktaij)',r4_on_disk=.true.)
         call defvar(grid,fid,tajl,
      &       'tajl(jm_budg,lm,ktajl)',r4_on_disk=.true.)
         call write_src_dist_data(fid, .true.)
       else
-        call defvar(grid,fid,taijln,'taijln(dist_im,dist_jm,lm,ntm)')
-        call defvar(grid,fid,taijls,'taijls(dist_im,dist_jm,lm,ktaijl)')
-        call defvar(grid,fid,taijs,'taijs(dist_im,dist_jm,ktaijs)')
-        call defvar(grid,fid,taijn,'taijn(dist_im,dist_jm,ktaij,ntm)')
-        call defvar(grid,fid,tajln,'tajln(jm_budg,lm,ktajlx,ntm)')
-        call defvar(grid,fid,tajls,'tajls(jm_budg,lm,ktajls)')
+       call defvar(grid,fid,taijln,'taijln(dist_im,dist_jm,lm,ntm)')
+       call defvar(grid,fid,taijls,'taijls(dist_im,dist_jm,lm,ktaijls)')
+       call defvar(grid,fid,taijs,'taijs(dist_im,dist_jm,ktaijs)')
+       call defvar(grid,fid,taijn,'taijn(dist_im,dist_jm,ktaij,ntm)')
+       call defvar(grid,fid,tajln,'tajln(jm_budg,lm,ktajlx,ntm)')
+       call defvar(grid,fid,tajls,'tajls(jm_budg,lm,ktajls)')
       endif
 
       call def_rsf_tcons(fid,r4_on_disk)
@@ -1049,13 +1138,13 @@ C****
       call write_attr(grid,fid,'taijl','reduction','sum')
       call write_attr(grid,fid,'taijl','split_dim',4)
       call defvar(grid,fid,ia_taijl(1:ktaijl_out),
-     &     'ia_taijl(ktaijl)')
+     &     'ia_taijl(ktaijls)')
       call defvar(grid,fid,denom_taijl(1:ktaijl_out),
-     &     'denom_taijl(ktaijl)')
+     &     'denom_taijl(ktaijls)')
       call defvar(grid,fid,scale_taijl(1:ktaijl_out),
-     &     'scale_taijl(ktaijl)')
+     &     'scale_taijl(ktaijls)')
       call defvar(grid,fid,sname_taijl(1:ktaijl_out),
-     &     'sname_taijl(sname_strlen,ktaijl)')
+     &     'sname_taijl(sname_strlen,ktaijls)')
       call defvar_cdl(grid,fid,cdl_taijl,
      &     'cdl_taijl(cdl_strlen,kcdl_taijl)')
 #ifdef CUBED_SPHERE
@@ -1258,7 +1347,7 @@ C****
       ALLOCATE(trcSurfMixR_acc(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
       ALLOCATE(trcSurfByVol_acc(I_0H:I_1H,J_0H:J_1H,Ntm),stat=status)
       ALLOCATE ( TAIJLN_loc(I_0H:I_1H,J_0H:J_1H,LM,ntm), stat=status )
-      ALLOCATE ( TAIJLS_loc(I_0H:I_1H,J_0H:J_1H,LM,ktaijl), stat=status)
+      ALLOCATE ( TAIJLS_loc(I_0H:I_1H,J_0H:J_1H,LM,ktaijls),stat=status)
       ALLOCATE ( TAIJN_loc( I_0H:I_1H,J_0H:J_1H,ktaij,ntm),stat=status )
       ALLOCATE ( TAIJS_loc( I_0H:I_1H,J_0H:J_1H,ktaijs   ),stat=status )
       ALLOCATE ( TAJLN_loc(  J_0BUDG:J_1BUDG,LM,ktajlx,ntm),stat=status)
@@ -1273,7 +1362,7 @@ C****
       end if
       ALLOCATE ( TAIJLN(img,jmg,LM,ntm), stat=status )
       ALLOCATE ( TSCF3d(img,jmg,LM,ntm), stat=status )
-      ALLOCATE ( TAIJLS(img,jmg,LM,ktaijl), stat=status )
+      ALLOCATE ( TAIJLS(img,jmg,LM,ktaijls), stat=status )
       ALLOCATE ( TAIJN( img,jmg,ktaij,ntm), stat=status )
       ALLOCATE ( TAIJS( img,jmg,ktaijs   ), stat=status )
 
@@ -1452,23 +1541,23 @@ C****
 #endif
 #endif  /* TRACERS_ON  or  TRACERS_OCEAN */
 
-      ktaijl_ = (ntm + ktaijl
+      ktaijl = (ntm + ktaijls
 #ifdef TRACERS_SPECIAL_O18
      *     + 2        ! include dexcess + D17O diags
 #endif
      &     )*3/2  ! make 50% larger for denoms and extra specials
 
 
-      allocate(ir_taijl(ktaijl_))
+      allocate(ir_taijl(ktaijl))
       ir_taijl = 0
-      allocate(ia_taijl(ktaijl_))
+      allocate(ia_taijl(ktaijl))
       ia_taijl = 0
-      allocate(denom_taijl(ktaijl_))
+      allocate(denom_taijl(ktaijl))
       denom_taijl = 0
-      allocate(lname_taijl(ktaijl_))
-      allocate(sname_taijl(ktaijl_))
-      allocate(units_taijl(ktaijl_))
-      allocate(scale_taijl(ktaijl_))
+      allocate(lname_taijl(ktaijl))
+      allocate(sname_taijl(ktaijl))
+      allocate(units_taijl(ktaijl))
+      allocate(scale_taijl(ktaijl))
 
       ktajl_ = (ktajlx*ntm+ktajls
 #ifdef TRACERS_SPECIAL_O18
@@ -1495,10 +1584,10 @@ C****
       allocate(units_tajl(ktajl_))
       allocate(scale_tajl(ktajl_))
 
-! ktaij_, ktaijl_, ktajl_ are larger than necessary.  These arrays
+! ktaij_, ktaijl, ktajl_ are larger than necessary.  These arrays
 ! will be reallocated to the proper sizes later.
       ALLOCATE ( TAIJ_out( I_0H:I_1H,J_0H:J_1H,ktaij_),stat=status )
-      ALLOCATE ( TAIJL_out( I_0H:I_1H,J_0H:J_1H,LM,ktaijl_),stat=status)
+      ALLOCATE ( TAIJL_out( I_0H:I_1H,J_0H:J_1H,LM,ktaijl),stat=status)
       if(am_i_root()) then
         ALLOCATE ( TAJL_out(JM_BUDG,LM,ktajl_), stat=status )
       endif

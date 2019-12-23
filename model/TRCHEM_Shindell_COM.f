@@ -341,8 +341,14 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param pfix_H2 fixed ratio of H2/M
 !@param pfix_Aldehyde fixed ratio of Aldehyde/M for initial conditions
 !@param MWabyMWw ratio of molecular weights of air/water
-!@param RKBYPIM=8.*RBOLTZ/pi/MASSN2O55=8.*1.38062D-23/3.14159/1.793D-25
-!@param cboltz Boltzman's Constant = 1.3806d-19
+!@param kboltJ Boltzmann constant in J K-1
+!@param MASSN2O5 mass of one molecule of N2O5 in kg for RKBYPIM calc
+!@param kboltErg Boltzmann constant in erg K-1
+!@param boltAvog8byPi derived convenience param kboltErg*avog*8/pi
+!@param RKBYPIM derived convenience parameter (8./pi)*kboltJ/MASSN2O5
+!@param cboltz 1/(T*cboltz) would convert pressure in hPa to number
+!@+ density in molecules cm-3. It contains the Boltzmann constant and
+!@+ powers of ten needed to convert hPa to Pa and m-3 to cm-3
 !@param byradian 1/radian = conversion from radians to degrees
 !@param LCOalt number of levels in the several tracer IC arrays
 !@param LCH4alt number of levels in the CH4altIN array
@@ -359,8 +365,6 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
 !@param PSClatN NH latitude limit for PSCs
 !@param minKG minimum kg for trm before we set to this after change
 !@param nOffAeroStream number of variables to read from OFFLINE_AERO
-!@param kbolt Boltzmann's constant in erg K-1 or (1d-7 J) K-1
-!@param boltAvog8byPi kbolt*avog*8/pi derived quantity used in chemistry
       INTEGER, PARAMETER ::
      & nOffAeroStream=3,
      & LCOalt =   23,
@@ -438,8 +442,10 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      &                      pfix_H2      = 560.d-9,
      &                      pfix_Aldehyde= 2.d-9,
      &                      MWabyMWw     = mair/mwat,
-     &                      RKBYPIM      = 1.961d2,
-     &                      cboltz       = 1.3806d-19,
+     &                      kboltJ       = gasc/avog,
+     &                      MASSN2O5     = 1.793d-25,
+!               RKBYPIM was 1.961d2 = 8.*1.38062D-23/3.14159/1.793D-25
+     &                      RKBYPIM      = 8.d0*kboltJ/(pi*MASSN2O5),
      &                      zlbatm       = 4.d0,
      &                      CMEQ1        = 0.25d0,
      &                      byradian     = 1.d0/radian,
@@ -449,8 +455,11 @@ C**************  P  A  R  A  M  E  T  E  R  S  *******************
      &                      n2o_pppv     = 316.3d-9,
      &                      cfc_rad95    = 794.d-12,
      &                      fact_cfc     = cfc_pppv/cfc_rad95,
-     &                      kbolt        = 1.d7*gasc/avog,
-     &                      boltAvog8byPi= kbolt*avog*8.d0/pi
+!               Next line 1.e7 is J --> erg
+     &                      kboltErg     = 1.d7*kboltJ,
+!               Next line 1.d4=1d2*1d2*1d2*1d-2 is hPa/m3 --> Pa/cm3:
+     &                      cboltz       = 1.d4*kboltJ,
+     &                      boltAvog8byPi= kboltErg*avog*8.d0/pi
 
 C Please note: since PCOalt is essentially the nominal 
 C pressures for the 23-level GCM, I'm going to use it

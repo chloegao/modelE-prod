@@ -825,6 +825,22 @@ C**** Local variables initialised in init_RAD
      &     ,ij_lw_cs_noa=1
      &     ,ij_sw_as_noa=1
      &     ,ij_lw_as_noa=1
+     &     ,ij_tau_aer_nint1 = 1 
+     &     ,ij_tau_aer_nint2 = 1 
+     &     ,ij_tau_aer_nint3 = 1 
+     &     ,ij_tau_aer_nint4 = 1 
+     &     ,ij_tau_aer_nint5 = 1 
+     &     ,ij_tau_aer_nint6 = 1 
+     &     ,ij_tau_aer_nint7 = 1 
+     &     ,ij_tau_aer_nint8 = 1 
+     &     ,ij_tau_aer_nint9 = 1 
+     &     ,ij_tau_aer_nint10 = 1 
+     &     ,ij_tau_aer_nint11 = 1 
+     &     ,ij_tau_aer_nint12 = 1 
+     &     ,ij_tau_aer_nint13 = 1 
+     &     ,ij_tau_aer_nint14 = 1 
+     &     ,ij_tau_aer_nint15 = 1 
+     &     ,ij_tau_aer_nint16 = 1 
 
 #ifdef TRACERS_SPECIAL_Shindell
 !@var IJ_fcghg GHG forcing diagnostics (2=LW,SW, 4=CH4,N2O,CFC11,CFC12)

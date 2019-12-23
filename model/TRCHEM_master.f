@@ -143,8 +143,9 @@ C running-averages for interactive wetlands CH4:
       if(prnchg) DU_O3(:)=0.d0  ! Drew's diagnostic...
 
       ! For chemistry not coupled to aerosol scheme, need to read/update
-      ! offline aerosol fields:
-      if(coupled_chem.ne.1)then
+      ! offline aerosol fields or set them to 0.:
+      if(coupled_chem==0)then
+        ! read from files:
         cyclic=.true.
         call modelEclock%get(year=clockYear, dayOfYear=xday)
         call get_param( "O3_yr", xyear, default=master_yr )
@@ -167,6 +168,11 @@ C running-averages for interactive wetlands CH4:
           case (3) ; so4_offline = readCache
           end select
         end do
+      else if(coupled_chem==-1)then
+        ! set to 0.:
+        dms_offline = 0.d0
+        so2_offline = 0.d0
+        so4_offline = 0.d0
       end if ! coupled_chem.ne.1
 
       end subroutine masterchem_prep
@@ -188,7 +194,7 @@ c
       use model_com, only: itime, itimeI
       use TimeConstants_mod, only: HOURS_PER_DAY
       USE TRACER_COM, only  : ntm
-      USE TRACER_COM, only  : COUPLED_CHEM
+      USE TRACER_COM, only  : coupled_chem
       USE RAD_COM, only     : o2x, plb0
       use ghgmod
       USE CONSTANT, only    : radian,gasc,mair,mb2kg,pi,avog,rgas,pO2,
@@ -516,19 +522,22 @@ c Tracers (converted from mass to number density):
          end if
        end if
 
-#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || \
-    defined(TRACERS_TOMAS)
 C Concentrations of DMS and SO2 for sulfur chemistry:
        if (coupled_chem == 1) then
+#if defined(TRACERS_AEROSOLS_Koch) || defined(TRACERS_AMP) || \
+    defined(TRACERS_TOMAS)
          ydms(L)=trm_col(L,n_dms)*y(nM,L)*mass2vol(n_dms)*byma(L)
          yso2(L)=trm_col(L,n_so2)*y(nM,L)*mass2vol(n_so2)*byma(L)
+#else
+         ydms(L)=0.d0
+         yso2(L)=0.d0
+#endif /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
        else
          ! Convert from volume mixing ratio to molecules cm-3:
          ! (take care of factors of 10 in the input file, please):
          ydms(L)=dms_offline(i,j,L)*y(nM,L)
          yso2(L)=so2_offline(i,j,L)*y(nM,L)
        end if
-#endif /* TRACERS_{AEROSOLS_Koch,AMP,TOMAS} */
 
 c Save initial ClOx amount for use in ClOxfam:
        ClOx_old(L)=trm_col(L,n_ClOx)*y(nM,L)*mass2vol(n_ClOx)*byma(L)
@@ -669,7 +678,15 @@ C levels fastj2 uses Nagatani climatological O3, read in by chem_init:
         ! things - would be needed). In next two lines, 5.6d21 is really 5.6d20/0.1
         ! and 5.0d17 is 5.0d16/0.1:
         colmO2=5.6d21*plbot(min(JPNL,topLevelOfChemistry)+1)
+#ifdef VARIABLE_COLMO3_FROM_NINT
+        colmO3=0.d0
+        do L=min(JPNL,topLevelOfChemistry)+1,lxghg
+          colmO3=colmO3+ghgCmAtm(L,3)
+        end do
+        colmO3=colmO3*loschmidt_constant ! cm-atm to molecules cm-2
+#else
         colmO3=5.0d17*plbot(min(JPNL,topLevelOfChemistry)+1)
+#endif
 
         ! Using MAX() here because 
         ! letting this spherical corrections get too small (0?) causes NaNs

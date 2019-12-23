@@ -128,6 +128,7 @@ Ndisk=960        ! write fort.1.nc or fort.2.nc every NDISK source time step
   itime_tr0=13104,13104,13104,21840,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104,13104
 !Lerner/Rind/Orbe
   nstrtc=17                    ! Number of layers for Prather stratosphere chemistry
+  lmtc=23                      ! Number of layers for Prather troposphere chemistry
   clim_interact_chem=1
 ! ---- end Lerner/Rind tracers
 &&END_PARAMETERS

@@ -1009,11 +1009,11 @@ c
       use diag_com_rad, only : ij_cldcv,ijl_cf
       use mdiag_com, only : sname_strlen,make_timeaxis 
       use trdiag_com, only : taijln=>taijln_loc, taijls=>taijls_loc,
-     &     ktaijl_,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
+     &     ktaijl,ktaijl_out,taijl=>taijl_out,scale_taijl,ir_taijl,
      &     ia_taijl,denom_taijl,lname_taijl,sname_taijl,units_taijl,
      &     cdl_taijl, cdl_taijl_latlon,sname_ijlt,lname_ijlt,dname_ijlt,
      &     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
-     &     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl,
+     &     ir_ijlt, ia_ijlt, scale_ijlt, ktaijls,
      &     ijlt_clrsky2d
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
@@ -1028,7 +1028,7 @@ c
       integer :: i_0,i_1,j_0,j_1, i_0h,i_1h,j_0h,j_1h
       real*8, dimension(:,:,:,:), allocatable :: taijl_tmp
       character(len=16) :: zstr,hstr,tstr
-      character(len=sname_strlen), dimension(ktaijl_) :: dname_taijl
+      character(len=sname_strlen), dimension(ktaijl) :: dname_taijl
       logical :: set_miss
       logical :: have_south_pole, have_north_pole
       call getDomainBounds(grid, have_south_pole = have_south_pole,
@@ -1058,7 +1058,7 @@ C**** Fill in the undefined pole box duplicates
         enddo
       endif
 
-      do k=1,ktaijl_
+      do k=1,ktaijl
         denom_taijl(k) = 0
         ia_taijl(k) = ia_src
         sname_taijl(k) = 'unused'
@@ -1122,7 +1122,7 @@ C**** Tracer concentrations
       enddo
 
 C**** Tracer specials 
-      do kx=1,ktaijl
+      do kx=1,ktaijls
         if (index(lname_ijlt(kx),'unused').gt.0) cycle
         k = k+1
         sname_taijl(k) = sname_ijlt(kx)

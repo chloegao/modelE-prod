@@ -387,7 +387,9 @@ for spec in $targets ; do # loop over target species
     $NCO/ncks -A -v ${spec}_orig,sunlit_snow_freq $fn $fs
     # obtain the location of the TOPO file from the JAN acc file, extract glacial ice fraction:
     acc=${inDir}/JAN${avgYears}.acc${run}.nc
-    topo=$( echo $( scrape $acc '_file_topo' ) | cut -d\" -f 2 )
+    # in the next line the trailing space is important, because, for ocean runs there is a
+    # second file _file_topo_oc:
+    topo=$( echo $( scrape $acc '_file_topo ' ) | cut -d\" -f 2 )
     $NCO/ncks -A -v fgice $topo $fs
     # Repair the lat variable (tradiation has 90 and -90 as the first and last values;
     # importing those topo variables in last line changes those to 89 and -89):

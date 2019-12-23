@@ -2905,3 +2905,208 @@ end subroutine qmom_topo_adjustments
   end subroutine cijlh_defs
 #endif
 
+module aeractv_streams_mod
+!@sum aeractv_streams_mod sample module coding to read aerosol info for
+!@+   droplet activation.   As this coding evolves to be used for its
+!@+   intended purposes, there is no requirement to keep nmodes or nqty as
+!@+   compile-time parameters, nor to keep all quantities in one array.
+  use timestream_mod
+  implicit none
+
+!@param nmodes number of Matrix aerosol modes
+!@param nqty number of Matrix aerosol quantities to read
+  integer, parameter :: nmodes=16, nqty=7, nqty2 = 3
+
+!@var AERACTVstreams interface for reading and time-interpolating aerosol
+!@+   info in the format of Matrix aerosols (w/ modes dimension, etc.)
+  type(timestream) :: AERACTVstreams(nqty)
+  type(timestream) :: AERACTVstreams2(nqty2)
+
+!@var actvqtys an array holding all Matrix aerosol info for the current
+!@+   timestep.  actvqtys(:,:,n,:,:) corresponds to qtynames(n).
+!@+   All quantities are co-habiting this array simply for code brevity.
+  real*8, dimension(:,:,:,:,:), allocatable :: actvqtys
+  real*8, dimension(:,:,:,:), allocatable   :: actvqtys2
+
+!@var lm_aer number of levels for aerosol info.
+!@var aerlevels (mb) nominal global-mean pressure levels on which aerosol
+!@+   info resides, for the purposes of vertically interpolating to
+!@+   model layers in normalized-coordinate space.  (Future input files
+!@+   will likely contain more information than this.)   All qtys assumed
+!@+   to share same layering.
+  integer :: lm_aer
+  real*8, dimension(:), allocatable :: aerlevels
+
+!@var qtyfiles files containing qtynames (in principle each qtyname can
+!@+   reside in a separate file)
+  character(len=16), dimension(nqty), parameter :: qtyfiles=(/ &
+       'MDaerACTV','MDaerACTV','MDaerACTV','MDaerACTV','MDaerACTV', &
+       'NDaerACTV','NDaerACTV' &
+       /)
+
+  character(len=16), dimension(nqty2), parameter :: qtyfiles2=(/ &
+       'MDaerACTV','MDaerACTV','MDaerACTV' &
+       /)
+
+!@var qtynames netcdf names of quantities to read
+  character(len=16), dimension(nqty), parameter :: qtynames=(/ &
+       'MASS_SU ' , 'MASS_BC ','MASS_OC ' ,'MASS_DU ' ,'MASS_SS ', &
+       'Number  ' , 'Diam_dry' &
+       /)
+
+!@var qtynames2 netcdf names of quantities to read
+  character(len=16), dimension(nqty2), parameter :: qtynames2=(/ &
+       'MASS_NO3' , 'MASS_NH4','MASS_H2O'/)
+
+!@var is_initalized whether the streams have been initialized and actvqyts
+!@+   allocated
+  logical :: is_initialized=.false.
+
+  integer :: lmin_inp,lmax_inp
+  integer, dimension(:), allocatable :: noutofl
+  real*8, dimension(:), allocatable :: wtdn
+  private :: noutofl,wtdn,lmin_inp,lmax_inp
+
+  contains
+
+  subroutine setup_interp_1d(p_in,p_out)
+    use resolution, only : lm
+    real*8 :: p_in(lm_aer),p_out(lm)
+    integer :: ll,l,nn
+    allocate(noutofl(lm_aer)); noutofl(:) = 0
+    allocate(wtdn(lm))
+    do lmin_inp=1,lm_aer-1
+      if(p_out(1).ge.p_in(lmin_inp+1)) exit
+    enddo
+    do lmax_inp=lm_aer-1,1,-1
+      if(p_out(lm).le.p_in(lmax_inp)) exit
+    enddo
+    ll = 1
+    do l=lmin_inp,lmax_inp
+      do while(p_out(ll).ge.p_in(l+1))
+        wtdn(ll) = min(1d0,(p_out(ll)-p_in(l+1))/(p_in(l)-p_in(l+1)))
+        noutofl(l) = noutofl(l) + 1
+        ll = ll + 1
+        if(ll.gt.lm) exit
+      enddo
+    enddo
+    if(ll.le.lm) then
+      l = lmax_inp
+      if(p_out(ll).lt.p_in(l+1)) then
+        noutofl(l) = noutofl(l) + (lm-ll+1)
+        wtdn(ll:lm) = 0d0
+      endif
+    endif
+
+  end subroutine setup_interp_1d
+
+  subroutine do_interp_1d(arr_in,arr_out)
+    use resolution, only : lm
+    real*8 :: arr_in(lm_aer),arr_out(lm)
+    integer :: ll,l,nn
+    ll = 0
+    do l=lmin_inp,lmax_inp
+      do nn=1,noutofl(l)
+        ll = ll + 1
+        arr_out(ll) = wtdn(ll)*arr_in(l) + (1d0-wtdn(ll))*arr_in(l+1)
+      enddo
+    enddo
+  end subroutine do_interp_1d
+
+end module aeractv_streams_mod
+
+subroutine read_aeractv_info
+  use aeractv_streams_mod
+  use domain_decomp_atm, only : grid
+  use model_com, only : modelEclock
+  use resolution, only : lm
+  use verticalres, only : plbot
+  use pario, only : par_open,par_close,read_data,get_dimlen
+  use geom, only : imaxj
+  implicit none
+  integer :: i,j,m,n,year,dayofyear,fid
+  real*8, dimension(:,:,:,:), allocatable :: tmparr
+  real*8, dimension(:,:,:), allocatable :: tmparr2
+  real*8, dimension(:), allocatable :: tmparr1d,p1d
+
+  ! no xxx_yr logic programmed in yet to control which year is
+  ! used.   Does not matter while we are still reading datasets
+  ! containing only one year.
+  call modeleclock%get(year=year, dayofyear=dayofyear)
+
+  if(.not. is_initialized) then
+    is_initialized = .true.
+
+    fid = par_open(grid,trim(qtyfiles(1)),'read')
+    lm_aer = get_dimlen(grid,fid,'Level')
+    allocate( aerlevels(lm_aer) )
+    call read_data(grid,fid,'Level',aerlevels,bcast_all=.true.)
+    call par_close(grid,fid)
+
+    do n=1,nqty
+      call init_stream(grid,AERACTVstreams(n), &
+           trim(qtyfiles(n)),trim(qtynames(n)), &
+           0d0,1d30,'linm2m',year,dayofyear)
+           ! not yet worrying about interannual variability, since only reading 12-month clim
+           ! ,cyclic=???)
+
+    enddo
+
+    do n=1,nqty2
+      call init_stream(grid,AERACTVstreams2(n), &
+           trim(qtyfiles2(n)),trim(qtynames2(n)), &
+           0d0,1d30,'linm2m',year,dayofyear)
+    enddo
+
+    allocate(actvqtys(lm,nmodes,nqty, &
+                      grid%i_strt:grid%i_stop, &
+                      grid%j_strt:grid%j_stop  &
+                      ))
+
+    allocate(actvqtys2(lm,nqty2, &
+                      grid%i_strt:grid%i_stop, &
+                      grid%j_strt:grid%j_stop  &
+                      ))
+
+
+    ! time- and position-invariant vertical interpolation weights using
+    ! global mean layer pressures
+    allocate(p1d(lm))
+    p1d = .5d0*(plbot(1:lm)+plbot(2:lm+1))
+    call setup_interp_1d(aerlevels,p1d)
+  endif
+
+  allocate(tmparr(grid%i_strt_halo:grid%i_stop_halo, &
+                  grid%j_strt_halo:grid%j_stop_halo, &
+                  lm_aer,nmodes))
+  allocate(tmparr2(grid%i_strt_halo:grid%i_stop_halo, &
+                  grid%j_strt_halo:grid%j_stop_halo, &
+                  lm_aer))
+  allocate(tmparr1d(lm_aer))
+
+  do n=1,nqty
+    call read_stream(grid,AERACTVstreams(n),year,dayofyear,tmparr)
+    ! vertically interpolate to model grid
+    do j=grid%j_strt,grid%j_stop
+    do i=grid%i_strt,imaxj(j)
+    do m=1,nmodes
+      tmparr1d = tmparr(i,j,:,m)
+      call do_interp_1d(tmparr1d,actvqtys(:,m,n,i,j))
+    enddo
+    enddo
+    enddo
+  enddo
+
+
+  do n=1,nqty2
+    call read_stream(grid,AERACTVstreams2(n),year,dayofyear,tmparr2)
+    ! vertically interpolate to model grid
+    do j=grid%j_strt,grid%j_stop
+    do i=grid%i_strt,imaxj(j)
+      tmparr1d = tmparr2(i,j,:)
+      call do_interp_1d(tmparr1d,actvqtys2(:,n,i,j))
+    enddo
+    enddo
+  enddo
+
+end subroutine read_aeractv_info

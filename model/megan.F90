@@ -44,6 +44,7 @@ end type runningAverage
 
 type biogenicSpecies
   character*11 :: itsname='____unknown' ! name of species, which should match tracer sourceName
+  real*8 :: fact=1.d0 ! linear factor to scale source; can set from rundeck.
   real*8 :: cceo=undef ! Coefficient for temperature activity factor in gamma_tld routine
   real*8 :: ct1=undef ! A temperature needed for the gamma_tld routine
   real*8 :: tdf_prm=undef ! a temperature-dependent parameter needed for gamma_tli routine
@@ -534,7 +535,8 @@ tracers_loop: do nTracer=1,ntm
       sfc_src(i,j,nTracer,ns)= &
       & convertUnits*bulk_EF*gamma_LAI*gamma_AGE*gamma_SM*gamma_CO2 &
       & * ( (1.d0-species(n)%ldf) * gamma_tli + &
-      & species(n)%ldf * gamma_PPFD*gamma_tld )
+      & species(n)%ldf * gamma_PPFD*gamma_tld ) &
+      & * species(n)%fact
 
       cycle sources_loop ! done with this particular tracer source
 
@@ -722,6 +724,7 @@ isoprene%ef=(/ 600.d0,     1.d0,  3000.d0, 7000.d0, 10000.d0, &
   &           7000.d0, 10000.d0, 11000.d0, 2000.d0,  4000.d0, &
   &           4000.d0,  1600.d0,   800.d0,  200.d0,    50.d0, &
   &              1.d0  /)
+call set_linear_scale_factor(isoprene)
 
                                 ! Acetone
 acetone%itsname='MegACTO_src'
@@ -734,6 +737,7 @@ acetone%ef=(/  240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
   &            240.d0,   240.d0,   240.d0,  240.d0,   240.d0, &
   &            240.d0,    80.d0,    80.d0,   80.d0,    80.d0, &
   &             80.d0  /)
+call set_linear_scale_factor(acetone)
 
                                 ! Myrcene
 myrcene%itsname='MegMYRC_src'
@@ -746,6 +750,7 @@ myrcene%ef=(/   70.d0,    60.d0,   70.d0,   80.d0,   30.d0, &
   &             80.d0,    30.d0,   30.d0,   30.d0,   50.d0, &
   &             30.d0,    0.3d0,   0.3d0,   0.3d0,   0.3d0, &
   &             0.3d0 /)
+call set_linear_scale_factor(myrcene)
 
                                 ! Sabinene
 sabinene%itsname='MegSABI_src'
@@ -758,6 +763,7 @@ sabinene%ef=(/   70.d0,   40.d0,   70.d0,   80.d0,   50.d0, &
   &              80.d0,   50.d0,   50.d0,   50.d0,   70.d0, &
   &              50.d0,   0.7d0,   0.7d0,   0.7d0,   0.7d0, &
   &              0.7d0 /)
+call set_linear_scale_factor(sabinene)
 
                                 ! Limonene
 limonene%itsname='MegLIMO_src'
@@ -770,6 +776,7 @@ limonene%ef=(/  100.d0,  130.d0,  100.d0,   80.d0,   80.d0, &
   &              80.d0,   80.d0,   80.d0,   60.d0,  100.d0, &
   &              60.d0,   0.7d0,   0.7d0,   0.7d0,   0.7d0, &
   &              0.7d0  /)
+call set_linear_scale_factor(limonene)
 
                                 ! 3-Carene
 carene3%itsname='Meg3CAR_src'
@@ -782,6 +789,7 @@ carene3%ef=(/   160.d0,   80.d0,  160.d0,   40.d0,   30.d0, &
   &              40.d0,   30.d0,   30.d0,   30.d0,  100.d0, &
   &              30.d0,   0.3d0,   0.3d0,   0.3d0,   0.3d0, &
   &              0.3d0  /)
+call set_linear_scale_factor(carene3)
 
                                 ! t-Beta-Ocimene
 t_b_ocimene%itsname='MegOCIM_src'
@@ -794,6 +802,7 @@ t_b_ocimene%ef=(/70.d0,   60.d0,   70.d0,  150.d0,  120.d0, &
   &             150.d0,  120.d0,  120.d0,   90.d0,  150.d0, &
   &              90.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
   &               2.d0  /)
+call set_linear_scale_factor(t_b_ocimene)
 
 
                                 ! Beta-Pinene
@@ -807,6 +816,7 @@ b_pinene%ef=(/  300.d0,  200.d0,  300.d0,  120.d0,  130.d0, &
   &             120.d0,  130.d0,  130.d0,  100.d0,  150.d0, &
   &             100.d0,   1.5d0,   1.5d0,   1.5d0,   1.5d0, &
   &              1.5d0   /)
+call set_linear_scale_factor(b_pinene)
 
 
                                 ! Alpha-Pinene
@@ -820,6 +830,7 @@ a_pinene%ef=(/  500.d0,  510.d0,  500.d0,  600.d0,  400.d0, &
   &             600.d0,  400.d0,  400.d0,  200.d0,  300.d0, &
   &             200.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
   &               2.d0  /)
+call set_linear_scale_factor(a_pinene)
 
                                 ! Other Monoterpenes
 other_monoterpenes%itsname='MegOMTP_src'
@@ -832,6 +843,7 @@ other_monoterpenes%ef=(/180.d0,  170.d0,  180.d0,  150.d0,  150.d0, &
   &                     150.d0,  150.d0,  150.d0,  110.d0,  200.d0, &
   &                     110.d0,    5.d0,    5.d0,    5.d0,    5.d0, &
   &                       5.d0  /)
+call set_linear_scale_factor(other_monoterpenes)
 
 
                                 ! Alpha-Farnesene
@@ -845,6 +857,7 @@ a_farnesene%ef=(/ 40.d0,   40.d0,   40.d0,   60.d0,  40.d0, &
   &               60.d0,   40.d0,   40.d0,   40.d0,  40.d0, &
   &               40.d0,    3.d0,    3.d0,    3.d0,   4.d0, &
   &                4.d0  /)
+call set_linear_scale_factor(a_farnesene)
 
 
                                 ! Beta-Caryophyllene
@@ -858,6 +871,7 @@ b_caryophyllene%ef=(/ 80.d0,   80.d0,   80.d0,   60.d0,   40.d0, &
   &                   60.d0,   40.d0,   40.d0,   50.d0,   50.d0, &
   &                   50.d0,    1.d0,    1.d0,    1.d0,    2.d0, &
   &                    4.d0  /)
+call set_linear_scale_factor(b_caryophyllene)
 
                                 ! Other Sesquiterpenes
 other_sesquiterpenes%itsname='MegOSQT_src'
@@ -870,6 +884,16 @@ other_sesquiterpenes%ef=(/ 120.d0,  120.d0,  120.d0,  120.d0,  100.d0, &
   &                        120.d0,  100.d0,  100.d0,  100.d0,  100.d0, &
   &                        100.d0,    2.d0,    2.d0,    2.d0,    2.d0, &
   &                          2.d0   /)
+call set_linear_scale_factor(other_sesquiterpenes)
+
+CONTAINS
+
+  subroutine set_linear_scale_factor(this)
+  use dictionary_mod, only: sync_param
+  implicit none
+  type(biogenicSpecies) :: this
+  call sync_param("scale_"//this%itsname,this%fact)
+  end subroutine set_linear_scale_factor
 
 end subroutine alloc_megan
 

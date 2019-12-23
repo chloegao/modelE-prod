@@ -156,7 +156,6 @@ contains
       else
         call get_param('aer_int_yr',cyclic_yr,default=master_yr)
       end if
-      cyclic_yr=ABS(cyclic_yr)
       call get_param('nc_emis_use_ppm_interp',nc_emis_use_ppm_interp,&
         & default=1)
       if (nc_emis_use_ppm_interp==1) then

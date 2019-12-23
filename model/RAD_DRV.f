@@ -993,6 +993,9 @@ caer   KRHTRA=(/1,1,1,1,1,1,1,1/)
       else
         FSTOPX(:)=0.d0 ; FTTOPX(:)=0.d0
       endif
+#ifdef USE_OFFLINE_AEROSOLS 
+        FSTOPX(:)=1.d0 ; FTTOPX(:)=1.d0     
+#endif
 
       if (ktrend.ne.0) then
 C****   Read in time history of well-mixed greenhouse gases
@@ -1199,7 +1202,10 @@ c          call par_close(grid,fid)
       integer :: i,j, i_0,i_1,j_0,j_1, itype
 
       call modelEclock%get(year=year, dayOfYear=dayOfYear)
-
+#ifdef USE_OFFLINE_AEROSOLS 
+C Temporary hack for NINT MATRIX offline aerosols
+      call read_aeractv_info
+#endif
 C**** Update time dependent radiative parameters each day
 !     Get black carbon deposition data for the appropriate year
 !     (does nothing except at a restart or the beginning of a new year)
@@ -1238,7 +1244,7 @@ C**** Update time dependent radiative parameters each day
 !     Optional scaling of the observed value only in case it was (re)set
       if(.not. end_of_day .and. H2OstratX.GE.0.)
      *   FULGAS(1)=FULGAS(1)*H2OstratX
-      if(.not. end_of_day .or. O3_yr==0.)
+      if(.not. end_of_day .or. O3_yr==0)
      *   FULGAS(3)=FULGAS(3)*O3X
       if(ghg_yr.eq.0 .or. .not. end_of_day) then
          FULGAS(2)=FULGAS(2)*CO2X
@@ -2811,14 +2817,13 @@ C****
 C**** SET UP VERTICAL ARRAYS OMITTING THE I AND J INDICES
 C****
 C**** EVEN PRESSURES
-#ifdef TRACERS_TOMAS
       aesqex(:,:,:)=0.0
       aesqsc(:,:,:)=0.0
       aesqcb(:,:,:)=0.0
       aesqex_dry(:,:,:)=0.0
       aesqsc_dry(:,:,:)=0.0
       aesqcb_dry(:,:,:)=0.0
-#endif
+
       PLB(LM+1)=PEDN(LM+1,I,J)
       DO L=1,LM
         PLB(L)=PEDN(L,I,J)
@@ -2908,7 +2913,7 @@ C**** more than one tracer is lumped together for radiation purposes
       end do
 #endif /* TRACERS_AEROSOLS_Koch/DUST/MINERALS/SEASALT */
 
-#ifdef TRACERS_AMP
+#if (defined TRACERS_AMP) || (defined USE_OFFLINE_AEROSOLS) 
       CALL SETAMP_LEV(i,j,l)
 #endif
 #ifdef TRACERS_TOMAS
@@ -3261,6 +3266,7 @@ C**** clear sky calc. without aerosol
         FTAUC=1.     ! default: turn on cloud tau
        end if
 
+#ifndef USE_OFFLINE_AEROSOLS
 C**** Optional calculation of the impact of NINT aerosols
         if (aer_rad_forc.gt.0) then
 C**** first, separate aerosols
@@ -3286,6 +3292,28 @@ C**** second, net aerosols
           TNFSAERRF(18,I,J)=TRNFLB(1) ! SURF
           FS8OPX(:)=tmpS(:)   ; FT8OPX(:)=tmpT(:)
         end if
+#endif
+#ifdef USE_OFFLINE_AEROSOLS
+        if (aer_rad_forc.gt.0) then
+
+          tmpS(:)=FS8OPX(:)   ; tmpT(:)=FT8OPX(:)
+          FS8OPX(:)=0.     ; FT8OPX(:)=0.
+          kdeliq(1:lm,1:4)=kliq(1:lm,1:4,i,j)
+
+       FSTOPX(:) = 0. !turns off aerosol tracers
+       FTTOPX(:) = 0.
+          CALL RCOMPX             ! aer_rad_forc>0 : no aerosols
+
+       FSTOPX(:) = 1. !onoff_aer !turns on aerosol tracers, if requested
+       FTTOPX(:) = 1. !onoff_aer !
+
+          SNFSAERRF(17,I,J)=SRNFLB(LM+LM_REQ+1) ! TOA
+          TNFSAERRF(17,I,J)=TRNFLB(LM+LM_REQ+1) ! TOA
+          SNFSAERRF(18,I,J)=SRNFLB(1) ! SURF
+          TNFSAERRF(18,I,J)=TRNFLB(1) ! SURF
+          FS8OPX(:)=tmpS
+        end if
+#endif
 #ifdef AIE_DIAG_FIX_MET
 C**** Potential fixed-met AIE call:
         ! save the current cloud optical depths/sizes:
@@ -3504,7 +3532,7 @@ C**** Save optical depth diags
             if (ijlt_3DaaodDRY(1).gt.0)
      &           taijls(i,j,1:lm,ijlt_3DaaodDRY(1))
      &           =taijls(i,j,1:lm,ijlt_3DaaodDRY(1))+
-     *            (aesqex_dry(1:lm,6,n)-aesqsc(1:lm,6,n))
+     *            (aesqex_dry(1:lm,6,n)-aesqsc_dry(1:lm,6,n))
             if (ijlt_3Dtau(1).gt.0)
      &           taijls(i,j,1:lm,ijlt_3Dtau(1))
      &         =taijls(i,j,1:lm,ijlt_3Dtau(1))+aesqex(1:lm,6,n)
@@ -3864,7 +3892,41 @@ C**** Save cloud tau=1 related diagnostics here (opt.depth=1 level)
          tauup=taudn
       end do
  590  continue
+#ifdef USE_OFFLINE_AEROSOLS
+           AIJ(I,J,IJ_tau_aer_nint1)=AIJ(I,J,IJ_tau_aer_nint1)+
+     *       SUM(aesqex(1:Lm,6,1))
+           AIJ(I,J,IJ_tau_aer_nint2)=AIJ(I,J,IJ_tau_aer_nint2)+
+     *       SUM(aesqex(1:Lm,6,2))
+           AIJ(I,J,IJ_tau_aer_nint3)=AIJ(I,J,IJ_tau_aer_nint3)+
+     *       SUM(aesqex(1:Lm,6,3))
+           AIJ(I,J,IJ_tau_aer_nint4)=AIJ(I,J,IJ_tau_aer_nint4)+
+     *       SUM(aesqex(1:Lm,6,4))
+           AIJ(I,J,IJ_tau_aer_nint5)=AIJ(I,J,IJ_tau_aer_nint5)+
+     *       SUM(aesqex(1:Lm,6,5))
+           AIJ(I,J,IJ_tau_aer_nint6)=AIJ(I,J,IJ_tau_aer_nint6)+
+     *       SUM(aesqex(1:Lm,6,6))
+           AIJ(I,J,IJ_tau_aer_nint7)=AIJ(I,J,IJ_tau_aer_nint7)+
+     *       SUM(aesqex(1:Lm,6,7))
+           AIJ(I,J,IJ_tau_aer_nint8)=AIJ(I,J,IJ_tau_aer_nint8)+
+     *       SUM(aesqex(1:Lm,6,8))
+           AIJ(I,J,IJ_tau_aer_nint9)=AIJ(I,J,IJ_tau_aer_nint9)+
+     *       SUM(aesqex(1:Lm,6,9))
+           AIJ(I,J,IJ_tau_aer_nint10)=AIJ(I,J,IJ_tau_aer_nint10)+
+     *       SUM(aesqex(1:Lm,6,10))
+           AIJ(I,J,IJ_tau_aer_nint11)=AIJ(I,J,IJ_tau_aer_nint11)+
+     *       SUM(aesqex(1:Lm,6,11))
+           AIJ(I,J,IJ_tau_aer_nint12)=AIJ(I,J,IJ_tau_aer_nint12)+
+     *       SUM(aesqex(1:Lm,6,12))
+           AIJ(I,J,IJ_tau_aer_nint13)=AIJ(I,J,IJ_tau_aer_nint13)+
+     *       SUM(aesqex(1:Lm,6,13))
+           AIJ(I,J,IJ_tau_aer_nint14)=AIJ(I,J,IJ_tau_aer_nint14)+
+     *       SUM(aesqex(1:Lm,6,14))
+           AIJ(I,J,IJ_tau_aer_nint15)=AIJ(I,J,IJ_tau_aer_nint15)+
+     *       SUM(aesqex(1:Lm,6,15))
+           AIJ(I,J,IJ_tau_aer_nint16)=AIJ(I,J,IJ_tau_aer_nint16)+
+     *       SUM(aesqex(1:Lm,6,16))
 
+#endif
       END DO
 C****
 C**** END OF MAIN LOOP FOR I INDEX

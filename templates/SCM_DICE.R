@@ -252,7 +252,7 @@ master_yr=1979
 volc_yr=-1
 !volc_day=182
 !aero_yr=1850
-!o3_yr=-1850
+!o3_yr=1850
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
 ! radiation flags

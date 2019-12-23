@@ -20,15 +20,22 @@ c -----------------------------------------------------------------
 !@auth Susanne Bauer 
       USE domain_decomp_atm,ONLY: am_i_root
 
+
+#ifdef USE_OFFLINE_AEROSOLS
+      USE OFFLINE_AEROSOL, only: AMP_EXT, AMP_ASY, AMP_SCA,
+     +                       AMP_EXT_CS, AMP_ASY_CS, AMP_SCA_CS, AMP_Q55_CS,
+     +                       Reff_LEV, NUMB_LEV, RindexAMP, AMP_Q55, dry_Vf_LEV,
+     +                       MIX_OC, MIX_SU, MIX_AQ, AMP_RAD_KEY,
+     +                       NMODES
+c       -> read this in                       MODE_NAME
+#else
       USE AMP_AEROSOL, only: AMP_EXT, AMP_ASY, AMP_SCA,
      +                       AMP_EXT_CS, AMP_ASY_CS, AMP_SCA_CS, AMP_Q55_CS,
      +                       Reff_LEV, NUMB_LEV, RindexAMP, AMP_Q55, dry_Vf_LEV,
      +                       MIX_OC, MIX_SU, MIX_AQ, AMP_RAD_KEY
       USE AERO_CONFIG, only: NMODES
-      USE AERO_PARAM,  only: DG_AKK,DG_ACC,DG_DD1,DG_DS1,DG_DD2, 
-     +                       DG_DS2,DG_SSA,DG_SSC,DG_OCC,DG_BC1,
-     +                       DG_BC2,DG_BC3,DG_DBC,DG_BOC,DG_BCS,DG_MXX
       USE AERO_SETUP,  only: MODE_NAME
+#endif
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
@@ -55,7 +62,11 @@ c -----------------------------------------------------------------
      +          ,0.64,0.68,0.72,0.76,0.8,0.84,0.88,0.92,0.96,1.0/
       DATA Mie_RE/1.25,1.3,1.35,1.4,1.45,1.5,1.55,1.6,1.65,1.7,1.75,1.8,1.85,1.9,1.9/
       DATA Mie_IM/0.0,0.00001,0.00002,0.00005,0.0001,0.0002,0.0005,0.001,0.002,0.005,0.01,0.02,0.05,0.1,0.2,0.5,1.0/
-#ifdef TRACERS_AMP_M1
+#ifdef USE_OFFLINE_AEROSOLS
+           CHARACTER(LEN=3), SAVE :: MODE_NAME(16)
+      DATA MODE_NAME(1:16)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/
+#endif
+#if (defined TRACERS_AMP_M1) || (defined USE_OFFLINE_AEROSOLS)
 c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  BC3  DBC  BOC  BCS  MXX
 c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
       DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   5,   6,   4,   5,   6/
@@ -105,7 +116,7 @@ C Longwave Pre calculate TAB: --------------------------------------------------
 
       if (itime.ne.itimeI) then 
           IF (AMP_RAD_KEY == 1 .or. AMP_RAD_KEY ==3) THEN
-         
+ 
 c Shortwave: ---------------------------------------------------------------------------------------------    
 
       DO l = 1,lm
@@ -173,7 +184,7 @@ c--------------------------------------------------------------------
       ENDDO   ! wave
       ENDDO   ! modes
       ENDDO   ! level
-
+      
          ENDIF       ! AMP_RAD_KEY=1or3
 
 c --------------------------------------------------------------------------------------------------------    
@@ -342,6 +353,18 @@ c -----------------------------------------------------------------
 !@sum Puts AMP Aerosols in 1 dimension CALLED in RADIA
 !@auth Susanne Bauer
 
+#ifdef USE_OFFLINE_AEROSOLS
+      USE OFFLINE_AEROSOL, only :  DIAM,Reff_LEV, NUMB_LEV, RindexAMP,
+     +  dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_RAD_KEY,
+     +  NMODES
+      USE CONSTANT,   only: rgas, pi
+      use ATMCOL_COM, only: tl   ! layer temperature (K)
+      use ATMCOL_COM, only: pl   ! layer pressure (mb)
+      USE ATM_COM, only: MA,byMA  ! Air mass of each box (kg m-2)
+      USE RESOLUTION, only: lm
+      USE aeractv_streams_mod, only : actvqtys, actvqtys2
+
+#else
       USE AMP_AEROSOL, only: DIAM,Reff_LEV, NUMB_LEV, RindexAMP,
      +  dry_Vf_LEV,MIX_OC,MIX_SU,MIX_AQ,AMP_RAD_KEY
       USE AmpTracersMetadata_mod,  only: AMP_NUMB_MAP,
@@ -354,13 +377,15 @@ c -----------------------------------------------------------------
       USE AERO_ACTV, only: DENS_SULF, DENS_DUST,DENS_SEAS, DENS_BCAR, DENS_OCAR
       use OldTracer_mod, only: trname
       use AMP_utilities_mod, only: aerosolkind
+#endif
+
       IMPLICIT NONE
 
       ! Arguments: 
       INTEGER, INTENT(IN) :: i,j,l
 
       ! Local
-      INTEGER n,w,s,nAMP
+      INTEGER n,w,s,nAMP,k
       REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass=0
       REAL*8                          :: H2O, NO3 
       REAL(8), PARAMETER :: TINYNUMER = 1.0D-30 
@@ -405,6 +430,82 @@ cBond + Berstroem, all wavelength
      &        (1.32283,  0.000115835)  ,(1.32774,  3.67435e-06),
      &        (1.33059,  1.58222e-07)  ,(1.33447,  3.91074e-08)/
 
+#ifdef USE_OFFLINE_AEROSOLS
+      REAL(8) :: NI(16)           ! number concentration for each tracer [#/m^3]
+      REAL(8) :: M(16,5)          ! mass   concentration for each tracer [ug/m^3]
+      REAL(8) :: DG_WET(16)       ! geometric mean diameter for each dry tracer [um]
+      REAL(8) :: DGN(16)          ! geometric mean diameter for each dry tracer [um]
+      REAL(8) :: TK               ! absolute temperature [K]
+      REAL(8) :: PRES             ! ambient pressure [Pa]
+      REAL(8) :: AIRD(lm)          ! air density [kg/m^3]
+      REAL(8) :: VOLTMP_WET 
+      real*8, parameter, dimension(16) ::
+     &    sig0=(/ 1.6d0, 1.8d0, 1.8d0, 1.8d0, 1.8d0, 1.8d0, 
+     &                 2.0d0, 2.0d0, 1.8d0, 1.8d0, 1.8d0, 1.8d0, 
+     &                 1.8d0, 1.8d0, 1.8d0, 2.0d0/)
+      real*8, parameter, dimension(16) ::
+     &    CONV_DPAM_TO_DGN=(/ 0.71795016727196403,   0.59556797724590516     ,  
+     &     0.59556797724590516     ,  0.59556797724590516   ,    0.59556797724590516  ,     
+     &     0.59556797724590516      , 0.59556797724590516   ,    0.48642160999311468  ,    
+     &     0.59556797724590516   ,    0.59556797724590516  ,     0.59556797724590516  ,   
+     &     0.59556797724590516  ,     0.59556797724590516    ,   0.59556797724590516  ,     
+     &     0.59556797724590516 ,      0.48642160999311468/)
+
+      real*8, parameter, dimension(5) ::
+     &    dens=(/1.77D+03,1.70D+03,1.00D+03,2.60D+03,2.165D+03/)   ! [kg/m^3] 
+           CHARACTER(LEN=3), SAVE :: MODE_NAME(16)
+      DATA MODE_NAME(1:16)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/
+#endif
+
+
+#ifdef USE_OFFLINE_AEROSOLS
+
+       ! + Effective Radius [um] per Mode = geometric mass mean radius
+! meteorology
+        call load_atmcol(i,j)   ! remove this in E3
+           TK = tl(l)                            ! [K]
+           PRES= pl(l)*100.d0                    ! pmid in [hPa]
+           AIRD(l) = PRES/(rgas * TK)            ! air density  [kg/m3]
+!
+      do n=1,nmodes ! loop over modes
+           VOLTMP_WET = 1.0D-30
+           do k = 1, 5
+             M(n,k) = actvqtys(l,n,k,i,j) * MA(l,i,j)               ! mass [kg/kg]  -> [kg/m2/layer]
+             VOLTMP_WET = VOLTMP_WET + actvqtys(l,n,k,i,j)/dens(k)  ! dry volume [m3]
+           enddo
+
+             VOLTMP_WET = VOLTMP_WET + (M(n,1)/sum(M(:,1))) * actvqtys2(l,1,i,j)/1720.d0  ! NO3
+             VOLTMP_WET = VOLTMP_WET + (M(n,1)/sum(M(:,1))) * actvqtys2(l,2,i,j)/1720.d0  ! NH4
+             VOLTMP_WET = VOLTMP_WET + (M(n,1)/sum(M(:,1))) * actvqtys2(l,3,i,j)/1000.d0  ! H2O
+
+         DG_WET(n) = 1.D6 *( (6.d0/pi) * (VOLTMP_WET / actvqtys(l,n,6,i,j)) ) ! dry gemoetric mean mass diameter [um]
+     &                 **0.333333333333333  ! [um]
+         DG_WET(n) = MIN( MAX( DG_WET(n),  0.01), 10.D0 )
+
+         DGN(n) = DG_WET(n) * (1.0D+00 / EXP( 1.5D+00 * ( log(sig0(n)) )**2 )) 
+     
+c         Reff_LEV(l,n) = DGN(n)*exp(5.*(sig0(n)**(-2))/2.)* 0.5      
+         Reff_LEV(l,n) = actvqtys(l,n,7,i,j)*CONV_DPAM_TO_DGN(n)*exp(5.*(sig0(n)**(-2))/2.)* 0.5e6
+       
+          VMass(n,1:5)  = M(n,1:5)/DENS(1:5)           
+
+       enddo
+
+
+
+       ! + Volume Fraction
+       DO n=1,nmodes  ![#/m2]         pi/4     [m2]
+         NI(n)  =  actvqtys(l,n,6,i,j) * MA(l,i,j)           ! number [#/kg] *  [kg/m2] = [#/m2]
+c         NUMB_LEV(l,n) = NI(n)* 0.7853 * (1.e-6*DG_WET(n))**2   ! [#/layer]
+         NUMB_LEV(l,n) = NI(n)* 0.7853 *actvqtys(l,n,7,i,j)**2
+         
+        ! NO3   
+        VMass(n,6) = VMass(n,1) / Sum(VMass(:,1)) * ((actvqtys2(l,1,i,j) + actvqtys2(l,2,i,j))* MA(l,i,j) )/ 1720.
+        ! H2O
+        VMass(n,7) = VMass(n,1) / Sum(VMass(:,1))  *(actvqtys2(l,3,i,j) * MA(l,i,j) )/1000.
+       ENDDO
+
+#else   ! Original MATRIX online code below
 
        ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
@@ -446,6 +547,7 @@ cBond + Berstroem, all wavelength
         ! H2O
         VMass(n,7) = VMass(n,1) /(Sum(VMass(:,1)) + TINYNUMER)  * H2O /1000.
        ENDDO
+#endif   ! After that code should work for all cases
 
       DO s=1,7  ! loop over species 
         DO n=1,nmodes           ! loop over modes
@@ -511,9 +613,14 @@ c -----------------------------------------------------------------
 !@sum Initialization for Radiation incl. Aerosol Microphysics
 !@auth Susanne Bauer
 
+#ifdef USE_OFFLINE_AEROSOLS
+      USE OFFLINE_AEROSOL, only: AMP_EXT, AMP_ASY, AMP_SCA,
+     +                       AMP_EXT_CS, AMP_ASY_CS, AMP_SCA_CS, AMP_Q55_CS,
+     +                       AMP_Q55
+#else
       USE AMP_AEROSOL, only: AMP_EXT, AMP_ASY, AMP_SCA, AMP_Q55,
      +           AMP_EXT_CS, AMP_ASY_CS, AMP_SCA_CS, AMP_Q55_CS  
-	  
+#endif	  
 	  IMPLICIT NONE
       include 'netcdf.inc'
       integer start(4),count(4),count3(3),status

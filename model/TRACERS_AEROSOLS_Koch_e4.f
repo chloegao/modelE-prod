@@ -34,11 +34,11 @@
 
       type oxidants
         real*8 :: OH,NO3,O3 ! both for online and offline
-        real*8 :: HO2,H2O2  ! COUPLED_CHEM=0 only
+        real*8 :: HO2,H2O2  ! COUPLED_CHEM.ne.1 only
       end type oxidants
       type(oxidants) :: oxid
       real*8, ALLOCATABLE, DIMENSION(:,:,:) ::
-     &  ohr,dho2r,perjr,tno3r,o3_offline, ! COUPLED_CHEM=0 only
+     &  ohr,dho2r,perjr,tno3r,o3_offline, ! COUPLED_CHEM.ne.1 only
      &  off_HNO3 !@var off_HNO3 offline HNO3 for nitrate + AMP when gas phase chem off
       real*8, allocatable, dimension(:,:,:) :: readCache
 
@@ -126,7 +126,7 @@
       endif
       allocate( SO2_src_3D(I_0:I_1,J_0:J_1,lm,nso2src_3d) )
       allocate( H2O_src_3D(I_0:I_1,J_0:J_1,lm) )
-      if (coupled_chem==0) then
+      if (coupled_chem.le.0) then
         allocate(        ohr(I_0:I_1,J_0:J_1,lm),
      *                 dho2r(I_0:I_1,J_0:J_1,lm),
      *                 perjr(I_0:I_1,J_0:J_1,lm),
@@ -751,7 +751,7 @@ c Get NO3 only if dark, weighted by number of dark hours
             ihx=n
             select case (trname(ix))
             case('H2O2')
-              if (coupled_chem.eq.0) goto 400
+              if (coupled_chem.le.0) goto 400
             case('H2O2_s')
               if (coupled_chem.eq.1) goto 400
             end select
@@ -842,7 +842,7 @@ c Get NO3 only if dark, weighted by number of dark hours
           case('H2O2','H2O2_s')
             select case (trname(ix))
             case('H2O2')
-              if (coupled_chem.eq.0) goto 401
+              if (coupled_chem.le.0) goto 401
             case('H2O2_s')
               if (coupled_chem.eq.1) goto 401
             end select

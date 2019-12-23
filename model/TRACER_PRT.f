@@ -1740,7 +1740,7 @@ C****
 
       USE TRDIAG_COM, only : taijln, taijls, sname_ijlt, lname_ijlt,
      *     units_ijlt, sname_ijt, lname_ijt, units_ijt, scale_ijt,
-     *     ir_ijlt, ia_ijlt, scale_ijlt, ktaijl
+     *     ir_ijlt, ia_ijlt, scale_ijlt, ktaijls
 #if (defined TRACERS_WATER) || (defined TRACERS_OCEAN)
      &     ,to_per_mil
 #endif
@@ -1762,7 +1762,7 @@ C****
 
 !TODO fix kludge - NTM replaced with MAXNTM to allow ktmax to be a parameter
       integer, parameter :: MAXNTM=1000
-      integer, parameter :: ktmax = maxntm+ktaijl
+      integer, parameter :: ktmax = maxntm+ktaijls
 #ifdef TRACERS_SPECIAL_O18
      *     + 2        ! include dexcess + D17O diags
 #endif
@@ -1856,7 +1856,7 @@ C**** Fill in maplet indices for tracer concentrations
       end do
 
 C**** Fill in maplet indices for 3D tracer specials
-      do kx=1,ktaijl
+      do kx=1,ktaijls
         if (index(lname_ijlt(kx),'unused').gt.0) cycle
         k = k+1
         iord(k) = kx

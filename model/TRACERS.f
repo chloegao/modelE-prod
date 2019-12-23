@@ -2163,7 +2163,6 @@ C
 #ifdef TRACERS_SPECIAL_Shindell
       end if
 #endif
-      cyclic_yr=abs(cyclic_yr)
       xyear=year
       if (cyclic_yr > 0) xyear=cyclic_yr
 
