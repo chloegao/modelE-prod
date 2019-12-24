@@ -23,7 +23,7 @@
 !  pCO2 (uatm)
 !  alk  (umolC/kg)
 !  Ca_det_calc   Ca in detritus calcite
-!  O(1) = oxygen (uM)
+!  O(1) = oxygen (mM)
 
       implicit none
 
@@ -43,7 +43,12 @@
      .                     ,nalk=0   ! alkalinity as a function of salinity
 #endif
 #ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
      .                     ,no2=1    ! oxygen
+#endif
+#ifdef TRACERS_abio_O2
+     .                     ,nabo2=1 ! abiotic oxygen
+#endif
 #endif
 
       integer, parameter :: ntrac = nnut+nchl+nzoo+ndet+ncar
@@ -51,9 +56,27 @@
      .                            + nalk
 #endif
 #ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
      .                            + no2
 #endif
+#ifdef TRACERS_abio_O2
+     .                            + nabo2
+#endif
+#endif
 
+      integer, parameter :: ndimc = ntyp+ndet+ncar
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+      integer, parameter :: ndimo2 = ntyp+ndet+ncar+nalk+no2
+#endif
+#ifdef TRACERS_abio_O2
+#ifdef TRACERS_bio_O2
+      integer, parameter :: ndimabo2 = ntyp+ndet+ncar+nalk+no2+nabo2
+#else
+      integer, parameter :: ndimabo2 = ntyp+det+ncar+nalk+nabo2
+#endif
+#endif
+#endif
 
       integer, parameter :: 
      .                      nh=200,   !number of depths for mean irradiance

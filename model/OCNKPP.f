@@ -1385,6 +1385,7 @@ C****
       USE CONSTANT, only : pi
 #endif
 #ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans,motr
       USE OCEAN, only : trmo,txmo,tymo,tzmo
       USE OCEAN, only : txxmo,tyymo,tzzmo,txymo
       Use KPP_COM, Only: trmo1,txmo1,tymo1
@@ -1529,7 +1530,8 @@ c     REAL*8, PARAMETER :: wta1=exp(-1.d0/1440.d0) ! average over 30 days
      &   DELTATR(tracerlist%getsize()),GHATT(LMO,tracerlist%getsize()),
      *   FLT(LMO,tracerlist%getsize()),DTP4TR(LMO,tracerlist%getsize())
       type(ocn_tracer_entry), pointer :: entry
-      REAL*8, DIMENSION(LMO) :: TXML,TYML,TXXML,TYYML,TXYML
+      REAL*8, DIMENSION(LMO) :: TXML,TYML,TXXML,TYYML,TXYML,
+     &     DTBYDZ_TR,BYDZ2_TR
       INTEGER NSIGT
       REAL*8 :: DFLUX,MINRAT ! for GHATT limits
 #endif
@@ -2330,6 +2332,19 @@ C**** D-grid velocities
       EndIf
 #ifdef TRACERS_OCEAN
 C**** Tracers are diffused after iteration and follow salinity
+      if(ntrtrans.gt.1) then
+        do l=1,lmij
+          dtbydz_tr(l) = dts/motr(i,j,l)
+        enddo
+        do l=1,lmij-1
+          bydz2_tr(l)  = 2d0/(motr(i,j,l)+motr(i,j,l+1))
+        enddo
+      else
+        do l=1,lmij
+          dtbydz_tr(l) = dtbydz(l)
+          bydz2_tr(l) = bydz2(l)
+        enddo
+      endif
       GHATDUM(:) = 0.
       DTP4S(:)   = 0.  ! ????
       DO N=1,tracerlist%getsize()
@@ -2357,7 +2372,7 @@ C**** Tracers are diffused after iteration and follow salinity
         endif
         ! diffuse
         Call OVDIFFS (TRML(1,N),AKVC(1),GHATT(1,N),DTP4TR(1,N)
-     *       ,DTBYDZ,BYDZ2,DTS,LMIJ,TRML(1,N),FLT(1,N))
+     *       ,DTBYDZ_tr,BYDZ2_tr,DTS,LMIJ,TRML(1,N),FLT(1,N))
       END DO
 #endif
 
@@ -2594,6 +2609,11 @@ C**** Vertical Gradients of scalars
 C**** Implicitly apply interpolated KV to linear profile
 C**** Surface tracer + mass fluxes included (no solar flux)
 C**** Note that FL[GS] are upward fluxes.
+#ifdef TRACERS_OCEAN
+        if(ntrtrans.gt.1) then
+          call stop_model('ocnkpp: not yet implemented',255)
+        endif
+#endif
         do j=j_0,j_1
         do ib=1,nbyzm(j,1)
         do i=i1yzm(ib,j,1),i2yzm(ib,j,1)
@@ -2646,12 +2666,28 @@ C**** Note that FL[GS] are upward fluxes.
         call relax_zmoms(ma,g0m,klen,gzmo,gzzmo)
         call relax_zmoms(ma,s0m,klen,szmo,szzmo)
 #ifdef TRACERS_OCEAN
+        if(ntrtrans.gt.1) then
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          ma(i,j,l) = motr(i,j,l)*dxypo(j)
+        enddo
+        enddo
+        enddo
+        enddo
+        endif
         do n=1,tracerlist%getsize()
           call relax_zmoms(ma,trmo(1,j_0h,1,n),
      &         klen,tzmo(1,j_0h,1,n),tzzmo(1,j_0h,1,n))
         enddo
 #endif
       elseif(mix_tripled_resolution) then
+#ifdef TRACERS_OCEAN
+        if(ntrtrans.gt.1) then
+          call stop_model('ocnkpp: not yet implemented',255)
+        endif
+#endif
         do j=j_0,j_1
         do ib=1,nbyzm(j,1)
         do i=i1yzm(ib,j,1),i2yzm(ib,j,1)

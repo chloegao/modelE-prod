@@ -152,6 +152,7 @@
       USE OCEAN, only : trmo,
      &     txmo,tymo,tzmo,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       Use ODIAG, Only: toijl=>toijl_loc,toijl_gmfl
+      use ocean, only : do_tracer_trans,ntrtrans,motr
 #endif
       use ocnmeso_com, only : kbg,use_tdmix,use_gmscz,
      &     enhance_shallow_kmeso
@@ -325,6 +326,10 @@ C**** Apply GM + Redi tracer fluxes
 #endif
 
 #ifdef TRACERS_OCEAN
+        if(do_tracer_trans) then
+
+        call tdmix_longstep_prep
+
         ! Tracer transport
         ind1 = toijl_gmfl; ind2 = ind1 + 2
         do n=1,tracerlist%getsize()
@@ -351,6 +356,38 @@ C**** Apply GM + Redi tracer fluxes
      &     'ocnmeso_drv: add tracer acc space for tdmix_aux_diags',255)
 #endif
         enddo
+
+        if(ntrtrans.gt.1) then
+        ! transport motr
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          mokg(i,j,l) = motr(i,j,l)*dxypo(j)
+        enddo
+        enddo
+        enddo
+        enddo
+        call tdmix(mokg,.false.,fl3d
+#ifdef TDMIX_AUX_DIAGS
+     &       ,fl3ds  ! will be zero for water mass
+#endif
+     &       )
+        do l=1,lmo
+        do j=j_0,j_1
+        do n=1,nbyzm(j,l)
+        do i=i1yzm(n,j,l),i2yzm(n,j,l)
+          motr(i,j,l) = mokg(i,j,l)/dxypo(j)
+        enddo
+        enddo
+        enddo
+        enddo
+        endif
+
+        call tdmix_longstep_finish
+
+        endif
+
 #endif
 
       else ! skew-GM

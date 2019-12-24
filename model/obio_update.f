@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      subroutine obio_update(vrbos,kmax,i,j)
+      subroutine obio_update(vrbos,kmax,i,j,nstep)
  
 c  Performs updating of biological particles, uses mid-point
 c  leap frog method.
@@ -8,6 +8,7 @@ c  leap frog method.
       USE obio_dim
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car,dp1d,p1d
+     .                   ,errchk1,errchk2 !@PLdbg added test for NaNs in O2
 #ifdef TRACERS_Alkalinity
      .                   ,A_tend,alk1d
 #ifdef TOPAZ_params
@@ -15,15 +16,28 @@ c  leap frog method.
 #endif
 #endif
 #ifdef TRACERS_Ocean_O2
-     .                   ,O_tend,o21d
+#ifdef TRACERS_bio_O2
+     .                    ,O_tend,o21d
+#endif 
+#ifdef TRACERS_abio_O2
+     .                   ,Abo_tend,abo21d
+#endif
 #endif
 
       implicit none
 
       integer :: i,j,k
  
-      integer :: nt,kmax
-      real    :: Pnew,Dnew,Cnew,Anew,Canew,O2new
+      integer :: nt,kmax,nstep !@PLdb nstep added for test for NaNs
+      real    :: Pnew,Dnew,Cnew,Anew,Canew
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+     .           ,O2new
+#endif
+#ifdef TRACERS_abio_O2
+     .           ,Abo2new
+#endif
+#endif
       logical :: vrbos
  
 c  Loop to update
@@ -59,9 +73,35 @@ c   in update.F, but P has not been updated yet
 #endif
 
 #ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
          O2new = (o21d(k) +  O_tend(k)*obio_deltat)
-         o21d(k) = O2new
+#ifdef prescribe_o2sf
+         if (k.eq.1) then
+         O2new = o21d(k)
+         endif
 #endif
+         o21d(k) = O2new
+!@PLdebg
+!       if (vrbos) then
+!          write(6,'(a,3i7,3e12.4)')'obio_o2(postbio):',
+!     .      nstep,i,j,p1d(k),o21d(k),O_tend(k)
+!        endif
+
+      if (ISNAN(o21d(k))) then
+          errchk2=1
+          write(6,'(a,4i7,5e12.4)')'obio_o2(postbionan):',
+     .      nstep,i,j,errchk2,p1d(k),o21d(k),O_tend(k)
+     .      ,car(k,nt),C_tend(k,nt)
+
+        endif
+!@PLdbg
+#endif
+#ifdef TRACERS_abio_O2
+         Abo2new = (abo21d(k) + Abo_tend(k)*obio_deltat)
+         abo21d(k) = Abo2new
+#endif
+#endif
+
 
  1000 continue
 

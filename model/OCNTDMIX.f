@@ -164,6 +164,23 @@
 !@var mrel[xyz] relaxation factors for adjustment of subgrid tracer moments
       real*8, dimension(:,:,:), allocatable :: mrelx,mrely,mrelz
 
+#ifdef TRACERS_OCEAN
+!@var a[...] accumulation variables corresponding to variable names [...] above.
+!@+   Only used when ntrtrans>1.   See description of ntrtrans and long-timestep
+!@+   transport in module OCEAN.
+!@var almaxoverlap is only an initial DSOE count before on-the-fly resizing
+      integer, parameter :: almaxoverlap=3*lmo
+      integer, dimension(:,:), allocatable ::
+     &     almx,
+     &     almy
+      integer, dimension(:,:,:), allocatable ::
+     &     allx,alrx,
+     &     ally,alry
+      real*8, dimension(:,:,:), allocatable ::
+     &     admlx,admrx, aczlx,aczzlx,aczrx,aczzrx,
+     &     admly,admry, aczly,aczzly,aczry,aczzry
+#endif
+
       contains
 
       subroutine get_dm_intervals(x1,n1,x2,n2,dx1,dx2,l1,l2,
@@ -748,10 +765,84 @@ c
       use domain_decomp_1d, only : getdomainbounds
       use ocean, only : im,lmo,dzo
       use oceanr_dim, only : grid=>ogrid
+#ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans
+#endif
       implicit none
       integer :: l,j_0h,j_1h
 
       call getdomainbounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+
+      call realloc_tdmix_regstep
+
+      allocate(
+c
+     &        mokgsv(im,j_0h:j_1h,lmo),
+c
+     &        mrelx(im,j_0h:j_1h,lmo),
+     &        mrely(im,j_0h:j_1h,lmo),
+     &        mrelz(im,j_0h:j_1h,lmo)
+     &        )
+
+      mokgsv = 0.
+      mrelx = 0.
+      mrely = 0.
+      mrelz = 0.
+
+      dzo_(1:lmo) = dzo(1:lmo)
+      dzo_(0) = dzo_(1)
+      dzo_(lmo+1) = dzo_(lmo)
+      do l=1,lmo
+        by6arr(l) = .5d0*dzo_(l)/sum(dzo_(l-1:l+1))
+        dzby12(l) = .5d0*by6arr(l)*dzo_(l)
+      enddo
+      do l=1,lmo-1
+        bydzoe(l) = 2d0/(dzo(l)+dzo(l+1))
+      end do
+
+#ifdef TRACERS_OCEAN
+      if(ntrtrans.gt.1) then
+        call tdmix_longstep_finish ! to initialize to starting values
+      endif
+#endif
+
+      return
+      end subroutine alloc_tdmix
+
+      subroutine realloc_tdmix_regstep
+      use tdmix_mod
+      use domain_decomp_1d, only : getdomainbounds
+      use ocean, only : im,lmo
+      use oceanr_dim, only : grid=>ogrid
+      implicit none
+      integer :: j_0h,j_1h
+
+      call getdomainbounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+
+      if(allocated(llx)) then
+        deallocate(
+     &         lmx,
+     &         lmy,
+     &         llx,
+     &         lrx,
+     &         lly,
+     &         lry,
+c
+     &         dmlx,
+     &         dmrx,
+     &         dmly,
+     &         dmry,
+c
+     &          czlx,
+     &         czzlx,
+     &          czrx,
+     &         czzrx,
+     &          czly,
+     &         czzly,
+     &          czry,
+     &         czzry
+     &        )
+      endif
 
       allocate(
      &         lmx(im,j_0h:j_1h),
@@ -773,13 +864,7 @@ c
      &          czly(lmaxoverlap,im,j_0h:j_1h),
      &         czzly(lmaxoverlap,im,j_0h:j_1h),
      &          czry(lmaxoverlap,im,j_0h:j_1h),
-     &         czzry(lmaxoverlap,im,j_0h:j_1h),
-c
-     &        mokgsv(im,j_0h:j_1h,lmo),
-c
-     &        mrelx(im,j_0h:j_1h,lmo),
-     &        mrely(im,j_0h:j_1h,lmo),
-     &        mrelz(im,j_0h:j_1h,lmo)
+     &         czzry(lmaxoverlap,im,j_0h:j_1h)
      &        )
 
       lmx = 0; lmy = 0; llx = 0; lrx = 0; lly = 0; lry = 0
@@ -788,23 +873,7 @@ c
       czlx = 0.; czzlx = 0.; czrx = 0.; czzrx = 0. 
       czly = 0.; czzly = 0.; czry = 0.; czzry = 0.
 
-      mokgsv = 0.
-      mrelx = 0.
-      mrely = 0.
-      mrelz = 0.
-
-      dzo_(1:lmo) = dzo(1:lmo)
-      dzo_(0) = dzo_(1)
-      dzo_(lmo+1) = dzo_(lmo)
-      do l=1,lmo
-        by6arr(l) = .5d0*dzo_(l)/sum(dzo_(l-1:l+1))
-        dzby12(l) = .5d0*by6arr(l)*dzo_(l)
-      enddo
-      do l=1,lmo-1
-        bydzoe(l) = 2d0/(dzo(l)+dzo(l+1))
-      end do
-      return
-      end subroutine alloc_tdmix
+      end subroutine realloc_tdmix_regstep
 
       subroutine tdmix_prep(dt,k3dx,k3dy)
 !@sum tdmix_prep prepares the DSOE mass-exchange indices/rates as
@@ -820,6 +889,9 @@ c
       use oceanr_dim, only : grid=>ogrid
       use domain_decomp_1d, only : getdomainbounds
       use random, only : randu
+#ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans
+#endif
       implicit none
 !@var dt timestep (s)
       real*8 :: dt  ! timestep (s)
@@ -840,8 +912,10 @@ c
 
       real*8 :: kmax
 
-      real*8 :: byim,mxfer
-      real*8, dimension(lmo) :: mxferx,mxfery,mxferz
+#ifdef TRACERS_OCEAN
+      logical :: found
+      integer :: al,lmx_,lmy_
+#endif
 
       call getdomainbounds(grid, j_strt=j_0, j_stop=j_1,
      &               j_strt_skp=j_0s, j_stop_skp=j_1s,
@@ -916,6 +990,52 @@ c
           dmrx(l,i,j) = dmrx(l,i,j)*facj*kmax
         enddo
 
+#ifdef TRACERS_OCEAN
+        ! accumulate DSOE information from this timestep
+        if(ntrtrans.gt.1) then
+        lmx_ = size(allx,1)
+        do l=1,lmx(i,j)
+          found = .false.
+          do al=1,almx(i,j)
+            if(llx(l,i,j).eq.allx(al,i,j) .and.
+     &         lrx(l,i,j).eq.alrx(al,i,j)) then
+              found = .true.
+              exit
+            endif
+          enddo
+          if(.not. found) then
+            almx(i,j) = almx(i,j) + 1
+            al = almx(i,j)
+            if(al.gt.12*lmo) then
+              !write(6,*) 'for '//cdir//'-direction:'
+              write(6,*) 'lm>12*lmo at i,j = ',i,j
+              write(6,*) 'increase limit if reasonable'
+              call stop_model('lm>12*lmo (tracers x-dir)',255)
+            endif
+            if(al.gt.lmx_) then ! resize on the fly
+              lmx_ = lmx_ + lmo
+              call growi(lmx_,allx)
+              call growi(lmx_,alrx)
+              call growr(lmx_,admlx)
+              call growr(lmx_,admrx)
+              call growr(lmx_,aczlx)
+              call growr(lmx_,aczzlx)
+              call growr(lmx_,aczrx)
+              call growr(lmx_,aczzrx)
+            endif
+            allx(al,i,j) = llx(l,i,j)
+            alrx(al,i,j) = lrx(l,i,j)
+          endif
+          admlx(al,i,j) = admlx(al,i,j) + dmlx(l,i,j)
+          admrx(al,i,j) = admrx(al,i,j) + dmrx(l,i,j)
+          aczlx(al,i,j) = aczlx(al,i,j) + czlx(l,i,j)*dmlx(l,i,j)
+          aczrx(al,i,j) = aczrx(al,i,j) + czrx(l,i,j)*dmrx(l,i,j)
+          aczzlx(al,i,j) = aczzlx(al,i,j) + czzlx(l,i,j)*dmlx(l,i,j)
+          aczzrx(al,i,j) = aczzrx(al,i,j) + czzrx(l,i,j)*dmrx(l,i,j)
+        enddo
+        endif
+#endif
+
       enddo
       enddo
       enddo ! j
@@ -966,9 +1086,128 @@ c
           dmry(l,i,j) = dmry(l,i,j)*facj*kmax
         enddo
 
+#ifdef TRACERS_OCEAN
+        ! accumulate DSOE information from this timestep
+        if(ntrtrans.gt.1) then
+        lmy_ = size(ally,1)
+        do l=1,lmy(i,j)
+          found = .false.
+          do al=1,almy(i,j)
+            if(lly(l,i,j).eq.ally(al,i,j) .and.
+     &         lry(l,i,j).eq.alry(al,i,j)) then
+              found = .true.
+              exit
+            endif
+          enddo
+          if(.not. found) then
+            almy(i,j) = almy(i,j) + 1
+            al = almy(i,j)
+            if(al.gt.12*lmo) then
+              !write(6,*) 'for '//cdir//'-direction:'
+              write(6,*) 'lm>12*lmo at i,j = ',i,j
+              write(6,*) 'increase limit if reasonable'
+              call stop_model('lm>12*lmo (tracers y-dir)',255)
+            endif
+            if(al.gt.lmy_) then ! resize on the fly
+              lmy_ = lmy_ + lmo
+              call growi(lmy_,ally)
+              call growi(lmy_,alry)
+              call growr(lmy_,admly)
+              call growr(lmy_,admry)
+              call growr(lmy_,aczly)
+              call growr(lmy_,aczzly)
+              call growr(lmy_,aczry)
+              call growr(lmy_,aczzry)
+            endif
+            ally(al,i,j) = lly(l,i,j)
+            alry(al,i,j) = lry(l,i,j)
+          endif
+          admly(al,i,j) = admly(al,i,j) + dmly(l,i,j)
+          admry(al,i,j) = admry(al,i,j) + dmry(l,i,j)
+          aczly(al,i,j) = aczly(al,i,j) + czly(l,i,j)*dmly(l,i,j)
+          aczry(al,i,j) = aczry(al,i,j) + czry(l,i,j)*dmry(l,i,j)
+          aczzly(al,i,j) = aczzly(al,i,j) + czzly(l,i,j)*dmly(l,i,j)
+          aczzry(al,i,j) = aczzry(al,i,j) + czzry(l,i,j)*dmry(l,i,j)
+        enddo
+        endif
+#endif
+
       enddo
       enddo
       enddo
+
+      call get_tdmix_mrelxyz
+
+      return
+
+#ifdef TRACERS_OCEAN
+
+      contains
+
+      subroutine growi(newlm,arr)
+      ! reallocate arr to size newlm while preserving prior contents
+      implicit none
+      integer :: newlm
+      integer, dimension(:,:,:), allocatable :: arr
+!
+      integer :: j_0h,j_1h,oldlm
+      integer, dimension(:,:,:), allocatable :: tmp
+
+      call getdomainbounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+
+      oldlm = size(arr,1)
+
+      allocate(tmp(newlm,im,j_0h:j_1h))
+      tmp = 0
+      tmp(1:oldlm,:,:) = arr(:,:,:)
+      call move_alloc(tmp,arr)
+
+      end subroutine growi
+
+      subroutine growr(newlm,arr)
+      ! reallocate arr to size newlm while preserving prior contents
+      implicit none
+      integer :: newlm
+      real*8, dimension(:,:,:), allocatable :: arr
+!
+      integer :: j_0h,j_1h,oldlm
+      real*8, dimension(:,:,:), allocatable :: tmp
+
+      call getdomainbounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+
+      oldlm = size(arr,1)
+
+      allocate(tmp(newlm,im,j_0h:j_1h))
+      tmp = 0.
+      tmp(1:oldlm,:,:) = arr(:,:,:)
+      call move_alloc(tmp,arr)
+
+      end subroutine growr
+
+#endif
+
+      end subroutine tdmix_prep
+
+      subroutine get_tdmix_mrelxyz
+      use tdmix_mod
+      use ocean, only : im,jm,lmo
+      use ocean, only : nbyzm,i1yzm,i2yzm,lmm
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds
+      implicit none
+c
+      integer :: i,j,l,n,ll,lr,il,ir
+
+      integer :: j_0,j_1,j_0s,j_1s
+      logical :: have_north_pole
+
+      real*8 :: byim,mxfer
+      real*8, dimension(lmo) :: mxferx,mxfery,mxferz
+
+      call getdomainbounds(grid, j_strt=j_0, j_stop=j_1,
+     &               j_strt_skp=j_0s, j_stop_skp=j_1s,
+     &               have_north_pole=have_north_pole)
+
 
       ! Weights for relaxing prognostic subgrid tracer profiles
       ! to interpolation-determined "smooth" profiles are equal
@@ -1068,7 +1307,7 @@ c
       mrelz = min(mrelz,1d0)
 
       return
-      end subroutine tdmix_prep
+      end subroutine get_tdmix_mrelxyz
 
       subroutine tdmix(trm,qlimit,fl3d
 #ifdef TDMIX_AUX_DIAGS
@@ -1631,3 +1870,161 @@ c
       enddo
 
       end subroutine relax_qusmoms
+
+#ifdef TRACERS_OCEAN
+      subroutine tdmix_longstep_prep
+      ! Transfer DSOE accumulation arrays a[...] to the [...] used by
+      ! transport routines. Instead of copying the a[...] to [...],
+      ! move_alloc is used, which deallocates the a[...].
+      ! Both [...] and a[...] will be re-allocated the next cycle,
+      ! the latter back to the default small size.
+      use tdmix_mod
+      use ocean, only : nbyzm,i1yzm,i2yzm
+      use ocean, only : nbyzu,i1yzu,i2yzu
+      use ocean, only : nbyzv,i1yzv,i2yzv
+      use ocean, only : ntrtrans,motr,dxypo
+      use oceanr_dim, only : grid=>ogrid
+      use domain_decomp_1d, only : getdomainbounds,globalmin
+      use domain_decomp_1d, only : globalmax ! print stats
+      use constant, only : teeny
+      implicit none
+      integer :: i,j,l,n
+      integer :: j_0,j_1,j_0s,j_1s
+      integer :: lmloc,lmmin,lmmax
+
+      if(ntrtrans.le.1) return ! nothing to do
+
+      call getdomainbounds(grid, j_strt=j_0, j_stop=j_1,
+     &     j_strt_skp=j_0s, j_stop_skp=j_1s)
+
+
+!      lmloc = size(allx,1)
+!      call globalmax(grid,lmloc,lmmax)
+!      if(all(nbyzu(j_0:j_1,1).eq.0)) lmloc = 123456
+!      call globalmin(grid,lmloc,lmmin)
+!      if(grid%gid.eq.0) then
+!        write(6,*) 'minlmx,maxlmx ',lmmin,lmmax
+!      endif
+!      lmloc = size(ally,1)
+!      call globalmax(grid,lmloc,lmmax)
+!      if(all(nbyzu(j_0:j_1,1).eq.0)) lmloc = 123456
+!      call globalmin(grid,lmloc,lmmin)
+!      if(grid%gid.eq.0) then
+!        write(6,*) 'minlmy,maxlmy ',lmmin,lmmax
+!      endif
+
+      call move_alloc(almx,lmx)
+      call move_alloc(allx,llx)
+      call move_alloc(alrx,lrx)
+      call move_alloc(admlx,dmlx)
+      call move_alloc(admrx,dmrx)
+      call move_alloc(aczlx,czlx)
+      call move_alloc(aczzlx,czzlx)
+      call move_alloc(aczrx,czrx)
+      call move_alloc(aczzrx,czzrx)
+
+      do j=j_0s,j_1s
+      do n=1,nbyzu(j,1)
+      do i=i1yzu(n,j,1),i2yzu(n,j,1)
+        do l=1,lmx(i,j)
+          czlx(l,i,j) = czlx(l,i,j)/(dmlx(l,i,j)+teeny)
+          czzlx(l,i,j) = czzlx(l,i,j)/(dmlx(l,i,j)+teeny)
+          czrx(l,i,j) = czrx(l,i,j)/(dmrx(l,i,j)+teeny)
+          czzrx(l,i,j) = czzrx(l,i,j)/(dmrx(l,i,j)+teeny)
+        enddo
+      enddo
+      enddo
+      enddo
+
+      call move_alloc(almy,lmy)
+      call move_alloc(ally,lly)
+      call move_alloc(alry,lry)
+      call move_alloc(admly,dmly)
+      call move_alloc(admry,dmry)
+      call move_alloc(aczly,czly)
+      call move_alloc(aczzly,czzly)
+      call move_alloc(aczry,czry)
+      call move_alloc(aczzry,czzry)
+
+      do j=max(2,j_0-1),j_1s
+      do n=1,nbyzv(j,1)
+      do i=i1yzv(n,j,1),i2yzv(n,j,1)
+        do l=1,lmy(i,j)
+          czly(l,i,j) = czly(l,i,j)/(dmly(l,i,j)+teeny)
+          czzly(l,i,j) = czzly(l,i,j)/(dmly(l,i,j)+teeny)
+          czry(l,i,j) = czry(l,i,j)/(dmry(l,i,j)+teeny)
+          czzry(l,i,j) = czzry(l,i,j)/(dmry(l,i,j)+teeny)
+        enddo
+      enddo
+      enddo
+      enddo
+
+      do l=1,lmo
+      do j=j_0,j_1
+      do n=1,nbyzm(j,l)
+      do i=i1yzm(n,j,l),i2yzm(n,j,l)
+        mokgsv(i,j,l) = motr(i,j,l)*dxypo(j)
+      enddo
+      enddo
+      enddo
+      enddo
+
+      call get_tdmix_mrelxyz
+
+      end subroutine tdmix_longstep_prep
+
+      subroutine tdmix_longstep_alloc
+      use tdmix_mod
+      use domain_decomp_1d, only : getdomainbounds
+      use ocean, only : im,lmo
+      use oceanr_dim, only : grid=>ogrid
+      implicit none
+      integer :: j_0h,j_1h
+
+      call getdomainbounds(grid, j_strt_halo=j_0h, j_stop_halo=j_1h)
+
+      allocate(
+     &         almx(im,j_0h:j_1h),
+     &         almy(im,j_0h:j_1h),
+     &         allx(almaxoverlap,im,j_0h:j_1h),
+     &         alrx(almaxoverlap,im,j_0h:j_1h),
+     &         ally(almaxoverlap,im,j_0h:j_1h),
+     &         alry(almaxoverlap,im,j_0h:j_1h),
+c
+     &         admlx(almaxoverlap,im,j_0h:j_1h),
+     &         admrx(almaxoverlap,im,j_0h:j_1h),
+     &         admly(almaxoverlap,im,j_0h:j_1h),
+     &         admry(almaxoverlap,im,j_0h:j_1h),
+c
+     &          aczlx(almaxoverlap,im,j_0h:j_1h),
+     &         aczzlx(almaxoverlap,im,j_0h:j_1h),
+     &          aczrx(almaxoverlap,im,j_0h:j_1h),
+     &         aczzrx(almaxoverlap,im,j_0h:j_1h),
+     &          aczly(almaxoverlap,im,j_0h:j_1h),
+     &         aczzly(almaxoverlap,im,j_0h:j_1h),
+     &          aczry(almaxoverlap,im,j_0h:j_1h),
+     &         aczzry(almaxoverlap,im,j_0h:j_1h)
+     &        )
+
+
+      almx = 0; almy = 0; allx = 0; alrx = 0; ally = 0; alry = 0
+      admlx = 0.; admrx = 0.; admly = 0.; admry = 0.
+
+      aczlx = 0.; aczzlx = 0.; aczrx = 0.; aczzrx = 0. 
+      aczly = 0.; aczzly = 0.; aczry = 0.; aczzry = 0.
+
+      end subroutine tdmix_longstep_alloc
+
+      subroutine tdmix_longstep_finish
+      use tdmix_mod
+      use ocean, only : ntrtrans
+      implicit none
+
+      if(ntrtrans.le.1) return ! nothing to do
+
+      call realloc_tdmix_regstep
+      call tdmix_longstep_alloc
+
+      end subroutine tdmix_longstep_finish
+
+#endif

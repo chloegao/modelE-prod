@@ -746,6 +746,17 @@ C**************  Not Latitude-Dependent ****************************
      &  (/'DMS', 'SO2', 'SO4'/)
       type(timestream), dimension(nOffAeroStream):: offAeroStream
       
+!@dbparam tune_NOx Factor to multiply NOx emissions with
+      real*8 :: tune_NOx = 1.d0
+!@dbparam tune_BVOC Factor to multiply biogenic VOC emissions with
+      real*8 :: tune_BVOC = 1.d0
+!@dbparam NOx_yr Year of NOx emissions to use
+      integer :: NOx_yr=0
+!@dbparam CO_yr Year of CO emissions to use
+      integer :: CO_yr=0
+!@dbparam VOC_yr Year of anthropogenic VOC emissions to use
+      integer :: VOC_yr=0
+
       END MODULE TRCHEM_Shindell_COM
       
       

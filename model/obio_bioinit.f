@@ -23,11 +23,16 @@
  
       USE FILEMANAGER, only: openunit,closeunit
 
+      USE CONSTANT, only: tf
+
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax, tracer
- 
+!@PL 
+      USE OFLUXES, only: oAPRESS,ocnatm
+!@PL
+      use ocean, only : t3d,s3d,r3d
       use obio_com, only: ze
       use bio_inicond_mod, only : bio_inicond
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT ,DIST_GRID
@@ -65,12 +70,22 @@
 
       integer i,j,k,l
 
+!@PL sum vars for abiotic O2 initialization
+!@PL var O2SAT0 reference O2 value at equilibrium with atmosphere at sea level pressure = 1 atm (mmol/kg)
+!@PL var xo2  mol fraction of O2 in dry air - constant value
+!@PL var pH2O  air humidity (atm)
+!@PL var Ksol  solubility constant (mmol/kg/atm)
+!@PL var O2sat O2 at equilibrium with atmosphere 
+
+      real*8 :: ta2,ta3,ta4,ta5,ksol,xo2,ps,ps2,SLP,
+     &        tk100,O2sat,pH2O
       integer nir(nrg),nt,I_0,I_1,J_0,J_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
       real,  ALLOCATABLE, DIMENSION(:,:,:) :: fer,dic
 #ifdef TRACERS_Ocean_O2
-      real,  ALLOCATABLE, DIMENSION(:,:,:) :: o2_frac
+          real,  ALLOCATABLE, DIMENSION(:,:,:) :: o2_in
+          real*8,  ALLOCATABLE, DIMENSION(:,:,:) :: ta,O2SAT0 
 #endif
 
       I_0 = ogrid%I_STRT
@@ -82,7 +97,9 @@
       ALLOCATE(fer(i_0:i_1,j_0:j_1,kdm))
       allocate(dic(i_0:i_1,j_0:j_1,kdm))
 #ifdef TRACERS_Ocean_O2
-      allocate(o2_frac(i_0:i_1,j_0:j_1,kdm))
+          allocate(o2_in(i_0:i_1,j_0:j_1,kdm))
+          allocate(ta(i_0:i_1,j_0:j_1,kdm))
+          allocate(O2SAT0(i_0:i_1,j_0:j_1,kdm))
 #endif
 
       tracer(:,:,:,1:ntyp)=0.d0
@@ -96,7 +113,8 @@
      &                 kdm,im,ogrid,ip,lmm)
 #ifdef TRACERS_Ocean_O2
       call bio_inicond('oxygen_inicond',
-     &     o2_frac(:,:,:),kdm,im,ogrid,ip,lmm)
+     &     o2_in(:,:,:),kdm,im,ogrid,ip,lmm) !@PL o2_frac is frac. saturation from a climatology (e.g., WOA2013v2)
+                                               !@PL o2_in=o2 concentraiton (mmol/kg) when using GLODAP O2 for initilization
 #endif
 
 
@@ -106,13 +124,13 @@
 #else
 ! otherwise take from rundeck
 !NOT FOR HYCOM: lmm passed to subroutine
-      call bio_inicond('dic_inicond',dic,
-     &                 kdm,im,ogrid,ip,lmm)
+      call bio_inicond('dic_inicond',dic,kdm,im,ogrid,ip,lmm)
 #endif
 
 #ifdef TRACERS_Alkalinity
 !check the value of ntrac
-      call init_alk(tracer(:,:,:,ntrac),kdm,ogrid,im,ip,lmm)
+      call init_alk(tracer(:,:,:,ntyp+ndet+ncar+nalk),
+     &     kdm,ogrid,im,ip,lmm)
 #endif
 
 !     /archive/u/aromanou/Watson_new/BioInit/iron_ron_4x5.asc
@@ -236,6 +254,18 @@ c    conversion from uM to mg/m3
          do k=1,kdm
           tracer(i,j,k,ntyp+ndet+1) = 0.0
           tracer(i,j,k,ntyp+ndet+2) = 0.0
+!@PL
+#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_bio_O2
+          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2) = 0.d0
+#endif
+#ifdef TRACERS_abio_O2
+          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2+nabo2) = 0.d0
+#endif
+          ta(i,j,k) = 0.d0
+          O2SAT0(i,j,k) = 0.d0
+#endif
+!@Pl
          enddo
        enddo
       enddo
@@ -246,20 +276,72 @@ c    conversion from uM to mg/m3
          if (ip(i,j)==0) cycle
          do k = 1,kdm
           tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
-     .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
+     .       * r3d(k,i,j) * 0.001                               ! convert micromole/kg to mili-mol/m3
 !initialize abioDIC
+!@PL changed 1024.5 to r3d(k,i,j)
       if (n_abioDIC.ne.0) 
      .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
-     .                          * 1.d-06 * 12.d0* MO(I,J,K)*DXYPO(J)/1024.d0
+     .                          * 1.d-06 *
+     .                          12.d0*MO(I,J,K)*DXYPO(J)/r3d(k,i,j)
 #ifdef TRACERS_Ocean_O2
-          !oxygen   
-          tracer(i,j,k,ntyp+ndet+ncar+nalk) = o2_frac(i,j,k)  !*solubility to convert to o2
+!@PL          !oxygen   
+!@PL sum: initialize abiotic O2 with values at equlibrium with atmosphere at all depths, biotic O2 wit GLODAPv2
+!@PL auth Paul Lerner
+!@PL var O2SAT0 reference O2 value at equilibrium with atmosphere at sea level pressure = 1 atm
+!@PL var xo2  mol fraction of O2 in dry air - constant value
+!@PL var pH2O  air humidity (atm)
+!@PL var Ksol  solubility constant (mmol/kg/atm)
+!@PL var O2sat O2 at equilibrium with atmosphere 
+!@PL Ts is placeholder !
+c      ta(i,j,k) = log((298.15d0-t3d(k,i,j))/(t3d(k,i,j) + tf)) !@PL scaled T from Garcia and Gordon, 1992
+c      ta2 = ta(i,j,k)*ta(i,j,k)
+c      ta3 = ta2*ta(i,j,k)
+c      ta4 = ta3*ta(i,j,k)
+c      ta5 = ta4*ta(i,j,k)
+c      ps = s3d(k,i,j)*1000.d0
+c      ps2 = ps*ps
+c      tk100 = 100.d0/(t3d(1,i,j) + tf) !@PL denominator is in K
+
+c      SLP = ((oAPRESS(i,j)/100.d0)+stdslp) !@PL oAPRESS is pressure anomoly in Pa, stdslp in hPa
+
+c          O2SAT0(i,j,k) =(1.d-03)*exp(5.80818d0 + 3.20684d0*ta(i,j,k)  +
+c     .     4.11890d0*ta2 + 4.93845d0*ta2 +
+c     .     4.93845d0*ta3 + 1.01567d0*ta4 +1.41575d0*ta5 -
+c     .     ps * (0.00701211d0 - 0.00725958d0*ta(i,j,k) +
+c     .     0.00793334d0*ta2 - 0.000554491d0*ta3) -0.000000132412d0*ps2) !@PL units: mmol/kg
+
+c        xo2 = 2.0946d-1 !@PL mol fraction O2 in dry air
+
+c#ifdef pH2O 
+c         pH2O = ocnatm%QSAVG(i,j)*SLP/1013.25d0
+c#else
+c         pH2O = exp(24.4543d0 - 67.4509d0*(tk100) -
+c     .           4.8489d0*log(1.d0/tk100)
+c     .        - (0.000544d0 * s3d(1,i,j)*1000.d0)) !@PL water vapor pres used in correction term, units: atm
+c#endif
+c        Ksol = O2SAT0(i,j,k) / (xO2*((stdslp/1013.25d0)-pH2O)) !@PL units: mmol/kg/atm
+        call init_abo2(t3d(k,i,j),s3d(k,i,j),oAPRESS(i,j)
+     &           ,ocnatm%QSAVG(i,j),O2sat)   !@PL mmol/kg 
+
+#ifdef TRACERS_bio_O2
+        tracer(i,j,k,ntyp+ndet+ncar+nalk+no2) = o2_in(i,j,k)
 #endif
+#ifdef TRACERS_abio_O2
+        tracer(i,j,k,ntyp+ndet+ncar+nalk+no2+nabo2)=O2sat ! initial conditions for abiotic O2 are saturation
+#endif
+!@PLtest
+!@PL         print * , '#biotracers = ',ntrac
+!@PLtest
+
+#endif
+
+
          enddo
 c         car(i,j,k,1) = 3.0  !from Bissett et al 1999 (uM(C))
 c         car(i,j,k,1) = 0.0  !from Walsh et al 1999
         enddo
       enddo
+
 
 
 c  Light saturation data
@@ -309,7 +391,7 @@ c  Coccolithophore max growth rate
       do i=ogrid%i_strt,ogrid%i_stop
         if (alk(i,j,k).lt.0.) then
           if (ze(i, j, k).le.150.) alk(i,j,k)=2172.      !init neg might be under ice,
-          if (ze(i, j, k).gt.150. .and. ze(i, j, k).lt.1200.)
+          if (ze(i, j, k).gt.150. .and. ze(i, j, k).lt.1200.) !meq/m^3
      &                           alk(i,j,k)=2200.
           if (ze(i, j, k).ge.1200.) alk(i,j,k)=2300.
         endif
@@ -319,6 +401,59 @@ c  Coccolithophore max growth rate
       return
       end subroutine init_alk
 
+!@PL initialize o2 for abiotic O2 at saturation
+
+      subroutine init_abo2(t,s,oap,pH2Oin,O2sat)
+      USE CONSTANT, only: tf
+      USE obio_incom
+
+
+      implicit none
+
+      real, intent(in) ::  t,s,oap,pH2Oin
+      real, intent(out) :: O2sat
+
+      real :: ta,ta2,ta3,ta4,ta5,ps,ps2,tk100,SLP
+     &        ,xo2,O2SAT0,pH2O,Ksol
+
+      !@PL sum: initialize abiotic O2 with values at equlibrium with atmosphere at all depths, biotic O2 wit GLODAPv2
+!@PL auth Paul Lerner
+!@PL var O2SAT0 reference O2 value at equilibrium with atmosphere at sea level pressure = 1 atm
+!@PL var xo2  mol fraction of O2 in dry air - constant value
+!@PL var pH2O  air humidity (atm)
+!@PL var Ksol  solubility constant (mmol/kg/atm)
+!@PL var O2sat O2 at equilibrium with atmosphere 
+!@PL Ts is placeholder !
+      ta = log((298.15d0-t)/(t + tf)) !@PL scaled T from Garcia and Gordon, 1992
+      ta2 = ta*ta
+      ta3 = ta2*ta
+      ta4 = ta3*ta
+      ta5 = ta4*ta
+      ps = s
+      ps2 = ps*ps
+      tk100 = 100.d0/(t + tf) !@PL denominator is in K
+
+      SLP = ((oap/100.d0)+stdslp) !@PL oap is pressure anomoly in Pa, stdslp in hPa
+
+          O2SAT0 =(1.d-03)*exp(5.80818d0 + 3.20684d0*ta  +
+     .     4.11890d0*ta2 + 4.93845d0*ta2 +
+     .     4.93845d0*ta3 + 1.01567d0*ta4 +1.41575d0*ta5 -
+     .     ps * (0.00701211d0 - 0.00725958d0*ta +
+     .     0.00793334d0*ta2 - 0.000554491d0*ta3) -0.000000132412d0*ps2) !@PL units: mmol/kg
+
+        xo2 = 2.0946d-1 !@PL mol fraction O2 in dry air
+
+#ifdef pH2O 
+         pH2O = pH2Oin*SLP/1013.25d0
+#else
+         pH2O = exp(24.4543d0 - 67.4509d0*(tk100) -
+     .           4.8489d0*log(1.d0/tk100)
+     .        - (0.000544d0 * s*1000.d0)) !@PL water vapor pres/ used in correction term, units: atm
+#endif
+        Ksol = O2SAT0 / (xo2*((stdslp/1013.25d0)-pH2O)) !@PL units: mmol/kg/atm
+        O2sat = Ksol * ((SLP/1013.25d0) - pH2O)*xo2   !@PL mmol/kg 
+
+      end subroutine init_abo2
 c------------------------------------------------------------------------------
       subroutine fndreg(ir,ogrid,im,jm,rlon2D,rlat2D,ip)
 

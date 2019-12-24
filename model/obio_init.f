@@ -247,6 +247,9 @@ c      cchl(3) = 100.0
       cnratio = 106.0/16.0*12.0    !C:N ratio (ugl:uM)
       csratio = 106.0/16.0*12.0    !C:Si ratio (ugl:uM)
       cfratio = 150000.0*12.0*1.0E-3    !C:Fe ratio (ugl:nM)
+      ro2c_DET = -150.0/106.0  !@PL O2:C ratio respiration,degradation,remineralization (uM:uM), (Anderson, 1995)
+      ro2c_NH4 = -118.0/106.0  !@PL O2:N ratio ammonium production (uM:uM), (Dunne et al., 2013)
+      ro2c_NO3 = -150.0/106.0   !@PL O2:N ratio nitrate production (uM:uM), (Anderson, 1995)
 
 !change: March 15, 2010
        bn = cchl(2)/cnratio         !N:chl ratio (uM/ugl)
@@ -564,6 +567,17 @@ c  Read in factors to compute average irradiance
 #ifdef exp_wsdet
 ! exponential profile coefficients for detritus
          adet_exp(1) = 2.0    !nitrogen a coef
+#ifdef w_PL_1
+         adet_exp(1) = adet_exp(1) + 0.915
+#endif
+
+#ifdef w_PL_2
+         adet_exp(1) = adet_exp(1) + 2.0*0.915
+#endif
+
+#ifdef w_PL_3
+         adet_exp(1) = adet_exp(1) + 5.0*0.915
+#endif
          bdet_exp(1) = 3.0    !nitrogen b coef
          adet_exp(2) = 3.0    !silica a coef
          bdet_exp(2) = 6.0    !silica b coef

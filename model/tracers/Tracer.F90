@@ -270,7 +270,7 @@ contains
     do ns=1,nsrc
       if(trcer%surfaceSources(ns)%skipReason>0)cycle ! skip file reading for this source
       nread=nread+1
-      call readSurfaceSource(trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), sfc_src(:,:,n,ns), &
+      call readSurfaceSource(trcer%getName(), trcer%surfaceSources(nread), addIntegerSuffix(getName(trcer), nread), sfc_src(:,:,n,ns), &
            & xyear, xday, isChemTracer)
     enddo
 

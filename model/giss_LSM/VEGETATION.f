@@ -38,8 +38,6 @@ ccc   rundeck parameters  5/1/03 nyk
 !@+       = 0     default, vegetation sees both ghg_yr and CO2X.
 !@+       = 1     turn off doubling of CO2 for veg by parameter CO2X.
       integer, public :: vegCO2X_off = 0
-!@dbparam crops_yr obs.year of crops (if 0: time var, -1: default)
-      INTEGER, public :: crops_yr = -1
 
 !input from driver:
 !from veg_set_cell:

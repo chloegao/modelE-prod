@@ -276,9 +276,20 @@ c
 #endif  /* TRACERS_dCO */
       use photolysis, only: fastj2_drv,o3_fastj,rj
      &                     ,sza,szamax,zj,jpnl,sf3_fact,sf2_fact
+#ifdef CACHED_SUBDD
+      use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc,
+     &                                JO1D_rate,JNO2_rate
+      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
+     &     ,inc_subdd,find_groups
+#endif
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
+
+#ifdef CACHED_SUBDD
+      integer :: igrp,ngroups,grpids(subdd_ngroups)
+      type(subdd_type), pointer :: subdd
+#endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
@@ -2443,6 +2454,8 @@ C Make sure nighttime chemistry changes are not too big:
       implicit none
       integer :: i,j
       real*8, dimension(JM)     :: DU_O3_glob
+      real*8, dimension(grid%i_strt_halo:grid%i_stop_halo,
+     &                  grid%j_strt_halo:grid%j_stop_halo) :: O3colSD
 #ifdef CACHED_SUBDD
       integer :: k,igrp,ngroups,grpids(subdd_ngroups),layer_or_cp
       type(subdd_type), pointer :: subdd
@@ -2476,14 +2489,14 @@ C Make sure nighttime chemistry changes are not too big:
           ! how taijn Ox_Total_mass is done. Use O3 for chemistry layers,
           ! Ox tracer above (which is likely anyway actually O3 from NINT
           ! input):
-          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+ sum(
+          O3colSD(i,j)=sum(
      &      pOx(1:topLevelOfChemistry,i,j) *
-     &      trm(i,j,1:topLevelOfChemistry,n_Ox)
-     &                                                    )
+     &      trm(i,j,1:topLevelOfChemistry,n_Ox) )
           if(topLevelOfChemistry < LM) then
-            taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+ sum(
-     &        trm(i,j,topLevelOfChemistry+1:LM,n_Ox)        )
+            O3colSD(i,j)=O3colSD(i,j) +
+     &       sum( trm(i,j,topLevelOfChemistry+1:LM,n_Ox) )
           end if
+          taijs(i,j,ijs_O3mass)=taijs(i,j,ijs_O3mass)+O3colSD(i,j)
         end do ! i
       end do ! j
 
@@ -2533,6 +2546,8 @@ C Make sure nighttime chemistry changes are not too big:
             call inc_subdd(subdd,k,mrno2(:,:,1))
           case ('MRNOl1')
             call inc_subdd(subdd,k,mrno(:,:,1))
+          case ('O3col')
+            call inc_subdd(subdd,k,o3colSD(:,:))
           end select
         enddo ! k
       enddo ! igroup

@@ -111,15 +111,15 @@
       USE OCEANRES, only : IM=>IMO, JM=>JMO, LMO 
       USE OCEANR_DIM, only : J_0H,J_1H
       USE STRAITS, only : NMST,TRMST,TXMST,TZMST,TRME,TXME,TYME,TZME
-#ifdef TRACERS_WATER
-      ! The ocean model should not have to know how many layers
-      ! the sea ice model uses - this dependence is unfriendly
-      ! to componentization and will be eliminated at some point,
-      ! if the array TRSIST is not eliminated first (as of 11/2201
-      ! TRSIST is inactive but still needs to be allocated).  -M.K.
-      USE STRAITS, only : TRSIST
-      USE SEAICE, only : LMI
-#endif
+!#ifdef TRACERS_WATER
+!      ! The ocean model should not have to know how many layers
+!      ! the sea ice model uses - this dependence is unfriendly
+!      ! to componentization and will be eliminated at some point,
+!      ! if the array TRSIST is not eliminated first (as of 11/2201
+!      ! TRSIST is inactive but still needs to be allocated).  -M.K.
+!      USE STRAITS, only : TRSIST
+!      USE SEAICE, only : LMI
+!#endif
       implicit none
       character(len=128) :: trname_list
       integer :: i,ier
@@ -165,10 +165,10 @@
       txme = 0.
       tyme = 0.
       tzme = 0.
-#ifdef TRACERS_WATER
-      ALLOCATE(TRSIST(numtracers,LMI,NMST))
-      trsist = 0.
-#endif
+!#ifdef TRACERS_WATER
+!      ALLOCATE(TRSIST(numtracers,LMI,NMST))
+!      trsist = 0.
+!#endif
 
       ALLOCATE( TRMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)
       ALLOCATE( TXMO(IM,J_0H:J_1H,LMO,numtracers), STAT = IER)

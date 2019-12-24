@@ -5353,7 +5353,7 @@ c
      &  sched = sched_rad
      &     )
 c
-#ifdef CFMIP3_SUBDD
+#ifdef CFMIP3_SUBDD  /* CFMIP3_SUBDD */
       arr(next()) = info_type_(
      &  sname = 'rtmt',
      &  lname = 'Net downward radiative flux, TOA',
@@ -5409,7 +5409,7 @@ c
      &  units = 'W/m^2',
      &  sched = sched_rad
      &     )
-#endif
+#endif  /* CFMIP3_SUBDD */
       return
       contains
       integer function next()

@@ -316,6 +316,8 @@
       USE OCEAN, only : oDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
+      use model_com, only : nday,nssw
+      use ocean, only : ntrtrans,motr
       Use OCEAN, Only: oc_tracer_mean
       Use OCN_TRACER_COM, Only: tracerlist, ocn_tracer_entry
 #endif
@@ -747,6 +749,10 @@ C**** restart file with different topography)
         END DO
       end if
 
+#ifdef TRACERS_OCEAN
+      motr(:,:,:) = mo(:,:,:)
+#endif
+
 !      if(istart.eq.2 .and. use_qus.eq.1) then
 !        allocate(zero3d(im,j_0h:j_1h,lmo))
 !        allocate(marr(im,j_0h:j_1h,lmo))
@@ -801,6 +807,18 @@ c-------------------------------------------------------------------
 c End ocean-processors-only code region
       endif ocean_processors_only
 c-------------------------------------------------------------------
+
+#ifdef TRACERS_OCEAN
+      ! Sanity checks on tracer transport timestep.
+      if(mod(nday,ntrtrans).ne.0) then
+        call stop_model('mod(nday,ntrtrans).ne.0',255)
+      endif
+      ! The following requirement avoids the need to save
+      ! partial mass flux accumulations in the restart file.
+      if(mod(nssw,ntrtrans).ne.0) then
+        call stop_model('mod(nssw,ntrtrans).ne.0',255)
+      endif
+#endif
 
 #ifdef CUBED_SPHERE
       call read_xgrid_file(xA2O_root,
@@ -1583,11 +1601,11 @@ c straits arrays
       call defvar(grid,fid,s0mst,'s0mst(lmo,nmst)')
       call defvar(grid,fid,sxmst,'sxmst(lmo,nmst)')
       call defvar(grid,fid,szmst,'szmst(lmo,nmst)')
-      call defvar(grid,fid,rsist,'rsist(nmst)')
-      call defvar(grid,fid,rsixst,'rsixst(nmst)')
-      call defvar(grid,fid,msist,'msist(two,nmst)')
-      call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
-      call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
+!      call defvar(grid,fid,rsist,'rsist(nmst)')
+!      call defvar(grid,fid,rsixst,'rsixst(nmst)')
+!      call defvar(grid,fid,msist,'msist(two,nmst)')
+!      call defvar(grid,fid,hsist,'hsist(lmi,nmst)')
+!      call defvar(grid,fid,ssist,'ssist(lmi,nmst)')
       endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1621,9 +1639,9 @@ c tracer arrays in straits
       call defvar(grid,fid,trmst,'trmst(lmo,nmst,ntmo)')
       call defvar(grid,fid,txmst,'txmst(lmo,nmst,ntmo)')
       call defvar(grid,fid,tzmst,'tzmst(lmo,nmst,ntmo)')
-#ifdef TRACERS_WATER
-      call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
-#endif
+!#ifdef TRACERS_WATER
+!      call defvar(grid,fid,trsist,'trsist(ntmo,lmi,nmst)')
+!#endif
       endif
 #ifdef TRACERS_OceanBiology
       call def_rsf_obio(fid)
@@ -1714,11 +1732,11 @@ c straits arrays
         call write_data(grid,fid,'s0mst',s0mst)
         call write_data(grid,fid,'sxmst',sxmst)
         call write_data(grid,fid,'szmst',szmst)
-        call write_data(grid,fid,'rsist',rsist)
-        call write_data(grid,fid,'rsixst',rsixst)
-        call write_data(grid,fid,'msist',msist)
-        call write_data(grid,fid,'hsist',hsist)
-        call write_data(grid,fid,'ssist',ssist)
+!        call write_data(grid,fid,'rsist',rsist)
+!        call write_data(grid,fid,'rsixst',rsixst)
+!        call write_data(grid,fid,'msist',msist)
+!        call write_data(grid,fid,'hsist',hsist)
+!        call write_data(grid,fid,'ssist',ssist)
         endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1752,9 +1770,9 @@ c tracer arrays in straits
         call write_data(grid,fid,'trmst',trmst)
         call write_data(grid,fid,'txmst',txmst)
         call write_data(grid,fid,'tzmst',tzmst)
-#ifdef TRACERS_WATER
-        call write_data(grid,fid,'trsist',trsist)
-#endif
+!#ifdef TRACERS_WATER
+!        call write_data(grid,fid,'trsist',trsist)
+!#endif
         endif
 #endif
         call getDomainBounds(grid, i_strt_halo=i_0h,i_stop_halo=i_1h,
@@ -1809,11 +1827,11 @@ c straits arrays
         call read_data(grid,fid,'s0mst',s0mst,bcast_all=.true.)
         call read_data(grid,fid,'sxmst',sxmst,bcast_all=.true.)
         call read_data(grid,fid,'szmst',szmst,bcast_all=.true.)
-        call read_data(grid,fid,'rsist',rsist,bcast_all=.true.)
-        call read_data(grid,fid,'rsixst',rsixst,bcast_all=.true.)
-        call read_data(grid,fid,'msist',msist,bcast_all=.true.)
-        call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
-        call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
+!        call read_data(grid,fid,'rsist',rsist,bcast_all=.true.)
+!        call read_data(grid,fid,'rsixst',rsixst,bcast_all=.true.)
+!        call read_data(grid,fid,'msist',msist,bcast_all=.true.)
+!        call read_data(grid,fid,'hsist',hsist,bcast_all=.true.)
+!        call read_data(grid,fid,'ssist',ssist,bcast_all=.true.)
         endif
 #ifdef TRACERS_OCEAN
 c tracer arrays
@@ -1847,9 +1865,9 @@ c tracer arrays in straits
         call read_data(grid,fid,'trmst',trmst,bcast_all=.true.)
         call read_data(grid,fid,'txmst',txmst,bcast_all=.true.)
         call read_data(grid,fid,'tzmst',tzmst,bcast_all=.true.)
-#ifdef TRACERS_WATER
-        call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
-#endif
+!#ifdef TRACERS_WATER
+!        call read_data(grid,fid,'trsist',trsist,bcast_all=.true.)
+!#endif
         endif
 #endif
       end select
@@ -4962,7 +4980,7 @@ C****
       USE OCEAN, only : imo=>im,jmo=>jm
      *     , mo,g0m,s0m,focean,imaxj,dxypo
 #ifdef TRACERS_OCEAN
-     *     , trmo
+     *     , trmo,mosv0
       USE OCN_TRACER_COM, only : tracerlist, ocn_tracer_entry
 #endif
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -4995,6 +5013,12 @@ C**** Convert fluxes on atmospheric grid to oceanic grid
       CALL AG2OG_precip(atmocn,iceocn)
 C****
       ocean_processors_only: if(ogrid%have_domain) then
+
+#ifdef TRACERS_OCEAN
+      ! save 3D mass before all source/sink terms
+      if(allocated(mosv0)) mosv0 = mo
+#endif
+
       DO J=J_0,J_1
         DO I=1,IMAXJ(J)
           IF(FOCEAN(I,J).gt.0. .and. oPREC(I,J).gt.0.)  THEN
@@ -5645,8 +5669,9 @@ c area weights that would have been used by HNTRP for ocean C -> ocean A
       use domain_decomp_1d, only : getDomainBounds
       USE OCEANR_DIM, only : ogrid
       USE ODIAG, only : oij=>oij_loc, ij_eicb, ij_micb
-#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
+      use ocean, only : ntrtrans,motr
+#ifdef TRACERS_WATER
       Use OCEAN,   Only: TRMO
       Use OFLUXES, Only: oTRGMELT
 #endif
@@ -5676,8 +5701,12 @@ C**** divide over depth and scale for time step
               MO(I,J,L) =MO(I,J,L)+(oGMELT(I,J)*dxypo(j))*DZ/
      &             (DXYPO(J)*FOCEAN(I,J))
               G0M(I,J,L)=G0M(I,J,L)+(oEGMELT(I,J)*dxypo(j))*DZ
-#ifdef TRACERS_WATER
 #ifdef TRACERS_OCEAN
+              if(ntrtrans.gt.1) then
+                ! add mo increment to motr as well
+                motr(i,j,l) = motr(i,j,l) + ogmelt(i,j)*dz
+              endif
+#ifdef TRACERS_WATER
               TRMO(I,J,L,:)=TRMO(I,J,L,:)+(oTRGMELT(:,I,J)*dxypo(j))*DZ
 #endif
 #endif

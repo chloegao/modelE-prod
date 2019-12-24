@@ -5381,9 +5381,18 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use GEOM, only: lon_to_i
       USE ATM_COM, only: byMA
       USE GEOM, only: byaxyp
+#ifdef TRACERS_SPECIAL_Shindell
+      use TRCHEM_Shindell_COM, only: NOx_yr
+      use TRCHEM_Shindell_COM, only: CO_yr
+      use TRCHEM_Shindell_COM, only: VOC_yr
+#endif  /* TRACERS_SPECIAL_Shindell */
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
       use TRACER_COM, only: ex_volc_num
       use TRACER_COM, only: ex_volc_jday
       use TRACER_COM, only: ex_volc_year
@@ -5412,7 +5421,7 @@ C**** Note this routine must always exist (but can be a dummy routine)
       use TRACER_COM, only: tracers, set_ntsurfsrc
       USE TRACER_COM, only: daily_z
       USE TRACER_COM, only: n_CO2n
-      USE TRACER_COM, only: NTM,n_SO4,n_SO2,N_M_ACC_SU,N_M_AKK_SU,
+      USE TRACER_COM, only: NTM,n_SO4,n_SO2,n_M_ACC_SU,n_M_AKK_SU,
      & n_CH4,n_Isoprene,n_codirect,sfc_src,ntsurfsrc,
      & trans_emis_overr_yr,trans_emis_overr_day
       use TRACER_COM, only: ntm_chem_beg,ntm_chem_end
@@ -5428,6 +5437,8 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE LINOZ_CHEM_COM, only: LINOZ_SETUP, Linoz_daily
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
+      USE TRCHEM_Shindell_COM, only: tune_NOx
+      USE TRCHEM_Shindell_COM, only: tune_BVOC
       use photolysis, only: rad_FL,read_FL
 #endif
 #ifdef TRACERS_COSMO
@@ -5659,17 +5670,35 @@ C**** Next line for fastj photon fluxes to vary with time:
           else
             xyear=year
           endif
+
+          select case (trname(n))
+          case ('NOx')
+            if (NOx_yr > 0) xyear=NOx_yr
+          case ('CO')
+            if (CO_yr > 0) xyear=CO_yr
+          case ('Alkenes', 'Paraffin')
+            if (VOC_yr > 0) xyear=VOC_yr
+          end select
         else
 #endif
 
 ! allow overriding of transient aerosol emissions date
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
-          if(aer_int_yr > 0) then
-            xyear=aer_int_yr
-          else
-            xyear=year
-          endif
+          xyear=year
+          if(aer_int_yr > 0) xyear=aer_int_yr
+          select case (trname(n))
+          case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+            if (SO2_int_yr > 0) xyear=SO2_int_yr
+          case ('NH3')
+            if (NH3_int_yr > 0) xyear=NH3_int_yr
+          case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+            if (BC_int_yr > 0) xyear=BC_int_yr
+          case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &          'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &          'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+            if (OC_int_yr > 0) xyear=OC_int_yr
+          end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
         end if
@@ -5742,7 +5771,15 @@ C**** Next line for fastj photon fluxes to vary with time:
 #ifdef INTERACTIVE_WETLANDS_CH4
           if(nread>0) call read_ncep_for_wetlands(end_of_day)
 #endif
-#endif
+
+       case ('NOx') ! use : for sources, to include BB
+         sfc_src(:,J_0:J_1,n,:)=tune_NOx*sfc_src(:,J_0:J_1,n,:)
+
+       case ('Isoprene', 'Terpenes')
+         sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))=
+     &     tune_BVOC*sfc_src(:,J_0:J_1,n,1:ntsurfsrc(n))
+#endif  /* TRACERS_SPECIAL_Shindell */
+
         case ('M_OCC_OC', 'OCII')
           if (.not.tracers_aerosols_soa) then
             if (ntsurfsrc(n)>1) then
@@ -7089,6 +7126,7 @@ C*****
       USE TRACER_COM, only: ntm, sfc_src
       use TRACER_COM, only: ntsurfsrc
       use TRACER_COM, only: nBiomass
+      use TRACER_COM, only: tune_BBsources
       USE FLUXES, only: tr3Dsource
       use atmcol_com, only: ma   ! layer mass (kg/m2)
       USE apply3d, only : apply_tracer_3Dsource
@@ -7168,7 +7206,7 @@ C**** 3D biomass source
             blsrc = get_src_fact(n,do_fire(n))* ! not src_fact here
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay))
             do l=1,blay
-              tr3Dsource(l,nBiomass,n) = blsrc*MA(l)
+              tr3Dsource(l,nBiomass,n)=tune_BBsources*blsrc*MA(l)
             end do
         end if 
 #ifndef TRACERS_TOMAS

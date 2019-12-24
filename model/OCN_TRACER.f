@@ -24,14 +24,14 @@
 #endif
       use ocean, only : nbyzm,i1yzm,i2yzm
       USE SEAICE, only : xsi,lmi
-      USE STRAITS, only : nmst,msist,ssist
+      USE STRAITS, only : nmst!,msist,ssist
 #ifdef TRACERS_OCEAN
      *     ,lmst,ist,jst,xst,yst,mmst,s0mst,sxmst,szmst,trmst,txmst
      *     ,tzmst
 #endif
-#ifdef TRACERS_WATER
-     *     ,trsist
-#endif
+!#ifdef TRACERS_WATER
+!     *     ,trsist
+!#endif
       USE FILEMANAGER, only : openunit,closeunit
       USE DOMAIN_DECOMP_1D, only : getDomainBounds, haveLatitude,
      *     broadcast, GLOBALSUM
@@ -115,10 +115,10 @@ C**** straits
 
 #endif
 
-#ifdef TRACERS_WATER
-          if (am_i_root()) trsist(:,:,n)=0.
-          CALL broadcast(grid, trsist)
-#endif
+!#ifdef TRACERS_WATER
+!          if (am_i_root()) trsist(:,:,n)=0.
+!          CALL broadcast(grid, trsist)
+!#endif
 
 #if (defined TRACERS_OCEAN) && (defined TRACERS_ZEBRA)
         case ('zebraL')
@@ -293,12 +293,12 @@ C**** Initiallise strait values based on adjacent ocean boxes
               txmst(l,nst,n) = 0.
               tzmst(l,nst,n) = 0.
             end do
-#ifdef TRACERS_WATER
-            trsist(n,1:2,nst) = entry%trw0*(msist(1,nst)*xsi(1:2)
-     *           -ssist(1:2,nst))
-            trsist(n,3:lmi,nst)=entry%trw0*(msist(2,nst)*xsi(3:lmi)
-     *           -ssist(3:lmi,nst))
-#endif
+!#ifdef TRACERS_WATER
+!            trsist(n,1:2,nst) = entry%trw0*(msist(1,nst)*xsi(1:2)
+!     *           -ssist(1:2,nst))
+!            trsist(n,3:lmi,nst)=entry%trw0*(msist(2,nst)*xsi(3:lmi)
+!     *           -ssist(3:lmi,nst))
+!#endif
           end do
           end if
 
@@ -420,7 +420,7 @@ C****
       use TimeConstants_mod, only: SECONDS_PER_DAY, INT_DAYS_PER_YEAR
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_age
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj,
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo=>motr, imaxj,
      *     lmm, lmo,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -472,8 +472,9 @@ C****
       USE MODEL_COM, only : itime,modelEclock
       USE CONSTANT,   only : grav
       USE OCN_TRACER_COM, only : n_ocfc11,n_ocfc12,n_sf6
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
-     *     lmm, lmo,dxypo,g0m,s0m,olat=>olat2d_dg ! 2D array containing lat at each i,j
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo=>motr,
+     &     t3d,s3d,r3d, imaxj, focean,
+     *     lmm, lmo,dxypo,olat=>olat2d_dg ! 2D array containing lat at each i,j
      *    ,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
       USE OFLUXES,    only : oRSI,oAPRESS,ocnatm
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -498,14 +499,13 @@ C****
       real*8, allocatable, dimension(:), save :: sf6nh,sf6sh
       integer, allocatable, dimension(:), save :: icfcyear
       real*8, intent(in) :: dts
-      real*8 :: cfc_inc, Xconv,a,pres,g,s,sst,sss,temgs,wind,pnoice,Xkw
+      real*8 :: cfc_inc, Xconv,a,pres,sst,sss,temgs,wind,pnoice,Xkw
      .              ,solub,solub_cfc_sf6,schmidtno_cfc,Sc,kw,cfcair,csat
      .              ,fluxa,flux,flux_tendency,rho_water,dp1d
      .              ,Pnorth,Psouth,trmopro,fluxb,scsf6,dtr,ftr
       real*8 :: ys ! northern boundary of SH constant-value domain (deg N)
       real*8 :: yn ! southern boundary of NH constant-value domain (deg N)
       real*8 :: wt_sh ! weight for SH constant-value domain
-      real*8,External   :: VOLGS
       integer i,j,l,k,icfc,trac_ind
 c**** Extract domain decomposition info
       INTEGER :: J_0, J_1,year, month, dayOfYear, date
@@ -560,11 +560,9 @@ C**** at each time step set surface tracer conc=1+flux from atmos
       wind=ocnatm%wsavg(i,j)        !owind(i,j)
       pnoice = 1.d0 - oRSI(i,j)     !1-fice
       k = 1    !surface only
-        g=G0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
-        s=S0M(I,J,k)/(MO(I,J,k)*DXYPO(J))
-        sst=TEMGS(g,s)     !in situ   temperature
-        sss=s*1000.d0      !convert to psu (eg. ocean mean salinity=35psu)
-        rho_water = 1d0/VOLGS(g,s)
+        sst = t3d(1,i,j)     !in situ   temperature
+        sss = s3d(1,i,j)*1000.d0      !convert to psu (eg. ocean mean salinity=35psu)
+        rho_water = r3d(1,i,j)
         dp1d = MO(I,J,K)/rho_water   !local thickenss of each layer in meters
 
       Xkw = Xconv * a * wind**2       ! units in m/s
@@ -997,7 +995,8 @@ C****
 !@auth Natassa Romanou
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_vent
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo=>motr,
+     &     imaxj, focean,
      *     lmm, lmo,use_qus,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
@@ -1046,7 +1045,8 @@ C****
 ! same as ventilation tracer but take ice into account
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_gasx
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo=>motr,
+     &     imaxj, focean,
      *     lmm, lmo,use_qus,txxmo,tyymo,tzzmo,txymo,tyzmo,tzxmo
       USE DOMAIN_DECOMP_1D, only : getDomainBounds
       USE OCEANR_DIM, only : grid=>ogrid
@@ -1106,7 +1106,8 @@ C****
 !@auth Natassa Romanou
       USE MODEL_COM, only : itime
       USE OCN_TRACER_COM, only : n_wms1,n_wms2,n_wms3
-      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo, imaxj, focean,
+      USE OCEAN, only : trmo,txmo,tymo,tzmo, oxyp, mo=>motr,
+     &     imaxj, focean,
      *     lmm, lmo, oLON_DG,oLAT_DG,ZOE=>ZE,use_qus
      *     ,txxmo,txymo,tzxmo,tyymo,tyzmo,tzzmo
 

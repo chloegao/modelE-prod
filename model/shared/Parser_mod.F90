@@ -124,7 +124,7 @@ contains
   !@+     starting with &&PARAMETERS and ending with &&END_PARAMETERS)
 
     use Dictionary_mod
-    integer, parameter :: MAXDIM=64
+    integer, parameter :: MAXDIM=128
     integer, intent(in) :: kunit
     character*256 bufs
     character*32 name

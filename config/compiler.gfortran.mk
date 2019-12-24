@@ -1,5 +1,27 @@
 
-F90 = gfortran
+ifneq ($(MODELE_CPATH),)
+ifneq ($(CPATH),)
+  CPATH_HACK = CPATH=$(strip $(MODELE_CPATH)):$(CPATH)
+else
+  CPATH_HACK = CPATH=$(strip $(MODELE_CPATH))
+endif
+endif
+
+ifneq ($(MODELE_LIBRARY_PATH),)
+ifneq ($(LIBRARY_PATH),)
+  LIBRARY_PATH_HACK = LIBRARY_PATH=$(strip $(MODELE_LIBRARY_PATH)):$(LIBRARY_PATH)
+else
+  LIBRARY_PATH_HACK = LIBRARY_PATH=$(strip $(MODELE_LIBRARY_PATH))
+endif
+endif
+
+# LIBRARY_PATH is specified for F90 because it is used for linking
+F90 = $(LIBRARY_PATH_HACK) gfortran
+CC = $(CPATH_HACK) gcc
+ifneq ($(CPATH_HACK),)
+  CPP := $(CPATH_HACK) $(CPP)
+endif
+
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CPPFLAGS += -DCOMPILER_G95
 FFLAGS = -g -cpp -fconvert=big-endian -O2 -fno-range-check

@@ -76,10 +76,10 @@ c  1E6 to get uM or uEin
         Estop(nl) = Es(nl)
         Ebotq = Ebotq + (Edtop(nl)+Estop(nl))*WtoQ(nl)*1.0E6
 
-         if (vrbos)
-     .   write(*,'(a,4i7,6e12.4)')'obio_edeu1: ',
-     .        nstep,i,j,nl,
-     .        WtoQ(nl),Ed(nl),Es(nl),Edtop(nl),Estop(nl),Ebotq
+!        if (vrbos)
+!    .   write(*,'(a,4i7,6e12.4)')'obio_edeu1: ',
+!    .        nstep,i,j,nl,
+!    .        WtoQ(nl),Ed(nl),Es(nl),Edtop(nl),Estop(nl),Ebotq
 
        enddo
 

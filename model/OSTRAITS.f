@@ -338,7 +338,7 @@ C****
      *                   MySparseComm_Type, HOCEAN, LMM, ZMID
       Use STRAITS, Only: NMST,LMST, IST,JST, XST,YST, WIST,DIST,DISTPG,
      *                   MMST,MUST, G0MST,GXMST,GZMST,S0MST,SXMST,SZMST,
-     *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
+!     *                   RSIST,RSIXST, MSIST,SSIST,HSIST,
      *                   MOE, G0ME,GXME,GYME,GZME, S0ME,SXME,SYME,SZME,
      *                   kn2,zst,
      *                   HOCEANe,LMMe
@@ -507,11 +507,11 @@ C****
       END DO
       END DO
 C**** Initialize sea ice in straits
-      RSIST=0.
-      RSIXST=0.
-      MSIST=0.
-      HSIST=0.
-      SSIST=0.
+!      RSIST=0.
+!      RSIXST=0.
+!      MSIST=0.
+!      HSIST=0.
+!      SSIST=0.
       end if                    ! root-process only
 
       call bcast_straits(.true.) ! skip tracers
@@ -831,11 +831,11 @@ C**** Check for NaN/INF in ocean data
       CALL CHECK3(SXMST,LMO,NMST,1,SUBR,'sxmst')
       CALL CHECK3(SZMST,LMO,NMST,1,SUBR,'szmst')
       CALL CHECK3(MUST ,LMO,NMST,1,SUBR,'must')
-      CALL CHECK3(MSIST,2,NMST,1,SUBR,'msist')
-      CALL CHECK3(SSIST,LMI,NMST,1,SUBR,'hsist')
-      CALL CHECK3(HSIST,LMI,NMST,1,SUBR,'ssist')
-      CALL CHECK3(RSIST,NMST,1,1,SUBR,'rsist')
-      CALL CHECK3(RSIXST,NMST,1,1,SUBR,'rsxst')
+!      CALL CHECK3(MSIST,2,NMST,1,SUBR,'msist')
+!      CALL CHECK3(SSIST,LMI,NMST,1,SUBR,'hsist')
+!      CALL CHECK3(HSIST,LMI,NMST,1,SUBR,'ssist')
+!      CALL CHECK3(RSIST,NMST,1,1,SUBR,'rsist')
+!      CALL CHECK3(RSIXST,NMST,1,1,SUBR,'rsxst')
 #ifdef TRACERS_OCEAN
       CALL CHECK3(TRMST,LMO,NMST,tracerlist%getsize(),SUBR,'trmst')
       CALL CHECK3(TXMST,LMO,NMST,tracerlist%getsize(),SUBR,'txmst')
@@ -921,16 +921,16 @@ C****
       CALL broadcast(grid, S0MST)
       CALL broadcast(grid, SXMST)
       CALL broadcast(grid, SZMST)
-      CALL broadcast(grid, RSIST)
-      CALL broadcast(grid, RSIXST)
-      CALL broadcast(grid, MSIST)
-      CALL broadcast(grid, HSIST)
-      CALL broadcast(grid, SSIST)
+!      CALL broadcast(grid, RSIST)
+!      CALL broadcast(grid, RSIXST)
+!      CALL broadcast(grid, MSIST)
+!      CALL broadcast(grid, HSIST)
+!      CALL broadcast(grid, SSIST)
 
       if(skip_tracers) return
-#ifdef TRACERS_WATER
-      CALL broadcast(grid, TRSIST)
-#endif
+!#ifdef TRACERS_WATER
+!      CALL broadcast(grid, TRSIST)
+!#endif
 #ifdef TRACERS_OCEAN
       CALL broadcast(grid, TRMST)
       CALL broadcast(grid, TXMST)

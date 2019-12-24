@@ -1584,37 +1584,37 @@ c daily_z is currently only needed for CS
 #ifdef TRACERS_AMP
       arr(next()) = info_type_(
      &  sname = 'ampBCload',
-     &  lname = 'BC clolumn Mann',
+     &  lname = 'BC Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampDustload',
-     &  lname = 'Dust clolumn Mann',
+     &  lname = 'Dust Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampNH4load',
-     &  lname = 'NH4 clolumn Mann',
+     &  lname = 'NH4 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampNO3load',
-     &  lname = 'NO3 clolumn Mann',
+     &  lname = 'NO3 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampOAload',
-     &  lname = 'OA clolumn Mann',
+     &  lname = 'OA Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampSO4load',
-     &  lname = 'SO4 clolumn Mann',
+     &  lname = 'SO4 Column Mass',
      &  units = 'kg m-2'
      &  )
       arr(next()) = info_type_(
      &  sname = 'ampSSload',
-     &  lname = 'SS clolumn Mann',
+     &  lname = 'SS Column Mass',
      &  units = 'kg m-2'
      &  )
 #endif
@@ -1661,6 +1661,12 @@ C
      &  lname = 'Maximum Daily L=1 O3 mixing ratio',
      &  units = 'mole species / mole air',
      &  reduc = reduc_max
+     &  )
+C
+      arr(next()) = info_type_(
+     &  sname = 'O3col', ! not "load", to contrast with tracers
+     &  lname = 'O3 Column Mass',
+     &  units = 'kg m-2'
      &  )
 #endif
 
@@ -2077,6 +2083,10 @@ C
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
       use TRACER_COM, only: aer_int_yr
+      use TRACER_COM, only: SO2_int_yr
+      use TRACER_COM, only: NH3_int_yr
+      use TRACER_COM, only: BC_int_yr
+      use TRACER_COM, only: OC_int_yr
 #endif
       use Dictionary_mod, only: get_param
       use RAD_COM, only: o3_yr
@@ -2152,13 +2162,31 @@ C
 #ifdef TRACERS_SPECIAL_Shindell
       if ((nTracer>=ntm_chem_beg).and.(nTracer<=ntm_chem_end)) then
         call get_param('o3_yr',cyclic_yr,default=copy_master_yr)
+        select case (trname(nTracer))
+        case ('NOx')
+          call get_param('NOx_yr',cyclic_yr,default=cyclic_yr)
+        case ('CO')
+          call get_param('CO_yr',cyclic_yr,default=cyclic_yr)
+        case ('Alkenes', 'Paraffin')
+          call get_param('VOC_yr',cyclic_yr,default=cyclic_yr)
+        end select
       else
 #endif
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) || \
     (defined TRACERS_TOMAS)
         call get_param('aer_int_yr',cyclic_yr,default=copy_master_yr)
-#else
-        continue
+        select case (trname(nTracer))
+        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+          call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('NH3')
+          call get_param('NH3_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+          call get_param('BC_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',
+     &        'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',
+     &        'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          call get_param('OC_int_yr',cyclic_yr,default=cyclic_yr)
+        end select
 #endif
 #ifdef TRACERS_SPECIAL_Shindell
       end if

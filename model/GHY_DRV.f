@@ -3133,10 +3133,6 @@ C**** Extract useful local domain parameters from "grid"
 !!!      aalbveg(:,:) = 0.08D0
 !!!      return
 
-C**** Update vegetation file if necessary  (i.e. if crops_yr=0)
-      ! if(crops_yr.eq.0) - should be checked inside Ent
-      !call ent_update_crops(jyear)
-
 ! the following is probably not needed since we update vegetation
 ! on every time step
  !     if (jday==1) then ! i guess we need to call it only once per year

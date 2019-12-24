@@ -8,6 +8,7 @@
       integer :: status,ofid,ivarid,varid
       integer, dimension(:), allocatable :: fids,reduc_varids
       character(len=4096) :: ifile,ofile
+      character(len=4096), dimension(:), allocatable :: ifiles
       integer :: n,nfiles,nfirst,nlast,iargc,nvars,nvars_reduc
       integer :: ndims,ivar
       integer :: itbeg,itend,itnow,n1Dif,n1To
@@ -40,7 +41,7 @@ c
      &     '(works on modelE acc files, not on scaleacc_outputs)'
         stop
       endif
-      allocate(fids(nfiles))
+      allocate(fids(nfiles),ifiles(nfiles))
       bynfiles = 1d0/real(nfiles,kind=8)
 
 c
@@ -52,6 +53,7 @@ c
       do n=1,nfiles
         call getarg(n,ifile)
         status = nf_open(trim(ifile),nf_nowrite,fids(n))
+        ifiles(n) = ifile
         if(status.ne.nf_noerr) then
           write(6,*) 'nonexistent/non-netcdf input file ',trim(ifile)
           stop
@@ -131,12 +133,7 @@ c
         nvars_reduc = nvars_reduc + 1
         reduc_varids(nvars_reduc) = varid
         status = nf_inq_varname(ofid,varid,vname)
-        call get_vdimsizes(ofid,vname,ndims,dsizes)
-        if(ndims.eq.0) then
-          accsize = 1
-        else
-          accsize = product(dsizes(1:ndims))
-        endif
+        call get_varsize8(ofid,vname,accsize)
         reduc_varsizes(nvars_reduc) = accsize
         reduc_list(nvars_reduc) = reduction
       enddo
@@ -170,11 +167,26 @@ c loop over files
       do n=1,nfiles
 
 c loop over the fields to be reduced
-        j = 1
+        jnext = 1
         do ivar=1,nvars_reduc
-          varid = reduc_varids(ivar)
-          status = nf_get_var_double(fids(n),varid,acc_part(j))
+          j = jnext
           jnext = j + reduc_varsizes(ivar)
+          varid = reduc_varids(ivar)
+          vname = ''
+          status = nf_inq_varname(ofid,varid,vname)
+          status = nf_inq_varid(fids(n),trim(vname),varid)
+          if(status.ne.nf_noerr) then
+            write(6,*) 'warning: skipping missing variable '//
+     &           trim(vname)//' in '//trim(ifiles(n))
+            cycle
+          endif
+          call get_varsize8(fids(n),vname,accsize)
+          if(reduc_varsizes(ivar) .ne. accsize) then
+            write(6,*) 'warning: skipping size-mismatched variable '//
+     &           trim(vname)//' in '//trim(ifiles(n))
+            cycle
+          endif
+          status = nf_get_var_double(fids(n),varid,acc_part(j))
           select case (trim(reduc_list(ivar)))
           case ('min')
             do jj=j,jnext-1
@@ -189,7 +201,6 @@ c loop over the fields to be reduced
               acc(jj) = acc(jj) + acc_part(jj)
             enddo
           end select
-          j = jnext
         enddo
       enddo
 

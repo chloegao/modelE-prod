@@ -505,7 +505,7 @@ c         NUMB_LEV(l,n) = NI(n)* 0.7853 * (1.e-6*DG_WET(n))**2   ! [#/layer]
         VMass(n,7) = VMass(n,1) / Sum(VMass(:,1))  *(actvqtys2(l,3,i,j) * MA(l,i,j) )/1000.
        ENDDO
 
-#else   ! Original MATRIX online code below
+#else   /* Original MATRIX online code below */
 
        ! + Effective Radius [um] per Mode = geometric mass mean radius
        DO n=1,nmodes
@@ -547,7 +547,7 @@ c         NUMB_LEV(l,n) = NI(n)* 0.7853 * (1.e-6*DG_WET(n))**2   ! [#/layer]
         ! H2O
         VMass(n,7) = VMass(n,1) /(Sum(VMass(:,1)) + TINYNUMER)  * H2O /1000.
        ENDDO
-#endif   ! After that code should work for all cases
+#endif   /* After that code should work for all cases */
 
       DO s=1,7  ! loop over species 
         DO n=1,nmodes           ! loop over modes

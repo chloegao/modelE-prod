@@ -132,12 +132,13 @@ contains
   end subroutine initSurfaceSource
 
 
-  subroutine readSurfaceSource(this, fname, sfc_src, xyear, xday, isChemTracer)
+  subroutine readSurfaceSource(tracerName, this, fname, sfc_src, xyear, xday, isChemTracer)
     USE DOMAIN_DECOMP_ATM, only: GRID,  readt_parallel, write_parallel
     use Domain_decomp_atm, only: getDomainBounds
     use TimeConstants_mod, only: EARTH_DAYS_PER_YEAR
     use timestream_mod, only : init_stream,read_stream
     use dictionary_mod, only : get_param
+    character(len=*), intent(in) :: tracerName
     type (TracerSurfaceSource), intent(inout) :: this
     character(*), intent(in) :: fname
     real*8, intent(inout) :: sfc_src(grid%i_strt:,grid%j_strt:)
@@ -153,8 +154,28 @@ contains
       call get_param('master_yr',master_yr)
       if (isChemTracer) then
         call get_param('o3_yr',cyclic_yr,default=master_yr)
+        select case (tracerName)
+        case ('NOx')
+          call get_param('NOx_yr',cyclic_yr,default=cyclic_yr)
+        case ('CO')
+          call get_param('CO_yr',cyclic_yr,default=cyclic_yr)
+        case ('Alkenes', 'Paraffin')
+          call get_param('VOC_yr',cyclic_yr,default=cyclic_yr)
+        end select
       else
         call get_param('aer_int_yr',cyclic_yr,default=master_yr)
+        select case (tracerName)
+        case ('SO2', 'SO4', 'M_ACC_SU', 'M_AKK_SU', 'ASO4__01')
+          call get_param('SO2_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('NH3')
+          call get_param('NH3_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('BCII', 'BCB', 'M_BC1_BC', 'M_BOC_BC', 'AECOB_01')
+          call get_param('BC_int_yr',cyclic_yr,default=cyclic_yr)
+        case ('OCII', 'OCB', 'M_OCC_OC', 'M_BOC_OC', 'AOCOB_01',&
+              'vbsAm2', 'vbsAm1', 'vbsAz', 'vbsAp1', 'vbsAp2',&
+              'vbsAp3', 'vbsAp4', 'vbsAp5', 'vbsAp6')
+          call get_param('OC_int_yr',cyclic_yr,default=cyclic_yr)
+        end select
       end if
       call get_param('nc_emis_use_ppm_interp',nc_emis_use_ppm_interp,&
         & default=1)

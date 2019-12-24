@@ -79,22 +79,26 @@
      .                                + trnd/dp1d(k+1)
 
         enddo  ! k
+#ifdef detr_estuarysink
 !let detritus that reaches the bottom, disappear in the sediment
-!        k = kmax
-!        trnd = det(k,nt)*wsdet(k,nt)
-!        D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
-!        rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
+       if (dp1d(kmax).le.150.0d0) then
+         k = kmax
+         trnd = det(k,nt)*wsdet(k,nt)
+         D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
+         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
+       endif
+#endif
       enddo ! nt
  
       sumD=sum(D_tend(1:kmax,1)*dp1d(1:kmax))
       sumDdiff=sumD-sumD1
-      if (vrbos)
-     .write(*,'(a,3i5,3e12.4)')'obio_sinksettl, sumD:'
-     .        ,nstep,i,j,sumD1,sumD,sumDdiff
+!     if (vrbos)
+!    .write(*,'(a,3i5,3e12.4)')'obio_sinksettl, sumD:'
+!    .        ,nstep,i,j,sumD1,sumD,sumDdiff
       
 !diagnostic for carbon export at compensation depth
       cexp = 0.
-!     do  k=1,kzc    
+
       k=kzc
         do nt=nnut+1,nnut+nchl
            cexp = cexp
@@ -106,13 +110,6 @@
      &        * ddxypo              !mgm3 -> PgC/yr              
  
         enddo
-        if (vrbos) write(*,'(a,4i5,5e12.4)')'cexp comp0:',
-     .             nstep,i,j,k,
-     .             mgchltouMC,SECONDS_PER_HOUR,HOURS_PER_DAY,
-     .             DAYS_PER_YEAR,ddxypo
-        if (vrbos) write(*,'(a,4i5,8e12.4)')'cexp comp1:',
-     .             nstep,i,j,k,(obio_P(k,nt),nt=nnut+1,nnut+nchl),
-     .             (obio_ws(k,nt-nnut),nt=nnut+1,nnut+nchl)
 
       !term2: settling C detritus contribution
       !dont set cexp = 0 here, because adds to before
@@ -124,9 +121,4 @@
      .        * 1.d-15 *1.d-3                 
      &        * ddxypo               !ugC/l -> PgC/yr
    
-        if (vrbos) write(*,'(a,4i5,2e12.4)')'cexp comp2:',
-     .             nstep,i,j,k,det(k,1),wsdet(k,1)
-!     enddo
-
-
       end subroutine obio_sinksettl

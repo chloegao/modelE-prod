@@ -46,6 +46,7 @@ NO_COMMAND = @echo "*****  This architecture is not supported "; \
              echo "*****  or compiler is not specified properly."; \
              echo "*****  You have COMPILER=$(COMPILER)" ; exit 1;
 F90 = $(NO_COMMAND)
+CC ?= cc
 FMAKEDEP = $(NO_COMMAND)
 CMP_MOD = cmp -s
 SETUP = $(SCRIPTS_DIR)/setup_e.pl
@@ -422,7 +423,7 @@ endif
 	 $(CPP) $(CPPFLAGS) $< > $@
 
 %.o: %.c
-	cc -c -O2 -m64 $<
+	$(CC) -c -O2 -m64 $<
 
 %.f: %.m4f
 	-rm -f $@

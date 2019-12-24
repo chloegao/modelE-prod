@@ -33,6 +33,21 @@ $DATA_PORTAL_URL =
 
 $modelerc = (getpwuid($>))[7]."/.modelErc";
 
+$READLINK='readlink';
+# workaround for Apple
+if ( `uname` =~ /Darwin/ ) {
+  print "Oh, we are on a Mac :-(\n";
+  if ( `which greadlink` =~ /greadlink/ ) {
+    $READLINK='greadlink';
+  } else {
+    print "*****************************************\n";
+    print "Can't find 'greadlink'\n";
+    print "Please install 'coreutils' with Mac Ports\n";
+    print "*****************************************\n";
+    exit(1);
+  }
+}
+
 if ( -f $modelerc ) {
   open MODELERC, $modelerc or die "can't open $modelerc\n";
   while(<MODELERC>) {
@@ -45,7 +60,13 @@ if ( -f $modelerc ) {
 $runID = shift;
 ($data_dir = shift) or $data_dir = $runID.'_data';
 
-$abs_data_dir = `readlink -f $data_dir`;
+$abs_data_dir = `$READLINK -f $data_dir`;
+
+print "trying to create dir name:";
+print "in: $data_dir";
+print "out: $abs_data_dir";
+
+
 chop $abs_data_dir;
 
 $max_age = 365*100;

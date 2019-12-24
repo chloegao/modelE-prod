@@ -1,6 +1,6 @@
 #include "rundeck_opts.h"
 
-      SUBROUTINE OADVT3 (RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX,
+      SUBROUTINE OADVT3 (MA,RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX,
      &     DT,QLIMIT, OIJL)
 !@sum  OADVT advects tracers using the quadratic upstream scheme.
 C****
@@ -24,11 +24,9 @@ C****
       IMPLICIT NONE
       REAL*8, INTENT(INOUT),     DIMENSION
      &     (IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
-     &     RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
+     &     MA,RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX
       REAL*8, INTENT(INOUT),
      *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO,3) :: OIJL
-      REAL*8,
-     *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) :: MA
       INTEGER I,J,L, J_0H
       LOGICAL, INTENT(IN) :: QLIMIT
       REAL*8, INTENT(IN) :: DT
@@ -819,8 +817,7 @@ C****
       REAL*8, INTENT(INOUT),
      *  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
      *  RM,RX,RY,RZ,RXX,RYY,RZZ,RXY,RYZ,RZX, OIJL, MO
-      REAL*8, INTENT(IN),
-     &  DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
+      REAL*8, DIMENSION(IM,grid%J_STRT_HALO:grid%J_STOP_HALO,LMO) ::
      &     MW
       REAL*8, INTENT(IN) :: DT
 c
@@ -833,8 +830,32 @@ c
 
       INTEGER :: J_0,J_1,J_0S,J_1S
 
+      logical :: done,mw_sv_alloc
+      integer :: iter
+      real*8, dimension(:,:,:), allocatable :: mw_sv
+
+! Notes on the treatment of courant numbers c exceeding unity
+! (usually due to a long timestep):
+! 1. The strategy assumes that this occurs rarely, and thus
+!    avoids any pre-checks and other operations that would
+!    slow execution for representative circumstances.
+! 2. Within the transport loop, c is checked. Where it exceeds unity,
+!    a mass flux corresponding to c=1 is used, and the remainder
+!    is applied the following substep (via the do-while loop).
+! 3. This strategy has not yet been verified to work well where c>=2.
+!    More work will be done to check the overall realism of such situations.
+
       call getDomainBounds(grid, J_STRT=J_0, J_STOP=J_1)
       call getDomainBounds(grid, J_STRT_SKP=J_0S, J_STOP_SKP=J_1S)
+
+      iter = 0
+      done = .false.
+      mw_sv_alloc = .false.
+
+      do while(.not.done)
+
+      iter = iter + 1
+      done = .true.
 
       do j=j_0,j_1
         do n=1,nbyzm(j,1)
@@ -875,7 +896,18 @@ c
               CM = DT*MW(I,J,L)
               if(cm.ge.0.) then ! mass flux is downward or zero
                 C  = CM/MO(I,J,L)
-                IF(C.GT.1d0)  WRITE (6,*) 'C>1:',I,J,L,C,MO(I,J,L)
+                if(c.gt.1d0) then ! see notes above for this caes
+                  write(6,*) 'c>1:',i,j,l,c,mo(i,j,l)
+                  done = .false.
+                  if(.not.mw_sv_alloc) then
+                    allocate(mw_sv(im,j_0:j_1,lmo))
+                    mw_sv(:,j_0:j_1,:) = mw(:,j_0:j_1,:)
+                    mw_sv_alloc = .true.
+                  endif
+                  cm = mo(i,j,l)
+                  c  = 1d0
+                  mw(i,j,l) = mw(i,j,l) - cm/dt ! remainder for next substep
+                endif
                 FM = C*(RM(I,J,L)+(1-C)*(RZ(I,J,L)+(1-2*C)*RZZ(I,J,L)))
                 FZ  = CM*(C*C*(RZ(I,J,L) + 3*(1-C)*RZZ(I,J,L)) - 3*FM)
                 FZZ = CM*(CM*C**3*RZZ(I,J,L) - 5*(CM*FM+FZ))
@@ -904,7 +936,18 @@ c
 
               else              ! mass flux is upward
                 C  = CM/MO(I,J,L+1)
-                IF(C.LT.-1d0)  WRITE (6,*) 'C<-1:',I,J,L,C,MO(I,J,L+1)
+                if(c.lt.-1d0) then ! see notes above for this caes
+                  write(6,*) 'c<-1:',i,j,l,c,mo(i,j,l+1)
+                  done = .false.
+                  if(.not.mw_sv_alloc) then
+                    allocate(mw_sv(im,j_0:j_1,lmo))
+                    mw_sv(:,j_0:j_1,:) = mw(:,j_0:j_1,:)
+                    mw_sv_alloc = .true.
+                  endif
+                  cm = -mo(i,j,l+1)
+                  c  = -1d0
+                  mw(i,j,l) = mw(i,j,l) - cm/dt ! remainder for next substep
+                endif
                 FM = C*(RM(I,J,L+1) -(1+C)*(
      &               RZ(I,J,L+1) -(1+2*C)*RZZ(I,J,L+1)))
                 FZ  = CM*(C*C*(RZ(I,J,L+1) -3*(1+C)*RZZ(I,J,L+1)) -3*FM)
@@ -994,6 +1037,25 @@ c
           enddo
         enddo
       enddo
+
+      if(mw_sv_alloc .and. iter.eq.1) then ! zero out the |c|<=1 mw
+        do l=1,lmo
+          do j=j_0,j_1
+            do n=1,nbyzm(j,l)
+              do i=i1yzm(n,j,l),i2yzm(n,j,l)
+                if(mw(i,j,l).ne.mw_sv(i,j,l)) cycle ! |c|>1 point
+                mw(i,j,l) = 0.
+              enddo
+            enddo
+          enddo
+        enddo
+      endif
+
+      enddo ! iterations over substeps
+
+      if(mw_sv_alloc) then ! restore input mw
+        mw(:,j_0:j_1,:) = mw_sv(:,j_0:j_1,:)
+      endif
 
       return
       END SUBROUTINE OADVTZ4
