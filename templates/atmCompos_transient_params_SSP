@@ -18,7 +18,5 @@ dalbsnX=1.
 !aer_int_yr=0    !select desired aerosol emissions year or 0 to use JYEAR
 ! atmCO2=368.6          !uatm for year 2000 - enable for CO2 tracer runs
 
-!variable_orb_par=0
 !variable_orb_par=1   ! variable w/o offset
-madaer=3         ! 3: updated aerosols          ; 1: default sulfates/aerosols
 MADVOL=2
