@@ -194,7 +194,7 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 nn_or_zon=0     ! int dist method 1=zonal avg, 0=nearest neighbor
 int_wet_dist=1  ! turn on(1)/off(0) interacive SPATIAL wetlands
 ice_age=0.      ! if not 0 no wetl emis for lats poleward of +/- this in deg
-ns_wet=12       ! index of CH4 source that is the wetlands (dumb, I know)
+ns_wet=11       ! index of CH4 source that is the wetlands (dumb, I know)
 exclude_us_eu=0 ! to exclude (=1) the U.S. and E.U. from inter wetl dist
 topo_lim=205.d0 ! upper limit of topographic variation for new wetlands
 sat_lim=-9.d0   ! lower limit on surf air temp for new wetlants

@@ -5377,6 +5377,9 @@ C**** Note this routine must always exist (but can be a dummy routine)
       USE timestream_mod, only: init_stream,read_stream
       USE tracer_com, only: SO2_volc_stream,SO2_vphe_stream
 #endif
+#ifdef WATER_MISC_GRND_CH4_SRC
+      use tracer_com, only: scale_CH4MGOL
+#endif
       use GEOM, only: lat_to_j
       use GEOM, only: lon_to_i
       USE ATM_COM, only: byMA
@@ -5760,9 +5763,11 @@ C**** Next line for fastj photon fluxes to vary with time:
           do ns=1,ntsurfsrc(n)
             if(pTracer%surfaceSources(ns)%skipReason==itsCH4MGOL) then
               sfc_src(I_0:I_1,J_0:J_1,n,ns)=
+     &          scale_CH4MGOL * (
      &          1.698d-12*fearth0(I_0:I_1,J_0:J_1) + ! incl. 5.3558e-5 from Jean
      &          5.495d-11*flake0(I_0:I_1,J_0:J_1)  + ! incl. 17.330e-4 from Jean
      &          1.141d-12*focean(I_0:I_1,J_0:J_1)    ! incl. 3.5997e-5 from Jean
+     &                          )
               exit ! Found. Should be only one source.
             end if
           end do

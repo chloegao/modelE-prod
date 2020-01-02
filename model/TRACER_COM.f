@@ -88,6 +88,12 @@ c
       real*8,  allocatable, dimension(:) :: ex_volc_SO2
       real*8,  allocatable, dimension(:) :: ex_volc_H2O
 
+#ifdef WATER_MISC_GRND_CH4_SRC
+!@dbparam scale_CH4MGOL global scaling available to either Shindell
+!@+ or Lerner tracers for water and misc. ground source of CH4
+      real*8 :: scale_CH4MGOL=1.d0
+#endif
+
 !@dbparam nc_emis_use_ppm_interp: 1 means use ppm (non-linear) interpolation
 !@+ in timestream emissions (only) to preserve monthly totals. Else use linear
 !@+ month-to-month (linm2m)

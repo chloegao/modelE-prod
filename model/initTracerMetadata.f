@@ -355,6 +355,9 @@
 #ifdef TRACERS_MINERALS
       use MineralsTracersMetadata_mod
 #endif
+#ifdef WATER_MISC_GRND_CH4_SRC
+      use TRACER_COM, only: scale_CH4MGOL
+#endif
       use MiscTracersMetadata_mod
       USE CONSTANT, only: mair
       USE TRACER_COM, only: ntm
@@ -370,6 +373,9 @@
 #ifdef TRACERS_SPECIAL_Shindell
       call sync_param( "use_rad_ch4", use_rad_ch4 )
       call sync_param( "GLToffset", GLToffset )
+#endif
+#ifdef WATER_MISC_GRND_CH4_SRC
+      call sync_param( "scale_CH4MGOL", scale_CH4MGOL )
 #endif
 
 ! explosive volcano injections based on rundeck parameters

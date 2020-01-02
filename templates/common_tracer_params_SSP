@@ -1,24 +1,9 @@
 !-----------------------------------------------
 !  Start tracer code parameters:
 !-----------------------------------------------
-
-
-
-
-
-
-
-! Greg must place E3-type of Misc/Wetl CH4 scaling here.
-
-
-
-
-
-
-
-
-
-
+! For SSPs, following E2.1 methane growth rate tuning,
+! scale the CH4 ocean, lake, misc. ground source:
+scale_CH4MGOL=2.0
 ! Lightning parameterization
 lightning_param=1          ! 1 = Cloud Top Height; 2 = Upward Convective Mass Flux; 3 = Convective Precipitation
 ! Lightning tuning parameters

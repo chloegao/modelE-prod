@@ -62,10 +62,9 @@ CH4_05=emis/CMIP6_SHP_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
 CH4_06=emis/CMIP6_SLV_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
 CH4_07=emis/CMIP6_ENE_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
 CH4_08=emis/CMIP6_AGR_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
-CH4_09=emisnc/F/NAT/CH4gsfMGOLjal_blank_2x2.5_h.nc
-CH4_10=emisnc/F/NAT/CH4SOILABS_2x2.5_h.nc
-CH4_11=emisnc/F/NAT/CH4TRMITE_2x2.5_h.nc
+CH4_09=emisnc/F/NAT/CH4SOILABS_2x2.5_h.nc
+CH4_10=emisnc/F/NAT/CH4TRMITE_2x2.5_h.nc
 ! please set ns_wet parameter accordingly, if using interactive wetlands:
-CH4_12=emisnc/F/NAT/CH4WETL+TUNDRA_2x2.5_h.nc
-CH4_13=emis/CMIP6_BBURN_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
+CH4_11=emisnc/F/NAT/CH4WETL+TUNDRA_2x2.5_h.nc
+CH4_12=emis/CMIP6_BBURN_IAMC-REMIND-MAGPIE-ssp585-1-1_2.0x2.5
 !------------ end chemistry emissions files --------------
