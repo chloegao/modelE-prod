@@ -279,17 +279,11 @@ c
 #ifdef CACHED_SUBDD
       use trchem_shindell_com, only : mrno,mrno2,mro3,OH_conc,HO2_conc,
      &                                JO1D_rate,JNO2_rate
-      use subdd_mod, only : subdd_groups,subdd_type,subdd_ngroups
-     &     ,inc_subdd,find_groups
 #endif
 
       IMPLICIT NONE
       integer, intent(in) :: i,j
 
-#ifdef CACHED_SUBDD
-      integer :: igrp,ngroups,grpids(subdd_ngroups)
-      type(subdd_type), pointer :: subdd
-#endif
 C**** Local parameters and variables and arguments:
 !@param by35 1/35 used for spherical geometry constant
       REAL*8, PARAMETER  :: by35=1.d0/35.d0
