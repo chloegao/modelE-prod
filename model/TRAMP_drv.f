@@ -339,7 +339,6 @@ c -----------------------------------------------------------------
      &                      n_M_BC1_SU,n_M_BC2_SU,n_M_BC3_SU,n_M_BOC_SU,
      &                      n_M_BCS_SU,n_M_DBC_SU,n_M_MXX_SU
       USE TRACER_COM, only: n_M_SSA_SS,n_M_SSC_SS,n_M_MXX_SS
-      use geom, only : byaxyp
       implicit none
       integer :: igrp,ngroups,grpids(subdd_ngroups),k,n,nAMP
       type(subdd_type), pointer :: subdd
@@ -374,7 +373,6 @@ c -----------------------------------------------------------------
      *                  +sum(trm(:,:,:,n_M_DS2_DU),dim=3)
      *                  +sum(trm(:,:,:,n_M_DBC_DU),dim=3)
      *                  +sum(trm(:,:,:,n_M_MXX_DU),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampBCload')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_BC1_BC),dim=3)
@@ -384,21 +382,17 @@ c -----------------------------------------------------------------
      *                  +sum(trm(:,:,:,n_M_BOC_BC),dim=3)
      *                  +sum(trm(:,:,:,n_M_BCS_BC),dim=3)
      *                  +sum(trm(:,:,:,n_M_MXX_BC),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampNH4load')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_NH4),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampNO3load')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_NO3),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampOAload')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_OCC_OC),dim=3)
      *                  +sum(trm(:,:,:,n_M_BOC_OC),dim=3)
      *                  +sum(trm(:,:,:,n_M_MXX_OC),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampSO4load')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_AKK_SU),dim=3)
@@ -416,13 +410,11 @@ c -----------------------------------------------------------------
      *                  +sum(trm(:,:,:,n_M_BCS_SU),dim=3)
      *                  +sum(trm(:,:,:,n_M_DBC_SU),dim=3)
      *                  +sum(trm(:,:,:,n_M_MXX_SU),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
          case('ampSSload')
          sddarr2d(:,:)= (sum(trm(:,:,:,n_M_SSA_SS),dim=3)
      *                  +sum(trm(:,:,:,n_M_SSC_SS),dim=3)
      *                  +sum(trm(:,:,:,n_M_MXX_SS),dim=3))
-     *                  *byaxyp(:,:)
          call inc_subdd(subdd,k,sddarr2d) 
 
        end select

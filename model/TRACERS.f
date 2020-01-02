@@ -1874,7 +1874,6 @@ C
 
       use domain_decomp_atm, only : grid
       USE resolution, only: LM
-      USE GEOM, only : byaxyp
       use atm_com, only    : byma
       use tracer_com, only : ntm,trm,mass2vol
       use OldTracer_mod, only: trname, pm10fact, pm2p5fact
@@ -1971,7 +1970,7 @@ C
 
           ! tracer column load:
           if(trim(trname(n))//'load'.eq.trim(subdd%name(k))) then
-            sddarr2d(:,:)=sum(trm(:,:,:,n),dim=3)*byaxyp(:,:)
+            sddarr2d(:,:)=sum(trm(:,:,:,n),dim=3)
             call inc_subdd(subdd,k,sddarr2d) ; cycle diag_loop
           end if
 
