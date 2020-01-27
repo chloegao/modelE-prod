@@ -40,12 +40,15 @@
      .                    ,cexp,flimit,kzc
      .                    ,rhs_obio,chng_by,Kpar,Kpar_em2d,Edz,Esz,Euz
      .                    ,delta_temp1d,sday
-     .                    ,num_tracers,use_qus         !@PL o2_in initial o2 concentration
-     .                    ,rho_water,rho1d,errchk1,errchk2   !@PLdbg added test for NaNs in o2
+     .                    ,use_qus,num_tracers        
+     .                    ,rho_water,rho1d
+#ifdef TRACERS_bio_O2 
+     .                    ,errchk1,errchk2   !@PLdbg added test for NaNs in o2
+#endif
 #ifdef TOPAZ_params
      .                    ,ca_det_calc1d
 #endif
-#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
      .                    ,o21d,pO2_ij
 #ifdef restart_add_o2
@@ -80,8 +83,8 @@
      .                 ,ij_cexp,ij_lim,ij_sink,ij_setl,ij_ndet,ij_xchl
      .                 ,ij_sunz,ij_solz
      .                 ,ij_pp1,ij_pp2,ij_pp3,ij_pp4
-     .                 ,ij_rhs,ij_flux,ij_fca,kobio_ij !@PL kobio_ij-> number of obio_ij diagnostics
-#ifdef TRACERS_Ocean_O2
+     .                 ,ij_rhs,ij_flux,ij_fca      !,kobio_ij!@PL kobio_ij-> number of obio_ij diagnostics
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
      .                 ,ij_o2,ij_oflx,ij_po2
 #endif
@@ -101,7 +104,7 @@
      .                           ,ijl_pp
      .                           ,ijl_lim1,ijl_lim2,ijl_lim3
      .                           ,ijl_lim4,ijl_lim5!hemis_obio_ij !@PL hemis_obio_ij-> hemisphere and global inventories
-#ifdef TRACERS_bio_O2
+#ifdef TRACERS_bio_O2 
      .                           ,ijl_cprod
      .                           ,ijl_cdet
      .                           ,ijl_cdoc
@@ -123,7 +126,7 @@
       USE FILEMANAGER, only: openunit,closeunit,file_exists
       USE timestream_mod, only: read_stream
       USE obio_com, only : co2flux
-#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
      .               ,o2flux
 #endif
@@ -204,8 +207,7 @@
 #ifdef TRACERS_Alkalinity
      &    ,1.       !Alk
 #endif
-
-#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
      &     ,32.    !O2 !@PL I think its better to use MW of O2 = 32 gr O /mole
 #endif
@@ -216,7 +218,7 @@
      &      /)
 
 !@PL saturation O2 for restarts from files w/out O2
-#ifdef TRACERS_abio_O2
+#ifdef TRACERS_abio_O2 
       real O2sat
 #endif
 
@@ -260,7 +262,7 @@
       logical, save :: initialized=.false.
       real, save :: atmco2=-1.
       real :: rlon2D(im,jm),rlat2D(im,jm),ddxypo,mmo
-      real :: SDIC(num_tracers)
+      real :: SDIC!(num_tracers) PLdbg
       integer :: i_0,i_1,j_0,j_1
       integer :: n_co2n
       real :: oij_pH
@@ -269,7 +271,7 @@
 #endif
 
 !@PL
-      real*8, dimension(:,:), allocatable :: shnh_loc,shnh
+!      real*8, dimension(:,:), allocatable :: shnh_loc,shnh
 !@PL
 
       if(.not.dobio) return
@@ -310,6 +312,9 @@ c
 
         if (AM_I_ROOT()) write(*,'(a)')'BIO:Ocean Biology starts ....'
 
+!PLdbg
+!     print*, 'I_0,I_1=',
+!     .         ogrid%I_STRT,ogrid%I_STOP
 
         call obio_init(kdm,dtsrc,ogrid,dlatm)
 
@@ -341,6 +346,9 @@ c
 !passed from a module.  
 #endif 
        
+!PLdbg
+!     print*, 'I_0,I_1=',
+!     .         ogrid%I_STRT,ogrid%I_STOP
        
 !NOTE: ip=>focean is real in GISSocean but ip is integer in
 !      hycom. It is passed as a real 2D array
@@ -501,13 +509,20 @@ c
       call start('  obio main loop')
 !@PL allocate north/south hem arrays
 
-      allocate(shnh_loc(2,kobio_ij),shnh(2,kobio_ij))
-      shnh_loc = 0.
+!      allocate(shnh_loc(2,kobio_ij),shnh(2,kobio_ij))
+!      shnh_loc = 0.
 !@PL
+
+!PLdbg
+!      print*, 'I_0,I_1,J_0,J_1=',
+!     .         i_0,i_1,j_0,j_1
 
       ocnatm%chl_defined=.true.
        do j=j_0,j_1
        do i=i_0,i_1
+!PLdbg
+!       print*, 'I,J,I_1,J_1=',I,J,I_1,J_1
+!PLdbg
        dp1d(:) = 0.
        IF(ip(I,J)==0) cycle
 
@@ -607,14 +622,13 @@ c
 #endif
 #endif
 #ifdef TRACERS_Ocean_O2
-
 #ifdef TRACERS_bio_O2
-          if (nt.eq.ntyp+ndet+ncar+nalk+no2)    !factor for oxygen 
+          if (nt.eq.ndimo2)    !factor for oxygen 
      .         trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! mmol/kg=milli-mol/kg=> kg,trac/kg,water
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,water=> kg,trac
 #endif
 #ifdef TRACERS_abio_O2
-          if (nt.eq.ntyp+ndet+ncar+nalk+no2+nabo2)    !factor for oxygen 
+          if (nt.eq.ndimabo2)    !factor for oxygen 
      .         trmo_unit_factor(k,nt) = 1d-3*1d-3*obio_tr_mm(nt)      ! mmol/kg=milli-mol/kg=> kg,trac/kg,water
      .                                *  MO(I,J,k)*DXYPO(J)           ! kg,trac/kg,water=> kg,trac
 #endif
@@ -636,8 +650,6 @@ c
              call init_abo2(temp1d(k),saln1d(k),oAPRESS(i,j)
      &                       ,ocnatm%QSAVG(i,j),O2sat)   !@PL mmol/kg 
              tracer(i,j,k,nt) = O2sat
-
-
           endif
 #endif
           endif
@@ -681,9 +693,8 @@ c
          alk1d(k)=alk(i,j,k)
 #endif
 
-!@PLdbg o21d before bio update
-
-#ifdef TRACERS_Ocean_O2
+!@PL o21d before bio update
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
          o21d(k)=tracer(i,j,k,ntyp+ndet+ncar+nalk+no2)
 #endif
@@ -726,8 +737,7 @@ c
           p1d(k)=p1d(k-1)+dp1d(k-1)    !in meters
        enddo
 
-!@PLdbg
-#ifdef TRACERS_bio_O2
+#ifdef TRACERS_bio_O2 
 
       do k=1,kdm
 
@@ -745,7 +755,6 @@ c
       endif
       enddo
 #endif
-!@PLdbg
 
       !if(vrbos) write(*,'(a,15e12.4)')'obio_model, strac conc:',
       if(vrbos) write(*,*)'obio_model, strac conc:',
@@ -1128,7 +1137,7 @@ cdiag.     nstep,(k,tirrq(k),k=1,kmax)
 #ifdef OBIO_ON_GISSocean
         mmo=mo(i,j,1)
         ddxypo=dxypo(j)
-        SDIC=trmo(i,j,1,:)
+        SDIC=trmo(i,j,1,n_abioDIC)
         oij_pH=oij(i,j,ij_ph)
 !       oij_co3=oij(i,j,ij_co3)
 #else
@@ -1182,7 +1191,6 @@ cdiag  endif
        call obio_update(vrbos,kmax,i,j,nstep)
 
 !@PLdbg if errchk ~=0, write error status and stop
-
 #ifdef TRACERS_bio_O2
        if (errchk1.eq.1.or.errchk2.eq.1) then
         write(6,'(a,2i2)')'O2 has NaNs, error status=',
@@ -1337,7 +1345,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
          tracer(i,j,k,ntyp+ndet+ncar+nt)=ca_det_calc1d(k)
 #endif
 #endif
-#ifdef TRACERS_Ocean_O2
+#ifdef TRACERS_Ocean_O2 
 #ifdef TRACERS_bio_O2
          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2)=o21d(k)
 #endif
@@ -1504,7 +1512,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
        OIJ(I,J,IJ_flux) = OIJ(I,J,IJ_flux) + co2flux!*sday*365.24      !air-sea CO2 flux(if on ocean grid, this is gr,CO2/m2/yr, if coupled it is in molCO2/m2/yr)
                                                                       !@PL multiply by sday*365.24 so units are molCO2/m2/yr, else it is molCO2/m2/s
-
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
        OIJ(I,J,IJ_oflx) = OIJ(I,J,IJ_oflx) + o2flux       !air-sea O2 flux (molO2/m2/yr)
@@ -1552,7 +1559,7 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 !          write(6,'(a,3i7,2e12.4)')'obio_o2(bio):',
 !     .    nstep,i,j,rhs(k,ndimo2,6),rhs(k,ndimo2,7)
 !        endif
-
+!
       enddo
 
 #endif
@@ -1583,7 +1590,6 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
        else
          OIJ(I,J,IJ_alk) = OIJ(I,J,IJ_alk) + alk(i,j,1)          ! surf ocean alkalinity
        endif
-
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
          OIJ(I,J,IJ_o2) = OIJ(I,J,IJ_o2)
@@ -1693,13 +1699,24 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
       integer, intent(in) :: nstep,i,j,kdm
       integer :: k,nt,ll
 
-      do nt=1,ntrac
-      do ll=1,17
-      do k=1,kdm
-      OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
-     .                            + rhs(k,nt,ll)*trmo_unit_factor(k,nt) !units in kg/s
-      enddo
-      enddo
+
+!      do nt=1,ntrac
+      do nt=ndimc,ntrac
+       if (nt.eq.ndimc
+#ifdef TRACERS_bio_O2
+     & .or. nt.eq.ndimo2
+#endif
+#ifdef TRACERS_abio_O2
+     & .or. nt.eq.ndimabo2
+#endif
+     &           ) then
+       do ll=1,17
+       do k=1,kdm
+       OIJL(I,J,k,IJL_rhs3(nt,ll)) = OIJL(I,J,k,IJL_rhs3(nt,ll))
+     .                           + rhs(k,nt,ll)*trmo_unit_factor(k,nt) !units in kg/s
+       enddo
+       enddo
+       endif
       enddo
 
       end subroutine save_rhs3_diags

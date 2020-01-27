@@ -22,11 +22,18 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d,trmo_unit_factor
-     .                    ,rho1d,dicresp,docbac          !@PL added rho1d,docbac,dicresp
-!    .                    ,dic_river_sink,p1d
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
 #endif
+#ifdef OBIO_mocsy
+      use ofluxes, only: oAPRESS
+      use ocean,   only: oLAT_DG,r3d
+      use obio_incom, only: npratio
+      use obio_com, only: p1d
+      use mvars
+      use obio_diag, only : oijl=>obio_ijl,ijl_omegaA,ijl_omegaC
+#endif
+
 
       use obio_com, only: co2flux
 
@@ -42,7 +49,7 @@ c
 
       integer,intent(in) :: kdm,nstep,n_co2n,n_abioDIC,num_tracers
       real, intent(in) :: dts,mmo,ddxypo
-      real,intent(inout) :: SDIC(num_tracers)
+      real,intent(inout) :: SDIC
 
 !     real, parameter :: awan=0.337d0/(3.6d5) !piston vel coeff., from
 !                                             !Wanninkof 1992, but adjusted
@@ -64,6 +71,15 @@ c
       real, save :: atmco2=-1.
 
       logical vrbos
+
+#ifdef OBIO_mocsy
+      real mocsy_ph(kmax), mocsy_pco2(kmax), mocsy_fco2(kmax), 
+     .     mocsy_co2(kmax),mocsy_hco3(kmax), mocsy_co3(kmax), 
+     .     mocsy_OmegaA(kmax),mocsy_OmegaC(kmax), mocsy_BetaD(kmax), 
+     .     mocsy_rhoSW(kmax),mocsy_p(kmax), mocsy_tempis(kmax),
+     .     patm(kmax),mocsylat(kmax)
+      character(10) :: optCON, optT, optP, optB, optKf, optK1K2
+#endif
 
       bs = 2.d0*bn
 
@@ -100,7 +116,7 @@ c
 
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
-        docbac(k) = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
+        docbac = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
 !!!!    term = (docexcz*mgchltouMC
@@ -114,7 +130,7 @@ c
         C_tend(k,1) = C_tend(k,1) + term
 
 
-        term = -docbac(k)           *pnoice(k)
+        term = -docbac           *pnoice(k)
         rhs(k,13,14) = term
         C_tend(k,1) = C_tend(k,1) + term
 
@@ -140,7 +156,7 @@ c
         rhs(k,14,15) = term
         C_tend(k,2) = C_tend(k,2) + term
 
-        term = docbac(k) * pnoice(k)
+        term = docbac * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
      
@@ -260,7 +276,7 @@ c pCO2
             atmco2=0.
           endif
         endif
-
+        !note that atmco2 is not being used in compute_pco2_online(so ok if pass 0 here)
         call compute_pco2_online(nstep,i,j,atmco2,
      .            temp1d(1),saln1d(1),car(1,2),alk1d(1),
      .            obio_P(1,1),obio_P(1,3),pnoice(1),
@@ -275,6 +291,38 @@ c pCO2
      .                        car(1,2),alk1d(1),pCO2_ij,pHsfc
         endif
       endif
+
+#ifdef OBIO_mocsy
+      patm(1:kmax) = oAPRESS(i,j)
+      mocsylat(1:kmax) = oLAT_DG(j,1)
+      optCON='mol/m3'
+      optT='Tinsitu'
+      optP='m'
+      call vars(mocsy_ph, mocsy_pco2, mocsy_fco2, mocsy_co2, 
+     .                     mocsy_hco3, mocsy_co3, mocsy_OmegaA, 
+     .                     mocsy_OmegaC, mocsy_BetaD, mocsy_rhoSW, 
+     .                     mocsy_p, mocsy_tempis,     ! OUTPUT
+     .                     temp1d, saln1d,alk1d(:)*r3d(:,i,j)*1.d-3, !need alk umolC/kg->mol/m3 as other fields
+     .                     car(:,2)*1.d-3, obio_P(:,3)*1.d-3,     !need fields in mol/m3, mmol/m3->mol/m3
+     .                     obio_P(:,1)*1.d-3*(1.d0/npratio), 
+     .                     patm(:),                          !Patm
+     .                     p1d(:), mocsylat(:), kmax,            ! INPUT
+     .                     optCON,optT,optP)  
+!    .                     optB='l10', optK1K2='m10', optKf='dg')
+
+      if (vrbos) then
+         write(*,'(a,3i5,7e12.4)') 
+     .    'mocsy output:',nstep,i,j,mocsy_pco2(1), pco2_ij,
+     .                              mocsy_fco2(1), co2flux,
+     .                              mocsy_co2(1),
+     .                              mocsy_OmegaA(1),
+     .                              mocsy_OmegaC(1) 
+      endif
+      OIJL(i,j,1:kmax,ijl_omegaA) = OIJL(i,j,1:kmax,ijl_omegaA) 
+     .                            + mocsy_OmegaA
+      OIJL(i,j,1:kmax,ijl_omegaC) = OIJL(i,j,1:kmax,ijl_omegaC) 
+     .                            + mocsy_OmegaC
+#endif
 
 c Update DIC for sea-air flux of CO2
 
@@ -318,18 +366,18 @@ c Update DIC for sea-air flux of CO2
      .         saln1d(k) * (0.029941 - 0.027455*tk100 +
      .         0.0053407*tk1002))
         xco2 = atmCO2*1013.D0/stdslp
-        sdic_uM=SDIC(n_abioDIC)/trmo_unit_factor(1,14)  !14->DIC
+        sdic_uM=SDIC/trmo_unit_factor(1,14)  !14->DIC
         call compute_pco2_online(nstep,i,j,atmco2,
      .            temp1d(1),saln1d(1),sdic_uM,alk1d(1),
      .            obio_P(1,1),obio_P(1,3),pnoice(1),
      .            pCO2_abio,dummy,vrbos)
-!@PL replaced 1024.5 with rho1d
-        deltco2 = (xco2-pCO2_abio)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
+
+        deltco2 = (xco2-pCO2_abio)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
 
           !trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
-          SDIC(n_abioDIC) = SDIC(n_abioDIC) 
+          SDIC = SDIC 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
      &                          *ddxypo*dp1d(1)
 !     .                          * dxypo(j)*dp1d(1)
@@ -370,8 +418,7 @@ c Update DIC for sea-air flux of CO2
 
 
         xco2 = atmCO2*1013.D0/stdslp
-!@PL replaced 1024.5 with rho1d
-        deltco2 = (xco2-pCO2_ij)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
+        deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
 !       flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr       July 2016
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
@@ -379,8 +426,7 @@ c Update DIC for sea-air flux of CO2
         C_tend(k,2) = C_tend(k,2) + term
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
-      !@PL replaced 1.0245d+3 with rho1d
-        co2flux= rkwco2*(xco2-pCO2_ij)*ff*rho1d(k)*pnoice(k)! air-sea co2 flux
+        co2flux= rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3*pnoice(k)! air-sea co2 flux
      .            *SECONDS_PER_HOUR                             ! mol/m2/hr
      .            *44.d0*HOURS_PER_DAY*DAYS_PER_YEAR            ! grC/m2/yr
         if (vrbos) then
@@ -392,17 +438,17 @@ c Update DIC for sea-air flux of CO2
         if (vrbos) then
           write(6,'(a,3i7,9e12.4)')'obio_carbon(watson):',
      .      nstep,i,j,Ts,scco2arg,wssq,rkwco2,ff,xco2,pCO2_ij,
-     .      rkwco2*(xco2-pCO2_ij)*ff*rho1d(k),term     !this flux should have units mol,co2/m2/s
+     .      rkwco2*(xco2-pCO2_ij)*ff*1.0245D-3,term     !this flux should have units mol,co2/m2/s
         endif
-!@PL replaced 1024.5d0 with rho1d
+
       !abiotic DIC tracer
       if (n_abioDIC.ne.0) then
          ! trmo(i,j,1,n_abioDIC) = trmo(i,j,1,n_abioDIC)
-          SDIC(n_abioDIC) = SDIC(n_abioDIC) 
+          SDIC = SDIC 
      .                          + term*DTS**1e-6*12.d0     !term is in mili-mol/m3/s -> trmo is in kg,C
-!     .                          * mo(i,j,1)*dxypo(j)/rho_water 
+!    .                          * mo(i,j,1)*dxypo(j)/rho_water 
 !     .                          * mo(i,j,1)*dxypo(j)/1024.d0
-     .                           *mmo*ddxypo/rho1d(k)
+     &                          *mmo*ddxypo/1024.d0
       endif
       endif
 
@@ -433,10 +479,10 @@ c ---------------------------------------------------------------------------
         if (S.ge.40. .and. pCO2.lt.100.)pCO2=100.
         if (S.le.31. .and. pCO2.gt.800.)pCO2=800.
         if (pCO2 .lt. 100.) pCO2=100.
-!!        if (pCO2 .gt.1000.) pCO2=1000. !@PL change on 07/05/2019
+        if (pCO2 .gt.1000.) pCO2=1000.
 
         if(vrbos)then
-          write(*,'(a,3i5,9e12.4)')
+          write(*,'(a,i8,2i5,9e12.4)')
      .      'carbon: ONLINE',
      .      nstep,i,j,T,S,dic,alk,nitr,sili,pCO2,pH,pnoice
         endif
@@ -555,7 +601,6 @@ c  Computes pCO2 in the surface layer and delta pCO2 with the
 c  atmosphere using OCMIP protocols.
 c
       USE obio_dim, only: ALK_CLIM
-      USE obio_com, only: rho1d !@PL added use statement
 
       implicit none
 
@@ -593,8 +638,7 @@ c
 c  Convert to units for co2calc
        dic_in = dic*1.0E-3  !uM to mol/m3
        if (ALK_CLIM.eq.0) TA = tabar*S/Sbar  !adjust alk for salinity
-!@PL replaced 1024.5 with rho1d
-       ta_in = ta*rho1d(1)*1.0E-6  !uE/kg to E/m3 
+       ta_in = ta*1024.5*1.0E-6  !uE/kg to E/m3
        pt_in = PO4*1.0E-3   !uM to mol/m3
        sit_in = Si*1.0E-3   !uM to mol/m3
        xco2_in = atmco2
@@ -622,7 +666,6 @@ C
      &                  ,phlo,phhi,ph,xco2_in
      &                  ,co2star,pCO2surf)
       USE CONSTANT, only: tf
-      USE obio_com, only: rho1d !@PL added use statement
 C
 C-------------------------------------------------------------------------
 C
@@ -721,7 +764,7 @@ c       where the ocean's mean surface density is 1024.5 kg/m^3
 c       Note: mol/kg are actually what the body of this routine uses 
 c       for calculations.  
 c       ---------------------------------------------------------------------
-        permil = 1.d0 / rho1d(1) !@PL replaced 1024.5d0 with rho1d
+        permil = 1.d0 / 1024.5d0
 c       To convert input in mol/m^3 -> mol/kg 
 
 !       print*,permil,pt_in,sit_in,ta_in,dic_in
@@ -781,24 +824,15 @@ C f = k0(1-pH2O)*correction term for non-ideality
 C
 C Weiss & Price (1980, Mar. Chem., 8, 347-359; Eq 13 with table 6 values)
 C
-c      ff = exp(-162.8301 + 218.2968/tk100  +
-c     & 90.9241*log(tk100) - 1.47696*tk1002 +
-c     & s * (.025695 - .025225*tk100 + 
-c     & 0.0049867*tk1002))
+      ff = exp(-162.8301 + 218.2968/tk100  +
+     & 90.9241*log(tk100) - 1.47696*tk1002 +
+     & s * (.025695 - .025225*tk100 + 
+     & 0.0049867*tk1002))
 C
 C K0 from Weiss 1974
 C
       k0 = exp(93.4517/tk100 - 60.2409 + 23.3585 * log(tk100) +
      & s * (.023517 - 0.023656 * tk100 + 0.0047036 * tk1002))
-
-C solubility from OMIP protocols (Orr et al.m 2017, table 2, GeoSci Mod Dev)
-C to be consistent with TRACER_GASEXCH_CO2
-
-
-      ff = exp(-160.7333d0 + 215.4152d0/tk100  +
-     .          89.8920d0*log(tk100) - 1.47759d0*tk1002 +
-     .          s * (0.029941d0 - 0.027455d0*tk100 +
-     .          0.0053407d0*tk1002))
 
 C
 C------------------------------------------------------------------------
@@ -1002,12 +1036,12 @@ C
       b = x2 + k1*x + k12
       b2=b*b
       db = 2.0*x + k1
-#ifdef TOPAZ_params
+!!#ifdef TOPAZ_params
 #ifdef TRACERS_Alkalinity
 !     print*,'ta_iter_SWS: co3_conc',dic,k12,b
       co3_conc = 2.0*dic*k12/b
 #endif
-#endif
+!!#endif
 C
 C	fn = hco3+co3+borate+oh+hpo4+2*po4+silicate-hfree-hso4-hf-h3po4-ta
 C===========================================================================
@@ -1097,4 +1131,3 @@ C
   100  CONTINUE
       RETURN
       END
-

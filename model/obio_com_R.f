@@ -88,6 +88,7 @@ c
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
      .                 ,alk1d(kdm),flimit(kdm,nchl,5),rho1d(kdm)
+!PLdbg
 #ifdef TRACERS_Ocean_O2
      .                 ,o21d(kdm)   ! oxygen 1d array
      .                 ,abo21d(kdm) ! abiotic oxygen 1d array
@@ -106,6 +107,7 @@ c
       real A_tend(kdm), co3_conc
       real ca_det_calc1d(kdm),Ca_tend(kdm)
 #endif
+!PLdbg
 #ifdef TRACERS_Ocean_O2
       real O_tend(kdm),Abo_tend(kdm) ! oxygen tendency terms
 #endif
@@ -130,6 +132,7 @@ C endif
 
       real :: C_tend(kdm,ncar)                !carbon tendency
       real :: pCO2_ij,pHsfc                   !partial pressure of CO2, pH
+!PLdbg
 #ifdef TRACERS_Ocean_O2
       real :: pO2_ij,pabO2_ij                          !partial presure O2
 #endif
@@ -141,6 +144,7 @@ C endif
       real :: pp2_1d(kdm,nchl)          !net primary production
 
       real*8 :: co2flux
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
      &          ,o2flux
@@ -269,6 +273,7 @@ C endif
      &   ij_rironconc, ij_rpocconc, ij_ralkconc, ij_pp, ij_lim(4,5),
      &   ij_rhs(ntrac,17),ij_pp1, ij_pp2, ij_pp3, ij_pp4, ij_co3,
      &   ij_ph,kobio_ij
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
      &  ,ij_o2,ij_oflx,ij_po2
@@ -286,6 +291,7 @@ C endif
      .                  ,ijl_lim4(nchl)
      .                  ,ijl_lim5(nchl)
      .                  ,ijl_rhs3(ntrac,17)
+!PLdbg
 #ifdef TRACERS_bio_O2
      .                  ,ijl_cprod
      .                  ,ijl_cdet
@@ -737,6 +743,7 @@ c**** Extract domain decomposition info
       use ocn_tracer_com, only: add_ocn_tracer
       use runtimecontrols_mod, only: tracers_alkalinity
       use obio_dim, only: ntrac,nchl,ndet,nnut,ntyp,ndimc
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
      .                   ,no2,ndimo2
@@ -763,7 +770,7 @@ c**** Extract domain decomposition info
 #ifdef TRACERS_Alkalinity
      &      ,'alk_'
 #endif
-
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
      &      ,'o2__'
@@ -813,6 +820,7 @@ c**** Extract domain decomposition info
       if (tracers_alkalinity)
      &  call add_ocn_tracer('Alk       ',i_ntrocn=-6,i_ntrocn_delta=-14,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
         call add_ocn_tracer('O2        ',i_ntrocn=-3,i_ntrocn_delta=-11,
@@ -861,6 +869,7 @@ c**** Extract domain decomposition info
      &              "uM", .false., IJ_doc)
       call add_diag("Surface ocean DIC", "oij_dic",
      &              "uM", .false., IJ_dic)
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
       call add_diag("Surface ocean O2", "oij_o2",
@@ -968,6 +977,7 @@ c**** Extract domain decomposition info
       enddo
 
 !@PL rhs diagnostics when rhsobio is undefined
+!PLdbg
 #ifdef TRACERS_bio_O2
       call add_diag("O2 Nitrate production", "Oprod",
      &              "kg/d", .true., IJL_oprodnit)
@@ -1016,6 +1026,7 @@ c**** Extract domain decomposition info
 #ifdef obio_rhsdiags
       do nt=ndimc, ntrac
        if (nt.eq.ndimc
+!PLdbg
 #ifdef TRACERS_bio_O2
      & .or. nt.eq.ndimo2
 #endif
@@ -1027,6 +1038,7 @@ c**** Extract domain decomposition info
         write(str3, '(A4,A4,I2.2)') rhs_sym(nt), 'rhs3', ll
         if (nt.eq.ndimc) unit_str='kg,C/s'
 !@PL
+!PLdbg
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
         if (nt.eq.ndimo2) unit_str='kg,O/s'

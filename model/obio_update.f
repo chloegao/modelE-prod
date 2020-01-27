@@ -8,7 +8,6 @@ c  leap frog method.
       USE obio_dim
       USE obio_com, only: P_tend,obio_deltat,D_tend,C_tend
      .                   ,obio_P,det,car,dp1d,p1d
-     .                   ,errchk1,errchk2 !@PLdbg added test for NaNs in O2
 #ifdef TRACERS_Alkalinity
      .                   ,A_tend,alk1d
 #ifdef TOPAZ_params
@@ -17,7 +16,7 @@ c  leap frog method.
 #endif
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
-     .                    ,O_tend,o21d
+     .                    ,O_tend,o21d,errchk1,errchk2 !@PLdbg added test for NaNs in O2
 #endif 
 #ifdef TRACERS_abio_O2
      .                   ,Abo_tend,abo21d
@@ -87,13 +86,13 @@ c   in update.F, but P has not been updated yet
 !     .      nstep,i,j,p1d(k),o21d(k),O_tend(k)
 !        endif
 
-      if (ISNAN(o21d(k))) then
-          errchk2=1
-          write(6,'(a,4i7,5e12.4)')'obio_o2(postbionan):',
-     .      nstep,i,j,errchk2,p1d(k),o21d(k),O_tend(k)
-     .      ,car(k,nt),C_tend(k,nt)
+!      if (ISNAN(o21d(k))) then
+!          errchk2=1
+!          write(6,'(a,4i7,5e12.4)')'obio_o2(postbionan):',
+!     .      nstep,i,j,errchk2,p1d(k),o21d(k),O_tend(k)
+!     .      ,car(k,nt),C_tend(k,nt)
 
-        endif
+!        endif
 !@PLdbg
 #endif
 #ifdef TRACERS_abio_O2
