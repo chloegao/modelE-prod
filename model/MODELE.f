@@ -600,7 +600,9 @@ C**** INITIALIZE SOME DIAG. ARRAYS AT THE BEGINNING OF SPECIFIED DAYS
       cMonth = calendar%getCalendarMonth(month=month-1,year=year)
       newmonth = (day_of_year == 1+ cMonth%lastDayInMonth)
       call daily_DIAG(newmonth) ! atmosphere
-      if(newmonth) then         ! ocean
+      if (isBeginningAccumPeriod(modelEClock)) then
+C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
+        call reset_ADIAG(0)
         call reset_ODIAG(0)
 #ifndef STANDALONE_OCEAN
         call reset_glaacc
