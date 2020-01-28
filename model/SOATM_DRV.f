@@ -2187,9 +2187,6 @@ C**** AND ICE FRACTION CAN THEN STAY CONSTANT UNTIL END OF TIMESTEP
       subroutine daily_diag(newmonth)
       implicit none
       logical, intent(in) :: newmonth
-      if ( newmonth ) then
-        call reset_ADIAG(0)
-      end if
       return
       end subroutine daily_diag
 
