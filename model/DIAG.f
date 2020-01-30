@@ -5882,8 +5882,7 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       USE FILEMANAGER
       USE CONSTANT, only : undef
       USE RESOLUTION, only : im,jm
-      USE MODEL_COM, only : aMON,Jmon0,Jyear0,NMONAV,
-     &                      modelEclock, calendar
+      USE MODEL_COM, only : aMON,modelEclock,calendar
       use TimeConstants_mod, only: INT_MONTHS_PER_YEAR
       USE ATM_COM, only : kradia,iu_rad
       USE FLUXES, only : focean
@@ -5902,7 +5901,6 @@ C**** Set conservation diagnostics for ice mass, energy, salt
       IMPLICIT NONE
       logical, intent(in) :: newmonth
       character(len=16) :: aDate
-      integer :: months
       INTEGER I,J
       INTEGER :: J_0, J_1, I_0,I_1
       integer year, month, dayOfYear
@@ -6011,19 +6009,14 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY MONTH
           call closeunit( iu_RAD )
           call openunit(trim('RAD'//aDATE(1:7)),iu_RAD,.true.,.false.)
         end if
-C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
-        months=(year-Jyear0)*12 + month-JMON0 ! 12=months_in_year
-        if ( months.ge.NMONAV ) then
-          call reset_ADIAG(0)
-          if (Kvflxo.ne.0) then
-            call closeunit( iu_VFLXO )
-            call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
-          end if
+        if (Kvflxo.ne.0) then
+          call closeunit( iu_VFLXO )
+          call openunit('VFLXO'//aDATE(1:7),iu_VFLXO,.true.,.false.)
+        end if
 #ifndef CACHED_SUBDD
 C**** reset sub-daily diag files
-          call reset_subdd(aDATE)
+        call reset_subdd(aDATE)
 #endif
-        end if                  !  beginning of acc.period
       end if                    !  beginning of month
 
       END SUBROUTINE daily_DIAG

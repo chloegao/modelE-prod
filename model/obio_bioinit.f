@@ -78,7 +78,10 @@
 !@PL var O2sat O2 at equilibrium with atmosphere 
 
       real*8 :: ta2,ta3,ta4,ta5,ksol,xo2,ps,ps2,SLP,
-     &        tk100,O2sat,pH2O
+     &        tk100,pH2O
+#ifdef TRACERS_Ocean_O2
+     &        ,O2sat
+#endif
       integer nir(nrg),nt,I_0,I_1,J_0,J_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
@@ -260,7 +263,7 @@ c    conversion from uM to mg/m3
           tracer(i,j,k,ntyp+ndet+ncar+nalk+no2) = 0.d0
 #endif
 #ifdef TRACERS_abio_O2
-          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2+nabo2) = 0.d0
+          tracer(i,j,k,ndimabo2) = 0.d0
 #endif
           ta(i,j,k) = 0.d0
           O2SAT0(i,j,k) = 0.d0
@@ -271,18 +274,20 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
+      !PLdbg
       do j=j_0,j_1
        do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
           tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
-     .       * r3d(k,i,j) * 0.001                               ! convert micromole/kg to mili-mol/m3
+     .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
 !initialize abioDIC
 !@PL changed 1024.5 to r3d(k,i,j)
+!PLdbg
       if (n_abioDIC.ne.0) 
      .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
      .                          * 1.d-06 *
-     .                          12.d0*MO(I,J,K)*DXYPO(J)/r3d(k,i,j)
+     .                          12.d0*MO(I,J,K)*DXYPO(J)/1024.5
 #ifdef TRACERS_Ocean_O2
 !@PL          !oxygen   
 !@PL sum: initialize abiotic O2 with values at equlibrium with atmosphere at all depths, biotic O2 wit GLODAPv2
@@ -320,6 +325,7 @@ c     .           4.8489d0*log(1.d0/tk100)
 c     .        - (0.000544d0 * s3d(1,i,j)*1000.d0)) !@PL water vapor pres used in correction term, units: atm
 c#endif
 c        Ksol = O2SAT0(i,j,k) / (xO2*((stdslp/1013.25d0)-pH2O)) !@PL units: mmol/kg/atm
+!!turn debug comments off here
         call init_abo2(t3d(k,i,j),s3d(k,i,j),oAPRESS(i,j)
      &           ,ocnatm%QSAVG(i,j),O2sat)   !@PL mmol/kg 
 

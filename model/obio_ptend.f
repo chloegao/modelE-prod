@@ -50,7 +50,7 @@ c  P(9) = herbivores (mg chl m-3)
       implicit none
 
       integer,intent(in) :: kdm,nstep,n_co2n,n_abioDIC,num_tracers
-      real, intent(in) :: dts,mmo,ddxypo,SDIC(num_tracers)
+      real, intent(in) :: dts,mmo,ddxypo,SDIC!(num_tracers) PLdbg
 
       integer i,j,k,kto
       integer nt,kmax
