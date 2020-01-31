@@ -2504,24 +2504,36 @@ C****
      .         * dtsurf/dtsrc      !in order to accumulate properly over time
      .         * (1.d0-RSI)   !units mol,co2/m2/s
 
-! trsrfflx is positive up
+
+
+! trsrfflx is positive up 
 ! units are kg,CO2/s
             atmocn%trsrfflx(n,i,j)=atmocn%trsrfflx(n,i,j)
      .         - term * 1.0d6/vol2mass(n)
      .         * tr_mm(n)*1.0d-3        !units kg,co2/m2/s
 
 ! tracer diag versions
-            if (MODDSF.EQ.0) THEN
+
+! gas exchange, in mol/m2/yr
+! CO2 fluxes must not be inside MODDSF, and must be multiplied by dtsurf/dtsrc statement to accumulate correctly.
+                taijs(i,j,ijts_gasex(3,n)) = taijs(i,j,ijts_gasex(3,n))
+     .             + term * 1d6/vol2mass(n)
+     .               * dtsurf/dtsrc   !in order to accumulate properly over time
+     .               * ptype *SECONDS_PER_YEAR        ! mol/m2/yr
+
 ! gas exchange in kg,co2
             taijs(i,j,ijts_isrc(1,n))=taijs(i,j,ijts_isrc(1,n))
      .         - term * 1.0d6/vol2mass(n)
-     .         * tr_mm(n)*1.0d-3* ptype* axyp(i,j) * dtsurf      !kg,co2
+     .         * tr_mm(n)*1.0d-3 * ptype * axyp(i,j) * dtsurf      !kg,co2
 
 ! zonal mean diag accumulates kgCO2
                 if (jls_isrc(1,n)>0) call inc_tajls(i,j,1,jls_isrc(1,n),
      .             - term
      .           * 1d6/vol2mass(n) * dtsurf
-     .           * ptype*tr_mm(n)*1d-3*axyp(i,j))
+     .           *  ptype *tr_mm(n)*1d-3*axyp(i,j))
+
+
+            if (MODDSF.EQ.0) THEN
 
 ! piston velocity
                   taijs(i,j,ijts_gasex(1,n))=taijs(i,j,ijts_gasex(1,n))
@@ -2529,13 +2541,8 @@ C****
 ! solubility mol/m3/uatm
                   taijs(i,j,ijts_gasex(2,n))=taijs(i,j,ijts_gasex(2,n))
      .               + pbl_args%alpha_gas(ngx) * focean(i,j)
-! gas exchange, in mol/m2/yr
-                taijs(i,j,ijts_gasex(3,n)) = taijs(i,j,ijts_gasex(3,n))
-     .             + term
-     .           * 1d6/vol2mass(n)
-     .           * dtsurf/dtsrc   !in order to accumulate properly over time
-     .           * ptype * SECONDS_PER_YEAR        ! mol/m2/yr
-            endif
+          endif
+
           endif
         END DO
       END IF   !only over ocean

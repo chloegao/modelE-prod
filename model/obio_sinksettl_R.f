@@ -8,6 +8,9 @@
      .                   ,obio_P,det,car
      .                   ,dp1d,wsdet,p1d,obio_ws
      .                   ,rhs,cexp,kzc
+#ifdef TRACERS_degC
+     .                   ,ndegC1d,Ndeg_tend,cexpdeg !@PL
+#endif
       use TimeConstants_mod, only: HOURS_PER_DAY, DAYS_PER_YEAR,
      &                             SECONDS_PER_HOUR
 
@@ -88,7 +91,53 @@
          rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
        endif
 #endif
+
+#ifdef detr_allsink
+!let detritus that reaches the bottom, disappear in the sediment
+         k = kmax
+         trnd = det(k,nt)*wsdet(k,nt)
+         D_tend(k,nt)   = D_tend(k,nt)   - trnd/dp1d(k)
+         rhs(k,nnut+nchl+nzoo+nt,16)= - trnd/dp1d(k)
+#endif
       enddo ! nt
+
+!@PL apply detrital sinking to nondegradable carbon
+#ifdef TRACERS_deg
+        do k=1,kmax
+        rhs(k,ndimndegC,16) = 0.
+        enddo
+        do k = 1,kmax-1
+         trnd = ndegC1d(k)*wsdet(k,1)
+         Ndeg_tend(k) = Ndeg_tend(k) - trnd/dp1d(k  )
+         Ndeg_tend(k+1) = Ndeg_tend(k+1) + trnd/dp1d(k+1)
+
+         rhs(k  ,ndimndegC,16)= rhs(k  ,ndimndegC,16)
+     .                                - trnd/dp1d(k  )
+         rhs(k+1,ndimndegC,16)= rhs(k+1,ndimndegC,16)
+     .                                + trnd/dp1d(k+1)
+
+        enddo  ! k     
+
+#ifdef detr_estuarysink
+!let detritus that reaches the bottom, disappear in the sediment
+       if (dp1d(kmax).le.150.0d0) then
+         k = kmax
+         trnd = ndegC1d(k)*wsdet(k,1)
+         Ndeg_tend(k)   = Ndeg_tend(k)   - trnd/dp1d(k)
+         rhs(k,ndimndegC,16)= - trnd/dp1d(k)
+       endif
+#endif
+
+!@PL make entire ocean floor a sink
+
+#ifdef detr_allsink
+!let detritus that reaches the bottom, disappear in the sediment
+         k = kmax
+         trnd = ndegC1d(k)*wsdet(k,1)
+         Ndeg_tend(k)   = Ndeg_tend(k)   - trnd/dp1d(k)
+         rhs(k,ndimndegC,16)= - trnd/dp1d(k)
+#endif
+#endif 
  
       sumD=sum(D_tend(1:kmax,1)*dp1d(1:kmax))
       sumDdiff=sumD-sumD1
@@ -120,5 +169,23 @@
      .        * HOURS_PER_DAY * DAYS_PER_YEAR
      .        * 1.d-15 *1.d-3                 
      &        * ddxypo               !ugC/l -> PgC/yr
+#ifdef TRACERS_degC
+!@PL term3 : settling on nondegradable carbon contribution
+! only use sinking speed for detrital carbon
+        cexp = cexp
+     .        + ndegc1d(k)*wsdet(k,nt)
+     .        * SECONDS_PER_HOUR     !Jan 2020
+     .        * HOURS_PER_DAY * DAYS_PER_YEAR
+     .        * 1.d-15 *1.d-3
+     &        * ddxypo               !ugC/l -> PgC/yr
+
+        cexpdeg = 0
+        cexpdeg = cexpdeg
+     .        + ndegc1d(k)*wsdet(k,nt)
+     .        * SECONDS_PER_HOUR     !July 2020
+     .        * HOURS_PER_DAY * DAYS_PER_YEAR
+     .        * 1.d-15 *1.d-3
+     &        * ddxypo               !ugC/l -> PgC/yr
+#endif
    
       end subroutine obio_sinksettl

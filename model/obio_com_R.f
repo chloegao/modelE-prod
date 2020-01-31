@@ -84,6 +84,9 @@ c
 
 ! reduced rank arrays for obio_model calculations
       real cexp, caexp
+#ifdef TRACERS_degC
+      real cexpdeg
+#endif
       real temp1d(kdm),dp1d(kdm),obio_P(kdm,ntyp)
      .                 ,det(kdm,ndet),car(kdm,ncar),avgq1d(kdm)
      .                 ,gcmax1d(kdm),saln1d(kdm),p1d(kdm+1)
@@ -92,6 +95,9 @@ c
 #ifdef TRACERS_Ocean_O2
      .                 ,o21d(kdm)   ! oxygen 1d array
      .                 ,abo21d(kdm) ! abiotic oxygen 1d array
+#endif
+#ifdef TRACERS_degC
+     .                 ,ndegC1d(kdm) !@PL nondegradable carbon 1d array
 #endif
       real rho_water
       real atmFe_ij,covice_ij
@@ -113,6 +119,9 @@ c
 #endif
       real rmuplsr(kdm,nchl)                  !growth+resp 
       real D_tend(kdm,ndet)                   !detrtial tendency
+#ifdef TRACERS_degC
+      real Ndeg_tend(kdm)                     !nondegradable C tendency
+#endif 
       real obio_ws(kdm+1,nchl)                !phyto sinking rate
       real tfac(kdm)                          !phyto T-dependence
       real pnoice(kdm)                        !pct ice-free
@@ -281,6 +290,9 @@ C endif
 #ifdef TRACERS_abio_O2
      &  ,ij_abo2,ij_aboflx,ij_pabo2
 #endif
+#endif
+#ifdef TRACERS_degC
+     &  ,ij_degC,ij_cexpdeg
 #endif
       integer, public :: ijl_avgq, ijl_kpar,ijl_kpar_em2d,ijl_dtemp
      .                  ,ijl_wss(nchl),ijl_wsdet(ndet)
@@ -778,8 +790,9 @@ c**** Extract domain decomposition info
 #ifdef TRACERS_abio_O2
      &      ,'abo2'
 #endif
-
-
+#ifdef TRACERS_degC   
+     &      ,'ndeg' !@PL nondegradable carbon (currently labeled as nitrogen, but is actually carbon)
+#endif
 #endif
      &           /)
 
@@ -830,6 +843,10 @@ c**** Extract domain decomposition info
         call add_ocn_tracer('abO2      ',i_ntrocn=-3,i_ntrocn_delta=-11,
      &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #endif
+#endif
+#ifdef TRACERS_degC
+      call add_ocn_tracer('Nndeg     ', i_ntrocn=-6, i_ntrocn_delta=-14,
+     &                 i_con_point_idx=con_idx, i_con_point_str=con_str)
 #endif
 #ifdef TOPAZ_params
       call add_diag("co3 ", "oij_co3",
@@ -898,6 +915,12 @@ c**** Extract domain decomposition info
      &              "PgC/yr", .false., IJ_cexp)
       call add_diag("N/C detritus at 74m", "oij_ndet",
      &              "ugC/l", .false., IJ_ndet)
+#ifdef TRACERS_degC
+      call add_diag("deg C export flux at comp. depth", "oij_cexd", !degradable carbon flux
+     &              "PgC/yr", .false., IJ_cexpdeg)
+      call add_diag("N/C deg detritus at 74m", "oij_degC", ! degradable cabron at  74m
+     &              "ugC/l", .false., IJ_degC)
+#endif
       call add_diag("settlvel n/cdet at 74m", "oij_setl",
      &              "m/s", .false., IJ_setl)
       call add_diag("sink vel phytopl at 74m", "oij_sink",

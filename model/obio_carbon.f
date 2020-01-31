@@ -22,6 +22,7 @@ c
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d,trmo_unit_factor
+     .                    ,rho1d,dicresp,docbac          !@PL added rho1d,docbac,dicresp
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
 #endif
@@ -62,8 +63,8 @@ c
 
       integer :: nt,kmax
       real  :: rmmzoo,docexcz,rndep,docdep
-      real  :: docbac,docdet,dicresz,sumdoc,sumutk,sumres,totgro
-      real  :: docexcp(nchl),dicresp(nchl),scco2,scco2arg,wssq,rkwco2
+      real  :: docdet,dicresz,sumdoc,sumutk,sumres,totgro
+      real  :: docexcp(nchl),scco2,scco2arg,wssq,rkwco2
       real  :: Ts,tk,tk100,tk1002,ff,xco2,deltco2,flxmolm3,flxmolm3h
       real  :: gro(kdm,nchl)
       real term,sdic_uM,pCO2_abio,dummy
@@ -88,6 +89,8 @@ c
 !change: March 15, 2010
 !       cchlratio = bn*cnratio
 !       mgchltouMC = cchlratio/uMtomgm3
+
+
 
         !---------------------------------------------------------------
         !DOC
@@ -116,7 +119,7 @@ c
 
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
-        docbac = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
+        docbac(k) = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
 !!!!    term = (docexcz*mgchltouMC
@@ -130,7 +133,7 @@ c
         C_tend(k,1) = C_tend(k,1) + term
 
 
-        term = -docbac           *pnoice(k)
+        term = -docbac(k)*pnoice(k)
         rhs(k,13,14) = term
         C_tend(k,1) = C_tend(k,1) + term
 
@@ -156,7 +159,7 @@ c
         rhs(k,14,15) = term
         C_tend(k,2) = C_tend(k,2) + term
 
-        term = docbac * pnoice(k)
+        term = docbac(k) * pnoice(k)
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
      
@@ -372,7 +375,7 @@ c Update DIC for sea-air flux of CO2
      .            obio_P(1,1),obio_P(1,3),pnoice(1),
      .            pCO2_abio,dummy,vrbos)
 
-        deltco2 = (xco2-pCO2_abio)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+        deltco2 = (xco2-pCO2_abio)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
 
@@ -418,7 +421,7 @@ c Update DIC for sea-air flux of CO2
 
 
         xco2 = atmCO2*1013.D0/stdslp
-        deltco2 = (xco2-pCO2_ij)*ff*1024.5*1d-6 !convert ff mol/m3/uatm
+        deltco2 = (xco2-pCO2_ij)*ff*rho1d(k)*1d-6 !convert ff mol/m3/uatm
         flxmolm3 = (rkwco2*deltco2/dp1d(k))   !units of mol/m3/s
 !       flxmolm3h = flxmolm3*SECONDS_PER_HOUR !units of mol/m3/hr       July 2016
         term = flxmolm3*1000.D0*pnoice(k)    !units of uM/s (=mili-mol/m^3/s)
@@ -638,7 +641,7 @@ c
 c  Convert to units for co2calc
        dic_in = dic*1.0E-3  !uM to mol/m3
        if (ALK_CLIM.eq.0) TA = tabar*S/Sbar  !adjust alk for salinity
-       ta_in = ta*1024.5*1.0E-6  !uE/kg to E/m3
+       ta_in = ta*1024.5d0*1.0E-6  !uE/kg to E/m3
        pt_in = PO4*1.0E-3   !uM to mol/m3
        sit_in = Si*1.0E-3   !uM to mol/m3
        xco2_in = atmco2

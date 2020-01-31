@@ -23,16 +23,20 @@
  
       USE FILEMANAGER, only: openunit,closeunit
 
+
       USE CONSTANT, only: tf
 
       USE obio_dim
       USE obio_incom
       USE obio_forc, only: avgq
       USE obio_com, only: gcmax, tracer
+
 !@PL 
       USE OFLUXES, only: oAPRESS,ocnatm
+
+      use ocean, only : t3d,s3d,r3d 
 !@PL
-      use ocean, only : t3d,s3d,r3d
+ 
       use obio_com, only: ze
       use bio_inicond_mod, only : bio_inicond
       USE DOMAIN_DECOMP_1D, only : AM_I_ROOT ,DIST_GRID
@@ -78,10 +82,7 @@
 !@PL var O2sat O2 at equilibrium with atmosphere 
 
       real*8 :: ta2,ta3,ta4,ta5,ksol,xo2,ps,ps2,SLP,
-     &        tk100,pH2O
-#ifdef TRACERS_Ocean_O2
-     &        ,O2sat
-#endif
+     &        tk100,O2sat,pH2O
       integer nir(nrg),nt,I_0,I_1,J_0,J_1
 
       integer, ALLOCATABLE, DIMENSION(:,:)   :: ir
@@ -240,10 +241,16 @@ c  Detritus (set to 0 for start up)
              tracer(i,j,k,ntyp+1) = 0.0
              tracer(i,j,k,ntyp+2) = 0.0
              tracer(i,j,k,ntyp+3) = 0.0
+!@PL nondegradable carbon
+#ifdef TRACERS_degC
+             tracer(i,j,k,ndimndegC) = 0.0
+#endif
           endif
          enddo
         enddo
       enddo
+
+
 
 c  Carbon (set to 0 for start up)
 c   DIC is derived from GLODAP.  Using mean H from exp601,
@@ -263,7 +270,7 @@ c    conversion from uM to mg/m3
           tracer(i,j,k,ntyp+ndet+ncar+nalk+no2) = 0.d0
 #endif
 #ifdef TRACERS_abio_O2
-          tracer(i,j,k,ndimabo2) = 0.d0
+          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2+nabo2) = 0.d0
 #endif
           ta(i,j,k) = 0.d0
           O2SAT0(i,j,k) = 0.d0
@@ -274,20 +281,18 @@ c    conversion from uM to mg/m3
       enddo
 
       !only carbon components
-      !PLdbg
       do j=j_0,j_1
        do i=i_0,i_1
          if (ip(i,j)==0) cycle
          do k = 1,kdm
           tracer(i,j,k,ntyp+ndet+2) = dic(i,j,k)
-     .       * 1024.5 * 0.001                               ! convert micromole/kg to mili-mol/m3
+     .       * 1024.5d0 * 0.001                               ! convert micromole/kg to mili-mol/m3
 !initialize abioDIC
 !@PL changed 1024.5 to r3d(k,i,j)
-!PLdbg
       if (n_abioDIC.ne.0) 
      .    trmo(i,j,k,n_abioDIC) = tracer(i,j,k,ntyp+ndet+2)  ! mili-mol/m3
      .                          * 1.d-06 *
-     .                          12.d0*MO(I,J,K)*DXYPO(J)/1024.5
+     .                          12.d0*MO(I,J,K)*DXYPO(J)/1024.5d0
 #ifdef TRACERS_Ocean_O2
 !@PL          !oxygen   
 !@PL sum: initialize abiotic O2 with values at equlibrium with atmosphere at all depths, biotic O2 wit GLODAPv2
@@ -325,7 +330,6 @@ c     .           4.8489d0*log(1.d0/tk100)
 c     .        - (0.000544d0 * s3d(1,i,j)*1000.d0)) !@PL water vapor pres used in correction term, units: atm
 c#endif
 c        Ksol = O2SAT0(i,j,k) / (xO2*((stdslp/1013.25d0)-pH2O)) !@PL units: mmol/kg/atm
-!!turn debug comments off here
         call init_abo2(t3d(k,i,j),s3d(k,i,j),oAPRESS(i,j)
      &           ,ocnatm%QSAVG(i,j),O2sat)   !@PL mmol/kg 
 
@@ -338,7 +342,7 @@ c        Ksol = O2SAT0(i,j,k) / (xO2*((stdslp/1013.25d0)-pH2O)) !@PL units: mmol
 !@PLtest
 !@PL         print * , '#biotracers = ',ntrac
 !@PLtest
-
+  
 #endif
 
 
@@ -429,7 +433,7 @@ c  Coccolithophore max growth rate
 !@PL var pH2O  air humidity (atm)
 !@PL var Ksol  solubility constant (mmol/kg/atm)
 !@PL var O2sat O2 at equilibrium with atmosphere 
-!@PL Ts is placeholder !
+!@PL t is temperature (deg C), s is salinity (psu) !
       ta = log((298.15d0-t)/(t + tf)) !@PL scaled T from Garcia and Gordon, 1992
       ta2 = ta*ta
       ta3 = ta2*ta

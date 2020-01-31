@@ -59,6 +59,9 @@
      .                    ,abo21d,pabO2_ij
 #endif
 #endif
+#ifdef TRACERS_degC
+     .                    ,ndegC1d,cexpdeg
+#endif
 #ifdef OBIO_RUNOFF
      .                    ,rnitrconc_loc,rdicconc_loc,rdocconc_loc
      .                    ,rsiliconc_loc,rironconc_loc,rpocconc_loc
@@ -91,6 +94,9 @@
 #ifdef TRACERS_abio_O2
      .                 ,ij_abo2,ij_aboflx,ij_pabo2
 #endif
+#endif
+#ifdef TRACERS_degC
+     .                 ,ij_degC,ij_cexpdeg
 #endif
 #ifdef OBIO_RUNOFF
      .                 ,ij_rnitrconc !,ij_rnitrmflo
@@ -214,6 +220,9 @@
 #ifdef TRACERS_abio_O2
      &     ,32.
 #endif
+#endif
+#ifdef TRACERS_degC
+     &     ,14.     !ndet, nondegradable detritus
 #endif
      &      /)
 
@@ -603,6 +612,12 @@ c
          if (nt.eq.ntyp+1)
      .          trmo_unit_factor(k,nt) =  1d-6 *1d-3/1d-3                 ! micro-grC/lt -> kg/m3
      .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+#ifdef TRACERS_degC
+         !nondegradable carbon
+         if (nt.eq.ndimndegC)
+     .          trmo_unit_factor(k,nt) =  1d-6 *1d-3/1d-3                 ! micro-grC/lt -> kg/m3
+     .                      *  MO(I,J,k)*DXYPO(J)/rho_water               ! kg/m3 => kg
+#endif
 
          !phyto and zooplankton
          if (nt.ge.nnut+1.and.nt.le.ntyp) 
@@ -654,6 +669,17 @@ c
 #endif
           endif
 #endif
+
+#ifdef restart_degC
+          if (.not.initialized) then
+#ifdef TRACERS_degC
+          if (nt.eq.ndimndegC) then
+             tracer(i,j,k,nt) = 0 !@PL initalize nondegradable carbon as 0
+          endif
+#endif
+          endif
+#endif
+
 
          enddo
 
@@ -725,6 +751,10 @@ c
          do nt=1,ncar
            car(k,nt)=tracer(i,j,k,ntyp+ndet+nt)
          enddo
+
+#ifdef TRACERS_degC
+         ndegC1d(k) = tracer(i,j,k,ndimndegC)
+#endif
        enddo  !k=1,kdm or lmm
 
 !@PL prescribe surface o2
@@ -793,6 +823,9 @@ cdiag write(*,'(a,4i5)')'nstep,i,j,kmax= ',nstep,i,j,kmax
        do nt=1,ncar
         car(k,nt)=   car(kmax,nt)
        enddo
+#ifdef TRACERS_degC
+      ndegC(k) = ndegC(kmax,nt)
+#endif
       enddo
 #endif
 
@@ -1353,6 +1386,9 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
          tracer(i,j,k,ntyp+ndet+ncar+nalk+no2+nabo2)=abo21d(k)
 #endif
 #endif
+#ifdef TRACERS_degC
+        tracer(i,j,k,ndimndegC) = ndegC1d(k)
+#endif
         !update avgq and gcmax arrays
         avgq(i,j,k)=avgq1d(k)
         OIJL(I,J,k,IJL_avgq)= OIJL(I,J,k,IJL_avgq) + avgq1d(k)
@@ -1469,6 +1505,11 @@ c     call obio_chkbalances(vrbos,nstep,i,j)
 
        OIJ(I,J,IJ_cexp) = OIJ(I,J,IJ_cexp) + cexp             ! export production
        OIJ(I,J,IJ_ndet) = OIJ(I,J,IJ_ndet) + tracer(i,j,kzc,10) ! ndet at zc
+#ifdef TRACERS_degC
+     .                 + tracer(i,j,kzc,ndimndegC)
+       OIJ(I,J,IJ_cexpdeg) = OIJ(I,J,IJ_cexpdeg) + cexpdeg  ! export production of degradable carbon
+       OIJ(I,J,IJ_degC) = OIJ(I,J,IJ_degC) + tracer(i,j,kzc,10) ! degradable C at zc
+#endif
        OIJ(I,J,IJ_setl)= OIJ(I,J,IJ_setl)+ wsdet(kzc,1)          ! settl vel. n/cdet at kzc
        OIJ(I,J,IJ_sink)= OIJ(I,J,IJ_sink)+ obio_ws(kzc,1)        ! sink. vel. phytoplankton
        if (kzc<=kmax) then

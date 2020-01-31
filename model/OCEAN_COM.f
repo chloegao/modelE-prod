@@ -383,6 +383,11 @@ C****
       use ocean, only : ntrtrans,asmu,asmv,asmw,motr,mosv0
 #endif
 
+!@PL
+#ifdef TRACERS_OceanBiology
+      use MODEL_COM, only:ndisk,nssw,itimee,nday 
+#endif
+
       IMPLICIT NONE
 
       INTEGER :: IER
@@ -523,6 +528,19 @@ C**** Necessary initiallisation?
       allocate( motr(im,j_0h:j_1h,lmo), stat = ier)
       motr = 0.
       call sync_param('ocean_ntrtrans',ntrtrans)
+#ifdef TRACERS_OceanBiology
+        if (mod(nday,ntrtrans).gt.0)
+     .  call stop_model('ntrtrans must divide nday',255)
+
+        if (mod(ndisk,ntrtrans).gt.0) 
+     .  call stop_model('ndisk must be a multiple of ntrtrans',255)
+
+        if (mod(nssw,ntrtrans).gt.0) 
+     .  call stop_model('nssw must be a multiple of ntrtrans',255)
+
+        if (mod(itimee,ntrtrans).gt.0) 
+     .  call stop_model('houre*2 must be a multiple of ntrtrans',255)
+#endif
       if(ntrtrans.gt.1) then
 #ifdef TRACERS_SPECIAL_O18
 ! Salt/freshwater are not (yet) transported on the ntrtrans schedule.  Full
