@@ -1,18 +1,20 @@
+# This config file assumes that Intel MPI is loaded as a shell module. 
+# It may need some updates if one wants to specify its location
+# with "MPIDIR".
 
-#LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
-#-lfmpi -lmpi -lstdc++ -threads
+MPIRUN=$(shell which mpirun)
 
-ifeq ($(IFORT_RELEASE),9.1)
-LIBS += -lcprts -limf -lm -lcxa -lunwind -lrt -ldl \
--lmpiif -lmpi -lstdc++ -threads
-else
-#LIBS += -limf -lm -lrt -ldl \
-#-lmpiif -lmpi_mt -lstdc++ -threads
-LIBS += -lmpigf -lmpi -lmpigi -ldl -lrt -lpthread
+ifeq ($(MPIRUN),)
+  $(error No MPI modules loaded)
 endif
 
-#-lmpigf -lmpi -lstdc++ -threads
+VER := $(subst ., ,$(word 8,$(shell $(MPIRUN) --version 2>&1)))
+VER_MAJOR := $(word 1,$(VER))
+VER_MINOR := $(word 2,$(VER))
 
-
-#LIBS +=  -lmpi -lmpigc3 -lmpigc4 -lmpigf -lmpigi -lmpiic4 -lmpiic -lmpiif -threads
+ifneq (,$(filter 2019,$(VER_MAJOR)))
+LIBS += -lmpifort -lmpi -lrt -lpthread
+else
+LIBS += -lmpigf -lmpi -lmpigi -ldl -lrt -lpthread
+endif
 
