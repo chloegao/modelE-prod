@@ -316,7 +316,7 @@
       USE OCEAN, only : oDLATM=>DLATM
 #endif
 #ifdef TRACERS_OCEAN
-      use model_com, only : nday,nssw
+      use model_com, only : nday,nssw,ndisk,itimee
       use ocean, only : ntrtrans,motr
       Use OCEAN, Only: oc_tracer_mean
       Use OCN_TRACER_COM, Only: tracerlist, ocn_tracer_entry
@@ -817,6 +817,15 @@ c-------------------------------------------------------------------
       ! partial mass flux accumulations in the restart file.
       if(mod(nssw,ntrtrans).ne.0) then
         call stop_model('mod(nssw,ntrtrans).ne.0',255)
+      endif
+
+!@PL
+      if (mod(itimee,ntrtrans).ne.0) then
+       call stop_model('houre*2 must be a multiple of ntrtrans',255)
+      endif
+
+      if (mod(ndisk,ntrtrans).ne.0) then
+       call stop_model('ndisk must be a multiple of ntrtrans',255)
       endif
 #endif
 
