@@ -17,12 +17,15 @@ c
       USE obio_incom, only : cnratio,rlamdoc,rkdoc1,rkdoc2
      .                      ,rlampoc,uMtomgm3,Pzo,stdslp
      .                      ,excz,resz,remin,excp,resp,bn,cchlratio
-     .                      ,mgchltouMC,bf
+     .                      ,mgchltouMC,bf,NCrrat,HvO2,O2thr
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : C_tend,obio_P,P_tend,car
      .                    ,tfac,det,D_tend,tzoo,pnoice,pCO2_ij,pHsfc
      .                    ,temp1d,saln1d,dp1d,rhs,alk1d,trmo_unit_factor
      .                    ,rho1d,dicresp,docbac          !@PL added rho1d,docbac,dicresp
+#ifdef TRACERS_bio_O2
+     .                    ,o21d
+#endif
 #ifdef TRACERS_Alkalinity
       use obio_com, only: co3_conc
 #endif
@@ -91,6 +94,19 @@ c
 !       mgchltouMC = cchlratio/uMtomgm3
 
 
+!@PL ratio of o2/nitrate remineralization
+!@PL define delta function for O2
+         NCrrat = 1.d0
+         HvO2 = 1.d0
+#ifdef TRACERS_bio_O2
+        if (o21d(k).le.O2thr) then
+         NCrrat = 0.4d0
+         HvO2 = 0.d0
+        else
+         NCrrat = 1.d0
+         HvO2 = 1.d0
+        endif
+#endif
 
         !---------------------------------------------------------------
         !DOC
@@ -119,7 +135,7 @@ c
 
         rndep = rlamdoc*(obio_P(k,1)/(rkdoc1 + obio_P(k,1)))
         docdep = car(k,1)/(rkdoc2+car(k,1))
-        docbac(k) = tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
+        docbac(k) = NCrrat*tfac(k)*rndep*docdep*car(k,1)   !bacterial loss DOC
         docdet = tfac(k)*rlampoc*det(k,1)        !detrital production DOC
 
 !!!!    term = (docexcz*mgchltouMC
@@ -150,7 +166,7 @@ c
 
         !---------------------------------------------------------------
         !DIC
-        dicresz = tzoo*resz*obio_P(k,ntyp) !zoopl production DIC (resp)
+        dicresz = tzoo*HvO2*resz*obio_P(k,ntyp) !zoopl production DIC (resp)
         term = - dicresz*pnoice(k)
         rhs(k,ntyp,15) =  term
         P_tend(k,ntyp) = P_tend(k,ntyp) + term
@@ -163,7 +179,7 @@ c
         rhs(k,14,14) = term
         C_tend(k,2) = C_tend(k,2) + term
      
-        term = tfac(k)*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
+        term = tfac(k)*NCrrat*remin(1)*det(k,1)/uMtomgm3 * pnoice(k)
         rhs(k,14,10) = term
         C_tend(k,2) = C_tend(k,2) + term
 

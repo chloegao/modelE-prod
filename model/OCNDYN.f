@@ -820,9 +820,9 @@ c-------------------------------------------------------------------
       endif
 
 !@PL
-      if (mod(itimee,ntrtrans).ne.0) then
-       call stop_model('houre*2 must be a multiple of ntrtrans',255)
-      endif
+!      if (mod(itimee,ntrtrans).ne.0) then
+!       call stop_model('houre*2 must be a multiple of ntrtrans',255)
+!      endif
 
       if (mod(ndisk,ntrtrans).ne.0) then
        call stop_model('ndisk must be a multiple of ntrtrans',255)

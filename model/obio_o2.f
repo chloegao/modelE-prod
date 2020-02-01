@@ -12,7 +12,7 @@
      .                      ,rlampoc,uMtomgm3,Pzo,stdslp
      .                      ,excz,resz,remin,excp,resp,bn,cchlratio
      .                      ,mgchltouMC,bf,ko2,HvO2,O2thr
-     .                      ,ro2c_DET,ro2c_NH4,ro2c_NO3
+     .                      ,ro2c_DET,ro2c_NH4,ro2c_NO3,NCrrat
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : obio_P,P_tend
      .                    ,tfac,det,D_tend,tzoo,pnoice,pHsfc
@@ -94,7 +94,7 @@
 
          
 !O2 RRR  O2 tracer index == 15??
-        o2resz = HvO2*ro2c_DET*tzoo*resz*obio_P(k,ntyp) !zoopl O2 consump (resp)
+        o2resz =HvO2*ro2c_DET*tzoo*resz*obio_P(k,ntyp) !zoopl O2 consump (resp)
         term = o2resz*mgchltouMC * pnoice(k)/rho1d(k) !@PL mg/(m3 s) -> mmol/(kg s)
         rhs(k,ndimo2,15) = term
         termb1(k)=term

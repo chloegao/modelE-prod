@@ -45,7 +45,7 @@
       
       real :: Fescavrate(2)       !scavenging rate for dissolved iron
       real:: HvO2                !@PL dirac delta function for O2 consumption processes
-
+      real:: NCrrat              !@PL ratio of anaerobioc/aerobic remin
 C if CARBON == 1
       real, parameter :: excp=0.05              !excretion of DOC by phyto growth
       real, parameter :: resp=0.05              !respiration of DIC by phyto growth
