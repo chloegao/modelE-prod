@@ -270,6 +270,9 @@ C**** TAIJLS 3D special tracer diagnostics
 #ifdef TRACERS_AMP_M10
      &                            + 99
 #endif /* TRACERS_AMP_M10 */
+#ifdef TRACERS_AMP_M9
+     &                            + 99
+#endif /* TRACERS_AMP_M9 */
 #endif /* TRACERS_AMP */
 #ifdef TRACERS_AEROSOLS_OCEAN
      &                            + 1
