@@ -784,6 +784,7 @@ C**** Local variables initialised in init_RAD
      &     ,ij_pcldl=1
      &     ,ij_pcldm=1
      &     ,ij_pcldh=1
+     &     ,ij_pcldl_ss=1
      &     ,ij_cldtppr=1
      &     ,ij_srvis=1
      &     ,ij_rnfp1=1

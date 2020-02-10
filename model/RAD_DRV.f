@@ -1876,7 +1876,7 @@ C  GHG Effective forcing relative to 1850
      *     grid%I_STRT_HALO:grid%I_STOP_HALO,
      *     grid%J_STRT_HALO:grid%J_STOP_HALO) ::
      *     TRHRA,SRHRA ! for adj.frc
-      REAL*8, DIMENSION(LM) :: TOTCLD,dcc_cdncl,dod_cdncl
+      REAL*8, DIMENSION(LM) :: TOTCLD,SS_CLD,dcc_cdncl,dod_cdncl
       INTEGER I,J,L,K,KR,LR,JR,IH,IHM,INCH,JK,IT,iy,iend,N,onoff_aer
      *     ,onoff_chem,LFRC,JTIME,n1,moddrf
       REAL*8 ROT1,ROT2,PLAND,CSS,CMC,DEPTH,QSS,TAUSSL,TAUSSLIP
@@ -2314,6 +2314,7 @@ C**** Adjust RDSS for semi-random overlap
         SIZEWC(L)=0.
         SIZEIC(L)=0.
         TOTCLD(L)=0.
+        SS_CLD(L)=0.
 C**** Determine large scale and moist convective cloud cover for radia
         IF (CLDSS(L,I,J)*(1.+dcc_cdncl(l)).GT.RDSS(L,I,J)) THEN
           TAUSSL=TAUSS(L,I,J)*(1.+dod_cdncl(l))
@@ -2321,7 +2322,7 @@ C**** Determine large scale and moist convective cloud cover for radia
           TAUSSLIP=TAUSSIP(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
-          call inc_ajl(i,j,l,jl_sscld,css)
+          call inc_ajl(i,j,l,jl_SSCLD,css)
 #ifdef CFMIP3_SUBDD
           ! LS Cloud
           cfmip_cf(i,j,l)=cfmip_cf(i,j,l)+1.
@@ -2385,6 +2386,7 @@ C**** save 3D cloud fraction as seen by radiation
 #endif
             END IF
           ELSE
+            SS_CLD(L)=1.
             SIZEWC(L)=CSIZSS(L,I,J)
             SIZEIC(L)=CSIZSS(L,I,J)
             IF(SVLHX(L,I,J).EQ.LHE) THEN
@@ -2474,6 +2476,11 @@ C**** effective cloud cover diagnostics
          DO L=LMID+1,LHI
            IF (TOTCLD(L).NE.1.) cycle
            AIJ(I,J,IJ_PCLDH)=AIJ(I,J,IJ_PCLDH)+1.
+           exit
+         end do
+         DO L=1,LLOW
+           IF (SS_CLD(L).NE.1.) cycle
+           AIJ(I,J,IJ_PCLDL_SS)=AIJ(I,J,IJ_PCLDL_SS)+1.
            exit
          end do
 

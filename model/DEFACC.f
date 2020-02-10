@@ -3834,6 +3834,14 @@ c
       scale_ij(k) = 100.
 c
       k=k+1 !
+      IJ_PCLDL_SS = k
+      lname_ij(k) = 'LARGE-SCALE LOW LEVEL CLOUDINESS'
+      units_ij(k) = '%'
+      name_ij(k) = 'pcldl_ss'
+      ia_ij(k) = ia_rad
+      scale_ij(k) = 100.
+c
+      k=k+1 !
       IJ_PSCLD = k ! SHALLOW CONVECTIVE CLOUD COVER  (1)     1 CL
       lname_ij(k) = 'SHALLOW CONVECTIVE CLOUD COVER'
       units_ij(k) = '%'
