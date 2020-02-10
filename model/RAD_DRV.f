@@ -2322,7 +2322,7 @@ C**** Determine large scale and moist convective cloud cover for radia
           TAUSSLIP=TAUSSIP(L,I,J)*(1.+dod_cdncl(l))
           shl(L)=QSS
           CSS=1.
-          call inc_ajl(i,j,l,jl_SSCLD,css)
+          call inc_ajl(i,j,l,jl_sscld,css)
 #ifdef CFMIP3_SUBDD
           ! LS Cloud
           cfmip_cf(i,j,l)=cfmip_cf(i,j,l)+1.
