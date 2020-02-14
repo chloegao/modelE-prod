@@ -98,7 +98,7 @@
       ! Fraction of dust and sea salt to be used in calculations
       !------------------------------------------------------------------------------------------------------
       REAL(8), PARAMETER :: FRAC_DUST  = 0.1d0     ! [1] fraction of dust conc. passed to thermodynamics
-      REAL(8), PARAMETER :: FRAC_SALT  = 0.1d0     ! [1] fraction of salt conc. passed to thermodynamics
+      REAL(8), PARAMETER :: FRAC_SALT  = 0.0d0     ! [1] fraction of salt conc. passed to thermodynamics
 
       REAL(8), PARAMETER :: CONV_KION  = FRAC_DUST * MASS_FRAC_K  / MW_K  ! [mol/g]
       REAL(8), PARAMETER :: CONV_CAION = FRAC_DUST * MASS_FRAC_CA / MW_CA ! [mol/g]
