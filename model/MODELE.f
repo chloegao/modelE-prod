@@ -208,6 +208,9 @@ C**** Command line options
       CHARACTER*8 :: str
       integer :: iflag=1
       external sig_stop_model
+#ifdef USE_GDB_FOR_FPE_BACKTRACE
+      external sig_exception
+#endif
       logical :: start9
 
       integer :: iu_IFILE
@@ -258,6 +261,9 @@ C**** Set run_status to "run in progress"
          close (3)
       END IF
       call sys_signal( 15, sig_stop_model )  ! works only on single CPU
+#ifdef USE_GDB_FOR_FPE_BACKTRACE
+      call sys_signal( 8, sig_exception )
+#endif
       START=NOW
       DO M=1,NTIMEACC
         START= START-TIMING(M)
@@ -757,6 +763,34 @@ C**** THINGS THAT GET DONE AT THE BEGINNING OF EVERY ACC.PERIOD
       call sys_flush(6)
       end subroutine sig_stop_model
 
+#ifdef USE_GDB_FOR_FPE_BACKTRACE
+      subroutine sig_exception
+#ifdef COMPILER_Intel8
+      USE IFPORT
+#endif
+      implicit none
+      character*80 :: str
+      integer :: pid, retcode
+#ifdef COMPILER_Intel8
+      character*6 :: gdb = 'gdb-ia'
+#else
+      character*6 :: gdb = 'gdb   '
+#endif
+
+      write(6,*) "got signal 8"
+      write(6,*) "floating point exception"
+      call sys_flush(6)
+      
+      pid = getpid()
+      write(str,'(a6,a,i16)')
+     &     gdb, " -ex='set confirm off' -ex bt -ex quit -p ", pid
+      !write(0,*) "command: ", str
+
+      retcode = system(str)
+
+      call stop_model("floating point exception",255)
+      end subroutine sig_exception
+#endif
 
       subroutine init_Model
 !@sum This program reads most of parameters from the database (DB)
