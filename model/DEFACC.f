@@ -3873,6 +3873,14 @@ c
       ia_ij(k) = ia_src
       scale_ij(k) = 100.
 c
+      k=k+1 !
+      IJ_CNVFRQ = k
+      lname_ij(k) = 'CONV CLOUD FREQUENCY'
+      units_ij(k) = '%'
+      name_ij(k) = 'cnvfrq'
+      ia_ij(k) = ia_src
+      scale_ij(k) = 100.
+c
 C**** Note these two diagnostics are NOT the total cloud cover (that is got by
 C**** summing the low+ mid+high diagnostics). Instead, this is the
 C**** fraction of time that a cloud appears in the grid box (which may

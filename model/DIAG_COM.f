@@ -558,6 +558,7 @@ C****      names, indices, units, idacc-numbers, etc.
      *     IJ_F1LI, IJ_SNWF, IJ_TSLI, IJ_SHDTLI, IJ_EVHDT,
      *     IJ_TRHDT, IJ_TMAXE, IJ_TMAXC, IJ_TMINC, IJ_TMNMX, IJ_PEVAP,
      *     IJ_WMSUM, IJ_PSCLD, IJ_PDCLD, IJ_DCNVFRQ, IJ_SCNVFRQ,
+     *     IJ_CNVFRQ,
      *     IJ_EMTMOM, IJ_SMTMOM, IJ_FMU, IJ_FMV, IJ_SSTABX,
      *     IJ_FGZU, IJ_FGZV, IJ_ERVR, IJ_MRVR, IJ_SSS, IJ_PRECMC,
      *     IJ_LKON, IJ_LKOFF, IJ_LKICE, IJ_PTROP, IJ_TTROP,

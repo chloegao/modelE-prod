@@ -57,7 +57,7 @@ subroutine CONDSE
 
   use DIAG_COM, only : ftype,ntype,aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
-       ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
+       ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_cnvfrq,ij_wmsum,ij_snwf,ij_prec, &
        ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc, &
        ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp, &
        jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas, &
@@ -430,7 +430,7 @@ subroutine CONDSE
     !@var cfmip_ctp_mc cloud top pressure convective clouds for SUBDD output 'ctp_mc'
     !@var cfmip_cbp_mc cloud base pressure convective clouds for SUBDD output 'cbp_mc'
     !@var cfmip_dcnvfrq fraction time deep MC occurs for SUBDD output 'dcnvfrq'
-    !@var cfmip_dcnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
+    !@var cfmip_scnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
     !@var cfmip_mc_twp MC total cloud water path for SUBDD output 'mc_twp'
     !@var cfmip_mc_lwp MC liquid cloud water path for SUBDD output 'mc_twp'
     !@var cfmip_wvp atmospheric water vapour column for SUBDD output 'qatm'
@@ -921,6 +921,7 @@ subroutine CONDSE
           AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
           if(CLDSLWIJ.gt.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
           if(CLDDEPIJ.gt.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
+          aij(i,j,ij_cnvfrq)=aij(i,j,ij_cnvfrq)+1.
           AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
           AIJ(I,J,IJ_MCCLDTP)=AIJ(I,J,IJ_MCCLDTP)+   & ! MC cloud top pressure
                PLE(LMCMAX+1)*CLDMCL(LMCMAX)
