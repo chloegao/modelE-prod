@@ -498,7 +498,7 @@ c ---------------------------------------------------------------------------
         if (S.ge.40. .and. pCO2.lt.100.)pCO2=100.
         if (S.le.31. .and. pCO2.gt.800.)pCO2=800.
         if (pCO2 .lt. 100.) pCO2=100.
-        if (pCO2 .gt.1000.) pCO2=1000.
+!        if (pCO2 .gt.1000.) pCO2=1000. @PL removed Mar 05, 2020
 
         if(vrbos)then
           write(*,'(a,i8,2i5,9e12.4)')
