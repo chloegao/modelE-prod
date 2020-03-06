@@ -22,6 +22,9 @@ c  leap frog method.
      .                   ,Abo_tend,abo21d
 #endif
 #endif
+#ifdef TRACERS_degC
+     .                   ,ndegC1d,Ndeg_tend
+#endif
 
       implicit none
 
@@ -36,6 +39,9 @@ c  leap frog method.
 #ifdef TRACERS_abio_O2
      .           ,Abo2new
 #endif
+#endif
+#ifdef TRACERS_degC
+     .           ,Ndegnew !@PL
 #endif
       logical :: vrbos
  
@@ -54,7 +60,10 @@ c   in update.F, but P has not been updated yet
          Dnew = (det(k,nt)     +  D_tend(k,nt)*obio_deltat)
           det(k,nt) = max(0.d0,Dnew)
         enddo
-
+#ifdef TRACERS_degC
+         Ndegnew = (ndegC1d(k) + Ndeg_tend(k)*obio_deltat) !@PL
+          ndegC1d(k) = max(0.d0,Ndegnew)
+#endif
         do nt = 1,ncar
          Cnew = (car(k,nt) +  C_tend(k,nt)*obio_deltat)
          car(k,nt) = max(0.d0,Cnew) 

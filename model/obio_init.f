@@ -436,6 +436,9 @@ c  Detrital remineralization rates /s
 #ifdef decreaseIremin
       remin(3) = 0.20/sday            !iron
 #endif
+#ifdef TRACERS_degC
+      tdegC = 0.96/sday                ! transfer rate constant for degradable carbon
+#endif
 
 !     fescavrate(1) = 2.74E-5/24.0      !low fe scavenging rate/s
       fescavrate(1) = 2.74E-5/sday      !low fe scavenging rate/s     !July 2016

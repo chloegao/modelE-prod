@@ -50,7 +50,9 @@
      .                     ,nabo2=1 ! abiotic oxygen
 #endif
 #endif
-
+#ifdef TRACERS_degC
+     .                      ,nndegC = 1 !@PL nondegradable carbon tracer. Has to be added at end for warm carbon initialization
+#endif
       integer, parameter :: ntrac = nnut+nchl+nzoo+ndet+ncar
 #ifdef TRACERS_Alkalinity
      .                            + nalk
@@ -63,6 +65,10 @@
      .                            + nabo2
 #endif
 #endif
+#ifdef TRACERS_degC
+     .                            + nndegC !@PL
+#endif
+
 
       integer, parameter :: ndimc = ntyp+ndet+ncar
 #ifdef TRACERS_Ocean_O2
@@ -77,6 +83,16 @@
 #endif
 #endif
 #endif
+#ifdef TRACERS_degC
+#ifdef TRACERS_abio_O2
+      integer,parameter :: ndimndegC = ndimabo2+nndegC
+#elif (defined TRACERS_bio_O2)
+      integer,parameter :: ndimndegC = ndimo2+nndegC
+#else
+      integer,parameter :: ndimndegC = ntyp+ndet+ncar+nalk+nndegC
+#endif
+#endif
+
 
       integer, parameter :: 
      .                      nh=200,   !number of depths for mean irradiance

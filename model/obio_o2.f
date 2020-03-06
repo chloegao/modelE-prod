@@ -12,7 +12,7 @@
      .                      ,rlampoc,uMtomgm3,Pzo,stdslp
      .                      ,excz,resz,remin,excp,resp,bn,cchlratio
      .                      ,mgchltouMC,bf,ko2,HvO2,O2thr
-     .                      ,ro2c_DET,ro2c_NH4,ro2c_NO3
+     .                      ,ro2c_DET,ro2c_NH4,ro2c_NO3,NCrrat
       USE obio_forc, only: wind,tirrq
       USE obio_com, only : obio_P,P_tend
      .                    ,tfac,det,D_tend,tzoo,pnoice,pHsfc
@@ -94,7 +94,7 @@
 
          
 !O2 RRR  O2 tracer index == 15??
-        o2resz = HvO2*ro2c_DET*tzoo*resz*obio_P(k,ntyp) !zoopl O2 consump (resp)
+        o2resz =HvO2*ro2c_DET*tzoo*resz*obio_P(k,ntyp) !zoopl O2 consump (resp)
         term = o2resz*mgchltouMC * pnoice(k)/rho1d(k) !@PL mg/(m3 s) -> mmol/(kg s)
         rhs(k,ndimo2,15) = term
         termb1(k)=term
@@ -221,8 +221,8 @@
       ps2 = ps*ps
       tk100 = 100.d0/(Ts + tf)
 !@Pldbg
-!      SLP = ((oAPRESS(i,j)/100.d0)+stdslp) !@PL oAPRESS is pressure anomoly in Pa, stdslp in hPa
-      SLP = stdslp   
+      SLP = ((oAPRESS(i,j)/100.d0)+stdslp) !@PL oAPRESS is pressure anomoly in Pa, stdslp in hPa
+!      SLP = stdslp   
 
       !@ PL
       !@sum following Orr 2017, compute O2sat0, reference O2sat from Garcia and Gordan 1992
@@ -267,7 +267,7 @@
 
       !flux sign is (atmos-ocean)>0, i.e. positive flux is INTO the ocean
 !     @PLdbg
-        o2flux= rkwo2*(O2sat-(o21d(1)/1000.d0))*1024.5*pnoice(k)! air-sea o2 flux
+        o2flux= rkwo2*(O2sat-(o21d(1)/1000.d0))*rho1d(k)*pnoice(k)! air-sea o2 flux
      .            *SECONDS_PER_HOUR                             ! mol/m2/hr
      .            *HOURS_PER_DAY*DAYS_PER_YEAR            ! mol/m2/yr
 
@@ -287,7 +287,7 @@
 
 
 !      @PLdbg
-       abo2flux= rkwo2*(O2sat-(abo21d(1)/1000.d0))*1024.5*pnoice(k)! air-sea o2 flux
+       abo2flux= rkwo2*(O2sat-(abo21d(1)/1000.d0))*rho1d(k)*pnoice(k)! air-sea o2 flux
      .            *SECONDS_PER_HOUR                             ! mol/m2/hr
      .            *HOURS_PER_DAY*DAYS_PER_YEAR            ! mol/m2/yr
 #endif
@@ -309,11 +309,11 @@
      .      nstep,i,j,Ts,sco2arg,wssq,rkwo2,O2sat
 #ifdef TRACERS_bio_O2
      .      ,o21d(1),
-     .      rkwo2*(o2sat-(o21d(1)/1000.d0))*1024.5,O_tend(k),term
+     .      rkwo2*(o2sat-(o21d(1)/1000.d0))*rho1d(k),O_tend(k),term
 #endif
 #ifdef TRACERS_abio_O2
      . ,abo21d(1),
-     . rkwo2*(o2sat-(abo21d(1)/1000.d0))*1024.5,Abo_tend(k),termab   !this flux should have units mol,o2/m2/s
+     . rkwo2*(o2sat-(abo21d(1)/1000.d0))*rho1d(k),Abo_tend(k),termab   !this flux should have units mol,o2/m2/s
 #endif
         endif
 

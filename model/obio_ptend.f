@@ -18,19 +18,22 @@ c  P(9) = herbivores (mg chl m-3)
       USE obio_dim
       USE obio_incom,only: cnratio,cfratio,remin,obio_wss,bf,cchlratio
      .                    ,wsdeth,rkn,rks,rkf,Rm,phygross,bn,bs,solFe
-     .                    ,mgchltouMC,uMtomgm3
+     .                    ,mgchltouMC,uMtomgm3,NCrrat,O2thr
 #ifdef exp_wsdiat
      .                    ,adiat_exp,bdiat_exp
 #endif
 #ifdef exp_wsdet
      .                    ,adet_exp,bdet_exp
 #endif
+#ifdef TRACERS_degC
+     .                    ,tdegC  !@PL
+#endif
       USE obio_forc, only: tirrq
       USE obio_com, only : dp1d,obio_P,obio_ws,P_tend,D_tend,C_tend
      .                    ,gro,rlamz,dratez1,dratez2,rmu3,rmu4 !@PL added rmu3,rmu4 in obio_com
 #ifdef TRACERS_Ocean_O2
 #ifdef TRACERS_bio_O2
-     .                    ,O_tend
+     .                    ,O_tend,o21d
 #endif
 #ifdef TRACERS_abio_O2
      .                    ,Abo_tend
@@ -45,6 +48,9 @@ c  P(9) = herbivores (mg chl m-3)
 #ifdef restoreIRON
 !AR5 preprocessor option
      .                    ,Iron_BC
+#endif
+#ifdef TRACERS_degC
+     .                    ,ndegC1d,Ndeg_tend
 #endif
 
       implicit none
@@ -89,6 +95,9 @@ c  P(9) = herbivores (mg chl m-3)
 #ifdef TRACERS_abio_O2
        Abo_tend = 0.0
 #endif
+#endif
+#ifdef TRACERS_degC
+       Ndeg_tend = 0.0
 #endif
        wsdet = 0.0
        rmu4 = 0.0
@@ -182,7 +191,17 @@ c  Start Model Space Loop
          enddo
 
          !remineralization 
-         term = tfac(k)*remin(1)*det(k,1)/cnratio * pnoice(k)
+         !@PL ratio of o2/nitrate remineralization, not applied to Silica
+         !@PL define delta function for O2
+          NCrrat = 1.d0
+#ifdef TRACERS_bio_O2
+         if (o21d(k).le.O2thr) then
+          NCrrat = 0.4d0
+         else
+          NCrrat = 1.d0
+         endif
+#endif
+         term = NCrrat*tfac(k)*remin(1)*det(k,1)/cnratio * pnoice(k)
          rhs(k,1,10) = term
          P_tend(k,1) = P_tend(k,1) + term
 
@@ -212,7 +231,7 @@ c  Start Model Space Loop
          P_tend(k,4) = P_tend(k,4) + term
 
          !remineralization 
-         term = tfac(k)*remin(3)*det(k,3) * pnoice(k)
+         term = NCrrat*tfac(k)*remin(3)*det(k,3) * pnoice(k)
          rhs(k,4,12) = term                        !put this in diff column
          P_tend(k,4) = P_tend(k,4) + term
 
@@ -255,9 +274,21 @@ c  Start Model Space Loop
          rhs(k,10,9) = term
          D_tend(k,1) = D_tend(k,1) + term
 
-         term = -tfac(k)*remin(1)*det(k,1) * pnoice(k)
+         term = -NCrrat*tfac(k)*remin(1)*det(k,1) * pnoice(k)
          rhs(k,10,10) = term
          D_tend(k,1) = D_tend(k,1) + term
+
+!@auth PL: remove a portion of degradable carbon to become non-degradable
+!@ added Jan 19, 2020.
+#ifdef TRACERS_degC
+         term = -tdegC*det(k,1) * pnoice(k)
+         rhs(k,10,11) = term
+         D_tend(k,1) = D_tend(k,1) + term
+
+         term = tdegC*det(k,1)*pnoice(k)
+         rhs(k,ndimndegC,11) = term
+         Ndeg_tend(k) = Ndeg_tend(k) + term
+#endif
 
 !2nd detrital fraction is silica
          term = bs*dphy(nnut+1) * pnoice(k)
@@ -289,7 +320,7 @@ c  Start Model Space Loop
          rhs(k,12,7) = term
          D_tend(k,3) = D_tend(k,3) + term
 
-         term = -tfac(k)*remin(3)*det(k,3) * pnoice(k)
+         term = -NCrrat*tfac(k)*remin(3)*det(k,3) * pnoice(k)
          rhs(k,12,12) = term
          D_tend(k,3) = D_tend(k,3) + term
 

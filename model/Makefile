@@ -124,7 +124,7 @@ clean: clean_components
 
 clean_components:
 	-rm -f $(RUN_H) $(MOD_DIR)/*.mod .liblist
-	for i in $(AVAILABLE_COMPONENTS) ; do \
+	-for i in $(AVAILABLE_COMPONENTS) ; do \
 	  if [ -d $$i ] ; then $(MAKE) -C $$i clean ; fi ; done
 
 $(RUN_H): $(DECKS_DIR)/$(RUN).mk FORCE

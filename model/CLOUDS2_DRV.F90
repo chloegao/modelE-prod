@@ -60,7 +60,7 @@ subroutine CONDSE
 
   use DIAG_COM, only : ftype,ntype,aij=>aij_loc, &
        aijl=>aijl_loc,adiurn=>adiurn_loc,jreg,ij_pscld, &
-       ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_wmsum,ij_snwf,ij_prec, &
+       ij_pdcld,ij_scnvfrq,ij_dcnvfrq,ij_cnvfrq,ij_wmsum,ij_snwf,ij_prec, &
        ij_neth,ij_f0oc,j_eprcp,j_prcpmc,j_prcpss,ijl_mc, &
        ijdd,idd_pr,idd_ecnd,idd_mcp,idd_dmc,idd_smc,idd_ssp, &
        jl_mcmflx,jl_sshr,jl_mchr,jl_dammc,jl_rhe,jl_mchphas, &
@@ -437,19 +437,21 @@ subroutine CONDSE
 #ifdef CFMIP3_SUBDD
     !@var cfmip_ctp_mc cloud top pressure convective clouds for SUBDD output 'ctp_mc'
     !@var cfmip_cbp_mc cloud base pressure convective clouds for SUBDD output 'cbp_mc'
+    !@var cfmip_cnvfrq fraction time occurs for SUBDD output 'cnvfrq'
     !@var cfmip_dcnvfrq fraction time deep MC occurs for SUBDD output 'dcnvfrq'
-    !@var cfmip_dcnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
+    !@var cfmip_scnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
     !@var cfmip_mc_twp MC total cloud water path for SUBDD output 'mc_twp'
     !@var cfmip_mc_lwp MC liquid cloud water path for SUBDD output 'mc_twp'
     !@var cfmip_wvp atmospheric water vapour column for SUBDD output 'qatm'
     REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
                       grid%j_strt_halo:grid%j_stop_halo) :: cfmip_ctp_mc, &
                                                             cfmip_cbp_mc, &
+                                                            cfmip_cnvfrq, &
                                                             cfmip_dcnvfrq, &
+                                                            cfmip_scnvfrq, &
                                                             cfmip_mc_twp, &
                                                             cfmip_mc_lwp, &
-                                                            cfmip_wvp, &
-                                                            cfmip_scnvfrq
+                                                            cfmip_wvp
     REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
                       grid%j_strt_halo:grid%j_stop_halo,lm) :: cfmip_mcamfx
 #endif
@@ -603,6 +605,7 @@ subroutine CONDSE
 #ifdef CFMIP3_SUBDD
   cfmip_ctp_mc = 0.d0
   cfmip_cbp_mc = 0.d0
+  cfmip_cnvfrq = 0.d0
   cfmip_dcnvfrq = 0.d0
   cfmip_scnvfrq = 0.d0
   cfmip_mc_twp = 0.d0
@@ -929,6 +932,7 @@ subroutine CONDSE
           AIJ(I,J,IJ_PDCLD)=AIJ(I,J,IJ_PDCLD)+CLDDEPIJ
           if(CLDSLWIJ.gt.1e-6) AIJ(I,J,IJ_SCNVFRQ)=AIJ(I,J,IJ_SCNVFRQ)+1.
           if(CLDDEPIJ.gt.1e-6) AIJ(I,J,IJ_DCNVFRQ)=AIJ(I,J,IJ_DCNVFRQ)+1.
+          aij(i,j,ij_cnvfrq)=aij(i,j,ij_cnvfrq)+1.
           AIJ(I,J,IJ_WMSUM)=AIJ(I,J,IJ_WMSUM)+WMSUM
           AIJ(I,J,IJ_MCCLDTP)=AIJ(I,J,IJ_MCCLDTP)+   & ! MC cloud top pressure
                PLE(LMCMAX+1)*CLDMCL(LMCMAX)
@@ -952,6 +956,8 @@ subroutine CONDSE
           cfmip_ctp_mc(i,j) = ple(lmcmax+1)
           ! MC cloud base pressure
           cfmip_cbp_mc(i,j) = ple(lmcmin+1)
+          ! Fraction of Time MC Occurs
+          cfmip_cnvfrq(i,j)=cfmip_cnvfrq(i,j)+1.
           ! Fraction of Time deep MC Occurs
           if (clddepij.gt.1e-6) cfmip_dcnvfrq(i,j)=cfmip_dcnvfrq(i,j)+1.
           ! Fraction of Time Shallow MC Occurs
@@ -2513,16 +2519,18 @@ subroutine CONDSE
     call inc_subdd(subdd,k,cfmip_ctp_mc)
   case ('cbp_mc')
     call inc_subdd(subdd,k,cfmip_cbp_mc)
+  case ('cnvfrq')
+    call inc_subdd(subdd,k,cfmip_cnvfrq)
   case ('dcnvfrq')
     call inc_subdd(subdd,k,cfmip_dcnvfrq)
+  case ('scnvfrq')
+    call inc_subdd(subdd,k,cfmip_scnvfrq)
   case ('mc_twp')
     call inc_subdd(subdd,k,cfmip_mc_twp)
   ! case ('mc_lwp')
   !   call inc_subdd(subdd,k,cfmip_mc_lwp)
   case ('qatm')
     call inc_subdd(subdd,k,cfmip_wvp)
-  case ('scnvfrq')
-    call inc_subdd(subdd,k,cfmip_scnvfrq)
 #endif  /* CFMIP3_SUBDD */
   end select
   enddo
@@ -3259,10 +3267,22 @@ end subroutine qmom_topo_adjustments
     scale = 1d2)
 
   arr(next()) = info_type_(                                            &
-     &  sname = 'dcnvfrq',                                             &
-     &  lname = 'Deep convective cloud occurrence',                    &
-     &  units = '%',                                                   &
-     &  scale = 1d2 )
+     sname = 'cnvfrq',                                                 &
+     lname = 'Convective cloud occurrence',                            &
+     units = '%',                                                      &
+     scale = 1d2 )
+
+  arr(next()) = info_type_(                                            &
+     sname = 'dcnvfrq',                                                &
+     lname = 'Deep convective cloud occurrence',                       &
+     units = '%',                                                      &
+     scale = 1d2 )
+
+  arr(next()) = info_type_(                                            &
+    sname = 'scnvfrq',                                                 &
+    lname = 'Shallow convective cloud occurrence',                     &
+    units = '%',                                                       &
+    scale = 1d2)
 
   arr(next()) = info_type_(                                            &
     sname = 'mc_twp',                                                  &
@@ -3278,12 +3298,6 @@ end subroutine qmom_topo_adjustments
     sname = 'qatm',                                                    &
     lname = 'Atmospheric water vapour column',                         &
     units = 'kg/m^2')
-
-  arr(next()) = info_type_(                                            &
-    sname = 'scnvfrq',                                                 &
-    lname = 'Shallow convective cloud occurrence',                     &
-    units = '%',                                                       &
-    scale = 1d2)
 #endif  /* CFMIP3_SUBDD */
       return
       contains

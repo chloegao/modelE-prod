@@ -39,10 +39,13 @@
 
       real :: wsdeth(ndet)        !sinking rate of detritus (m/d): changed to m/s    !July 2016
       real :: remin(ndet)         !detrital remineralization rate /d: changed to m/s !July 2016
+#ifdef TRACERS_degC
+      real :: tdegC               ! transfer rate constant from degradable to nondegradable carbon !Jan 2020
+#endif 
       
       real :: Fescavrate(2)       !scavenging rate for dissolved iron
       real:: HvO2                !@PL dirac delta function for O2 consumption processes
-
+      real:: NCrrat              !@PL ratio of anaerobioc/aerobic remin
 C if CARBON == 1
       real, parameter :: excp=0.05              !excretion of DOC by phyto growth
       real, parameter :: resp=0.05              !respiration of DIC by phyto growth
