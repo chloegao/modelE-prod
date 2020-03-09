@@ -1158,7 +1158,6 @@ c**** copy output to pbl_args
 C**** tracer code output
 #ifdef TRACERS_ON
       pbl_args%trs(1:pbl_args%ntx) = tr(1,1:pbl_args%ntx)
-
 #if (defined TRACERS_DUST) || (defined TRACERS_MINERALS) ||\
     (defined TRACERS_AMP)  || (defined TRACERS_TOMAS)
       pbl_args%z(:) = z(:)

@@ -2479,6 +2479,7 @@ C****
           trgrnd=atmocn%gtracer(n,i,j)
           trs=pbl_args%trs(nx)
           ngx=gasex_index%getindex(n)
+
           if (n==n_cfcn) then
             term = pbl_args%Kw_gas(ngx) *
      .             (pbl_args%beta_gas(ngx)*trs-trgrnd)
@@ -2502,7 +2503,6 @@ C****
      .         + term * 1d6/vol2mass(n)
      .         * dtsurf/dtsrc      !in order to accumulate properly over time
      .         * (1.d0-RSI)   !units mol,co2/m2/s
-
 
 
 ! trsrfflx is positive up 
@@ -2530,6 +2530,8 @@ C****
      .             - term
      .           * 1d6/vol2mass(n) * dtsurf
      .           * ptype*tr_mm(n)*1d-3)
+
+            if (MODDSF.EQ.0) THEN
 
 ! piston velocity
                   taijs(i,j,ijts_gasex(1,n))=taijs(i,j,ijts_gasex(1,n))

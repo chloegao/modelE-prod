@@ -2430,21 +2430,18 @@ C**** This needs to be 'hand coded' depending on circumstances
           ijts_gasex(1,n)= ! Gas Exchange Coefficient (piston velocity) (open ocean only)
      *      ijts_diag('Piston_Veloc_'//trim(trname(n)),
      *                trim(trname(n))//' Piston Velocity',
-     *                'm s-1', power=-5,
-     *                denom='ocnfr',
-     *                scalediv=dtsrc)
+     *                'm s-1', ia=ia_srf, power=-5,
+     *                denom='ocnfr')
           ijts_gasex(2,n)= ! Gas Exchange Solubility coefficient
      *      ijts_diag('Solubility_'//trim(trname(n)),
      *                trim(trname(n))//' Solubility',
-     *                'mol m-3 uatm-1', power=-5,
-     *                denom='ocnfr',
-     *                scalediv=dtsrc)
+     *                'mol m-3 uatm-1', ia=ia_srf, power=-5,
+     *                denom='ocnfr')
           ijts_gasex(3,n)= ! Gas exchange
      *      ijts_diag('Gas_Exchange_'//trim(trname(n)),
      *                trim(trname(n))//' Gas Exchange',
-     *                'mol m-2 a-1',
-     *                denom='ocnfr',
-     *                scalediv=dtsrc)
+     *                'mol m-2 yr-1',
+     *                denom='ocnfr')
 
         case ('SF6','SF6_c')
           ijts_source(1,n)=
@@ -5872,7 +5869,7 @@ C**** at the start of any day
 
          !area weighted tracer global average
       do j=J_0,J_1 ; do i=I_0,I_1
-        trm_vert(i,j) = sum(trm(i,j,1:lm,n))
+        trm_vert(i,j) = sum(trm(i,j,1:lm,n))*axyp(i,j) !@PL trm in kg CO2/m2, needs kg CO2 for factor
       enddo; enddo
 
       CALL GLOBALSUM(grid,axyp,    sarea,     all=.true.)
