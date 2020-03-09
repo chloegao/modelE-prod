@@ -441,7 +441,7 @@ subroutine CONDSE
     !@var cfmip_dcnvfrq fraction time deep MC occurs for SUBDD output 'dcnvfrq'
     !@var cfmip_scnvfrq fraction time shallow MC occurs for SUBDD output 'scnvfrq'
     !@var cfmip_mc_twp MC total cloud water path for SUBDD output 'mc_twp'
-    !@var cfmip_mc_lwp MC liquid cloud water path for SUBDD output 'mc_twp'
+    !@var cfmip_mc_lwp MC liquid cloud water path for SUBDD output 'mc_lwp'
     !@var cfmip_wvp atmospheric water vapour column for SUBDD output 'qatm'
     REAL*8, dimension(grid%i_strt_halo:grid%i_stop_halo, &
                       grid%j_strt_halo:grid%j_stop_halo) :: cfmip_ctp_mc, &
