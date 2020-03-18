@@ -4,9 +4,12 @@
 # script has usage notes you can see by executing it witout arguments.
 # Basically, it's a script to create NINT input from tracer code output.
 #
+# The location of NCO operators used to be defined here and passed to the
+# script. Now it is defined within the script, which also loads modules.
+#
 ######## USER SETS DATA ##################################################
 # the run name of the tracers simulation to be used to create NINT input:
-run=E14TomaOCNf10_4av
+run=E212TomaSSP126aF40oQ40
 # the year from which to measure time (from it's January):
 referenceYear=1850
 # input directory (where you have the monthly acc files, and optionally,
@@ -22,10 +25,8 @@ private=0
 # Allow setting of gravitational constant for airmass calculations in case
 # that's helpful for changing planets:
 gravity=9.80665E0
-# Location of the NCO (netCDF operators):
-NCO=/usr/local/other/SLES11.1/nco/4.4.4/intel-12.1.0.233/bin
 # To skip doing ozone, aerosols, or BCalbedo, set these to > 0.
-# For example useful it you want aerosols and ozone to measure from a
+# For example, useful if you want aerosols and ozone to measure from a
 # different reference year or you need to use special years for the
 # BC albedo, etc... For ozone only, setting a negative value (-N) will
 # skip N levels from the top of the tracer output (useful e.g. to avoid
@@ -37,23 +38,21 @@ skip_BCalbedo=0
 ##########################################################################
 
 # Once you set the above, the script could be run in one line, but
-# for this example, let's make it a more useful one:
-# The would take 1850-2009 transient output and make the climatological
-# NINT input. Decadal averages (YYY0-YYY9) were already made with the acc
-# files:
+# let's at least show a loop over 2 years to make the example less trivial.
+# In the case of yearly (non-climatological) files, the 'representative
+# year' could be the same as the model year, as it is here.
+# You could check out the version of this example script from before
+# 2020.03.18 to see an example operating on climatology files.
 
-# (Note if these had been 9-year averages, a middle year could have been
-# chosen as the represetative year. In this example, we follow how we think
-# the SST/Sea ice files do it -- making the timestream representative year
-# the YYY4...)
-
-x=185                            # These lines are set to do 1850-1859
-while [[ ${x} -le 200 ]] ; do    # through 2000-2009 climatologies
-  yearLabel=${x}0-${x}9          # representing the years:
-  representativeYear=${x}4       # (1854, 1864,... 2004)
+y1=2084
+y2=2085
+y=$y1
+while [[ ${y} -le $y2 ]] ; do  # Loop over 2 years.
+  yearLabel=${y}               # simply year here; climatologies case might look more like '2080-2089'
+  representativeYear=${y}      # for climatologies, might look more like '2084' (for 2080-2089 example)
   # Pass arguments and execute the script that does one year's worth of data:
-  ./oneYearTracersToNINT.ksh $run $yearLabel $representativeYear $inputDirectory $outputDirectory $referenceYear $gravity $NCO $skip_ozone $skip_aerosols $skip_BCalbedo
-  let x+=1
+  ./oneYearTracersToNINT.ksh $run $yearLabel $representativeYear $inputDirectory $outputDirectory $referenceYear $gravity $skip_ozone $skip_aerosols $skip_BCalbedo
+  let y+=1
 done
 
 # Done. Send out a warning :-)

@@ -11,10 +11,24 @@ set -A redust -- 0.132 0.23 0.416 0.766 1.386 2.773 5.545
 set -A rodust -- 2.5 2.5 2.5 2.5 2.65 2.65 2.65
 ##################################################################################
 
+## NEW TO SLES12 LOAD MODULES explicitly and set a few variables: ###
+. /usr/share/modules/init/ksh
+module purge
+module load nco/4.8.1
+module list
+NCO=/usr/local/other/nco/4.8.1/bin
+NCGEN=/usr/local/other/nco/4.8.1/Deps/bin/ncgen
+NCDUMP=/usr/local/other/nco/4.8.1/Deps/bin/ncdump
+GEXE=/discover/nobackup/projects/giss/exec
+scaler=$GEXE/scaleacc ; if [[ $( hostname ) == borg* ]] ; then scaler=$GEXE/scaleacc_himem ; fi
+#####################################################################
+#TODO: Exits from functions likely only be exit that function. Need to ensure main script quits.
+
 function usage {
 echo " "
 echo " Prerequisites: * Monthly acc files are in the input subdirectory (averaged over years if needed)."
-echo '                * NCO(perators) must be installed in the ${NCO} location passed to this script.'
+echo '                * NCO(perators) must be installed in the ${NCO} location known to this script.'
+echo '                * If the scaled-diagnostic files were not pre-created the scaleacc utility is used.'
 echo " "
 echo " Pass this script arguments:"
 echo "  1: the run name"
@@ -27,22 +41,20 @@ echo "  5: output directory where new NINT input files will be created"
 echo "  6: a reference year to measure time from"
 echo "  7: the accelaration due to gravity (for air mass calculations; made argument"
 echo "     in case that helps with other planets.)"
-echo "  8: the bin(aries) directory to use for the netCDF operators"
-echo "  9: skip_ozone: > 0 means ozone creation will be skipped; < 0 means chop off that"
+echo "  8: skip_ozone: > 0 means ozone creation will be skipped; < 0 means chop off that"
 echo "     many layers from the top of the tracer ozone. For example to avoid conflict of"
 echo "     layer edges with the rad code level input."
-echo " 10: skip_aerosols: non-zero means aerosols will be skipped"
-echo " 11: skip_BCalbedo: non-zero means BC albedo calculation will be skipped"
+echo "  9: skip_aerosols: non-zero means aerosols will be skipped"
+echo " 10: skip_BCalbedo: non-zero means BC albedo calculation will be skipped"
 echo " "
 echo " Example:"
-echo " $1 E4TcadiF40 1852-1858 2000 DATA NEW 1750 9.80665E0 /usr/local/other/SLES11.1/nco/4.4.4/intel-12.1.0.233/bin 0 1 1"
+echo " $1 E4TcadiF40 1852-1858 2000 DATA NEW 1750 9.80665E0 0 1 1"
 echo " will use files like DATA/SEP1852-1858.accE4TcadiF40.nc which represent a run"
 echo " with year 2000 conditions, measuring time from Jan 1750, and make NINT input"
 echo " files like:"
 echo "    NEW/SUL_E4TcadiF40_kg_m2_144x90x40/2000.nc"
-echo " and other aerosols (in this example, skipping ozone and BCalbedo). Using netCDF operators in:"
-echo " /usr/local/other/SLES11.1/nco/4.4.4/intel-12.1.0.233/bin and acceleration due to"
-echo " gravity of 9.80665E0 m s-2."
+echo " and other aerosols (in this example, skipping ozone and BCalbedo). Using"
+echo " acceleration due to gravity of 9.80665E0 m s-2."
 echo ""
 echo " IMPORTANT NOTE: The ozone file that is created at most up to the top of the chemistry and hence is"
 echo " intended for use only as an O3file2 with an O3file still listed with ozone information above this top."
@@ -60,13 +72,13 @@ function exitWithMessage {
   echo "Exiting because: $1" ; exit 1
 }
 function check {  # exits if there is more than one matching line for the grep:
-  if [[ $( ncdump -h $1 | grep "$2" | cut -d= -f 2 | cut -d';' -f 1 | wc -l ) -ne 1 ]] ; then
+  if [[ $( $NCDUMP -h $1 | grep "$2" | cut -d= -f 2 | cut -d';' -f 1 | wc -l ) -ne 1 ]] ; then
     exitWithMessage 'Ambiguous grep'
   fi
 }
 function scrape { # gathers data from between the = sign and the semicolon for a grepped string:
   check $1 "$2"
-  echo $( ncdump -h $1 | grep "$2" | cut -d= -f 2 | cut -d';' -f 1 )
+  echo $( $NCDUMP -h $1 | grep "$2" | cut -d= -f 2 | cut -d';' -f 1 )
 }
 function store { # stores the output of function scrape into a netCDF file:
   $NCO/ncap2 -A -s "${1}={${2}} ;" $3 $3
@@ -75,7 +87,7 @@ function removeIfExists {
   if [[ -f $1 ]] ; then rm $1; fi
 }
 function getPowers { # determines the power of 10 in units string - at least for aerosol mass:
-  echo "1.E$( ncdump -h $1 | grep "${2}:units" | cut -d^ -f 2 | cut -d' ' -f 1 )"
+  echo "1.E$( $NCDUMP -h $1 | grep "${2}:units" | cut -d^ -f 2 | cut -d' ' -f 1 )"
 }
 function nocommas { # turns csv list into space-delimited:
   print -- $( echo $1 | sed 's/,/ /g' )
@@ -107,9 +119,9 @@ function addDegenerateDimension {
 
 #--------------------- parse user args and check/prep in/out dirs -----------------------
 echo "setup...\c"
-if [[ $# -ne 11 ]] ; then usage $0 ; exitWithMessage "Expecting 11 arguments." ; fi
-run=$1 ; avgYears=$2 ; repYear=$3 ; userInDir=$4 ; outDir=$5 
-refYear=$6 ; grav=$7 ; NCO=$8 ; skipO3=$9 ; skipAero=${10} ; skipAlb=${11}
+if [[ $# -ne 10 ]] ; then usage $0 ; exitWithMessage "Expecting 10 arguments." ; fi
+run=$1 ; avgYears=$2 ; repYear=$3 ; userInDir=$4 ; outDir=$5
+refYear=$6 ; grav=$7 ; skipO3=$8 ; skipAero=$9 ; skipAlb=${10}
 
 targets=''
 if [[ $skipO3 -le 0 ]] ; then
@@ -144,8 +156,6 @@ else
 fi
 
 echo "=-=-=-=- Doing: ${run} ${avgYears} ('$repYear') -=-=-=-="
-# Check whether to use the himem or normal scaleacc in case scaled files are needed:
-scaler=scaleacc ; if [[ $( hostname ) == borg* ]] ; then scaler=${scaler}_himem ; fi
 
 #--------------------- Gather vertical grid info from JAN acc --------------------------
 echo "extract grid info...\c"
@@ -155,14 +165,16 @@ acc=${inDir}/JAN${avgYears}.acc${run}.nc
 plm=$( scrape $acc 'iparam:lm =' ) ; plmm1=$( echo "$plm - 1" | bc ) ; plmp1=$( echo "$plm + 1" | bc )
 ls1=$( scrape $acc 'iparam:ls1 =' ) ; ls1m1=$( echo "$ls1 - 1" | bc )
 echo "netcdf $( basename $fz .nc){\n dimensions: plm = ${plm};\n ple = ${plmp1};\n variables:\n double mfix(plm);\n double mfrac(plm);\n double plbot(ple);\n}" > $( basename $fz .nc).cdl
-ncgen -b -o $fz $( basename $fz .nc).cdl ; rm $( basename $fz .nc).cdl
+$NCGEN -b -o $fz $( basename $fz .nc).cdl ; rm $( basename $fz .nc).cdl
 # Read the layering info from the acc file real parameter database, and store in netCDF for manipulation:
 for v in mfix mfrac plbot ; do store $v "$( scrape $acc $v)" $fz ; done
 $NCO/ncap2 -A -s "mtop=plbot($plm)*(100./$grav);" $fz $fz
 $NCO/ncap2 -A -s "mfixs=plbot($ls1m1)*(100./$grav)-mtop;" $fz $fz
 $NCO/ncatted -a units,plbot,o,c,'millibar' $fz
 # Determine from whether or not first mfix element is negative whether this is a standard hybrid case:
-stdhyb=1 ; [[ $( echo $( scrape $acc mfix ) | cut -d, -f 1 ) -lt 0 ]] || stdhyb=0
+stdhyb=1
+firstmfix=$( echo $( scrape $acc mfix ) | cut -d, -f 1 )
+[[ $( echo "$firstmfix < 0." | bc ) -eq 1 ]] || stdhyb=0
 
 #--------------------- Main tracer work ------------------------------------------------
 echo "tracers work...."
@@ -175,7 +187,7 @@ for mon in JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC ; do
   for f in ${fm}.nc ${fm}.cdl __temp.nc ; do removeIfExists $f ; done
   # Make a new netcdf file for current month:
   echo "netcdf $fm {\ndimensions: time = UNLIMITED;\nvariables:\nfloat time(time);\ndata:\ntime=0.;\n}" > ${fm}.cdl
-  ncgen -b -o ${fm}.nc ${fm}.cdl ; rm ${fm}.cdl
+  $NCGEN -b -o ${fm}.nc ${fm}.cdl ; rm ${fm}.cdl
   # Give time the correct units:
   $NCO/ncatted -a units,time,o,c,"months since ${refYear}-01" ${fm}.nc
 
@@ -200,7 +212,7 @@ for mon in JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC ; do
   fi
   if [[ $skipAero -eq 0 ]] ; then
     # Calculate or extract this month's 3D air mass (in kg m-2 per layer) for aerosol unit conversions:
-    airmassExists=$( ncdump -h $taijl | grep 'float airmass' | wc -l )
+    airmassExists=$( $NCDUMP -h $taijl | grep 'float airmass' | wc -l )
     if [[ $airmassExists -ne 1 ]] ; then airmassExists=0 ; fi
     if [[ $airmassExists -eq 0 ]] ; then
       echo "airmass(make)...\c"
@@ -234,7 +246,7 @@ for mon in JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC ; do
     SUL)
       needVars='SO4' ; long_name='Sulfate mass' ;;
     NIT)
-      needVars='NO3p' ;  long_name='Nitrate mass' ;;
+      needVars='NO3p' ; long_name='Nitrate mass' ;;
     BCB) # careful as this one alters the extracted model var b/c same name as target.
       needVars='BCB' ; long_name='Black Carbon Bio Mass mass' ;;
     BCA)
@@ -253,10 +265,10 @@ for mon in JAN FEB MAR APR MAY JUN JUL AUG SEP OCT NOV DEC ; do
       needVars="alb_BC,sunlit_snow_freq" ;;
     esac
     case $spec in
-      dust*) ; long_name='Dust mass' ;;
+      dust*) long_name='Dust mass' ;;
     esac
     case $spec in
-      SUL|NIT|BCB|BCA|OCA|SSA|dust4|dust5|dust6) ; buildAerosolNcapString ;;
+      SUL|NIT|BCB|BCA|OCA|SSA|dust4|dust5|dust6) buildAerosolNcapString ;;
     esac
 
     # Gather needed variables and create the rad code input variable:
@@ -311,8 +323,8 @@ for spec in $targets ; do # loop over target species
     fi
     ds=${outDir}/E3_only_${spec}_${run}_cm-atm_${nlon}x${nlat}x${topMidIndex}
     ;;
-  SUL|NIT|OCA|BCB|BCA|SSA|dust*) ; ds=${outDir}/${spec}_${run}_kg_m2_${nlon}x${nlat}x${nlev} ;;
-  BCdalbsn) ; ds=${outDir}/${spec}_${run}_percent_${nlon}x${nlat} ;;
+  SUL|NIT|OCA|BCB|BCA|SSA|dust*) ds=${outDir}/${spec}_${run}_kg_m2_${nlon}x${nlat}x${nlev} ;;
+  BCdalbsn) ds=${outDir}/${spec}_${run}_percent_${nlon}x${nlat} ;;
   esac
   fs=${ds}_${repYear}.nc
   $NCO/ncks -v $spec $fn $fs
@@ -331,10 +343,10 @@ for spec in $targets ; do # loop over target species
     mv $fs __temp.nc ; $NCO/ncks -x -v level __temp.nc $fs ; rm __temp.nc
     # Option to chop off some layers of ozone tracer from top of file:
     if [[ $skipO3 -lt 0 ]] ; then
-      echo "but only use first ${topMidIndex} levels for ozone..." 
+      echo "but only use first ${topMidIndex} levels for ozone..."
       mv $fs __temp.nc
       # next line use (-F) fortran indexing:
-      $NCO/ncks -O -F -d plm,1,${topMidIndex} -d ple,1,${topEdgeIndex} __temp.nc $fs  
+      $NCO/ncks -O -F -d plm,1,${topMidIndex} -d ple,1,${topEdgeIndex} __temp.nc $fs
       rm __temp.nc
     fi
     ;;
@@ -349,7 +361,7 @@ for spec in $targets ; do # loop over target species
     $NCO/ncap2 -A -s "lev=plm;" $fs $fs
     $NCO/ncatted -a units,lev,o,c,'millibar' $fs
     $NCO/ncatted -a long_name,lev,o,c,'Level' $fs
-    mv $fs __temp.nc ; $NCO/ncks -x -v plm __temp.nc $fs ; rm __temp.nc
+    mv $fs __temp.nc ; $NCO/ncks -C -x -v plm __temp.nc $fs ; rm __temp.nc
     case $spec in
     SSA) # ===== special to sea salt file =====
       # Add plbot as plbaer. Formerly read from exising SSA NINT file.
