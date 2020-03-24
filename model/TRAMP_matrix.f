@@ -461,9 +461,9 @@
           ! Nitrate, ammonium, and (non-sea salt) water concentrations.
           !------------------------------------------------------------------------------------------------------------
           FTMP = AERO(SULF_MAP(I)) / TOT_SULF
-          MASS_COMP(I,6) = FTMP * AERO(1)           ! [ug/m^3] nitrate
-          MASS_COMP(I,7) = FTMP * AERO(2)           ! [ug/m^3] ammonium
-          MASS_COMP(I,8) = FTMP * AERO(3)           ! [ug/m^3] water
+          MASS_COMP(I,nmass_spcs+mass_no3) = FTMP * AERO(mass_no3)           ! [ug/m^3] nitrate
+          MASS_COMP(I,nmass_spcs+mass_nh4) = FTMP * AERO(mass_nh4)           ! [ug/m^3] ammonium
+          MASS_COMP(I,nmass_spcs+mass_h2o) = FTMP * AERO(mass_h2o)           ! [ug/m^3] water
           ! WRITE(*,'(I5,6D15.5)')I,FTMP,AERO(1:3), TOT_SULF, AERO(SULF_MAP(I))
         ENDDO
         !--------------------------------------------------------------------------------------------------------------
@@ -472,14 +472,14 @@
 
         SSH2O_PER_SSMASS = SSH2O / TOT_SEAS                                  ! [ugH2O/ugNaCl]
         DO J=1, NMODES_SEAS    ! loop over all modes containing sea salt
-          MASS_COMP(MODE_NUMB_SEAS(J),8) = MASS_COMP(MODE_NUMB_SEAS(J),8) 
+          MASS_COMP(MODE_NUMB_SEAS(J),nmass_spcs+mass_h2o) = MASS_COMP(MODE_NUMB_SEAS(J),nmass_spcs+mass_h2o)
      &                                   + SSH2O_PER_SSMASS * AERO(SEAS_MAP(J)) ! [ug/m^3]
         ENDDO
         DO I=1, NWEIGHTS
-          DO J=1, 7                                                  ! all components except water 
+          DO J=1, nmass_spcs+nextra-1                                ! all components except water
             TOT_MASS_DRY(I) = TOT_MASS_DRY(I) + MASS_COMP(I,J)       ! [ug/m^3]
           ENDDO
-          TOT_MASS(I) = TOT_MASS_DRY(I) + MASS_COMP(I,8)             ! add in water [ug/m^3]
+          TOT_MASS(I) = TOT_MASS_DRY(I) + MASS_COMP(I,nmass_spcs+mass_h2o)             ! add in water [ug/m^3]
           !------------------------------------------------------------------------------------------------------------
           ! IF(I.EQ. 3) WRITE(*,'(I4,A6,9F12.6 )') I, MODE_NAME(I), TOT_MASS(I), MASS_COMP(I,:)
           ! IF(I.EQ. 8) WRITE(*,'(I4,A6,9F12.6 )') I, MODE_NAME(I), TOT_MASS(I), MASS_COMP(I,:)
@@ -492,10 +492,10 @@
           ! Get the ambient and dry diameter of average mass for each mode (quadrature point).
           !------------------------------------------------------------------------------------------------------------
           VOLTMP_DRY = 1.0D-30
-          DO J=1, 7                                                        ! all components except water 
+          DO J=1, nmass_spcs+nextra-1                                             ! all components except water
             VOLTMP_DRY = VOLTMP_DRY + MASS_COMP(I,J) * RECIP_DENS_COMP(J)  ! mode dry volume conc. [10^6 cm^3/m^3]
           ENDDO
-          VOLTMP = VOLTMP_DRY + MASS_COMP(I,8) * RECIP_DENS_COMP(8)        ! mode ambient volume conc. [10^6 cm^3/m^3]
+          VOLTMP = VOLTMP_DRY + MASS_COMP(I,nmass_spcs+mass_h2o) * RECIP_DENS_COMP(nmass_spcs+mass_h2o)        ! mode ambient volume conc. [10^6 cm^3/m^3]
           DENS_MODE    (I) = TOT_MASS    (I) / VOLTMP                      ! mode ambient density [g/cm^3] 
           DENS_MODE_DRY(I) = TOT_MASS_DRY(I) / VOLTMP_DRY                  ! mode dry     density [g/cm^3] 
           DP    (I) = ( CONV_VOL_TO_DP_FAC * VOLTMP     / NI(I) )**0.333333333333333  ! [m]
