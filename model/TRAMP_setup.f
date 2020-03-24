@@ -91,8 +91,8 @@
       ! RECIP_DENS_COMP(I) is the reciprocal density of chemical component I.
       !-------------------------------------------------------------------------
       REAL(8), SAVE :: DENSPI(NWEIGHTS)           ! [g/cm^3]
-      REAL(8), SAVE :: DENS_COMP(NWEIGHTS)        ! [g/cm^3] 
-      REAL(8), SAVE :: RECIP_DENS_COMP(NWEIGHTS)  ! [cm^3/g] 
+      REAL(8), SAVE :: DENS_COMP(NMASS_SPCS+NEXTRA)        ! [g/cm^3]
+      REAL(8), SAVE :: RECIP_DENS_COMP(NMASS_SPCS+NEXTRA)  ! [cm^3/g]
       !-------------------------------------------------------------------------
       ! Characteristic lognormal parameters for each mode: DGN0 [um], SIG0 [1].            
       !-------------------------------------------------------------------------
@@ -1711,15 +1711,27 @@
       !---------------------------------------------------------------------------------------------------------------------
       ! Set densities and their reciprocals for each chemical component of any mode. 
       !---------------------------------------------------------------------------------------------------------------------
-      DENS_COMP(1) = RHO_NH42SO4     ! [g/cm^3] sulfate 
-      DENS_COMP(2) = EMIS_DENS_BCAR  ! [g/cm^3] BC
-      DENS_COMP(3) = EMIS_DENS_OCAR  ! [g/cm^3] OC
-      DENS_COMP(4) = EMIS_DENS_DUST  ! [g/cm^3] dust 
-      DENS_COMP(5) = EMIS_DENS_SEAS  ! [g/cm^3] sea salt
-      DENS_COMP(6) = RHO_NH42SO4     ! [g/cm^3] nitrate
-      DENS_COMP(7) = RHO_NH42SO4     ! [g/cm^3] ammonium
-      DENS_COMP(8) = RHO_H2O         ! [g/cm^3] water 
-      DO I=1, 8
+      DENS_COMP(PROD_INDEX_SULF) = RHO_NH42SO4     ! [g/cm^3] sulfate
+      DENS_COMP(PROD_INDEX_BCAR) = EMIS_DENS_BCAR  ! [g/cm^3] BC
+      DENS_COMP(PROD_INDEX_OCAR) = EMIS_DENS_OCAR  ! [g/cm^3] OC
+      DENS_COMP(PROD_INDEX_DUST) = EMIS_DENS_DUST  ! [g/cm^3] dust
+      DENS_COMP(PROD_INDEX_SEAS) = EMIS_DENS_SEAS  ! [g/cm^3] sea salt
+#ifdef TRACERS_AMP_M9
+      DENS_COMP(PROD_INDEX_OCM2) = EMIS_DENS_OCM2
+      DENS_COMP(PROD_INDEX_OCM1) = EMIS_DENS_OCM1
+      DENS_COMP(PROD_INDEX_OCM0) = EMIS_DENS_OCM0
+      DENS_COMP(PROD_INDEX_OCP1) = EMIS_DENS_OCP1
+      DENS_COMP(PROD_INDEX_OCP2) = EMIS_DENS_OCP2
+      DENS_COMP(PROD_INDEX_OCP3) = EMIS_DENS_OCP3
+      DENS_COMP(PROD_INDEX_OCP4) = EMIS_DENS_OCP4
+      DENS_COMP(PROD_INDEX_OCP5) = EMIS_DENS_OCP5
+      DENS_COMP(PROD_INDEX_OCP6) = EMIS_DENS_OCP6
+#endif
+      DENS_COMP(NMASS_SPCS+MASS_NO3) = RHO_NH4NO3      ! [g/cm^3] nitrate
+      DENS_COMP(NMASS_SPCS+MASS_NH4) = RHO_NH42SO4     ! [g/cm^3] ammonium
+      DENS_COMP(NMASS_SPCS+MASS_H2O) = RHO_H2O         ! [g/cm^3] water
+
+      DO I=1, NMASS_SPCS+NEXTRA
         RECIP_DENS_COMP(I) = 1.0D+00 / DENS_COMP(I)   ! [cm^3/g] sulfate 
         ! WRITE(*,'(I4,2F10.4)') I, DENS_COMP(I), RECIP_DENS_COMP(I)
       ENDDO
