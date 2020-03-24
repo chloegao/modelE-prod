@@ -1,3 +1,4 @@
+#include "rundeck_opts.h"
       MODULE AERO_ACTV
       USE AERO_PARAM,  ONLY: NLAYS, AUNIT1
       USE AERO_CONFIG, ONLY: NMODES
@@ -11,6 +12,17 @@
       REAL(8), PARAMETER :: DENS_OCAR = 1.00D+03    ! [kg/m^3] Ghan et al. (2001) - MIRAGE
       REAL(8), PARAMETER :: DENS_DUST = 2.60D+03    ! [kg/m^3] Ghan et al. (2001) - MIRAGE
       REAL(8), PARAMETER :: DENS_SEAS = 2.165D+03   ! [kg/m^3] NaCl, Ghan et al. (2001) used 1.90D+03
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: DENS_OCM2 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCM1 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCM0 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP1 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP2 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP3 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP4 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP5 = 1.00D+03
+      REAL(8), PARAMETER :: DENS_OCP6 = 1.00D+03
+#endif
       REAL(8) :: NACTIV(NMODES)       ! for use in other subroutines
 
       CONTAINS
@@ -46,7 +58,11 @@
 !----------------------------------------------------------------------------------------------------------------------
       IMPLICIT NONE
 
+#ifdef TRACERS_AMP_M9
+      INTEGER, PARAMETER :: NCOMPS = 14
+#else
       INTEGER, PARAMETER :: NCOMPS = 5
+#endif
 
       ! Arguments.
       
@@ -70,15 +86,6 @@
       REAL(8) :: XMAP(NMODEX)         ! total mass concentration for each mode [ug/m^3]
       REAL(8) :: BIBAR(NMODEX)        ! hygroscopicity parameter for each mode [1]
 
-      ! Variables for mode-average hygroscopicity parameters. 
-      
-      REAL(8)       :: XR  (NMODEX,NCOMPS)  ! mass fraction for component J in mode I [1]   
-      REAL(8), SAVE :: XNU (NCOMPS)         ! # of ions formed per formula unit solute for component J in mode I [1]
-      REAL(8), SAVE :: XPHI(NCOMPS)         ! osmotic coefficient for component J in mode I [1]
-      REAL(8), SAVE :: XMW (NCOMPS)         ! molecular weight for component J in mode I [kg/mol]
-      REAL(8), SAVE :: XRHO(NCOMPS)         ! density of component J in mode I [kg/m^3]
-      REAL(8), SAVE :: XEPS(NCOMPS)         ! soluble fraction of component J in mode I [1]
-
       REAL(8) :: SUMNUMER, SUMDENOM         ! scratch variables 
 
       REAL(8), PARAMETER :: NION_SULF = 3.00D+00    ! [1]
@@ -86,58 +93,139 @@
       REAL(8), PARAMETER :: NION_OCAR = 1.00D+00    ! [1]
       REAL(8), PARAMETER :: NION_DUST = 2.30D+00    ! [1]
       REAL(8), PARAMETER :: NION_SEAS = 2.00D+00    ! [1] NaCl
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: NION_OCM2 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCM1 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCM0 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP1 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP2 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP3 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP4 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP5 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: NION_OCP6 = 1.00D+00    ! [1]
+#endif
 
       REAL(8), PARAMETER :: XPHI_SULF = 0.70D+00    ! [1]
       REAL(8), PARAMETER :: XPHI_BCAR = 1.00D+00    ! [1]
       REAL(8), PARAMETER :: XPHI_OCAR = 1.00D+00    ! [1]
       REAL(8), PARAMETER :: XPHI_DUST = 1.00D+00    ! [1]
       REAL(8), PARAMETER :: XPHI_SEAS = 1.00D+00    ! [1] NaCl
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: XPHI_OCM2 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCM1 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCM0 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP1 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP2 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP3 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP4 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP5 = 1.00D+00    ! [1]
+      REAL(8), PARAMETER :: XPHI_OCP6 = 1.00D+00    ! [1]
+#endif
 
       REAL(8), PARAMETER :: MOLW_SULF = 132.0D-03   ! [kg/mol]
       REAL(8), PARAMETER :: MOLW_BCAR = 100.0D-03   ! [kg/mol]
       REAL(8), PARAMETER :: MOLW_OCAR = 100.0D-03   ! [kg/mol]
       REAL(8), PARAMETER :: MOLW_DUST = 100.0D-03   ! [kg/mol]
       REAL(8), PARAMETER :: MOLW_SEAS = 58.44D-03   ! [kg/m^3] NaCl
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: MOLW_OCM2 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCM1 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCM0 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP1 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP2 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP3 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP4 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP5 = 100.0D-03   ! [kg/mol]
+      REAL(8), PARAMETER :: MOLW_OCP6 = 100.0D-03   ! [kg/mol]
+#endif
 
       REAL(8), PARAMETER :: XEPS_SULF = 1.00D+00    ! [1]
       REAL(8), PARAMETER :: XEPS_BCAR = 1.67D-06    ! [1]
       REAL(8), PARAMETER :: XEPS_OCAR = 0.78D+00    ! [1]
       REAL(8), PARAMETER :: XEPS_DUST = 0.13D+00    ! [1]
       REAL(8), PARAMETER :: XEPS_SEAS = 1.00D+00    ! [1] NaCl
+#ifdef TRACERS_AMP_M9
+      REAL(8), PARAMETER :: XEPS_OCM2 = 1.D+00      ! [1]
+      REAL(8), PARAMETER :: XEPS_OCM1 = 0.875D+00   ! [1]
+      REAL(8), PARAMETER :: XEPS_OCM0 = 0.75D+00    ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP1 = 0.625D+00   ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP2 = 0.5+00      ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP3 = 0.375D+00   ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP4 = 0.25D+00    ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP5 = 0.125D+00   ! [1]
+      REAL(8), PARAMETER :: XEPS_OCP6 = 0.D+00      ! [1]
+#endif
 
       REAL(8), PARAMETER :: WMOLMASS = 18.01528D-03 ! molar mass of H2O     [kg/mol]
       REAL(8), PARAMETER :: DENH2O   =  1.00D+03    ! density of water [kg/m^3]
 
-      LOGICAL, SAVE :: FIRSTIME = .TRUE.
-      
-      IF( FIRSTIME ) THEN
-        FIRSTIME = .FALSE.
-        XNU (1) = NION_SULF
-        XNU (2) = NION_BCAR
-        XNU (3) = NION_OCAR
-        XNU (4) = NION_DUST
-        XNU (5) = NION_SEAS
-        XPHI(1) = XPHI_SULF
-        XPHI(2) = XPHI_BCAR
-        XPHI(3) = XPHI_OCAR
-        XPHI(4) = XPHI_DUST
-        XPHI(5) = XPHI_SEAS
-        XMW (1) = MOLW_SULF
-        XMW (2) = MOLW_BCAR
-        XMW (3) = MOLW_OCAR
-        XMW (4) = MOLW_DUST
-        XMW (5) = MOLW_SEAS
-        XRHO(1) = DENS_SULF
-        XRHO(2) = DENS_BCAR
-        XRHO(3) = DENS_OCAR
-        XRHO(4) = DENS_DUST
-        XRHO(5) = DENS_SEAS
-        XEPS(1) = XEPS_SULF
-        XEPS(2) = XEPS_BCAR
-        XEPS(3) = XEPS_OCAR
-        XEPS(4) = XEPS_DUST
-        XEPS(5) = XEPS_SEAS
-      ENDIF
+      ! Variables for mode-average hygroscopicity parameters.
+      REAL(8)       :: XR  (NMODEX,NCOMPS)  ! mass fraction for component J in mode I [1]
+
+#ifdef TRACERS_AMP_M9
+      ! # of ions formed per formula unit solute for component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XNU=(/NION_SULF,NION_BCAR,
+     &                                               NION_OCAR,NION_DUST,
+     &                                               NION_SEAS,NION_OCM2,
+     &                                               NION_OCM1,NION_OCM0,
+     &                                               NION_OCP1,NION_OCP2,
+     &                                               NION_OCP3,NION_OCP4,
+     &                                               NION_OCP5,NION_OCP6/)
+      ! osmotic coefficient for component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XPHI=(/XPHI_SULF,XPHI_BCAR,
+     &                                                XPHI_OCAR,XPHI_DUST,
+     &                                                XPHI_SEAS,XPHI_OCM2,
+     &                                                XPHI_OCM1,XPHI_OCM0,
+     &                                                XPHI_OCP1,XPHI_OCP2,
+     &                                                XPHI_OCP3,XPHI_OCP4,
+     &                                                XPHI_OCP5,XPHI_OCP6/)
+      ! density of component J in mode I [kg/m^3]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XRHO=(/DENS_SULF,DENS_BCAR,
+     &                                                DENS_OCAR,DENS_DUST,
+     &                                                DENS_SEAS,DENS_OCM2,
+     &                                                DENS_OCM1,DENS_OCM0,
+     &                                                DENS_OCP1,DENS_OCP2,
+     &                                                DENS_OCP3,DENS_OCP4,
+     &                                                DENS_OCP5,DENS_OCP6/)
+      ! soluble fraction of component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XEPS=(/XEPS_SULF,XEPS_BCAR,
+     &                                                XEPS_OCAR,XEPS_DUST,
+     &                                                XEPS_SEAS,XEPS_OCM2,
+     &                                                XEPS_OCM1,XEPS_OCM0,
+     &                                                XEPS_OCP1,XEPS_OCP2,
+     &                                                XEPS_OCP3,XEPS_OCP4,
+     &                                                XEPS_OCP5,XEPS_OCP6/)
+      ! molecular weight for component J in mode I [kg/mol]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XMW=(/MOLW_SULF,MOLW_BCAR,
+     &                                               MOLW_OCAR,MOLW_DUST,
+     &                                               MOLW_SEAS,MOLW_OCM2,
+     &                                               MOLW_OCM1,MOLW_OCM0,
+     &                                               MOLW_OCP1,MOLW_OCP2,
+     &                                               MOLW_OCP3,MOLW_OCP4,
+     &                                               MOLW_OCP5,MOLW_OCP6/)
+#else
+      ! # of ions formed per formula unit solute for component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XNU=(/NION_SULF,NION_BCAR,
+     &                                               NION_OCAR,NION_DUST,
+     &                                               NION_SEAS/)
+      ! osmotic coefficient for component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XPHI=(/XPHI_SULF,XPHI_BCAR,
+     &                                                XPHI_OCAR,XPHI_DUST,
+     &                                                XPHI_SEAS/)
+      ! density of component J in mode I [kg/m^3]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XRHO=(/DENS_SULF,DENS_BCAR,
+     &                                                DENS_OCAR,DENS_DUST,
+     &                                                DENS_SEAS/)
+      ! soluble fraction of component J in mode I [1]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XEPS=(/XEPS_SULF,XEPS_BCAR,
+     &                                                XEPS_OCAR,XEPS_DUST,
+     &                                                XEPS_SEAS/)
+      ! molecular weight for component J in mode I [kg/mol]
+      REAL(8), DIMENSION(NCOMPS), PARAMETER :: XMW=(/MOLW_SULF,MOLW_BCAR,
+     &                                               MOLW_OCAR,MOLW_DUST,
+     &                                               MOLW_SEAS/)
+#endif
+
 
       !--------------------------------------------------------------------------------------------------------------
       ! Calculate the mass fraction component J for each mode I. 
