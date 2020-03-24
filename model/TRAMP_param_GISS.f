@@ -22,6 +22,7 @@
       REAL(8), PARAMETER :: UGM3_NCM3   = 1.0D-12 * AVO / MW_SO4   ! [ugSO4/m^3] to [#/cm^3]
       REAL(8), PARAMETER :: CONVNH3     = RGAS_SI / MW_NH3         ! used in [ug NH3/m^3] to [ppmV]
       REAL(8), PARAMETER :: RHO_NH42SO4 = 1.77D+00                 ! density of dry (NH4)2SO4 [g/cm^3]
+      REAL(8), PARAMETER :: RHO_NH4NO3  = 1.72D+00                 ! density of dry NH4NO3 [g/cm^3]
       REAL(8), PARAMETER :: RHO_H2SO4   = 1.84D+00                 ! density of pure H2SO4    [g/cm^3] - CRC
       REAL(8), PARAMETER :: RHO_H2O     = 1.00D+00                 ! density of pure H2O      [g/cm^3] - CRC
       REAL(8), PARAMETER :: DENSP       = 1.40D+00                 ! default ambient particle density [g/cm^3]
