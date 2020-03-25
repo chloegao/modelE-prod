@@ -745,7 +745,8 @@
       USE COSMO_SOURCES, only: be7_src_param
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-      USE AEROSOL_SOURCES, only: VBSemifact,vbs_sets,vbs_conc
+      USE AEROSOL_SOURCES, only: vbs_sets,vbs_conc
+      USE AEROSOL_SOURCES, only: VBSemifactFF,VBSemifactBB
 #endif  /* TRACERS_AEROSOLS_VBS */
       USE TRACER_COM, only: no_emis_over_ice
 #ifdef TRACERS_MINERALS
@@ -831,7 +832,8 @@ C**** determine year of emissions
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       do v=1,vbs_sets
-        call sync_param("VBSemifact",VBSemifact,vbs_conc(v)%nbins) ! same for all
+        call sync_param("VBSemifactFF",VBSemifactFF,vbs_conc(v)%nbins)
+        call sync_param("VBSemifactBB",VBSemifactBB,vbs_conc(v)%nbins)
       enddo
 #endif
 #ifdef TRACERS_SPECIAL_O18

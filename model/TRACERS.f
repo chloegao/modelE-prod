@@ -2112,8 +2112,9 @@ C
       integer :: fileUnit 
       integer L,i,j,k,LL
       interface
-        real*8 function get_src_fact(n,ibb)
+        real*8 function get_src_fact(n,is_bb,ibb)
           integer, intent(in) :: n
+          logical, intent(in) :: is_bb
           logical, intent(in), optional :: ibb
         end function get_src_fact
       end interface
@@ -2246,7 +2247,7 @@ C
       end do ! J
 
       airtracer(I_0:I_1,J_0:J_1,:) =
-     &     airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer)
+     &     airtracer(I_0:I_1,J_0:J_1,:)*get_src_fact(nTracer,.false.)
 
       return
       end subroutine get_aircraft_tracer

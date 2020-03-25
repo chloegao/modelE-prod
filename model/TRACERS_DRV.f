@@ -31,7 +31,7 @@
 
       end function get_src_index
 !=======================================================================
-      real*8 function get_src_fact(n,vibb)
+      real*8 function get_src_fact(n,is_bb,vibb)
 !@var src_fact Factor to multiply aerosol emissions with. Default is 1.
 !@+            Notable exceptions are SO2/SO4, where one file is being read
 !@+            and distributed to both tracers,and organics, where emissions
@@ -42,7 +42,7 @@
       use OldTracer_mod, only: om2oc
       use TRACER_COM, only: n_M_AKK_SU
 #ifdef TRACERS_AEROSOLS_VBS
-      use aerosol_sources, only: VBSemifact
+      use aerosol_sources, only: VBSemifactFF,VBSemifactBB
 #ifdef TRACERS_AMP
       use AMP_AEROSOL, only: vbs_conc
       use AERO_CONFIG, only: nmodes,mname
@@ -52,9 +52,11 @@
 #endif  /* TRACERS_AEROSOLS_VBS */
       implicit none
 !@var n index of current tracer whose emissions factor is being seeked
+!@var is_bb true if the sector is biomass burning, false otherwise
 !@var vibb true if the tracer has interactive biomass burning emissions
 !@var so4_fraction mole fraction of so2 to be emitted as so4
       integer, intent(in) :: n
+      logical, intent(in) :: is_bb
       logical, intent(in), optional :: vibb
       real*8, parameter :: so4_fraction=0.025d0
       real*8 :: akk_fraction
@@ -92,12 +94,20 @@
 #ifdef TRACERS_AMP
           do i=1,nmodes
             if (mname(i)=='OCC') then ! indices from OCC are needed here
-              get_src_fact=VBSemifact(vbs_conc(i)%iaerinv(n))
+              if (is_bb) then
+                get_src_fact=VBSemifactBB(vbs_conc(i)%iaerinv(n))
+              else
+                get_src_fact=VBSemifactFF(vbs_conc(i)%iaerinv(n))
+              endif
               exit
             endif
           enddo
 #else
-          get_src_fact=VBSemifact(vbs_conc(1)%iaerinv(n)) ! same factor for all, so just use index 1 here
+          if (is_bb) then ! same factor for all, so just use index 1 here
+            get_src_fact=VBSemifactBB(vbs_conc(1)%iaerinv(n))
+          else
+            get_src_fact=VBSemifactFF(vbs_conc(1)%iaerinv(n))
+          endif
 #endif
           if (.not.ibb) get_src_fact=get_src_fact*om2oc(n)
 #endif  /* TRACERS_AEROSOLS_VBS */
@@ -6004,8 +6014,9 @@ c      real*8 :: nlight, max_COSZ1, fact0
       integer :: src_index,get_src_index
       real*8 :: src_fact
       interface
-        real*8 function get_src_fact(n,ibb)
+        real*8 function get_src_fact(n,is_bb,ibb)
           integer, intent(in) :: n
+          logical, intent(in) :: is_bb
           logical, intent(in), optional :: ibb
         end function get_src_fact
       end interface
@@ -6119,7 +6130,7 @@ C**** All sources are saved as kg s-1
 #if (defined TRACERS_AEROSOLS_Koch) || (defined TRACERS_AMP) ||\
     (defined TRACERS_TOMAS)
       src_index=get_src_index(n)
-      src_fact=get_src_fact(n)
+      src_fact=get_src_fact(n,.false.)
 #endif
 
       select case (trim(pTracer%getName()))
@@ -7062,8 +7073,9 @@ C****
       integer :: get_src_index,bb_i,bb_e
       real*8 :: src_fact
       interface
-        real*8 function get_src_fact(n,ibb)
+        real*8 function get_src_fact(n,is_bb,ibb)
           integer, intent(in) :: n
+          logical, intent(in) :: is_bb
           logical, intent(in), optional :: ibb
         end function get_src_fact
       end interface
@@ -7071,7 +7083,7 @@ C****
 C**** All sources are saved as kg s-1
 
       do n=1,ntm
-        src_fact=get_src_fact(n)
+        src_fact=get_src_fact(n,.false.)
 
         select case(trname(n))
         case ('SO2','SO4','M_ACC_SU','M_AKK_SU','ASO4__01','Water')
@@ -7154,8 +7166,9 @@ C*****
       real*8 :: src_fact
 
       interface
-        real*8 function get_src_fact(n,ibb)
+        real*8 function get_src_fact(n,is_bb,ibb)
           integer, intent(in) :: n
+          logical, intent(in) :: is_bb
           logical, intent(in), optional :: ibb
         end function get_src_fact
       end interface
@@ -7170,7 +7183,7 @@ C*****
 C**** All sources are saved as kg s-1
       do n=1,ntm
       src_index=get_src_index(n)
-      src_fact=get_src_fact(n)
+      src_fact=get_src_fact(n,.true.)
 
       select case (trname(n))
 
@@ -7205,7 +7218,7 @@ C**** 3D biomass source
             bb_e=ntsurfsrc(src_index)+nBBsources(src_index) ! index last BB source
           end if
             blay=int(dclev(i,j)+0.5d0)
-            blsrc = get_src_fact(n,do_fire(n))* ! not src_fact here
+            blsrc = get_src_fact(n,.true.,do_fire(n))* ! not src_fact here
      &       sum(sfc_src(i,j,src_index,bb_i:bb_e))/sum(MA(1:blay))
             do l=1,blay
               tr3Dsource(l,nBiomass,n)=tune_BBsources*blsrc*MA(l)

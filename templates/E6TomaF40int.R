@@ -163,7 +163,8 @@ KSOLAR=2         ! 2: use long annual mean file ; 1: use short monthly file
 ! use of model year and use o3_yr instead!
 !!!!!!!!!!!!!!!!!!!!!!!
 #include "aerosol_OMA_params_CMIP6_noBBURN"
-VBSemifact=0.03d0,0.06d0,0.09d0,0.14d0,0.18d0,0.30d0,0.40d0,0.50d0,0.80d0
+VBSemifactFF=0.03d0,0.06d0,0.09d0,0.14d0,0.18d0,0.30d0,0.40d0,0.50d0,0.80d0
+VBSemifactBB=0.03d0,0.06d0,0.09d0,0.14d0,0.18d0,0.30d0,0.40d0,0.50d0,0.80d0
 #include "dust_params_vmp_oma"
 #include "common_tracer_params_CMIP6"
 #include "chemistry_params_CMIP6_noBBURN"

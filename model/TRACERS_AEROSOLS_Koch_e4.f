@@ -49,10 +49,13 @@
       real*8, ALLOCATABLE, DIMENSION(:,:,:) :: rn_src
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-!@var VBSemifact factor that distributes organic aerosols in volatility bins
+!@var VBSemifactFF factor that distributes organic aerosols in volatility bins
+!@+                from fossil fuel sources
+!@var VBSemifactBB factor that distributes organic aerosols in volatility bins
+!@+                from biomass burning sources
       integer, parameter :: vbs_sets=1
       type(vbs_tracers), dimension(vbs_sets) :: vbs_conc
-      real*8, allocatable, dimension(:) :: VBSemifact
+      real*8, allocatable, dimension(:) :: VBSemifactFF,VBSemifactBB
 #endif /* TRACERS_AEROSOLS_VBS */
       integer, parameter :: nAeroStream=6
       type(timestream), dimension(nAeroStream) :: AeroStream
@@ -86,7 +89,8 @@
      * ,rn_src
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
-      use AEROSOL_SOURCES, only: VBSemifact,vbs_sets,vbs_conc
+      use AEROSOL_SOURCES, only: vbs_sets,vbs_conc
+      use AEROSOL_SOURCES, only: VBSemifactFF,VBSemifactBB
 #endif
 #ifdef BC_ALB
       use AEROSOL_SOURCES, only: snosiz
@@ -146,7 +150,8 @@
 #endif
 #ifdef TRACERS_AEROSOLS_VBS
       do v=1,vbs_sets
-        allocate(VBSemifact(vbs_conc(v)%nbins))
+        allocate(VBSemifactFF(vbs_conc(v)%nbins))
+        allocate(VBSemifactBB(vbs_conc(v)%nbins))
       enddo
 #endif
 
