@@ -6,7 +6,7 @@
 .DELETE_ON_ERROR:
 
 ifdef MOD_DIR
-  VPATH += $(MOD_DIR)
+  MODVPATH += $(MOD_DIR)
 endif
 
 ######  Some user customizable settings:   ########
@@ -62,11 +62,14 @@ I = I
 # by default assume that fortran compiler can do cpp
 EXTERNAL_CPP = NO
 # assume that C compiler understands basic gcc flags
-CFLAGS = -O2
-# check if ABI was specified
-ifneq ($(ABI),)
-  CFLAGS += -m$(ABI)
-endif
+# CFLAGS not used?
+#CFLAGS = -O2
+## check if ABI was specified
+#ifneq ($(ABI),)
+#  CFLAGS += -m$(ABI)
+#endif
+#default flag for "-m64"
+M64 = -m64
 # define default name for m4
 M4 = m4
 # default runlib
@@ -260,6 +263,9 @@ ifdef NETCDFLIBDIR
   else
     LIBS += -L$(NETCDFLIBDIR) -L/opt/local/lib -lnetcdff -lnetcdf
   endif
+  ifneq ($(wildcard $(NETCDFLIBDIR)/libhdf5.*),)
+    LIBS += -lhdf5_hl -lhdf5 -ldl -lcurl -lz
+  endif
 endif
 
 endif
@@ -328,8 +334,11 @@ endif
 endif
 
 ifdef SYSTEM_MOD_DIRS
-VPATH += $(subst :, ,$(SYSTEM_MOD_DIRS))
+MODVPATH += $(subst :, ,$(SYSTEM_MOD_DIRS))
 endif
+
+# use this vpath only for *.mod files (the suffix may depend on compiler)
+vpath %.mod $(MODVPATH)
 
 #
 # Pattern  rules
@@ -423,7 +432,7 @@ endif
 	 $(CPP) $(CPPFLAGS) $< > $@
 
 %.o: %.c
-	$(CC) -c -O2 -m64 $<
+	$(CC) -c -O2 $(M64) $<
 
 %.f: %.m4f
 	-rm -f $@

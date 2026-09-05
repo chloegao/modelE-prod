@@ -1,7 +1,8 @@
 
 F90 = ifort
+# include the minor number only in 1 or 2-digit releases
 IFORT_RELEASE := $(shell ifort --version | perl -e \
-  'while(<>){ if(/ifort.* (\d+\.\d+)/) { print "$$1"; } }')
+  'while(<>){ if(/ifort.* (\d\d?\.\d+|\d+(?=\.))/) { print "$$1"; } }')
 FMAKEDEP = $(SCRIPTS_DIR)/sfmakedepend
 CMP_MOD = $(SCRIPTS_DIR)/compare_module_file.pl -compiler INTEL-ifort-9-0-on-LINUX
 FFLAGS = -fpp -O2 -ftz         -convert big_endian 
@@ -17,14 +18,15 @@ endif
 R8 = -r8
 EXTENDED_SOURCE = -extend_source
 
-SUPPORTED_RELEASES = 14.0 15.0 16.0
+# two-digit releases should include the minor number
+SUPPORTED_RELEASES = 14.0 15.0 16.0 19.1 2021
 
-ifneq ($(OVERWRITE),YES)
+ifneq ($(SKIP_COMPILER_CHECK),YES)
 ifeq ($(findstring $(IFORT_RELEASE),$(SUPPORTED_RELEASES)),)
   $(error ifort version $(IFORT_RELEASE) is not supported by this code. \
           Use one of: $(SUPPORTED_RELEASES) . \
           If you insist on using an unsupported version, you can do it at your \
-          own risk by appending "OVERWRITE=YES" to the compilation command )
+          own risk by appending "SKIP_COMPILER_CHECK=YES" to the compilation command )
 endif
 endif
 
