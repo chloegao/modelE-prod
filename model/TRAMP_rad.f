@@ -39,7 +39,9 @@ c       -> read this in                       MODE_NAME
 
       USE RESOLUTION,  only: lm
       USE MODEL_COM,   only: itime,itimeI
-      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX,AMP_TAB_SPEC
+c     AMP_TAB_SPEC (RADPAR) held one LW spectrum per mode and is no longer used here;
+c     it is superseded by AMP_TAB_CLASS below, which resolves composition as well.
+      USE RADPAR,      only: aesqex,aesqsc,aesqcb,FSTOPX,FTTOPX
 
       IMPLICIT NONE
       INTEGER, save:: Ifirstrad = 1
@@ -52,10 +54,27 @@ c       -> read this in                       MODE_NAME
 
       ! Local
       
-      INTEGER l,n,w,MA,MB,MC,MD,NA,NS
-      REAL*8 sizebins(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33) 
+      INTEGER l,n,w,s,MA,MB,MC,MD,NA,NS
+      REAL*8 sizebins(23), Mie_IM(17), Mie_RE(15), HELP, AMP_TAB(33)
       REAL*8 CORE_CLASS(nmodes), SHELL_CLASS(nmodes),Reff_mode(nmodes),Vf(6),CS_Mix(26)
       REAL*8 a,b,AMPEXT,AMPSCA,AMPASY
+c-----------------------------------------------------------------------------------------
+c     Longwave absorption is mixed over the composition of each mode, rather than taken
+c     from a single composition per mode (see the LW section below for why). AMP_TAB_CLASS
+c     holds the LW absorption spectrum of each pure composition at each mode's effective
+c     radius, precalculated once; the runtime mixing is a volume-fraction weighted sum
+c     over these. NDRY is the number of dry species tracked in dry_Vf_LEV.
+c
+c     SPC_TO_NA maps the species order of VMass/dry_Vf_LEV (set in SETAMP_LEV) onto the
+c     aerosol composition codes NA used by GET_LW. The two orderings differ, so this
+c     mapping must not be bypassed:
+c         dry_Vf_LEV slot :  1 SU   2 BC   3 OC   4 DU   5 SS   6 NO3
+c         GET_LW NA code  :  1 SO4  2 SEA  3 NO3  4 OC   5 BC   6 DUST
+c-----------------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: NDRY=6, NCLASS=6
+      INTEGER SPC_TO_NA(NDRY)
+      REAL*8, SAVE :: AMP_TAB_CLASS(33,NCLASS,nmodes)
+      DATA SPC_TO_NA /1, 5, 4, 6, 2, 3/
       DATA sizebins/0.002, 0.005,0.01,0.05,0.08,0.1,0.13,0.17,0.2,0.25,0.3,0.4,0.5,0.6,0.7,0.8,1.0,1.2,1.5,2.,3.,5.,10./
       DATA CS_Mix/0.,0.04,0.08,0.12,0.16,0.2,0.24,0.28
      +          ,0.32,0.36,0.4,0.44,0.48,0.52,0.56,0.6
@@ -66,6 +85,11 @@ c       -> read this in                       MODE_NAME
            CHARACTER(LEN=3), SAVE :: MODE_NAME(16)
       DATA MODE_NAME(1:16)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/
 #endif
+c     One table per mechanism, holding the modes listed in IMODES in AERO_CONFIG.
+c     The per-mode values are common to all mechanisms; each table below just
+c     selects the modes that mechanism actually carries. The only exception is
+c     REFF_mode of SSS (mechanisms 4 and 8), which appears in no other mechanism
+c     and is set here to DG_SSS from TRAMP_param_GISS.
 #if (defined TRACERS_AMP_M1) || (defined USE_OFFLINE_AEROSOLS)
 c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  BC3  DBC  BOC  BCS  MXX
 c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
@@ -75,6 +99,60 @@ c      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   1,   0,   0,  
       DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
      +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,  
      +                 0.100D+00, 0.100D+00, 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/    
+#elif defined TRACERS_AMP_M2
+c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  OCS  DBC  BOC  BCS  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16
+      DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   4,   6,   4,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
+     +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,
+     +                 0.100D+00, 0.075D+00, 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M3
+c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  BOC  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11   12   13
+      DATA CORE_CLASS   /1,   1,   6,   6,   6,   6,   2,   2,   4,   5,   5,   4,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00,
+     +                 2.00D+00 , 0.12D+00 , 2.D+00   , 0.075D+00, 0.050D+00,
+     +                 0.100D+00, 0.100D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M4
+c                        ACC  DD1  DS1  DD2  DS2  SSS  OCC  BC1  BC2  MXX
+c                        1    2    3    4    5    6    7    8    9    10
+      DATA CORE_CLASS   /1,   6,   6,   6,   6,   2,   4,   5,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.075D+00, 1.160D+00, 2.000D+00, 1.260D+00, 2.00D+00 ,
+     +                 1.380D+00, 0.075D+00, 0.050D+00, 0.100D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M5
+c                        AKK  ACC  DD1  DS1  SSA  SSC  OCC  BC1  BC2  BC3  DBC  BOC  BCS  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14
+      DATA CORE_CLASS   /1,   1,   6,   6,   2,   2,   4,   5,   5,   5,   6,   4,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 0.12D+00 ,
+     +                 2.D+00   , 0.075D+00, 0.050D+00, 0.100D+00, 0.100D+00,
+     +                 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M6
+c                        AKK  ACC  DD1  DS1  SSA  SSC  OCC  BC1  BC2  OCS  DBC  BOC  BCS  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14
+      DATA CORE_CLASS   /1,   1,   6,   6,   2,   2,   4,   5,   5,   4,   6,   4,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 0.12D+00 ,
+     +                 2.D+00   , 0.075D+00, 0.050D+00, 0.100D+00, 0.075D+00,
+     +                 0.330D+00, 0.100D+00, 0.070D+00, 0.100D+00/
+#elif defined TRACERS_AMP_M7
+c                        AKK  ACC  DD1  DS1  SSA  SSC  OCC  BC1  BC2  BOC  MXX
+c                        1    2    3    4    5    6    7    8    9    10   11
+      DATA CORE_CLASS   /1,   1,   6,   6,   2,   2,   4,   5,   5,   4,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.026D+00, 0.075D+00, 1.160D+00, 2.000D+00, 0.12D+00 ,
+     +                 2.D+00   , 0.075D+00, 0.050D+00, 0.100D+00, 0.100D+00,
+     +                 0.100D+00/
+#elif defined TRACERS_AMP_M8
+c                        ACC  DD1  DS1  SSS  OCC  BC1  BC2  MXX
+c                        1    2    3    4    5    6    7    8
+      DATA CORE_CLASS   /1,   6,   6,   2,   4,   5,   5,   6/
+      DATA SHELL_CLASS  /0,   0,   0,   0,   0,   0,   0,   0/
+      DATA REFF_mode / 0.075D+00, 1.160D+00, 2.000D+00, 1.380D+00, 0.075D+00,
+     +                 0.050D+00, 0.100D+00, 0.100D+00/
 #elif defined TRACERS_AMP_M9
 c                        AKK  ACC  DD1  DS1  DD2  DS2  SSA  SSC  OCC  BC1  BC2  OCS  BOC  BCS  MXX
 c                        1    2    3    4    5    6    7    8    9    10   11   12   13   14   15
@@ -102,15 +180,22 @@ c                   NA1= SO4  NA2=SS  NA3=NO3 NA4=OC NA5=BC NA6=DU
       TAB(:,:)    = 0.d0
       TTAUSV(:,:) = 0.d0
 C Longwave Pre calculate TAB: ---------------------------------------------------------------------------------------------
+c     One spectrum per (composition, mode) instead of one per mode. The radius is still
+c     Reff_mode(n), so only the composition is resolved here, not the size; the size
+c     dependence enters through TTAUSV when the spectra are applied below.
+c     GET_LW is called with a shell class of 0: the shell branch inside GET_LW is
+c     commented out, and mixing is now handled by the volume weighting below, which
+c     supersedes the CORE_CLASS/SHELL_CLASS pair. Both arrays are kept in the mechanism
+c     tables above for reference but are no longer read.
 
       if ( Ifirstrad==1 ) then
       Ifirstrad = 0
       DO n = 1,nmodes
-      NA = CORE_CLASS(n)
-      NS = SHELL_CLASS(n)
-      Vf(:)=0.d0 
-      CALL GET_LW(NA,NS,Reff_mode(n),AMP_TAB,Vf)
-      AMP_TAB_SPEC(:,n)=AMP_TAB(:)
+      DO NA = 1,NCLASS
+      Vf(:)=0.d0
+      CALL GET_LW(NA,0,Reff_mode(n),AMP_TAB,Vf)
+      AMP_TAB_CLASS(:,NA,n)=AMP_TAB(:)
+      enddo
       enddo
       endif
 
@@ -335,10 +420,31 @@ c--------------------------------------------------------------------
 
 
 C Longwave: ---------------------------------------------------------------------------------------------
+c     The absorption spectrum of each mode is the volume-fraction weighted average of the
+c     spectra of the pure compositions it contains, using the dry volume fractions that
+c     SETAMP_LEV computes for this column. This mirrors the volume mixing already applied
+c     to the shortwave refractive index in SETAMP_LEV, so both parts of the spectrum see
+c     the same composition.
+c
+c     Previously each mode used a single fixed composition (CORE_CLASS), which was
+c     workable while only the carbonaceous modes carried organics. It is not workable for
+c     the MATRIX-VBS mechanisms (M9, and M10 for its non-volatile organics), where every
+c     mode except AKK carries organic mass: the dust and sea salt modes would otherwise
+c     absorb as pure dust and pure sea salt no matter how much organic had condensed onto
+c     them. See MSPCS in AERO_CONFIG for which modes carry which species.
+c
+c     dry_Vf_LEV(l,n,1:NDRY) is normalised over the dry species, so the weights sum to one
+c     for any mode holding mass, and to zero for an empty mode (which then contributes
+c     nothing, consistent with its TTAUSV also being zero).
 
       DO l = 1,lm
       DO n = 1,nmodes
-         TAB(l,:) = TAB(l,:) + (AMP_TAB_SPEC(:,n) *  TTAUSV(l,n) * FTTOPX(n))
+         AMP_TAB(:) = 0.d0
+         DO s = 1,NDRY
+            AMP_TAB(:) = AMP_TAB(:)
+     +                 + dry_Vf_LEV(l,n,s) * AMP_TAB_CLASS(:,SPC_TO_NA(s),n)
+         ENDDO   ! dry species
+         TAB(l,:) = TAB(l,:) + (AMP_TAB(:) *  TTAUSV(l,n) * FTTOPX(n))
       ENDDO   ! modes
       ENDDO   ! level
       endif
@@ -386,7 +492,7 @@ c -----------------------------------------------------------------
 
       ! Local
       INTEGER n,w,s,nAMP,k
-      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass=0
+      REAL*8,     DIMENSION(nmodes,7) :: VolFrac, VMass
       REAL*8                          :: H2O, NO3 
       REAL(8), PARAMETER :: TINYNUMER = 1.0D-30 
       COMPLEX*8, DIMENSION(6,7)      :: Ri
@@ -457,6 +563,9 @@ cBond + Berstroem, all wavelength
       DATA MODE_NAME(1:16)/'AKK','ACC','DD1','DS1','DD2','DS2','SSA','SSC','OCC','BC1','BC2','BC3','DBC','BOC','BCS','MXX'/
 #endif
 
+c     VMass must be zeroed here: not every (mode,species) pair is assigned
+c     below, and the organics are accumulated over several tracers (VBS).
+      VMass(:,:) = 0.d0
 
 #ifdef USE_OFFLINE_AEROSOLS
 
@@ -549,27 +658,22 @@ c         NUMB_LEV(l,n) = NI(n)* 0.7853 * (1.e-6*DG_WET(n))**2   ! [#/layer]
        ENDDO
 #endif   /* After that code should work for all cases */
 
-      DO s=1,7  ! loop over species 
+      DO s=1,7  ! loop over species
         DO n=1,nmodes           ! loop over modes
           Volfrac(n,s) = VMass(n,s) / (Sum(VMass(n,:)) + TINYNUMER)
           dry_Vf_LEV(l,n,s) = VMass(n,s) / (Sum(VMass(n,1:6)) + TINYNUMER)
-      ! Core Shell Composition
-          if (n.eq.14) then     ! BOC
-            MIX_OC(l,n) = VMass(n,3) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
-          endif
-          if (n.eq.15) then     ! BCS
-            MIX_OC(l,n) = 0.d0
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
-          endif
-          if (n.ge.10.and.n.le.12) then ! BC123
-            MIX_OC(l,n) = 0.d0
-            MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
-            MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,7) + TINYNUMER)
-          endif
         ENDDO
+      ENDDO
+
+      ! Core Shell Composition: core is BC, shell material is OC, SO4 and H2O.
+      ! The modes selected here must match the core-shell modes in SETAMP.
+      DO n=1,nmodes             ! loop over modes
+        select case (MODE_NAME(n))
+        case ('BC1','BC2','BC3','BOC','BCS')
+          MIX_OC(l,n) = VMass(n,3) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
+          MIX_SU(l,n) = VMass(n,1) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
+          MIX_AQ(l,n) = VMass(n,7) / (VMass(n,1) + VMass(n,2) + VMass(n,3) + VMass(n,7) + TINYNUMER)
+        end select
       ENDDO
  
       ! + Refractive Index of Aerosol mix per mode and wavelength
