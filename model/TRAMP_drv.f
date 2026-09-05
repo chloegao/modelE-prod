@@ -37,6 +37,13 @@
       USE AERO_CONFIG
       USE AERO_INIT
       USE AERO_PARAM, only: ILAY, NEMIS_SPCS
+c     Slots of EMIS_MASS, named for the mode and species each one feeds.
+      USE AERO_PARAM, only: EMIS_AKK_SULF, EMIS_ACC_SULF, EMIS_BC1_BCAR,
+     +     EMIS_OCC_OCAR, EMIS_DD1_DUST, EMIS_SSA_SEAS, EMIS_SSC_SEAS,
+     +     EMIS_BOC_BCAR, EMIS_BOC_OCAR, EMIS_DD2_DUST,
+     +     EMIS_OCC_OCM2, EMIS_OCC_OCM1, EMIS_OCC_OCM0, EMIS_OCC_OCP1,
+     +     EMIS_OCC_OCP2, EMIS_OCC_OCP3, EMIS_OCC_OCP4, EMIS_OCC_OCP5,
+     +     EMIS_OCC_OCP6
       USE AERO_DIAM, only: DP, DP_DRY
       USE AERO_ACTV, only: NACTIV
       USE AERO_SETUP 
@@ -119,81 +126,81 @@ c conversion trm_col [kg/m2/layer] -> AERO [ug/m3]
       EMIS_MASS(:) = 0.d0
       if (L.eq.1) then
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/m2/s]
-        if (n_M_AKK_SU>0) EMIS_MASS(1) =MAX(trflux1(i,j,n_M_AKK_SU)*1.d9/ AVOL,0.d0)
-        if (n_M_ACC_SU>0) EMIS_MASS(2) =MAX(trflux1(i,j,n_M_ACC_SU)*1.d9/ AVOL,0.d0)
-        if (n_M_BC1_BC>0) EMIS_MASS(3) =MAX(trflux1(i,j,n_M_BC1_BC)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OC>0) EMIS_MASS(4) =MAX(trflux1(i,j,n_M_OCC_OC)*1.d9/ AVOL,0.d0)
-        if (n_M_DD1_DU>0) EMIS_MASS(5) =MAX(trflux1(i,j,n_M_DD1_DU)*1.d9/ AVOL,0.d0)
-        if (n_M_SSS_SS>0) EMIS_MASS(6) =MAX(trflux1(i,j,n_M_SSS_SS)*1.d9/ AVOL,0.d0) ! only for M4/M8
-        if (n_M_SSA_SS>0) EMIS_MASS(6) =MAX(trflux1(i,j,n_M_SSA_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
-        if (n_M_SSC_SS>0) EMIS_MASS(7) =MAX(trflux1(i,j,n_M_SSC_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
-        if (n_M_DD2_DU>0) EMIS_MASS(10)=MAX(trflux1(i,j,n_M_DD2_DU)*1.d9/ AVOL,0.d0)
+        if (n_M_AKK_SU>0) EMIS_MASS(EMIS_AKK_SULF) =MAX(trflux1(i,j,n_M_AKK_SU)*1.d9/ AVOL,0.d0)
+        if (n_M_ACC_SU>0) EMIS_MASS(EMIS_ACC_SULF) =MAX(trflux1(i,j,n_M_ACC_SU)*1.d9/ AVOL,0.d0)
+        if (n_M_BC1_BC>0) EMIS_MASS(EMIS_BC1_BCAR) =MAX(trflux1(i,j,n_M_BC1_BC)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OC>0) EMIS_MASS(EMIS_OCC_OCAR) =MAX(trflux1(i,j,n_M_OCC_OC)*1.d9/ AVOL,0.d0)
+        if (n_M_DD1_DU>0) EMIS_MASS(EMIS_DD1_DUST) =MAX(trflux1(i,j,n_M_DD1_DU)*1.d9/ AVOL,0.d0)
+        if (n_M_SSS_SS>0) EMIS_MASS(EMIS_SSA_SEAS) =MAX(trflux1(i,j,n_M_SSS_SS)*1.d9/ AVOL,0.d0) ! only for M4/M8
+        if (n_M_SSA_SS>0) EMIS_MASS(EMIS_SSA_SEAS) =MAX(trflux1(i,j,n_M_SSA_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
+        if (n_M_SSC_SS>0) EMIS_MASS(EMIS_SSC_SEAS) =MAX(trflux1(i,j,n_M_SSC_SS)*1.d9/ AVOL,0.d0) ! all but M4/M8
+        if (n_M_DD2_DU>0) EMIS_MASS(EMIS_DD2_DUST)=MAX(trflux1(i,j,n_M_DD2_DU)*1.d9/ AVOL,0.d0)
 #ifdef TRACERS_AMP_M9
-        if (n_M_OCC_OCM2>0) EMIS_MASS(11) =MAX(trflux1(i,j,n_M_OCC_OCM2)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCM1>0) EMIS_MASS(12) =MAX(trflux1(i,j,n_M_OCC_OCM1)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCM0>0) EMIS_MASS(13) =MAX(trflux1(i,j,n_M_OCC_OCM0)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP1>0) EMIS_MASS(14) =MAX(trflux1(i,j,n_M_OCC_OCP1)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP2>0) EMIS_MASS(15) =MAX(trflux1(i,j,n_M_OCC_OCP2)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP3>0) EMIS_MASS(16) =MAX(trflux1(i,j,n_M_OCC_OCP3)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP4>0) EMIS_MASS(17) =MAX(trflux1(i,j,n_M_OCC_OCP4)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP5>0) EMIS_MASS(18) =MAX(trflux1(i,j,n_M_OCC_OCP5)*1.d9/ AVOL,0.d0)
-        if (n_M_OCC_OCP6>0) EMIS_MASS(19) =MAX(trflux1(i,j,n_M_OCC_OCP6)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCM2>0) EMIS_MASS(EMIS_OCC_OCM2) =MAX(trflux1(i,j,n_M_OCC_OCM2)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCM1>0) EMIS_MASS(EMIS_OCC_OCM1) =MAX(trflux1(i,j,n_M_OCC_OCM1)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCM0>0) EMIS_MASS(EMIS_OCC_OCM0) =MAX(trflux1(i,j,n_M_OCC_OCM0)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP1>0) EMIS_MASS(EMIS_OCC_OCP1) =MAX(trflux1(i,j,n_M_OCC_OCP1)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP2>0) EMIS_MASS(EMIS_OCC_OCP2) =MAX(trflux1(i,j,n_M_OCC_OCP2)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP3>0) EMIS_MASS(EMIS_OCC_OCP3) =MAX(trflux1(i,j,n_M_OCC_OCP3)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP4>0) EMIS_MASS(EMIS_OCC_OCP4) =MAX(trflux1(i,j,n_M_OCC_OCP4)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP5>0) EMIS_MASS(EMIS_OCC_OCP5) =MAX(trflux1(i,j,n_M_OCC_OCP5)*1.d9/ AVOL,0.d0)
+        if (n_M_OCC_OCP6>0) EMIS_MASS(EMIS_OCC_OCP6) =MAX(trflux1(i,j,n_M_OCC_OCP6)*1.d9/ AVOL,0.d0)
 #endif  /* TRACERS_AMP_M9 */
       endif
 !      Emis Mass [ug/m3/s] <-- trflux1[kg/s]
       if (n_M_AKK_SU>0)
-     * EMIS_MASS(1) = EMIS_MASS(1) + ((tr3Dsource(l,nVolcanic,n_M_AKK_SU)+
+     * EMIS_MASS(EMIS_AKK_SULF) = EMIS_MASS(EMIS_AKK_SULF) + ((tr3Dsource(l,nVolcanic,n_M_AKK_SU)+
      *                                 tr3Dsource(l,nBiomass,n_M_AKK_SU)+
      *                                 tr3Dsource(l,nAircraft,n_M_AKK_SU)
      *                                )*1.d9 / AVOL)
       if (n_M_ACC_SU>0)
-     * EMIS_MASS(2) = EMIS_MASS(2) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
+     * EMIS_MASS(EMIS_ACC_SULF) = EMIS_MASS(EMIS_ACC_SULF) + ((tr3Dsource(l,nVolcanic,n_M_ACC_SU)+
      *                                 tr3Dsource(l,nBiomass,n_M_ACC_SU)+
      *                                 tr3Dsource(l,nAircraft,n_M_ACC_SU)
      *                                )*1.d9 / AVOL)
       if (n_M_BC1_BC>0)
-     * EMIS_MASS(3) = EMIS_MASS(3) + ((tr3Dsource(l,nBiomass,n_M_BC1_BC)+
+     * EMIS_MASS(EMIS_BC1_BCAR) = EMIS_MASS(EMIS_BC1_BCAR) + ((tr3Dsource(l,nBiomass,n_M_BC1_BC)+
      *                                 tr3Dsource(l,nAircraft,n_M_BC1_BC)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OC>0)
-     * EMIS_MASS(4) = EMIS_MASS(4) + ((tr3Dsource(l,nBiomass,n_M_OCC_OC)+
+     * EMIS_MASS(EMIS_OCC_OCAR) = EMIS_MASS(EMIS_OCC_OCAR) + ((tr3Dsource(l,nBiomass,n_M_OCC_OC)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OC)
      *                                )*1.d9 / AVOL)
 #ifdef TRACERS_AMP_M9
       if (n_M_OCC_OCM2>0)
-     * EMIS_MASS(11) = EMIS_MASS(11) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM2)+
+     * EMIS_MASS(EMIS_OCC_OCM2) = EMIS_MASS(EMIS_OCC_OCM2) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM2)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM2)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCM1>0)
-     * EMIS_MASS(12) = EMIS_MASS(12) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM1)+
+     * EMIS_MASS(EMIS_OCC_OCM1) = EMIS_MASS(EMIS_OCC_OCM1) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM1)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM1)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCM0>0)
-     * EMIS_MASS(13) = EMIS_MASS(13) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM0)+
+     * EMIS_MASS(EMIS_OCC_OCM0) = EMIS_MASS(EMIS_OCC_OCM0) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCM0)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCM0)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP1>0)
-     * EMIS_MASS(14) = EMIS_MASS(14) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP1)+
+     * EMIS_MASS(EMIS_OCC_OCP1) = EMIS_MASS(EMIS_OCC_OCP1) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP1)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP1)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP2>0)
-     * EMIS_MASS(15) = EMIS_MASS(15) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP2)+
+     * EMIS_MASS(EMIS_OCC_OCP2) = EMIS_MASS(EMIS_OCC_OCP2) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP2)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP2)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP3>0)
-     * EMIS_MASS(16) = EMIS_MASS(16) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP3)+
+     * EMIS_MASS(EMIS_OCC_OCP3) = EMIS_MASS(EMIS_OCC_OCP3) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP3)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP3)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP4>0)
-     * EMIS_MASS(17) = EMIS_MASS(17) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP4)+
+     * EMIS_MASS(EMIS_OCC_OCP4) = EMIS_MASS(EMIS_OCC_OCP4) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP4)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP4)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP5>0)
-     * EMIS_MASS(18) = EMIS_MASS(18) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP5)+
+     * EMIS_MASS(EMIS_OCC_OCP5) = EMIS_MASS(EMIS_OCC_OCP5) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP5)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP5)
      *                                )*1.d9 / AVOL)
       if (n_M_OCC_OCP6>0)
-     * EMIS_MASS(19) = EMIS_MASS(19) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP6)+
+     * EMIS_MASS(EMIS_OCC_OCP6) = EMIS_MASS(EMIS_OCC_OCP6) + ((tr3Dsource(l,nBiomass,n_M_OCC_OCP6)+
      *                                 tr3Dsource(l,nAircraft,n_M_OCC_OCP6)
      *                                )*1.d9 / AVOL)
 #endif  /* TRACERS_AMP_M9 */

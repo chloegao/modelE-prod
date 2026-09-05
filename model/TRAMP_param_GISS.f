@@ -358,9 +358,45 @@ c     &               80.81, 85.58, 90./
 !-------------------------------------------------------------------------------------------------------------------------
       INTEGER, SAVE :: ILAY    ! current layer index
 !-------------------------------------------------------------------------------------------------------------------------
+!     Slots of the EMIS_MASS array of mass emission rates, named for the mode and
+!     species each one feeds. AERO_DRV fills them, MATRIX_DRV and SPCMASSES read
+!     them, and SETUP_SPECIES_MAPS uses EMIS_MODE_MAP and EMIS_SPCS_MAP (which have
+!     one element per slot, in this same order) to say which mode receives each one
+!     and which chemical species it is. The last nine slots are the VBS organics and
+!     exist only in mechanism 9.
+!
+!     The two sea salt slots are named for modes SSA and SSC, but in the mechanisms
+!     with a single sea salt mode (4 and 8) SETUP_SPECIES_MAPS points both of them
+!     at mode SSS instead.
+!-------------------------------------------------------------------------------------------------------------------------
+      INTEGER, PARAMETER :: EMIS_AKK_SULF =  1 ! Aitken mode sulfate; goes to AKK, or to ACC if there is no AKK
+      INTEGER, PARAMETER :: EMIS_ACC_SULF =  2
+      INTEGER, PARAMETER :: EMIS_BC1_BCAR =  3
+      INTEGER, PARAMETER :: EMIS_OCC_OCAR =  4
+      INTEGER, PARAMETER :: EMIS_DD1_DUST =  5
+      INTEGER, PARAMETER :: EMIS_SSA_SEAS =  6 ! fine   sea salt
+      INTEGER, PARAMETER :: EMIS_SSC_SEAS =  7 ! coarse sea salt
+      INTEGER, PARAMETER :: EMIS_BOC_BCAR =  8 ! BC part of mixed BC-OC emissions
+      INTEGER, PARAMETER :: EMIS_BOC_OCAR =  9 ! OC part of mixed BC-OC emissions
+      INTEGER, PARAMETER :: EMIS_DD2_DUST = 10
+      INTEGER, PARAMETER :: EMIS_OCC_OCM2 = 11
+      INTEGER, PARAMETER :: EMIS_OCC_OCM1 = 12
+      INTEGER, PARAMETER :: EMIS_OCC_OCM0 = 13
+      INTEGER, PARAMETER :: EMIS_OCC_OCP1 = 14
+      INTEGER, PARAMETER :: EMIS_OCC_OCP2 = 15
+      INTEGER, PARAMETER :: EMIS_OCC_OCP3 = 16
+      INTEGER, PARAMETER :: EMIS_OCC_OCP4 = 17
+      INTEGER, PARAMETER :: EMIS_OCC_OCP5 = 18
+      INTEGER, PARAMETER :: EMIS_OCC_OCP6 = 19
+!-------------------------------------------------------------------------------------------------------------------------
 !     Indices of the AERO array. There are 78 possible indices.
 !-------------------------------------------------------------------------------------------------------------------------
-      INTEGER       :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3 
+!     MASS_NO3, MASS_NH4 and MASS_H2O are the locations of the three tracers that
+!     do not undergo microphysics, both in the AERO array (where they occupy the
+!     first NEXTRA slots) and among the extra components appended after the
+!     NMASS_SPCS microphysical components of the per-mode composition arrays
+!     (MASS_COMP, DENS_COMP), where they sit at NMASS_SPCS+MASS_xxx.
+      INTEGER, PARAMETER :: MASS_NO3=1, MASS_NH4=2, MASS_H2O=3
       INTEGER, SAVE :: NUMB_AKK_1, NUMB_AKK_2, MASS_AKK_SULF,  
      &                 NUMB_ACC_1, NUMB_ACC_2, MASS_ACC_SULF,
      &                 NUMB_DD1_1, NUMB_DD1_2, MASS_DD1_SULF, MASS_DD1_DUST, 

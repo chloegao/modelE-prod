@@ -259,7 +259,6 @@ C**** local except for special radiative aerosol diagnostics aadiag
       REAL*8 ::  SRCQPI(6,15),TRCQPI(33,15)       !??? to setcld/getcld
                  !  Temp data used by WRITER, WRITET
       REAL*8  :: TRAQAB(33,11),TRBQAB(33,10),TRCQAB(33,15),TRDQAB(33,25)
-      REAL*8  :: AMP_TAB_SPEC(33,ITRMAX)
       INTEGER :: NORDER(16),NMWAVA(16),NMWAVB(16)
 
 C------------------------------------------

@@ -83,68 +83,78 @@
       DATA MSPCS(PROD_INDEX_OCP6,1:NMODES_MAX)/0,1,1,1,1,1,1,1,0,1,1,1,0,1,0,1,1,1/
 #endif  /* TRACERS_AMP_M9 */
 !-------------------------------------------------------------------------------------------------------------------------
+!@param NEXTRA Number of aerosol tracers in MATRIX without microphysics: nitrate,
+!@+           ammonium and water, indexed by MASS_NO3, MASS_NH4 and MASS_H2O in
+!@+           AERO_PARAM. Every mechanism carries all three, so NEXTRA is set once
+!@+           here rather than per mechanism. It is used both as the count of extra
+!@+           tracers in the AERO array (NAEROBOX below) and as the number of extra
+!@+           components appended after the NMASS_SPCS microphysical components in
+!@+           per-mode composition arrays such as MASS_COMP and DENS_COMP; those two
+!@+           meanings only agree while NEXTRA is exactly the number of extra species.
+      INTEGER, PARAMETER :: NEXTRA = 3
 !@param MECH MATRIX mechanism selected.
-!@param NAEROVARS Number of aerosol tracers in MATRIX with microphysics.
-!@param NEXTRA Number of aerosol tracers in MATRIX without microphysics.
+!@param NAEROVARS Number of aerosol tracers in MATRIX with microphysics. This must
+!@+               equal the number of mass tracers implied by MSPCS plus the number
+!@+               of number tracers (NMODES*NPOINTS); SETUP_CONFIG checks this.
 !@param NMODES Number of modes active in selected mechanism.
 !@param NMASS_SPCS Number of mass species active in selected mechanism.
 !@param IMODES Indices of modes currently active, selected from MNAME.
 #ifdef TRACERS_AMP_M1
-      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NEXTRA=3,NMODES=16,NMASS_SPCS=5 ! Mechanism 1
+      INTEGER, PARAMETER :: MECH=1,NAEROVARS=51,NMODES=16,NMASS_SPCS=5 ! Mechanism 1
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,13,15,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M2
-      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NEXTRA=3,NMODES=16,NMASS_SPCS=5 ! Mechanism 2
+      INTEGER, PARAMETER :: MECH=2,NAEROVARS=51,NMODES=16,NMASS_SPCS=5 ! Mechanism 2
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,15,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M3
-      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NEXTRA=3,NMODES=13,NMASS_SPCS=5 ! Mechanism 3  
+      INTEGER, PARAMETER :: MECH=3,NAEROVARS=41,NMODES=13,NMASS_SPCS=5 ! Mechanism 3  
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,16,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M4
-      INTEGER, PARAMETER :: MECH=4,NAEROVARS=34,NEXTRA=1,NMODES=10,NMASS_SPCS=5 ! Mechanism 4 
+      INTEGER, PARAMETER :: MECH=4,NAEROVARS=32,NMODES=10,NMASS_SPCS=5 ! Mechanism 4 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 2, 3, 4, 5, 6, 9,10,11,12,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M5
-      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NEXTRA=3,NMODES=14,NMASS_SPCS=5 ! Mechanism 5
+      INTEGER, PARAMETER :: MECH=5,NAEROVARS=45,NMODES=14,NMASS_SPCS=5 ! Mechanism 5
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,13,15,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M6
-      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NEXTRA=3,NMODES=14,NMASS_SPCS=5 ! Mechanism 6 
+      INTEGER, PARAMETER :: MECH=6,NAEROVARS=45,NMODES=14,NMASS_SPCS=5 ! Mechanism 6 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,14,15,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M7
-      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NEXTRA=3,NMODES=11,NMASS_SPCS=5 ! Mechanism 7  
+      INTEGER, PARAMETER :: MECH=7,NAEROVARS=35,NMODES=11,NMASS_SPCS=5 ! Mechanism 7  
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 7, 8,10,11,12,16,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M8
-      INTEGER, PARAMETER :: MECH=8,NAEROVARS=28,NEXTRA=1,NMODES= 8,NMASS_SPCS=5 ! Mechanism 8 
+      INTEGER, PARAMETER :: MECH=8,NAEROVARS=26,NMODES= 8,NMASS_SPCS=5 ! Mechanism 8 
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 2, 3, 4, 9,10,11,12,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5/)
 #elif defined TRACERS_AMP_M9
-      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NEXTRA=3,NMODES=15,NMASS_SPCS=14 ! Mechanism 9
+      INTEGER, PARAMETER :: MECH=9,NAEROVARS=173,NMODES=15,NMASS_SPCS=14 ! Mechanism 9
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &
         ISPCS=(/ 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14/)
 #elif defined TRACERS_AMP_M10
-      INTEGER, PARAMETER :: MECH=10,NAEROVARS=47,NEXTRA=3,NMODES=15,NMASS_SPCS=5 ! Mechanism 10
+      INTEGER, PARAMETER :: MECH=10,NAEROVARS=47,NMODES=15,NMASS_SPCS=5 ! Mechanism 10
       INTEGER, PARAMETER, DIMENSION(NMODES) :: &
         IMODES=(/ 1, 2, 3, 4, 5, 6, 7, 8,10,11,12,14,16,17,18/)
       INTEGER, PARAMETER, DIMENSION(NMASS_SPCS) :: &

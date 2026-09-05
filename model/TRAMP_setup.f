@@ -113,19 +113,39 @@
       !-------------------------------------------------------------------------
       REAL(8), SAVE :: CONV_DPAM_TO_DGN(NWEIGHTS)
       !-------------------------------------------------------------------------
-      ! EMIS_MODE_MAP and EMIS_SPCS_MAP have elements corresponding to 
-      !   the aerosol types (in this order): AKK(=1), ACC(=2), BCC(=8), OCC(=7),
-      !               DD1(=3), SSA(=5), SSC(=6), BOC(BC=8), BOC(OC=9), DD2(=10).
-      ! EMIS_MODE_MAP(J) is mode number receiving the emissions held 
-      !                  in EMIS_MASS(J).
-      ! EMIS_SPCS_MAP(J) is the chemical species number (1-5) of the chemical
-      !                  species held in EMIS_MASS(J).
+      ! EMIS_MODE_MAP and EMIS_SPCS_MAP have one element per slot of the EMIS_MASS
+      !   array of mass emission rates, in the slot order given by the EMIS_xxx_yyyy
+      !   parameters of AERO_PARAM.
+      ! EMIS_MODE_MAP(J) is the mode number receiving the emissions held in
+      !                  EMIS_MASS(J); it is set in SETUP_SPECIES_MAPS, since which
+      !                  modes exist depends on the mechanism.
+      ! EMIS_SPCS_MAP(J) is the chemical species held in EMIS_MASS(J), as one of the
+      !                  PROD_INDEX_xxxx species indices of AERO_CONFIG.
       !-------------------------------------------------------------------------
       INTEGER,                  SAVE :: EMIS_MODE_MAP(NEMIS_SPCS)
+      INTEGER, DIMENSION(NEMIS_SPCS) :: EMIS_SPCS_MAP = (/
+     &  PROD_INDEX_SULF,  ! EMIS_AKK_SULF
+     &  PROD_INDEX_SULF,  ! EMIS_ACC_SULF
+     &  PROD_INDEX_BCAR,  ! EMIS_BC1_BCAR
+     &  PROD_INDEX_OCAR,  ! EMIS_OCC_OCAR
+     &  PROD_INDEX_DUST,  ! EMIS_DD1_DUST
+     &  PROD_INDEX_SEAS,  ! EMIS_SSA_SEAS
+     &  PROD_INDEX_SEAS,  ! EMIS_SSC_SEAS
+     &  PROD_INDEX_BCAR,  ! EMIS_BOC_BCAR
+     &  PROD_INDEX_OCAR,  ! EMIS_BOC_OCAR
 #ifdef TRACERS_AMP_M9
-      INTEGER, DIMENSION(NEMIS_SPCS) :: EMIS_SPCS_MAP = (/1,1,2,3,4,5,5,2,3,4,6,7,8,9,10,11,12,13,14/)
+     &  PROD_INDEX_DUST,  ! EMIS_DD2_DUST
+     &  PROD_INDEX_OCM2,  ! EMIS_OCC_OCM2
+     &  PROD_INDEX_OCM1,  ! EMIS_OCC_OCM1
+     &  PROD_INDEX_OCM0,  ! EMIS_OCC_OCM0
+     &  PROD_INDEX_OCP1,  ! EMIS_OCC_OCP1
+     &  PROD_INDEX_OCP2,  ! EMIS_OCC_OCP2
+     &  PROD_INDEX_OCP3,  ! EMIS_OCC_OCP3
+     &  PROD_INDEX_OCP4,  ! EMIS_OCC_OCP4
+     &  PROD_INDEX_OCP5,  ! EMIS_OCC_OCP5
+     &  PROD_INDEX_OCP6/) ! EMIS_OCC_OCP6
 #else
-      INTEGER, DIMENSION(NEMIS_SPCS) :: EMIS_SPCS_MAP = (/1,1,2,3,4,5,5,2,3,4/)
+     &  PROD_INDEX_DUST/) ! EMIS_DD2_DUST
 #endif
       !-------------------------------------------------------------------------
       ! The dimensions of these arrays depends upon mechanism.
@@ -213,11 +233,11 @@
       !-------------------------------------------------------------------------
       ! Setup the indices to the AERO array.
       !-------------------------------------------------------------------------
-      AERO_SPCS(1) = 'MASS_NITRATE'
-      AERO_SPCS(2) = 'MASS_AMMONIUM'
-      AERO_SPCS(3) = 'MASS_WATER'
-      INDEX = 3          ! The first three values of INDEX (1, 2, 3) are already 
-                         ! assigned to NO3, NH4, and H2O.
+      AERO_SPCS(MASS_NO3) = 'MASS_NITRATE'
+      AERO_SPCS(MASS_NH4) = 'MASS_AMMONIUM'
+      AERO_SPCS(MASS_H2O) = 'MASS_WATER'
+      INDEX = NEXTRA     ! The first NEXTRA values of INDEX are already assigned
+                         ! to NO3, NH4 and H2O, at MASS_NO3, MASS_NH4, MASS_H2O.
       IF ( WRITE_LOG ) THEN
         WRITE(AUNIT1,'(/2A/)') 'MODE #   MODE_NAME   CHEM_SPC #   CHEM_SPC_NAME   location in AERO',
      &                         '         AERO_SPCS'
@@ -248,8 +268,16 @@
           ENDIF
         ENDDO
       ENDDO
+      !-------------------------------------------------------------------------------------------------------------------
+      ! INDEX has now counted the NEXTRA extra tracers plus every mass and number
+      !   tracer implied by MSPCS, so this also checks NAEROVARS in AERO_CONFIG:
+      !   NAEROBOX = NAEROVARS + NEXTRA, and a NAEROVARS that disagrees with MSPCS
+      !   would leave the AERO array the wrong size.
+      !-------------------------------------------------------------------------------------------------------------------
       IF ( INDEX .NE. NAEROBOX ) THEN
         WRITE(*,*)'INDEX .NE. NAEROBOX', INDEX, NAEROBOX    ! size of the AERO and AERO_SPCS arrays
+        WRITE(*,*)'Check NAEROVARS for mechanism ', MECH, ' in AERO_CONFIG: it must be'
+        WRITE(*,*)'the number of mass tracers in MSPCS plus NMODES*NPOINTS = ', INDEX-NEXTRA
         STOP
       ENDIF
       !-------------------------------------------------------------------------------------------------------------------
@@ -1191,60 +1219,60 @@
         ENDDO
       ENDIF
       !----------------------------------------------------------------------------------------------------
-      ! Setup EMIS_MODE_MAP. There are presently 10 emitted species.
+      ! Setup EMIS_MODE_MAP: the mode number receiving each of the NEMIS_SPCS slots of
+      ! EMIS_MASS. The slots are named by the EMIS_xxx_yyyy parameters of AERO_PARAM,
+      ! and the species each one carries is EMIS_SPCS_MAP, set at the top of the module.
       !
-      ! EMIS_MODE_MAP and EMIS_SPCS_MAP have elements corresponding to the aerosol types (in this order):
-      !   AKK(=1), ACC(=2), BCC(=8), OCC(=7), DD1(=3), SSA(=5), SSC(=6), BOC(BC=8), BOC(OC=9), DD2(=10).
-      !
-      ! EMIS_MODE_MAP(J) is mode number receiving the emissions held in EMIS_MASS(J).
-      ! EMIS_SPCS_MAP(J) is the chemical species number (1-5) of the chemical species held in EMIS_MASS(J).
-      ! EMIS_SPCS_MAP = (/1,1,2,3,4,5,5,2,3,4/) is set at the top of the module.
+      ! A slot whose mode is absent from this mechanism is left at 0. The two cases
+      ! where that would lose emissions are handled: the slots for the second dust and
+      ! second sea salt mode are pointed at the single mode that mechanism does have,
+      ! and the mixed BC-OC slots are split into BC1 and OCC further below.
       !----------------------------------------------------------------------------------------------------
       EMIS_MODE_MAP(:) = 0 
-      EMIS_MODE_MAP(1) = 1  ! Aitken mode sulfate always goes in the first mode, whether it is AKK or ACC.
+      EMIS_MODE_MAP(EMIS_AKK_SULF) = 1  ! Aitken mode sulfate always goes in the first mode, whether it is AKK or ACC.
       DO I=1, NMODES        ! If no Aitken mode, then the accumulation mode is the first mode.
-        IF( MODE_NAME(I) .EQ. 'ACC' ) EMIS_MODE_MAP(2) = I
-        IF( MODE_NAME(I) .EQ. 'BC1' ) EMIS_MODE_MAP(3) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(4) = I
+        IF( MODE_NAME(I) .EQ. 'ACC' ) EMIS_MODE_MAP(EMIS_ACC_SULF) = I
+        IF( MODE_NAME(I) .EQ. 'BC1' ) EMIS_MODE_MAP(EMIS_BC1_BCAR) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCAR) = I
         IF( MODE_NAME(I) .EQ. 'DD1' ) THEN
-          EMIS_MODE_MAP(5) = I
-          IF( MECH .GE. 5 .AND. MECH .LE. 8 ) EMIS_MODE_MAP(10) = I   ! emissions for both dust modes go into mode DD1
+          EMIS_MODE_MAP(EMIS_DD1_DUST) = I
+          IF( MECH .GE. 5 .AND. MECH .LE. 8 ) EMIS_MODE_MAP(EMIS_DD2_DUST) = I   ! emissions for both dust modes go into mode DD1
         ENDIF
-        IF( MODE_NAME(I) .EQ. 'SSA' ) EMIS_MODE_MAP(6) = I
-        IF( MODE_NAME(I) .EQ. 'SSC' ) EMIS_MODE_MAP(7) = I
-        IF( MODE_NAME(I) .EQ. 'SSS' ) EMIS_MODE_MAP(6) = I  ! emissions for both sea salt modes go into mode SSS
-        IF( MODE_NAME(I) .EQ. 'SSS' ) EMIS_MODE_MAP(7) = I  ! emissions for both sea salt modes go into mode SSS
-        IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(8) = I
-        IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(9) = I
-        IF( MODE_NAME(I) .EQ. 'DD2' ) EMIS_MODE_MAP(10) = I
+        IF( MODE_NAME(I) .EQ. 'SSA' ) EMIS_MODE_MAP(EMIS_SSA_SEAS) = I
+        IF( MODE_NAME(I) .EQ. 'SSC' ) EMIS_MODE_MAP(EMIS_SSC_SEAS) = I
+        IF( MODE_NAME(I) .EQ. 'SSS' ) EMIS_MODE_MAP(EMIS_SSA_SEAS) = I  ! emissions for both sea salt modes go into mode SSS
+        IF( MODE_NAME(I) .EQ. 'SSS' ) EMIS_MODE_MAP(EMIS_SSC_SEAS) = I  ! emissions for both sea salt modes go into mode SSS
+        IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(EMIS_BOC_BCAR) = I
+        IF( MODE_NAME(I) .EQ. 'BOC' ) EMIS_MODE_MAP(EMIS_BOC_OCAR) = I
+        IF( MODE_NAME(I) .EQ. 'DD2' ) EMIS_MODE_MAP(EMIS_DD2_DUST) = I
 #ifdef TRACERS_AMP_M9
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(11) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(12) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(13) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(14) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(15) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(16) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(17) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(18) = I
-        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(19) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCM2) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCM1) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCM0) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP1) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP2) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP3) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP4) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP5) = I
+        IF( MODE_NAME(I) .EQ. 'OCC' ) EMIS_MODE_MAP(EMIS_OCC_OCP6) = I
 #endif
       ENDDO
       !-------------------------------------------------------------------------
       ! If the mechanism does not have the mode BOC to receive the 
       ! mixed BC-OC emissions, put these directly into the BC1 and OCC modes.
       !-------------------------------------------------------------------------
-      IF ( EMIS_MODE_MAP(8) .EQ. 0 ) THEN   ! the BC in BC-OC emissions
+      IF ( EMIS_MODE_MAP(EMIS_BOC_BCAR) .EQ. 0 ) THEN   ! the BC in BC-OC emissions
         DO I=1, NMODES   
           IF( MODE_NAME(I) .EQ. 'BC1' ) THEN
-            EMIS_MODE_MAP(8) = I
+            EMIS_MODE_MAP(EMIS_BOC_BCAR) = I
             IF ( WRITE_LOG ) WRITE(AUNIT1,'(/2A/)')'BC of BO-OC put into mode ',MODE_NAME(I)
           ENDIF
         ENDDO
       ENDIF
-      IF ( EMIS_MODE_MAP(9) .EQ. 0 ) THEN   ! the OC in BC-OC emissions
+      IF ( EMIS_MODE_MAP(EMIS_BOC_OCAR) .EQ. 0 ) THEN   ! the OC in BC-OC emissions
         DO I=1, NMODES   
           IF( MODE_NAME(I) .EQ. 'OCC' ) THEN
-            EMIS_MODE_MAP(9) = I
+            EMIS_MODE_MAP(EMIS_BOC_OCAR) = I
             IF ( WRITE_LOG ) WRITE(AUNIT1,'(/2A/)')'OC of BO-OC put into mode ',MODE_NAME(I)
           ENDIF
         ENDDO
