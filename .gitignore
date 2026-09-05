@@ -16,3 +16,8 @@ build/*
 *.pik
 spack-build.*
 spconfig.py
+
+# --- local additions ---
+*.icloud
+* 2.*
+* 3.*

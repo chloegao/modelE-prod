@@ -1,4 +1,6 @@
-# ignore everything except the Makefile
+# ignore build output, but keep the Makefile, README and the rundecks themselves
 *
 !/Makefile
-
+!/README
+!*.R
+!/.gitignore
