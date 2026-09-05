@@ -67,17 +67,21 @@ LFLAGS += $(M64)
 # flags needed for particular releases
 
 FFLAGS_RELEASE =
-ifneq (,$(filter 10 11 12,$(GFORTRAN_RELEASE)))
+# Tested as version ranges rather than fixed lists, so that releases newer
+# than the ones known when this was written still get the flags they need.
+GFORTRAN_GE_8  := $(shell test "$(GFORTRAN_RELEASE)" -ge 8  2>/dev/null && echo YES)
+GFORTRAN_GE_10 := $(shell test "$(GFORTRAN_RELEASE)" -ge 10 2>/dev/null && echo YES)
+ifeq ($(GFORTRAN_GE_10),YES)
 FFLAGS_RELEASE += -fallow-argument-mismatch
 endif
-ifneq (,$(filter 8 9 10 11 12,$(GFORTRAN_RELEASE)))
+ifeq ($(GFORTRAN_GE_8),YES)
 FFLAGS_RELEASE += -fwrapv
 endif
 
 # the following flag is not strictly required, but ot makes the code 
 # more reproducible, in a sense that the results are the same for -O2 and -O0
 # (for all files but CLOUDS2.F90)
-ifneq (,$(filter 10 11 12,$(GFORTRAN_RELEASE)))
+ifeq ($(GFORTRAN_GE_10),YES)
 FFLAGS_RELEASE += -fno-expensive-optimizations
 endif
 

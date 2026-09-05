@@ -75,6 +75,11 @@ $(LIB): $(OBJS)
 
 #.INTERMEDIATE: $(FFSRCS_CPP) $(DEPENDFILE)_cpp $(DEPENDFILE)_f
 
+# Preprocessor used to scan C sources for dependencies. C must not be
+# preprocessed in traditional mode; on most platforms dropping -traditional
+# from CPP achieves that, but a machine.*.mk may override this (see Darwin).
+CPP_C ?= $(filter-out -traditional,$(CPP))
+
 $(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options .current_srcs $(RUN_H)
 	@echo
 	@echo '--------          Rebuilding Dependencies  in        ---------'
@@ -84,7 +89,7 @@ $(DEPENDFILE): $(FFSRCS) $(CSRCS) .current_options .current_srcs $(RUN_H)
 	for i in $(filter %.f %.F90,$^); do $(CPP) -M $(CPPFLAGS) $$i >> $(DEPENDFILE)_cpp; \
 	$(CPP) $(CPPFLAGS) $$i > `basename $$i`.cpp; \
 	done
-	for i in $(filter %.c,$^); do $(filter-out -traditional,$(CPP)) -M $(CPPFLAGS) $$i >> $(DEPENDFILE)_cpp; \
+	for i in $(filter %.c,$^); do $(CPP_C) -M $(CPPFLAGS) $$i >> $(DEPENDFILE)_cpp; \
 	done
 	@echo '====> running fmakedep'
 	-rm -f $(DEPENDFILE)_tmp
